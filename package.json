@@ -1,0 +1,22 @@
+{
+  "name": "clenzy-platform",
+  "version": "1.0.0",
+  "description": "Plateforme de gestion des services Airbnb - Clenzy (Java Serverless)",
+  "main": "serverless.yml",
+  "scripts": {
+    "dev": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "deploy": "serverless deploy",
+    "deploy:dev": "serverless deploy --stage dev",
+    "deploy:prod": "serverless deploy --stage prod",
+    "logs": "serverless logs -f",
+    "remove": "serverless remove"
+  },
+  "keywords": ["airbnb", "cleaning", "maintenance", "management", "clenzy", "java", "serverless", "spring"],
+  "author": "Clenzy Team",
+  "license": "MIT",
+  "devDependencies": {
+    "serverless": "^3.38.0",
+    "serverless-offline": "^13.3.3"
+  }
+}

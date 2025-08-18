@@ -1,0 +1,234 @@
+service: clenzy-platform
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: java17
+  region: eu-west-1
+  stage: ${opt:stage, 'dev'}
+  memorySize: 1024
+  timeout: 30
+  environment:
+    SPRING_PROFILES_ACTIVE: ${self:provider.stage}
+    DB_HOST: ${ssm:/clenzy/${self:provider.stage}/db-host}
+    DB_PORT: ${ssm:/clenzy/${self:provider.stage}/db-port}
+    DB_NAME: ${ssm:/clenzy/${self:provider.stage}/db-name}
+    DB_USERNAME: ${ssm:/clenzy/${self:provider.stage}/db-username}
+    DB_PASSWORD: ${ssm:/clenzy/${self:provider.stage}/db-password}
+    JWT_SECRET: ${ssm:/clenzy/${self:provider.stage}/jwt-secret}
+    AWS_REGION: ${self:provider.region}
+  
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - rds:*
+            - dynamodb:*
+            - ses:*
+            - cognito-idp:*
+            - s3:*
+            - logs:*
+          Resource: "*"
+  
+  vpc:
+    securityGroupIds:
+      - ${ssm:/clenzy/${self:provider.stage}/security-group-id}
+    subnetIds:
+      - ${ssm:/clenzy/${self:provider.stage}/subnet-id-1}
+      - ${ssm:/clenzy/${self:provider.stage}/subnet-id-2}
+
+package:
+  artifact: server/target/clenzy-platform-1.0.0.jar
+
+functions:
+  # API Gateway Handler
+  api:
+    handler: com.clenzy.ClenzyApplication::handleRequest
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors: true
+          authorizer:
+            name: cognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: ${ssm:/clenzy/${self:provider.stage}/cognito-user-pool-arn}
+  
+  # User Management Functions
+  userManagement:
+    handler: com.clenzy.controller.UserController::handleRequest
+    events:
+      - http:
+          path: /api/users/{proxy+}
+          method: ANY
+          cors: true
+          authorizer:
+            name: cognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: ${ssm:/clenzy/${self:provider.stage}/cognito-user-pool-arn}
+  
+  # Service Request Functions
+  serviceRequest:
+    handler: com.clenzy.controller.ServiceRequestController::handleRequest
+    events:
+      - http:
+          path: /api/services/{proxy+}
+          method: ANY
+          cors: true
+          authorizer:
+            name: cognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: ${ssm:/clenzy/${self:provider.stage}/cognito-user-pool-arn}
+  
+  # Intervention Management Functions
+  intervention:
+    handler: com.clenzy.controller.InterventionController::handleRequest
+    events:
+      - http:
+          path: /api/interventions/{proxy+}
+          method: ANY
+          cors: true
+          authorizer:
+            name: cognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn: ${ssm:/clenzy/${self:provider.stage}/cognito-user-pool-arn}
+  
+  # Notification Functions
+  notification:
+    handler: com.clenzy.service.NotificationService::handleRequest
+    events:
+      - schedule:
+          rate: rate(5 minutes)
+          enabled: ${self:provider.stage == 'prod'}
+  
+  # Reporting Functions
+  reporting:
+    handler: com.clenzy.service.ReportingService::handleRequest
+    events:
+      - schedule:
+          rate: cron(0 1 * * ? *)  # Daily at 1 AM
+          enabled: ${self:provider.stage == 'prod'}
+
+resources:
+  Resources:
+    # Cognito User Pool
+    CognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: clenzy-${self:provider.stage}-users
+        AutoVerifiedAttributes:
+          - email
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireSymbols: true
+            RequireUppercase: true
+    
+    # Cognito User Pool Client
+    CognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        UserPoolId: !Ref CognitoUserPool
+        ClientName: clenzy-${self:provider.stage}-client
+        GenerateSecret: false
+        ExplicitAuthFlows:
+          - ALLOW_USER_PASSWORD_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+    
+    # RDS Database
+    ClenzyDatabase:
+      Type: AWS::RDS::DBInstance
+      Properties:
+        DBInstanceIdentifier: clenzy-${self:provider.stage}
+        DBInstanceClass: db.t3.micro
+        Engine: postgres
+        EngineVersion: '14.10'
+        MasterUsername: ${ssm:/clenzy/${self:provider.stage}/db-username}
+        MasterUserPassword: ${ssm:/clenzy/${self:provider.stage}/db-password}
+        DBName: ${ssm:/clenzy/${self:provider.stage}/db-name}
+        AllocatedStorage: 20
+        StorageType: gp2
+        VPCSecurityGroups:
+          - ${ssm:/clenzy/${self:provider.stage}/security-group-id}
+        DBSubnetGroupName: ${ssm:/clenzy/${self:provider.stage}/db-subnet-group}
+        BackupRetentionPeriod: 7
+        MultiAZ: false
+        PubliclyAccessible: false
+        DeletionProtection: ${self:provider.stage == 'prod'}
+    
+    # DynamoDB Tables
+    UserSessionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: clenzy-${self:provider.stage}-user-sessions
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: sessionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: sessionId
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+    
+    NotificationsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: clenzy-${self:provider.stage}-notifications
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: notificationId
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: notificationId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: UserIdIndex
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+
+  Outputs:
+    CognitoUserPoolId:
+      Description: Cognito User Pool ID
+      Value: !Ref CognitoUserPool
+      Export:
+        Name: clenzy-${self:provider.stage}-cognito-user-pool-id
+    
+    CognitoUserPoolClientId:
+      Description: Cognito User Pool Client ID
+      Value: !Ref CognitoUserPoolClient
+      Export:
+        Name: clenzy-${self:provider.stage}-cognito-client-id
+    
+    DatabaseEndpoint:
+      Description: RDS Database Endpoint
+      Value: !GetAtt ClenzyDatabase.Endpoint.Address
+      Export:
+        Name: clenzy-${self:provider.stage}-db-endpoint
+
+plugins:
+  - serverless-offline
+  - serverless-java-maven
+
+custom:
+  serverless-offline:
+    httpPort: 3000
+    lambdaPort: 3002
+    noPrependStageInUrl: true
+  
+  serverless-java-maven:
+    artifactId: clenzy-platform
+    version: 1.0.0
+    groupId: com.clenzy

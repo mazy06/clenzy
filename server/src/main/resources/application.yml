@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: clenzy
+  profiles:
+    active: prod
+
+# Configuration Keycloak
+keycloak:
+  auth-server-url: http://clenzy-keycloak:8080
+  realm: clenzy
+  resource: clenzy-web
+  credentials:
+    secret: ""
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: WHEN_AUTHORIZED
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  packages-to-scan: com.clenzy.controller
+  paths-to-match: /api/**
+
+

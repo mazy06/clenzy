@@ -1,0 +1,35 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/clenzy
+    driver-class-name: org.postgresql.Driver
+    username: clenzy
+    password: clenzy
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+# Configuration Keycloak
+keycloak:
+  auth-server-url: http://clenzy-keycloak:8080
+  realm: clenzy
+  resource: clenzy-web
+  credentials:
+    secret: ""
+
+logging:
+  level:
+    org.hibernate.SQL: warn
+    org.springframework.web: info
+
+server:
+  port: 8080
+  address: 0.0.0.0
+
+

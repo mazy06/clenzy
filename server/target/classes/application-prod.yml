@@ -1,0 +1,35 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/clenzy
+    username: ${DB_USERNAME:clenzy}
+    password: ${DB_PASSWORD:clenzy}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI}
+
+keycloak:
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://localhost:8083}
+  realm: ${KEYCLOAK_REALM:clenzy}
+  resource: ${KEYCLOAK_RESOURCE:clenzy-web}
+  credentials:
+    secret: ${KEYCLOAK_CLIENT_SECRET:clenzy-secret}
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+cors:
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
+
+

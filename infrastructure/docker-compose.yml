@@ -1,0 +1,96 @@
+version: "3.9"
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    container_name: clenzy-keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+      KC_PROXY: edge
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_ADMIN: localhost
+      KC_HOSTNAME_PORT: 8081
+      KC_HOSTNAME_ADMIN_PORT: 8081
+      KC_HOSTNAME_STRICT_BACKCHANNEL: false
+    volumes:
+      - ./keycloak/realm-clenzy.json:/opt/keycloak/data/import/realm-clenzy.json:ro
+      - keycloak_data:/opt/keycloak/data
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  keycloak-init:
+    image: curlimages/curl:latest
+    container_name: clenzy-keycloak-init
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    volumes:
+      - ./keycloak/init-keycloak.sh:/init-keycloak.sh:ro
+    command: ["/bin/sh", "/init-keycloak.sh"]
+    environment:
+      - CURL_VERBOSE=1
+
+  postgres:
+    image: postgres:15
+    container_name: clenzy-postgres
+    environment:
+      POSTGRES_DB: clenzy
+      POSTGRES_USER: clenzy
+      POSTGRES_PASSWORD: clenzy
+    ports:
+      - "8082:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  server:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    container_name: clenzy-server
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+    environment:
+      KEYCLOAK_ISSUER_URI: http://clenzy-keycloak:8080/realms/clenzy
+      DB_USERNAME: clenzy
+      DB_PASSWORD: clenzy
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/clenzy
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://clenzy-keycloak:8080/realms/clenzy/protocol/openid-connect/certs
+      KEYCLOAK_TOKEN_URI: http://clenzy-keycloak:8080/realms/clenzy/protocol/openid-connect/token
+      KEYCLOAK_CLIENT_ID: clenzy-web
+      KEYCLOAK_HOSTNAME: clenzy-keycloak:8080
+      KEYCLOAK_AUTH_SERVER_URL: http://clenzy-keycloak:8080
+      KEYCLOAK_REALM: clenzy
+      KEYCLOAK_RESOURCE: clenzy-web
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ../client
+      dockerfile: Dockerfile
+    container_name: clenzy-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - server
+
+volumes:
+  pgdata:
+  keycloak_data:
+
+

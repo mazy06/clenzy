@@ -1,0 +1,400 @@
+package com.clenzy.model;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
+
+@Entity
+@Table(name = "properties")
+public class Property {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @NotBlank(message = "Le nom du logement est obligatoire")
+    @Size(min = 3, max = 100, message = "Le nom doit contenir entre 3 et 100 caractères")
+    @Column(name = "name", nullable = false)
+    private String name;
+    
+    @Size(max = 500, message = "La description ne peut pas dépasser 500 caractères")
+    @Column(columnDefinition = "TEXT")
+    private String description;
+    
+    @NotBlank(message = "L'adresse est obligatoire")
+    @Size(max = 200, message = "L'adresse ne peut pas dépasser 200 caractères")
+    @Column(nullable = false)
+    private String address;
+    
+    @Size(max = 10, message = "Le code postal ne peut pas dépasser 10 caractères")
+    @Column(name = "postal_code")
+    private String postalCode;
+    
+    @Size(max = 50, message = "La ville ne peut pas dépasser 50 caractères")
+    private String city;
+    
+    @Size(max = 50, message = "Le pays ne peut pas dépasser 50 caractères")
+    private String country;
+    
+    @Column(name = "latitude")
+    private BigDecimal latitude;
+    
+    @Column(name = "longitude")
+    private BigDecimal longitude;
+    
+    @NotNull(message = "Le nombre de chambres est obligatoire")
+    @Column(name = "bedroom_count", nullable = false)
+    private Integer bedroomCount;
+    
+    @NotNull(message = "Le nombre de salles de bain est obligatoire")
+    @Column(name = "bathroom_count", nullable = false)
+    private Integer bathroomCount;
+    
+    @Column(name = "max_guests")
+    private Integer maxGuests;
+    
+    @Column(name = "square_meters")
+    private Integer squareMeters;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PropertyType type = PropertyType.APARTMENT;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PropertyStatus status = PropertyStatus.ACTIVE;
+    
+    @Column(name = "airbnb_listing_id")
+    private String airbnbListingId;
+    
+    @Column(name = "airbnb_url")
+    private String airbnbUrl;
+    
+    @Column(name = "cleaning_frequency")
+    @Enumerated(EnumType.STRING)
+    private CleaningFrequency cleaningFrequency = CleaningFrequency.AFTER_EACH_STAY;
+    
+    @Column(name = "maintenance_contract")
+    private boolean maintenanceContract = false;
+    
+    @Column(name = "emergency_contact")
+    private String emergencyContact;
+    
+    @Column(name = "emergency_phone")
+    private String emergencyPhone;
+    
+    @Column(name = "access_instructions", columnDefinition = "TEXT")
+    private String accessInstructions;
+    
+    @Column(name = "special_requirements", columnDefinition = "TEXT")
+    private String specialRequirements;
+    
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at")
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+    
+    // Relations
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
+    
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<ServiceRequest> serviceRequests = new HashSet<>();
+    
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<Intervention> interventions = new HashSet<>();
+    
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<PropertyPhoto> photos = new HashSet<>();
+    
+    // Constructeurs
+    public Property() {}
+    
+    public Property(String name, String address, Integer bedroomCount, Integer bathroomCount, User owner) {
+        this.name = name;
+        this.address = address;
+        this.bedroomCount = bedroomCount;
+        this.bathroomCount = bathroomCount;
+        this.owner = owner;
+    }
+    
+    // Getters et Setters
+    public Long getId() {
+        return id;
+    }
+    
+    public void setId(Long id) {
+        this.id = id;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+    
+    public void setDescription(String description) {
+        this.description = description;
+    }
+    
+    public String getAddress() {
+        return address;
+    }
+    
+    public void setAddress(String address) {
+        this.address = address;
+    }
+    
+    public String getPostalCode() {
+        return postalCode;
+    }
+    
+    public void setPostalCode(String postalCode) {
+        this.postalCode = postalCode;
+    }
+    
+    public String getCity() {
+        return city;
+    }
+    
+    public void setCity(String city) {
+        this.city = city;
+    }
+    
+    public String getCountry() {
+        return country;
+    }
+    
+    public void setCountry(String country) {
+        this.country = country;
+    }
+    
+    public BigDecimal getLatitude() {
+        return latitude;
+    }
+    
+    public void setLatitude(BigDecimal latitude) {
+        this.latitude = latitude;
+    }
+    
+    public BigDecimal getLongitude() {
+        return longitude;
+    }
+    
+    public void setLongitude(BigDecimal longitude) {
+        this.longitude = longitude;
+    }
+    
+    public Integer getBedroomCount() {
+        return bedroomCount;
+    }
+    
+    public void setBedroomCount(Integer bedroomCount) {
+        this.bedroomCount = bedroomCount;
+    }
+    
+    public Integer getBathroomCount() {
+        return bathroomCount;
+    }
+    
+    public void setBathroomCount(Integer bathroomCount) {
+        this.bathroomCount = bathroomCount;
+    }
+    
+    public Integer getMaxGuests() {
+        return maxGuests;
+    }
+    
+    public void setMaxGuests(Integer maxGuests) {
+        this.maxGuests = maxGuests;
+    }
+    
+    public Integer getSquareMeters() {
+        return squareMeters;
+    }
+    
+    public void setSquareMeters(Integer squareMeters) {
+        this.squareMeters = squareMeters;
+    }
+    
+    public PropertyType getType() {
+        return type;
+    }
+    
+    public void setType(PropertyType type) {
+        this.type = type;
+    }
+    
+    public PropertyStatus getStatus() {
+        return status;
+    }
+    
+    public void setStatus(PropertyStatus status) {
+        this.status = status;
+    }
+    
+    public String getAirbnbListingId() {
+        return airbnbListingId;
+    }
+    
+    public void setAirbnbListingId(String airbnbListingId) {
+        this.airbnbListingId = airbnbListingId;
+    }
+    
+    public String getAirbnbUrl() {
+        return airbnbUrl;
+    }
+    
+    public void setAirbnbUrl(String airbnbUrl) {
+        this.airbnbUrl = airbnbUrl;
+    }
+    
+    public CleaningFrequency getCleaningFrequency() {
+        return cleaningFrequency;
+    }
+    
+    public void setCleaningFrequency(CleaningFrequency cleaningFrequency) {
+        this.cleaningFrequency = cleaningFrequency;
+    }
+    
+    public boolean isMaintenanceContract() {
+        return maintenanceContract;
+    }
+    
+    public void setMaintenanceContract(boolean maintenanceContract) {
+        this.maintenanceContract = maintenanceContract;
+    }
+    
+    public String getEmergencyContact() {
+        return emergencyContact;
+    }
+    
+    public void setEmergencyContact(String emergencyContact) {
+        this.emergencyContact = emergencyContact;
+    }
+    
+    public String getEmergencyPhone() {
+        return emergencyPhone;
+    }
+    
+    public void setEmergencyPhone(String emergencyPhone) {
+        this.emergencyPhone = emergencyPhone;
+    }
+    
+    public String getAccessInstructions() {
+        return accessInstructions;
+    }
+    
+    public void setAccessInstructions(String accessInstructions) {
+        this.accessInstructions = accessInstructions;
+    }
+    
+    public String getSpecialRequirements() {
+        return specialRequirements;
+    }
+    
+    public void setSpecialRequirements(String specialRequirements) {
+        this.specialRequirements = specialRequirements;
+    }
+    
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+    
+    public User getOwner() {
+        return owner;
+    }
+    
+    public void setOwner(User owner) {
+        this.owner = owner;
+    }
+    
+    public Set<ServiceRequest> getServiceRequests() {
+        return serviceRequests;
+    }
+    
+    public void setServiceRequests(Set<ServiceRequest> serviceRequests) {
+        this.serviceRequests = serviceRequests;
+    }
+    
+    public Set<Intervention> getInterventions() {
+        return interventions;
+    }
+    
+    public void setInterventions(Set<Intervention> interventions) {
+        this.interventions = interventions;
+    }
+    
+    public Set<PropertyPhoto> getPhotos() {
+        return photos;
+    }
+    
+    public void setPhotos(Set<PropertyPhoto> photos) {
+        this.photos = photos;
+    }
+    
+    // Méthodes utilitaires
+    public String getFullAddress() {
+        StringBuilder address = new StringBuilder(this.address);
+        if (postalCode != null && !postalCode.isEmpty()) {
+            address.append(", ").append(postalCode);
+        }
+        if (city != null && !city.isEmpty()) {
+            address.append(" ").append(city);
+        }
+        if (country != null && !country.isEmpty()) {
+            address.append(", ").append(country);
+        }
+        return address.toString();
+    }
+    
+    public boolean hasCoordinates() {
+        return latitude != null && longitude != null;
+    }
+    
+    public boolean isActive() {
+        return PropertyStatus.ACTIVE.equals(status);
+    }
+    
+    @Override
+    public String toString() {
+        return "Property{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", address='" + address + '\'' +
+                ", city='" + city + '\'' +
+                ", type=" + type +
+                ", status=" + status +
+                '}';
+    }
+}

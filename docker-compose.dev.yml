@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # Base de données PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: clenzy-postgres-dev
+    environment:
+      POSTGRES_DB: clenzy_dev
+      POSTGRES_USER: clenzy
+      POSTGRES_PASSWORD: clenzy123
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - clenzy-network
+
+  # Serveur Keycloak
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    container_name: clenzy-keycloak-dev
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_dev
+      KC_DB_USERNAME: clenzy
+      KC_DB_PASSWORD: clenzy123
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+    ports:
+      - "8083:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./keycloak/realm-clenzy.json:/opt/keycloak/data/import/realm-clenzy.json
+    command: start-dev --import-realm
+    networks:
+      - clenzy-network
+
+  # Backend Spring Boot (développement)
+  server:
+    build:
+      context: ../server
+      dockerfile: Dockerfile.dev
+    container_name: clenzy-server-dev
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/clenzy_dev
+      SPRING_DATASOURCE_USERNAME: clenzy
+      SPRING_DATASOURCE_PASSWORD: clenzy123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/clenzy
+      KEYCLOAK_TOKEN_URI: http://keycloak:8080/realms/clenzy/protocol/openid-connect/token
+      KEYCLOAK_LOGOUT_URI: http://keycloak:8080/realms/clenzy/protocol/openid-connect/logout
+      KEYCLOAK_CLIENT_ID: clenzy-web
+      KEYCLOAK_CLIENT_SECRET: your-client-secret-here
+    ports:
+      - "8084:8082"
+    volumes:
+      - ../server:/workspace
+      - ~/.m2:/root/.m2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    networks:
+      - clenzy-network
+
+  # Frontend React (développement)
+  frontend:
+    build:
+      context: ../client
+      dockerfile: Dockerfile.dev
+    container_name: clenzy-frontend-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../client:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    networks:
+      - clenzy-network
+
+volumes:
+  postgres_data_dev:
+
+networks:
+  clenzy-network:
+    driver: bridge
