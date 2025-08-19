@@ -31,6 +31,7 @@ import {
   Notifications,
   AccountCircle,
   Logout,
+  Group,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -48,6 +49,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   console.log('🔍 MainLayoutFull - DÉBUT du composant');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [connectionTime] = useState(new Date());
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
@@ -311,6 +313,17 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
           });
         }
 
+        // Users - visible uniquement aux administrateurs
+        if (isAdmin()) {
+          console.log('🔍 MainLayoutFull - Adding Users');
+          roleBasedItems.push({
+            text: 'Utilisateurs',
+            icon: <People />,
+            path: '/users',
+            roles: ['ADMIN']
+          });
+        }
+
         // Settings - visible by all
         console.log('🔍 MainLayoutFull - Adding Settings');
         roleBasedItems.push({
@@ -339,46 +352,186 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
 
   const drawer = (
       <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          p: 3, 
+          mb: 3,
+          backgroundColor: 'rgba(166, 192, 206, 0.08)',
+          borderRadius: 2,
+          border: '1px solid rgba(166, 192, 206, 0.15)'
+        }}>
           <img 
             src={clenzyLogo} 
             alt="Clenzy Logo" 
             style={{ 
-              height: '50px', 
+              height: '60px', 
               width: 'auto',
-              maxWidth: '180px'
+              maxWidth: '200px',
+              marginBottom: '8px'
             }} 
           />
+          <Typography 
+            variant="caption" 
+            color="text.secondary"
+            sx={{ 
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              fontWeight: 600,
+              textAlign: 'center'
+            }}
+          >
+            Propreté & Multiservices
+          </Typography>
         </Box>
         {user && user.roles && user.roles.length > 0 && (
-          <Box sx={{ textAlign: 'center', mb: 3 }}>
-            {/* Avatar, name and badge on the same line */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+          <Box sx={{ 
+            p: 3, 
+            mb: 3, 
+            backgroundColor: 'rgba(166, 192, 206, 0.05)',
+            borderRadius: 2,
+            border: '1px solid rgba(166, 192, 206, 0.2)'
+          }}>
+            {/* Header de la section utilisateur */}
+            <Typography 
+              variant="caption" 
+              color="text.secondary" 
+              sx={{ 
+                display: 'block', 
+                mb: 2, 
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                fontWeight: 600
+              }}
+            >
+              Utilisateur connecté
+            </Typography>
+            
+            {/* Informations utilisateur principales */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
               <Avatar 
                 sx={{ 
-                  width: 40, 
-                  height: 40, 
+                  width: 48, 
+                  height: 48, 
                   bgcolor: '#A6C0CE',
-                  fontSize: '1.2rem',
-                  fontWeight: 600
+                  fontSize: '1.3rem',
+                  fontWeight: 700,
+                  border: '2px solid rgba(166, 192, 206, 0.3)'
                 }}
               >
                 {user.username?.charAt(0)?.toUpperCase() || 'U'}
               </Avatar>
-              <Box sx={{ textAlign: 'left' }}>
-                <Typography variant="body2" fontWeight={600} color="text.primary">
-                  {user.username || 'User'}
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography 
+                  variant="body1" 
+                  fontWeight={700} 
+                  color="text.primary"
+                  sx={{ mb: 0.5 }}
+                  noWrap
+                >
+                  {user.username || 'Utilisateur'}
                 </Typography>
-                <Chip
-                  label={user.roles[0] || 'User'}
-                  size="small"
-                  sx={{
-                    backgroundColor: '#A6C0CE',
-                    color: 'white',
-                    fontSize: '0.7rem',
-                    height: 20,
-                  }}
-                />
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary"
+                  sx={{ mb: 1 }}
+                  noWrap
+                >
+                  {user.email || 'email@clenzy.fr'}
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Chip
+                    label={user.roles[0] || 'User'}
+                    size="small"
+                    sx={{
+                      backgroundColor: '#A6C0CE',
+                      color: 'white',
+                      fontSize: '0.75rem',
+                      height: 22,
+                      fontWeight: 600,
+                      '& .MuiChip-label': {
+                        px: 1
+                      }
+                    }}
+                  />
+                  {user.roles && user.roles.length > 1 && (
+                    <Chip
+                      label={`+${user.roles.length - 1} autre${user.roles.length > 2 ? 's' : ''}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        borderColor: 'rgba(166, 192, 206, 0.4)',
+                        color: 'text.secondary',
+                        fontSize: '0.7rem',
+                        height: 20
+                      }}
+                    />
+                  )}
+                </Box>
+              </Box>
+            </Box>
+            
+            {/* Informations supplémentaires */}
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              pt: 2,
+              borderTop: '1px solid rgba(166, 192, 206, 0.2)'
+            }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  Connexion
+                </Typography>
+                <Typography variant="body2" fontWeight={500}>
+                  {connectionTime.toLocaleDateString('fr-FR', { 
+                    day: '2-digit', 
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="caption" color="text.secondary">
+                  Durée
+                </Typography>
+                <Typography variant="body2" fontWeight={500} color="primary.main">
+                  {(() => {
+                    const now = new Date();
+                    const diff = now.getTime() - connectionTime.getTime();
+                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    if (hours > 0) {
+                      return `${hours}h ${minutes}m`;
+                    }
+                    return `${minutes}m`;
+                  })()}
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography variant="caption" color="text.secondary">
+                  Statut
+                </Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 0.5,
+                  mt: 0.5
+                }}>
+                  <Box sx={{ 
+                    width: 8, 
+                    height: 8, 
+                    borderRadius: '50%', 
+                    backgroundColor: '#4CAF50',
+                    border: '2px solid white',
+                    boxShadow: '0 0 0 1px rgba(76, 175, 80, 0.3)'
+                  }} />
+                  <Typography variant="caption" fontWeight={600} color="success.main">
+                    En ligne
+                  </Typography>
+                </Box>
               </Box>
             </Box>
           </Box>

@@ -20,6 +20,7 @@ import {
   Tooltip,
   Fab,
   ListItemIcon,
+  Divider,
 } from '@mui/material';
 import {
   Add,
@@ -34,6 +35,9 @@ import {
   Apartment,
   Villa,
   Hotel,
+  Person as PersonIcon,
+  Bed as BedIcon,
+  Bathroom as BathroomIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -440,13 +444,47 @@ export default function PropertiesList() {
               <Grid item xs={12} md={6} lg={4} key={property.id}>
                 <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                    {/* En-tête avec titre et menu */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
                         {getPropertyTypeIcon(property.type)}
-                        <Typography variant="h6" fontWeight={600}>
+                        <Typography variant="h6" fontWeight={600} sx={{ wordBreak: 'break-word' }}>
                           {property.name}
                         </Typography>
                       </Box>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleMenuOpen(e, property)}
+                        sx={{ ml: 1 }}
+                      >
+                        <MoreVert />
+                      </IconButton>
+                    </Box>
+
+                    {/* Description */}
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, minHeight: '3em' }}>
+                      {property.description || 'Aucune description disponible'}
+                    </Typography>
+
+                    {/* Localisation */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary">
+                        {property.address}, {property.postalCode} {property.city}, {property.country}
+                      </Typography>
+                    </Box>
+
+                    {/* Chips pour type et statut */}
+                    <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                      <Chip
+                        label={property.type === 'apartment' ? 'Appartement' : 
+                               property.type === 'house' ? 'Maison' : 
+                               property.type === 'villa' ? 'Villa' : 
+                               property.type === 'studio' ? 'Studio' : property.type}
+                        color="primary"
+                        size="small"
+                        variant="outlined"
+                      />
                       <Chip
                         label={property.status}
                         color={property.status === 'active' ? 'success' : 'warning'}
@@ -454,65 +492,77 @@ export default function PropertiesList() {
                         sx={{ textTransform: 'capitalize' }}
                       />
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                      <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {property.address}, {property.postalCode} {property.city}, {property.country}
-                      </Typography>
-                    </Box>
+
+                    {/* Caractéristiques principales */}
                     <Grid container spacing={2} sx={{ mb: 2 }}>
                       <Grid item xs={4}>
-                        <Typography variant="caption" color="text.secondary">
-                          Chambres
-                        </Typography>
-                        <Typography variant="body2" fontWeight={500}>
-                          {property.bedrooms}
-                        </Typography>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <BedIcon sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Chambres
+                          </Typography>
+                          <Typography variant="body2" fontWeight={600}>
+                            {property.bedrooms}
+                          </Typography>
+                        </Box>
                       </Grid>
                       <Grid item xs={4}>
-                        <Typography variant="caption" color="text.secondary">
-                          Voyageurs
-                        </Typography>
-                        <Typography variant="body2" fontWeight={500}>
-                          {property.guests}
-                        </Typography>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <PersonIcon sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Voyageurs
+                          </Typography>
+                          <Typography variant="body2" fontWeight={600}>
+                            {property.guests}
+                          </Typography>
+                        </Box>
                       </Grid>
                       <Grid item xs={4}>
-                        <Typography variant="caption" color="text.secondary">
-                          SDB
-                        </Typography>
-                        <Typography variant="body2" fontWeight={500}>
-                          {property.bathrooms}
-                        </Typography>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <BathroomIcon sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            SDB
+                          </Typography>
+                          <Typography variant="body2" fontWeight={600}>
+                            {property.bathrooms}
+                          </Typography>
+                        </Box>
                       </Grid>
                     </Grid>
-                
+
+                    {/* Divider pour séparer les informations */}
+                    <Divider sx={{ my: 2 }} />
+
+                    {/* Prix et actions */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Euro sx={{ fontSize: 16, color: 'success.main' }} />
-                        <Typography variant="h6" fontWeight={700} color="success.main">
-                          {property.nightlyPrice}
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Euro sx={{ fontSize: 16, color: 'success.main' }} />
+                          <Typography variant="h6" fontWeight={700} color="success.main">
+                            {property.nightlyPrice}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            /nuit
+                          </Typography>
+                        </Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          Surface: {property.squareMeters || 'N/A'} m²
+                        </Typography>
+                      </Box>
+                      <Box textAlign="right">
+                        <Typography variant="h6" color="primary">
+                          {property.bedrooms}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          /nuit
+                          Chambres
                         </Typography>
                       </Box>
                     </Box>
                   </CardContent>
-                
-                  <CardActions sx={{ p: 2, pt: 0 }}>
-                    <Button
-                      size="small"
-                      startIcon={<Visibility />}
-                      onClick={() => navigate(`/properties/${property.id}`)}
-                      sx={{ flexGrow: 1 }}
-                    >
-                      Voir détails
-                    </Button>
-                  </CardActions>
                 </Card>
               </Grid>
             ))
+
           )}
         </Grid>
       )}

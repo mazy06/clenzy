@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -33,8 +33,11 @@ import {
   Palette,
   Storage,
 } from '@mui/icons-material';
+import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
 
 export default function Settings() {
+  const { settings: workflowSettings, updateSettings: updateWorkflowSettings } = useWorkflowSettings();
+  
   const [settings, setSettings] = useState({
     notifications: {
       email: true,
@@ -297,6 +300,68 @@ export default function Settings() {
                 </TextField>
               </Grid>
             </Grid>
+          </Paper>
+        </Grid>
+
+        {/* Workflow */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3, height: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+              <Storage sx={{ color: '#A6C0CE' }} />
+              <Typography variant="h6" fontWeight={600}>
+                Workflow
+              </Typography>
+            </Box>
+            
+            <List>
+              <ListItem>
+                <ListItemText
+                  primary="Délai d'annulation (heures)"
+                  secondary="Temps limite pour annuler une demande approuvée"
+                />
+                <TextField
+                  type="number"
+                  value={workflowSettings.cancellationDeadlineHours}
+                  onChange={(e) => updateWorkflowSettings({ cancellationDeadlineHours: parseInt(e.target.value) })}
+                  sx={{ width: 80 }}
+                  size="small"
+                />
+              </ListItem>
+              
+              <ListItem>
+                <ListItemIcon>
+                  <Person />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Attribution automatique"
+                  secondary="Attribuer automatiquement les interventions"
+                />
+                <ListItemSecondaryAction>
+                  <Switch
+                    edge="end"
+                    checked={workflowSettings.autoAssignInterventions}
+                    onChange={(e) => updateWorkflowSettings({ autoAssignInterventions: e.target.checked })}
+                  />
+                </ListItemSecondaryAction>
+              </ListItem>
+              
+              <ListItem>
+                <ListItemIcon>
+                  <Security />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Approbation requise"
+                  secondary="Demander approbation pour les modifications"
+                />
+                <ListItemSecondaryAction>
+                  <Switch
+                    edge="end"
+                    checked={workflowSettings.requireApprovalForChanges}
+                    onChange={(e) => updateWorkflowSettings({ requireApprovalForChanges: e.target.checked })}
+                  />
+                </ListItemSecondaryAction>
+              </ListItem>
+            </List>
           </Paper>
         </Grid>
 

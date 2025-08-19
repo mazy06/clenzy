@@ -116,8 +116,7 @@ public class Property {
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<ServiceRequest> serviceRequests = new HashSet<>();
     
-    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<Intervention> interventions = new HashSet<>();
+    // Relation vers les interventions supprimée car nous utilisons ServiceRequest directement
     
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<PropertyPhoto> photos = new HashSet<>();
@@ -358,13 +357,7 @@ public class Property {
         this.serviceRequests = serviceRequests;
     }
     
-    public Set<Intervention> getInterventions() {
-        return interventions;
-    }
-    
-    public void setInterventions(Set<Intervention> interventions) {
-        this.interventions = interventions;
-    }
+
     
     public Set<PropertyPhoto> getPhotos() {
         return photos;

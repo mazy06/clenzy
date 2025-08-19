@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -11,173 +11,116 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Avatar,
-  Badge,
-  Tooltip,
-  Fab,
   ListItemIcon,
+  Avatar,
   List,
   ListItem,
   ListItemAvatar,
   ListItemText,
+  Divider,
+  Alert,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Add,
   MoreVert,
   Edit,
   Delete,
+  Group,
+  Person,
   Visibility,
-  People,
-  Build,
-  CleaningServices,
-  Assignment,
-  LocationOn,
-  Phone,
-  Email,
-  Star,
-  Schedule,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import FilterSearchBar from '../../components/FilterSearchBar';
-
-interface TeamMember {
-  id: string;
-  name: string;
-  role: string;
-  avatar?: string;
-  phone?: string;
-  email?: string;
-  rating: number;
-  specializations: string[];
-  availability: 'available' | 'busy' | 'offline';
-}
+import { useAuth } from '../../hooks/useAuth';
+import { API_CONFIG } from '../../config/api';
 
 interface Team {
-  id: string;
+  id: number;
   name: string;
-  type: 'cleaning' | 'maintenance' | 'repair' | 'inspection' | 'mixed';
   description: string;
+  interventionType: string;
+  memberCount: number;
   members: TeamMember[];
-  status: 'active' | 'inactive' | 'training';
-  location: string;
-  rating: number;
-  totalInterventions: number;
-  successRate: number;
-  createdAt: string;
 }
 
-const mockTeams: Team[] = [
-  {
-    id: '1',
-    name: 'Équipe de nettoyage A',
-    type: 'cleaning',
-    description: 'Équipe spécialisée dans le nettoyage de fin de séjour',
-    members: [
-      {
-        id: '1',
-        name: 'Marie Dupont',
-        role: 'Chef d\'équipe',
-        rating: 4.8,
-        specializations: ['Nettoyage', 'Organisation'],
-        availability: 'available',
-        phone: '+33 6 12 34 56 78',
-        email: 'marie.dupont@clenzy.fr',
-      },
-      {
-        id: '2',
-        name: 'Sophie Martin',
-        role: 'Agent de nettoyage',
-        rating: 4.6,
-        specializations: ['Nettoyage', 'Repassage'],
-        availability: 'available',
-      },
-    ],
-    status: 'active',
-    location: 'Paris',
-    rating: 4.7,
-    totalInterventions: 156,
-    successRate: 98,
-    createdAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: '2',
-    name: 'Équipe technique B',
-    type: 'maintenance',
-    description: 'Équipe de maintenance et réparations',
-    members: [
-      {
-        id: '3',
-        name: 'Jean Bernard',
-        role: 'Technicien principal',
-        rating: 4.9,
-        specializations: ['Plomberie', 'Électricité', 'Climatisation'],
-        availability: 'busy',
-        phone: '+33 6 98 76 54 32',
-        email: 'jean.bernard@clenzy.fr',
-      },
-      {
-        id: '4',
-        name: 'Pierre Dubois',
-        role: 'Technicien',
-        rating: 4.5,
-        specializations: ['Plomberie', 'Chauffage'],
-        availability: 'available',
-      },
-    ],
-    status: 'active',
-    location: 'Nice',
-    rating: 4.7,
-    totalInterventions: 89,
-    successRate: 95,
-    createdAt: '2024-01-01T00:00:00Z',
-  },
+interface TeamMember {
+  userId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
+
+const interventionTypes = [
+  { value: 'all', label: 'Tous les types', icon: '👥' },
+  { value: 'cleaning', label: 'Nettoyage', icon: '🧹' },
+  { value: 'maintenance', label: 'Maintenance', icon: '🔧' },
+  { value: 'repair', label: 'Réparation', icon: '🔨' },
+  { value: 'inspection', label: 'Inspection', icon: '🔍' },
+  { value: 'mixed', label: 'Mixte', icon: '👥' },
 ];
 
-const teamTypes = [
-  { value: 'all', label: 'Tous les types', icon: <People /> },
-  { value: 'cleaning', label: 'Nettoyage', icon: <CleaningServices /> },
-  { value: 'maintenance', label: 'Maintenance', icon: <Build /> },
-  { value: 'repair', label: 'Réparation', icon: <Build /> },
-  { value: 'inspection', label: 'Inspection', icon: <Assignment /> },
-  { value: 'mixed', label: 'Mixte', icon: <People /> },
-];
-
-const statusColors = {
-  active: 'success',
-  inactive: 'default',
-  training: 'warning',
-} as const;
-
-const statusLabels = {
-  active: 'Active',
-  inactive: 'Inactive',
-  training: 'En formation',
-};
-
-const availabilityColors = {
-  available: 'success',
-  busy: 'warning',
-  offline: 'default',
-} as const;
-
-const availabilityLabels = {
-  available: 'Disponible',
-  busy: 'Occupé',
-  offline: 'Hors ligne',
-};
-
-export default function TeamsList() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedType, setSelectedType] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
+const TeamsList: React.FC = () => {
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedType, setSelectedType] = useState('all');
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+
+  // Charger les équipes depuis l'API
+  useEffect(() => {
+    const loadTeams = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/teams`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const teamsList = data.content || data;
+          console.log('🔍 TeamsList - Équipes chargées depuis l\'API:', teamsList);
+          setTeams(teamsList);
+        } else {
+          console.error('🔍 TeamsList - Erreur API:', response.status, response.statusText);
+          setError(`Erreur lors du chargement des équipes: ${response.status} ${response.statusText}`);
+          setTeams([]);
+        }
+      } catch (err) {
+        console.error('🔍 TeamsList - Erreur chargement:', err);
+        setError('Erreur de connexion lors du chargement des équipes');
+        setTeams([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTeams();
+  }, []);
+
+  // Filtrer les équipes selon le type sélectionné
+  const getFilteredTeams = () => {
+    if (selectedType === 'all') return teams;
+    return teams.filter(team => team.interventionType === selectedType);
+  };
+
+  const filteredTeams = getFilteredTeams();
+
+  const getInterventionTypeInfo = (type: string) => {
+    return interventionTypes.find(t => t.value === type) || interventionTypes[0];
+  };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, team: Team) => {
     setAnchorEl(event.currentTarget);
@@ -192,15 +135,15 @@ export default function TeamsList() {
   const handleEdit = () => {
     if (selectedTeam) {
       navigate(`/teams/${selectedTeam.id}/edit`);
+      handleMenuClose();
     }
-    handleMenuClose();
   };
 
-  const handleView = () => {
+  const handleViewDetails = () => {
     if (selectedTeam) {
       navigate(`/teams/${selectedTeam.id}`);
+      handleMenuClose();
     }
-    handleMenuClose();
   };
 
   const handleDelete = () => {
@@ -208,41 +151,66 @@ export default function TeamsList() {
     handleMenuClose();
   };
 
-  const confirmDelete = () => {
-    // TODO: Implement delete logic
-    console.log('Deleting team:', selectedTeam?.id);
-    setDeleteDialogOpen(false);
-  };
+  const confirmDelete = async () => {
+    if (selectedTeam) {
+      try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/teams/${selectedTeam.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          },
+        });
 
-  const filteredTeams = mockTeams.filter((team) => {
-    const matchesSearch = team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         team.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         team.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = selectedType === 'all' || team.type === selectedType;
-    const matchesStatus = selectedStatus === 'all' || team.status === selectedStatus;
-    
-    return matchesSearch && matchesType && matchesStatus;
-  });
-
-  const getTeamTypeIcon = (type: string) => {
-    switch (type) {
-      case 'cleaning':
-        return <CleaningServices />;
-      case 'maintenance':
-        return <Build />;
-      case 'repair':
-        return <Build />;
-      case 'inspection':
-        return <Assignment />;
-      case 'mixed':
-        return <People />;
-      default:
-        return <People />;
+        if (response.ok) {
+          // Mettre à jour la liste locale
+          setTeams(prev => prev.filter(team => team.id !== selectedTeam.id));
+          setDeleteDialogOpen(false);
+        } else {
+          console.error('🔍 TeamsList - Erreur suppression:', response.status);
+          setError('Erreur lors de la suppression de l\'équipe');
+        }
+      } catch (err) {
+        console.error('🔍 TeamsList - Erreur suppression:', err);
+        setError('Erreur lors de la suppression de l\'équipe');
+      }
     }
   };
 
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setSelectedTeam(null);
+  };
+
+  const getRoleLabel = (role: string) => {
+    const roleLabels: { [key: string]: string } = {
+      'housekeeper': 'Agent de ménage',
+      'technician': 'Technicien',
+      'supervisor': 'Superviseur',
+      'manager': 'Manager',
+    };
+    return roleLabels[role.toLowerCase()] || role;
+  };
+
+  const getRoleColor = (role: string) => {
+    const roleColors: { [key: string]: string } = {
+      'housekeeper': 'default',
+      'technician': 'primary',
+      'supervisor': 'info',
+      'manager': 'warning',
+    };
+    return roleColors[role.toLowerCase()] || 'default';
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
-    <Box>
+    <Box sx={{ p: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
@@ -250,178 +218,206 @@ export default function TeamsList() {
             Équipes
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Gérez vos équipes d'intervention
+            Gérez vos équipes de travail
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => navigate('/teams/new')}
-          sx={{ borderRadius: 2 }}
-        >
-          Nouvelle équipe
-        </Button>
+        {hasPermission('teams:create') && (
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => navigate('/teams/new')}
+            sx={{ borderRadius: 2 }}
+          >
+            + Nouvelle équipe
+          </Button>
+        )}
       </Box>
 
-      {/* Filtres et recherche */}
-      <FilterSearchBar
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Rechercher une équipe..."
-        filters={{
-          type: {
-            value: selectedType,
-            options: teamTypes,
-            onChange: setSelectedType,
-            label: "Type d'équipe"
-          },
-          status: {
-            value: selectedStatus,
-            options: [
-              { value: 'all', label: 'Tous les statuts' },
-              { value: 'active', label: 'Active' },
-              { value: 'inactive', label: 'Inactive' },
-              { value: 'training', label: 'En formation' }
-            ],
-            onChange: setSelectedStatus,
-            label: "Statut"
-          }
-        }}
-        counter={{
-          label: "équipe",
-          count: filteredTeams.length,
-          singular: "",
-          plural: "s"
-        }}
-      />
+      {/* Message d'erreur */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 4 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Filtres */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
+          Filtrer par type d'intervention
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          {interventionTypes.map((type) => (
+            <Chip
+              key={type.value}
+              label={`${type.icon} ${type.label}`}
+              onClick={() => setSelectedType(type.value)}
+              color={selectedType === type.value ? 'primary' : 'default'}
+              variant={selectedType === type.value ? 'filled' : 'outlined'}
+              sx={{ cursor: 'pointer' }}
+            />
+          ))}
+        </Box>
+      </Box>
 
       {/* Liste des équipes */}
       <Grid container spacing={3}>
-        {filteredTeams.map((team) => (
-          <Grid item xs={12} md={6} lg={4} key={team.id}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {getTeamTypeIcon(team.type)}
-                    <Typography variant="h6" fontWeight={600}>
-                      {team.name}
-                    </Typography>
-                  </Box>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => handleMenuOpen(e, team)}
-                  >
-                    <MoreVert />
-                  </IconButton>
-                </Box>
-
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {team.description}
-                </Typography>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <LocationOn sx={{ fontSize: 16, color: 'text.secondary' }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {team.location}
+        {filteredTeams.length === 0 ? (
+          <Grid item xs={12}>
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              {teams.length === 0 ? (
+                // Aucune équipe dans la base de données
+                <>
+                  <Group sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                    Aucune équipe trouvée
                   </Typography>
-                </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  <Chip
-                    label={statusLabels[team.status]}
-                    color={statusColors[team.status]}
-                    size="small"
-                    variant="outlined"
-                  />
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Star sx={{ fontSize: 16, color: 'warning.main' }} />
-                    <Typography variant="body2" fontWeight={500}>
-                      {team.rating}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Grid container spacing={2} sx={{ mb: 2 }}>
-                  <Grid item xs={6}>
-                    <Typography variant="caption" color="text.secondary">
-                      Interventions
-                    </Typography>
-                    <Typography variant="body2" fontWeight={500}>
-                      {team.totalInterventions}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="caption" color="text.secondary">
-                      Taux de succès
-                    </Typography>
-                    <Typography variant="body2" fontWeight={500} color="success.main">
-                      {team.successRate}%
-                    </Typography>
-                  </Grid>
-                </Grid>
-
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                  Membres ({team.members.length})
-                </Typography>
-                <List dense sx={{ p: 0, mb: 2 }}>
-                  {team.members.slice(0, 2).map((member) => (
-                    <ListItem key={member.id} sx={{ px: 0, py: 0.5 }}>
-                      <ListItemAvatar sx={{ minWidth: 32 }}>
-                        <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
-                          {member.name.charAt(0)}
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body2" fontWeight={500}>
-                              {member.name}
-                            </Typography>
-                            <Chip
-                              label={availabilityLabels[member.availability]}
-                              color={availabilityColors[member.availability]}
-                              size="small"
-                              variant="outlined"
-                              sx={{ height: 20, fontSize: '0.7rem' }}
-                            />
-                          </Box>
-                        }
-                        secondary={
-                          <Typography variant="caption" color="text.secondary">
-                            {member.role}
-                          </Typography>
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                  {team.members.length > 2 && (
-                    <ListItem sx={{ px: 0, py: 0.5 }}>
-                      <ListItemText
-                        secondary={
-                          <Typography variant="caption" color="text.secondary">
-                            +{team.members.length - 2} autres membres
-                          </Typography>
-                        }
-                      />
-                    </ListItem>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Commencez par créer votre première équipe pour organiser votre travail
+                  </Typography>
+                  {hasPermission('teams:create') && (
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={() => navigate('/teams/new')}
+                      size="large"
+                    >
+                      Créer la première équipe
+                    </Button>
                   )}
-                </List>
-              </CardContent>
-
-              <CardActions sx={{ p: 2, pt: 0 }}>
-                <Button
-                  size="small"
-                  startIcon={<Visibility />}
-                  onClick={() => navigate(`/teams/${team.id}`)}
-                  sx={{ flexGrow: 1 }}
-                >
-                  Voir détails
-                </Button>
-              </CardActions>
-            </Card>
+                </>
+              ) : (
+                // Aucune équipe correspondant au filtre
+                <>
+                  <Group sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                    Aucune équipe de type "{getInterventionTypeInfo(selectedType).label}" trouvée
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Essayez de modifier vos filtres ou créez une nouvelle équipe de ce type
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setSelectedType('all')}
+                    sx={{ mr: 2 }}
+                  >
+                    Voir toutes les équipes
+                  </Button>
+                  {hasPermission('teams:create') && (
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={() => navigate('/teams/new')}
+                    >
+                      Créer une équipe
+                    </Button>
+                  )}
+                </>
+              )}
+            </Box>
           </Grid>
-        ))}
+        ) : (
+          filteredTeams.map((team) => (
+            <Grid item xs={12} md={6} lg={4} key={team.id}>
+              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                  {/* En-tête avec nom et menu */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+                      <Group sx={{ color: 'primary.main' }} />
+                      <Typography variant="h6" fontWeight={600}>
+                        {team.name}
+                      </Typography>
+                    </Box>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => handleMenuOpen(e, team)}
+                      sx={{ ml: 1 }}
+                    >
+                      <MoreVert />
+                    </IconButton>
+                  </Box>
+
+                  {/* Type d'intervention */}
+                  <Box sx={{ mb: 2 }}>
+                    <Chip
+                      icon={<span style={{ fontSize: '1em' }}>{getInterventionTypeInfo(team.interventionType).icon}</span>}
+                      label={getInterventionTypeInfo(team.interventionType).label}
+                      color="primary"
+                      variant="outlined"
+                      size="small"
+                    />
+                  </Box>
+
+                  {/* Description */}
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3, minHeight: '3em' }}>
+                    {team.description}
+                  </Typography>
+
+                  {/* Statistiques */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                    <Chip
+                      icon={<Group />}
+                      label={`${team.memberCount} membre(s)`}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Box>
+
+                  {/* Membres de l'équipe */}
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+                    Membres :
+                  </Typography>
+                  <List dense sx={{ py: 0 }}>
+                    {team.members.slice(0, 3).map((member, index) => (
+                      <React.Fragment key={member.userId}>
+                        <ListItem sx={{ px: 0, py: 0.5 }}>
+                          <ListItemAvatar sx={{ minWidth: 32 }}>
+                            <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
+                              {member.firstName.charAt(0)}{member.lastName.charAt(0)}
+                            </Avatar>
+                          </ListItemAvatar>
+                          <ListItemText
+                            primary={`${member.firstName} ${member.lastName}`}
+                            secondary={member.email}
+                            primaryTypographyProps={{ variant: 'body2' }}
+                            secondaryTypographyProps={{ variant: 'caption' }}
+                          />
+                          <Chip
+                            label={getRoleLabel(member.role)}
+                            size="small"
+                            color={getRoleColor(member.role) as any}
+                            variant="outlined"
+                          />
+                        </ListItem>
+                        {index < Math.min(team.members.length, 3) - 1 && <Divider variant="inset" component="li" />}
+                      </React.Fragment>
+                    ))}
+                    {team.members.length > 3 && (
+                      <ListItem sx={{ px: 0, py: 0.5 }}>
+                        <ListItemText
+                          primary={`... et ${team.members.length - 3} autre(s) membre(s)`}
+                          primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
+                        />
+                      </ListItem>
+                    )}
+                  </List>
+                </CardContent>
+
+                {/* Actions */}
+                <CardActions sx={{ p: 3, pt: 0 }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<Visibility />}
+                    onClick={() => navigate(`/teams/${team.id}`)}
+                    fullWidth
+                  >
+                    Voir détails
+                  </Button>
+                </CardActions>
+              </Card>
+            </Grid>
+          ))
+        )}
       </Grid>
 
       {/* Menu contextuel */}
@@ -429,53 +425,56 @@ export default function TeamsList() {
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
       >
-        <MenuItem onClick={handleView}>
+        <MenuItem onClick={handleViewDetails}>
           <ListItemIcon>
             <Visibility fontSize="small" />
           </ListItemIcon>
           Voir détails
         </MenuItem>
-        <MenuItem onClick={handleEdit}>
-          <ListItemIcon>
-            <Edit fontSize="small" />
-          </ListItemIcon>
-          Modifier
-        </MenuItem>
-        <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
-          <ListItemIcon>
-            <Delete fontSize="small" sx={{ color: 'error.main' }} />
-          </ListItemIcon>
-          Supprimer
-        </MenuItem>
+        {hasPermission('teams:edit') && (
+          <MenuItem onClick={handleEdit}>
+            <ListItemIcon>
+              <Edit fontSize="small" />
+            </ListItemIcon>
+            Modifier
+          </MenuItem>
+        )}
+        {hasPermission('teams:delete') && (
+          <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+            <ListItemIcon>
+              <Delete fontSize="small" sx={{ color: 'error.main' }} />
+            </ListItemIcon>
+            Supprimer
+          </MenuItem>
+        )}
       </Menu>
 
       {/* Dialog de confirmation de suppression */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
         <DialogTitle>Confirmer la suppression</DialogTitle>
         <DialogContent>
           <Typography>
-            Êtes-vous sûr de vouloir supprimer l'équipe "{selectedTeam?.name}" ? 
-            Cette action est irréversible.
+            Êtes-vous sûr de vouloir supprimer l'équipe "{selectedTeam?.name}" ? Cette action est irréversible.
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Annuler</Button>
+          <Button onClick={handleCloseDeleteDialog}>Annuler</Button>
           <Button onClick={confirmDelete} color="error" variant="contained">
             Supprimer
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* FAB pour ajouter rapidement */}
-      <Fab
-                        color="secondary"
-        aria-label="add"
-        sx={{ position: 'fixed', bottom: 16, right: 16, display: { md: 'none' } }}
-        onClick={() => navigate('/teams/new')}
-      >
-        <Add />
-      </Fab>
     </Box>
   );
-}
+};
+
+export default TeamsList;

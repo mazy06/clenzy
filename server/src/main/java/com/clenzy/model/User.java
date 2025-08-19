@@ -80,8 +80,7 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<ServiceRequest> serviceRequests = new HashSet<>();
     
-    @OneToMany(mappedBy = "assignedTechnician", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<Intervention> assignedInterventions = new HashSet<>();
+    // Relations vers les interventions supprimées car nous utilisons ServiceRequest directement
     
     // Constructeurs
     public User() {}
@@ -230,13 +229,7 @@ public class User {
         this.serviceRequests = serviceRequests;
     }
     
-    public Set<Intervention> getAssignedInterventions() {
-        return assignedInterventions;
-    }
-    
-    public void setAssignedInterventions(Set<Intervention> assignedInterventions) {
-        this.assignedInterventions = assignedInterventions;
-    }
+
     
     // Méthodes utilitaires
     public String getFullName() {
