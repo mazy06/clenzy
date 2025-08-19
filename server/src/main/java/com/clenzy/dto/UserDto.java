@@ -25,6 +25,10 @@ public class UserDto {
     @Email
     public String email;
 
+    @NotBlank(groups = Create.class)
+    @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caractères")
+    public String password;
+
     public String phoneNumber;
     public UserRole role;
     public UserStatus status;

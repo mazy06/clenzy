@@ -64,6 +64,9 @@ public class Property {
     @Column(name = "square_meters")
     private Integer squareMeters;
     
+    @Column(name = "nightly_price", precision = 10, scale = 2)
+    private BigDecimal nightlyPrice;
+    
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PropertyType type = PropertyType.APARTMENT;
@@ -233,6 +236,14 @@ public class Property {
     
     public void setSquareMeters(Integer squareMeters) {
         this.squareMeters = squareMeters;
+    }
+    
+    public BigDecimal getNightlyPrice() {
+        return nightlyPrice;
+    }
+    
+    public void setNightlyPrice(BigDecimal nightlyPrice) {
+        this.nightlyPrice = nightlyPrice;
     }
     
     public PropertyType getType() {

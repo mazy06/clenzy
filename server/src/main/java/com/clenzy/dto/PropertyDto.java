@@ -42,6 +42,10 @@ public class PropertyDto {
 
     public Integer maxGuests;
     public Integer squareMeters;
+    
+    @Min(0)
+    public BigDecimal nightlyPrice;
+    
     public PropertyType type;
     public PropertyStatus status;
     public String airbnbListingId;

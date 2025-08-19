@@ -60,6 +60,12 @@ export interface FilterSearchBarProps {
       onChange: (value: string) => void;
       label?: string;
     };
+    host?: {
+      value: string;
+      options: FilterOption[];
+      onChange: (value: string) => void;
+      label?: string;
+    };
   };
   counter: {
     label: string;

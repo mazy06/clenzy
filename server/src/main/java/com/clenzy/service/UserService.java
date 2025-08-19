@@ -26,10 +26,10 @@ public class UserService {
         user.setFirstName(dto.firstName);
         user.setLastName(dto.lastName);
         user.setEmail(dto.email);
+        user.setPassword(dto.password); // Set password from DTO
         user.setPhoneNumber(dto.phoneNumber);
-        user.setRole(dto.role);
-        user.setStatus(dto.status);
-        // password will be set elsewhere (auth flow)
+        user.setRole(dto.role != null ? dto.role : com.clenzy.model.UserRole.HOST);
+        user.setStatus(dto.status != null ? dto.status : com.clenzy.model.UserStatus.ACTIVE);
         user = userRepository.save(user);
         return toDto(user);
     }
@@ -73,6 +73,7 @@ public class UserService {
         dto.firstName = user.getFirstName();
         dto.lastName = user.getLastName();
         dto.email = user.getEmail();
+        dto.password = user.getPassword(); // Include password in DTO
         dto.phoneNumber = user.getPhoneNumber();
         dto.role = user.getRole();
         dto.status = user.getStatus();

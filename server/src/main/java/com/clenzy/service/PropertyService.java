@@ -83,6 +83,7 @@ public class PropertyService {
         property.setBathroomCount(dto.bathroomCount);
         property.setMaxGuests(dto.maxGuests);
         property.setSquareMeters(dto.squareMeters);
+        property.setNightlyPrice(dto.nightlyPrice);
         if (dto.type != null) property.setType(dto.type);
         if (dto.status != null) property.setStatus(dto.status);
         property.setAirbnbListingId(dto.airbnbListingId);
@@ -114,6 +115,7 @@ public class PropertyService {
         dto.bathroomCount = p.getBathroomCount();
         dto.maxGuests = p.getMaxGuests();
         dto.squareMeters = p.getSquareMeters();
+        dto.nightlyPrice = p.getNightlyPrice();
         dto.type = p.getType();
         dto.status = p.getStatus();
         dto.airbnbListingId = p.getAirbnbListingId();

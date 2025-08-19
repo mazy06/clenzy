@@ -46,15 +46,13 @@ interface MainLayoutFullProps {
 
 export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   console.log('🔍 MainLayoutFull - DÉBUT du composant');
-  
-  try {
-    const [mobileOpen, setMobileOpen] = useState(false);
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { user, isAdmin, isManager, isHost, isTechnician, isHousekeeper, isSupervisor, clearUser, restoreKeycloakState } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, isAdmin, isManager, isHost, isTechnician, isHousekeeper, isSupervisor, clearUser, restoreKeycloakState } = useAuth();
 
     // Identifiant unique pour ce rendu
     const renderId = React.useId();
@@ -80,19 +78,19 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       }
     }, []);
 
-    // Temporary log to identify double rendering problem
-    console.log('🔍 MainLayoutFull - RENDU with ID:', renderId);
-    console.log('🔍 MainLayoutFull - Rendered with user:', user);
-    console.log('🔍 MainLayoutFull - Number of roles:', user?.roles?.length || 0);
-    console.log('🔍 MainLayoutFull - Location:', location.pathname);
-    console.log('🔍 MainLayoutFull - Role functions available:', {
-      isAdmin: typeof isAdmin,
-      isManager: typeof isManager,
-      isHost: typeof isHost,
-      isTechnician: typeof isTechnician,
-      isHousekeeper: typeof isHousekeeper,
-      isSupervisor: typeof isSupervisor
-    });
+  // Temporary log to identify double rendering problem
+  console.log('🔍 MainLayoutFull - RENDU with ID:', renderId);
+  console.log('🔍 MainLayoutFull - Rendered with user:', user);
+  console.log('🔍 MainLayoutFull - Number of roles:', user?.roles?.length || 0);
+  console.log('🔍 MainLayoutFull - Location:', location.pathname);
+  console.log('🔍 MainLayoutFull - Role functions available:', {
+    isAdmin: typeof isAdmin,
+    isManager: typeof isManager,
+    isHost: typeof isHost,
+    isTechnician: typeof isTechnician,
+    isHousekeeper: typeof isHousekeeper,
+    isSupervisor: typeof isSupervisor
+  });
 
     // Si pas d'utilisateur, ne pas rediriger ici pour éviter les boucles.
     // Le routeur au niveau de App.tsx s'occupe de la redirection.
@@ -101,86 +99,86 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       return null;
     }
 
-    console.log('🔍 MainLayoutFull - User found, checking role functions...');
+  console.log('🔍 MainLayoutFull - User found, checking role functions...');
 
-    // Security check: ensure role functions are defined
-    // But don't crash if they are not yet
-    const functionsDefined = typeof isAdmin === 'function' && 
-                            typeof isManager === 'function' && 
-                            typeof isHost === 'function' && 
-                            typeof isTechnician === 'function' && 
-                            typeof isHousekeeper === 'function' && 
-                            typeof isSupervisor === 'function';
+  // Security check: ensure role functions are defined
+  // But don't crash if they are not yet
+  const functionsDefined = typeof isAdmin === 'function' && 
+                          typeof isManager === 'function' && 
+                          typeof isHost === 'function' && 
+                          typeof isTechnician === 'function' && 
+                          typeof isHousekeeper === 'function' && 
+                          typeof isSupervisor === 'function';
     
     console.log('🔍 MainLayoutFull - Functions defined:', functionsDefined);
     
-    if (!functionsDefined) {
-      console.log('🔍 MainLayoutFull - Role functions not yet defined, displaying loading');
-      return (
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          height: '100vh' 
-        }}>
-          <Typography>Loading permissions...</Typography>
-        </Box>
-      );
-    }
+  if (!functionsDefined) {
+    console.log('🔍 MainLayoutFull - Role functions not yet defined, displaying loading');
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh' 
+      }}>
+        <Typography>Loading permissions...</Typography>
+      </Box>
+    );
+  }
 
-    console.log('🔍 MainLayoutFull - Role functions defined, testing execution...');
+  console.log('🔍 MainLayoutFull - Role functions defined, testing execution...');
 
-    // Check that role functions work without error
-    let canRender = true;
-    try {
-      // Simple test of role functions
-      console.log('🔍 MainLayoutFull - Test isAdmin()...');
-      isAdmin();
-      console.log('🔍 MainLayoutFull - Test isManager()...');
-      isManager();
-      console.log('🔍 MainLayoutFull - Test isHost()...');
-      isHost();
-      console.log('🔍 MainLayoutFull - Test isTechnician()...');
-      isTechnician();
-      console.log('🔍 MainLayoutFull - Test isHousekeeper()...');
-      isHousekeeper();
-      console.log('🔍 MainLayoutFull - Test isSupervisor()...');
-      isSupervisor();
-      console.log('🔍 MainLayoutFull - All role function tests passed');
-    } catch (error) {
-      console.error('🔍 MainLayoutFull - Error testing role functions:', error);
-      canRender = false;
-    }
+  // Check that role functions work without error
+  let canRender = true;
+  try {
+    // Simple test of role functions
+    console.log('🔍 MainLayoutFull - Test isAdmin()...');
+    isAdmin();
+    console.log('🔍 MainLayoutFull - Test isManager()...');
+    isManager();
+    console.log('🔍 MainLayoutFull - Test isHost()...');
+    isHost();
+    console.log('🔍 MainLayoutFull - Test isTechnician()...');
+    isTechnician();
+    console.log('🔍 MainLayoutFull - Test isHousekeeper()...');
+    isHousekeeper();
+    console.log('🔍 MainLayoutFull - Test isSupervisor()...');
+    isSupervisor();
+    console.log('🔍 MainLayoutFull - All role function tests passed');
+  } catch (error) {
+    console.error('🔍 MainLayoutFull - Error testing role functions:', error);
+    canRender = false;
+  }
 
-    if (!canRender) {
-      console.log('🔍 MainLayoutFull - Error in role functions, displaying loading');
-      return (
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          height: '100vh' 
-        }}>
-          <Typography>Error loading permissions...</Typography>
-        </Box>
-      );
-    }
+  if (!canRender) {
+    console.log('🔍 MainLayoutFull - Error in role functions, displaying loading');
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh' 
+      }}>
+        <Typography>Error loading permissions...</Typography>
+      </Box>
+    );
+  }
 
-    console.log('🔍 MainLayoutFull - All checks passed, building menu...');
+  console.log('🔍 MainLayoutFull - All checks passed, building menu...');
 
-    const handleDrawerToggle = () => {
-      setMobileOpen(!mobileOpen);
-    };
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
-    const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-      setAnchorEl(event.currentTarget);
-    };
+  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
 
-    const handleProfileMenuClose = () => {
-      setAnchorEl(null);
-    };
+  const handleProfileMenuClose = () => {
+    setAnchorEl(null);
+  };
 
-    const handleLogout = async () => {
+  const handleLogout = async () => {
       console.log('🔍 MainLayoutFull - Logout requested');
       
       try {
@@ -222,17 +220,17 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       } catch (error) {
         console.error('🔍 MainLayoutFull - Error during logout:', error);
       }
-    };
+  };
 
-    const handleNavigation = (path: string) => {
-      navigate(path);
-      if (isMobile) {
-        setMobileOpen(false);
-      }
-    };
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    if (isMobile) {
+      setMobileOpen(false);
+    }
+  };
 
-    // Build menu items without useMemo to avoid React error #310
-    const buildMenuItems = () => {
+  // Build menu items without useMemo to avoid React error #310
+  const buildMenuItems = () => {
       console.log('🔍 MainLayoutFull - Building menu items...');
       
       // Protection: check that all functions are defined
@@ -332,14 +330,14 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       const finalMenu = [...baseItems, ...roleBasedItems];
       console.log('🔍 MainLayoutFull - Final menu:', finalMenu.map(item => item.text));
       return finalMenu;
-    };
+  };
 
-    // Build menu items
-    const menuItems = buildMenuItems();
-    
-    console.log('🔍 MainLayoutFull - Menu built, preparing drawer...');
+  // Build menu items
+  const menuItems = buildMenuItems();
+  
+  console.log('🔍 MainLayoutFull - Menu built, preparing drawer...');
 
-    const drawer = (
+  const drawer = (
       <Box>
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
           <img 
@@ -430,11 +428,11 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
           ))}
         </List>
       </Box>
-    );
-    
-    console.log('🔍 MainLayoutFull - Drawer built, preparing final render...');
+  );
+  
+  console.log('🔍 MainLayoutFull - Drawer built, preparing final render...');
 
-    return (
+  return (
       <Box sx={{ display: 'flex' }}>
         <AppBar
           position="fixed"
@@ -541,20 +539,4 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         </Menu>
       </Box>
     );
-  } catch (error) {
-    console.error('🔍 MainLayoutFull - ERREUR lors du rendu:', error);
-    return (
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h4" color="error">
-          ❌ Erreur dans MainLayoutFull
-        </Typography>
-        <Typography variant="body1">
-          {error instanceof Error ? error.message : 'Erreur inconnue'}
-        </Typography>
-        <Typography variant="body2" sx={{ mt: 2 }}>
-          Stack trace: {error instanceof Error ? error.stack : 'Non disponible'}
-        </Typography>
-      </Box>
-    );
-  }
 }

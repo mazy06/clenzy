@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import MainLayoutFull from './layout/MainLayoutFull';
 import Dashboard from './dashboard/Dashboard';
 import PropertiesList from './properties/PropertiesList';
+import PropertyEdit from './properties/PropertyEdit';
+import PropertyDetails from './properties/PropertyDetails';
 import ServiceRequestsList from './service-requests/ServiceRequestsList';
 import InterventionsList from './interventions/InterventionsList';
 import TeamsList from './teams/TeamsList';
@@ -14,6 +16,8 @@ const AuthenticatedApp: React.FC = () => {
       <Routes>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/properties" element={<PropertiesList />} />
+        <Route path="/properties/:id" element={<PropertyDetails />} />
+        <Route path="/properties/:id/edit" element={<PropertyEdit />} />
         <Route path="/service-requests" element={<ServiceRequestsList />} />
         <Route path="/interventions" element={<InterventionsList />} />
         <Route path="/teams" element={<TeamsList />} />
