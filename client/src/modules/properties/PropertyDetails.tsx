@@ -268,14 +268,20 @@ const PropertyDetails: React.FC = () => {
 
   const maintenanceInterventions = interventions.filter(i => 
     i.type.toLowerCase().includes('maintenance') || 
-    i.type.toLowerCase().includes('réparation') ||
-    i.type.toLowerCase().includes('réparation') ||
-    i.type.toLowerCase().includes('technique')
+    i.type.toLowerCase().includes('entretien') ||
+    i.type.toLowerCase().includes('préventif')
   );
 
-  const otherInterventions = interventions.filter(i => 
-    !cleaningInterventions.includes(i) && 
-    !maintenanceInterventions.includes(i)
+  const repairInterventions = interventions.filter(i => 
+    i.type.toLowerCase().includes('repair') || 
+    i.type.toLowerCase().includes('réparation') ||
+    i.type.toLowerCase().includes('dépannage')
+  );
+
+  const inspectionInterventions = interventions.filter(i => 
+    i.type.toLowerCase().includes('inspection') || 
+    i.type.toLowerCase().includes('contrôle') ||
+    i.type.toLowerCase().includes('qualité')
   );
 
   if (loading) {
@@ -456,16 +462,22 @@ const PropertyDetails: React.FC = () => {
                 {...a11yProps(1)} 
               />
               <Tab 
-                label="Maintenance/Réparation" 
+                label="Maintenance" 
                 icon={<Build />} 
                 iconPosition="start"
                 {...a11yProps(2)} 
               />
               <Tab 
-                label="Autres interventions" 
-                icon={<List />} 
+                label="Réparation" 
+                icon={<Build />} 
                 iconPosition="start"
                 {...a11yProps(3)} 
+              />
+              <Tab 
+                label="Inspection" 
+                icon={<List />} 
+                iconPosition="start"
+                {...a11yProps(4)} 
               />
             </Tabs>
           </Box>
@@ -766,11 +778,11 @@ const PropertyDetails: React.FC = () => {
             </Box>
           </TabPanel>
 
-          {/* Onglet Maintenance/Réparation */}
+          {/* Onglet Maintenance */}
           <TabPanel value={tabValue} index={2}>
             <Box sx={{ p: 4 }}>
               <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-                Interventions de maintenance et réparation
+                Interventions de maintenance préventive
               </Typography>
               
               {maintenanceInterventions.length > 0 ? (
@@ -813,16 +825,63 @@ const PropertyDetails: React.FC = () => {
             </Box>
           </TabPanel>
 
-          {/* Onglet Autres interventions */}
+          {/* Onglet Réparation */}
           <TabPanel value={tabValue} index={3}>
             <Box sx={{ p: 4 }}>
               <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-                Autres interventions
+                Interventions de réparation et dépannage
               </Typography>
               
-              {otherInterventions.length > 0 ? (
+              {repairInterventions.length > 0 ? (
                 <Grid container spacing={2}>
-                  {otherInterventions.map((intervention) => (
+                  {repairInterventions.map((intervention) => (
+                    <Grid item xs={12} key={intervention.id}>
+                      <Card variant="outlined">
+                        <CardContent>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <Box>
+                              <Typography variant="subtitle1" fontWeight={600}>
+                                {intervention.description}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                Type: {intervention.type}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                Date prévue: {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR')}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                Priorité: {intervention.priority}
+                              </Typography>
+                            </Box>
+                            <Chip 
+                              label={intervention.status} 
+                              color={intervention.status === 'completed' ? 'success' : 'warning'}
+                              size="small"
+                            />
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              ) : (
+                <Alert severity="info">
+                  Aucune intervention de réparation programmée pour cette propriété.
+                </Alert>
+              )}
+            </Box>
+          </TabPanel>
+
+          {/* Onglet Inspection */}
+          <TabPanel value={tabValue} index={4}>
+            <Box sx={{ p: 4 }}>
+              <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+                Inspections et contrôles de qualité
+              </Typography>
+              
+              {inspectionInterventions.length > 0 ? (
+                <Grid container spacing={2}>
+                  {inspectionInterventions.map((intervention) => (
                     <Grid item xs={12} key={intervention.id}>
                       <Card variant="outlined">
                         <CardContent>
@@ -851,7 +910,7 @@ const PropertyDetails: React.FC = () => {
                 </Grid>
               ) : (
                 <Alert severity="info">
-                  Aucune autre intervention programmée pour cette propriété.
+                  Aucune inspection programmée pour cette propriété.
                 </Alert>
               )}
             </Box>
