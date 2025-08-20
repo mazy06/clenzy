@@ -61,10 +61,24 @@ interface Intervention {
 const interventionTypes = [
   { value: 'all', label: 'Tous les types' },
   { value: 'CLEANING', label: 'Nettoyage' },
-  { value: 'MAINTENANCE', label: 'Maintenance' },
-  { value: 'REPAIR', label: 'Réparation' },
-  { value: 'INSPECTION', label: 'Inspection' },
-  { value: 'EMERGENCY_REPAIR', label: 'Réparation d\'urgence' }
+  { value: 'EXPRESS_CLEANING', label: 'Nettoyage Express' },
+  { value: 'DEEP_CLEANING', label: 'Nettoyage en Profondeur' },
+  { value: 'WINDOW_CLEANING', label: 'Nettoyage des Vitres' },
+  { value: 'FLOOR_CLEANING', label: 'Nettoyage des Sols' },
+  { value: 'KITCHEN_CLEANING', label: 'Nettoyage de la Cuisine' },
+  { value: 'BATHROOM_CLEANING', label: 'Nettoyage des Sanitaires' },
+  { value: 'PREVENTIVE_MAINTENANCE', label: 'Maintenance Préventive' },
+  { value: 'EMERGENCY_REPAIR', label: 'Réparation d\'Urgence' },
+  { value: 'ELECTRICAL_REPAIR', label: 'Réparation Électrique' },
+  { value: 'PLUMBING_REPAIR', label: 'Réparation Plomberie' },
+  { value: 'HVAC_REPAIR', label: 'Réparation Climatisation' },
+  { value: 'APPLIANCE_REPAIR', label: 'Réparation Électroménager' },
+  { value: 'GARDENING', label: 'Jardinage' },
+  { value: 'EXTERIOR_CLEANING', label: 'Nettoyage Extérieur' },
+  { value: 'PEST_CONTROL', label: 'Désinsectisation' },
+  { value: 'DISINFECTION', label: 'Désinfection' },
+  { value: 'RESTORATION', label: 'Remise en État' },
+  { value: 'OTHER', label: 'Autre' }
 ];
 
 const statuses = [
@@ -139,7 +153,13 @@ const getTypeLabel = (type: string) => {
     case 'ELECTRICAL_REPAIR': return 'Réparation Électrique';
     case 'PLUMBING_REPAIR': return 'Réparation Plomberie';
     case 'HVAC_REPAIR': return 'Réparation Climatisation';
-    case 'INSPECTION': return 'Inspection';
+    case 'APPLIANCE_REPAIR': return 'Réparation Électroménager';
+    case 'GARDENING': return 'Jardinage';
+    case 'EXTERIOR_CLEANING': return 'Nettoyage Extérieur';
+    case 'PEST_CONTROL': return 'Désinsectisation';
+    case 'DISINFECTION': return 'Désinfection';
+    case 'RESTORATION': return 'Remise en État';
+    case 'OTHER': return 'Autre';
     default: return type;
   }
 };

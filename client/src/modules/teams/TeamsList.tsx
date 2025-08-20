@@ -58,11 +58,25 @@ interface TeamMember {
 
 const interventionTypes = [
   { value: 'all', label: 'Tous les types', icon: '👥' },
-  { value: 'cleaning', label: 'Nettoyage', icon: '🧹' },
-  { value: 'maintenance', label: 'Maintenance', icon: '🔧' },
-  { value: 'repair', label: 'Réparation', icon: '🔨' },
-  { value: 'inspection', label: 'Inspection', icon: '🔍' },
-  { value: 'mixed', label: 'Mixte', icon: '👥' },
+  { value: 'CLEANING', label: 'Nettoyage', icon: '🧹' },
+  { value: 'EXPRESS_CLEANING', label: 'Nettoyage Express', icon: '🧹' },
+  { value: 'DEEP_CLEANING', label: 'Nettoyage en Profondeur', icon: '🧹' },
+  { value: 'WINDOW_CLEANING', label: 'Nettoyage des Vitres', icon: '🧹' },
+  { value: 'FLOOR_CLEANING', label: 'Nettoyage des Sols', icon: '🧹' },
+  { value: 'KITCHEN_CLEANING', label: 'Nettoyage de la Cuisine', icon: '🧹' },
+  { value: 'BATHROOM_CLEANING', label: 'Nettoyage des Sanitaires', icon: '🧹' },
+  { value: 'PREVENTIVE_MAINTENANCE', label: 'Maintenance Préventive', icon: '🔧' },
+  { value: 'EMERGENCY_REPAIR', label: 'Réparation d\'Urgence', icon: '🔨' },
+  { value: 'ELECTRICAL_REPAIR', label: 'Réparation Électrique', icon: '🔨' },
+  { value: 'PLUMBING_REPAIR', label: 'Réparation Plomberie', icon: '🔨' },
+  { value: 'HVAC_REPAIR', label: 'Réparation Climatisation', icon: '🔨' },
+  { value: 'APPLIANCE_REPAIR', label: 'Réparation Électroménager', icon: '🔨' },
+  { value: 'GARDENING', label: 'Jardinage', icon: '🌱' },
+  { value: 'EXTERIOR_CLEANING', label: 'Nettoyage Extérieur', icon: '🧹' },
+  { value: 'PEST_CONTROL', label: 'Désinsectisation', icon: '🐛' },
+  { value: 'DISINFECTION', label: 'Désinfection', icon: '🧪' },
+  { value: 'RESTORATION', label: 'Remise en État', icon: '🔨' },
+  { value: 'OTHER', label: 'Autre', icon: '📋' }
 ];
 
 const TeamsList: React.FC = () => {

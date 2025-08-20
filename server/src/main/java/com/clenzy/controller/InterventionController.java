@@ -46,7 +46,26 @@ public class InterventionController {
     @GetMapping("/{id}")
     @Operation(summary = "Obtenir une intervention par ID")
     public InterventionDto get(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        return interventionService.getById(id, jwt);
+        System.out.println("🔍 InterventionController.get - Début de la méthode");
+        System.out.println("🔍 InterventionController.get - ID demandé: " + id);
+        
+        if (jwt != null) {
+            System.out.println("🔍 InterventionController.get - JWT reçu: " + jwt.getSubject());
+            System.out.println("🔍 InterventionController.get - JWT claims: " + jwt.getClaims());
+        } else {
+            System.out.println("🔍 InterventionController.get - Aucun JWT reçu");
+        }
+        
+        try {
+            System.out.println("🔍 InterventionController.get - Appel du service...");
+            InterventionDto result = interventionService.getById(id, jwt);
+            System.out.println("🔍 InterventionController.get - Intervention trouvée: " + (result != null ? "OUI" : "NON"));
+            return result;
+        } catch (Exception e) {
+            System.err.println("🔍 InterventionController.get - Erreur lors de la récupération: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
     
     @GetMapping

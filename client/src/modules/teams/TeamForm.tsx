@@ -61,11 +61,25 @@ interface User {
 }
 
 const interventionTypes = [
-  { value: 'cleaning', label: 'Nettoyage', icon: '🧹', roles: ['housekeeper'] },
-  { value: 'maintenance', label: 'Maintenance', icon: '🔧', roles: ['technician', 'supervisor'] },
-  { value: 'repair', label: 'Réparation', icon: '🔨', roles: ['technician', 'supervisor'] },
-  { value: 'inspection', label: 'Inspection', icon: '🔍', roles: ['supervisor', 'manager'] },
-  { value: 'mixed', label: 'Mixte', icon: '👥', roles: ['housekeeper', 'technician', 'supervisor', 'manager'] },
+  { value: 'CLEANING', label: 'Nettoyage', icon: '🧹', roles: ['housekeeper'] },
+  { value: 'EXPRESS_CLEANING', label: 'Nettoyage Express', icon: '🧹', roles: ['housekeeper'] },
+  { value: 'DEEP_CLEANING', label: 'Nettoyage en Profondeur', icon: '🧹', roles: ['housekeeper'] },
+  { value: 'WINDOW_CLEANING', label: 'Nettoyage des Vitres', icon: '🧹', roles: ['housekeeper'] },
+  { value: 'FLOOR_CLEANING', label: 'Nettoyage des Sols', icon: '🧹', roles: ['housekeeper'] },
+  { value: 'KITCHEN_CLEANING', label: 'Nettoyage de la Cuisine', icon: '🧹', roles: ['housekeeper'] },
+  { value: 'BATHROOM_CLEANING', label: 'Nettoyage des Sanitaires', icon: '🧹', roles: ['housekeeper'] },
+  { value: 'PREVENTIVE_MAINTENANCE', label: 'Maintenance Préventive', icon: '🔧', roles: ['technician', 'supervisor'] },
+  { value: 'EMERGENCY_REPAIR', label: 'Réparation d\'Urgence', icon: '🔨', roles: ['technician', 'supervisor'] },
+  { value: 'ELECTRICAL_REPAIR', label: 'Réparation Électrique', icon: '🔨', roles: ['technician', 'supervisor'] },
+  { value: 'PLUMBING_REPAIR', label: 'Réparation Plomberie', icon: '🔨', roles: ['technician', 'supervisor'] },
+  { value: 'HVAC_REPAIR', label: 'Réparation Climatisation', icon: '🔨', roles: ['technician', 'supervisor'] },
+  { value: 'APPLIANCE_REPAIR', label: 'Réparation Électroménager', icon: '🔨', roles: ['technician', 'supervisor'] },
+  { value: 'GARDENING', label: 'Jardinage', icon: '🌱', roles: ['technician'] },
+  { value: 'EXTERIOR_CLEANING', label: 'Nettoyage Extérieur', icon: '🧹', roles: ['housekeeper'] },
+  { value: 'PEST_CONTROL', label: 'Désinsectisation', icon: '🐛', roles: ['technician'] },
+  { value: 'DISINFECTION', label: 'Désinfection', icon: '🧪', roles: ['housekeeper', 'technician'] },
+  { value: 'RESTORATION', label: 'Remise en État', icon: '🔨', roles: ['technician', 'supervisor'] },
+  { value: 'OTHER', label: 'Autre', icon: '📋', roles: ['housekeeper', 'technician', 'supervisor', 'manager'] }
 ];
 
 const teamRoles = [
@@ -89,7 +103,7 @@ const TeamForm: React.FC = () => {
   const [formData, setFormData] = useState<TeamFormData>({
     name: '',
     description: '',
-    interventionType: 'cleaning',
+    interventionType: 'CLEANING',
     members: [],
   });
 

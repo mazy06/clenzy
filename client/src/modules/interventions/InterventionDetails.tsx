@@ -178,7 +178,7 @@ export default function InterventionDetails() {
 
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/interventions/${id}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
             'Content-Type': 'application/json'
           }
         });

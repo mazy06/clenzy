@@ -62,6 +62,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex, HttpServletRequest request) {
+        System.err.println("🔍 GlobalExceptionHandler.handleGeneric - Erreur inattendue capturée");
+        System.err.println("🔍 GlobalExceptionHandler.handleGeneric - Type d'exception: " + ex.getClass().getSimpleName());
+        System.err.println("🔍 GlobalExceptionHandler.handleGeneric - Message: " + ex.getMessage());
+        System.err.println("🔍 GlobalExceptionHandler.handleGeneric - URI: " + request.getRequestURI());
+        System.err.println("🔍 GlobalExceptionHandler.handleGeneric - Méthode: " + request.getMethod());
+        System.err.println("🔍 GlobalExceptionHandler.handleGeneric - Stack trace:");
+        ex.printStackTrace();
+        
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error", request.getRequestURI(), null);
     }
 

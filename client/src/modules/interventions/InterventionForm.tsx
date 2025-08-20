@@ -80,7 +80,13 @@ const interventionTypes = [
   { value: 'ELECTRICAL_REPAIR', label: 'Réparation Électrique' },
   { value: 'PLUMBING_REPAIR', label: 'Réparation Plomberie' },
   { value: 'HVAC_REPAIR', label: 'Réparation Climatisation' },
-  { value: 'INSPECTION', label: 'Inspection' }
+  { value: 'APPLIANCE_REPAIR', label: 'Réparation Électroménager' },
+  { value: 'GARDENING', label: 'Jardinage' },
+  { value: 'EXTERIOR_CLEANING', label: 'Nettoyage Extérieur' },
+  { value: 'PEST_CONTROL', label: 'Désinsectisation' },
+  { value: 'DISINFECTION', label: 'Désinfection' },
+  { value: 'RESTORATION', label: 'Remise en État' },
+  { value: 'OTHER', label: 'Autre' }
 ];
 
 const statuses = [
@@ -134,7 +140,7 @@ export default function InterventionForm() {
         // Charger les propriétés
         const propertiesResponse = await fetch(`${API_CONFIG.BASE_URL}/api/properties`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
             'Content-Type': 'application/json'
           }
         });
@@ -147,7 +153,7 @@ export default function InterventionForm() {
         // Charger les utilisateurs
         const usersResponse = await fetch(`${API_CONFIG.BASE_URL}/api/users`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
             'Content-Type': 'application/json'
           }
         });
@@ -160,7 +166,7 @@ export default function InterventionForm() {
         // Charger les équipes
         const teamsResponse = await fetch(`${API_CONFIG.BASE_URL}/api/teams`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
             'Content-Type': 'application/json'
           }
         });
@@ -203,7 +209,7 @@ export default function InterventionForm() {
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/interventions`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData)
