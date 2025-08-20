@@ -3,15 +3,18 @@ import { createTheme } from '@mui/material/styles';
 declare module '@mui/material/styles' {
   interface Palette {
     neutral: Palette['primary'];
+    clenzy: Palette['primary'];
   }
   interface PaletteOptions {
     neutral?: PaletteOptions['primary'];
+    clenzy?: PaletteOptions['primary'];
   }
 }
 
 declare module '@mui/material/Button' {
   interface ButtonPropsColorOverrides {
     neutral: true;
+    clenzy: true;
   }
 }
 
@@ -53,6 +56,12 @@ const theme = createTheme({
       main: '#64748B',
       light: '#94A3B8',
       dark: '#475569',
+      contrastText: '#ffffff',
+    },
+    clenzy: {
+      main: '#A6C0CE',
+      light: '#C5D5E0',
+      dark: '#8BA3B3',
       contrastText: '#ffffff',
     },
     background: {

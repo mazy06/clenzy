@@ -52,6 +52,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
 import FilterSearchBar from '../../components/FilterSearchBar';
+import PageHeader from '../../components/PageHeader';
 import ServiceRequestForm from './ServiceRequestForm';
 import { API_CONFIG } from '../../config/api';
 
@@ -610,28 +611,14 @@ export default function ServiceRequestsList() {
 
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
-            Demandes de service
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Gérez les demandes de service de vos propriétés
-          </Typography>
-        </Box>
-        {/* Bouton d'ajout - visible selon les permissions */}
-        {(hasPermission('service-requests:create') || isAdmin() || isManager() || isHost()) && (
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={handleShowAddForm}
-            sx={{ borderRadius: 2 }}
-          >
-            + Nouvelle demande
-          </Button>
-        )}
-      </Box>
+      <PageHeader
+        title="Demandes de service"
+        description="Gérez les demandes de service de vos propriétés"
+        buttonText="Nouvelle demande"
+        buttonIcon={<Add />}
+        onButtonClick={handleShowAddForm}
+        showButton={hasPermission('service-requests:create') || isAdmin() || isManager() || isHost()}
+      />
 
       {/* Filtres et recherche */}
       <FilterSearchBar

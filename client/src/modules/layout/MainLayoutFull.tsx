@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
+  Button,
   Drawer,
   AppBar,
   Toolbar,
@@ -48,7 +49,6 @@ interface MainLayoutFullProps {
 export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   console.log('🔍 MainLayoutFull - DÉBUT du composant');
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [connectionTime] = useState(new Date());
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -172,13 +172,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
     setMobileOpen(!mobileOpen);
   };
 
-  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
 
-  const handleProfileMenuClose = () => {
-    setAnchorEl(null);
-  };
 
   const handleLogout = async () => {
       console.log('🔍 MainLayoutFull - Logout requested');
@@ -359,7 +353,6 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
           p: 3, 
           mb: 3,
           backgroundColor: 'rgba(166, 192, 206, 0.08)',
-          borderRadius: 2,
           border: '1px solid rgba(166, 192, 206, 0.15)'
         }}>
           <img 
@@ -390,7 +383,6 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             p: 3, 
             mb: 3, 
             backgroundColor: 'rgba(166, 192, 206, 0.05)',
-            borderRadius: 2,
             border: '1px solid rgba(166, 192, 206, 0.2)'
           }}>
             {/* Header de la section utilisateur */}
@@ -622,14 +614,20 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
                 </IconButton>
               )}
               
-              <IconButton
-                onClick={handleProfileMenuOpen}
-                sx={{ p: 0 }}
+              <Button
+                onClick={handleLogout}
+                color="inherit"
+                startIcon={<Logout />}
+                sx={{ 
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                  }
+                }}
               >
-                <Avatar sx={{ width: 32, height: 32, bgcolor: '#A6C0CE' }}>
-                  {user?.username?.charAt(0) || <AccountCircle />}
-                </Avatar>
-              </IconButton>
+                Déconnexion
+              </Button>
             </Box>
           </Toolbar>
         </AppBar>
@@ -647,7 +645,11 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             }}
             sx={{
               display: { xs: 'block', md: 'none' },
-              '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+              '& .MuiDrawer-paper': { 
+                boxSizing: 'border-box', 
+                width: drawerWidth,
+                borderRadius: 0
+              },
             }}
           >
             {drawer}
@@ -656,7 +658,11 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             variant="permanent"
             sx={{
               display: { xs: 'none', md: 'block' },
-              '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+              '& .MuiDrawer-paper': { 
+                boxSizing: 'border-box', 
+                width: drawerWidth,
+                borderRadius: 0
+              },
             }}
             open
           >
@@ -676,20 +682,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
           {children}
         </Box>
 
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleProfileMenuClose}
-          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        >
-          <MenuItem onClick={handleLogout}>
-            <ListItemIcon>
-              <Logout fontSize="small" />
-            </ListItemIcon>
-            Logout
-          </MenuItem>
-        </Menu>
+
       </Box>
     );
 }

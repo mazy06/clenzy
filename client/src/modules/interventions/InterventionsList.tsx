@@ -18,6 +18,7 @@ import {
   Button
 } from '@mui/material';
 import FilterSearchBar from '../../components/FilterSearchBar';
+import PageHeader from '../../components/PageHeader';
 import {
   Add as AddIcon,
   MoreVert as MoreVertIcon,
@@ -384,26 +385,14 @@ export default function InterventionsList() {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box>
-          <Typography variant="h4" component="h1">
-            Interventions
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Interventions créées à partir des demandes de service validées
-          </Typography>
-        </Box>
-        {(isAdmin() || isManager()) && (
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/interventions/new')}
-          >
-            Nouvelle Intervention
-          </Button>
-        )}
-      </Box>
+      <PageHeader
+        title="Interventions"
+        description="Interventions créées à partir des demandes de service validées"
+        buttonText="Nouvelle intervention"
+        buttonIcon={<AddIcon />}
+        onButtonClick={() => navigate('/interventions/new')}
+        showButton={isAdmin() || isManager()}
+      />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>

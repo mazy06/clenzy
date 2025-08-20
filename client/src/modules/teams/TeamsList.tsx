@@ -36,6 +36,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import PageHeader from '../../components/PageHeader';
 import { API_CONFIG } from '../../config/api';
 
 interface Team {
@@ -211,27 +212,14 @@ const TeamsList: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
-            Équipes
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Gérez vos équipes de travail
-          </Typography>
-        </Box>
-        {hasPermission('teams:create') && (
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => navigate('/teams/new')}
-            sx={{ borderRadius: 2 }}
-          >
-            + Nouvelle équipe
-          </Button>
-        )}
-      </Box>
+      <PageHeader
+        title="Équipes"
+        description="Gérez vos équipes de travail"
+        buttonText="Nouvelle équipe"
+        buttonIcon={<Add />}
+        onButtonClick={() => navigate('/teams/new')}
+        showButton={hasPermission('teams:create')}
+      />
 
       {/* Message d'erreur */}
       {error && (

@@ -47,6 +47,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import PageHeader from '../../components/PageHeader';
+import FilterSearchBar from '../../components/FilterSearchBar';
 import { API_CONFIG } from '../../config/api';
 
 interface User {
@@ -119,6 +121,9 @@ const UsersList: React.FC = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editFormData, setEditFormData] = useState<Partial<User>>({});
   const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedRole, setSelectedRole] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
 
@@ -258,6 +263,23 @@ const UsersList: React.FC = () => {
     return userRoles.find(r => r.value === role) || userRoles[0];
   };
 
+  // Filtrer les utilisateurs selon les critères
+  const getFilteredUsers = () => {
+    return users.filter((user) => {
+      const matchesSearch = searchTerm === '' || 
+        user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesRole = selectedRole === 'all' || user.role === selectedRole;
+      const matchesStatus = selectedStatus === 'all' || user.status === selectedStatus;
+      
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  };
+
+  const filteredUsers = getFilteredUsers();
+
   const getStatusInfo = (status: string) => {
     return userStatuses.find(s => s.value === status) || userStatuses[0];
   };
@@ -280,25 +302,14 @@ const UsersList: React.FC = () => {
 
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
-            Gestion des utilisateurs
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Gérez les utilisateurs de la plateforme (accès administrateur uniquement)
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => navigate('/users/new')}
-          sx={{ borderRadius: 2 }}
-        >
-          + Nouvel utilisateur
-        </Button>
-      </Box>
+      <PageHeader
+        title="Gestion des utilisateurs"
+        description="Gérez les utilisateurs de la plateforme (accès administrateur uniquement)"
+        buttonText="Nouvel utilisateur"
+        buttonIcon={<Add />}
+        onButtonClick={() => navigate('/users/new')}
+        showButton={true}
+      />
 
       {/* Statistiques */}
       <Box sx={{ mb: 4 }}>
@@ -354,14 +365,49 @@ const UsersList: React.FC = () => {
         </Grid>
       </Box>
 
+      {/* Filtres et recherche */}
+      <FilterSearchBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Rechercher un utilisateur..."
+        filters={{
+          type: {
+            value: selectedRole,
+            options: [
+              { value: 'all', label: 'Tous les rôles' },
+              ...userRoles.map(role => ({ value: role.value, label: role.label }))
+            ],
+            onChange: setSelectedRole,
+            label: "Rôle"
+          },
+          status: {
+            value: selectedStatus,
+            options: [
+              { value: 'all', label: 'Tous les statuts' },
+              ...userStatuses.map(status => ({ value: status.value, label: status.label }))
+            ],
+            onChange: setSelectedStatus,
+            label: "Statut"
+          }
+        }}
+        counter={{
+          label: "utilisateur",
+          count: filteredUsers.length,
+          singular: "",
+          plural: "s"
+        }}
+      />
+
       {/* Liste des utilisateurs */}
       <Grid container spacing={3}>
-        {users.length === 0 ? (
+        {filteredUsers.length === 0 ? (
           <Grid item xs={12}>
-            <Typography variant="h6" align="center">Aucun utilisateur trouvé.</Typography>
+            <Typography variant="h6" align="center">
+              {users.length === 0 ? 'Aucun utilisateur trouvé.' : 'Aucun utilisateur ne correspond aux filtres.'}
+            </Typography>
           </Grid>
         ) : (
-          users.map((user) => (
+          filteredUsers.map((user) => (
             <Grid item xs={12} md={6} lg={4} key={user.id}>
               <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flexGrow: 1, p: 3 }}>

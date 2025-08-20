@@ -42,6 +42,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import FilterSearchBar from '../../components/FilterSearchBar';
+import PageHeader from '../../components/PageHeader';
 import PropertyForm from './PropertyForm';
 import { API_CONFIG } from '../../config/api';
 
@@ -365,28 +366,14 @@ export default function PropertiesList() {
 
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
-            {isHost() ? 'Mes propriétés' : 'Propriétés'}
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {isHost() ? 'Gérez vos propriétés Airbnb' : 'Gérez les propriétés Airbnb'}
-          </Typography>
-        </Box>
-        {/* Bouton d'ajout - visible selon les permissions */}
-        {(hasPermission('properties:create') || isAdmin() || isManager() || isHost()) && (
-          <Button
-            variant="contained"
-            startIcon={showAddForm ? <Home /> : <Add />}
-            onClick={showAddForm ? handleCloseAddForm : handleShowAddForm}
-            sx={{ borderRadius: 2 }}
-          >
-            {showAddForm ? 'Liste des propriétés' : (isHost() ? 'Ajouter ma propriété' : 'Ajouter une propriété')}
-          </Button>
-        )}
-      </Box>
+      <PageHeader
+        title={isHost() ? 'Mes propriétés' : 'Propriétés'}
+        description={isHost() ? 'Gérez vos propriétés Airbnb' : 'Gérez les propriétés Airbnb'}
+        buttonText={showAddForm ? 'Liste des propriétés' : (isHost() ? 'Ajouter ma propriété' : 'Ajouter une propriété')}
+        buttonIcon={showAddForm ? <Home /> : <Add />}
+        onButtonClick={showAddForm ? handleCloseAddForm : handleShowAddForm}
+        showButton={hasPermission('properties:create') || isAdmin() || isManager() || isHost()}
+      />
 
       {/* Filtres et recherche */}
       {!showAddForm && (
