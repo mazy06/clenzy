@@ -79,38 +79,7 @@ const userStatuses = [
   { value: 'BLOCKED', label: 'Bloqué', color: 'error' },
 ];
 
-const mockUsers: User[] = [
-  {
-    id: 1,
-    firstName: 'Admin',
-    lastName: 'Principal',
-    email: 'admin@clenzy.fr',
-    phoneNumber: '+33 6 12 34 56 78',
-    role: 'ADMIN',
-    status: 'ACTIVE',
-    createdAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: 2,
-    firstName: 'Marie',
-    lastName: 'Dupont',
-    email: 'marie.dupont@clenzy.fr',
-    phoneNumber: '+33 6 98 76 54 32',
-    role: 'HOUSEKEEPER',
-    status: 'ACTIVE',
-    createdAt: '2024-01-02T00:00:00Z',
-  },
-  {
-    id: 3,
-    firstName: 'Jean',
-    lastName: 'Martin',
-    email: 'jean.martin@clenzy.fr',
-    phoneNumber: '+33 6 11 22 33 44',
-    role: 'TECHNICIAN',
-    status: 'ACTIVE',
-    createdAt: '2024-01-03T00:00:00Z',
-  },
-];
+// Données mockées supprimées - utilisation de l'API uniquement
 
 const UsersList: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -148,13 +117,13 @@ const UsersList: React.FC = () => {
           setUsers(usersList);
         } else {
           console.error('🔍 UsersList - Erreur API:', response.status);
-          // En cas d'erreur, utiliser les données mockées
-          setUsers(mockUsers);
+          // En cas d'erreur, tableau vide
+          setUsers([]);
         }
       } catch (err) {
         console.error('🔍 UsersList - Erreur chargement:', err);
-        // En cas d'erreur, utiliser les données mockées
-        setUsers(mockUsers);
+        // En cas d'erreur, tableau vide
+        setUsers([]);
       } finally {
         setLoading(false);
       }
@@ -163,13 +132,23 @@ const UsersList: React.FC = () => {
     loadUsers();
   }, []);
 
-  // Vérifier les permissions - accès uniquement aux utilisateurs avec la permission users:manage
-  if (!canManageUsers) {
-    // Redirection silencieuse vers le dashboard
-    React.useEffect(() => {
-      navigate('/dashboard', { replace: true });
-    }, [navigate]);
-    return null; // Rien afficher pendant la redirection
+  // Si pas de permission, afficher un message informatif
+  if (!user || !canManageUsers) {
+    console.log('🔍 UsersList - Permission refusée ou utilisateur non chargé');
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="info">
+          <Typography variant="h6" gutterBottom>
+            Accès non autorisé
+          </Typography>
+          <Typography variant="body1">
+            Vous n'avez pas les permissions nécessaires pour gérer les utilisateurs.
+            <br />
+            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+          </Typography>
+        </Alert>
+      </Box>
+    );
   }
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, user: User) => {

@@ -56,6 +56,9 @@ public class User {
     @Column(name = "cognito_user_id")
     private String cognitoUserId;
     
+    @Column(name = "keycloak_id", unique = true)
+    private String keycloakId;
+    
     @Column(name = "email_verified")
     private boolean emailVerified = false;
     
@@ -171,6 +174,14 @@ public class User {
     
     public void setCognitoUserId(String cognitoUserId) {
         this.cognitoUserId = cognitoUserId;
+    }
+    
+    public String getKeycloakId() {
+        return keycloakId;
+    }
+    
+    public void setKeycloakId(String keycloakId) {
+        this.keycloakId = keycloakId;
     }
     
     public boolean isEmailVerified() {

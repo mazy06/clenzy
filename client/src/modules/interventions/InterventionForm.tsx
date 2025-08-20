@@ -110,13 +110,22 @@ export default function InterventionForm() {
   // Vérifier la permission de création d'interventions
   const canCreateInterventions = hasPermission('interventions:create');
   
-  // Si l'utilisateur n'a pas la permission de créer des interventions, rediriger silencieusement
+  // Si l'utilisateur n'a pas la permission de créer des interventions, afficher un message informatif
   if (!canCreateInterventions) {
-    // Redirection silencieuse vers le dashboard
-    React.useEffect(() => {
-      navigate('/dashboard', { replace: true });
-    }, [navigate]);
-    return null; // Rien afficher pendant la redirection
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="info">
+          <Typography variant="h6" gutterBottom>
+            Accès non autorisé
+          </Typography>
+          <Typography variant="body1">
+            Vous n'avez pas les permissions nécessaires pour créer des interventions.
+            <br />
+            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+          </Typography>
+        </Alert>
+      </Box>
+    );
   }
 
   const [loading, setLoading] = useState(true);

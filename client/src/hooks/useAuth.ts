@@ -11,6 +11,9 @@ export interface AuthUser {
   id: string;
   email: string;
   username: string;
+  firstName?: string;  // Prénom métier
+  lastName?: string;   // Nom métier
+  fullName?: string;   // Nom complet métier
   roles: string[];
   permissions: string[];
 }
@@ -67,72 +70,35 @@ export const useAuth = () => {
         if (response.ok) {
           const userData = await response.json();
           
-          // Extraire les rôles depuis le JWT
-          const tokenParsed = keycloak.tokenParsed as any;
-          const realmAccess = (tokenParsed?.realm_access?.roles || []) as string[];
+          console.log('🔍 useAuth - Données reçues de /me:', userData);
+          console.log('🔍 useAuth - firstName:', userData.firstName, 'first_name:', userData.first_name);
+          console.log('🔍 useAuth - lastName:', userData.lastName, 'last_name:', userData.last_name);
+          console.log('🔍 useAuth - fullName:', userData.fullName, 'full_name:', userData.full_name);
           
-          // Log pour déboguer
-          console.log('🔍 useAuth - Rôles extraits du JWT (brut):', realmAccess);
-          console.log('🔍 useAuth - Types des rôles:', realmAccess.map(r => typeof r));
+          // Utiliser directement les permissions depuis l'API
+          const permissions = userData.permissions || [];
+          // Le backend retourne 'role' (singulier), pas 'roles' (pluriel)
+          const role = userData.role || '';
+          const roles = role ? [role] : [];
           
-          // Normaliser les rôles en majuscules pour éviter la duplication due à la casse
-          const normalizedRoles = realmAccess.map(role => String(role).toUpperCase().trim());
-          console.log('🔍 useAuth - Rôles normalisés:', normalizedRoles);
-          
-          // Définir les permissions par rôle
-          const rolePermissions: { [key: string]: string[] } = {
-            'ADMIN': [
-              'dashboard:view',
-              'properties:view', 'properties:create', 'properties:edit', 'properties:delete',
-              'service-requests:view', 'service-requests:create', 'service-requests:edit', 'service-requests:delete',
-              'interventions:view', 'interventions:create', 'interventions:edit', 'interventions:delete',
-              'teams:view', 'teams:create', 'teams:edit', 'teams:delete',
-              'settings:view', 'settings:edit',
-              'users:manage',
-              'reports:view',
-            ],
-            'MANAGER': [
-              'dashboard:view',
-              'properties:view', 'properties:create', 'properties:edit',
-              'service-requests:view', 'service-requests:create', 'service-requests:edit',
-              'interventions:view', 'interventions:create', 'interventions:edit',
-              'teams:view', 'teams:create', 'teams:edit',
-              'settings:view',
-              'reports:view',
-            ],
-            'HOST': [
-              'dashboard:view',
-              'properties:view', 'properties:create', 'properties:edit',
-              'service-requests:view', 'service-requests:create',
-              'interventions:view',
-            ],
-            'TECHNICIAN': [
-              'dashboard:view',
-              'interventions:view', 'interventions:edit',
-              'teams:view',
-            ],
-            'HOUSEKEEPER': [
-              'dashboard:view',
-              'interventions:view', 'interventions:edit',
-              'teams:view',
-            ],
-            'SUPERVISOR': [
-              'dashboard:view',
-              'interventions:view', 'interventions:edit',
-              'teams:view', 'teams:edit',
-            ],
-          };
-
-          // Créer l'objet utilisateur avec les permissions
+          // Créer l'objet utilisateur avec les permissions directes ET les données métier
           const user: AuthUser = {
             id: userData.subject || userData.id || 'unknown',
             email: userData.email || '',
             username: userData.preferred_username || userData.username || 'Utilisateur',
-            roles: Array.from(new Set(normalizedRoles)),
-            permissions: normalizedRoles.flatMap(role => rolePermissions[role] || []),
+            firstName: userData.firstName || '',
+            lastName: userData.lastName || '',
+            fullName: userData.fullName || 
+                     `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 
+                     userData.preferred_username || userData.username || 'Utilisateur',
+            roles: Array.isArray(roles) ? roles : [roles].filter(Boolean),
+            permissions: Array.isArray(permissions) ? permissions : [permissions].filter(Boolean),
           };
 
           console.log('🔍 useAuth - Utilisateur chargé avec succès:', user);
+          console.log('🔍 useAuth - Permissions:', user.permissions);
+          console.log('🔍 useAuth - Rôles:', user.roles);
+          
           setUser(user);
           setLoading(false);
         } else if (response.status === 400 || response.status === 401) {
@@ -149,39 +115,21 @@ export const useAuth = () => {
                 return;
               }
             }
-            
-            // Si pas de refresh token ou échec, essayer avec le token stocké
-            const storedRefreshToken = localStorage.getItem('kc_refresh_token');
-            if (storedRefreshToken) {
-              console.log('🔍 useAuth - Tentative de rafraîchissement avec le token stocké...');
-              (keycloak as any).refreshToken = storedRefreshToken;
-              try {
-                const refreshed = await keycloak.updateToken(30);
-                if (refreshed) {
-                  console.log('🔍 useAuth - Token rafraîchi avec le token stocké, nouvelle tentative...');
-                  await loadUserFromKeycloak();
-                  return;
-                }
-              } catch (storedRefreshError) {
-                console.error('🔍 useAuth - Erreur avec le refresh token stocké:', storedRefreshError);
-              }
-            }
-            
-            console.log('🔍 useAuth - Échec du rafraîchissement, déconnexion...');
-            setUser(null);
-            setLoading(false);
           } catch (refreshError) {
-            console.error('🔍 useAuth - Erreur lors du rafraîchissement:', refreshError);
-            setUser(null);
-            setLoading(false);
+            console.error('🔍 useAuth - Erreur lors du rafraîchissement du token:', refreshError);
           }
+          
+          // Si le rafraîchissement échoue, déconnecter l'utilisateur
+          console.log('🔍 useAuth - Rafraîchissement échoué, déconnexion...');
+          setUser(null);
+          setLoading(false);
         } else {
-          console.error('🔍 useAuth - Erreur lors du chargement des infos utilisateur:', response.status, response.statusText);
+          console.error('🔍 useAuth - Erreur lors du chargement des données utilisateur:', response.status);
           setUser(null);
           setLoading(false);
         }
       } catch (error) {
-        console.error('🔍 useAuth - Erreur lors du chargement des infos utilisateur:', error);
+        console.error('🔍 useAuth - Erreur lors du chargement des données utilisateur:', error);
         setUser(null);
         setLoading(false);
       }

@@ -37,7 +37,7 @@ export const useWorkflowSettings = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // Dépendance vide - exécuté une seule fois au montage
 
   // Sauvegarder les paramètres dans le localStorage
   const updateSettings = (newSettings: Partial<WorkflowSettings>) => {
@@ -97,8 +97,6 @@ export const useWorkflowSettings = () => {
       return 0;
     }
   };
-
-  console.log('🔍 useWorkflowSettings - Hook rendu avec settings:', settings);
 
   return {
     settings,

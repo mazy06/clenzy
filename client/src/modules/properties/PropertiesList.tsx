@@ -78,56 +78,7 @@ interface User {
   role: string;
 }
 
-const mockProperties: Property[] = [
-  {
-    id: '1',
-    name: 'Appartement Montmartre',
-    type: 'apartment',
-    address: '15 rue de la Paix',
-    city: 'Paris',
-    status: 'active',
-    rating: 4.8,
-    nightlyPrice: 120,
-    guests: 4,
-    bedrooms: 2,
-    bathrooms: 1,
-    lastCleaning: '2024-01-15',
-    nextCleaning: '2024-01-18',
-    ownerId: 'host-1',
-  },
-  {
-    id: '2',
-    name: 'Villa Sunshine',
-    type: 'villa',
-    address: '25 Promenade des Anglais',
-    city: 'Nice',
-    status: 'active',
-    rating: 4.9,
-    nightlyPrice: 250,
-    guests: 6,
-    bedrooms: 3,
-    bathrooms: 2,
-    lastCleaning: '2024-01-14',
-    nextCleaning: '2024-01-17',
-    ownerId: 'host-2',
-  },
-  {
-    id: '3',
-    name: 'Studio Le Marais',
-    type: 'studio',
-    address: '8 rue des Rosiers',
-    city: 'Paris',
-    status: 'maintenance',
-    rating: 4.6,
-    nightlyPrice: 90,
-    guests: 2,
-    bedrooms: 1,
-    bathrooms: 1,
-    lastCleaning: '2024-01-10',
-    nextCleaning: '2024-01-20',
-    ownerId: 'host-1',
-  },
-];
+// Données mockées supprimées - utilisation de l'API uniquement
 
 const propertyTypes = [
   { value: 'all', label: 'Tous les types' },
