@@ -65,7 +65,10 @@ const userStatuses = [
 const UserEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { hasPermission } = useAuth();
+  
+  // Vérifier la permission de gestion des utilisateurs
+  const canManageUsers = hasPermission('users:manage');
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -124,15 +127,13 @@ const UserEdit: React.FC = () => {
     loadUser();
   }, [id]);
 
-  // Vérifier les permissions - accès uniquement aux admin
-  if (!isAdmin()) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
-          Accès refusé. Cette section est réservée aux administrateurs.
-        </Alert>
-      </Box>
-    );
+  // Vérifier les permissions - accès uniquement aux utilisateurs avec la permission users:manage
+  if (!canManageUsers) {
+    // Redirection silencieuse vers le dashboard
+    React.useEffect(() => {
+      navigate('/dashboard', { replace: true });
+    }, [navigate]);
+    return null; // Rien afficher pendant la redirection
   }
 
   const handleInputChange = (field: keyof UserEditData, value: any) => {

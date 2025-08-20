@@ -109,7 +109,20 @@ const priorities = [
 export default function InterventionEdit() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { user, isAdmin, isManager } = useAuth();
+  const { user, hasPermission } = useAuth();
+  
+  // Vérifier la permission de modification d'interventions
+  const canEditInterventions = hasPermission('interventions:edit');
+  
+  // Si l'utilisateur n'a pas la permission de modifier des interventions, rediriger silencieusement
+  if (!canEditInterventions) {
+    // Redirection silencieuse vers le dashboard
+    React.useEffect(() => {
+      navigate('/dashboard', { replace: true });
+    }, [navigate]);
+    return null; // Rien afficher pendant la redirection
+  }
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -284,8 +297,7 @@ export default function InterventionEdit() {
   };
 
   const canEdit = (): boolean => {
-    if (isAdmin()) return true;
-    if (isManager()) return true;
+    if (hasPermission('interventions:edit')) return true;
     
     // Les équipes peuvent modifier les interventions assignées
     if (formData.assignedToType === 'team') {

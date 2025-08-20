@@ -54,7 +54,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAdmin, isManager, isHost, isTechnician, isHousekeeper, isSupervisor, clearUser, restoreKeycloakState } = useAuth();
+  const { user, isAdmin, isManager, isHost, isTechnician, isHousekeeper, isSupervisor, hasPermission, clearUser, restoreKeycloakState } = useAuth();
 
     // Identifiant unique pour ce rendu
     const renderId = React.useId();
@@ -261,10 +261,10 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       }> = [];
 
       try {
-        console.log('🔍 MainLayoutFull - Testing role conditions...');
+        console.log('🔍 MainLayoutFull - Testing permissions...');
         
-        // Properties - visible by ADMIN, MANAGER, HOST
-        if (isAdmin() || isManager() || isHost()) {
+        // Properties - visible si permission properties:view
+        if (hasPermission('properties:view')) {
           console.log('🔍 MainLayoutFull - Adding Properties');
           roleBasedItems.push({
             text: 'Properties',
@@ -274,8 +274,8 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
           });
         }
 
-        // Service Requests - visible by ADMIN, MANAGER, HOST, SUPERVISOR
-        if (isAdmin() || isManager() || isHost() || isSupervisor()) {
+        // Service Requests - visible si permission service-requests:view
+        if (hasPermission('service-requests:view')) {
           console.log('🔍 MainLayoutFull - Adding Service Requests');
           roleBasedItems.push({
             text: 'Service Requests',
@@ -285,8 +285,8 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
           });
         }
 
-        // Interventions - visible by ADMIN, MANAGER, TECHNICIAN, HOUSEKEEPER, SUPERVISOR
-        if (isAdmin() || isManager() || isTechnician() || isHousekeeper() || isSupervisor()) {
+        // Interventions - visible si permission interventions:view
+        if (hasPermission('interventions:view')) {
           console.log('🔍 MainLayoutFull - Adding Interventions');
           roleBasedItems.push({
             text: 'Interventions',
@@ -296,8 +296,8 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
           });
         }
 
-        // Teams - visible by ADMIN, MANAGER, SUPERVISOR
-        if (isAdmin() || isManager() || isSupervisor()) {
+        // Teams - visible si permission teams:view
+        if (hasPermission('teams:view')) {
           console.log('🔍 MainLayoutFull - Adding Teams');
           roleBasedItems.push({
             text: 'Teams',
@@ -307,8 +307,8 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
           });
         }
 
-        // Users - visible uniquement aux administrateurs
-        if (isAdmin()) {
+        // Users - visible uniquement si permission users:manage
+        if (hasPermission('users:manage')) {
           console.log('🔍 MainLayoutFull - Adding Users');
           roleBasedItems.push({
             text: 'Utilisateurs',
@@ -318,14 +318,27 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
           });
         }
 
-        // Settings - visible by all
-        console.log('🔍 MainLayoutFull - Adding Settings');
-        roleBasedItems.push({
-          text: 'Settings',
-          icon: <Settings />,
-          path: '/settings',
-          roles: ['all']
-        });
+        // Settings - visible si permission settings:view
+        if (hasPermission('settings:view')) {
+          console.log('🔍 MainLayoutFull - Adding Settings');
+          roleBasedItems.push({
+            text: 'Settings',
+            icon: <Settings />,
+            path: '/settings',
+            roles: ['all']
+          });
+        }
+
+        // Test des permissions - visible uniquement aux administrateurs (pour le développement)
+        if (isAdmin()) {
+          console.log('🔍 MainLayoutFull - Adding Permissions Test');
+          roleBasedItems.push({
+            text: '🧪 Test Permissions',
+            icon: <Build />,
+            path: '/permissions-test',
+            roles: ['ADMIN']
+          });
+        }
         
         console.log('🔍 MainLayoutFull - Menu built successfully');
       } catch (error) {

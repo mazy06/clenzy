@@ -181,7 +181,7 @@ const formatDuration = (hours: number) => {
 
 export default function InterventionsList() {
   const navigate = useNavigate();
-  const { user, isAdmin, isManager } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -193,6 +193,21 @@ export default function InterventionsList() {
   const [selectedType, setSelectedType] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedPriority, setSelectedPriority] = useState('all');
+
+  // Vérifier les permissions pour les interventions
+  const canViewInterventions = hasPermission('interventions:view');
+  const canCreateInterventions = hasPermission('interventions:create');
+  const canEditInterventions = hasPermission('interventions:edit');
+  const canDeleteInterventions = hasPermission('interventions:delete');
+
+  // Si l'utilisateur n'a pas la permission de voir les interventions, rediriger silencieusement
+  if (!canViewInterventions) {
+    // Redirection silencieuse vers le dashboard
+    React.useEffect(() => {
+      navigate('/dashboard', { replace: true });
+    }, [navigate]);
+    return null; // Rien afficher pendant la redirection
+  }
 
   const loadInterventions = useCallback(async () => {
     try {
@@ -293,8 +308,7 @@ export default function InterventionsList() {
   };
 
   const canModifyIntervention = (intervention: Intervention): boolean => {
-    if (isAdmin()) return true;
-    if (isManager()) return true;
+    if (canEditInterventions) return true;
     
     // Les équipes peuvent modifier les interventions assignées
     if (intervention.assignedToType === 'team') {
@@ -336,7 +350,7 @@ export default function InterventionsList() {
       
       // Filtres basés sur le rôle de l'utilisateur
       let roleFilter = true;
-      if (isAdmin() || isManager()) {
+      if (canEditInterventions) {
         roleFilter = true; // Voir toutes les interventions
       } else if (user?.roles?.includes('HOST')) {
         // TODO: Filtrer par propriétés du host
@@ -411,7 +425,7 @@ export default function InterventionsList() {
         buttonText="Nouvelle intervention"
         buttonIcon={<AddIcon />}
         onButtonClick={() => navigate('/interventions/new')}
-        showButton={isAdmin() || isManager()}
+        showButton={canCreateInterventions}
       />
 
       {error && (
@@ -465,7 +479,7 @@ export default function InterventionsList() {
                   Aucune intervention
                 </Typography>
                 <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                  {isAdmin() || isManager() 
+                  {canCreateInterventions 
                     ? "Aucune demande de service n'a encore été validée pour créer des interventions."
                     : "Aucune intervention ne vous est actuellement assignée."}
                 </Typography>
@@ -630,7 +644,7 @@ export default function InterventionsList() {
             Modifier
           </MenuItem>
         )}
-        {isAdmin() && (
+        {canDeleteInterventions && (
           <MenuItem onClick={handleDelete}>
             <DeleteIcon sx={{ mr: 1 }} />
             Supprimer
