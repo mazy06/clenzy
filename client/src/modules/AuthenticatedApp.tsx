@@ -21,6 +21,7 @@ import UserForm from './users/UserForm';
 import UserDetails from './users/UserDetails';
 import UserEdit from './users/UserEdit';
 import Settings from './settings/Settings';
+import PermissionTest from '../components/PermissionTest';
 
 const AuthenticatedApp: React.FC = () => {
   return (
@@ -45,6 +46,7 @@ const AuthenticatedApp: React.FC = () => {
         <Route path="/users/:id" element={<UserDetails />} />
         <Route path="/users/:id/edit" element={<UserEdit />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/permissions-test" element={<PermissionTest />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </MainLayoutFull>

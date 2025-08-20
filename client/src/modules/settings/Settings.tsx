@@ -34,9 +34,26 @@ import {
   Storage,
 } from '@mui/icons-material';
 import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
+import { useAuth } from '../../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 export default function Settings() {
+  const { hasPermission } = useAuth();
   const { settings: workflowSettings, updateSettings: updateWorkflowSettings } = useWorkflowSettings();
+  const navigate = useNavigate();
+  
+  // Vérifier les permissions pour les paramètres
+  const canViewSettings = hasPermission('settings:view');
+  const canEditSettings = hasPermission('settings:edit');
+  
+  // Si l'utilisateur n'a pas la permission de voir les paramètres, rediriger silencieusement
+  if (!canViewSettings) {
+    // Redirection silencieuse vers le dashboard
+    React.useEffect(() => {
+      navigate('/dashboard', { replace: true });
+    }, [navigate]);
+    return null; // Rien afficher pendant la redirection
+  }
   
   const [settings, setSettings] = useState({
     notifications: {

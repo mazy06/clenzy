@@ -105,7 +105,20 @@ const priorities = [
 
 export default function InterventionForm() {
   const navigate = useNavigate();
-  const { isAdmin, isManager } = useAuth();
+  const { hasPermission } = useAuth();
+  
+  // Vérifier la permission de création d'interventions
+  const canCreateInterventions = hasPermission('interventions:create');
+  
+  // Si l'utilisateur n'a pas la permission de créer des interventions, rediriger silencieusement
+  if (!canCreateInterventions) {
+    // Redirection silencieuse vers le dashboard
+    React.useEffect(() => {
+      navigate('/dashboard', { replace: true });
+    }, [navigate]);
+    return null; // Rien afficher pendant la redirection
+  }
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -234,23 +247,6 @@ export default function InterventionForm() {
   };
 
   // Vérifier les droits d'accès
-  if (!isAdmin() && !isManager()) {
-    return (
-      <Box>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/interventions')}
-          sx={{ mb: 2 }}
-        >
-          Retour aux interventions
-        </Button>
-        <Alert severity="error">
-          Vous n'avez pas les droits pour créer des interventions. Seuls les administrateurs et managers peuvent créer des interventions.
-        </Alert>
-      </Box>
-    );
-  }
-
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">

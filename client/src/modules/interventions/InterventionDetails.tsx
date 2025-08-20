@@ -163,7 +163,21 @@ const formatCurrency = (amount: number) => {
 export default function InterventionDetails() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { user, isAdmin, isManager } = useAuth();
+  const { user, hasPermission } = useAuth();
+  
+  // Vérifier la permission de visualisation d'interventions
+  const canViewInterventions = hasPermission('interventions:view');
+  const canEditInterventions = hasPermission('interventions:edit');
+  
+  // Si l'utilisateur n'a pas la permission de voir les interventions, rediriger silencieusement
+  if (!canViewInterventions) {
+    // Redirection silencieuse vers le dashboard
+    React.useEffect(() => {
+      navigate('/dashboard', { replace: true });
+    }, [navigate]);
+    return null; // Rien afficher pendant la redirection
+  }
+
   const [intervention, setIntervention] = useState<InterventionDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -203,8 +217,7 @@ export default function InterventionDetails() {
   }, [id]);
 
   const canModifyIntervention = (): boolean => {
-    if (isAdmin()) return true;
-    if (isManager()) return true;
+    if (hasPermission('interventions:edit')) return true;
     
     if (!intervention) return false;
     

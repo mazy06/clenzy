@@ -125,7 +125,10 @@ const UsersList: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, hasPermission } = useAuth();
+
+  // Vérifier la permission de gestion des utilisateurs
+  const canManageUsers = hasPermission('users:manage');
 
   // Charger les utilisateurs depuis l'API
   useEffect(() => {
@@ -160,15 +163,13 @@ const UsersList: React.FC = () => {
     loadUsers();
   }, []);
 
-  // Vérifier les permissions - accès uniquement aux admin
-  if (!isAdmin()) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
-          Accès refusé. Cette section est réservée aux administrateurs.
-        </Alert>
-      </Box>
-    );
+  // Vérifier les permissions - accès uniquement aux utilisateurs avec la permission users:manage
+  if (!canManageUsers) {
+    // Redirection silencieuse vers le dashboard
+    React.useEffect(() => {
+      navigate('/dashboard', { replace: true });
+    }, [navigate]);
+    return null; // Rien afficher pendant la redirection
   }
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, user: User) => {
