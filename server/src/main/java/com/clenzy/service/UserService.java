@@ -16,9 +16,11 @@ import org.springframework.data.domain.Pageable;
 @Transactional
 public class UserService {
     private final UserRepository userRepository;
+    private final UserSyncService userSyncService;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, UserSyncService userSyncService) {
         this.userRepository = userRepository;
+        this.userSyncService = userSyncService;
     }
 
     public UserDto create(UserDto dto) {
@@ -30,7 +32,23 @@ public class UserService {
         user.setPhoneNumber(dto.phoneNumber);
         user.setRole(dto.role != null ? dto.role : com.clenzy.model.UserRole.HOST);
         user.setStatus(dto.status != null ? dto.status : com.clenzy.model.UserStatus.ACTIVE);
+        
+        // Sauvegarder d'abord dans la base métier
         user = userRepository.save(user);
+        
+        // Synchronisation automatique vers Keycloak (en arrière-plan)
+        try {
+            System.out.println("🔄 Synchronisation automatique vers Keycloak pour l'utilisateur: " + user.getEmail());
+            String keycloakId = userSyncService.syncToKeycloak(user);
+            user.setKeycloakId(keycloakId);
+            user = userRepository.save(user);
+            System.out.println("✅ Utilisateur synchronisé vers Keycloak avec l'ID: " + keycloakId);
+        } catch (Exception e) {
+            // Logger l'erreur mais ne pas faire échouer la création
+            System.err.println("⚠️ Erreur lors de la synchronisation vers Keycloak: " + e.getMessage());
+            // L'utilisateur est créé dans la base métier même si la sync Keycloak échoue
+        }
+        
         return toDto(user);
     }
 
@@ -60,6 +78,11 @@ public class UserService {
     @Transactional(readOnly = true)
     public Page<UserDto> list(Pageable pageable) {
         return userRepository.findAll(pageable).map(this::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public User findByKeycloakId(String keycloakId) {
+        return userRepository.findByKeycloakId(keycloakId).orElse(null);
     }
 
     public void delete(Long id) {

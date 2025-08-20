@@ -78,63 +78,7 @@ interface ServiceRequest {
   approvedAt?: string; // Date d'approbation pour calculer le délai d'annulation
 }
 
-const mockServiceRequests: ServiceRequest[] = [
-  {
-    id: '1',
-    title: 'Nettoyage après départ',
-    description: 'Nettoyage complet de l\'appartement après le départ des locataires',
-    type: 'CLEANING',
-    status: 'PENDING',
-    priority: 'NORMAL',
-    propertyId: 1,
-    propertyName: 'Appartement Montmartre',
-    propertyAddress: '15 rue de la Paix',
-    propertyCity: 'Paris',
-    requestorId: 1,
-    requestorName: 'Marie Dupont',
-    estimatedDuration: 2,
-    dueDate: '2024-01-16T15:00:00',
-    createdAt: '2024-01-15T11:00:00',
-  },
-  {
-    id: '2',
-    title: 'Réparation climatisation',
-    description: 'La climatisation ne fonctionne plus dans la chambre principale',
-    type: 'HVAC_REPAIR',
-    status: 'IN_PROGRESS',
-    priority: 'CRITICAL',
-    propertyId: 2,
-    propertyName: 'Villa Sunshine',
-    propertyAddress: '25 Promenade des Anglais',
-    propertyCity: 'Nice',
-    requestorId: 2,
-    requestorName: 'Jean Martin',
-    assignedToId: 3,
-    assignedToName: 'Technicien HVAC',
-    estimatedDuration: 3,
-    dueDate: '2024-01-15T19:00:00',
-    createdAt: '2024-01-14T09:00:00',
-  },
-  {
-    id: '3',
-    title: 'Inspection de sécurité',
-    description: 'Vérification des détecteurs de fumée et extincteurs',
-    type: 'PREVENTIVE_MAINTENANCE',
-    status: 'COMPLETED',
-    priority: 'LOW',
-    propertyId: 3,
-    propertyName: 'Studio Le Marais',
-    propertyAddress: '8 rue des Rosiers',
-    propertyCity: 'Paris',
-    requestorId: 4,
-    requestorName: 'Sophie Bernard',
-    assignedToId: 5,
-    assignedToName: 'Inspecteur Sécurité',
-    estimatedDuration: 1,
-    dueDate: '2024-01-12T17:00:00',
-    createdAt: '2024-01-10T10:00:00',
-  },
-];
+// Données mockées supprimées - utilisation de l'API uniquement
 
 const serviceTypes = [
   { value: 'all', label: 'Tous les types' },
@@ -285,12 +229,12 @@ export default function ServiceRequestsList() {
 
         setServiceRequests(convertedRequests);
       } else {
-        // En cas d'erreur, utiliser les données mockées
-        setServiceRequests(mockServiceRequests);
+        // En cas d'erreur, tableau vide
+        setServiceRequests([]);
       }
     } catch (err) {
-      // En cas d'erreur, utiliser les données mockées
-      setServiceRequests(mockServiceRequests);
+      // En cas d'erreur, tableau vide
+      setServiceRequests([]);
     } finally {
       setLoading(false);
     }

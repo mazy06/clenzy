@@ -228,6 +228,9 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   // Build menu items without useMemo to avoid React error #310
   const buildMenuItems = () => {
       console.log('🔍 MainLayoutFull - Building menu items...');
+      console.log('🔍 MainLayoutFull - User:', user);
+      console.log('🔍 MainLayoutFull - hasPermission function:', hasPermission);
+      console.log('🔍 MainLayoutFull - User permissions:', user?.permissions);
       
       // Protection: check that all functions are defined
       if (!functionsDefined) {
@@ -262,6 +265,19 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
 
       try {
         console.log('🔍 MainLayoutFull - Testing permissions...');
+        
+        // Test des permissions une par une
+        console.log('🔍 MainLayoutFull - Testing interventions:view permission...');
+        const canViewInterventions = hasPermission('interventions:view');
+        console.log('🔍 MainLayoutFull - Can view interventions:', canViewInterventions);
+        
+        console.log('🔍 MainLayoutFull - Testing users:manage permission...');
+        const canManageUsers = hasPermission('users:manage');
+        console.log('🔍 MainLayoutFull - Can manage users:', canManageUsers);
+        
+        console.log('🔍 MainLayoutFull - Testing settings:view permission...');
+        const canViewSettings = hasPermission('settings:view');
+        console.log('🔍 MainLayoutFull - Can view settings:', canViewSettings);
         
         // Properties - visible si permission properties:view
         if (hasPermission('properties:view')) {
@@ -425,7 +441,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
                   border: '2px solid rgba(166, 192, 206, 0.3)'
                 }}
               >
-                {user.username?.charAt(0)?.toUpperCase() || 'U'}
+                {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || 'U'}
               </Avatar>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography 
@@ -435,7 +451,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
                   sx={{ mb: 0.5 }}
                   noWrap
                 >
-                  {user.username || 'Utilisateur'}
+                  {user.fullName || user.firstName || user.username || 'Utilisateur'}
                 </Typography>
                 <Typography 
                   variant="body2" 

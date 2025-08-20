@@ -19,6 +19,7 @@ import {
   ListItemSecondaryAction,
   Alert,
   Snackbar,
+  CircularProgress,
 } from '@mui/material';
 import {
   Notifications,
@@ -38,7 +39,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 export default function Settings() {
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { settings: workflowSettings, updateSettings: updateWorkflowSettings } = useWorkflowSettings();
   const navigate = useNavigate();
   
@@ -46,15 +47,7 @@ export default function Settings() {
   const canViewSettings = hasPermission('settings:view');
   const canEditSettings = hasPermission('settings:edit');
   
-  // Si l'utilisateur n'a pas la permission de voir les paramètres, rediriger silencieusement
-  if (!canViewSettings) {
-    // Redirection silencieuse vers le dashboard
-    React.useEffect(() => {
-      navigate('/dashboard', { replace: true });
-    }, [navigate]);
-    return null; // Rien afficher pendant la redirection
-  }
-  
+  // TOUS les useState DOIVENT être déclarés AVANT les vérifications conditionnelles
   const [settings, setSettings] = useState({
     notifications: {
       email: true,
@@ -81,6 +74,35 @@ export default function Settings() {
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  
+  // Attendre que l'utilisateur soit complètement chargé
+  if (!user) {
+    console.log('🔍 Settings - Utilisateur en cours de chargement...');
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Si pas de permission, afficher un message informatif
+  if (!canViewSettings) {
+    console.log('🔍 Settings - Permission refusée');
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="info">
+          <Typography variant="h6" gutterBottom>
+            Accès non autorisé
+          </Typography>
+          <Typography variant="body1">
+            Vous n'avez pas les permissions nécessaires pour accéder aux paramètres.
+            <br />
+            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+          </Typography>
+        </Alert>
+      </Box>
+    );
+  }
 
   const handleSettingChange = (category: string, setting: string, value: any) => {
     setSettings(prev => ({

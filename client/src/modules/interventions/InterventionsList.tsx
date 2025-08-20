@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -30,7 +30,8 @@ import {
   LocationOn as LocationIcon,
   Person as PersonIcon,
   Group as GroupIcon,
-  Build
+  Build,
+  Refresh
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -182,8 +183,10 @@ const formatDuration = (hours: number) => {
 export default function InterventionsList() {
   const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
+  
+  // TOUS les useState DOIVENT être déclarés AVANT les vérifications conditionnelles
   const [interventions, setInterventions] = useState<Intervention[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Plus de loading par défaut
   const [error, setError] = useState<string | null>(null);
   const [selectedIntervention, setSelectedIntervention] = useState<Intervention | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -194,22 +197,57 @@ export default function InterventionsList() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedPriority, setSelectedPriority] = useState('all');
 
-  // Vérifier les permissions pour les interventions
+  // Attendre que l'utilisateur soit complètement chargé
+  if (!user) {
+    console.log('🔍 InterventionsList - Utilisateur en cours de chargement...');
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Vérifier les permissions pour les interventions APRÈS avoir vérifié l'utilisateur
   const canViewInterventions = hasPermission('interventions:view');
   const canCreateInterventions = hasPermission('interventions:create');
   const canEditInterventions = hasPermission('interventions:edit');
   const canDeleteInterventions = hasPermission('interventions:delete');
 
-  // Si l'utilisateur n'a pas la permission de voir les interventions, rediriger silencieusement
+  // Si pas de permission, afficher un message informatif
   if (!canViewInterventions) {
-    // Redirection silencieuse vers le dashboard
-    React.useEffect(() => {
-      navigate('/dashboard', { replace: true });
-    }, [navigate]);
-    return null; // Rien afficher pendant la redirection
+    console.log('🔍 InterventionsList - Permission refusée');
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="info">
+          <Typography variant="h6" gutterBottom>
+            Accès non autorisé
+          </Typography>
+          <Typography variant="body1">
+            Vous n'avez pas les permissions nécessaires pour accéder à cette section.
+            <br />
+            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+          </Typography>
+        </Alert>
+      </Box>
+    );
   }
 
-  const loadInterventions = useCallback(async () => {
+  // Chargement automatique des interventions (sans useEffect problématique)
+  // React.useEffect(() => {
+  //   console.log('🔍 InterventionsList - Chargement automatique des interventions');
+  //   loadInterventions();
+  // }, []); // Dépendances vides - exécuté une seule fois au montage
+  
+  // Alternative : chargement immédiat si pas d'interventions
+  if (interventions.length === 0 && !loading) {
+    console.log('🔍 InterventionsList - Chargement automatique des interventions (alternative)');
+    // Utiliser setTimeout pour éviter les appels synchrones
+    setTimeout(() => {
+      loadInterventions();
+    }, 0);
+  }
+
+  const loadInterventions = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -248,16 +286,17 @@ export default function InterventionsList() {
         setInterventions([]);
       }
     } catch (err) {
-      console.error('🔍 InterventionsList - Erreur chargement:', err);
+      console.error('🔍 InterventionsList - Erreur lors du chargement:', err);
       setInterventions([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  useEffect(() => {
-    loadInterventions();
-  }, []); // Dépendance vide pour éviter les re-rendus infinis
+  // useEffect COMMENTÉ - cause l'erreur React #310
+  // useEffect(() => {
+  //   loadInterventions();
+  // }, []);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, intervention: Intervention) => {
     setAnchorEl(event.currentTarget);
@@ -409,13 +448,7 @@ export default function InterventionsList() {
     );
   }
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
+  // Plus de vérification de loading - affichage direct du contenu
 
   return (
     <Box>
@@ -427,6 +460,13 @@ export default function InterventionsList() {
         onButtonClick={() => navigate('/interventions/new')}
         showButton={canCreateInterventions}
       />
+
+      {/* Chargement automatique des interventions */}
+      <Box sx={{ mb: 2, display: 'flex', gap: 2 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
+          Chargement automatique des interventions...
+        </Typography>
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>

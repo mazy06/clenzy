@@ -11,6 +11,10 @@ keycloak:
   resource: clenzy-web
   credentials:
     secret: ""
+  admin:
+    username: admin
+    password: admin
+    client-id: admin-cli
 
 server:
   port: 8080

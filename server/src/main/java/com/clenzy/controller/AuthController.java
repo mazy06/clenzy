@@ -15,6 +15,10 @@ import org.springframework.util.MultiValueMap;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import com.clenzy.model.User;
+import com.clenzy.service.UserService;
+import com.clenzy.model.UserRole;
 
 @RestController
 @RequestMapping("/api")
@@ -26,6 +30,12 @@ public class AuthController {
     private final String realm = "clenzy";
     private final String clientId = "clenzy-web";
     private final String clientSecret = "";
+
+    private final UserService userService;
+
+    public AuthController(UserService userService) {
+        this.userService = userService;
+    }
 
     @PostMapping("/auth/login")
     @Operation(summary = "Authentification utilisateur via Keycloak")
@@ -95,14 +105,114 @@ public class AuthController {
     @Operation(summary = "Informations sur l'utilisateur authentifié")
     public Map<String, Object> me(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) return Map.of("authenticated", false);
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("authenticated", true);
-        claims.put("subject", jwt.getSubject());
-        if (jwt.hasClaim("email")) claims.put("email", jwt.getClaimAsString("email"));
-        if (jwt.hasClaim("preferred_username")) claims.put("preferred_username", jwt.getClaimAsString("preferred_username"));
-        if (jwt.hasClaim("realm_access")) claims.put("realm_access", jwt.getClaim("realm_access"));
-        if (jwt.hasClaim("resource_access")) claims.put("resource_access", jwt.getClaim("resource_access"));
-        return claims;
+        
+        try {
+            // Récupérer les informations de base depuis le JWT
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("authenticated", true);
+            claims.put("subject", jwt.getSubject());
+            claims.put("email", jwt.getClaim("email"));
+            claims.put("preferred_username", jwt.getClaim("preferred_username"));
+            claims.put("given_name", jwt.getClaim("given_name"));
+            claims.put("family_name", jwt.getClaim("family_name"));
+            
+            // Récupérer les rôles depuis le JWT
+            Object realmAccess = jwt.getClaim("realm_access");
+            if (realmAccess instanceof Map) {
+                Map<String, Object> realmAccessMap = (Map<String, Object>) realmAccess;
+                Object roles = realmAccessMap.get("roles");
+                if (roles instanceof List) {
+                    claims.put("realm_access", Map.of("roles", roles));
+                }
+            }
+            
+            // Récupérer les informations complètes depuis la base métier
+            String keycloakId = jwt.getSubject();
+            User user = userService.findByKeycloakId(keycloakId);
+            
+            if (user != null) {
+                // Ajouter les informations de la base métier
+                claims.put("id", user.getId());
+                claims.put("firstName", user.getFirstName());
+                claims.put("lastName", user.getLastName());
+                claims.put("role", user.getRole().name());
+                claims.put("status", user.getStatus().name());
+                claims.put("emailVerified", user.isEmailVerified());
+                claims.put("phoneVerified", user.isPhoneVerified());
+                claims.put("lastLogin", user.getLastLogin());
+                claims.put("createdAt", user.getCreatedAt());
+                claims.put("updatedAt", user.getUpdatedAt());
+                
+                // Ajouter les permissions basées sur le rôle
+                List<String> permissions = getPermissionsForRole(user.getRole());
+                claims.put("permissions", permissions);
+                
+                System.out.println("🔍 /me - Utilisateur trouvé: " + user.getEmail() + " avec rôle: " + user.getRole());
+                System.out.println("🔍 /me - Permissions: " + permissions);
+            } else {
+                System.out.println("⚠️ /me - Utilisateur non trouvé pour keycloakId: " + keycloakId);
+            }
+            
+            return claims;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Erreur dans /me: " + e.getMessage());
+            e.printStackTrace();
+            return Map.of("authenticated", true, "error", "Erreur lors de la récupération des données");
+        }
+    }
+
+    private List<String> getPermissionsForRole(UserRole role) {
+        switch (role) {
+            case ADMIN:
+                return List.of(
+                    "dashboard:view",
+                    "properties:view", "properties:create", "properties:edit", "properties:delete",
+                    "service-requests:view", "service-requests:create", "service-requests:edit", "service-requests:delete",
+                    "interventions:view", "interventions:create", "interventions:edit", "interventions:delete",
+                    "teams:view", "teams:create", "teams:edit", "teams:delete",
+                    "settings:view", "settings:edit",
+                    "users:manage",
+                    "reports:view"
+                );
+            case MANAGER:
+                return List.of(
+                    "dashboard:view",
+                    "properties:view", "properties:create", "properties:edit",
+                    "service-requests:view", "service-requests:create", "service-requests:edit",
+                    "interventions:view", "interventions:create", "interventions:edit",
+                    "teams:view", "teams:create", "teams:edit",
+                    "settings:view",
+                    "reports:view"
+                );
+            case HOST:
+                return List.of(
+                    "dashboard:view",
+                    "properties:view", "properties:create", "properties:edit",
+                    "service-requests:view", "service-requests:create",
+                    "interventions:view"
+                );
+            case TECHNICIAN:
+                return List.of(
+                    "dashboard:view",
+                    "interventions:view", "interventions:edit",
+                    "teams:view"
+                );
+            case HOUSEKEEPER:
+                return List.of(
+                    "dashboard:view",
+                    "interventions:view", "interventions:edit",
+                    "teams:view"
+                );
+            case SUPERVISOR:
+                return List.of(
+                    "dashboard:view",
+                    "interventions:view", "interventions:edit",
+                    "teams:view", "teams:edit"
+                );
+            default:
+                return List.of("dashboard:view");
+        }
     }
 
     @PostMapping("/logout")

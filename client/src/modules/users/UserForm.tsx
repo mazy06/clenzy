@@ -89,11 +89,20 @@ const UserForm: React.FC = () => {
 
   // Vérifier les permissions - accès uniquement aux utilisateurs avec la permission users:manage
   if (!canManageUsers) {
-    // Redirection silencieuse vers le dashboard
-    React.useEffect(() => {
-      navigate('/dashboard', { replace: true });
-    }, [navigate]);
-    return null; // Rien afficher pendant la redirection
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="info">
+          <Typography variant="h6" gutterBottom>
+            Accès non autorisé
+          </Typography>
+          <Typography variant="body1">
+            Vous n'avez pas les permissions nécessaires pour créer des utilisateurs.
+            <br />
+            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+          </Typography>
+        </Alert>
+      </Box>
+    );
   }
 
   const handleInputChange = (field: keyof UserFormData, value: any) => {
