@@ -1,67 +1,72 @@
 import React from 'react';
 import { Box, Typography, Button } from '@mui/material';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 interface PageHeaderProps {
   title: string;
-  description: string;
-  buttonText?: string;
-  buttonIcon?: React.ReactNode;
-  onButtonClick?: () => void;
-  showButton?: boolean;
-  buttonVariant?: 'contained' | 'outlined' | 'text';
-  buttonColor?: 'primary' | 'secondary' | 'inherit' | 'error' | 'info' | 'success' | 'warning' | 'clenzy';
+  subtitle?: string;
+  backPath: string;
+  backLabel?: string;
+  actions?: React.ReactNode;
+  showBackButton?: boolean;
+  showBackButtonWithActions?: boolean; // Nouvelle prop pour afficher retour + actions
 }
 
 export default function PageHeader({
   title,
-  description,
-  buttonText,
-  buttonIcon,
-  onButtonClick,
-  showButton = true,
-  buttonVariant = 'contained',
-  buttonColor = 'clenzy'
+  subtitle,
+  backPath,
+  backLabel = 'Retour',
+  actions,
+  showBackButton = true,
+  showBackButtonWithActions = false
 }: PageHeaderProps) {
+  const navigate = useNavigate();
+
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      justifyContent: 'space-between', 
-      alignItems: 'center', 
-      mb: 4 
-    }}>
+    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
+      {/* Titre et sous-titre à gauche */}
       <Box>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
+        <Typography variant="h4" component="h1" gutterBottom>
           {title}
         </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {description}
-        </Typography>
+        {subtitle && (
+          <Typography variant="body1" color="text.secondary">
+            {subtitle}
+          </Typography>
+        )}
       </Box>
       
-      {showButton && buttonText && onButtonClick && (
-        <Button
-          variant={buttonVariant}
-          color={buttonColor}
-          startIcon={buttonIcon}
-          onClick={onButtonClick}
-          sx={{ 
-            borderRadius: 2,
-            fontWeight: 600,
-            textTransform: 'none',
-            fontSize: '0.9rem',
-            px: 3,
-            py: 1.5,
-            minHeight: '40px',
-            '&:hover': {
-              transform: 'translateY(-1px)',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-            },
-            transition: 'all 0.2s ease-in-out'
-          }}
-        >
-          {buttonText}
-        </Button>
-      )}
+      {/* Actions à droite */}
+      <Box display="flex" gap={2} alignItems="center">
+        {/* Actions personnalisées (boutons, etc.) */}
+        {actions}
+        
+        {/* Bouton retour (optionnel) */}
+        {showBackButton && (
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate(backPath)}
+            sx={{ borderWidth: 2 }}
+          >
+            {backLabel}
+          </Button>
+        )}
+        
+        {/* Bouton retour avec actions (nouveau mode) */}
+        {showBackButtonWithActions && (
+          <Button
+            variant="outlined"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate(backPath)}
+            sx={{ borderWidth: 2 }}
+          >
+            {backLabel}
+          </Button>
+        )}
+      </Box>
     </Box>
   );
 }

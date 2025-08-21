@@ -3,13 +3,19 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/clenzy
+    url: jdbc:postgresql://localhost:5432/clenzy?serverTimezone=Europe/Paris
     username: ${DB_USERNAME:clenzy}
     password: ${DB_PASSWORD:clenzy}
   jpa:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Europe/Paris
+  jackson:
+    time-zone: Europe/Paris
   security:
     oauth2:
       resourceserver:

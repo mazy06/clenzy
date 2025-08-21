@@ -22,6 +22,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import com.clenzy.model.InterventionStatus;
+import java.util.Arrays;
 
 @Service
 @Transactional
@@ -56,14 +58,30 @@ public class InterventionService {
     }
     
     public InterventionDto update(Long id, InterventionDto dto, Jwt jwt) {
+        System.out.println("🔍 InterventionService.update - Début de la méthode");
+        System.out.println("🔍 InterventionService.update - ID: " + id);
+        System.out.println("🔍 InterventionService.update - DTO reçu: " + dto);
+        System.out.println("🔍 InterventionService.update - assignedToType: " + dto.assignedToType);
+        System.out.println("🔍 InterventionService.update - assignedToId: " + dto.assignedToId);
+        
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
+        
+        System.out.println("🔍 InterventionService.update - Intervention trouvée: " + intervention.getTitle());
+        System.out.println("🔍 InterventionService.update - Avant modification - assignedTechnicianId: " + intervention.getAssignedTechnicianId());
+        System.out.println("🔍 InterventionService.update - Avant modification - teamId: " + intervention.getTeamId());
         
         // Vérifier les droits d'accès
         checkAccessRights(intervention, jwt);
         
         apply(dto, intervention);
+        
+        System.out.println("🔍 InterventionService.update - Après modification - assignedTechnicianId: " + intervention.getAssignedTechnicianId());
+        System.out.println("🔍 InterventionService.update - Après modification - teamId: " + intervention.getTeamId());
+        
         intervention = interventionRepository.save(intervention);
+        System.out.println("🔍 InterventionService.update - Intervention sauvegardée");
+        
         return convertToDto(intervention);
     }
     
@@ -177,7 +195,7 @@ public class InterventionService {
         // Vérifier les droits d'accès
         checkAccessRights(intervention, jwt);
         
-        intervention.setStatus(status);
+        intervention.setStatus(InterventionStatus.fromString(status));
         intervention = interventionRepository.save(intervention);
         return convertToDto(intervention);
     }
@@ -276,13 +294,53 @@ public class InterventionService {
         if (dto.title != null) intervention.setTitle(dto.title);
         if (dto.description != null) intervention.setDescription(dto.description);
         if (dto.type != null) intervention.setType(dto.type);
-        if (dto.status != null) intervention.setStatus(dto.status);
+        if (dto.status != null) {
+            try {
+                InterventionStatus status = InterventionStatus.fromString(dto.status);
+                intervention.setStatus(status);
+                System.out.println("🔍 InterventionService.apply - Statut mis à jour: " + status);
+            } catch (IllegalArgumentException e) {
+                System.err.println("🔍 InterventionService.apply - Statut invalide: " + dto.status);
+                throw new IllegalArgumentException("Statut invalide: " + dto.status + ". Valeurs autorisées: " + 
+                    Arrays.stream(InterventionStatus.values()).map(InterventionStatus::name).collect(Collectors.joining(", ")));
+            }
+        }
         if (dto.priority != null) intervention.setPriority(dto.priority);
         if (dto.estimatedDurationHours != null) intervention.setEstimatedDurationHours(dto.estimatedDurationHours);
         if (dto.estimatedCost != null) intervention.setEstimatedCost(dto.estimatedCost);
         if (dto.notes != null) intervention.setNotes(dto.notes);
         if (dto.photos != null) intervention.setPhotos(dto.photos);
         if (dto.progressPercentage != null) intervention.setProgressPercentage(dto.progressPercentage);
+        
+        // Gestion de l'assignation
+        if (dto.assignedToType != null && dto.assignedToId != null) {
+            if ("user".equals(dto.assignedToType)) {
+                // Assigner à un utilisateur
+                intervention.setAssignedTechnicianId(dto.assignedToId);
+                intervention.setTeamId(null); // Réinitialiser l'équipe
+                
+                // Mettre à jour l'utilisateur assigné
+                User assignedUser = userRepository.findById(dto.assignedToId)
+                        .orElse(null);
+                if (assignedUser != null) {
+                    intervention.setAssignedUser(assignedUser);
+                    System.out.println("🔍 InterventionService.apply - Utilisateur assigné: " + assignedUser.getFullName());
+                }
+            } else if ("team".equals(dto.assignedToType)) {
+                // Assigner à une équipe
+                intervention.setTeamId(dto.assignedToId);
+                intervention.setAssignedTechnicianId(null); // Réinitialiser l'utilisateur
+                intervention.setAssignedUser(null); // Réinitialiser l'utilisateur assigné
+                
+                // Vérifier que l'équipe existe
+                Team assignedTeam = teamRepository.findById(dto.assignedToId).orElse(null);
+                if (assignedTeam != null) {
+                    System.out.println("🔍 InterventionService.apply - Équipe assignée: " + assignedTeam.getName());
+                } else {
+                    System.out.println("🔍 InterventionService.apply - Équipe non trouvée pour l'ID: " + dto.assignedToId);
+                }
+            }
+        }
         
         if (dto.propertyId != null) {
             Property property = propertyRepository.findById(dto.propertyId)
@@ -314,7 +372,7 @@ public class InterventionService {
             dto.title = intervention.getTitle();
             dto.description = intervention.getDescription();
             dto.type = intervention.getType();
-            dto.status = intervention.getStatus();
+            dto.status = intervention.getStatus().name(); // Convertir l'énumération en String
             dto.priority = intervention.getPriority();
             dto.estimatedDurationHours = intervention.getEstimatedDurationHours();
             dto.actualDurationMinutes = intervention.getActualDurationMinutes();
@@ -355,9 +413,34 @@ public class InterventionService {
                 System.out.println("🔍 InterventionService.convertToDto - Aucun demandeur associé");
             }
             
-            dto.assignedToType = intervention.getAssignedToType();
-            dto.assignedToId = intervention.getAssignedToId();
-            dto.assignedToName = intervention.getAssignedToName();
+            // Gestion de l'assignation
+            if (intervention.getAssignedToType() != null) {
+                dto.assignedToType = intervention.getAssignedToType();
+                dto.assignedToId = intervention.getAssignedToId();
+                
+                if ("user".equals(intervention.getAssignedToType()) && intervention.getAssignedUser() != null) {
+                    dto.assignedToName = intervention.getAssignedUser().getFullName();
+                    System.out.println("🔍 InterventionService.convertToDto - Utilisateur assigné: " + dto.assignedToName);
+                } else if ("team".equals(intervention.getAssignedToType()) && intervention.getTeamId() != null) {
+                    // Récupérer le vrai nom de l'équipe depuis la base
+                    Team assignedTeam = teamRepository.findById(intervention.getTeamId()).orElse(null);
+                    if (assignedTeam != null) {
+                        dto.assignedToName = assignedTeam.getName();
+                        System.out.println("🔍 InterventionService.convertToDto - Équipe assignée: " + dto.assignedToName);
+                    } else {
+                        dto.assignedToName = "Équipe inconnue";
+                        System.out.println("🔍 InterventionService.convertToDto - Équipe non trouvée pour l'ID: " + intervention.getTeamId());
+                    }
+                } else {
+                    dto.assignedToName = null;
+                    System.out.println("🔍 InterventionService.convertToDto - Aucun assigné");
+                }
+            } else {
+                dto.assignedToType = null;
+                dto.assignedToId = null;
+                dto.assignedToName = null;
+                System.out.println("🔍 InterventionService.convertToDto - Aucune assignation");
+            }
             
             System.out.println("🔍 InterventionService.convertToDto - Conversion terminée avec succès");
             return dto;

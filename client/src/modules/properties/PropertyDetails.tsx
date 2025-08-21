@@ -31,6 +31,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import PageHeader from '../../components/PageHeader';
 
 // Interface pour les propriétés détaillées
 export interface PropertyDetailsData {
@@ -317,31 +318,25 @@ const PropertyDetails: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header avec bouton retour et bouton modifier */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <IconButton 
-            onClick={() => navigate('/properties')} 
-            sx={{ mr: 2 }}
-            size="large"
-          >
-            <ArrowBack />
-          </IconButton>
-          <Typography variant="h4" fontWeight={700}>
-            Détails de la propriété
-          </Typography>
-        </Box>
-        
-        {canEdit && (
-          <Button
-            variant="contained"
-            startIcon={<Edit />}
-            onClick={() => navigate(`/properties/${id}/edit`)}
-          >
-            Modifier
-          </Button>
-        )}
-      </Box>
+      {/* PageHeader avec titre, sous-titre, bouton retour et bouton modifier */}
+      <PageHeader
+        title="Détails de la propriété"
+        subtitle="Vue détaillée de votre propriété"
+        backPath="/properties"
+        backLabel="Retour aux propriétés"
+        showBackButton={true}
+        actions={
+          canEdit && (
+            <Button
+              variant="contained"
+              startIcon={<Edit />}
+              onClick={() => navigate(`/properties/${id}/edit`)}
+            >
+              Modifier
+            </Button>
+          )
+        }
+      />
 
       {/* Carte principale avec résumé */}
       <Card sx={{ mb: 4 }}>

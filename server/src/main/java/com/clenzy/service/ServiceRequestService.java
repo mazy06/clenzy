@@ -144,7 +144,7 @@ public class ServiceRequestService {
         System.out.println("🔍 DEBUG - Type d'intervention mappé: " + interventionType);
         intervention.setType(interventionType);
         
-        intervention.setStatus(InterventionStatus.SCHEDULED.name());
+        intervention.setStatus(InterventionStatus.PENDING);
         intervention.setPriority(serviceRequest.getPriority().name());
         intervention.setProperty(serviceRequest.getProperty());
         intervention.setRequestor(serviceRequest.getUser());
@@ -256,7 +256,7 @@ public class ServiceRequestService {
         dto.title = intervention.getTitle();
         dto.description = intervention.getDescription();
         dto.type = intervention.getType();
-        dto.status = intervention.getStatus();
+        dto.status = intervention.getStatus().name();
         dto.priority = intervention.getPriority();
         dto.propertyId = intervention.getProperty().getId();
         dto.requestorId = intervention.getRequestor().getId();

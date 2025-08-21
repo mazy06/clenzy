@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import MainLayoutFull from './layout/MainLayoutFull';
 import Dashboard from './dashboard/Dashboard';
+import ActivitiesPage from './dashboard/ActivitiesPage';
 import PropertiesList from './properties/PropertiesList';
 import PropertyForm from './properties/PropertyForm';
 import PropertyEdit from './properties/PropertyEdit';
@@ -16,6 +17,8 @@ import InterventionEdit from './interventions/InterventionEdit';
 import InterventionDetails from './interventions/InterventionDetails';
 import TeamsList from './teams/TeamsList';
 import TeamForm from './teams/TeamForm';
+import TeamDetails from './teams/TeamDetails';
+import TeamEdit from './teams/TeamEdit';
 import UsersList from './users/UsersList';
 import UserForm from './users/UserForm';
 import UserDetails from './users/UserDetails';
@@ -28,6 +31,7 @@ const AuthenticatedApp: React.FC = () => {
     <MainLayoutFull>
       <Routes>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard/activities" element={<ActivitiesPage />} />
         <Route path="/properties" element={<PropertiesList />} />
         <Route path="/properties/:id" element={<PropertyDetails />} />
         <Route path="/properties/:id/edit" element={<PropertyEdit />} />
@@ -41,6 +45,8 @@ const AuthenticatedApp: React.FC = () => {
         <Route path="/interventions/:id/edit" element={<InterventionEdit />} />
         <Route path="/teams" element={<TeamsList />} />
         <Route path="/teams/new" element={<TeamForm />} />
+        <Route path="/teams/:id" element={<TeamDetails />} />
+        <Route path="/teams/:id/edit" element={<TeamEdit />} />
         <Route path="/users" element={<UsersList />} />
         <Route path="/users/new" element={<UserForm />} />
         <Route path="/users/:id" element={<UserDetails />} />

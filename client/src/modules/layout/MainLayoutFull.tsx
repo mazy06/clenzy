@@ -50,8 +50,10 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   console.log('🔍 MainLayoutFull - DÉBUT du composant');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [connectionTime] = useState(new Date());
+  
+  // Utilisation sécurisée du thème
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery('md');
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAdmin, isManager, isHost, isTechnician, isHousekeeper, isSupervisor, hasPermission, clearUser, restoreKeycloakState } = useAuth();
@@ -616,7 +618,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             color: '#A6C0CE',
             boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
             borderRadius: 0,
-            zIndex: theme.zIndex.drawer - 1,
+            zIndex: (theme?.zIndex?.drawer || 1200) - 1,
           }}
         >
           <Toolbar>

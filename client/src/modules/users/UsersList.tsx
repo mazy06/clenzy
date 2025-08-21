@@ -283,12 +283,20 @@ const UsersList: React.FC = () => {
   return (
     <Box>
       <PageHeader
-        title="Gestion des utilisateurs"
-        description="Gérez les utilisateurs de la plateforme (accès administrateur uniquement)"
-        buttonText="Nouvel utilisateur"
-        buttonIcon={<Add />}
-        onButtonClick={() => navigate('/users/new')}
-        showButton={true}
+        title="Utilisateurs"
+        subtitle="Gestion des utilisateurs de la plateforme"
+        backPath="/dashboard"
+        showBackButton={false}
+        actions={
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Add />}
+            onClick={() => navigate('/users/new')}
+          >
+            Nouvel utilisateur
+          </Button>
+        }
       />
 
       {/* Statistiques */}

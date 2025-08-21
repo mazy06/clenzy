@@ -13,7 +13,9 @@ import {
   ListItemIcon,
   LinearProgress,
   Chip,
-  Alert
+  Alert,
+  CardActionArea,
+  Skeleton
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -31,10 +33,15 @@ import {
   CheckCircle,
   Warning
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useDashboardStats } from '../../hooks/useDashboardStats';
+import PageHeader from '../../components/PageHeader';
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
+  const { stats, activities, loading, error, formatGrowth } = useDashboardStats();
   
   console.log('🔍 Dashboard - Rendu du composant Dashboard');
 
@@ -55,166 +62,117 @@ const Dashboard: React.FC = () => {
   const isHousekeeper = user?.roles?.includes('HOUSEKEEPER');
   const isSupervisor = user?.roles?.includes('SUPERVISOR');
 
-  // Statistiques globales (ADMIN, MANAGER, SUPERVISOR)
-  const globalStats = [
-    {
-      title: 'Propriétés actives',
-      value: '24',
-      icon: <Home color="primary" />,
-      growth: '+12%',
-      growthType: 'up'
-    },
-    {
-      title: 'Demandes en cours',
-      value: '8',
-      icon: <Assignment color="secondary" />,
-      growth: '~5%',
-      growthType: 'down'
-    },
-    {
-      title: 'Interventions du jour',
-      value: '12',
-      icon: <Build color="success" />,
-      growth: '+8%',
-      growthType: 'up'
-    },
-    {
-      title: 'Revenus du mois',
-      value: '€12,450',
-      icon: <Euro color="warning" />,
-      growth: '+15%',
-      growthType: 'up'
-    },
-  ];
+  // Générer les statistiques dynamiques selon le rôle
+  const getDynamicStats = () => {
+    if (!stats) return [];
 
-  // Statistiques pour les HOST (propriétaires)
-  const hostStats = [
-    {
-      title: 'Mes propriétés',
-      value: '3',
-      icon: <Home color="primary" />,
-      growth: '+1 cette année',
-      growthType: 'up'
-    },
-    {
-      title: 'Demandes en cours',
-      value: '2',
-      icon: <Assignment color="secondary" />,
-      growth: '1 en attente',
-      growthType: 'neutral'
-    },
-    {
-      title: 'Interventions planifiées',
-      value: '5',
-      icon: <Build color="success" />,
-      growth: '2 cette semaine',
-      growthType: 'up'
-    },
-    {
-      title: 'Coût mensuel',
-      value: '€450',
-      icon: <Euro color="warning" />,
-      growth: '-8% vs mois dernier',
-      growthType: 'down'
-    },
-  ];
-
-  // Statistiques pour les TECHNICIAN/HOUSEKEEPER
-  const workerStats = [
-    {
-      title: 'Interventions assignées',
-      value: '8',
-      icon: <Build color="primary" />,
-      growth: '3 aujourd\'hui',
-      growthType: 'up'
-    },
-    {
-      title: 'Interventions terminées',
-      value: '15',
-      icon: <CheckCircle color="success" />,
-      growth: 'Cette semaine',
-      growthType: 'up'
-    },
-    {
-      title: 'Temps de travail',
-      value: '32h',
-      icon: <Assignment color="info" />,
-      growth: 'Cette semaine',
-      growthType: 'neutral'
-    },
-    {
-      title: 'Équipe',
-      value: 'Équipe Alpha',
-      icon: <People color="secondary" />,
-      growth: 'Active',
-      growthType: 'neutral'
-    },
-  ];
-
-  // Choisir les statistiques appropriées
-  const getStats = () => {
     if (isAdmin || isManager || isSupervisor) {
-      return globalStats;
-    } else if (isHost) {
-      return hostStats;
-    } else if (isTechnician || isHousekeeper) {
-      return workerStats;
-    }
-    return globalStats; // Fallback
-  };
-
-  // Activités récentes selon le rôle
-  const getRecentActivities = () => {
-    if (isAdmin || isManager) {
+      // Statistiques globales (ADMIN, MANAGER, SUPERVISOR)
       return [
         {
-          type: 'Nettoyage terminé',
-          property: 'Appartement 2B - 15 rue de la Paix, Paris',
-          time: 'Il y a 2 heures',
-          status: 'completed'
+          title: 'Propriétés actives',
+          value: stats.properties.active.toString(),
+          icon: <Home color="primary" />,
+          growth: formatGrowth(stats.properties.growth),
+          route: '/properties'
         },
         {
-          type: 'Nouvelle demande de service (urgent)',
-          property: 'Réparation climatisation - Villa Sunshine',
-          time: 'Il y a 4 heures',
-          status: 'urgent'
-        }
+          title: 'Demandes en cours',
+          value: stats.serviceRequests.pending.toString(),
+          icon: <Assignment color="secondary" />,
+          growth: formatGrowth(stats.serviceRequests.growth),
+          route: '/service-requests'
+        },
+        {
+          title: 'Interventions du jour',
+          value: stats.interventions.today.toString(),
+          icon: <Build color="success" />,
+          growth: formatGrowth(stats.interventions.growth),
+          route: '/interventions'
+        },
+        {
+          title: 'Revenus du mois',
+          value: '€0', // À implémenter plus tard
+          icon: <Euro color="warning" />,
+          growth: { value: '0%', type: 'neutral' },
+          route: '/reports'
+        },
       ];
     } else if (isHost) {
+      // Statistiques pour les HOST (propriétaires)
       return [
         {
-          type: 'Intervention planifiée',
-          property: 'Votre appartement - 25 rue Victor Hugo',
-          time: 'Demain à 9h00',
-          status: 'scheduled'
+          title: 'Mes propriétés',
+          value: stats.properties.active.toString(),
+          icon: <Home color="primary" />,
+          growth: formatGrowth(stats.properties.growth),
+          route: '/properties'
         },
         {
-          type: 'Demande de service approuvée',
-          property: 'Votre villa - Chemin des Oliviers',
-          time: 'Il y a 1 jour',
-          status: 'approved'
-        }
+          title: 'Demandes en cours',
+          value: stats.serviceRequests.pending.toString(),
+          icon: <Assignment color="secondary" />,
+          growth: formatGrowth(stats.serviceRequests.growth),
+          route: '/service-requests'
+        },
+        {
+          title: 'Interventions planifiées',
+          value: stats.interventions.today.toString(),
+          icon: <Build color="success" />,
+          growth: formatGrowth(stats.interventions.growth),
+          route: '/interventions'
+        },
+        {
+          title: 'Coût mensuel',
+          value: '€0', // À implémenter plus tard
+          icon: <Euro color="warning" />,
+          growth: { value: '0%', type: 'neutral' },
+          route: '/reports'
+        },
       ];
     } else if (isTechnician || isHousekeeper) {
+      // Statistiques pour les TECHNICIAN/HOUSEKEEPER
       return [
         {
-          type: 'Intervention terminée',
-          property: 'Appartement 3A - Résidence du Parc',
-          time: 'Il y a 1 heure',
-          status: 'completed'
+          title: 'Interventions assignées',
+          value: stats.interventions.total.toString(),
+          icon: <Build color="primary" />,
+          growth: formatGrowth(stats.interventions.growth),
+          route: '/interventions'
         },
         {
-          type: 'Nouvelle intervention assignée',
-          property: 'Maison 15 - Avenue des Fleurs',
-          time: 'Dans 2 heures',
-          status: 'assigned'
-        }
+          title: 'Interventions terminées',
+          value: '0', // À calculer plus tard
+          icon: <CheckCircle color="success" />,
+          growth: { value: '0%', type: 'neutral' },
+          route: '/interventions'
+        },
+        {
+          title: 'Temps de travail',
+          value: '0h', // À calculer plus tard
+          icon: <Assignment color="info" />,
+          growth: { value: '0%', type: 'neutral' },
+          route: '/reports'
+        },
+        {
+          title: 'Équipe',
+          value: 'Équipe', // À récupérer plus tard
+          icon: <People color="secondary" />,
+          growth: { value: 'Active', type: 'neutral' },
+          route: '/teams'
+        },
       ];
     }
+    
     return [];
   };
 
-  const stats = getStats();
+  // Utiliser les activités dynamiques du hook
+  const getRecentActivities = () => {
+    return activities || [];
+  };
+
+  const dynamicStats = getDynamicStats();
   const recentActivities = getRecentActivities();
 
   // Titre et description personnalisés selon le rôle
@@ -240,50 +198,71 @@ const Dashboard: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" color="primary" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <DashboardIcon fontSize="large" />
-          {getDashboardTitle()}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {getDashboardDescription()}
-        </Typography>
-      </Box>
-
-      {/* Métriques principales */}
+      <PageHeader
+        title="Tableau de bord"
+        subtitle="Vue d'ensemble de votre plateforme Clenzy"
+        backPath="/"
+        showBackButton={false}
+      />
+      
+      {/* Statistiques principales */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {stats.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent sx={{ textAlign: 'center', p: 3 }}>
-                <Box sx={{ mb: 2 }}>
-                  {stat.icon}
-                </Box>
-                <Typography variant="h4" component="div" sx={{ mb: 1, fontWeight: 700 }}>
-                  {stat.value}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {stat.title}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                  {stat.growthType === 'up' ? (
-                    <TrendingUp color="success" fontSize="small" />
-                  ) : stat.growthType === 'down' ? (
-                    <TrendingDown color="error" fontSize="small" />
-                  ) : (
-                    <Star color="info" fontSize="small" />
-                  )}
-                  <Typography 
-                    variant="caption" 
-                    color={stat.growthType === 'up' ? 'success.main' : stat.growthType === 'down' ? 'error.main' : 'info.main'}
-                  >
-                    {stat.growth}
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
+        {loading ? (
+          // Skeleton loading
+          Array.from({ length: 4 }).map((_, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Card sx={{ height: '100%' }}>
+                <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                  <Skeleton variant="circular" width={40} height={40} sx={{ mx: 'auto', mb: 2 }} />
+                  <Skeleton variant="text" width="60%" height={40} sx={{ mx: 'auto', mb: 1 }} />
+                  <Skeleton variant="text" width="80%" height={20} sx={{ mx: 'auto', mb: 2 }} />
+                  <Skeleton variant="text" width="40%" height={20} sx={{ mx: 'auto' }} />
+                </CardContent>
+              </Card>
+            </Grid>
+          ))
+        ) : error ? (
+          <Grid item xs={12}>
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
           </Grid>
-        ))}
+        ) : (
+          dynamicStats.map((stat, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Card sx={{ height: '100%' }}>
+                <CardActionArea onClick={() => navigate(stat.route)}>
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ mb: 2 }}>
+                      {stat.icon}
+                    </Box>
+                    <Typography variant="h4" component="div" sx={{ mb: 1, fontWeight: 700 }}>
+                      {stat.value}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {stat.title}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                      {stat.growth.type === 'up' ? (
+                        <TrendingUp color="success" fontSize="small" />
+                      ) : stat.growth.type === 'down' ? (
+                        <TrendingDown color="error" fontSize="small" />
+                      ) : (
+                        <Star color="info" fontSize="small" />
+                      )}
+                      <Typography 
+                        variant="caption" 
+                        color={stat.growth.type === 'up' ? 'success.main' : stat.growth.type === 'down' ? 'error.main' : 'info.main'}
+                      >
+                        {stat.growth.value}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            </Grid>
+          ))
+        )}
       </Grid>
 
       {/* Activités récentes */}
@@ -291,39 +270,69 @@ const Dashboard: React.FC = () => {
         <Grid item xs={12} md={8}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Activités récentes
-              </Typography>
-              <List>
-                {recentActivities.map((activity, index) => (
-                  <ListItem key={index} sx={{ px: 0 }}>
-                    <ListItemIcon>
-                      {activity.status === 'completed' ? (
-                        <CheckCircle color="success" />
-                      ) : activity.status === 'urgent' ? (
-                        <Warning color="error" />
-                      ) : activity.status === 'scheduled' ? (
-                        <Assignment color="info" />
-                      ) : (
-                        <Notifications color="primary" />
-                      )}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={activity.type}
-                      secondary={`${activity.property} • ${activity.time}`}
-                    />
-                    <Chip
-                      label={activity.status}
-                      size="small"
-                      color={
-                        activity.status === 'completed' ? 'success' :
-                        activity.status === 'urgent' ? 'error' :
-                        activity.status === 'scheduled' ? 'info' : 'default'
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                  Activités récentes
+                </Typography>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => navigate('/dashboard/activities')}
+                  sx={{ textTransform: 'none' }}
+                >
+                  Voir toutes les activités
+                </Button>
+              </Box>
+              {loading ? (
+                // Skeleton loading pour les activités
+                Array.from({ length: 3 }).map((_, index) => (
+                  <Box key={index} sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Skeleton variant="circular" width={24} height={24} />
+                      <Box sx={{ flex: 1 }}>
+                        <Skeleton variant="text" width="60%" height={20} />
+                        <Skeleton variant="text" width="40%" height={16} />
+                      </Box>
+                      <Skeleton variant="rectangular" width={60} height={24} />
+                    </Box>
+                  </Box>
+                ))
+              ) : recentActivities.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                  Aucune activité récente
+                </Typography>
+              ) : (
+                <List>
+                  {recentActivities.map((activity, index) => (
+                    <ListItem key={index} sx={{ px: 0 }}>
+                      <ListItemIcon>
+                        {activity.status === 'completed' ? (
+                          <CheckCircle color="success" />
+                        ) : activity.status === 'urgent' ? (
+                          <Warning color="error" />
+                        ) : activity.status === 'scheduled' ? (
+                          <Assignment color="info" />
+                        ) : (
+                          <Notifications color="primary" />
+                        )}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={activity.type}
+                        secondary={`${activity.property} • ${activity.time}`}
+                      />
+                      <Chip
+                        label={activity.status}
+                        size="small"
+                        color={
+                          activity.status === 'completed' ? 'success' :
+                          activity.status === 'urgent' ? 'error' :
+                          activity.status === 'scheduled' ? 'info' : 'default'
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
             </CardContent>
           </Card>
         </Grid>
