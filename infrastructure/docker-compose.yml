@@ -47,6 +47,8 @@ services:
       POSTGRES_DB: clenzy
       POSTGRES_USER: clenzy
       POSTGRES_PASSWORD: clenzy
+      TZ: Europe/Paris
+      PGTZ: Europe/Paris
     ports:
       - "8082:5432"
     volumes:
@@ -76,6 +78,8 @@ services:
       KEYCLOAK_AUTH_SERVER_URL: http://clenzy-keycloak:8080
       KEYCLOAK_REALM: clenzy
       KEYCLOAK_RESOURCE: clenzy-web
+      TZ: Europe/Paris
+      JAVA_OPTS: -Duser.timezone=Europe/Paris
     ports:
       - "8080:8080"
 

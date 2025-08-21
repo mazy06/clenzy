@@ -240,7 +240,6 @@ export default function InterventionsList() {
   
   // Alternative : chargement immédiat si pas d'interventions
   if (interventions.length === 0 && !loading) {
-    console.log('🔍 InterventionsList - Chargement automatique des interventions (alternative)');
     // Utiliser setTimeout pour éviter les appels synchrones
     setTimeout(() => {
       loadInterventions();
@@ -454,19 +453,20 @@ export default function InterventionsList() {
     <Box>
       <PageHeader
         title="Interventions"
-        description="Interventions créées à partir des demandes de service validées"
-        buttonText="Nouvelle intervention"
-        buttonIcon={<AddIcon />}
-        onButtonClick={() => navigate('/interventions/new')}
-        showButton={canCreateInterventions}
+        subtitle="Gestion et suivi des interventions"
+        backPath="/dashboard"
+        showBackButton={false}
+        actions={
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/interventions/new')}
+          >
+            Nouvelle intervention
+          </Button>
+        }
       />
-
-      {/* Chargement automatique des interventions */}
-      <Box sx={{ mb: 2, display: 'flex', gap: 2 }}>
-        <Typography variant="body2" color="text.secondary" sx={{ alignSelf: 'center' }}>
-          Chargement automatique des interventions...
-        </Typography>
-      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>

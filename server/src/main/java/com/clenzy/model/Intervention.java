@@ -23,7 +23,8 @@ public class Intervention {
     private String type;
     
         @Column(nullable = false, length = 50)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private InterventionStatus status;
 
     @Column(nullable = false, length = 50)
     private String priority;
@@ -141,7 +142,7 @@ public class Intervention {
     public Intervention() {
         this.createdAt = LocalDateTime.now();
         this.startTime = LocalDateTime.now();
-        this.status = "SCHEDULED";
+        this.status = InterventionStatus.PENDING;
         this.priority = "NORMAL";
         this.progressPercentage = 0;
         this.isUrgent = false;
@@ -191,11 +192,11 @@ public class Intervention {
         this.type = type;
     }
     
-    public String getStatus() {
+    public InterventionStatus getStatus() {
         return status;
     }
     
-    public void setStatus(String status) {
+    public void setStatus(InterventionStatus status) {
         this.status = status;
     }
     
@@ -498,7 +499,7 @@ public class Intervention {
         this.updatedAt = LocalDateTime.now();
         
         // Mettre à jour la date de completion si le statut est "COMPLETED"
-        if ("COMPLETED".equals(this.status) && this.completedAt == null) {
+        if (InterventionStatus.COMPLETED.equals(this.status) && this.completedAt == null) {
             this.completedAt = LocalDateTime.now();
         }
     }

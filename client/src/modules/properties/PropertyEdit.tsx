@@ -40,6 +40,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import PageHeader from '../../components/PageHeader';
 
 // Types pour les propriétés
 export interface PropertyFormData {
@@ -344,18 +345,34 @@ const PropertyEdit: React.FC = () => {
   return (
     <Box sx={{ p: 3 }}>
       {/* Header avec bouton retour */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <IconButton 
-          onClick={() => navigate(`/properties/${id}`)} 
-          sx={{ mr: 2 }}
-          size="large"
-        >
-          <ArrowBack />
-        </IconButton>
-        <Typography variant="h4" fontWeight={700}>
-          Modifier la propriété
-        </Typography>
-      </Box>
+      <PageHeader
+        title="Modifier la propriété"
+        subtitle="Modifiez les détails de votre propriété"
+        backPath={`/properties/${id}`}
+        backLabel="Retour aux détails"
+        showBackButton={true}
+        actions={
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => navigate(`/properties/${id}`)}
+              startIcon={<Cancel />}
+              disabled={saving}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              startIcon={saving ? <CircularProgress size={20} /> : <Save />}
+              disabled={saving}
+              onClick={handleSubmit}
+            >
+              {saving ? 'Mise à jour...' : 'Mettre à jour'}
+            </Button>
+          </Box>
+        }
+      />
 
       {/* Messages d'erreur/succès */}
       {error && (
@@ -652,26 +669,6 @@ const PropertyEdit: React.FC = () => {
                 />
               </Grid>
             </Grid>
-
-            {/* Boutons d'action */}
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-              <Button
-                variant="outlined"
-                onClick={() => navigate(`/properties/${id}`)}
-                startIcon={<Cancel />}
-                disabled={saving}
-              >
-                Annuler
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                startIcon={saving ? <CircularProgress size={20} /> : <Save />}
-                disabled={saving}
-              >
-                {saving ? 'Mise à jour...' : 'Mettre à jour'}
-              </Button>
-            </Box>
           </form>
         </CardContent>
       </Card>

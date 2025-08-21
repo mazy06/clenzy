@@ -36,8 +36,10 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import PageHeader from '../../components/PageHeader';
 import { API_CONFIG } from '../../config/api';
 
+// ÉTAPE 5 : AJOUT DE L'INTERFACE TYPESCRIPT
 interface InterventionDetails {
   id: number;
   title: string;
@@ -69,6 +71,7 @@ interface InterventionDetails {
   completedAt: string;
 }
 
+// ÉTAPE 3 : AJOUT DES FONCTIONS UTILITAIRES
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'PENDING': return 'warning';
@@ -165,32 +168,12 @@ export default function InterventionDetails() {
   const { id } = useParams<{ id: string }>();
   const { user, hasPermission } = useAuth();
   
-  // Vérifier la permission de visualisation d'interventions
-  const canViewInterventions = hasPermission('interventions:view');
-  const canEditInterventions = hasPermission('interventions:edit');
-  
-  // Si l'utilisateur n'a pas la permission de voir les interventions, afficher un message informatif
-  if (!canViewInterventions) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info">
-          <Typography variant="h6" gutterBottom>
-            Accès non autorisé
-          </Typography>
-          <Typography variant="body1">
-            Vous n'avez pas les permissions nécessaires pour visualiser les détails des interventions.
-            <br />
-            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </Typography>
-        </Alert>
-      </Box>
-    );
-  }
-
+  // ÉTAPE 2 : AJOUT DES USESTATE HOOKS (maintenant typés)
   const [intervention, setIntervention] = useState<InterventionDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  
+  // ÉTAPE 4 : AJOUT DU USEEFFECT POUR CHARGER LES DONNÉES
   useEffect(() => {
     const loadIntervention = async () => {
       if (!id) return;
@@ -199,6 +182,9 @@ export default function InterventionDetails() {
         setLoading(true);
         setError(null);
 
+        console.log('🔍 InterventionDetails - Chargement de l\'intervention:', id);
+        
+        // Appel API réel
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/interventions/${id}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
@@ -224,7 +210,8 @@ export default function InterventionDetails() {
 
     loadIntervention();
   }, [id]);
-
+  
+  // ÉTAPE 5 : AJOUT DE LA LOGIQUE MÉTIER
   const canModifyIntervention = (): boolean => {
     if (hasPermission('interventions:edit')) return true;
     
@@ -244,309 +231,302 @@ export default function InterventionDetails() {
     
     return false;
   };
-
-  if (loading) {
+  
+  // Vérifier la permission de visualisation d'interventions
+  const canViewInterventions = hasPermission('interventions:view');
+  const canEditInterventions = hasPermission('interventions:edit');
+  
+  // Si l'utilisateur n'a pas la permission de voir les interventions, afficher un message informatif
+  if (!canViewInterventions) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error || !intervention) {
-    return (
-      <Box>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/interventions')}
-          sx={{ mb: 2 }}
-        >
-          Retour aux interventions
-        </Button>
-        <Alert severity="error">{error || 'Intervention non trouvée'}</Alert>
-      </Box>
-    );
-  }
-
-  return (
-    <Box>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box display="flex" alignItems="center">
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/interventions')}
-            sx={{ mr: 2 }}
-          >
-            Retour
-          </Button>
-          <Typography variant="h4" component="h1">
-            {intervention.title}
+      <Box sx={{ p: 3 }}>
+        <Alert severity="info">
+          <Typography variant="h6" gutterBottom>
+            Accès non autorisé
           </Typography>
-        </Box>
-        {canModifyIntervention() && (
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<EditIcon />}
-            onClick={() => navigate(`/interventions/${intervention.id}/edit`)}
-          >
-            Modifier
-          </Button>
-        )}
+          <Typography variant="body1">
+            Vous n'avez pas les permissions nécessaires pour visualiser les détails des interventions.
+            <br />
+            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+          </Typography>
+        </Alert>
       </Box>
+    );
+  }
 
-      <Grid container spacing={3}>
-        {/* Informations principales */}
-        <Grid item xs={12} md={8}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Description
-              </Typography>
-              <Typography variant="body1" color="textSecondary" paragraph>
-                {intervention.description}
-              </Typography>
+  // COMPOSANT SIMPLIFIÉ - ÉTAPE 6
+  return (
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <PageHeader
+        title="Détails de l'intervention"
+        subtitle="Consultation et gestion des informations de l'intervention"
+        backPath="/interventions"
+        backLabel="Retour aux interventions"
+        actions={
+          <>
+            {canEditInterventions && (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<EditIcon />}
+                onClick={() => navigate(`/interventions/${id}/edit`)}
+              >
+                Modifier
+              </Button>
+            )}
+          </>
+        }
+        showBackButton={false}
+        showBackButtonWithActions={true}
+      />
 
-              <Divider sx={{ my: 2 }} />
+      {/* ÉTAPE 6 : AFFICHAGE AVEC MATERIAL-UI */}
+      {loading && (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress />
+        </Box>
+      )}
 
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <Box display="flex" alignItems="center" mb={1}>
-                    <BuildIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="textSecondary">
-                      Type:
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      {intervention && !loading && (
+        <Grid container spacing={3}>
+          {/* Informations principales */}
+          <Grid item xs={12} md={8}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Description
+                </Typography>
+                <Typography variant="body1" color="textSecondary" paragraph>
+                  {intervention.description}
+                </Typography>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Box display="flex" alignItems="center" mb={1}>
+                      <BuildIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="textSecondary">
+                        Type:
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={getTypeLabel(intervention.type)}
+                      color="primary"
+                      variant="outlined"
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box display="flex" alignItems="center" mb={1}>
+                      {getStatusIcon(intervention.status)}
+                      <Typography variant="body2" color="textSecondary" sx={{ ml: 1 }}>
+                        Statut:
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={getStatusLabel(intervention.status)}
+                      color={getStatusColor(intervention.status) as any}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box display="flex" alignItems="center" mb={1}>
+                      <PriorityHighIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="textSecondary">
+                        Priorité:
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={getPriorityLabel(intervention.priority)}
+                      color={getPriorityColor(intervention.priority) as any}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box display="flex" alignItems="center" mb={1}>
+                      <ScheduleIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="textSecondary">
+                        Planifié:
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1">
+                      {formatDate(intervention.scheduledDate)}
+                    </Typography>
+                  </Grid>
+                </Grid>
+
+                <Divider sx={{ my: 2 }} />
+
+                {/* Progression */}
+                <Box mb={2}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                    <Typography variant="h6">
+                      Progression
+                    </Typography>
+                    <Typography variant="h6" color="primary">
+                      {intervention.progressPercentage}%
                     </Typography>
                   </Box>
-                  <Chip
-                    label={getTypeLabel(intervention.type)}
-                    color="primary"
-                    variant="outlined"
+                  <LinearProgress
+                    variant="determinate"
+                    value={intervention.progressPercentage}
+                    sx={{ height: 8, borderRadius: 4 }}
                   />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <Box display="flex" alignItems="center" mb={1}>
-                    {getStatusIcon(intervention.status)}
-                    <Typography variant="body2" color="textSecondary" sx={{ ml: 1 }}>
-                      Statut:
-                    </Typography>
-                  </Box>
-                  <Chip
-                    label={getStatusLabel(intervention.status)}
-                    color={getStatusColor(intervention.status) as any}
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <Box display="flex" alignItems="center" mb={1}>
-                    <PriorityHighIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="textSecondary">
-                      Priorité:
-                    </Typography>
-                  </Box>
-                  <Chip
-                    label={getPriorityLabel(intervention.priority)}
-                    color={getPriorityColor(intervention.priority) as any}
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <Box display="flex" alignItems="center" mb={1}>
-                    <ScheduleIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="textSecondary">
-                      Planifié:
-                    </Typography>
-                  </Box>
-                  <Typography variant="body1">
-                    {formatDate(intervention.scheduledDate)}
-                  </Typography>
-                </Grid>
-              </Grid>
-
-              <Divider sx={{ my: 2 }} />
-
-              {/* Progression */}
-              <Box mb={2}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                  <Typography variant="h6">
-                    Progression
-                  </Typography>
-                  <Typography variant="h6" color="primary">
-                    {intervention.progressPercentage}%
-                  </Typography>
                 </Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={intervention.progressPercentage}
-                  sx={{ height: 8, borderRadius: 4 }}
-                />
-              </Box>
 
-              {/* Notes */}
-              {intervention.notes && (
-                <>
-                  <Divider sx={{ my: 2 }} />
-                  <Typography variant="h6" gutterBottom>
-                    Notes
-                  </Typography>
-                  <Typography variant="body1" color="textSecondary">
-                    {intervention.notes}
-                  </Typography>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
+                {/* Notes */}
+                {intervention.notes && (
+                  <>
+                    <Divider sx={{ my: 2 }} />
+                    <Typography variant="h6" gutterBottom>
+                      Notes
+                    </Typography>
+                    <Typography variant="body1" color="textSecondary">
+                      {intervention.notes}
+                    </Typography>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
 
-        {/* Informations secondaires */}
-        <Grid item xs={12} md={4}>
-          {/* Propriété */}
-          <Card sx={{ mb: 2 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Propriété
-              </Typography>
-              <List dense>
-                <ListItem>
-                  <ListItemIcon>
-                    <LocationIcon />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={intervention.propertyName}
-                    secondary={`${intervention.propertyAddress}, ${intervention.propertyCity} ${intervention.propertyPostalCode}, ${intervention.propertyCountry}`}
-                  />
-                </ListItem>
-              </List>
-            </CardContent>
-          </Card>
+          {/* Informations secondaires */}
+          <Grid item xs={12} md={4}>
+            {/* Propriété */}
+            <Card sx={{ mb: 2 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Propriété
+                </Typography>
+                <List dense>
+                  <ListItem>
+                    <ListItemIcon>
+                      <LocationIcon />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={intervention.propertyName}
+                      secondary={`${intervention.propertyAddress}, ${intervention.propertyCity} ${intervention.propertyPostalCode}, ${intervention.propertyCountry}`}
+                    />
+                  </ListItem>
+                </List>
+              </CardContent>
+            </Card>
 
-          {/* Demandeur */}
-          <Card sx={{ mb: 2 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Demandeur
-              </Typography>
-              <List dense>
-                <ListItem>
-                  <ListItemIcon>
-                    <PersonIcon />
-                  </ListItemIcon>
-                  <ListItemText primary={intervention.requestorName} />
-                </ListItem>
-              </List>
-            </CardContent>
-          </Card>
+            {/* Demandeur */}
+            <Card sx={{ mb: 2 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Demandeur
+                </Typography>
+                <List dense>
+                  <ListItem>
+                    <ListItemIcon>
+                      <PersonIcon />
+                    </ListItemIcon>
+                    <ListItemText primary={intervention.requestorName} />
+                  </ListItem>
+                </List>
+              </CardContent>
+            </Card>
 
-          {/* Assignation */}
-          <Card sx={{ mb: 2 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Assignation
-              </Typography>
-              <List dense>
-                <ListItem>
-                  <ListItemIcon>
-                    {intervention.assignedToType === 'team' ? <GroupIcon /> : <PersonIcon />}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={intervention.assignedToName}
-                    secondary={intervention.assignedToType === 'team' ? 'Équipe' : 'Utilisateur'}
-                  />
-                </ListItem>
-              </List>
-            </CardContent>
-          </Card>
+            {/* Assignation */}
+            <Card sx={{ mb: 2 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Assignation
+                </Typography>
+                <List dense>
+                  <ListItem>
+                    <ListItemIcon>
+                      {intervention.assignedToType === 'team' ? <GroupIcon /> : <PersonIcon />}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={intervention.assignedToName}
+                      secondary={intervention.assignedToType === 'team' ? 'Équipe' : 'Utilisateur'}
+                    />
+                  </ListItem>
+                </List>
+              </CardContent>
+            </Card>
 
-          {/* Détails techniques */}
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Détails techniques
-              </Typography>
-              <List dense>
-                <ListItem>
-                  <ListItemIcon>
-                    <ScheduleIcon />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Durée estimée"
-                    secondary={formatDuration(intervention.estimatedDurationHours)}
-                  />
-                </ListItem>
-                {intervention.actualDurationMinutes && (
+            {/* Détails techniques */}
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Détails techniques
+                </Typography>
+                <List dense>
                   <ListItem>
                     <ListItemIcon>
                       <ScheduleIcon />
                     </ListItemIcon>
                     <ListItemText
-                      primary="Durée réelle"
-                      secondary={`${Math.floor(intervention.actualDurationMinutes / 60)}h${intervention.actualDurationMinutes % 60}min`}
+                      primary="Durée estimée"
+                      secondary={formatDuration(intervention.estimatedDurationHours)}
                     />
                   </ListItem>
-                )}
-                {intervention.estimatedCost && (
-                  <ListItem>
-                    <ListItemIcon>
-                      <PriorityHighIcon />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Coût estimé"
-                      secondary={formatCurrency(intervention.estimatedCost)}
-                    />
-                  </ListItem>
-                )}
-                {intervention.actualCost && (
-                  <ListItem>
-                    <ListItemIcon>
-                      <PriorityHighIcon />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Coût réel"
-                      secondary={formatCurrency(intervention.actualCost)}
-                    />
-                  </ListItem>
-                )}
-              </List>
-            </CardContent>
-          </Card>
+                  {intervention.estimatedCost && (
+                    <ListItem>
+                      <ListItemIcon>
+                        <PriorityHighIcon />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary="Coût estimé"
+                        secondary={formatCurrency(intervention.estimatedCost)}
+                      />
+                    </ListItem>
+                  )}
+                </List>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
+      )}
 
       {/* Informations temporelles */}
-      <Card sx={{ mt: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Informations temporelles
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="body2" color="textSecondary">
-                Créée le
-              </Typography>
-              <Typography variant="body1">
-                {formatDate(intervention.createdAt)}
-              </Typography>
+      {intervention && (
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Informations temporelles
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="body2" color="textSecondary">
+                  Créée le
+                </Typography>
+                <Typography variant="body1">
+                  {formatDate(intervention.createdAt)}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="body2" color="textSecondary">
+                  Dernière mise à jour
+                </Typography>
+                <Typography variant="body1">
+                  {intervention.updatedAt ? formatDate(intervention.updatedAt) : 'Aucune'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="body2" color="textSecondary">
+                  Terminée le
+                </Typography>
+                <Typography variant="body1">
+                  {intervention.completedAt ? formatDate(intervention.completedAt) : 'Non terminée'}
+                </Typography>
+              </Grid>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="body2" color="textSecondary">
-                Dernière mise à jour
-              </Typography>
-              <Typography variant="body1">
-                {intervention.updatedAt ? formatDate(intervention.updatedAt) : 'Aucune'}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="body2" color="textSecondary">
-                Terminée le
-              </Typography>
-              <Typography variant="body1">
-                {intervention.completedAt ? formatDate(intervention.completedAt) : 'Non terminée'}
-              </Typography>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </Box>
   );
 }

@@ -557,11 +557,19 @@ export default function ServiceRequestsList() {
     <Box>
       <PageHeader
         title="Demandes de service"
-        description="Gérez les demandes de service de vos propriétés"
-        buttonText="Nouvelle demande"
-        buttonIcon={<Add />}
-        onButtonClick={handleShowAddForm}
-        showButton={hasPermission('service-requests:create') || isAdmin() || isManager() || isHost()}
+        subtitle="Gestion des demandes de maintenance et nettoyage"
+        backPath="/dashboard"
+        showBackButton={false}
+        actions={
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Add />}
+            onClick={handleShowAddForm}
+          >
+            Nouvelle demande
+          </Button>
+        }
       />
 
       {/* Filtres et recherche */}

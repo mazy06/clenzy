@@ -318,12 +318,20 @@ export default function PropertiesList() {
   return (
     <Box>
       <PageHeader
-        title={isHost() ? 'Mes propriétés' : 'Propriétés'}
-        description={isHost() ? 'Gérez vos propriétés Airbnb' : 'Gérez les propriétés Airbnb'}
-        buttonText={showAddForm ? 'Liste des propriétés' : (isHost() ? 'Ajouter ma propriété' : 'Ajouter une propriété')}
-        buttonIcon={showAddForm ? <Home /> : <Add />}
-        onButtonClick={showAddForm ? handleCloseAddForm : handleShowAddForm}
-        showButton={hasPermission('properties:create') || isAdmin() || isManager() || isHost()}
+        title="Propriétés"
+        subtitle="Gestion du parc immobilier"
+        backPath="/dashboard"
+        showBackButton={false}
+        actions={
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Add />}
+            onClick={handleShowAddForm}
+          >
+            Nouvelle propriété
+          </Button>
+        }
       />
 
       {/* Filtres et recherche */}

@@ -228,11 +228,19 @@ const TeamsList: React.FC = () => {
     <Box sx={{ p: 3 }}>
       <PageHeader
         title="Équipes"
-        description="Gérez vos équipes de travail"
-        buttonText="Nouvelle équipe"
-        buttonIcon={<Add />}
-        onButtonClick={() => navigate('/teams/new')}
-        showButton={hasPermission('teams:create')}
+        subtitle="Gestion des équipes d'intervention"
+        backPath="/dashboard"
+        showBackButton={false}
+        actions={
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Add />}
+            onClick={() => navigate('/teams/new')}
+          >
+            Nouvelle équipe
+          </Button>
+        }
       />
 
       {/* Message d'erreur */}
