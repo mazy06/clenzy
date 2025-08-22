@@ -44,6 +44,8 @@ import { useAuth } from '../../hooks/useAuth';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import { API_CONFIG } from '../../config/api';
+import { PropertyStatus, PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
+import { createSpacing } from '../../theme/spacing';
 
 // Types pour les propriétés
 interface Property {
@@ -87,17 +89,14 @@ const propertyTypes = [
   { value: 'studio', label: 'Studio' },
 ];
 
-const statusColors = {
-  active: 'success',
-  inactive: 'default',
-  maintenance: 'warning',
-} as const;
+// Utilisation des enums partagés pour les statuts des propriétés
+const statusColors = Object.fromEntries(
+  PROPERTY_STATUS_OPTIONS.map(option => [option.value.toLowerCase(), option.color])
+) as Record<string, string>;
 
-const statusLabels = {
-  active: 'Actif',
-  inactive: 'Inactif',
-  maintenance: 'Maintenance',
-};
+const statusLabels = Object.fromEntries(
+  PROPERTY_STATUS_OPTIONS.map(option => [option.value.toLowerCase(), option.label])
+) as Record<string, string>;
 
 export default function PropertiesList() {
   console.log('🔍 PropertiesList - Composant chargé');
@@ -363,7 +362,7 @@ export default function PropertiesList() {
             {filteredProperties.map((property) => (
               <Grid item xs={12} md={6} lg={4} key={property.id}>
                 <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                  <CardContent sx={{ flexGrow: 1, ...createSpacing.card() }}>
                     {/* En-tête avec titre et menu */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>

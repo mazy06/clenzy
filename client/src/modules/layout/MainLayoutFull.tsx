@@ -49,7 +49,7 @@ interface MainLayoutFullProps {
 export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   console.log('🔍 MainLayoutFull - DÉBUT du composant');
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [connectionTime] = useState(new Date());
+
   
   // Utilisation sécurisée du thème
   const theme = useTheme();
@@ -495,68 +495,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
               </Box>
             </Box>
             
-            {/* Informations supplémentaires */}
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              pt: 2,
-              borderTop: '1px solid rgba(166, 192, 206, 0.2)'
-            }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  Connexion
-                </Typography>
-                <Typography variant="body2" fontWeight={500}>
-                  {connectionTime.toLocaleDateString('fr-FR', { 
-                    day: '2-digit', 
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="caption" color="text.secondary">
-                  Durée
-                </Typography>
-                <Typography variant="body2" fontWeight={500} color="primary.main">
-                  {(() => {
-                    const now = new Date();
-                    const diff = now.getTime() - connectionTime.getTime();
-                    const hours = Math.floor(diff / (1000 * 60 * 60));
-                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                    if (hours > 0) {
-                      return `${hours}h ${minutes}m`;
-                    }
-                    return `${minutes}m`;
-                  })()}
-                </Typography>
-              </Box>
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography variant="caption" color="text.secondary">
-                  Statut
-                </Typography>
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 0.5,
-                  mt: 0.5
-                }}>
-                  <Box sx={{ 
-                    width: 8, 
-                    height: 8, 
-                    borderRadius: '50%', 
-                    backgroundColor: '#4CAF50',
-                    border: '2px solid white',
-                    boxShadow: '0 0 0 1px rgba(76, 175, 80, 0.3)'
-                  }} />
-                  <Typography variant="caption" fontWeight={600} color="success.main">
-                    En ligne
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
+
           </Box>
         )}
         

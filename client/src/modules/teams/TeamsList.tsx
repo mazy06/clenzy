@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
-  Card,
-  CardContent,
-  CardActions,
   Typography,
   Button,
   Chip,
@@ -14,11 +11,6 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText,
-  List,
-  ListItem,
-  ListItemAvatar,
-  Avatar,
   Divider,
   Dialog,
   DialogTitle,
@@ -27,18 +19,18 @@ import {
 } from '@mui/material';
 import {
   Add,
-  Visibility,
   Edit,
   Delete,
   MoreVert,
-  Group,
-  Person,
+  Visibility,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
 import PageHeader from '../../components/PageHeader';
+import TeamCard from '../../components/TeamCard';
 import { InterventionType, INTERVENTION_TYPE_OPTIONS, InterventionTypeUtils } from '../../types/interventionTypes';
+import { createSpacing } from '../../theme/spacing';
 
 interface Team {
   id: number;
@@ -47,6 +39,11 @@ interface Team {
   interventionType: string;
   memberCount: number;
   members: TeamMember[];
+  status?: 'active' | 'inactive' | 'maintenance';
+  createdAt?: string;
+  lastIntervention?: string;
+  totalInterventions?: number;
+  averageRating?: number;
 }
 
 interface TeamMember {
@@ -158,27 +155,9 @@ const TeamsList: React.FC = () => {
     }
   };
 
-  // Obtenir le label du rôle
-  const getRoleLabel = (role: string) => {
-    const roleLabels: { [key: string]: string } = {
-      'housekeeper': 'Agent de ménage',
-      'technician': 'Technicien',
-      'supervisor': 'Superviseur',
-      'manager': 'Manager',
-    };
-    return roleLabels[role] || role;
-  };
 
-  // Obtenir la couleur du rôle
-  const getRoleColor = (role: string) => {
-    const roleColors: { [key: string]: string } = {
-      'housekeeper': 'success',
-      'technician': 'primary',
-      'supervisor': 'warning',
-      'manager': 'error',
-    };
-    return roleColors[role] || 'default';
-  };
+
+
 
   if (loading) {
     return (
@@ -189,7 +168,7 @@ const TeamsList: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <PageHeader
         title="Équipes"
         subtitle="Gestion des équipes d'intervention"
@@ -359,88 +338,10 @@ const TeamsList: React.FC = () => {
       <Grid container spacing={3}>
         {filteredTeams.map((team) => (
           <Grid item xs={12} md={6} lg={4} key={team.id}>
-            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                {/* En-tête de la carte */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" component="h3" sx={{ mb: 1, fontWeight: 600 }}>
-                      {team.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {team.description || 'Aucune description'}
-                    </Typography>
-                  </Box>
-                  <IconButton
-                    size="small"
-                    onClick={(e) => handleMenuOpen(e, team)}
-                    sx={{ ml: 1 }}
-                  >
-                    <MoreVert />
-                  </IconButton>
-                </Box>
-
-                {/* Type d'intervention */}
-                <Box sx={{ mb: 2 }}>
-                  <Chip
-                    label={INTERVENTION_TYPE_OPTIONS.find(t => t.value === team.interventionType)?.label || team.interventionType}
-                    size="small"
-                    sx={{
-                      fontSize: '0.75rem',
-                      height: '20px'
-                    }}
-                  />
-                </Box>
-
-                {/* Membres de l'équipe */}
-                <List dense sx={{ mb: 2 }}>
-                  {team.members.slice(0, 3).map((member, index) => (
-                    <React.Fragment key={member.id}>
-                      <ListItem sx={{ px: 0, py: 0.5 }}>
-                        <ListItemAvatar sx={{ minWidth: 32 }}>
-                          <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
-                            {member.firstName.charAt(0)}{member.lastName.charAt(0)}
-                          </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText
-                          primary={`${member.firstName} ${member.lastName}`}
-                          secondary={member.email}
-                          primaryTypographyProps={{ variant: 'body2' }}
-                          secondaryTypographyProps={{ variant: 'caption' }}
-                        />
-                        <Chip
-                          label={getRoleLabel(member.role)}
-                          size="small"
-                          color={getRoleColor(member.role) as any}
-                          variant="outlined"
-                        />
-                      </ListItem>
-                      {index < Math.min(team.members.length, 3) - 1 && <Divider variant="inset" component="li" />}
-                    </React.Fragment>
-                  ))}
-                  {team.members.length > 3 && (
-                    <ListItem sx={{ px: 0, py: 0.5 }}>
-                      <ListItemText
-                        primary={`... et ${team.members.length - 3} autre(s) membre(s)`}
-                        primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
-                      />
-                    </ListItem>
-                  )}
-                </List>
-              </CardContent>
-
-              {/* Actions */}
-              <CardActions sx={{ p: 3, pt: 0 }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<Visibility />}
-                  onClick={() => navigate(`/teams/${team.id}`)}
-                  fullWidth
-                >
-                  Voir détails
-                </Button>
-              </CardActions>
-            </Card>
+            <TeamCard 
+              team={team} 
+              onMenuOpen={handleMenuOpen}
+            />
           </Grid>
         ))}
       </Grid>

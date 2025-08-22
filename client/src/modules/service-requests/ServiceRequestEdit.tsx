@@ -45,6 +45,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import { RequestStatus, REQUEST_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } from '../../types/statusEnums';
 
 // Types pour les demandes de service
 export interface ServiceRequestFormData {
@@ -364,14 +365,11 @@ const ServiceRequestEdit: React.FC = () => {
     { value: 'CRITICAL', label: 'Critique' },
   ];
 
-  const statuses = [
-    { value: 'PENDING', label: 'En attente' },
-    { value: 'APPROVED', label: 'Approuvé' },
-    { value: 'IN_PROGRESS', label: 'En cours' },
-    { value: 'COMPLETED', label: 'Terminé' },
-    { value: 'CANCELLED', label: 'Annulé' },
-    { value: 'REJECTED', label: 'Rejeté' },
-  ];
+  // Utilisation des enums partagés pour les statuts
+  const statuses = REQUEST_STATUS_OPTIONS.map(option => ({
+    value: option.value,
+    label: option.label
+  }));
 
   const durations = [
     { value: 0.5, label: '30 min' },

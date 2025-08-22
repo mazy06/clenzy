@@ -30,6 +30,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
 import PageHeader from '../../components/PageHeader';
+import { createSpacing } from '../../theme/spacing';
 
 export default function ActivitiesPage() {
   const navigate = useNavigate();
@@ -132,7 +133,7 @@ export default function ActivitiesPage() {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <PageHeader
         title="Journal d'activités"
         subtitle="Suivi de toutes les activités de la plateforme"
@@ -141,7 +142,7 @@ export default function ActivitiesPage() {
       />
       
       {/* Filtres */}
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Paper sx={{ ...createSpacing.card(), mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={4}>
             <TextField

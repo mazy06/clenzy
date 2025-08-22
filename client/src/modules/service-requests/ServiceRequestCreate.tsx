@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Alert, Button } from '@mui/material';
+import { Alert, Button, Box } from '@mui/material';
 import { Cancel, Save } from '@mui/icons-material';
 import ServiceRequestForm from './ServiceRequestForm';
 import PageHeader from '../../components/PageHeader';
@@ -27,6 +27,7 @@ const ServiceRequestCreate: React.FC = () => {
     }, 1500);
   };
 
+  // VÉRIFICATIONS APRÈS TOUS LES HOOKS
   // Si l'utilisateur n'a pas les permissions, ne rien afficher
   if (!canCreate) {
     return null;
@@ -34,7 +35,7 @@ const ServiceRequestCreate: React.FC = () => {
 
   if (success) {
     return (
-      <Box sx={{ p: 3 }}>
+      <Box>
         <Alert severity="success" sx={{ mb: 3 }}>
           Demande de service créée avec succès ! Redirection en cours...
         </Alert>
@@ -43,7 +44,9 @@ const ServiceRequestCreate: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
+
+
       <PageHeader
         title="Nouvelle demande de service"
         subtitle="Créer une nouvelle demande de service dans le système"

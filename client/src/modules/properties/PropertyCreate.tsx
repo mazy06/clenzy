@@ -5,6 +5,7 @@ import { Cancel, Save } from '@mui/icons-material';
 import PropertyForm from './PropertyForm';
 import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
+import { createSpacing } from '../../theme/spacing';
 
 const PropertyCreate: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const PropertyCreate: React.FC = () => {
     }, 1500);
   };
 
+  // VÉRIFICATIONS APRÈS TOUS LES HOOKS
   // Si l'utilisateur n'a pas les permissions, ne rien afficher
   if (!canCreate) {
     return null;
@@ -34,8 +36,8 @@ const PropertyCreate: React.FC = () => {
 
   if (success) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="success" sx={{ mb: 3 }}>
+      <Box sx={createSpacing.page()}>
+        <Alert severity="success" sx={createSpacing.section()}>
           Propriété créée avec succès ! Redirection en cours...
         </Alert>
       </Box>
@@ -43,7 +45,7 @@ const PropertyCreate: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={createSpacing.page()}>
       <PageHeader
         title="Nouvelle propriété"
         subtitle="Créer une nouvelle propriété dans le système"

@@ -26,6 +26,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
 import { API_CONFIG } from '../../config/api';
+import { InterventionStatus, INTERVENTION_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } from '../../types/statusEnums';
 
 export default function InterventionEdit() {
   const navigate = useNavigate();
@@ -78,19 +79,21 @@ export default function InterventionEdit() {
     { value: 'OTHER', label: 'Autre' }
   ], []);
   
-  const statuses = useMemo(() => [
-    { value: 'PENDING', label: 'En attente' },
-    { value: 'IN_PROGRESS', label: 'En cours' },
-    { value: 'COMPLETED', label: 'Terminé' },
-    { value: 'CANCELLED', label: 'Annulé' }
-  ], []);
+  // Utilisation des enums partagés pour les statuts
+  const statuses = useMemo(() => 
+    INTERVENTION_STATUS_OPTIONS.map(option => ({
+      value: option.value,
+      label: option.label
+    }))
+  , []);
   
-  const priorities = useMemo(() => [
-    { value: 'LOW', label: 'Basse' },
-    { value: 'NORMAL', label: 'Normale' },
-    { value: 'HIGH', label: 'Haute' },
-    { value: 'URGENT', label: 'Urgente' }
-  ], []);
+  // Utilisation des enums partagés pour les priorités
+  const priorities = useMemo(() => 
+    PRIORITY_OPTIONS.map(option => ({
+      value: option.value,
+      label: option.label
+    }))
+  , []);
   
   // Chargement initial des données
   useEffect(() => {
