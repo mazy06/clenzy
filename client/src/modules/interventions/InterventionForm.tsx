@@ -18,13 +18,12 @@ import {
   FormHelperText
 } from '@mui/material';
 import {
-  ArrowBack as ArrowBackIcon,
   Save as SaveIcon,
   Cancel as CancelIcon
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import { InterventionType, INTERVENTION_TYPE_OPTIONS, InterventionTypeUtils } from '../../types/interventionTypes';
 
 interface InterventionFormData {
   title: string;
@@ -67,27 +66,10 @@ interface Team {
   interventionType: string;
 }
 
-const interventionTypes = [
-  { value: 'CLEANING', label: 'Nettoyage' },
-  { value: 'EXPRESS_CLEANING', label: 'Nettoyage Express' },
-  { value: 'DEEP_CLEANING', label: 'Nettoyage en Profondeur' },
-  { value: 'WINDOW_CLEANING', label: 'Nettoyage des Vitres' },
-  { value: 'FLOOR_CLEANING', label: 'Nettoyage des Sols' },
-  { value: 'KITCHEN_CLEANING', label: 'Nettoyage de la Cuisine' },
-  { value: 'BATHROOM_CLEANING', label: 'Nettoyage des Sanitaires' },
-  { value: 'PREVENTIVE_MAINTENANCE', label: 'Maintenance Préventive' },
-  { value: 'EMERGENCY_REPAIR', label: 'Réparation d\'Urgence' },
-  { value: 'ELECTRICAL_REPAIR', label: 'Réparation Électrique' },
-  { value: 'PLUMBING_REPAIR', label: 'Réparation Plomberie' },
-  { value: 'HVAC_REPAIR', label: 'Réparation Climatisation' },
-  { value: 'APPLIANCE_REPAIR', label: 'Réparation Électroménager' },
-  { value: 'GARDENING', label: 'Jardinage' },
-  { value: 'EXTERIOR_CLEANING', label: 'Nettoyage Extérieur' },
-  { value: 'PEST_CONTROL', label: 'Désinsectisation' },
-  { value: 'DISINFECTION', label: 'Désinfection' },
-  { value: 'RESTORATION', label: 'Remise en État' },
-  { value: 'OTHER', label: 'Autre' }
-];
+const interventionTypes = INTERVENTION_TYPE_OPTIONS.map(option => ({
+  value: option.value,
+  label: option.label
+}));
 
 const statuses = [
   { value: 'PENDING', label: 'En attente' },
@@ -99,46 +81,39 @@ const statuses = [
 const priorities = [
   { value: 'LOW', label: 'Basse' },
   { value: 'NORMAL', label: 'Normale' },
-  { value: 'HIGH', label: 'Haute' },
-  { value: 'URGENT', label: 'Urgente' }
+  { value: 'HIGH', label: 'Élevée' },
+  { value: 'CRITICAL', label: 'Critique' }
 ];
 
-export default function InterventionForm() {
-  const navigate = useNavigate();
-  const { hasPermission } = useAuth();
-  
-  // Vérifier la permission de création d'interventions
-  const canCreateInterventions = hasPermission('interventions:create');
-  
-  // Si l'utilisateur n'a pas la permission de créer des interventions, afficher un message informatif
-  if (!canCreateInterventions) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info">
-          <Typography variant="h6" gutterBottom>
-            Accès non autorisé
-          </Typography>
-          <Typography variant="body1">
-            Vous n'avez pas les permissions nécessaires pour créer des interventions.
-            <br />
-            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </Typography>
-        </Alert>
-      </Box>
-    );
-  }
+interface InterventionFormProps {
+  onClose?: () => void;
+  onSuccess?: () => void;
+  setLoading?: (loading: boolean) => void;
+  loading?: boolean;
+}
 
-  const [loading, setLoading] = useState(true);
+const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess, setLoading, loading }) => {
+  const { user, hasPermission, isAdmin, isManager, isHost } = useAuth();
+  
+  // Vérifier la permission de création d'interventions silencieusement
+  const canCreateInterventions = isAdmin() || isManager();
+
+  const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
 
+  // Si l'utilisateur n'a pas la permission de créer des interventions, ne rien afficher
+  if (!canCreateInterventions) {
+    return null;
+  }
+
   const [formData, setFormData] = useState<InterventionFormData>({
     title: '',
     description: '',
-    type: 'CLEANING',
+    type: InterventionType.CLEANING,
     status: 'PENDING',
     priority: 'NORMAL',
     propertyId: 0,
@@ -153,13 +128,32 @@ export default function InterventionForm() {
     progressPercentage: 0
   });
 
+  // Définir l'utilisateur par défaut selon le rôle
+  useEffect(() => {
+    if (isHost() && user?.id) {
+      // Pour un HOST, essayer de trouver son ID dans la base
+      const hostUser = users.find(u => u.email === user.email);
+      if (hostUser) {
+        setFormData(prev => ({ ...prev, requestorId: hostUser.id }));
+      }
+    } else if (!isAdmin() && !isManager()) {
+      // Pour les autres rôles non-admin, sélectionner automatiquement l'utilisateur connecté
+      const currentUser = users.find(u => u.email === user?.email);
+      if (currentUser) {
+        setFormData(prev => ({ ...prev, requestorId: currentUser.id }));
+      }
+    }
+  }, [users, user, isHost, isAdmin, isManager]);
+
   useEffect(() => {
     const loadData = async () => {
       try {
-        setLoading(true);
+        console.log('🔍 InterventionForm - Début du chargement des données');
+        setIsLoading(true);
         setError(null);
 
         // Charger les propriétés
+        console.log('🔍 InterventionForm - Chargement des propriétés...');
         const propertiesResponse = await fetch(`${API_CONFIG.BASE_URL}/api/properties`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
@@ -169,10 +163,14 @@ export default function InterventionForm() {
 
         if (propertiesResponse.ok) {
           const propertiesData = await propertiesResponse.json();
+          console.log('🔍 InterventionForm - Propriétés chargées:', propertiesData);
           setProperties(propertiesData.content || propertiesData);
+        } else {
+          console.error('🔍 InterventionForm - Erreur chargement propriétés:', propertiesResponse.status);
         }
 
         // Charger les utilisateurs
+        console.log('🔍 InterventionForm - Chargement des utilisateurs...');
         const usersResponse = await fetch(`${API_CONFIG.BASE_URL}/api/users`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
@@ -182,10 +180,14 @@ export default function InterventionForm() {
 
         if (usersResponse.ok) {
           const usersData = await usersResponse.json();
+          console.log('🔍 InterventionForm - Utilisateurs chargés:', usersData);
           setUsers(usersData.content || usersData);
+        } else {
+          console.error('🔍 InterventionForm - Erreur chargement utilisateurs:', usersResponse.status);
         }
 
         // Charger les équipes
+        console.log('🔍 InterventionForm - Chargement des équipes...');
         const teamsResponse = await fetch(`${API_CONFIG.BASE_URL}/api/teams`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
@@ -195,14 +197,18 @@ export default function InterventionForm() {
 
         if (teamsResponse.ok) {
           const teamsData = await teamsResponse.json();
+          console.log('🔍 InterventionForm - Équipes chargées:', teamsData);
           setTeams(teamsData.content || teamsData);
+        } else {
+          console.error('🔍 InterventionForm - Erreur chargement équipes:', teamsResponse.status);
         }
 
       } catch (err) {
         console.error('🔍 InterventionForm - Erreur chargement:', err);
         setError('Erreur lors du chargement des données');
       } finally {
-        setLoading(false);
+        console.log('🔍 InterventionForm - Fin du chargement des données');
+        setIsLoading(false);
       }
     };
 
@@ -224,7 +230,11 @@ export default function InterventionForm() {
       return;
     }
 
-    setSaving(true);
+    if (setLoading) {
+      setLoading(true);
+    } else {
+      setSaving(true);
+    }
     setError(null);
 
     try {
@@ -241,8 +251,13 @@ export default function InterventionForm() {
         const savedIntervention = await response.json();
         console.log('🔍 InterventionForm - Intervention créée:', savedIntervention);
         
-        // Rediriger vers les détails de l'intervention
-        navigate(`/interventions/${savedIntervention.id}`);
+        // Utiliser onSuccess si fourni, sinon rediriger
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          // Redirection par défaut si pas de callback
+          window.location.href = `/interventions/${savedIntervention.id}`;
+        }
       } else {
         const errorData = await response.json();
         setError(errorData.message || 'Erreur lors de la création');
@@ -251,12 +266,16 @@ export default function InterventionForm() {
       console.error('🔍 InterventionForm - Erreur création:', err);
       setError('Erreur lors de la création');
     } finally {
-      setSaving(false);
+      if (setLoading) {
+        setLoading(false);
+      } else {
+        setSaving(false);
+      }
     }
   };
 
   // Vérifier les droits d'accès
-  if (loading) {
+  if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -266,18 +285,6 @@ export default function InterventionForm() {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          Nouvelle intervention
-        </Typography>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/interventions')}
-        >
-          Retour
-        </Button>
-      </Box>
-
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
@@ -315,6 +322,7 @@ export default function InterventionForm() {
                       onChange={(e) => handleInputChange('description', e.target.value)}
                       multiline
                       rows={3}
+                      required
                     />
                   </Grid>
                   
@@ -326,22 +334,30 @@ export default function InterventionForm() {
                         onChange={(e) => handleInputChange('type', e.target.value)}
                         label="Type d'intervention"
                       >
-                        {interventionTypes.map((type) => (
-                          <MenuItem key={type.value} value={type.value}>
-                            {type.label}
-                          </MenuItem>
-                        ))}
+                        {interventionTypes.map((type) => {
+                          const typeOption = INTERVENTION_TYPE_OPTIONS.find(option => option.value === type.value);
+                          const IconComponent = typeOption?.icon;
+                          
+                          return (
+                            <MenuItem key={type.value} value={type.value}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {IconComponent && <IconComponent sx={{ fontSize: '1.2em' }} />}
+                                {type.label}
+                              </Box>
+                            </MenuItem>
+                          );
+                        })}
                       </Select>
                     </FormControl>
                   </Grid>
                   
                   <Grid item xs={12} sm={6}>
                     <FormControl fullWidth required>
-                      <InputLabel>Statut initial</InputLabel>
+                      <InputLabel>Statut</InputLabel>
                       <Select
                         value={formData.status}
                         onChange={(e) => handleInputChange('status', e.target.value)}
-                        label="Statut initial"
+                        label="Statut"
                       >
                         {statuses.map((status) => (
                           <MenuItem key={status.value} value={status.value}>
@@ -372,12 +388,14 @@ export default function InterventionForm() {
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label="Date et heure planifiées"
+                      label="Date prévue"
                       type="datetime-local"
                       value={formData.scheduledDate}
                       onChange={(e) => handleInputChange('scheduledDate', e.target.value)}
                       required
-                      InputLabelProps={{ shrink: true }}
+                      InputLabelProps={{
+                        shrink: true,
+                      }}
                     />
                   </Grid>
                   
@@ -389,7 +407,7 @@ export default function InterventionForm() {
                       value={formData.estimatedDurationHours}
                       onChange={(e) => handleInputChange('estimatedDurationHours', parseInt(e.target.value))}
                       required
-                      inputProps={{ min: 1 }}
+                      inputProps={{ min: 1, max: 24 }}
                     />
                   </Grid>
                   
@@ -438,6 +456,7 @@ export default function InterventionForm() {
                     value={formData.requestorId}
                     onChange={(e) => handleInputChange('requestorId', e.target.value)}
                     label="Demandeur"
+                    disabled={!isAdmin() && !isManager()} // Seuls les admin/manager peuvent changer le demandeur
                   >
                     {users.map((user) => (
                       <MenuItem key={user.id} value={user.id}>
@@ -445,6 +464,11 @@ export default function InterventionForm() {
                       </MenuItem>
                     ))}
                   </Select>
+                  {!isAdmin() && !isManager() && (
+                    <FormHelperText>
+                      Le demandeur est automatiquement défini selon votre rôle
+                    </FormHelperText>
+                  )}
                 </FormControl>
               </CardContent>
             </Card>
@@ -556,27 +580,18 @@ export default function InterventionForm() {
             </Card>
           </Grid>
         </Grid>
-
-        {/* Actions */}
-        <Box display="flex" justifyContent="flex-end" gap={2} mt={3}>
-          <Button
-            variant="outlined"
-            startIcon={<CancelIcon />}
-            onClick={() => navigate('/interventions')}
-          >
-            Annuler
-          </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            startIcon={<SaveIcon />}
-            disabled={saving}
-          >
-            {saving ? 'Création...' : 'Créer l\'intervention'}
-          </Button>
-        </Box>
+        
+        {/* Bouton de soumission caché pour le PageHeader */}
+        <Button
+          type="submit"
+          sx={{ display: 'none' }}
+          data-submit-intervention
+        >
+          Soumettre
+        </Button>
       </form>
     </Box>
   );
-}
+};
+
+export default InterventionForm;

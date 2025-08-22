@@ -33,7 +33,6 @@ import {
   Close,
   Save,
   Cancel,
-  ArrowBack,
   Person,
   Add,
   Description,
@@ -45,6 +44,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import { InterventionType, INTERVENTION_TYPE_OPTIONS, InterventionTypeUtils } from '../../types/interventionTypes';
 
 // Types pour les demandes de service
 export interface ServiceRequestFormData {
@@ -87,11 +87,18 @@ interface Team {
   memberCount: number;
 }
 
-const ServiceRequestForm: React.FC = () => {
+interface ServiceRequestFormProps {
+  onClose?: () => void;
+  onSuccess?: () => void;
+  setLoading?: (loading: boolean) => void;
+  loading?: boolean;
+}
+
+const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSuccess, setLoading, loading }) => {
   const navigate = useNavigate();
   const { user, hasPermission, isAdmin, isManager, isHost } = useAuth();
   
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -206,17 +213,39 @@ const ServiceRequestForm: React.FC = () => {
     loadTeams();
   }, []);
 
-  // Vérifier les permissions APRÈS tous les hooks
-  if (!hasPermission('service-requests:create')) {
+  // Définir l'utilisateur par défaut selon le rôle
+  useEffect(() => {
+    if (isHost() && user?.id) {
+      // Pour un HOST, essayer de trouver son ID dans la base
+      const hostUser = users.find(u => u.email === user.email);
+      if (hostUser) {
+        setFormData(prev => ({ ...prev, userId: hostUser.id }));
+      }
+    } else if (!isAdmin() && !isManager()) {
+      // Pour les autres rôles non-admin, sélectionner automatiquement l'utilisateur connecté
+      const currentUser = users.find(u => u.email === user?.email);
+      if (currentUser) {
+        setFormData(prev => ({ ...prev, userId: currentUser.id }));
+      }
+    }
+  }, [users, user, isHost, isAdmin, isManager]);
+
+  // Vérifier les permissions silencieusement
+  const canCreate = hasPermission('service-requests:create');
+  
+  // Si l'utilisateur n'a pas les permissions, ne rien afficher
+  if (!canCreate) {
+    return null;
+  }
+  
+  if (loadingData) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
-          Vous n'avez pas les permissions nécessaires pour créer des demandes de service.
-        </Alert>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <CircularProgress />
       </Box>
     );
   }
-
+  
   const handleInputChange = (field: keyof ServiceRequestFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -263,8 +292,12 @@ const ServiceRequestForm: React.FC = () => {
       });
 
       if (response.ok) {
-        // Redirection immédiate avec paramètre de succès
-        navigate('/service-requests?success=true');
+        // Utiliser onSuccess si fourni, sinon rediriger
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          navigate('/service-requests?success=true');
+        }
       } else {
         const errorData = await response.json();
         console.error('🔍 ServiceRequestForm - Erreur création:', errorData);
@@ -278,36 +311,11 @@ const ServiceRequestForm: React.FC = () => {
     }
   };
 
-  if (loadingData) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   // Constantes pour les enums
-  const serviceTypes = [
-    { value: 'CLEANING', label: 'Nettoyage' },
-    { value: 'EXPRESS_CLEANING', label: 'Nettoyage Express' },
-    { value: 'DEEP_CLEANING', label: 'Nettoyage en Profondeur' },
-    { value: 'WINDOW_CLEANING', label: 'Nettoyage des Vitres' },
-    { value: 'FLOOR_CLEANING', label: 'Nettoyage des Sols' },
-    { value: 'KITCHEN_CLEANING', label: 'Nettoyage de la Cuisine' },
-    { value: 'BATHROOM_CLEANING', label: 'Nettoyage des Sanitaires' },
-    { value: 'PREVENTIVE_MAINTENANCE', label: 'Maintenance Préventive' },
-    { value: 'EMERGENCY_REPAIR', label: 'Réparation d\'Urgence' },
-    { value: 'ELECTRICAL_REPAIR', label: 'Réparation Électrique' },
-    { value: 'PLUMBING_REPAIR', label: 'Réparation Plomberie' },
-    { value: 'HVAC_REPAIR', label: 'Réparation Climatisation' },
-    { value: 'APPLIANCE_REPAIR', label: 'Réparation Électroménager' },
-    { value: 'GARDENING', label: 'Jardinage' },
-    { value: 'EXTERIOR_CLEANING', label: 'Nettoyage Extérieur' },
-    { value: 'PEST_CONTROL', label: 'Désinsectisation' },
-    { value: 'DISINFECTION', label: 'Désinfection' },
-    { value: 'RESTORATION', label: 'Remise en État' },
-    { value: 'OTHER', label: 'Autre' },
-  ];
+  const serviceTypes = INTERVENTION_TYPE_OPTIONS.map(option => ({
+    value: option.value,
+    label: option.label
+  }));
 
   const priorities = [
     { value: 'LOW', label: 'Faible' },
@@ -348,28 +356,12 @@ const ServiceRequestForm: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header avec bouton retour */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <IconButton 
-          onClick={() => navigate('/service-requests')} 
-          sx={{ mr: 2 }}
-          size="large"
-        >
-          <ArrowBack />
-        </IconButton>
-        <Typography variant="h4" fontWeight={700}>
-          Nouvelle demande de service
-        </Typography>
-      </Box>
-
       {/* Messages d'erreur/succès */}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
-
-
 
       {/* Formulaire */}
       <Card>
@@ -400,14 +392,19 @@ const ServiceRequestForm: React.FC = () => {
                     onChange={(e) => handleInputChange('serviceType', e.target.value)}
                     label="Type de service *"
                   >
-                    {serviceTypes.map((type) => (
-                      <MenuItem key={type.value} value={type.value}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Category />
-                          {type.label}
-                        </Box>
-                      </MenuItem>
-                    ))}
+                    {serviceTypes.map((type) => {
+                      const typeOption = INTERVENTION_TYPE_OPTIONS.find(option => option.value === type.value);
+                      const IconComponent = typeOption?.icon;
+                      
+                      return (
+                        <MenuItem key={type.value} value={type.value}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {IconComponent && <IconComponent sx={{ fontSize: '1.2em' }} />}
+                            {type.label}
+                          </Box>
+                        </MenuItem>
+                      );
+                    })}
                   </Select>
                 </FormControl>
               </Grid>
@@ -527,23 +524,30 @@ const ServiceRequestForm: React.FC = () => {
             </Typography>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
-              <Grid item xs={12} md={6}>
+              {/* Demandeur */}
+              <Grid item xs={12} md={4}>
                 <FormControl fullWidth required>
                   <InputLabel>Demandeur *</InputLabel>
                   <Select
                     value={formData.userId}
                     onChange={(e) => handleInputChange('userId', e.target.value)}
                     label="Demandeur *"
+                    disabled={!isAdmin() && !isManager()} // Seuls les admin/manager peuvent changer le demandeur
                   >
                     {users.map((user) => (
                       <MenuItem key={user.id} value={user.id}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Person />
-                          {user.firstName} {user.lastName} ({user.email})
+                          {user.firstName} {user.lastName} ({user.role}) - {user.email}
                         </Box>
                       </MenuItem>
                     ))}
                   </Select>
+                  {!isAdmin() && !isManager() && (
+                    <FormHelperText>
+                      Le demandeur est automatiquement défini selon votre rôle
+                    </FormHelperText>
+                  )}
                 </FormControl>
               </Grid>
 
@@ -626,26 +630,16 @@ const ServiceRequestForm: React.FC = () => {
               </Grid>
             )}
 
-            {/* Boutons d'action */}
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-              <Button
-                variant="outlined"
-                onClick={() => navigate('/service-requests')}
-                startIcon={<Cancel />}
-                disabled={saving}
-              >
-                Annuler
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                startIcon={saving ? <CircularProgress size={20} /> : <Save />}
-                disabled={saving}
-              >
-                {saving ? 'Création...' : 'Créer la demande'}
-              </Button>
-            </Box>
           </form>
+          
+          {/* Bouton de soumission caché pour le PageHeader */}
+          <Button
+            type="submit"
+            sx={{ display: 'none' }}
+            data-submit-service-request
+          >
+            Soumettre
+          </Button>
         </CardContent>
       </Card>
     </Box>

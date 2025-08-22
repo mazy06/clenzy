@@ -19,7 +19,6 @@ import {
   Box as MuiBox,
 } from '@mui/material';
 import {
-  ArrowBack,
   Save,
   Cancel,
   Person,
@@ -35,6 +34,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import PageHeader from '../../components/PageHeader';
 
 // Types pour les utilisateurs
 export interface UserFormData {
@@ -197,19 +197,33 @@ const UserForm: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header avec bouton retour */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <IconButton 
-          onClick={() => navigate('/users')} 
-          sx={{ mr: 2 }}
-          size="large"
-        >
-          <ArrowBack />
-        </IconButton>
-        <Typography variant="h4" fontWeight={700}>
-          Nouvel utilisateur
-        </Typography>
-      </Box>
+      <PageHeader
+        title="Nouvel utilisateur"
+        subtitle="Créez un nouveau compte utilisateur pour la gestion des utilisateurs"
+        backPath="/users"
+        showBackButton={true}
+        actions={
+          <>
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/users')}
+              startIcon={<Cancel />}
+              disabled={saving}
+              sx={{ mr: 1 }}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              startIcon={saving ? <CircularProgress size={20} /> : <Save />}
+              disabled={saving}
+            >
+              {saving ? 'Création...' : 'Créer l\'utilisateur'}
+            </Button>
+          </>
+        }
+      />
 
       {/* Messages d'erreur/succès */}
       {error && (
@@ -415,26 +429,6 @@ const UserForm: React.FC = () => {
                 </Typography>
               </Box>
             )}
-
-            {/* Boutons d'action */}
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-              <Button
-                variant="outlined"
-                onClick={() => navigate('/users')}
-                startIcon={<Cancel />}
-                disabled={saving}
-              >
-                Annuler
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                startIcon={saving ? <CircularProgress size={20} /> : <Save />}
-                disabled={saving}
-              >
-                {saving ? 'Création...' : 'Créer l\'utilisateur'}
-              </Button>
-            </Box>
           </form>
         </CardContent>
       </Card>

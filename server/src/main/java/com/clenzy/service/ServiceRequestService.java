@@ -219,7 +219,7 @@ public class ServiceRequestService {
      */
     private String mapServiceTypeToInterventionType(com.clenzy.model.ServiceType serviceType) {
         if (serviceType == null) {
-            return InterventionType.MAINTENANCE.name();
+            return InterventionType.PREVENTIVE_MAINTENANCE.name();
         }
         
         switch (serviceType) {
@@ -243,7 +243,7 @@ public class ServiceRequestService {
             case PEST_CONTROL:
             case RESTORATION:
             default:
-                return InterventionType.MAINTENANCE.name();
+                return InterventionType.PREVENTIVE_MAINTENANCE.name();
         }
     }
 

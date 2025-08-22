@@ -239,7 +239,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         console.log('🔍 MainLayoutFull - Role functions not defined, returning base menu');
         return [
           {
-            text: 'Dashboard',
+            text: 'Tableau de bord',
             icon: <Dashboard />,
             path: '/dashboard',
             roles: ['all']
@@ -251,7 +251,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
 
       const baseItems = [
         {
-          text: 'Dashboard',
+          text: 'Tableau de bord',
           icon: <Dashboard />,
           path: '/dashboard',
           roles: ['all']
@@ -285,7 +285,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         if (hasPermission('properties:view')) {
           console.log('🔍 MainLayoutFull - Adding Properties');
           roleBasedItems.push({
-            text: 'Properties',
+            text: 'Propriétés',
             icon: <Home />,
             path: '/properties',
             roles: ['ADMIN', 'MANAGER', 'HOST']
@@ -296,7 +296,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         if (hasPermission('service-requests:view')) {
           console.log('🔍 MainLayoutFull - Adding Service Requests');
           roleBasedItems.push({
-            text: 'Service Requests',
+            text: 'Demandes de service',
             icon: <Assignment />,
             path: '/service-requests',
             roles: ['ADMIN', 'MANAGER', 'HOST', 'SUPERVISOR']
@@ -318,7 +318,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         if (hasPermission('teams:view')) {
           console.log('🔍 MainLayoutFull - Adding Teams');
           roleBasedItems.push({
-            text: 'Teams',
+            text: 'Équipes',
             icon: <People />,
             path: '/teams',
             roles: ['ADMIN', 'MANAGER', 'SUPERVISOR']
@@ -340,7 +340,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         if (hasPermission('settings:view')) {
           console.log('🔍 MainLayoutFull - Adding Settings');
           roleBasedItems.push({
-            text: 'Settings',
+            text: 'Paramètres',
             icon: <Settings />,
             path: '/settings',
             roles: ['all']
@@ -586,8 +586,11 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
               >
                 <ListItemIcon
                   sx={{
-                    color: 'inherit',
+                    color: location.pathname === item.path ? 'inherit' : '#666666',
                     minWidth: 40,
+                    '& .MuiSvgIcon-root': {
+                      color: location.pathname === item.path ? 'inherit' : '#666666',
+                    },
                   }}
                 >
                   {item.icon}
@@ -597,6 +600,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
                   primaryTypographyProps={{
                     fontSize: '0.9rem',
                     fontWeight: 500,
+                    color: location.pathname === item.path ? 'inherit' : '#666666',
                   }}
                 />
               </ListItemButton>

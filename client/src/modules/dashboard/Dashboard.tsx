@@ -348,55 +348,125 @@ const Dashboard: React.FC = () => {
                 {canViewProperties && (
                   <Button
                     variant="outlined"
-                    startIcon={<Home />}
+                    startIcon={<Add />}
                     fullWidth
-                    onClick={() => window.location.href = '/properties'}
+                    onClick={() => navigate('/properties/new')}
+                    sx={{
+                      justifyContent: 'flex-start',
+                      textAlign: 'left',
+                      py: 1,
+                      px: 1.5,
+                      borderRadius: 1,
+                      borderWidth: 1.5,
+                      '&:hover': {
+                        borderWidth: 1.5,
+                        transform: 'translateY(-1px)',
+                        boxShadow: 1,
+                        transition: 'all 0.2s ease-in-out'
+                      }
+                    }}
                   >
-                    {isHost ? 'Voir mes propriétés' : 'Gérer les propriétés'}
+                    Créer une propriété
                   </Button>
                 )}
-                
+
                 {canViewServiceRequests && (
                   <Button
                     variant="outlined"
-                    startIcon={<Assignment />}
+                    startIcon={<Add />}
                     fullWidth
-                    onClick={() => window.location.href = '/service-requests'}
+                    onClick={() => navigate('/service-requests/new')}
+                    sx={{
+                      justifyContent: 'flex-start',
+                      textAlign: 'left',
+                      py: 1,
+                      px: 1.5,
+                      borderRadius: 1,
+                      borderWidth: 1.5,
+                      '&:hover': {
+                        borderWidth: 1.5,
+                        transform: 'translateY(-1px)',
+                        boxShadow: 1,
+                        transition: 'all 0.2s ease-in-out'
+                      }
+                    }}
                   >
-                    {isHost ? 'Nouvelle demande' : 'Gérer les demandes'}
+                    Créer une demande
                   </Button>
                 )}
-                
+
                 {canViewInterventions && (
                   <Button
                     variant="outlined"
                     startIcon={<Build />}
                     fullWidth
-                    onClick={() => window.location.href = '/interventions'}
+                    onClick={() => navigate('/interventions/new')}
+                    sx={{
+                      justifyContent: 'flex-start',
+                      textAlign: 'left',
+                      py: 1,
+                      px: 1.5,
+                      borderRadius: 1,
+                      borderWidth: 1.5,
+                      '&:hover': {
+                        borderWidth: 1.5,
+                        transform: 'translateY(-1px)',
+                        boxShadow: 1,
+                        transition: 'all 0.2s ease-in-out'
+                      }
+                    }}
                   >
-                    {isTechnician || isHousekeeper ? 'Mes interventions' : 'Gérer les interventions'}
+                    Créer une intervention
                   </Button>
                 )}
-                
+
                 {canViewTeams && (
                   <Button
                     variant="outlined"
-                    startIcon={<People />}
+                    startIcon={<Add />}
                     fullWidth
-                    onClick={() => window.location.href = '/teams'}
+                    onClick={() => navigate('/teams/new')}
+                    sx={{
+                      justifyContent: 'flex-start',
+                      textAlign: 'left',
+                      py: 1,
+                      px: 1.5,
+                      borderRadius: 1,
+                      borderWidth: 1.5,
+                      '&:hover': {
+                        borderWidth: 1.5,
+                        transform: 'translateY(-1px)',
+                        boxShadow: 1,
+                        transition: 'all 0.2s ease-in-out'
+                      }
+                    }}
                   >
-                    Gérer les équipes
+                    Créer une équipe
                   </Button>
                 )}
-                
+
                 {canViewUsers && (
                   <Button
                     variant="outlined"
-                    startIcon={<People />}
+                    startIcon={<Add />}
                     fullWidth
-                    onClick={() => window.location.href = '/users'}
+                    onClick={() => navigate('/users/new')}
+                    sx={{
+                      justifyContent: 'flex-start',
+                      textAlign: 'left',
+                      py: 1,
+                      px: 1.5,
+                      borderRadius: 1,
+                      borderWidth: 1.5,
+                      '&:hover': {
+                        borderWidth: 1.5,
+                        transform: 'translateY(-1px)',
+                        boxShadow: 1,
+                        transition: 'all 0.2s ease-in-out'
+                      }
+                    }}
                   >
-                    Gérer les utilisateurs
+                    Créer un utilisateur
                   </Button>
                 )}
               </Box>

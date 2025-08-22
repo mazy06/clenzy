@@ -24,18 +24,17 @@ import {
   DialogActions,
 } from '@mui/material';
 import {
+  Save as SaveIcon,
+  Cancel as CancelIcon,
   Home,
   LocationOn,
+  Person,
+  Add,
+  Close as CloseIcon,
   Euro,
   Bed,
   Bathroom,
-  SquareFoot,
-  Close,
-  Save,
-  Cancel,
-  ArrowBack,
-  Person,
-  Add,
+  SquareFoot
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
@@ -78,6 +77,8 @@ interface TemporaryOwner {
 interface PropertyFormProps {
   onClose: () => void;
   onSuccess: () => void;
+  setLoading?: (loading: boolean) => void;
+  loading?: boolean;
 }
 
 const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
@@ -151,17 +152,21 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
       if (hostUser) {
         setFormData(prev => ({ ...prev, ownerId: hostUser.id }));
       }
+    } else if (!isAdmin() && !isManager()) {
+      // Pour les autres rôles non-admin, sélectionner automatiquement l'utilisateur connecté
+      const currentUser = users.find(u => u.email === user?.email);
+      if (currentUser) {
+        setFormData(prev => ({ ...prev, ownerId: currentUser.id }));
+      }
     }
-  }, [users, user, isHost]);
+  }, [users, user, isHost, isAdmin, isManager]);
 
-  // Vérifier les permissions (après déclaration des hooks)
+  // Vérifier les permissions silencieusement
   const canCreate = hasPermission('properties:create');
+  
+  // Si l'utilisateur n'a pas les permissions, ne rien afficher
   if (!canCreate) {
-    return (
-      <Alert severity="error" sx={{ mt: 2 }}>
-        Vous n'avez pas les permissions nécessaires pour créer des propriétés.
-      </Alert>
-    );
+    return null;
   }
 
   // Types de propriétés disponibles (correspondant au backend)
@@ -313,36 +318,6 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
     <>
     <Card sx={{ mt: 2, width: '100%' }}>
       <CardContent sx={{ p: 3 }}>
-        {/* Header avec boutons de retour */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <IconButton 
-              onClick={onClose} 
-              size="small"
-              sx={{ 
-                display: { xs: 'flex', md: 'none' }, // Visible uniquement sur mobile
-                color: 'text.secondary'
-              }}
-            >
-              <ArrowBack />
-            </IconButton>
-            <Typography variant="h5" component="h2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Home color="primary" />
-              Nouvelle Propriété
-            </Typography>
-          </Box>
-          <IconButton 
-            onClick={onClose} 
-            size="small"
-            sx={{ 
-              display: { xs: 'none', md: 'flex' }, // Visible uniquement sur desktop
-              color: 'text.secondary'
-            }}
-          >
-            <Close />
-          </IconButton>
-        </Box>
-
         <form onSubmit={handleSubmit}>
           <Grid container spacing={4}>
             {/* Informations de base */}
@@ -506,69 +481,30 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             </Grid>
 
             {/* Champ Owner - comportement différent selon le rôle */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                Propriétaire *
-              </Typography>
-              
-              {isHost() ? (
-                // Pour les HOST : affichage en lecture seule
-                <Box sx={{ 
-                  p: 2, 
-                  border: 1, 
-                  borderColor: 'divider', 
-                  borderRadius: 1, 
-                  bgcolor: 'grey.50',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1
-                }}>
-                  <Person color="action" />
-                  <Typography>
-                    {user?.username || 'Vous'} (HOST)
-                  </Typography>
-                </Box>
-              ) : (
-                // Pour ADMIN/MANAGER : sélection + création
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                  <Autocomplete
-                    sx={{ flexGrow: 1 }}
-                    options={users}
-                    getOptionLabel={(option) => `${option.firstName} ${option.lastName} (${option.email})`}
-                    value={users.find(u => u.id === formData.ownerId) || null}
-                    onChange={(_, newValue) => {
-                      if (newValue) {
-                        handleInputChange('ownerId', newValue.id);
-                      }
-                    }}
-                    loading={loadingUsers}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Sélectionner un propriétaire"
-                        placeholder="Rechercher un propriétaire..."
-                        InputProps={{
-                          ...params.InputProps,
-                          endAdornment: (
-                            <>
-                              {loadingUsers ? <CircularProgress color="inherit" size={20} /> : null}
-                              {params.InputProps.endAdornment}
-                            </>
-                          ),
-                        }}
-                      />
-                    )}
-                  />
-                  <Button
-                    variant="outlined"
-                    startIcon={<Add />}
-                    onClick={() => setShowOwnerDialog(true)}
-                    sx={{ minWidth: 'auto', px: 2 }}
-                  >
-                    Nouveau
-                  </Button>
-                </Box>
-              )}
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Propriétaire *</InputLabel>
+                <Select
+                  value={formData.ownerId}
+                  onChange={(e) => handleInputChange('ownerId', e.target.value)}
+                  label="Propriétaire *"
+                  disabled={!isAdmin() && !isManager()} // Seuls les admin/manager peuvent changer le propriétaire
+                >
+                  {users.map((user) => (
+                    <MenuItem key={user.id} value={user.id}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Person />
+                        {user.firstName} {user.lastName} ({user.role}) - {user.email}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+                {!isAdmin() && !isManager() && (
+                  <FormHelperText>
+                    Le propriétaire est automatiquement défini selon votre rôle
+                  </FormHelperText>
+                )}
+              </FormControl>
             </Grid>
 
             <Grid item xs={12} md={6}>
@@ -643,31 +579,15 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             )}
           </Grid>
         </form>
-
-        {/* Boutons d'action */}
-        <Box sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' } }}>
-            <Button
-              variant="outlined"
-              onClick={onClose}
-              disabled={loading}
-              startIcon={<Cancel />}
-              sx={{ width: { xs: '100%', sm: 'auto' } }}
-            >
-              Annuler
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={loading}
-              startIcon={loading ? <CircularProgress size={20} /> : <Save />}
-              onClick={handleSubmit}
-              sx={{ width: { xs: '100%', sm: 'auto' } }}
-            >
-              {loading ? 'Création...' : 'Créer la propriété'}
-            </Button>
-          </Box>
-        </Box>
+        
+        {/* Bouton de soumission caché pour le PageHeader */}
+        <Button
+          type="submit"
+          sx={{ display: 'none' }}
+          data-submit-property
+        >
+          Soumettre
+        </Button>
       </CardContent>
     </Card>
 
