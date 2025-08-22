@@ -40,6 +40,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import { PropertyStatus, PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
 import PageHeader from '../../components/PageHeader';
 
 // Types pour les propriétés
@@ -327,11 +328,11 @@ const PropertyEdit: React.FC = () => {
     { value: 'loft', label: 'Loft' },
   ];
 
-  const propertyStatuses = [
-    { value: 'active', label: 'Actif' },
-    { value: 'inactive', label: 'Inactif' },
-    { value: 'maintenance', label: 'Maintenance' },
-  ];
+  // Utilisation des enums partagés pour les statuts des propriétés
+  const propertyStatuses = PROPERTY_STATUS_OPTIONS.map(option => ({
+    value: option.value.toLowerCase(),
+    label: option.label
+  }));
 
   const cleaningFrequencies = [
     { value: 'after_each_stay', label: 'Après chaque séjour' },

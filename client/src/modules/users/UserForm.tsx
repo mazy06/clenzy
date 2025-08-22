@@ -34,6 +34,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
 import PageHeader from '../../components/PageHeader';
 
 // Types pour les utilisateurs
@@ -57,13 +58,12 @@ const userRoles = [
   { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
 ];
 
-const userStatuses = [
-  { value: 'ACTIVE', label: 'Actif', color: 'success' },
-  { value: 'INACTIVE', label: 'Inactif', color: 'default' },
-  { value: 'SUSPENDED', label: 'Suspendu', color: 'error' },
-  { value: 'PENDING_VERIFICATION', label: 'En attente de vérification', color: 'warning' },
-  { value: 'BLOCKED', label: 'Bloqué', color: 'error' },
-];
+// Utilisation des enums partagés pour les statuts utilisateur
+const userStatuses = USER_STATUS_OPTIONS.map(option => ({
+  value: option.value,
+  label: option.label,
+  color: option.color
+}));
 
 const UserForm: React.FC = () => {
   const navigate = useNavigate();

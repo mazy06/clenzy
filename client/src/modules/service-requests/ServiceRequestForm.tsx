@@ -355,7 +355,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       {/* Messages d'erreur/succès */}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>

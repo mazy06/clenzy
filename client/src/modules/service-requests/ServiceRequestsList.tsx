@@ -6,9 +6,6 @@ import {
   Grid,
   Card,
   CardContent,
-  CardActions,
-  Chip,
-  IconButton,
   Menu,
   MenuItem,
   Dialog,
@@ -31,20 +28,13 @@ import {
   Edit,
   Delete,
   Visibility,
-  LocationOn,
   Schedule,
   Person,
   Category,
   PriorityHigh,
-  CalendarToday,
-  AccessTime,
   CleaningServices,
   Build,
-  Assignment,
-  Group,
   CheckCircle,
-  PlayArrow,
-  Pause,
   Cancel,
   Description,
 } from '@mui/icons-material';
@@ -53,8 +43,10 @@ import { useAuth } from '../../hooks/useAuth';
 import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
-import ServiceRequestForm from './ServiceRequestForm';
+import ServiceRequestCard from '../../components/ServiceRequestCard';
 import { API_CONFIG } from '../../config/api';
+import { RequestStatus, REQUEST_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } from '../../types/statusEnums';
+import { createSpacing } from '../../theme/spacing';
 
 interface ServiceRequest {
   id: string;
@@ -103,39 +95,32 @@ const serviceTypes = [
   { value: 'OTHER', label: 'Autre' },
 ];
 
+// Utilisation des enums partagés pour les statuts
 const statuses = [
   { value: 'all', label: 'Tous les statuts' },
-  { value: 'PENDING', label: 'En attente' },
-  { value: 'APPROVED', label: 'Approuvé' },
-  { value: 'IN_PROGRESS', label: 'En cours' },
-  { value: 'COMPLETED', label: 'Terminé' },
-  { value: 'CANCELLED', label: 'Annulé' },
-  { value: 'REJECTED', label: 'Rejeté' },
+  ...REQUEST_STATUS_OPTIONS.map(option => ({
+    value: option.value,
+    label: option.label
+  }))
 ];
 
+// Utilisation des enums partagés pour les priorités
 const priorities = [
   { value: 'all', label: 'Toutes priorités' },
-  { value: 'LOW', label: 'Faible' },
-  { value: 'NORMAL', label: 'Normale' },
-  { value: 'HIGH', label: 'Élevée' },
-  { value: 'CRITICAL', label: 'Critique' },
+  ...PRIORITY_OPTIONS.map(option => ({
+    value: option.value,
+    label: option.label
+  }))
 ];
 
-const statusColors = {
-  PENDING: 'warning',
-  APPROVED: 'info',
-  IN_PROGRESS: 'primary',
-  COMPLETED: 'success',
-  CANCELLED: 'default',
-  REJECTED: 'error',
-} as const;
+// Utilisation des enums partagés pour les couleurs
+const statusColors = Object.fromEntries(
+  REQUEST_STATUS_OPTIONS.map(option => [option.value, option.color])
+) as Record<RequestStatus, string>;
 
-const priorityColors = {
-  LOW: 'default',
-  NORMAL: 'info',
-  HIGH: 'warning',
-  CRITICAL: 'error',
-} as const;
+const priorityColors = Object.fromEntries(
+  PRIORITY_OPTIONS.map(option => [option.value, option.color])
+) as Record<Priority, string>;
 
 const typeIcons = {
   CLEANING: <CleaningServices />,
@@ -167,7 +152,7 @@ export default function ServiceRequestsList() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedServiceRequest, setSelectedServiceRequest] = useState<ServiceRequest | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
+
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -247,18 +232,7 @@ export default function ServiceRequestsList() {
 
 
 
-  const handleShowAddForm = () => {
-    setShowAddForm(true);
-  };
 
-  const handleCloseAddForm = () => {
-    setShowAddForm(false);
-  };
-
-  const handleServiceRequestCreated = () => {
-    loadServiceRequests();
-    setShowAddForm(false);
-  };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, serviceRequest: ServiceRequest) => {
     setAnchorEl(event.currentTarget);
@@ -547,11 +521,7 @@ export default function ServiceRequestsList() {
     }
   };
 
-  if (showAddForm) {
-    return (
-      <ServiceRequestForm />
-    );
-  }
+
 
   return (
     <Box>
@@ -565,7 +535,7 @@ export default function ServiceRequestsList() {
             variant="contained"
             color="primary"
             startIcon={<Add />}
-            onClick={handleShowAddForm}
+            onClick={() => navigate('/service-requests/new')}
           >
             Nouvelle demande
           </Button>
@@ -613,7 +583,7 @@ export default function ServiceRequestsList() {
           </Grid>
         ) : filteredServiceRequests.length === 0 ? (
           <Grid item xs={12}>
-            <Card sx={{ textAlign: 'center', py: 4, px: 3 }}>
+            <Card sx={{ textAlign: 'center', py: 4, px: 3, ...createSpacing.card() }}>
               <CardContent>
                 <Box sx={{ mb: 2 }}>
                   <Description sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.6 }} />
@@ -633,7 +603,7 @@ export default function ServiceRequestsList() {
                   <Button
                     variant="contained"
                     startIcon={<Add />}
-                    onClick={handleShowAddForm}
+                    onClick={() => navigate('/service-requests/new')}
                     size="large"
                     sx={{ borderRadius: 2 }}
                   >
@@ -646,137 +616,17 @@ export default function ServiceRequestsList() {
         ) : (
           filteredServiceRequests.map((request) => (
             <Grid item xs={12} md={6} lg={4} key={request.id}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                  {/* En-tête avec titre et menu */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-                      {typeIcons[request.type as keyof typeof typeIcons] || <Category />}
-                      <Typography variant="h6" fontWeight={600} sx={{ wordBreak: 'break-word' }}>
-                        {request.title}
-                      </Typography>
-                    </Box>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleMenuOpen(e, request)}
-                      sx={{ ml: 1 }}
-                    >
-                      <MoreVert />
-                    </IconButton>
-                  </Box>
-
-                  {/* Description */}
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2, minHeight: '3em' }}>
-                    {request.description}
-                  </Typography>
-
-                  {/* Localisation */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="text.secondary">
-                      {request.propertyName}
-                    </Typography>
-                  </Box>
-
-                  {/* Statut et priorité */}
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    <Chip
-                      label={statuses.find(s => s.value === request.status)?.label || request.status}
-                      color={statusColors[request.status as keyof typeof statusColors] as any}
-                      size="small"
-                      sx={{ textTransform: 'capitalize' }}
-                    />
-                    <Chip
-                      label={priorities.find(p => p.value === request.priority)?.label || request.priority}
-                      color={priorityColors[request.priority as keyof typeof priorityColors] as any}
-                      size="small"
-                      sx={{ textTransform: 'capitalize' }}
-                    />
-                  </Box>
-
-                  {/* Demandeur */}
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    Demandé par {request.requestorName}
-                  </Typography>
-
-                  {/* Date de création */}
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Créé le {formatDate(request.createdAt)}
-                  </Typography>
-
-                  {/* Date d'échéance */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <CalendarToday sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="text.secondary">
-                      Échéance: {formatDate(request.dueDate)}
-                    </Typography>
-                  </Box>
-
-                  {/* Durée estimée */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <AccessTime sx={{ fontSize: 16, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="text.secondary">
-                      Durée estimée: {formatDuration(request.estimatedDuration)}
-                    </Typography>
-                  </Box>
-
-                  {/* Assignation */}
-                  {request.assignedToName && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                      {request.assignedToType === 'team' ? (
-                        <Group sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      ) : (
-                        <Assignment sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      )}
-                      <Typography variant="body2" color="text.secondary">
-                        Assigné à: {request.assignedToName}
-                        {request.assignedToType === 'team' && (
-                          <Chip 
-                            label="Équipe" 
-                            size="small" 
-                            variant="outlined" 
-                            sx={{ ml: 1 }}
-                          />
-                        )}
-                      </Typography>
-                    </Box>
-                  )}
-                </CardContent>
-
-                {/* Actions */}
-                <CardActions sx={{ p: 3, pt: 0 }}>
-                  <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
-                    {/* Bouton principal */}
-                    <Button
-                      variant="outlined"
-                      startIcon={<Visibility />}
-                      onClick={() => navigate(`/service-requests/${request.id}`)}
-                      sx={{ flex: 1 }}
-                    >
-                      Voir détails
-                    </Button>
-                    
-                    {/* Bouton de changement de statut rapide - visible pour managers et admins */}
-                    {(isAdmin() || isManager()) && (
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => handleStatusChange(request)}
-                        sx={{ minWidth: 'auto', px: 2 }}
-                        startIcon={
-                          request.status === 'PENDING' ? <Pause sx={{ fontSize: 16 }} /> :
-                          request.status === 'IN_PROGRESS' ? <PlayArrow sx={{ fontSize: 16 }} /> :
-                          request.status === 'COMPLETED' ? <CheckCircle sx={{ fontSize: 16 }} /> :
-                          request.status === 'CANCELLED' ? <Cancel sx={{ fontSize: 16 }} /> :
-                          <MoreVert sx={{ fontSize: 16 }} />
-                        }
-                      >
-                        Statut
-                      </Button>
-                    )}
-                  </Box>
-                </CardActions>
-              </Card>
+              <ServiceRequestCard
+                request={request}
+                onMenuOpen={handleMenuOpen}
+                onStatusChange={handleStatusChange}
+                canChangeStatus={isAdmin() || isManager()}
+                typeIcons={typeIcons}
+                statuses={statuses}
+                priorities={priorities}
+                statusColors={statusColors}
+                priorityColors={priorityColors}
+              />
             </Grid>
           ))
         )}

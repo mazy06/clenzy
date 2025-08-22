@@ -38,6 +38,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import { PropertyStatus, PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
 
 // Types pour les propriétés
 export interface PropertyFormData {
@@ -183,13 +184,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
     { value: 'OTHER', label: 'Autre' },
   ];
 
-  // Statuts disponibles (correspondant au backend)
-  const propertyStatuses = [
-    { value: 'ACTIVE', label: 'Actif' },
-    { value: 'INACTIVE', label: 'Inactif' },
-    { value: 'UNDER_MAINTENANCE', label: 'En maintenance' },
-    { value: 'ARCHIVED', label: 'Archivé' },
-  ];
+  // Utilisation des enums partagés pour les statuts des propriétés
+  const propertyStatuses = PROPERTY_STATUS_OPTIONS.map(option => ({
+    value: option.value,
+    label: option.label
+  }));
 
   // Fréquences de nettoyage (correspondant au backend)
   const cleaningFrequencies = [

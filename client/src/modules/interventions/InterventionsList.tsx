@@ -36,6 +36,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import { InterventionStatus, INTERVENTION_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } from '../../types/statusEnums';
+import { createSpacing } from '../../theme/spacing';
 
 interface Intervention {
   id: number;
@@ -82,21 +84,22 @@ const interventionTypes = [
   { value: 'OTHER', label: 'Autre' }
 ];
 
+// Utilisation des enums partagés pour les statuts
 const statuses = [
   { value: 'all', label: 'Tous les statuts' },
-  { value: 'SCHEDULED', label: 'Planifié' },
-  { value: 'IN_PROGRESS', label: 'En cours' },
-  { value: 'ON_HOLD', label: 'En attente' },
-  { value: 'COMPLETED', label: 'Terminé' },
-  { value: 'CANCELLED', label: 'Annulé' }
+  ...INTERVENTION_STATUS_OPTIONS.map(option => ({
+    value: option.value,
+    label: option.label
+  }))
 ];
 
+// Utilisation des enums partagés pour les priorités
 const priorities = [
   { value: 'all', label: 'Toutes priorités' },
-  { value: 'LOW', label: 'Basse' },
-  { value: 'NORMAL', label: 'Normale' },
-  { value: 'HIGH', label: 'Haute' },
-  { value: 'URGENT', label: 'Urgente' }
+  ...PRIORITY_OPTIONS.map(option => ({
+    value: option.value,
+    label: option.label
+  }))
 ];
 
 const getStatusColor = (status: string) => {
@@ -217,7 +220,7 @@ export default function InterventionsList() {
   if (!canViewInterventions) {
     console.log('🔍 InterventionsList - Permission refusée');
     return (
-      <Box sx={{ p: 3 }}>
+      <Box sx={createSpacing.page()}>
         <Alert severity="info">
           <Typography variant="h6" gutterBottom>
             Accès non autorisé
@@ -439,7 +442,7 @@ export default function InterventionsList() {
   if (!Array.isArray(interventions)) {
     console.error('🔍 InterventionsList - Interventions n\'est pas un tableau:', interventions);
     return (
-      <Box sx={{ p: 3 }}>
+      <Box sx={createSpacing.page()}>
         <Alert severity="error">
           Erreur de chargement des données. Veuillez rafraîchir la page.
         </Alert>
@@ -510,7 +513,7 @@ export default function InterventionsList() {
       <Grid container spacing={3}>
         {filteredInterventions.length === 0 ? (
           <Grid item xs={12}>
-            <Card sx={{ textAlign: 'center', py: 4, px: 3 }}>
+            <Card sx={{ textAlign: 'center', py: 4, px: 3, ...createSpacing.card() }}>
               <CardContent>
                 <Box sx={{ mb: 2 }}>
                   <Build sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.6 }} />
@@ -546,7 +549,7 @@ export default function InterventionsList() {
             return (
               <Grid item xs={12} md={6} lg={4} key={intervention.id}>
               <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardContent sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', ...createSpacing.card() }}>
                   <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                     <Typography variant="h6" component="h2" sx={{ flex: 1, mr: 1 }}>
                       {intervention.title}

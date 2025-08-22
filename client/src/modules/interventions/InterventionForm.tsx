@@ -24,6 +24,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
 import { InterventionType, INTERVENTION_TYPE_OPTIONS, InterventionTypeUtils } from '../../types/interventionTypes';
+import { InterventionStatus, INTERVENTION_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } from '../../types/statusEnums';
 
 interface InterventionFormData {
   title: string;
@@ -71,19 +72,16 @@ const interventionTypes = INTERVENTION_TYPE_OPTIONS.map(option => ({
   label: option.label
 }));
 
-const statuses = [
-  { value: 'PENDING', label: 'En attente' },
-  { value: 'IN_PROGRESS', label: 'En cours' },
-  { value: 'COMPLETED', label: 'Terminé' },
-  { value: 'CANCELLED', label: 'Annulé' }
-];
+// Utilisation des enums partagés
+const statuses = INTERVENTION_STATUS_OPTIONS.map(option => ({
+  value: option.value,
+  label: option.label
+}));
 
-const priorities = [
-  { value: 'LOW', label: 'Basse' },
-  { value: 'NORMAL', label: 'Normale' },
-  { value: 'HIGH', label: 'Élevée' },
-  { value: 'CRITICAL', label: 'Critique' }
-];
+const priorities = PRIORITY_OPTIONS.map(option => ({
+  value: option.value,
+  label: option.label
+}));
 
 interface InterventionFormProps {
   onClose?: () => void;
@@ -105,17 +103,14 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   const [users, setUsers] = useState<User[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
 
-  // Si l'utilisateur n'a pas la permission de créer des interventions, ne rien afficher
-  if (!canCreateInterventions) {
-    return null;
-  }
+
 
   const [formData, setFormData] = useState<InterventionFormData>({
     title: '',
     description: '',
     type: InterventionType.CLEANING,
-    status: 'PENDING',
-    priority: 'NORMAL',
+    status: InterventionStatus.PENDING,
+    priority: Priority.NORMAL,
     propertyId: 0,
     requestorId: 0,
     assignedToId: undefined,
@@ -214,6 +209,12 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
 
     loadData();
   }, []);
+
+  // Si l'utilisateur n'a pas la permission de créer des interventions, ne rien afficher
+  // ATTENTION : Cette vérification doit être APRÈS tous les hooks !
+  if (!canCreateInterventions) {
+    return null;
+  }
 
   const handleInputChange = (field: keyof InterventionFormData, value: any) => {
     setFormData(prev => ({

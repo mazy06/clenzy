@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Alert, Button, Typography } from '@mui/material';
+import { Alert, Button, Typography, Box } from '@mui/material';
 import { Cancel, Save } from '@mui/icons-material';
 import InterventionForm from './InterventionForm';
 import PageHeader from '../../components/PageHeader';
@@ -15,69 +15,51 @@ const InterventionCreate: React.FC = () => {
   // Vérifier les permissions silencieusement
   const canCreate = hasPermission('interventions:create');
 
-  const handleClose = () => {
-    navigate('/interventions');
-  };
-
-  const handleSuccess = () => {
-    setSuccess(true);
-    // Rediriger vers la liste des interventions après un court délai
-    setTimeout(() => {
-      navigate('/interventions');
-    }, 1500);
-  };
-
-  // Si l'utilisateur n'a pas les permissions, ne rien afficher
+  // Vérification conditionnelle après les hooks
   if (!canCreate) {
     return null;
   }
 
-  if (success) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="success" sx={{ mb: 3 }}>
-          Intervention créée avec succès ! Redirection en cours...
-        </Alert>
-      </Box>
-    );
-  }
+  const handleSuccess = () => {
+    setSuccess(true);
+    navigate('/interventions');
+  };
+
+  const handleClose = () => {
+    navigate('/interventions');
+  };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <PageHeader
-        title="Nouvelle intervention"
-        subtitle="Créer une nouvelle intervention dans le système"
+        title="Créer une intervention"
+        subtitle="Formulaire de création d'une nouvelle intervention"
         backPath="/interventions"
         showBackButton={true}
         actions={
-          <>
-            <Button
-              variant="outlined"
+          <div>
+            <Button 
+              variant="outlined" 
+              color="primary" 
               onClick={handleClose}
               startIcon={<Cancel />}
-              disabled={loading}
-              sx={{ mr: 1 }}
             >
               Annuler
             </Button>
-            <Button
-              variant="contained"
-              onClick={() => {
-                // Déclencher la soumission du formulaire
-                const submitButton = document.querySelector('[data-submit-intervention]') as HTMLButtonElement;
-                if (submitButton) {
-                  submitButton.click();
-                }
-              }}
+            <Button 
+              variant="contained" 
+              color="primary" 
+              style={{ marginLeft: '10px' }}
               startIcon={<Save />}
-              disabled={loading}
+              form="intervention-form"
+              type="submit"
             >
-              {loading ? 'Création...' : 'Créer l\'intervention'}
+              Créer l'intervention
             </Button>
-          </>
+          </div>
         }
       />
-      
+
       <InterventionForm
         onClose={handleClose}
         onSuccess={handleSuccess}

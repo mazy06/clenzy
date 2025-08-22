@@ -37,6 +37,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
 import PageHeader from '../../components/PageHeader';
+import { createSpacing } from '../../theme/spacing';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -197,7 +198,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <PageHeader
         title="Tableau de bord"
         subtitle="Vue d'ensemble de votre plateforme Clenzy"
@@ -206,13 +207,13 @@ const Dashboard: React.FC = () => {
       />
       
       {/* Statistiques principales */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={3} sx={createSpacing.section()}>
         {loading ? (
           // Skeleton loading
           Array.from({ length: 4 }).map((_, index) => (
             <Grid item xs={12} sm={6} md={3} key={index}>
               <Card sx={{ height: '100%' }}>
-                <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                <CardContent sx={{ textAlign: 'center', ...createSpacing.card() }}>
                   <Skeleton variant="circular" width={40} height={40} sx={{ mx: 'auto', mb: 2 }} />
                   <Skeleton variant="text" width="60%" height={40} sx={{ mx: 'auto', mb: 1 }} />
                   <Skeleton variant="text" width="80%" height={20} sx={{ mx: 'auto', mb: 2 }} />
@@ -232,7 +233,7 @@ const Dashboard: React.FC = () => {
             <Grid item xs={12} sm={6} md={3} key={index}>
               <Card sx={{ height: '100%' }}>
                 <CardActionArea onClick={() => navigate(stat.route)}>
-                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                  <CardContent sx={{ textAlign: 'center', ...createSpacing.card() }}>
                     <Box sx={{ mb: 2 }}>
                       {stat.icon}
                     </Box>
@@ -269,7 +270,7 @@ const Dashboard: React.FC = () => {
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
           <Card>
-            <CardContent>
+            <CardContent sx={createSpacing.card()}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6">
                   Activités récentes
@@ -340,7 +341,7 @@ const Dashboard: React.FC = () => {
         {/* Actions rapides selon le rôle */}
         <Grid item xs={12} md={4}>
           <Card>
-            <CardContent>
+            <CardContent sx={createSpacing.card()}>
               <Typography variant="h6" gutterBottom>
                 Actions rapides
               </Typography>

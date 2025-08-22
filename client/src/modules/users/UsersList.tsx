@@ -50,6 +50,8 @@ import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import { API_CONFIG } from '../../config/api';
+import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
+import { createSpacing } from '../../theme/spacing';
 
 interface User {
   id: number;
@@ -71,13 +73,12 @@ const userRoles = [
   { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
 ];
 
-const userStatuses = [
-  { value: 'ACTIVE', label: 'Actif', color: 'success' },
-  { value: 'INACTIVE', label: 'Inactif', color: 'default' },
-  { value: 'SUSPENDED', label: 'Suspendu', color: 'error' },
-  { value: 'PENDING_VERIFICATION', label: 'En attente de vérification', color: 'warning' },
-  { value: 'BLOCKED', label: 'Bloqué', color: 'error' },
-];
+// Utilisation des enums partagés pour les statuts utilisateur
+const userStatuses = USER_STATUS_OPTIONS.map(option => ({
+  value: option.value,
+  label: option.label,
+  color: option.color
+}));
 
 // Données mockées supprimées - utilisation de l'API uniquement
 
@@ -136,7 +137,7 @@ const UsersList: React.FC = () => {
   if (!user || !canManageUsers) {
     console.log('🔍 UsersList - Permission refusée ou utilisateur non chargé');
     return (
-      <Box sx={{ p: 3 }}>
+      <Box sx={createSpacing.page()}>
         <Alert severity="info">
           <Typography variant="h6" gutterBottom>
             Accès non autorisé
@@ -398,7 +399,7 @@ const UsersList: React.FC = () => {
           filteredUsers.map((user) => (
             <Grid item xs={12} md={6} lg={4} key={user.id}>
               <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                <CardContent sx={{ flexGrow: 1, ...createSpacing.card() }}>
                   {/* En-tête avec avatar et menu */}
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
@@ -474,7 +475,7 @@ const UsersList: React.FC = () => {
                 </CardContent>
 
                 {/* Actions */}
-                <CardActions sx={{ p: 3, pt: 0 }}>
+                <CardActions sx={{ pt: 0, ...createSpacing.card() }}>
                   <Button
                     variant="outlined"
                     startIcon={<Visibility />}
