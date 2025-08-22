@@ -23,7 +23,6 @@ import {
   Divider,
 } from '@mui/material';
 import {
-  ArrowBack,
   Save,
   Cancel,
   Add,
@@ -34,6 +33,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import PageHeader from '../../components/PageHeader';
 
 // Types pour les équipes
 export interface TeamFormData {
@@ -309,19 +309,39 @@ const TeamForm: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header avec bouton retour */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <IconButton 
-          onClick={() => navigate('/teams')} 
-          sx={{ mr: 2 }}
-          size="large"
-        >
-          <ArrowBack />
-        </IconButton>
-        <Typography variant="h4" fontWeight={700}>
-          Nouvelle équipe
-        </Typography>
-      </Box>
+      <PageHeader
+        title="Nouvelle équipe"
+        subtitle="Créer une nouvelle équipe dans le système"
+        backPath="/teams"
+        showBackButton={true}
+        actions={
+          <>
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/teams')}
+              startIcon={<Cancel />}
+              disabled={saving}
+              sx={{ mr: 1 }}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => {
+                // Déclencher la soumission du formulaire
+                const submitButton = document.querySelector('[data-submit-team]') as HTMLButtonElement;
+                if (submitButton) {
+                  submitButton.click();
+                }
+              }}
+              startIcon={saving ? <CircularProgress size={20} /> : <Save />}
+              disabled={saving || filteredUsers.length === 0}
+            >
+              {saving ? 'Création...' : 'Créer l\'équipe'}
+            </Button>
+          </>
+        }
+      />
 
       {/* Messages d'erreur/succès */}
       {error && (
@@ -526,26 +546,15 @@ const TeamForm: React.FC = () => {
                 </Button>
               </Box>
             )}
-
-            {/* Boutons d'action */}
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 4 }}>
-              <Button
-                variant="outlined"
-                onClick={() => navigate('/teams')}
-                startIcon={<Cancel />}
-                disabled={saving}
-              >
-                Annuler
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                startIcon={saving ? <CircularProgress size={20} /> : <Save />}
-                disabled={saving || filteredUsers.length === 0}
-              >
-                {saving ? 'Création...' : 'Créer l\'équipe'}
-              </Button>
-            </Box>
+            
+            {/* Bouton de soumission caché pour le PageHeader */}
+            <Button
+              type="submit"
+              sx={{ display: 'none' }}
+              data-submit-team
+            >
+              Soumettre
+            </Button>
           </form>
         </CardContent>
       </Card>

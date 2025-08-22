@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  # Base de données PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: clenzy-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: clenzy_prod
+      POSTGRES_USER: clenzy_prod_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+    ports:
+      - "5432:5432"
+    networks:
+      - clenzy-network
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+
+  # Keycloak pour l'authentification
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: clenzy-keycloak-prod
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_prod
+      KC_DB_USERNAME: keycloak_user
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME}
+      KC_HTTP_ENABLED: false
+      KC_PROXY: edge
+    volumes:
+      - ./keycloak/realm-clenzy.json:/opt/keycloak/data/import/realm-clenzy.json
+    ports:
+      - "8081:8443"
+    networks:
+      - clenzy-network
+    depends_on:
+      - postgres
+    command: start-dev --import-realm
+
+  # Serveur backend Spring Boot
+  server:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    container_name: clenzy-server-prod
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/clenzy_prod
+      SPRING_DATASOURCE_USERNAME: clenzy_prod_user
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      KEYCLOAK_AUTH_SERVER_URL: https://${KEYCLOAK_HOSTNAME}/realms/clenzy
+      KEYCLOAK_CLIENT_ID: clenzy-backend
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    networks:
+      - clenzy-network
+    depends_on:
+      - postgres
+      - keycloak
+
+  # Client frontend React
+  client:
+    build:
+      context: ../client
+      dockerfile: Dockerfile
+    container_name: clenzy-client-prod
+    restart: unless-stopped
+    environment:
+      REACT_APP_API_URL: https://${DOMAIN}/api
+      REACT_APP_KEYCLOAK_URL: https://${KEYCLOAK_HOSTNAME}
+      REACT_APP_KEYCLOAK_REALM: clenzy
+      REACT_APP_KEYCLOAK_CLIENT_ID: clenzy-web
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - clenzy-network
+    depends_on:
+      - server
+
+  # Nginx reverse proxy avec SSL
+  nginx:
+    image: nginx:alpine
+    container_name: clenzy-nginx-prod
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - clenzy-network
+    depends_on:
+      - client
+      - server
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  clenzy-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

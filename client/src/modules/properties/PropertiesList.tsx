@@ -43,7 +43,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
-import PropertyForm from './PropertyForm';
 import { API_CONFIG } from '../../config/api';
 
 // Types pour les propriétés
@@ -102,18 +101,17 @@ const statusLabels = {
 
 export default function PropertiesList() {
   console.log('🔍 PropertiesList - Composant chargé');
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedHost, setSelectedHost] = useState('all'); // Nouveau filtre par host
-  const [hosts, setHosts] = useState<User[]>([]); // Liste des hosts
-  const [loadingHosts, setLoadingHosts] = useState(false); // Chargement des hosts
+  const [selectedHost, setSelectedHost] = useState('all');
+  const [hosts, setHosts] = useState<User[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false); // New state for form visibility
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user, isAdmin, isManager, isHost, hasPermission } = useAuth();
 
@@ -183,41 +181,38 @@ export default function PropertiesList() {
     }
   }, []);
 
-  // Charger la liste des hosts depuis l'API
-  const loadHosts = useCallback(async () => {
-    // Seulement charger les hosts si l'utilisateur est admin ou manager
-    if (!isAdmin() && !isManager()) return;
-    
-    setLoadingHosts(true);
-    try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-      });
+  // Charger les hôtes (utilisateurs avec le rôle HOST)
+  useEffect(() => {
+    const loadHosts = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/users?role=HOST`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          },
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        // Filtrer seulement les utilisateurs avec le rôle HOST
-        const hostsList = (data.content || data).filter((user: User) => 
-          user.role === 'HOST'
-        );
-        console.log('🔍 PropertiesList - Hosts chargés:', hostsList);
-        setHosts(hostsList);
+        if (response.ok) {
+          const data = await response.json();
+          setHosts(data.content || data);
+        } else {
+          console.error('Erreur lors du chargement des hôtes:', response.status);
+        }
+      } catch (err) {
+        console.error('Erreur de connexion lors du chargement des hôtes:', err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('🔍 PropertiesList - Erreur chargement hosts:', err);
-    } finally {
-      setLoadingHosts(false);
-    }
-  }, [isAdmin, isManager]);
+    };
+
+    loadHosts();
+  }, []);
 
   // Charger les données au montage du composant
   useEffect(() => {
     console.log('🔍 PropertiesList - useEffect pour loadProperties appelé');
     loadProperties();
-    loadHosts();
-  }, [loadProperties, loadHosts]);
+  }, [loadProperties]);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, property: Property) => {
     setAnchorEl(event.currentTarget);
@@ -252,21 +247,6 @@ export default function PropertiesList() {
     // TODO: Implement delete logic
     console.log('Deleting property:', selectedProperty?.id);
     setDeleteDialogOpen(false);
-  };
-
-  // Gestion du formulaire d'ajout
-  const handleShowAddForm = () => {
-    setShowAddForm(true);
-  };
-
-  const handleCloseAddForm = () => {
-    setShowAddForm(false);
-  };
-
-  const handlePropertyCreated = () => {
-    // Recharger la liste des propriétés depuis l'API
-    loadProperties();
-    setShowAddForm(false);
   };
 
   // Filtrer les propriétés selon le rôle
@@ -327,7 +307,7 @@ export default function PropertiesList() {
             variant="contained"
             color="primary"
             startIcon={<Add />}
-            onClick={handleShowAddForm}
+            onClick={() => navigate('/properties/new')}
           >
             Nouvelle propriété
           </Button>
@@ -335,58 +315,52 @@ export default function PropertiesList() {
       />
 
       {/* Filtres et recherche */}
-      {!showAddForm && (
-        <FilterSearchBar
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          searchPlaceholder={isHost() ? "Rechercher ma propriété..." : "Rechercher une propriété..."}
-          filters={{
-            type: {
-              value: selectedType,
-              options: propertyTypes,
-              onChange: setSelectedType,
-              label: "Type de propriété"
-            },
-            status: {
-              value: selectedStatus,
-              options: [
-                { value: 'all', label: 'Tous les statuts' },
-                { value: 'active', label: 'Actif' },
-                { value: 'inactive', label: 'Inactif' },
-                { value: 'maintenance', label: 'Maintenance' }
-              ],
-              onChange: setSelectedStatus,
-              label: "Statut"
-            },
-            host: {
-              value: selectedHost,
-              options: [{ value: 'all', label: 'Tous les hôtes' }, ...hosts.map(host => ({ value: host.id.toString(), label: `${host.firstName} ${host.lastName}` }))],
-              onChange: setSelectedHost,
-              label: "Hôte"
-            }
-          }}
-          counter={{
-            label: "propriété",
-            count: filteredProperties.length,
-            singular: "",
-            plural: "s"
-          }}
-        />
-      )}
+      <FilterSearchBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder={isHost() ? "Rechercher ma propriété..." : "Rechercher une propriété..."}
+        filters={{
+          type: {
+            value: selectedType,
+            options: propertyTypes,
+            onChange: setSelectedType,
+            label: "Type de propriété"
+          },
+          status: {
+            value: selectedStatus,
+            options: [
+              { value: 'all', label: 'Tous les statuts' },
+              { value: 'active', label: 'Actif' },
+              { value: 'inactive', label: 'Inactif' },
+              { value: 'maintenance', label: 'Maintenance' }
+            ],
+            onChange: setSelectedStatus,
+            label: "Statut"
+          },
+          host: {
+            value: selectedHost,
+            options: [{ value: 'all', label: 'Tous les hôtes' }, ...hosts.map(host => ({ value: host.id.toString(), label: `${host.firstName} ${host.lastName}` }))],
+            onChange: setSelectedHost,
+            label: "Hôte"
+          }
+        }}
+        counter={{
+          label: "propriété",
+          count: filteredProperties.length,
+          singular: "",
+          plural: "s"
+        }}
+      />
 
       {/* Liste des propriétés */}
-      {!showAddForm && (
-        <Grid container spacing={3}>
-          {loading ? (
-            <Grid item xs={12}>
-              <Typography variant="h6" align="center">Chargement des propriétés...</Typography>
-            </Grid>
-          ) : filteredProperties.length === 0 ? (
-            <Grid item xs={12}>
-              <Typography variant="h6" align="center">Aucune propriété trouvée.</Typography>
-            </Grid>
-          ) : (
-            filteredProperties.map((property) => (
+      {!loading ? (
+        filteredProperties.length === 0 ? (
+          <Grid item xs={12}>
+            <Typography variant="h6" align="center">Aucune propriété trouvée.</Typography>
+          </Grid>
+        ) : (
+          <Grid container spacing={3}>
+            {filteredProperties.map((property) => (
               <Grid item xs={12} md={6} lg={4} key={property.id}>
                 <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <CardContent sx={{ flexGrow: 1, p: 3 }}>
@@ -507,71 +481,62 @@ export default function PropertiesList() {
                   </CardContent>
                 </Card>
               </Grid>
-            ))
-
-          )}
+            ))}
+          </Grid>
+        )
+      ) : (
+        <Grid item xs={12}>
+          <Typography variant="h6" align="center">Chargement des propriétés...</Typography>
         </Grid>
       )}
 
       {/* Menu contextuel */}
-      {!showAddForm && (
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-        >
-          <MenuItem onClick={handleView}>
-            <ListItemIcon>
-              <Visibility fontSize="small" />
-            </ListItemIcon>
-            Voir détails
-          </MenuItem>
-          {/* Actions d'édition/suppression - visibles selon les permissions */}
-          {selectedProperty && canModifyProperty(selectedProperty) && (
-            <>
-              <MenuItem onClick={handleEdit}>
-                <ListItemIcon>
-                  <Edit fontSize="small" />
-                </ListItemIcon>
-                Modifier
-              </MenuItem>
-              <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
-                <ListItemIcon>
-                  <Delete fontSize="small" sx={{ color: 'error.main' }} />
-                </ListItemIcon>
-                Supprimer
-              </MenuItem>
-            </>
-          )}
-        </Menu>
-      )}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={handleView}>
+          <ListItemIcon>
+            <Visibility fontSize="small" />
+          </ListItemIcon>
+          Voir détails
+        </MenuItem>
+        {/* Actions d'édition/suppression - visibles selon les permissions */}
+        {selectedProperty && canModifyProperty(selectedProperty) && (
+          <>
+            <MenuItem onClick={handleEdit}>
+              <ListItemIcon>
+                <Edit fontSize="small" />
+              </ListItemIcon>
+              Modifier
+            </MenuItem>
+            <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+              <ListItemIcon>
+                <Delete fontSize="small" sx={{ color: 'error.main' }} />
+              </ListItemIcon>
+              Supprimer
+            </MenuItem>
+          </>
+        )}
+      </Menu>
 
       {/* Dialog de confirmation de suppression */}
-      {!showAddForm && (
-        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-          <DialogTitle>Confirmer la suppression</DialogTitle>
-          <DialogContent>
-            <Typography>
-              Êtes-vous sûr de vouloir supprimer la propriété "{selectedProperty?.name}" ? 
-              Cette action est irréversible.
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteDialogOpen(false)}>Annuler</Button>
-            <Button onClick={confirmDelete} color="error" variant="contained">
-              Supprimer
-            </Button>
-          </DialogActions>
-        </Dialog>
-      )}
-
-      {/* Formulaire d'ajout de propriété */}
-      {showAddForm && (
-        <PropertyForm
-          onClose={handleCloseAddForm}
-          onSuccess={handlePropertyCreated}
-        />
-      )}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirmer la suppression</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Êtes-vous sûr de vouloir supprimer la propriété "{selectedProperty?.name}" ? 
+            Cette action est irréversible.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Annuler</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">
+            Supprimer
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* FAB pour ajouter rapidement - visible selon les permissions */}
       {(hasPermission('properties:create') || isAdmin() || isManager() || isHost()) && (
@@ -579,7 +544,7 @@ export default function PropertiesList() {
           color="secondary"
           aria-label="add"
           sx={{ position: 'fixed', bottom: 16, right: 16, display: { md: 'none' } }}
-          onClick={handleShowAddForm}
+          onClick={() => navigate('/properties/new')}
         >
           <Add />
         </Fab>

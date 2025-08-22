@@ -1,25 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Typography,
-  Button,
   Grid,
   Card,
   CardContent,
   CardActions,
+  Typography,
+  Button,
   Chip,
+  Alert,
+  CircularProgress,
   IconButton,
   Menu,
   MenuItem,
   ListItemIcon,
-  Avatar,
+  ListItemText,
   List,
   ListItem,
   ListItemAvatar,
-  ListItemText,
+  Avatar,
   Divider,
-  Alert,
-  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -27,17 +27,18 @@ import {
 } from '@mui/material';
 import {
   Add,
-  MoreVert,
+  Visibility,
   Edit,
   Delete,
+  MoreVert,
   Group,
   Person,
-  Visibility,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import PageHeader from '../../components/PageHeader';
 import { API_CONFIG } from '../../config/api';
+import PageHeader from '../../components/PageHeader';
+import { InterventionType, INTERVENTION_TYPE_OPTIONS, InterventionTypeUtils } from '../../types/interventionTypes';
 
 interface Team {
   id: number;
@@ -49,54 +50,30 @@ interface Team {
 }
 
 interface TeamMember {
-  userId: number;
+  id: number;
   firstName: string;
   lastName: string;
   email: string;
   role: string;
 }
 
-const interventionTypes = [
-  { value: 'all', label: 'Tous les types', icon: '👥' },
-  { value: 'CLEANING', label: 'Nettoyage', icon: '🧹' },
-  { value: 'EXPRESS_CLEANING', label: 'Nettoyage Express', icon: '🧹' },
-  { value: 'DEEP_CLEANING', label: 'Nettoyage en Profondeur', icon: '🧹' },
-  { value: 'WINDOW_CLEANING', label: 'Nettoyage des Vitres', icon: '🧹' },
-  { value: 'FLOOR_CLEANING', label: 'Nettoyage des Sols', icon: '🧹' },
-  { value: 'KITCHEN_CLEANING', label: 'Nettoyage de la Cuisine', icon: '🧹' },
-  { value: 'BATHROOM_CLEANING', label: 'Nettoyage des Sanitaires', icon: '🧹' },
-  { value: 'PREVENTIVE_MAINTENANCE', label: 'Maintenance Préventive', icon: '🔧' },
-  { value: 'EMERGENCY_REPAIR', label: 'Réparation d\'Urgence', icon: '🔨' },
-  { value: 'ELECTRICAL_REPAIR', label: 'Réparation Électrique', icon: '🔨' },
-  { value: 'PLUMBING_REPAIR', label: 'Réparation Plomberie', icon: '🔨' },
-  { value: 'HVAC_REPAIR', label: 'Réparation Climatisation', icon: '🔨' },
-  { value: 'APPLIANCE_REPAIR', label: 'Réparation Électroménager', icon: '🔨' },
-  { value: 'GARDENING', label: 'Jardinage', icon: '🌱' },
-  { value: 'EXTERIOR_CLEANING', label: 'Nettoyage Extérieur', icon: '🧹' },
-  { value: 'PEST_CONTROL', label: 'Désinsectisation', icon: '🐛' },
-  { value: 'DISINFECTION', label: 'Désinfection', icon: '🧪' },
-  { value: 'RESTORATION', label: 'Remise en État', icon: '🔨' },
-  { value: 'OTHER', label: 'Autre', icon: '📋' }
-];
-
 const TeamsList: React.FC = () => {
+  const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  
   const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<string>('all');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState('all');
-  const navigate = useNavigate();
-  const { hasPermission } = useAuth();
 
-  // Charger les équipes depuis l'API
+  // Charger les équipes
   useEffect(() => {
     const loadTeams = async () => {
-      setLoading(true);
-      setError(null);
-      
       try {
+        setLoading(true);
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/teams`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
@@ -105,18 +82,12 @@ const TeamsList: React.FC = () => {
 
         if (response.ok) {
           const data = await response.json();
-          const teamsList = data.content || data;
-          console.log('🔍 TeamsList - Équipes chargées depuis l\'API:', teamsList);
-          setTeams(teamsList);
+          setTeams(data.content || data);
         } else {
-          console.error('🔍 TeamsList - Erreur API:', response.status, response.statusText);
-          setError(`Erreur lors du chargement des équipes: ${response.status} ${response.statusText}`);
-          setTeams([]);
+          setError('Erreur lors du chargement des équipes');
         }
       } catch (err) {
-        console.error('🔍 TeamsList - Erreur chargement:', err);
-        setError('Erreur de connexion lors du chargement des équipes');
-        setTeams([]);
+        setError('Erreur de connexion');
       } finally {
         setLoading(false);
       }
@@ -126,17 +97,11 @@ const TeamsList: React.FC = () => {
   }, []);
 
   // Filtrer les équipes selon le type sélectionné
-  const getFilteredTeams = () => {
-    if (selectedType === 'all') return teams;
-    return teams.filter(team => team.interventionType === selectedType);
-  };
+  const filteredTeams = selectedType === 'all' 
+    ? teams 
+    : teams.filter(team => team.interventionType === selectedType);
 
-  const filteredTeams = getFilteredTeams();
-
-  const getInterventionTypeInfo = (type: string) => {
-    return interventionTypes.find(t => t.value === type) || interventionTypes[0];
-  };
-
+  // Gestion du menu contextuel
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, team: Team) => {
     setAnchorEl(event.currentTarget);
     setSelectedTeam(team);
@@ -147,18 +112,18 @@ const TeamsList: React.FC = () => {
     setSelectedTeam(null);
   };
 
-  const handleEdit = () => {
-    if (selectedTeam) {
-      navigate(`/teams/${selectedTeam.id}/edit`);
-      handleMenuClose();
-    }
-  };
-
   const handleViewDetails = () => {
     if (selectedTeam) {
       navigate(`/teams/${selectedTeam.id}`);
-      handleMenuClose();
     }
+    handleMenuClose();
+  };
+
+  const handleEdit = () => {
+    if (selectedTeam) {
+      navigate(`/teams/${selectedTeam.id}/edit`);
+    }
+    handleMenuClose();
   };
 
   const handleDelete = () => {
@@ -166,36 +131,34 @@ const TeamsList: React.FC = () => {
     handleMenuClose();
   };
 
-  const confirmDelete = async () => {
-    if (selectedTeam) {
-      try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/teams/${selectedTeam.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
-
-        if (response.ok) {
-          // Mettre à jour la liste locale
-          setTeams(prev => prev.filter(team => team.id !== selectedTeam.id));
-          setDeleteDialogOpen(false);
-        } else {
-          console.error('🔍 TeamsList - Erreur suppression:', response.status);
-          setError('Erreur lors de la suppression de l\'équipe');
-        }
-      } catch (err) {
-        console.error('🔍 TeamsList - Erreur suppression:', err);
-        setError('Erreur lors de la suppression de l\'équipe');
-      }
-    }
-  };
-
   const handleCloseDeleteDialog = () => {
     setDeleteDialogOpen(false);
     setSelectedTeam(null);
   };
 
+  const confirmDelete = async () => {
+    if (!selectedTeam) return;
+
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/teams/${selectedTeam.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+        },
+      });
+
+      if (response.ok) {
+        setTeams(teams.filter(team => team.id !== selectedTeam.id));
+        handleCloseDeleteDialog();
+      } else {
+        setError('Erreur lors de la suppression');
+      }
+    } catch (err) {
+      setError('Erreur de connexion');
+    }
+  };
+
+  // Obtenir le label du rôle
   const getRoleLabel = (role: string) => {
     const roleLabels: { [key: string]: string } = {
       'housekeeper': 'Agent de ménage',
@@ -203,17 +166,18 @@ const TeamsList: React.FC = () => {
       'supervisor': 'Superviseur',
       'manager': 'Manager',
     };
-    return roleLabels[role.toLowerCase()] || role;
+    return roleLabels[role] || role;
   };
 
+  // Obtenir la couleur du rôle
   const getRoleColor = (role: string) => {
     const roleColors: { [key: string]: string } = {
-      'housekeeper': 'default',
+      'housekeeper': 'success',
       'technician': 'primary',
-      'supervisor': 'info',
-      'manager': 'warning',
+      'supervisor': 'warning',
+      'manager': 'error',
     };
-    return roleColors[role.toLowerCase()] || 'default';
+    return roleColors[role] || 'default';
   };
 
   if (loading) {
@@ -250,184 +214,235 @@ const TeamsList: React.FC = () => {
         </Alert>
       )}
 
-      {/* Filtres */}
+      {/* Filtres par type d'intervention */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-          Filtrer par type d'intervention
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          {interventionTypes.map((type) => (
-            <Chip
-              key={type.value}
-              label={`${type.icon} ${type.label}`}
-              onClick={() => setSelectedType(type.value)}
-              color={selectedType === type.value ? 'primary' : 'default'}
-              variant={selectedType === type.value ? 'filled' : 'outlined'}
-              sx={{ cursor: 'pointer' }}
-            />
-          ))}
+        {/* Filtre "Tous les types" */}
+        <Box sx={{ mb: 3 }}>
+          <Chip
+            label="Tous les types"
+            onClick={() => setSelectedType('all')}
+            color={selectedType === 'all' ? 'primary' : 'default'}
+            variant={selectedType === 'all' ? 'filled' : 'outlined'}
+            sx={{
+              cursor: 'pointer',
+              fontSize: '1rem',
+              py: 1,
+              px: 2,
+              borderWidth: 2,
+              borderColor: selectedType === 'all' ? 'primary.main' : '#666666',
+              '&:hover': {
+                transform: 'translateY(-1px)',
+                boxShadow: 1,
+                transition: 'all 0.2s ease-in-out'
+              }
+            }}
+          />
+        </Box>
+
+        {/* Filtres par catégorie sans titres */}
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+          {/* Types de nettoyage - Bordure verte */}
+          {INTERVENTION_TYPE_OPTIONS
+            .filter(type => type.category === 'cleaning')
+            .map((type) => (
+              <Chip
+                key={type.value}
+                label={type.label}
+                onClick={() => setSelectedType(type.value)}
+                color={selectedType === type.value ? 'primary' : 'default'}
+                variant={selectedType === type.value ? 'filled' : 'outlined'}
+                sx={{
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  py: 1,
+                  px: 1.5,
+                  borderWidth: 2,
+                  borderColor: selectedType === type.value ? 'primary.main' : '#4CAF50',
+                  '&:hover': {
+                    transform: 'translateY(-1px)',
+                    boxShadow: 1,
+                    transition: 'all 0.2s ease-in-out'
+                  }
+                }}
+              />
+            ))}
+
+          {/* Types de maintenance - Bordure orange */}
+          {INTERVENTION_TYPE_OPTIONS
+            .filter(type => type.category === 'maintenance')
+            .map((type) => (
+              <Chip
+                key={type.value}
+                label={type.label}
+                onClick={() => setSelectedType(type.value)}
+                color={selectedType === type.value ? 'primary' : 'default'}
+                variant={selectedType === type.value ? 'filled' : 'outlined'}
+                sx={{
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  py: 1,
+                  px: 1.5,
+                  borderWidth: 2,
+                  borderColor: selectedType === type.value ? 'primary.main' : '#FF9800',
+                  '&:hover': {
+                    transform: 'translateY(-1px)',
+                    boxShadow: 1,
+                    transition: 'all 0.2s ease-in-out'
+                  }
+                }}
+              />
+            ))}
+
+          {/* Types spécialisés - Bordure violette */}
+          {INTERVENTION_TYPE_OPTIONS
+            .filter(type => type.category === 'specialized')
+            .map((type) => (
+              <Chip
+                key={type.value}
+                label={type.label}
+                onClick={() => setSelectedType(type.value)}
+                color={selectedType === type.value ? 'primary' : 'default'}
+                variant={selectedType === type.value ? 'filled' : 'outlined'}
+                sx={{
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  py: 1,
+                  px: 1.5,
+                  borderWidth: 2,
+                  borderColor: selectedType === type.value ? 'primary.main' : '#9C27B0',
+                  '&:hover': {
+                    transform: 'translateY(-1px)',
+                    boxShadow: 1,
+                    transition: 'all 0.2s ease-in-out'
+                  }
+                }}
+              />
+            ))}
+
+          {/* Type "Autre" - Bordure rouge */}
+          {INTERVENTION_TYPE_OPTIONS
+            .filter(type => type.category === 'other')
+            .map((type) => (
+              <Chip
+                key={type.value}
+                label={type.label}
+                onClick={() => setSelectedType(type.value)}
+                color={selectedType === type.value ? 'primary' : 'default'}
+                variant={selectedType === type.value ? 'filled' : 'outlined'}
+                sx={{
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  py: 1,
+                  px: 1.5,
+                  borderWidth: 2,
+                  borderColor: selectedType === type.value ? 'primary.main' : '#F44336',
+                  '&:hover': {
+                    transform: 'translateY(-1px)',
+                    boxShadow: 1,
+                    transition: 'all 0.2s ease-in-out'
+                  }
+                }}
+              />
+            ))}
+        </Box>
+
+        {/* Compteur d'équipes avec trait horizontal */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 3 }}>
+          <Divider sx={{ flex: 1 }} />
+          <Typography variant="body2" color="text.secondary">
+            {filteredTeams.length} équipe{filteredTeams.length > 1 ? 's' : ''} disponible{filteredTeams.length > 1 ? 's' : ''}
+          </Typography>
         </Box>
       </Box>
 
       {/* Liste des équipes */}
       <Grid container spacing={3}>
-        {filteredTeams.length === 0 ? (
-          <Grid item xs={12}>
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-              {teams.length === 0 ? (
-                // Aucune équipe dans la base de données
-                <>
-                  <Group sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                    Aucune équipe trouvée
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Commencez par créer votre première équipe pour organiser votre travail
-                  </Typography>
-                  {hasPermission('teams:create') && (
-                    <Button
-                      variant="contained"
-                      startIcon={<Add />}
-                      onClick={() => navigate('/teams/new')}
-                      size="large"
-                    >
-                      Créer la première équipe
-                    </Button>
-                  )}
-                </>
-              ) : (
-                // Aucune équipe correspondant au filtre
-                <>
-                  <Group sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                    Aucune équipe de type "{getInterventionTypeInfo(selectedType).label}" trouvée
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Essayez de modifier vos filtres ou créez une nouvelle équipe de ce type
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    onClick={() => setSelectedType('all')}
-                    sx={{ mr: 2 }}
+        {filteredTeams.map((team) => (
+          <Grid item xs={12} md={6} lg={4} key={team.id}>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                {/* En-tête de la carte */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="h6" component="h3" sx={{ mb: 1, fontWeight: 600 }}>
+                      {team.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {team.description || 'Aucune description'}
+                    </Typography>
+                  </Box>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => handleMenuOpen(e, team)}
+                    sx={{ ml: 1 }}
                   >
-                    Voir toutes les équipes
-                  </Button>
-                  {hasPermission('teams:create') && (
-                    <Button
-                      variant="contained"
-                      startIcon={<Add />}
-                      onClick={() => navigate('/teams/new')}
-                    >
-                      Créer une équipe
-                    </Button>
-                  )}
-                </>
-              )}
-            </Box>
-          </Grid>
-        ) : (
-          filteredTeams.map((team) => (
-            <Grid item xs={12} md={6} lg={4} key={team.id}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                  {/* En-tête avec nom et menu */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-                      <Group sx={{ color: 'primary.main' }} />
-                      <Typography variant="h6" fontWeight={600}>
-                        {team.name}
-                      </Typography>
-                    </Box>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleMenuOpen(e, team)}
-                      sx={{ ml: 1 }}
-                    >
-                      <MoreVert />
-                    </IconButton>
-                  </Box>
+                    <MoreVert />
+                  </IconButton>
+                </Box>
 
-                  {/* Type d'intervention */}
-                  <Box sx={{ mb: 2 }}>
-                    <Chip
-                      icon={<span style={{ fontSize: '1em' }}>{getInterventionTypeInfo(team.interventionType).icon}</span>}
-                      label={getInterventionTypeInfo(team.interventionType).label}
-                      color="primary"
-                      variant="outlined"
-                      size="small"
-                    />
-                  </Box>
+                {/* Type d'intervention */}
+                <Box sx={{ mb: 2 }}>
+                  <Chip
+                    label={INTERVENTION_TYPE_OPTIONS.find(t => t.value === team.interventionType)?.label || team.interventionType}
+                    size="small"
+                    sx={{
+                      fontSize: '0.75rem',
+                      height: '20px'
+                    }}
+                  />
+                </Box>
 
-                  {/* Description */}
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3, minHeight: '3em' }}>
-                    {team.description}
-                  </Typography>
-
-                  {/* Statistiques */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                    <Chip
-                      icon={<Group />}
-                      label={`${team.memberCount} membre(s)`}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Box>
-
-                  {/* Membres de l'équipe */}
-                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
-                    Membres :
-                  </Typography>
-                  <List dense sx={{ py: 0 }}>
-                    {team.members.slice(0, 3).map((member, index) => (
-                      <React.Fragment key={member.userId}>
-                        <ListItem sx={{ px: 0, py: 0.5 }}>
-                          <ListItemAvatar sx={{ minWidth: 32 }}>
-                            <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
-                              {member.firstName.charAt(0)}{member.lastName.charAt(0)}
-                            </Avatar>
-                          </ListItemAvatar>
-                          <ListItemText
-                            primary={`${member.firstName} ${member.lastName}`}
-                            secondary={member.email}
-                            primaryTypographyProps={{ variant: 'body2' }}
-                            secondaryTypographyProps={{ variant: 'caption' }}
-                          />
-                          <Chip
-                            label={getRoleLabel(member.role)}
-                            size="small"
-                            color={getRoleColor(member.role) as any}
-                            variant="outlined"
-                          />
-                        </ListItem>
-                        {index < Math.min(team.members.length, 3) - 1 && <Divider variant="inset" component="li" />}
-                      </React.Fragment>
-                    ))}
-                    {team.members.length > 3 && (
+                {/* Membres de l'équipe */}
+                <List dense sx={{ mb: 2 }}>
+                  {team.members.slice(0, 3).map((member, index) => (
+                    <React.Fragment key={member.id}>
                       <ListItem sx={{ px: 0, py: 0.5 }}>
+                        <ListItemAvatar sx={{ minWidth: 32 }}>
+                          <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
+                            {member.firstName.charAt(0)}{member.lastName.charAt(0)}
+                          </Avatar>
+                        </ListItemAvatar>
                         <ListItemText
-                          primary={`... et ${team.members.length - 3} autre(s) membre(s)`}
-                          primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
+                          primary={`${member.firstName} ${member.lastName}`}
+                          secondary={member.email}
+                          primaryTypographyProps={{ variant: 'body2' }}
+                          secondaryTypographyProps={{ variant: 'caption' }}
+                        />
+                        <Chip
+                          label={getRoleLabel(member.role)}
+                          size="small"
+                          color={getRoleColor(member.role) as any}
+                          variant="outlined"
                         />
                       </ListItem>
-                    )}
-                  </List>
-                </CardContent>
+                      {index < Math.min(team.members.length, 3) - 1 && <Divider variant="inset" component="li" />}
+                    </React.Fragment>
+                  ))}
+                  {team.members.length > 3 && (
+                    <ListItem sx={{ px: 0, py: 0.5 }}>
+                      <ListItemText
+                        primary={`... et ${team.members.length - 3} autre(s) membre(s)`}
+                        primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
+                      />
+                    </ListItem>
+                  )}
+                </List>
+              </CardContent>
 
-                {/* Actions */}
-                <CardActions sx={{ p: 3, pt: 0 }}>
-                  <Button
-                    variant="outlined"
-                    startIcon={<Visibility />}
-                    onClick={() => navigate(`/teams/${team.id}`)}
-                    fullWidth
-                  >
-                    Voir détails
-                  </Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))
-        )}
+              {/* Actions */}
+              <CardActions sx={{ p: 3, pt: 0 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<Visibility />}
+                  onClick={() => navigate(`/teams/${team.id}`)}
+                  fullWidth
+                >
+                  Voir détails
+                </Button>
+              </CardActions>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
 
       {/* Menu contextuel */}
