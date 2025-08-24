@@ -60,7 +60,23 @@ public class UserService {
         if (dto.role != null) user.setRole(dto.role);
         if (dto.status != null) user.setStatus(dto.status);
         if (dto.profilePictureUrl != null) user.setProfilePictureUrl(dto.profilePictureUrl);
+        
+        // Sauvegarder d'abord dans la base métier
         user = userRepository.save(user);
+        
+        // Si un nouveau mot de passe est fourni, synchroniser vers Keycloak
+        if (dto.newPassword != null && !dto.newPassword.trim().isEmpty()) {
+            try {
+                System.out.println("🔄 Synchronisation du nouveau mot de passe vers Keycloak pour l'utilisateur: " + user.getEmail());
+                userSyncService.updatePasswordInKeycloak(user.getKeycloakId(), dto.newPassword);
+                System.out.println("✅ Mot de passe mis à jour dans Keycloak");
+            } catch (Exception e) {
+                // Logger l'erreur mais ne pas faire échouer la mise à jour
+                System.err.println("⚠️ Erreur lors de la mise à jour du mot de passe dans Keycloak: " + e.getMessage());
+                // L'utilisateur est mis à jour dans la base métier même si la sync Keycloak échoue
+            }
+        }
+        
         return toDto(user);
     }
 
@@ -97,6 +113,7 @@ public class UserService {
         dto.lastName = user.getLastName();
         dto.email = user.getEmail();
         dto.password = user.getPassword(); // Include password in DTO
+        dto.newPassword = null; // Ne jamais exposer le nouveau mot de passe
         dto.phoneNumber = user.getPhoneNumber();
         dto.role = user.getRole();
         dto.status = user.getStatus();

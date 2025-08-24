@@ -29,6 +29,10 @@ public class UserDto {
     @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caractères")
     public String password;
 
+    // Champ pour le changement de mot de passe (optionnel)
+    @Size(min = 8, message = "Le nouveau mot de passe doit contenir au moins 8 caractères")
+    public String newPassword;
+
     public String phoneNumber;
     public UserRole role;
     public UserStatus status;

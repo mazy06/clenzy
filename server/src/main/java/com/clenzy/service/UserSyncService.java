@@ -243,6 +243,25 @@ public class UserSyncService {
     }
 
     /**
+     * Met à jour le mot de passe d'un utilisateur dans Keycloak
+     */
+    public void updatePasswordInKeycloak(String keycloakUserId, String newPassword) {
+        try (Keycloak keycloak = getKeycloakAdminClient()) {
+            // Créer les credentials pour le nouveau mot de passe
+            CredentialRepresentation credential = new CredentialRepresentation();
+            credential.setType(CredentialRepresentation.PASSWORD);
+            credential.setValue(newPassword);
+            credential.setTemporary(false); // Le mot de passe n'est pas temporaire
+            
+            // Mettre à jour le mot de passe dans Keycloak
+            keycloak.realm(realm).users().get(keycloakUserId).resetPassword(credential);
+            System.out.println("✅ Mot de passe mis à jour dans Keycloak pour l'utilisateur: " + keycloakUserId);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la mise à jour du mot de passe dans Keycloak: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Assigne un rôle à un utilisateur dans Keycloak
      */
     private void assignRoleToUser(Keycloak keycloak, String userId, UserRole role) {
