@@ -352,10 +352,37 @@ export default function PropertiesList() {
       />
 
       {/* Liste des propriétés */}
-      {!loading ? (
-        filteredProperties.length === 0 ? (
+      {filteredProperties.length === 0 ? (
           <Grid item xs={12}>
-            <Typography variant="h6" align="center">Aucune propriété trouvée.</Typography>
+            <Card sx={{ textAlign: 'center', py: 4, px: 3, ...createSpacing.card() }}>
+              <CardContent>
+                <Box sx={{ mb: 2 }}>
+                  <Home sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.6 }} />
+                </Box>
+                <Typography variant="h5" color="text.secondary" gutterBottom>
+                  Aucune propriété trouvée
+                </Typography>
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                  {isAdmin() || isManager() 
+                    ? "Aucune propriété n'a encore été créée dans le système."
+                    : "Aucune propriété ne vous est actuellement assignée."}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Les propriétés permettent de gérer votre parc immobilier et de suivre les interventions de maintenance et nettoyage.
+                </Typography>
+                {(hasPermission('properties:create') || isAdmin() || isManager() || isHost()) && (
+                  <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    onClick={() => navigate('/properties/new')}
+                    size="large"
+                    sx={{ borderRadius: 2 }}
+                  >
+                    Créer votre première propriété
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           </Grid>
         ) : (
           <Grid container spacing={3}>
@@ -482,12 +509,7 @@ export default function PropertiesList() {
               </Grid>
             ))}
           </Grid>
-        )
-      ) : (
-        <Grid item xs={12}>
-          <Typography variant="h6" align="center">Chargement des propriétés...</Typography>
-        </Grid>
-      )}
+        )}
 
       {/* Menu contextuel */}
       <Menu

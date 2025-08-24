@@ -577,11 +577,7 @@ export default function ServiceRequestsList() {
 
       {/* Liste des demandes de service */}
       <Grid container spacing={3}>
-        {loading ? (
-          <Grid item xs={12}>
-            <Typography variant="h6" align="center">Chargement des demandes de service...</Typography>
-          </Grid>
-        ) : filteredServiceRequests.length === 0 ? (
+        {filteredServiceRequests.length === 0 ? (
           <Grid item xs={12}>
             <Card sx={{ textAlign: 'center', py: 4, px: 3, ...createSpacing.card() }}>
               <CardContent>

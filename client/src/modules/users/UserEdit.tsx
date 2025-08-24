@@ -19,7 +19,6 @@ import {
   Box as MuiBox,
 } from '@mui/material';
 import {
-  ArrowBack,
   Save,
   Cancel,
   Person,
@@ -30,10 +29,14 @@ import {
   Build,
   CleaningServices,
   Home,
+  Lock,
+  Visibility,
+  VisibilityOff,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import PageHeader from '../../components/PageHeader';
 
 // Types pour les utilisateurs
 export interface UserEditData {
@@ -43,6 +46,9 @@ export interface UserEditData {
   phoneNumber?: string;
   role: string;
   status: string;
+  // Champs pour le changement de mot de passe
+  newPassword?: string;
+  confirmPassword?: string;
 }
 
 const userRoles = [
@@ -75,6 +81,8 @@ const UserEdit: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [formData, setFormData] = useState<UserEditData>({
     firstName: '',
@@ -83,6 +91,8 @@ const UserEdit: React.FC = () => {
     phoneNumber: '',
     role: 'HOUSEKEEPER',
     status: 'ACTIVE',
+    newPassword: '',
+    confirmPassword: '',
   });
 
   // Charger les données de l'utilisateur à modifier
@@ -168,6 +178,23 @@ const UserEdit: React.FC = () => {
     if (!formData.status) {
       return 'Le statut est obligatoire';
     }
+    
+    // Validation des mots de passe
+    if (formData.newPassword && !formData.confirmPassword) {
+      return 'Veuillez confirmer le nouveau mot de passe';
+    }
+    if (!formData.newPassword && formData.confirmPassword) {
+      return 'Veuillez saisir le nouveau mot de passe';
+    }
+    if (formData.newPassword && formData.confirmPassword) {
+      if (formData.newPassword.length < 8) {
+        return 'Le mot de passe doit contenir au moins 8 caractères';
+      }
+      if (formData.newPassword !== formData.confirmPassword) {
+        return 'Les mots de passe ne correspondent pas';
+      }
+    }
+    
     return null;
   };
 
@@ -185,7 +212,7 @@ const UserEdit: React.FC = () => {
 
     try {
       // Préparer les données pour le backend
-      const backendData = {
+      const backendData: any = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim().toLowerCase(),
@@ -193,6 +220,11 @@ const UserEdit: React.FC = () => {
         role: formData.role,
         status: formData.status,
       };
+      
+      // Ajouter le mot de passe seulement s'il est fourni
+      if (formData.newPassword && formData.confirmPassword) {
+        backendData.newPassword = formData.newPassword;
+      }
 
       console.log('🔍 UserEdit - Données envoyées au backend:', backendData);
       console.log('🔍 UserEdit - JSON stringifié:', JSON.stringify(backendData, null, 2));
@@ -212,6 +244,14 @@ const UserEdit: React.FC = () => {
         const responseData = await response.json();
         console.log('🔍 UserEdit - Données de réponse:', responseData);
         setSuccess(true);
+        
+        // Réinitialiser les champs de mot de passe
+        setFormData(prev => ({
+          ...prev,
+          newPassword: '',
+          confirmPassword: ''
+        }));
+        
         setTimeout(() => {
           navigate(`/users/${id}`);
         }, 1500);
@@ -248,19 +288,33 @@ const UserEdit: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header avec bouton retour */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <IconButton 
-          onClick={() => navigate(`/users/${id}`)} 
-          sx={{ mr: 2 }}
-          size="large"
-        >
-          <ArrowBack />
-        </IconButton>
-        <Typography variant="h4" fontWeight={700}>
-          Modifier l'utilisateur
-        </Typography>
-      </Box>
+      <PageHeader
+        title="Modifier l'utilisateur"
+        subtitle={`Modification des informations de ${user?.firstName || ''} ${user?.lastName || ''}`}
+        backPath={`/users/${id}`}
+        showBackButton={true}
+        actions={
+          <>
+            <Button
+              variant="outlined"
+              onClick={() => navigate(`/users/${id}`)}
+              startIcon={<Cancel />}
+              disabled={saving}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              startIcon={<Save />}
+              disabled={saving}
+              sx={{ ml: 1 }}
+            >
+              {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+            </Button>
+          </>
+        }
+      />
 
       {/* Messages d'erreur/succès */}
       {error && (
@@ -423,25 +477,76 @@ const UserEdit: React.FC = () => {
               </Box>
             )}
 
-            {/* Boutons d'action */}
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-              <Button
-                variant="outlined"
-                onClick={() => navigate(`/users/${id}`)}
-                startIcon={<Cancel />}
-                disabled={saving}
-              >
-                Annuler
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                startIcon={saving ? <CircularProgress size={20} /> : <Save />}
-                disabled={saving}
-              >
-                {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-              </Button>
+            {/* Changement de mot de passe */}
+            <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+              🔐 Changement de mot de passe
+            </Typography>
+            
+            <Box sx={{ mb: 4, p: 3, bgcolor: 'grey.50', borderRadius: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Laissez ces champs vides si vous ne souhaitez pas changer le mot de passe.
+              </Typography>
+              
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Nouveau mot de passe"
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={formData.newPassword}
+                    onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                    placeholder="Minimum 8 caractères"
+                    InputProps={{
+                      startAdornment: <Lock sx={{ mr: 1, color: 'text.secondary' }} />,
+                      endAdornment: (
+                        <IconButton
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          edge="end"
+                          size="small"
+                        >
+                          {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      ),
+                    }}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Confirmer le mot de passe"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    placeholder="Répétez le mot de passe"
+                    InputProps={{
+                      startAdornment: <Lock sx={{ mr: 1, color: 'text.secondary' }} />,
+                      endAdornment: (
+                        <IconButton
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          edge="end"
+                          size="small"
+                        >
+                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      ),
+                    }}
+                  />
+                </Grid>
+              </Grid>
+              
+              {formData.newPassword && formData.confirmPassword && (
+                <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: formData.newPassword === formData.confirmPassword ? 'success.main' : 'error.main' }}>
+                  <Typography variant="caption" color={formData.newPassword === formData.confirmPassword ? 'success.main' : 'error.main'}>
+                    {formData.newPassword === formData.confirmPassword 
+                      ? '✅ Les mots de passe correspondent' 
+                      : '❌ Les mots de passe ne correspondent pas'
+                    }
+                  </Typography>
+                </Box>
+              )}
             </Box>
+
           </form>
         </CardContent>
       </Card>
