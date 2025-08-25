@@ -5,6 +5,8 @@ import com.clenzy.service.TeamService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -29,7 +31,16 @@ public class TeamController {
 
     @PostMapping
     @Operation(summary = "Créer une équipe")
-    public ResponseEntity<TeamDto> create(@Validated(Create.class) @RequestBody TeamDto dto) {
+    public ResponseEntity<TeamDto> create(@Validated(Create.class) @RequestBody TeamDto dto, 
+                                         @AuthenticationPrincipal Jwt jwt) {
+        // Vérifier les permissions
+        if (jwt == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        // Log pour debug
+        System.out.println("🔍 TeamController.create - JWT reçu: " + jwt.getSubject());
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(teamService.create(dto));
     }
 
@@ -47,7 +58,16 @@ public class TeamController {
 
     @GetMapping
     @Operation(summary = "Lister les équipes")
-    public Page<TeamDto> list(@PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+    public Page<TeamDto> list(@PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+                               @AuthenticationPrincipal Jwt jwt) {
+        // Vérifier les permissions
+        if (jwt == null) {
+            throw new RuntimeException("Non authentifié");
+        }
+        
+        // Log pour debug
+        System.out.println("🔍 TeamController.list - JWT reçu: " + jwt.getSubject());
+        
         return teamService.list(pageable);
     }
 

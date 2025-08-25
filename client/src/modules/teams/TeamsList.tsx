@@ -71,20 +71,51 @@ const TeamsList: React.FC = () => {
     const loadTeams = async () => {
       try {
         setLoading(true);
+        setError(null);
+        
+        console.log('🔍 TeamsList - Tentative de chargement des équipes...');
+        
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/teams`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
           },
         });
 
+        console.log('🔍 TeamsList - Réponse API:', response.status, response.statusText);
+
         if (response.ok) {
           const data = await response.json();
-          setTeams(data.content || data);
+          console.log('🔍 TeamsList - Données reçues:', data);
+          
+          // Si c'est une page Spring Data, extraire le contenu
+          if (data.content && Array.isArray(data.content)) {
+            setTeams(data.content);
+          } else if (Array.isArray(data)) {
+            setTeams(data);
+          } else {
+            console.warn('🔍 TeamsList - Format de données inattendu, tableau vide');
+            setTeams([]);
+          }
+        } else if (response.status === 401) {
+          console.error('🔍 TeamsList - Erreur d\'authentification (401)');
+          setError('Erreur d\'authentification. Veuillez vous reconnecter.');
+          setTeams([]);
+        } else if (response.status === 403) {
+          console.error('🔍 TeamsList - Accès interdit (403) - Permissions insuffisantes');
+          setError('Accès interdit. Vous n\'avez pas les permissions nécessaires pour voir les équipes.');
+          setTeams([]);
+        } else if (response.status === 404) {
+          console.log('🔍 TeamsList - Endpoint non trouvé, tableau vide');
+          setTeams([]);
         } else {
-          setError('Erreur lors du chargement des équipes');
+          console.error('🔍 TeamsList - Erreur API:', response.status);
+          setError(`Erreur ${response.status}: ${response.statusText}`);
+          setTeams([]);
         }
       } catch (err) {
-        setError('Erreur de connexion');
+        console.error('🔍 TeamsList - Erreur lors du chargement:', err);
+        setError('Erreur de connexion au serveur');
+        setTeams([]);
       } finally {
         setLoading(false);
       }
@@ -94,9 +125,9 @@ const TeamsList: React.FC = () => {
   }, []);
 
   // Filtrer les équipes selon le type sélectionné
-  const filteredTeams = selectedType === 'all' 
-    ? teams 
-    : teams.filter(team => team.interventionType === selectedType);
+        const filteredTeams = selectedType === 'all' 
+        ? teams 
+        : teams.filter(team => team.interventionType === selectedType);
 
   // Gestion du menu contextuel
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, team: Team) => {
@@ -333,6 +364,9 @@ const TeamsList: React.FC = () => {
           </Typography>
         </Box>
       </Box>
+
+      {/* Debug: Vérifier les équipes */}
+
 
       {/* Liste des équipes */}
       <Grid container spacing={3}>

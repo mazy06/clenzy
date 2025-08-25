@@ -189,7 +189,7 @@ export default function InterventionsList() {
   
   // TOUS les useState DOIVENT être déclarés AVANT les vérifications conditionnelles
   const [interventions, setInterventions] = useState<Intervention[]>([]);
-  const [loading, setLoading] = useState(false); // Plus de loading par défaut
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedIntervention, setSelectedIntervention] = useState<Intervention | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -200,56 +200,42 @@ export default function InterventionsList() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedPriority, setSelectedPriority] = useState('all');
 
-  // Attendre que l'utilisateur soit complètement chargé
-  if (!user) {
-    console.log('🔍 InterventionsList - Utilisateur en cours de chargement...');
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  // Vérifier les permissions pour les interventions APRÈS avoir vérifié l'utilisateur
+  // Vérifier les permissions pour les interventions
   const canViewInterventions = hasPermission('interventions:view');
   const canCreateInterventions = hasPermission('interventions:create');
   const canEditInterventions = hasPermission('interventions:edit');
   const canDeleteInterventions = hasPermission('interventions:delete');
 
-  // Si pas de permission, afficher un message informatif
-  if (!canViewInterventions) {
-    console.log('🔍 InterventionsList - Permission refusée');
-    return (
-      <Box sx={createSpacing.page()}>
-        <Alert severity="info">
-          <Typography variant="h6" gutterBottom>
-            Accès non autorisé
-          </Typography>
-          <Typography variant="body1">
-            Vous n'avez pas les permissions nécessaires pour accéder à cette section.
-            <br />
-            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </Typography>
-        </Alert>
-      </Box>
-    );
-  }
+  // Debug des permissions
+  console.log('🔍 InterventionsList - Debug des permissions:', {
+    user: user?.email,
+    roles: user?.roles,
+    permissions: user?.permissions,
+    canViewInterventions,
+    canCreateInterventions,
+    canEditInterventions,
+    canDeleteInterventions
+  });
 
-  // Chargement automatique des interventions (sans useEffect problématique)
-  // React.useEffect(() => {
-  //   console.log('🔍 InterventionsList - Chargement automatique des interventions');
-  //   loadInterventions();
-  // }, []); // Dépendances vides - exécuté une seule fois au montage
-  
-  // Alternative : chargement immédiat si pas d'interventions
-  if (interventions.length === 0 && !loading) {
-    // Utiliser setTimeout pour éviter les appels synchrones
-    setTimeout(() => {
+  // Chargement automatique des interventions avec useEffect
+  React.useEffect(() => {
+    console.log('🔍 InterventionsList - Chargement automatique des interventions');
+    // Ne pas recharger si on a déjà une erreur 403 ou si pas de permission
+    if ((!error || !error.includes('Accès interdit')) && canViewInterventions) {
       loadInterventions();
-    }, 0);
-  }
+    }
+  }, []); // Dépendances vides - exécuté une seule fois au montage
 
+  // Fonction de chargement des interventions
   const loadInterventions = async () => {
+    // Vérifier les permissions avant de faire l'appel API
+    if (!canViewInterventions) {
+      console.log('🔍 InterventionsList - Permission refusée, pas d\'appel API');
+      setInterventions([]);
+      setError('Vous n\'avez pas les permissions nécessaires pour voir les interventions.');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -278,6 +264,10 @@ export default function InterventionsList() {
         console.error('🔍 InterventionsList - Erreur d\'authentification (401)');
         setError('Erreur d\'authentification. Veuillez vous reconnecter.');
         // En cas d'erreur 401, tableau vide
+        setInterventions([]);
+      } else if (response.status === 403) {
+        console.error('🔍 InterventionsList - Accès interdit (403) - Permissions insuffisantes');
+        setError('Accès interdit. Vous n\'avez pas les permissions nécessaires pour voir les interventions.');
         setInterventions([]);
       } else if (response.status === 404) {
         console.log('🔍 InterventionsList - Endpoint non trouvé, tableau vide');
@@ -450,7 +440,34 @@ export default function InterventionsList() {
     );
   }
 
-  // Plus de vérification de loading - affichage direct du contenu
+  // Vérifications conditionnelles dans le rendu
+  if (!user) {
+    console.log('🔍 InterventionsList - Utilisateur en cours de chargement...');
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Si pas de permission, afficher un message informatif
+  if (!canViewInterventions) {
+    console.log('🔍 InterventionsList - Permission refusée');
+    return (
+      <Box sx={createSpacing.page()}>
+        <Alert severity="info">
+          <Typography variant="h6" gutterBottom>
+            Accès non autorisé
+          </Typography>
+          <Typography variant="body1">
+            Vous n'avez pas les permissions nécessaires pour accéder à cette section.
+            <br />
+            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+          </Typography>
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box>

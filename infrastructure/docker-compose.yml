@@ -52,7 +52,7 @@ services:
     ports:
       - "8082:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ./postgres-data:/var/lib/postgresql/data  # Dossier local persistant
 
   server:
     build:
@@ -94,7 +94,8 @@ services:
       - server
 
 volumes:
-  pgdata:
+  # Les données PostgreSQL sont maintenant persistées dans ./postgres-data
+  # Ce dossier survit aux redémarrages Docker et aux suppressions de conteneurs
   keycloak_data:
 
 

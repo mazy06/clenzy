@@ -33,6 +33,7 @@ import {
   AccountCircle,
   Logout,
   Group,
+  Assessment,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -47,7 +48,6 @@ interface MainLayoutFullProps {
 }
 
 export default function MainLayoutFull({ children }: MainLayoutFullProps) {
-  console.log('🔍 MainLayoutFull - DÉBUT du composant');
   const [mobileOpen, setMobileOpen] = useState(false);
 
   
@@ -56,22 +56,16 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   const isMobile = useMediaQuery('md');
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAdmin, isManager, isHost, isTechnician, isHousekeeper, isSupervisor, hasPermission, clearUser, restoreKeycloakState } = useAuth();
+  const { user, isAdmin, isManager, isHost, isTechnician, isHousekeeper, isSupervisor, hasPermission, hasPermissionSync, clearUser, restoreKeycloakState } = useAuth();
 
     // Identifiant unique pour ce rendu
     const renderId = React.useId();
     
-    console.log('🔍 MainLayoutFull - DÉBUT du composant, ID:', renderId);
-    
     // Debug: monitor user changes
     useEffect(() => {
-      console.log('🔍 MainLayoutFull - useEffect user changed:', user);
       if (user) {
-        console.log('🔍 MainLayoutFull - User changed:', user);
-        console.log('🔍 MainLayoutFull - Current roles:', user.roles);
-        console.log('🔍 MainLayoutFull - Number of roles:', user.roles.length);
-      } else {
-        console.log('🔍 MainLayoutFull - No user connected');
+        // Log silencieux pour le débogage si nécessaire
+        // console.log('🔍 MainLayoutFull - User changed:', user.email);
       }
     }, [user]);
     
@@ -82,28 +76,25 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       }
     }, []);
 
-  // Temporary log to identify double rendering problem
-  console.log('🔍 MainLayoutFull - RENDU with ID:', renderId);
-  console.log('🔍 MainLayoutFull - Rendered with user:', user);
-  console.log('🔍 MainLayoutFull - Number of roles:', user?.roles?.length || 0);
-  console.log('🔍 MainLayoutFull - Location:', location.pathname);
-  console.log('🔍 MainLayoutFull - Role functions available:', {
-    isAdmin: typeof isAdmin,
-    isManager: typeof isManager,
-    isHost: typeof isHost,
-    isTechnician: typeof isTechnician,
-    isHousekeeper: typeof isHousekeeper,
-    isSupervisor: typeof isSupervisor
-  });
+    // Écouter les changements de permissions pour rafraîchir l'interface
+    useEffect(() => {
+      const handlePermissionsRefresh = () => {
+        // Forcer le re-rendu du composant pour mettre à jour la navigation
+        window.location.reload();
+      };
+
+      window.addEventListener('permissions-refreshed', handlePermissionsRefresh);
+
+      return () => {
+        window.removeEventListener('permissions-refreshed', handlePermissionsRefresh);
+      };
+    }, []);
 
     // Si pas d'utilisateur, ne pas rediriger ici pour éviter les boucles.
     // Le routeur au niveau de App.tsx s'occupe de la redirection.
     if (!user) {
-      console.log('🔍 MainLayoutFull - No user, waiting for router guard');
       return null;
     }
-
-  console.log('🔍 MainLayoutFull - User found, checking role functions...');
 
   // Security check: ensure role functions are defined
   // But don't crash if they are not yet
@@ -114,10 +105,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
                           typeof isHousekeeper === 'function' && 
                           typeof isSupervisor === 'function';
     
-    console.log('🔍 MainLayoutFull - Functions defined:', functionsDefined);
-    
   if (!functionsDefined) {
-    console.log('🔍 MainLayoutFull - Role functions not yet defined, displaying loading');
     return (
       <Box sx={{ 
         display: 'flex', 
@@ -130,32 +118,22 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
     );
   }
 
-  console.log('🔍 MainLayoutFull - Role functions defined, testing execution...');
-
   // Check that role functions work without error
   let canRender = true;
   try {
     // Simple test of role functions
-    console.log('🔍 MainLayoutFull - Test isAdmin()...');
-    isAdmin();
-    console.log('🔍 MainLayoutFull - Test isManager()...');
-    isManager();
-    console.log('🔍 MainLayoutFull - Test isHost()...');
-    isHost();
-    console.log('🔍 MainLayoutFull - Test isTechnician()...');
-    isTechnician();
-    console.log('🔍 MainLayoutFull - Test isHousekeeper()...');
-    isHousekeeper();
-    console.log('🔍 MainLayoutFull - Test isSupervisor()...');
-    isSupervisor();
-    console.log('🔍 MainLayoutFull - All role function tests passed');
+    // isAdmin();
+    // isManager();
+    // isHost();
+    // isTechnician();
+    // isHousekeeper();
+    // isSupervisor();
   } catch (error) {
     console.error('🔍 MainLayoutFull - Error testing role functions:', error);
     canRender = false;
   }
 
   if (!canRender) {
-    console.log('🔍 MainLayoutFull - Error in role functions, displaying loading');
     return (
       <Box sx={{ 
         display: 'flex', 
@@ -167,8 +145,6 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       </Box>
     );
   }
-
-  console.log('🔍 MainLayoutFull - All checks passed, building menu...');
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -229,14 +205,8 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
 
   // Build menu items without useMemo to avoid React error #310
   const buildMenuItems = () => {
-      console.log('🔍 MainLayoutFull - Building menu items...');
-      console.log('🔍 MainLayoutFull - User:', user);
-      console.log('🔍 MainLayoutFull - hasPermission function:', hasPermission);
-      console.log('🔍 MainLayoutFull - User permissions:', user?.permissions);
-      
       // Protection: check that all functions are defined
       if (!functionsDefined) {
-        console.log('🔍 MainLayoutFull - Role functions not defined, returning base menu');
         return [
           {
             text: 'Tableau de bord',
@@ -247,15 +217,13 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         ];
       }
 
-      console.log('🔍 MainLayoutFull - Building full menu...');
-
-      const baseItems = [
-        {
-          text: 'Tableau de bord',
-          icon: <Dashboard />,
-          path: '/dashboard',
-          roles: ['all']
-        }
+      const baseItems: Array<{
+        text: string;
+        icon: React.ReactNode;
+        path: string;
+        roles: string[];
+      }> = [
+        // Le tableau de bord est maintenant géré par les permissions
       ];
 
       const roleBasedItems: Array<{
@@ -266,24 +234,18 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       }> = [];
 
       try {
-        console.log('🔍 MainLayoutFull - Testing permissions...');
-        
-        // Test des permissions une par une
-        console.log('🔍 MainLayoutFull - Testing interventions:view permission...');
-        const canViewInterventions = hasPermission('interventions:view');
-        console.log('🔍 MainLayoutFull - Can view interventions:', canViewInterventions);
-        
-        console.log('🔍 MainLayoutFull - Testing users:manage permission...');
-        const canManageUsers = hasPermission('users:manage');
-        console.log('🔍 MainLayoutFull - Can manage users:', canManageUsers);
-        
-        console.log('🔍 MainLayoutFull - Testing settings:view permission...');
-        const canViewSettings = hasPermission('settings:view');
-        console.log('🔍 MainLayoutFull - Can view settings:', canViewSettings);
-        
+        // Dashboard - visible si permission dashboard:view
+        if (hasPermissionSync('dashboard:view')) {
+          roleBasedItems.push({
+            text: 'Tableau de bord',
+            icon: <Dashboard />,
+            path: '/dashboard',
+            roles: ['all']
+          });
+        }
+
         // Properties - visible si permission properties:view
-        if (hasPermission('properties:view')) {
-          console.log('🔍 MainLayoutFull - Adding Properties');
+        if (hasPermissionSync('properties:view')) {
           roleBasedItems.push({
             text: 'Propriétés',
             icon: <Home />,
@@ -293,8 +255,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         }
 
         // Service Requests - visible si permission service-requests:view
-        if (hasPermission('service-requests:view')) {
-          console.log('🔍 MainLayoutFull - Adding Service Requests');
+        if (hasPermissionSync('service-requests:view')) {
           roleBasedItems.push({
             text: 'Demandes de service',
             icon: <Assignment />,
@@ -304,8 +265,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         }
 
         // Interventions - visible si permission interventions:view
-        if (hasPermission('interventions:view')) {
-          console.log('🔍 MainLayoutFull - Adding Interventions');
+        if (hasPermissionSync('interventions:view')) {
           roleBasedItems.push({
             text: 'Interventions',
             icon: <Build />,
@@ -315,8 +275,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         }
 
         // Teams - visible si permission teams:view
-        if (hasPermission('teams:view')) {
-          console.log('🔍 MainLayoutFull - Adding Teams');
+        if (hasPermissionSync('teams:view')) {
           roleBasedItems.push({
             text: 'Équipes',
             icon: <People />,
@@ -325,9 +284,18 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
           });
         }
 
+        // Reports - visible si permission reports:view
+        if (hasPermissionSync('reports:view')) {
+          roleBasedItems.push({
+            text: 'Rapports',
+            icon: <Assessment />,
+            path: '/reports',
+            roles: ['ADMIN', 'MANAGER']
+          });
+        }
+
         // Users - visible uniquement si permission users:manage
-        if (hasPermission('users:manage')) {
-          console.log('🔍 MainLayoutFull - Adding Users');
+        if (hasPermissionSync('users:manage')) {
           roleBasedItems.push({
             text: 'Utilisateurs',
             icon: <People />,
@@ -337,8 +305,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         }
 
         // Settings - visible si permission settings:view
-        if (hasPermission('settings:view')) {
-          console.log('🔍 MainLayoutFull - Adding Settings');
+        if (hasPermissionSync('settings:view')) {
           roleBasedItems.push({
             text: 'Paramètres',
             icon: <Settings />,
@@ -347,18 +314,16 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
           });
         }
 
-        // Test des permissions - visible uniquement aux administrateurs (pour le développement)
-        if (isAdmin()) {
-          console.log('🔍 MainLayoutFull - Adding Permissions Test');
+        // Configuration des permissions - visible uniquement aux administrateurs avec permission users:manage
+        if (hasPermissionSync('users:manage') && isAdmin()) {
           roleBasedItems.push({
-            text: '🧪 Test Permissions',
+            text: 'Roles & Permissions',
             icon: <Build />,
             path: '/permissions-test',
             roles: ['ADMIN']
           });
         }
         
-        console.log('🔍 MainLayoutFull - Menu built successfully');
       } catch (error) {
         console.error('🔍 MainLayoutFull - Error building menu:', error);
         // In case of error, return only the base menu
@@ -366,15 +331,12 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       }
 
       const finalMenu = [...baseItems, ...roleBasedItems];
-      console.log('🔍 MainLayoutFull - Final menu:', finalMenu.map(item => item.text));
       return finalMenu;
   };
 
   // Build menu items
   const menuItems = buildMenuItems();
   
-  console.log('🔍 MainLayoutFull - Menu built, preparing drawer...');
-
   const drawer = (
       <Box>
         <Box sx={{ 
@@ -549,8 +511,6 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       </Box>
   );
   
-  console.log('🔍 MainLayoutFull - Drawer built, preparing final render...');
-
   return (
       <Box sx={{ display: 'flex' }}>
         <AppBar

@@ -11,16 +11,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 @Transactional
 public class UserService {
     private final UserRepository userRepository;
     private final UserSyncService userSyncService;
+    private final PermissionService permissionService;
 
-    public UserService(UserRepository userRepository, UserSyncService userSyncService) {
+    public UserService(UserRepository userRepository, UserSyncService userSyncService, PermissionService permissionService) {
         this.userRepository = userRepository;
         this.userSyncService = userSyncService;
+        this.permissionService = permissionService;
     }
 
     public UserDto create(UserDto dto) {

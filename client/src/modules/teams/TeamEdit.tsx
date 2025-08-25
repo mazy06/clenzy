@@ -14,6 +14,11 @@ import {
   FormHelperText,
   Alert,
   CircularProgress,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Avatar,
 } from '@mui/material';
 import {
   Group,
@@ -25,10 +30,19 @@ import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
 import PageHeader from '../../components/PageHeader';
 
+interface TeamMember {
+  userId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
+
 interface TeamFormData {
   name: string;
   description: string;
   interventionType: string;
+  members: TeamMember[];
 }
 
 const TeamEdit: React.FC = () => {
@@ -44,37 +58,57 @@ const TeamEdit: React.FC = () => {
   const [formData, setFormData] = useState<TeamFormData>({
     name: '',
     description: '',
-    interventionType: 'CLEANING'
+    interventionType: 'CLEANING',
+    members: []
   });
+  
+  const [availableUsers, setAvailableUsers] = useState<TeamMember[]>([]);
+  const [selectedUser, setSelectedUser] = useState<string>('');
+  const [selectedRole, setSelectedRole] = useState<string>('technician');
 
-  // Charger les données de l'équipe
+  // Charger les données de l'équipe et les utilisateurs disponibles
   useEffect(() => {
     const loadTeam = async () => {
       if (!id) return;
       
       setLoading(true);
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/teams/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
+        const [teamResponse, usersResponse] = await Promise.all([
+          fetch(`${API_CONFIG.BASE_URL}/api/teams/${id}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+            },
+          }),
+          fetch(`${API_CONFIG.BASE_URL}/api/users`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+            },
+          })
+        ]);
 
-        if (response.ok) {
-          const teamData = await response.json();
+        if (teamResponse.ok && usersResponse.ok) {
+          const [teamData, usersData] = await Promise.all([
+            teamResponse.json(),
+            usersResponse.json()
+          ]);
+          
           console.log('🔍 TeamEdit - Équipe chargée:', teamData);
+          console.log('🔍 TeamEdit - Utilisateurs chargés:', usersData);
           
           setFormData({
             name: teamData.name || '',
             description: teamData.description || '',
-            interventionType: teamData.interventionType || 'CLEANING'
+            interventionType: teamData.interventionType || 'CLEANING',
+            members: teamData.members || []
           });
+          
+          setAvailableUsers(usersData);
         } else {
-          setError('Erreur lors du chargement de l\'équipe');
+          setError('Erreur lors du chargement des données');
         }
       } catch (err) {
-        console.error('🔍 TeamEdit - Erreur chargement équipe:', err);
-        setError('Erreur lors du chargement de l\'équipe');
+        console.error('🔍 TeamEdit - Erreur chargement données:', err);
+        setError('Erreur lors du chargement des données');
       } finally {
         setLoading(false);
       }
@@ -88,6 +122,54 @@ const TeamEdit: React.FC = () => {
     setFormData(prev => ({
       ...prev,
       [field]: value
+    }));
+  };
+
+  // Gestion des membres
+  const addMember = () => {
+    if (!selectedUser || !selectedRole) return;
+    
+    const user = availableUsers?.find(u => u.userId.toString() === selectedUser);
+    if (!user) return;
+    
+    // Vérifier si l'utilisateur n'est pas déjà dans l'équipe
+    if ((formData.members || []).some(m => m.userId === user.userId)) {
+      setError('Cet utilisateur est déjà dans l\'équipe');
+      return;
+    }
+    
+    const newMember: TeamMember = {
+      userId: user.userId,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: selectedRole
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      members: [...prev.members, newMember]
+    }));
+    
+    // Réinitialiser les sélections
+    setSelectedUser('');
+    setSelectedRole('technician');
+    setError(null);
+  };
+
+  const removeMember = (userId: number) => {
+    setFormData(prev => ({
+      ...prev,
+      members: prev.members.filter(m => m.userId !== userId)
+    }));
+  };
+
+  const updateMemberRole = (userId: number, newRole: string) => {
+    setFormData(prev => ({
+      ...prev,
+      members: prev.members.map(m => 
+        m.userId === userId ? { ...m, role: newRole } : m
+      )
     }));
   };
 
@@ -133,6 +215,13 @@ const TeamEdit: React.FC = () => {
     { value: 'MAINTENANCE', label: 'Maintenance' },
     { value: 'REPAIR', label: 'Réparation' },
     { value: 'OTHER', label: 'Autre' }
+  ];
+
+  const roleOptions = [
+    { value: 'technician', label: 'Technicien' },
+    { value: 'housekeeper', label: 'Agent de ménage' },
+    { value: 'supervisor', label: 'Superviseur' },
+    { value: 'manager', label: 'Manager' }
   ];
 
   if (loading) {
@@ -263,6 +352,113 @@ const TeamEdit: React.FC = () => {
                 />
               </Grid>
             </Grid>
+
+            {/* Gestion des membres */}
+            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
+              Membres de l'équipe
+            </Typography>
+
+            {/* Ajouter un membre */}
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid item xs={12} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Utilisateur</InputLabel>
+                  <Select
+                    value={selectedUser}
+                    onChange={(e) => setSelectedUser(e.target.value)}
+                    label="Utilisateur"
+                  >
+                    {availableUsers && availableUsers.length > 0 ? (
+                      availableUsers
+                        .filter(user => !(formData.members || []).some(m => m.userId === user.userId))
+                        .map((user) => (
+                          <MenuItem key={user.userId} value={user.userId.toString()}>
+                            {user.firstName} {user.lastName} ({user.email})
+                          </MenuItem>
+                        ))
+                    ) : (
+                      <MenuItem disabled>
+                        Aucun utilisateur disponible
+                      </MenuItem>
+                    )}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Rôle</InputLabel>
+                  <Select
+                    value={selectedRole}
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                    label="Rôle"
+                  >
+                    {roleOptions.map((role) => (
+                      <MenuItem key={role.value} value={role.value}>
+                        {role.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Button
+                  variant="outlined"
+                  onClick={addMember}
+                  disabled={!selectedUser || !selectedRole}
+                  sx={{ height: '56px' }}
+                >
+                  Ajouter
+                </Button>
+              </Grid>
+            </Grid>
+
+            {/* Liste des membres actuels */}
+            {(formData.members || []).length > 0 && (
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                  Membres actuels ({(formData.members || []).length})
+                </Typography>
+                <List>
+                  {(formData.members || []).map((member, index) => (
+                    <React.Fragment key={member.userId}>
+                      <ListItem sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1 }}>
+                        <ListItemAvatar>
+                          <Avatar sx={{ bgcolor: 'primary.main' }}>
+                            {member.firstName.charAt(0)}{member.lastName.charAt(0)}
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={`${member.firstName} ${member.lastName}`}
+                          secondary={member.email}
+                        />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <FormControl size="small" sx={{ minWidth: 120 }}>
+                            <Select
+                              value={member.role}
+                              onChange={(e) => updateMemberRole(member.userId, e.target.value)}
+                            >
+                              {roleOptions.map((role) => (
+                                <MenuItem key={role.value} value={role.value}>
+                                  {role.label}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          <Button
+                            size="small"
+                            color="error"
+                            variant="outlined"
+                            onClick={() => removeMember(member.userId)}
+                          >
+                            Retirer
+                          </Button>
+                        </Box>
+                      </ListItem>
+                    </React.Fragment>
+                  ))}
+                </List>
+              </Box>
+            )}
           </form>
         </CardContent>
       </Card>

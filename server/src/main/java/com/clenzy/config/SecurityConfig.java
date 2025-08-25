@@ -27,10 +27,12 @@ public class SecurityConfig {
                     "/v3/api-docs/**",
                     "/swagger-ui.html",
                     "/swagger-ui/**",
-                    "/h2-console/**"
+                    "/h2-console/**",
+                    "/api/auth/**"
                 ).permitAll()
-                .anyRequest().permitAll()
+                .anyRequest().authenticated()
             )
+            .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
             .httpBasic(Customizer.withDefaults());
 
         return http.build();

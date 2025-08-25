@@ -18,7 +18,7 @@ ENV SPRING_PROFILES_ACTIVE=prod
 
 COPY --from=build /workspace/target/clenzy-platform-1.0.0.jar /app/app.jar
 
-EXPOSE 8082
+EXPOSE 8080
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
 

@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import keycloak from '../keycloak';
 import { API_CONFIG } from '../config/api';
+import { CustomPermissionsContext } from './useCustomPermissions';
 
 export interface UserRole {
   name: string;
@@ -28,30 +29,19 @@ export const useAuth = () => {
       const storedToken = localStorage.getItem('kc_access_token');
       const storedRefreshToken = localStorage.getItem('kc_refresh_token');
       
-      console.log('🔍 useAuth - Tokens stockés:', { 
-        hasAccessToken: !!storedToken, 
-        hasRefreshToken: !!storedRefreshToken 
-      });
-
       // Vérifier d'abord l'état de Keycloak
       if (keycloak.authenticated && keycloak.token) {
-        console.log('🔍 useAuth - Keycloak authentifié, chargement des infos...');
         await loadUserFromKeycloak();
       } else if (storedToken && storedRefreshToken) {
-        console.log('🔍 useAuth - Tokens trouvés en localStorage mais Keycloak non authentifié');
-        
         // Tenter de restaurer l'état Keycloak
         const restored = restoreKeycloakState();
         if (restored) {
-          console.log('🔍 useAuth - État Keycloak restauré, chargement des infos...');
           await loadUserFromKeycloak();
         } else {
-          console.log('🔍 useAuth - Échec de la restauration, déconnexion...');
           setUser(null);
           setLoading(false);
         }
       } else {
-        console.log('🔍 useAuth - Aucune authentification trouvée');
         setUser(null);
         setLoading(false);
       }
@@ -69,11 +59,6 @@ export const useAuth = () => {
 
         if (response.ok) {
           const userData = await response.json();
-          
-          console.log('🔍 useAuth - Données reçues de /me:', userData);
-          console.log('🔍 useAuth - firstName:', userData.firstName, 'first_name:', userData.first_name);
-          console.log('🔍 useAuth - lastName:', userData.lastName, 'last_name:', userData.last_name);
-          console.log('🔍 useAuth - fullName:', userData.fullName, 'full_name:', userData.full_name);
           
           // Utiliser directement les permissions depuis l'API
           const permissions = userData.permissions || [];
@@ -94,22 +79,16 @@ export const useAuth = () => {
             roles: Array.isArray(roles) ? roles : [roles].filter(Boolean),
             permissions: Array.isArray(permissions) ? permissions : [permissions].filter(Boolean),
           };
-
-          console.log('🔍 useAuth - Utilisateur chargé avec succès:', user);
-          console.log('🔍 useAuth - Permissions:', user.permissions);
-          console.log('🔍 useAuth - Rôles:', user.roles);
           
           setUser(user);
           setLoading(false);
         } else if (response.status === 400 || response.status === 401) {
-          console.log('🔍 useAuth - Erreur 400/401, tentative de rafraîchissement du token...');
           // Erreur 400/401, essayer de rafraîchir le token
           try {
             // Vérifier si on a un refresh token
             if (keycloak.refreshToken) {
               const refreshed = await keycloak.updateToken(30);
               if (refreshed) {
-                console.log('🔍 useAuth - Token rafraîchi, nouvelle tentative de chargement...');
                 // Réessayer de charger les infos utilisateur
                 await loadUserFromKeycloak();
                 return;
@@ -120,7 +99,6 @@ export const useAuth = () => {
           }
           
           // Si le rafraîchissement échoue, déconnecter l'utilisateur
-          console.log('🔍 useAuth - Rafraîchissement échoué, déconnexion...');
           setUser(null);
           setLoading(false);
         } else {
@@ -140,19 +118,16 @@ export const useAuth = () => {
     
     // Écouter les changements d'état de Keycloak
     const handleAuthSuccess = () => {
-      console.log('🔍 useAuth - Événement d\'authentification Keycloak reçu');
       loadUserInfo();
     };
     
     const handleAuthLogout = () => {
-      console.log('🔍 useAuth - Événement de déconnexion Keycloak reçu');
       setUser(null);
       setLoading(false);
     };
     
     // Écouter l'événement personnalisé de rechargement forcé
     const handleForceUserReload = () => {
-      console.log('🔍 useAuth - Événement de rechargement forcé reçu');
       // Ajouter un délai pour éviter les appels trop fréquents
       setTimeout(() => {
         loadUserInfo();
@@ -166,21 +141,65 @@ export const useAuth = () => {
     // Ajouter l'écouteur d'événement personnalisé
     window.addEventListener('force-user-reload', handleForceUserReload);
     
+    // Écouter les changements de permissions
+    const handlePermissionsRefresh = () => {
+      // Recharger les informations utilisateur pour obtenir les nouvelles permissions
+      loadUserInfo();
+    };
+    
+    window.addEventListener('permissions-refreshed', handlePermissionsRefresh);
+    
     return () => {
       // Nettoyer les écouteurs
       keycloak.onAuthSuccess = undefined;
       keycloak.onAuthLogout = undefined;
       window.removeEventListener('force-user-reload', handleForceUserReload);
+      window.removeEventListener('permissions-refreshed', handlePermissionsRefresh);
     };
   }, []); // Dépendances vides pour s'exécuter une seule fois au montage
 
+  // Fonction pour vérifier les permissions - TOUJOURS depuis la base de données
+  const hasPermissionAsync = useCallback(async (permission: string): Promise<boolean> => {
+    if (!user) return false;
+    
+    try {
+      // Appel API pour vérifier la permission en temps réel
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/check`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          permission: permission,
+          userId: user.id
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return result.hasPermission === true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('🔍 useAuth - Erreur lors de la vérification de permission:', error);
+      return false;
+    }
+  }, [user]);
+
+  // Fonction synchrone pour la compatibilité (utilise les permissions en cache)
   const hasPermission = useCallback((permission: string): boolean => {
     if (!user) return false;
+    
+    // Utiliser les permissions du serveur (avec support des permissions personnalisées)
     return user.permissions.includes(permission);
   }, [user]);
 
   const hasRole = useCallback((role: string): boolean => {
     if (!user) return false;
+    
+    // Fallback vers les rôles normaux
     return user.roles.includes(role);
   }, [user]);
 
@@ -199,8 +218,6 @@ export const useAuth = () => {
   // Fonction pour nettoyer l'état utilisateur lors de la déconnexion
   // Fonction pour restaurer l'état Keycloak depuis le localStorage
   const restoreKeycloakState = useCallback(() => {
-    console.log('🔍 useAuth - Tentative de restauration de l\'état Keycloak...');
-    
     const storedToken = localStorage.getItem('kc_access_token');
     const storedRefreshToken = localStorage.getItem('kc_refresh_token');
     const storedIdToken = localStorage.getItem('kc_id_token');
@@ -213,13 +230,11 @@ export const useAuth = () => {
         const currentTime = Math.floor(Date.now() / 1000);
         
         if (tokenData.exp && tokenData.exp < currentTime) {
-          console.log('🔍 useAuth - Token expiré, nettoyage...');
           clearUser();
           return false;
         }
         
         // Restaurer l'état Keycloak
-        console.log('🔍 useAuth - Restauration de l\'état Keycloak...');
         (keycloak as any).token = storedToken;
         (keycloak as any).refreshToken = storedRefreshToken;
         (keycloak as any).idToken = storedIdToken;
@@ -234,7 +249,6 @@ export const useAuth = () => {
           }
         }
         
-        console.log('🔍 useAuth - État Keycloak restauré avec succès');
         return true;
       } catch (error) {
         console.error('🔍 useAuth - Erreur lors de la restauration:', error);
@@ -247,8 +261,6 @@ export const useAuth = () => {
   }, []);
   
   const clearUser = useCallback(() => {
-    console.log('🔍 useAuth - Nettoyage complet de l\'état utilisateur');
-    
     // Nettoyer l'état React
     setUser(null);
     setLoading(false);
@@ -268,14 +280,14 @@ export const useAuth = () => {
     } catch (error) {
       console.error('🔍 useAuth - Erreur lors du nettoyage du localStorage:', error);
     }
-    
-    console.log('🔍 useAuth - Nettoyage terminé');
   }, []);
 
   return {
     user,
     loading,
     hasPermission,
+    hasPermissionSync: hasPermission, // Fonction synchrone pour la navigation (permissions en cache)
+    hasPermissionAsync, // Fonction pour vérifier les permissions en temps réel
     hasRole,
     hasAnyRole,
     isAdmin,

@@ -1,7 +1,7 @@
 // Configuration centralisée de l'API
 export const API_CONFIG = {
   // URLs de base
-  BASE_URL: 'http://localhost:8080',
+  BASE_URL: 'http://localhost:8084',
   BASE_PATH: '/api',
   
   // Endpoints d'authentification
@@ -13,15 +13,15 @@ export const API_CONFIG = {
   
   // URLs complètes
   ENDPOINTS: {
-    LOGIN: 'http://localhost:8080/api/auth/login',
-    LOGOUT: 'http://localhost:8080/api/logout',
-    ME: 'http://localhost:8080/api/me',
+    LOGIN: 'http://localhost:8084/api/auth/login',
+    LOGOUT: 'http://localhost:8084/api/logout',
+    ME: 'http://localhost:8084/api/me',
   }
 } as const;
 
 // Configuration Keycloak
 export const KEYCLOAK_CONFIG = {
-  URL: 'http://localhost:8081',
+  URL: 'http://localhost:8083',
   REALM: 'clenzy',
   CLIENT_ID: 'clenzy-web',
 } as const;

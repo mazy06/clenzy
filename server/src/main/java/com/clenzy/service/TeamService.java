@@ -14,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 @Service
@@ -62,33 +63,32 @@ public class TeamService {
         Team team = teamRepository.findById(id)
             .orElseThrow(() -> new NotFoundException("Équipe non trouvée avec l'ID: " + id));
 
+        // Mise à jour des champs simples
         team.setName(dto.name);
         team.setDescription(dto.description);
         team.setInterventionType(dto.interventionType);
         team.setUpdatedAt(LocalDateTime.now());
 
-        // Mettre à jour les membres de l'équipe
+        // Gestion des membres - approche plus simple
         if (dto.members != null) {
-            // Supprimer les anciens membres
+            // Créer une nouvelle liste de membres
+            List<TeamMember> newMembers = new ArrayList<>();
+            
+            for (TeamDto.TeamMemberDto memberDto : dto.members) {
+                User user = userRepository.findById(memberDto.userId)
+                    .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé avec l'ID: " + memberDto.userId));
+                
+                TeamMember member = new TeamMember();
+                member.setTeam(team);
+                member.setUser(user);
+                member.setRole(memberDto.role);
+                member.setCreatedAt(LocalDateTime.now());
+                newMembers.add(member);
+            }
+            
+            // Remplacer complètement la liste des membres
             team.getMembers().clear();
-            
-            // Ajouter les nouveaux membres
-            List<TeamMember> members = dto.members.stream()
-                .map(memberDto -> {
-                    User user = userRepository.findById(memberDto.userId)
-                        .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé avec l'ID: " + memberDto.userId));
-                    
-                    TeamMember member = new TeamMember();
-                    member.setTeam(team);
-                    member.setUser(user);
-                    member.setRole(memberDto.role);
-                    member.setCreatedAt(LocalDateTime.now());
-                    
-                    return member;
-                })
-                .collect(Collectors.toList());
-            
-            team.setMembers(members);
+            team.getMembers().addAll(newMembers);
         }
 
         Team updatedTeam = teamRepository.save(team);
