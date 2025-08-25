@@ -45,7 +45,7 @@ export interface ActivityItem {
   };
 }
 
-export const useDashboardStats = () => {
+export const useDashboardStats = (userRole?: string) => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -164,7 +164,7 @@ export const useDashboardStats = () => {
   };
 
   // Charger les activités récentes
-  const loadRecentActivities = async (): Promise<ActivityItem[]> => {
+  const loadRecentActivities = async (userRole?: string): Promise<ActivityItem[]> => {
     try {
       // Combiner les données des différents endpoints pour créer des activités
       const [propertiesRes, requestsRes, interventionsRes, usersRes, teamsRes] = await Promise.all([
@@ -192,7 +192,15 @@ export const useDashboardStats = () => {
         const propertiesData = await propertiesRes.json();
         const properties = propertiesData.content || propertiesData || [];
         
-        properties.slice(0, 2).forEach((prop: any) => {
+        // Pour les HOST, filtrer seulement leurs propriétés
+        let filteredProperties = properties;
+        if (userRole === 'HOST') {
+          // TODO: Filtrer par propriétés du HOST connecté
+          // Pour l'instant, on prend toutes les propriétés (à adapter selon l'API)
+          filteredProperties = properties;
+        }
+        
+        filteredProperties.slice(0, 2).forEach((prop: any) => {
           activities.push({
             id: prop.id,
             type: 'Nouvelle propriété créée',
@@ -215,7 +223,15 @@ export const useDashboardStats = () => {
         const requestsData = await requestsRes.json();
         const requests = requestsData.content || requestsData || [];
         
-        requests.slice(0, 2).forEach((req: any) => {
+        // Pour les HOST, filtrer seulement leurs demandes de service
+        let filteredRequests = requests;
+        if (userRole === 'HOST') {
+          // TODO: Filtrer par propriétés du HOST connecté
+          // Pour l'instant, on prend toutes les demandes (à adapter selon l'API)
+          filteredRequests = requests;
+        }
+        
+        filteredRequests.slice(0, 2).forEach((req: any) => {
           activities.push({
             id: req.id,
             type: `Demande de service - ${req.type}`,
@@ -237,7 +253,15 @@ export const useDashboardStats = () => {
         const interventionsData = await interventionsRes.json();
         const interventions = interventionsData.content || interventionsData || [];
         
-        interventions.slice(0, 2).forEach((int: any) => {
+        // Pour les HOST, filtrer seulement leurs interventions
+        let filteredInterventions = interventions;
+        if (userRole === 'HOST') {
+          // TODO: Filtrer par propriétés du HOST connecté
+          // Pour l'instant, on prend toutes les interventions (à adapter selon l'API)
+          filteredInterventions = interventions;
+        }
+        
+        filteredInterventions.slice(0, 2).forEach((int: any) => {
           activities.push({
             id: int.id,
             type: `Intervention - ${int.type}`,
@@ -254,51 +278,52 @@ export const useDashboardStats = () => {
         });
       }
 
-      // Ajouter les nouveaux utilisateurs créés
-      if (usersRes.ok) {
-        const usersData = await usersRes.json();
-        const users = usersData.content || usersData || [];
-        
-        users.slice(0, 1).forEach((user: any) => {
-          activities.push({
-            id: user.id,
-            type: 'Nouvel utilisateur créé',
-            property: `${user.firstName} ${user.lastName}`,
-            time: formatTimeAgo(new Date(user.createdAt)),
-            status: 'created',
-            timestamp: user.createdAt,
-            category: 'user',
-            details: {
-              role: user.role,
-              email: user.email
-            }
+      // Pour les HOST, ne pas afficher les activités de création d'utilisateurs et d'équipes
+      if (userRole !== 'HOST') {
+        // Ajouter les nouveaux utilisateurs créés
+        if (usersRes.ok) {
+          const usersData = await usersRes.json();
+          const users = usersData.content || usersData || [];
+          
+          users.slice(0, 1).forEach((user: any) => {
+            activities.push({
+              id: user.id,
+              type: 'Nouvel utilisateur créé',
+              property: user.email || 'Utilisateur',
+              time: formatTimeAgo(new Date(user.createdAt || user.updatedAt)),
+              status: 'created',
+              timestamp: user.createdAt || user.updatedAt,
+              category: 'user',
+              details: {
+                role: user.role,
+                email: user.email
+              }
+            });
           });
-        });
+        }
+
+        // Ajouter les nouvelles équipes créées
+        if (teamsRes.ok) {
+          const teamsData = await teamsRes.json();
+          const teams = teamsData.content || teamsData || [];
+          
+          teams.slice(0, 1).forEach((team: any) => {
+            activities.push({
+              id: team.id,
+              type: 'Nouvelle équipe créée',
+              property: team.name || 'Équipe',
+              time: formatTimeAgo(new Date(team.createdAt || team.updatedAt)),
+              status: 'created',
+              timestamp: team.createdAt || team.updatedAt,
+              category: 'team',
+              details: {
+                members: team.members?.length || 0
+              }
+            });
+          });
+        }
       }
 
-      // Ajouter les nouvelles équipes créées
-      if (teamsRes.ok) {
-        const teamsData = await teamsRes.json();
-        const teams = teamsData.content || teamsData || [];
-        
-        teams.slice(0, 1).forEach((team: any) => {
-          activities.push({
-            id: team.id,
-            type: 'Nouvelle équipe créée',
-            property: team.name || 'Équipe',
-            time: formatTimeAgo(new Date(team.createdAt)),
-            status: 'created',
-            timestamp: team.createdAt,
-            category: 'team',
-            details: {
-              members: team.members?.length || 0,
-              type: team.type
-            }
-          });
-        });
-      }
-
-      // Trier par timestamp et limiter à 5 activités
       return activities
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 5);
@@ -336,7 +361,7 @@ export const useDashboardStats = () => {
         loadInterventionsStats(),
       ]);
 
-      const activities = await loadRecentActivities();
+      const activities = await loadRecentActivities(userRole);
 
       const dashboardStats: DashboardStats = {
         properties: {
@@ -373,7 +398,7 @@ export const useDashboardStats = () => {
 
   useEffect(() => {
     loadStats();
-  }, []);
+  }, [userRole]); // Recharger quand le rôle change
 
   return {
     stats,

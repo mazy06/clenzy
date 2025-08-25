@@ -42,7 +42,6 @@ import { createSpacing } from '../../theme/spacing';
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
-  const { stats, activities, loading, error, formatGrowth } = useDashboardStats();
   
   // Vérifier les permissions pour déterminer le contenu à afficher
   const canViewProperties = hasPermission('properties:view');
@@ -61,6 +60,19 @@ const Dashboard: React.FC = () => {
   const isHousekeeper = user?.roles?.includes('HOUSEKEEPER');
   const isSupervisor = user?.roles?.includes('SUPERVISOR');
 
+  // Récupérer le rôle principal de l'utilisateur
+  const getUserRole = () => {
+    if (isAdmin) return 'ADMIN';
+    if (isManager) return 'MANAGER';
+    if (isSupervisor) return 'SUPERVISOR';
+    if (isTechnician) return 'TECHNICIAN';
+    if (isHousekeeper) return 'HOUSEKEEPER';
+    if (isHost) return 'HOST';
+    return 'USER';
+  };
+
+  const { stats, activities, loading, error, formatGrowth } = useDashboardStats(getUserRole());
+  
   // Générer les statistiques dynamiques selon le rôle
   const getDynamicStats = () => {
     if (!stats) return [];
@@ -108,25 +120,25 @@ const Dashboard: React.FC = () => {
           route: '/properties'
         },
         {
-          title: 'Demandes en cours',
+          title: 'Mes demandes en cours',
           value: stats.serviceRequests.pending.toString(),
           icon: <Assignment color="secondary" />,
           growth: formatGrowth(stats.serviceRequests.growth),
           route: '/service-requests'
         },
         {
-          title: 'Interventions planifiées',
+          title: 'Mes interventions planifiées',
           value: stats.interventions.today.toString(),
           icon: <Build color="success" />,
           growth: formatGrowth(stats.interventions.growth),
           route: '/interventions'
         },
         {
-          title: 'Coût mensuel',
-          value: '€0', // À implémenter plus tard
-          icon: <Euro color="warning" />,
+          title: 'Mes notifications',
+          value: '0', // À implémenter plus tard
+          icon: <Notifications color="info" />,
           growth: { value: '0%', type: 'neutral' },
-          route: '/reports'
+          route: '/notifications'
         },
       ];
     } else if (isTechnician || isHousekeeper) {
@@ -198,8 +210,8 @@ const Dashboard: React.FC = () => {
   return (
     <Box>
       <PageHeader
-        title="Tableau de bord"
-        subtitle="Vue d'ensemble de votre plateforme Clenzy"
+        title={getDashboardTitle()}
+        subtitle={getDashboardDescription()}
         backPath="/"
         showBackButton={false}
       />
@@ -394,7 +406,7 @@ const Dashboard: React.FC = () => {
                   </Button>
                 )}
 
-                {canViewInterventions && (
+                {canViewInterventions && !isHost && (
                   <Button
                     variant="outlined"
                     startIcon={<Build />}
@@ -419,7 +431,7 @@ const Dashboard: React.FC = () => {
                   </Button>
                 )}
 
-                {canViewTeams && (
+                {canViewTeams && !isHost && (
                   <Button
                     variant="outlined"
                     startIcon={<Add />}
@@ -444,7 +456,7 @@ const Dashboard: React.FC = () => {
                   </Button>
                 )}
 
-                {canViewUsers && (
+                {canViewUsers && !isHost && (
                   <Button
                     variant="outlined"
                     startIcon={<Add />}

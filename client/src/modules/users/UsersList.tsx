@@ -44,6 +44,7 @@ import {
   Build,
   CleaningServices,
   Home,
+  Sync,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -91,6 +92,7 @@ const UsersList: React.FC = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editFormData, setEditFormData] = useState<Partial<User>>({});
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -187,6 +189,51 @@ const UsersList: React.FC = () => {
   const handleDelete = () => {
     setDeleteDialogOpen(true);
     handleMenuClose();
+  };
+
+  const handleSyncUsers = async () => {
+    setSyncing(true);
+    try {
+      console.log('🔄 Début de la synchronisation des utilisateurs...');
+      
+      // Appeler l'endpoint de synchronisation forcée pour recréer complètement les utilisateurs
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/sync/force-sync-all-to-keycloak`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.text();
+        console.log('✅ Synchronisation réussie:', result);
+        
+        // Recharger la liste des utilisateurs pour voir les changements
+        const usersResponse = await fetch(`${API_CONFIG.BASE_URL}/api/users`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          },
+        });
+        
+        if (usersResponse.ok) {
+          const data = await usersResponse.json();
+          const usersList = data.content || data;
+          setUsers(usersList);
+        }
+        
+        // Message de succès dans la console (plus élégant que alert)
+        console.log('✅ Synchronisation réussie ! Les utilisateurs ont été synchronisés avec Keycloak.');
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Erreur de synchronisation:', errorText);
+        console.error('❌ Erreur lors de la synchronisation: ' + errorText);
+      }
+    } catch (err) {
+      console.error('❌ Erreur de synchronisation:', err);
+      console.error('❌ Erreur lors de la synchronisation: ' + err);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleEditSave = async () => {
@@ -289,14 +336,25 @@ const UsersList: React.FC = () => {
         backPath="/dashboard"
         showBackButton={false}
         actions={
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<Add />}
-            onClick={() => navigate('/users/new')}
-          >
-            Nouvel utilisateur
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<Sync />}
+              onClick={handleSyncUsers}
+              disabled={syncing}
+            >
+              {syncing ? 'Synchronisation...' : 'Synchroniser'}
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Add />}
+              onClick={() => navigate('/users/new')}
+            >
+              Nouvel utilisateur
+            </Button>
+          </Box>
         }
       />
 

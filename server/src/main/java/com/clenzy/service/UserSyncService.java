@@ -66,8 +66,44 @@ public class UserSyncService {
         }
     }
 
+
+    
     /**
-     * Synchronise un utilisateur de la base métier vers Keycloak
+     * Force la synchronisation d'un utilisateur vers Keycloak (même s'il a déjà un keycloakId)
+     * Utile pour résoudre les problèmes de synchronisation
+     */
+    @Transactional
+    public String forceSyncToKeycloak(User user) {
+        try (Keycloak keycloak = getKeycloakAdminClient()) {
+            // Pour forcer la synchronisation, on supprime toujours l'ancien keycloak_id
+            // et on recrée l'utilisateur pour s'assurer que tout est correct
+            if (user.getKeycloakId() != null) {
+                try {
+                    // Supprimer l'ancien utilisateur Keycloak
+                    System.out.println("🗑️ Suppression de l'ancien utilisateur Keycloak: " + user.getEmail());
+                    keycloak.realm(realm).users().delete(user.getKeycloakId());
+                    System.out.println("✅ Ancien utilisateur Keycloak supprimé");
+                } catch (Exception e) {
+                    System.out.println("⚠️ Impossible de supprimer l'ancien utilisateur Keycloak: " + e.getMessage());
+                }
+                // Réinitialiser le keycloak_id
+                user.setKeycloakId(null);
+            }
+            
+            // Créer un nouvel utilisateur dans Keycloak
+            System.out.println("🔄 Recréation de l'utilisateur dans Keycloak: " + user.getEmail());
+            String keycloakUserId = createKeycloakUser(keycloak, user);
+            user.setKeycloakId(keycloakUserId);
+            userRepository.save(user);
+            System.out.println("✅ Utilisateur recréé avec succès dans Keycloak: " + user.getEmail());
+            return keycloakUserId;
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la synchronisation forcée vers Keycloak: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Synchronise un utilisateur de la base métier vers Keycloak avec gestion robuste du mot de passe
      */
     @Transactional
     public String syncToKeycloak(User user) {
@@ -87,6 +123,36 @@ public class UserSyncService {
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors de la synchronisation vers Keycloak: " + e.getMessage(), e);
         }
+    }
+    
+    /**
+     * Nettoie les utilisateurs orphelins (ceux qui ont un keycloak_id mais n'existent plus dans Keycloak)
+     * Cette méthode est appelée automatiquement au démarrage
+     */
+    @Transactional
+    public void cleanupOrphanedUsers() {
+        System.out.println("🧹 Nettoyage des utilisateurs orphelins...");
+        List<User> usersWithKeycloakId = userRepository.findByKeycloakIdIsNotNull();
+        int cleanedCount = 0;
+        
+        try (Keycloak keycloak = getKeycloakAdminClient()) {
+            for (User user : usersWithKeycloakId) {
+                try {
+                    // Vérifier si l'utilisateur existe dans Keycloak
+                    keycloak.realm(realm).users().get(user.getKeycloakId()).toRepresentation();
+                } catch (Exception e) {
+                    // L'utilisateur n'existe plus dans Keycloak, nettoyer le keycloak_id
+                    System.out.println("🧹 Nettoyage de l'utilisateur orphelin: " + user.getEmail());
+                    user.setKeycloakId(null);
+                    userRepository.save(user);
+                    cleanedCount++;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Erreur lors du nettoyage des utilisateurs orphelins: " + e.getMessage());
+        }
+        
+        System.out.println("✅ Nettoyage terminé. " + cleanedCount + " utilisateur(s) orphelin(s) nettoyé(s)");
     }
 
     /**
@@ -199,47 +265,87 @@ public class UserSyncService {
      * Crée un utilisateur dans Keycloak
      */
     private String createKeycloakUser(Keycloak keycloak, User user) {
-        UserRepresentation keycloakUser = new UserRepresentation();
-        keycloakUser.setUsername(user.getEmail()); // Utiliser l'email comme username
-        keycloakUser.setEmail(user.getEmail());
-        keycloakUser.setFirstName(user.getFirstName());
-        keycloakUser.setLastName(user.getLastName());
-        keycloakUser.setEnabled(true);
-        keycloakUser.setEmailVerified(user.isEmailVerified());
-        
-        // Créer l'utilisateur
-        jakarta.ws.rs.core.Response response = keycloak.realm(realm).users().create(keycloakUser);
-        String userId = getCreatedUserId(response);
-        
-        // TODO: Implémenter la gestion des mots de passe et rôles
-        // Définir le mot de passe temporaire
-        // CredentialRepresentation credential = new CredentialRepresentation();
-        // credential.setType(CredentialRepresentation.PASSWORD);
-        // credential.setValue("tempPassword123");
-        // credential.setTemporary(true);
-        // keycloak.realm(realm).users().get(userId).resetPassword(credential);
-        
-        // TODO: Assigner le rôle approprié
-        // assignRoleToUser(keycloak, userId, user.getRole());
-        
-        return userId;
+        try {
+            UserRepresentation keycloakUser = new UserRepresentation();
+            keycloakUser.setUsername(user.getEmail()); // Utiliser l'email comme username
+            keycloakUser.setEmail(user.getEmail());
+            keycloakUser.setFirstName(user.getFirstName());
+            keycloakUser.setLastName(user.getLastName());
+            keycloakUser.setEnabled(true);
+            keycloakUser.setEmailVerified(user.isEmailVerified());
+            
+            // Créer l'utilisateur
+            System.out.println("🔄 Création de l'utilisateur dans Keycloak: " + user.getEmail());
+            jakarta.ws.rs.core.Response response = keycloak.realm(realm).users().create(keycloakUser);
+            
+            if (response.getStatus() != 201) {
+                throw new RuntimeException("Erreur lors de la création de l'utilisateur dans Keycloak. Status: " + response.getStatus());
+            }
+            
+            String userId = getCreatedUserId(response);
+            System.out.println("✅ Utilisateur créé dans Keycloak avec l'ID: " + userId);
+            
+            // Définir le mot de passe
+            try {
+                CredentialRepresentation credential = new CredentialRepresentation();
+                credential.setType(CredentialRepresentation.PASSWORD);
+                
+                // Récupérer le mot de passe depuis la base de données
+                String password = user.getPassword();
+                if (password == null || password.trim().isEmpty()) {
+                    // Si pas de mot de passe, utiliser un mot de passe par défaut
+                    password = "Clenzy2024!";
+                    System.out.println("⚠️ Aucun mot de passe défini pour " + user.getEmail() + ", utilisation du mot de passe par défaut");
+                }
+                
+                credential.setValue(password);
+                credential.setTemporary(false); // Le mot de passe n'est pas temporaire
+                
+                keycloak.realm(realm).users().get(userId).resetPassword(credential);
+                System.out.println("✅ Mot de passe défini dans Keycloak pour l'utilisateur: " + user.getEmail());
+            } catch (Exception e) {
+                System.err.println("⚠️ Erreur lors de la définition du mot de passe dans Keycloak: " + e.getMessage());
+                throw new RuntimeException("Impossible de définir le mot de passe dans Keycloak", e);
+            }
+            
+            // Assigner le rôle approprié
+            try {
+                assignRoleToUser(keycloak, userId, user.getRole());
+                System.out.println("✅ Rôle assigné dans Keycloak pour l'utilisateur: " + user.getEmail());
+            } catch (Exception e) {
+                System.err.println("⚠️ Erreur lors de l'assignation du rôle dans Keycloak: " + e.getMessage());
+                // Ne pas faire échouer la création si le rôle ne peut pas être assigné
+            }
+            
+            return userId;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la création de l'utilisateur dans Keycloak: " + e.getMessage());
+            throw new RuntimeException("Impossible de créer l'utilisateur dans Keycloak", e);
+        }
     }
 
     /**
      * Met à jour un utilisateur dans Keycloak
      */
     private void updateKeycloakUser(Keycloak keycloak, User user) {
-        UserRepresentation keycloakUser = keycloak.realm(realm).users().get(user.getKeycloakId()).toRepresentation();
-        keycloakUser.setUsername(user.getEmail()); // Utiliser l'email comme username
-        keycloakUser.setEmail(user.getEmail());
-        keycloakUser.setFirstName(user.getFirstName());
-        keycloakUser.setLastName(user.getLastName());
-        keycloakUser.setEmailVerified(user.isEmailVerified());
-        
-        keycloak.realm(realm).users().get(user.getKeycloakId()).update(keycloakUser);
-        
-        // Mettre à jour le rôle si nécessaire
-        assignRoleToUser(keycloak, user.getKeycloakId(), user.getRole());
+        try {
+            UserRepresentation keycloakUser = keycloak.realm(realm).users().get(user.getKeycloakId()).toRepresentation();
+            keycloakUser.setUsername(user.getEmail()); // Utiliser l'email comme username
+            keycloakUser.setEmail(user.getEmail());
+            keycloakUser.setFirstName(user.getFirstName());
+            keycloakUser.setLastName(user.getLastName());
+            keycloakUser.setEmailVerified(user.isEmailVerified());
+            
+            keycloak.realm(realm).users().get(user.getKeycloakId()).update(keycloakUser);
+            System.out.println("✅ Utilisateur mis à jour dans Keycloak: " + user.getEmail());
+            
+            // Mettre à jour le rôle si nécessaire
+            assignRoleToUser(keycloak, user.getKeycloakId(), user.getRole());
+        } catch (Exception e) {
+            System.err.println("⚠️ Erreur lors de la mise à jour de l'utilisateur dans Keycloak: " + e.getMessage());
+            throw new RuntimeException("Impossible de mettre à jour l'utilisateur dans Keycloak", e);
+        }
     }
 
     /**
@@ -265,8 +371,41 @@ public class UserSyncService {
      * Assigne un rôle à un utilisateur dans Keycloak
      */
     private void assignRoleToUser(Keycloak keycloak, String userId, UserRole role) {
-        // Logique pour assigner le rôle approprié dans Keycloak
-        // Cette méthode devra être adaptée selon votre configuration Keycloak
+        try {
+            // Récupérer le rôle depuis Keycloak
+            String roleName = getKeycloakRoleName(role);
+            var keycloakRole = keycloak.realm(realm).roles().get(roleName).toRepresentation();
+            
+            // Assigner le rôle à l'utilisateur
+            keycloak.realm(realm).users().get(userId).roles().realmLevel().add(List.of(keycloakRole));
+            
+            System.out.println("✅ Rôle '" + roleName + "' assigné à l'utilisateur " + userId);
+        } catch (Exception e) {
+            System.err.println("⚠️ Erreur lors de l'assignation du rôle '" + role + "': " + e.getMessage());
+            throw new RuntimeException("Impossible d'assigner le rôle " + role + " à l'utilisateur", e);
+        }
+    }
+    
+    /**
+     * Convertit le rôle métier en nom de rôle Keycloak
+     */
+    private String getKeycloakRoleName(UserRole role) {
+        switch (role) {
+            case ADMIN:
+                return "ADMIN";
+            case MANAGER:
+                return "MANAGER";
+            case SUPERVISOR:
+                return "SUPERVISOR";
+            case TECHNICIAN:
+                return "TECHNICIAN";
+            case HOUSEKEEPER:
+                return "HOUSEKEEPER";
+            case HOST:
+                return "HOST";
+            default:
+                return "HOST"; // Rôle par défaut
+        }
     }
 
     /**

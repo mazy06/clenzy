@@ -33,10 +33,20 @@ public class StartupSyncService {
             // Attendre quelques secondes pour que tous les services soient prêts
             Thread.sleep(5000);
             
+            // Nettoyer les utilisateurs orphelins d'abord
+            logger.info("🧹 Nettoyage des utilisateurs orphelins...");
+            userSyncService.cleanupOrphanedUsers();
+            logger.info("✅ Nettoyage des utilisateurs orphelins terminé");
+            
             // Synchroniser depuis Keycloak vers la base métier
             logger.info("🔄 Synchronisation automatique depuis Keycloak...");
             userSyncService.syncAllFromKeycloak();
             logger.info("✅ Synchronisation automatique depuis Keycloak terminée avec succès");
+            
+            // Synchroniser les utilisateurs de la base métier vers Keycloak (ceux qui n'ont pas de keycloak_id)
+            logger.info("🔄 Synchronisation automatique vers Keycloak...");
+            userSyncService.syncAllToKeycloak();
+            logger.info("✅ Synchronisation automatique vers Keycloak terminée avec succès");
             
         } catch (Exception e) {
             logger.error("❌ Erreur lors de la synchronisation automatique: {}", e.getMessage(), e);
