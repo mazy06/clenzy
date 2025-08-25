@@ -99,7 +99,6 @@ const statusLabels = Object.fromEntries(
 ) as Record<string, string>;
 
 export default function PropertiesList() {
-  console.log('🔍 PropertiesList - Composant chargé');
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,26 +115,19 @@ export default function PropertiesList() {
 
   // Charger les propriétés depuis l'API
   const loadProperties = useCallback(async () => {
-    console.log('🔍 PropertiesList - loadProperties appelé');
     setLoading(true);
     try {
-      console.log('🔍 PropertiesList - Appel API en cours...');
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/properties`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
         },
       });
       
-      console.log('🔍 PropertiesList - Réponse API reçue:', response.status, response.ok);
-      
       if (response.ok) {
         const data = await response.json();
-        console.log('🔍 PropertiesList - Données reçues du backend:', data);
-        console.log('🔍 PropertiesList - Contenu de la réponse:', data.content);
         
         // Convertir les données du backend vers le format frontend
         const convertedProperties = data.content?.map((prop: any) => {
-          console.log('🔍 PropertiesList - Propriété individuelle du backend:', prop);
           const converted = {
             id: prop.id.toString(),
             name: prop.name,
@@ -146,13 +138,7 @@ export default function PropertiesList() {
             country: prop.country,
             status: prop.status?.toLowerCase() || 'active',
             rating: 4.5, // Valeur par défaut
-            nightlyPrice: (() => {
-              console.log('🔍 PropertiesList - nightlyPrice brut du backend:', prop.nightlyPrice);
-              console.log('🔍 PropertiesList - Type de nightlyPrice:', typeof prop.nightlyPrice);
-              const price = prop.nightlyPrice || 0;
-              console.log('🔍 PropertiesList - nightlyPrice final:', price);
-              return price;
-            })(),
+            nightlyPrice: prop.nightlyPrice || 0,
             guests: prop.maxGuests || 2,
             bedrooms: prop.bedroomCount || 1,
             bathrooms: prop.bathroomCount || 1,
@@ -163,11 +149,9 @@ export default function PropertiesList() {
             nextCleaning: undefined,
             ownerId: prop.ownerId?.toString(),
           };
-          console.log('🔍 PropertiesList - Propriété convertie:', converted);
           return converted;
         }) || [];
         
-        console.log('🔍 PropertiesList - Propriétés finales:', convertedProperties);
         setProperties(convertedProperties);
       } else {
         console.error('🔍 PropertiesList - Erreur API:', response.status);
@@ -175,7 +159,6 @@ export default function PropertiesList() {
     } catch (err) {
       console.error('🔍 PropertiesList - Erreur chargement propriétés:', err);
     } finally {
-      console.log('🔍 PropertiesList - Fin du chargement, loading = false');
       setLoading(false);
     }
   }, []);
@@ -183,6 +166,12 @@ export default function PropertiesList() {
   // Charger les hôtes (utilisateurs avec le rôle HOST)
   useEffect(() => {
     const loadHosts = async () => {
+      // Vérifier si l'utilisateur peut voir les utilisateurs
+      if (!hasPermission('users:view') && !hasPermission('users:manage')) {
+        setHosts([]);
+        return;
+      }
+
       try {
         setLoading(true);
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/users?role=HOST`, {
@@ -194,22 +183,25 @@ export default function PropertiesList() {
         if (response.ok) {
           const data = await response.json();
           setHosts(data.content || data);
+        } else if (response.status === 403) {
+          setHosts([]);
         } else {
-          console.error('Erreur lors du chargement des hôtes:', response.status);
+          console.error('🔍 PropertiesList - Erreur lors du chargement des hôtes:', response.status);
+          setHosts([]);
         }
       } catch (err) {
-        console.error('Erreur de connexion lors du chargement des hôtes:', err);
+        console.error('🔍 PropertiesList - Erreur de connexion lors du chargement des hôtes:', err);
+        setHosts([]);
       } finally {
         setLoading(false);
       }
     };
 
     loadHosts();
-  }, []);
+  }, [hasPermission]);
 
   // Charger les données au montage du composant
   useEffect(() => {
-    console.log('🔍 PropertiesList - useEffect pour loadProperties appelé');
     loadProperties();
   }, [loadProperties]);
 
@@ -255,10 +247,16 @@ export default function PropertiesList() {
     // Si c'est un hôte, ne montrer que ses propriétés
     if (isHost() && !isAdmin() && !isManager()) {
       filteredProperties = properties.filter(property => property.ownerId === user?.id);
+    } else if (isAdmin() || isManager()) {
+      // ADMIN et MANAGER voient toutes les propriétés
+      filteredProperties = properties;
+    } else {
+      // Autres rôles: propriétés limitées selon les permissions
+      filteredProperties = properties;
     }
 
     // Appliquer les filtres de recherche
-    return filteredProperties.filter((property) => {
+    const finalFiltered = filteredProperties.filter((property) => {
       const matchesSearch = property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            property.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            property.city.toLowerCase().includes(searchTerm.toLowerCase());
@@ -268,6 +266,8 @@ export default function PropertiesList() {
       
       return matchesSearch && matchesType && matchesStatus && matchesHost;
     });
+
+    return finalFiltered;
   };
 
   const filteredProperties = getFilteredProperties();
@@ -336,12 +336,14 @@ export default function PropertiesList() {
             onChange: setSelectedStatus,
             label: "Statut"
           },
-          host: {
-            value: selectedHost,
-            options: [{ value: 'all', label: 'Tous les hôtes' }, ...hosts.map(host => ({ value: host.id.toString(), label: `${host.firstName} ${host.lastName}` }))],
-            onChange: setSelectedHost,
-            label: "Hôte"
-          }
+          ...(hasPermission('users:view') || hasPermission('users:manage') ? {
+            host: {
+              value: selectedHost,
+              options: [{ value: 'all', label: 'Tous les hôtes' }, ...hosts.map(host => ({ value: host.id.toString(), label: `${host.firstName} ${host.lastName}` }))],
+              onChange: setSelectedHost,
+              label: "Hôte"
+            }
+          } : {})
         }}
         counter={{
           label: "propriété",

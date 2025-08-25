@@ -3,9 +3,7 @@ import {
   Box,
   Card,
   CardContent,
-  CardActions,
   Typography,
-  Button,
   Chip,
   IconButton,
   List,
@@ -16,12 +14,10 @@ import {
   Divider,
 } from '@mui/material';
 import {
-  Visibility,
   MoreVert,
   Build,
   Support,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { InterventionType, INTERVENTION_TYPE_OPTIONS } from '../types/interventionTypes';
 import { createSpacing } from '../theme/spacing';
 
@@ -52,7 +48,8 @@ interface TeamCardProps {
 }
 
 const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
-  const navigate = useNavigate();
+  // Debug: vérifier les données des membres
+
 
   // Données pour l'affichage (avec fallback si pas de données)
   const displayData = {
@@ -152,8 +149,8 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
   };
 
   return (
-    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardContent sx={{ flexGrow: 1, ...createSpacing.card() }}>
+          <Card sx={{ height: '380px', display: 'flex', flexDirection: 'column' }}>
+              <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', pb: 1.5 }}>
         {/* En-tête de la carte avec icône */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -253,8 +250,13 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
         </Box>
 
         {/* Membres de l'équipe */}
-        <List dense sx={{ mb: 2 }}>
-          {team.members.slice(0, 3).map((member, index) => (
+                       <List dense sx={{ 
+                 mb: 1, 
+                 flexGrow: 1, 
+                 overflow: 'hidden',
+                 maxHeight: '160px'
+               }}>
+          {team.members.slice(0, 2).map((member, index) => (
             <React.Fragment key={member.id}>
               <ListItem sx={{ px: 0, py: 0.5 }}>
                 <ListItemAvatar sx={{ minWidth: 32 }}>
@@ -275,31 +277,31 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
                   variant="outlined"
                 />
               </ListItem>
-              {index < Math.min(team.members.length, 3) - 1 && <Divider variant="inset" component="li" />}
+              {index < Math.min(team.members.length, 2) - 1 && <Divider variant="inset" component="li" />}
             </React.Fragment>
           ))}
-          {team.members.length > 3 && (
+          {team.members.length > 2 && (
             <ListItem sx={{ px: 0, py: 0.5 }}>
               <ListItemText
-                primary={`... et ${team.members.length - 3} autre(s) membre(s)`}
+                primary={`... et ${team.members.length - 2} autre(s) membre(s)`}
                 primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
               />
             </ListItem>
           )}
         </List>
+        
+        {/* Compteur total des membres - simple et centré */}
+        <Box sx={{ 
+          textAlign: 'center', 
+          flexShrink: 0,
+          py: 0.5
+        }}>
+          <Typography variant="caption" color="text.secondary">
+            Total: {team.members.length} membre{team.members.length > 1 ? 's' : ''}
+          </Typography>
+        </Box>
       </CardContent>
 
-      {/* Actions */}
-      <CardActions sx={{ pt: 0, ...createSpacing.card() }}>
-        <Button
-          variant="outlined"
-          startIcon={<Visibility />}
-          onClick={() => navigate(`/teams/${team.id}`)}
-          fullWidth
-        >
-          Voir détails
-        </Button>
-      </CardActions>
     </Card>
   );
 };

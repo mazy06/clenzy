@@ -12,15 +12,23 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data_dev:/var/lib/postgresql/data
+      - ./postgres-data:/var/lib/postgresql/data  # Dossier local persistant
       - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clenzy -d clenzy_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
-      - clenzy-network
+      clenzy-network:
+        aliases:
+          - postgres
 
   # Serveur Keycloak
   keycloak:
     image: quay.io/keycloak/keycloak:24.0.5
     container_name: clenzy-keycloak-dev
+    hostname: clenzy-keycloak
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
@@ -38,14 +46,22 @@ services:
     volumes:
       - ./keycloak/realm-clenzy.json:/opt/keycloak/data/import/realm-clenzy.json
     command: start-dev --import-realm
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/realms/clenzy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
     networks:
-      - clenzy-network
+      clenzy-network:
+        aliases:
+          - clenzy-keycloak
 
   # Backend Spring Boot (développement)
   server:
     build:
-      context: ./server
-      dockerfile: Dockerfile.dev
+      context: ../server
+      dockerfile: Dockerfile
     container_name: clenzy-server-dev
     environment:
       SPRING_PROFILES_ACTIVE: dev
@@ -53,44 +69,48 @@ services:
       SPRING_DATASOURCE_USERNAME: clenzy
       SPRING_DATASOURCE_PASSWORD: clenzy123
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/clenzy
-      KEYCLOAK_TOKEN_URI: http://keycloak:8080/realms/clenzy/protocol/openid-connect/token
-      KEYCLOAK_LOGOUT_URI: http://keycloak:8080/realms/clenzy/protocol/openid-connect/logout
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://clenzy-keycloak:8080/realms/clenzy
+      KEYCLOAK_TOKEN_URI: http://clenzy-keycloak:8080/realms/clenzy/protocol/openid-connect/token
+      KEYCLOAK_LOGOUT_URI: http://clenzy-keycloak:8080/realms/clenzy/protocol/openid-connect/logout
       KEYCLOAK_CLIENT_ID: clenzy-web
       KEYCLOAK_CLIENT_SECRET: your-client-secret-here
+      # Configuration pour retry automatique
+      SPRING_CLOUD_BOOTSTRAP_ENABLED: true
     ports:
-      - "8084:8082"
+      - "8084:8080"
     volumes:
-      - ./server:/workspace
+      - ../server:/workspace
       - ~/.m2:/root/.m2
     depends_on:
       postgres:
         condition: service_healthy
       keycloak:
-        condition: service_healthy
+        condition: service_started
     networks:
-      - clenzy-network
+      clenzy-network:
+        aliases:
+          - clenzy-server
 
   # Frontend React (développement)
   frontend:
     build:
-      context: ./client
-      dockerfile: Dockerfile.dev
+      context: ../client
+      dockerfile: Dockerfile
     container_name: clenzy-frontend-dev
     ports:
-      - "3000:3000"
+      - "3000:80"
     volumes:
-      - ./client:/app
+      - ../client:/app
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
     networks:
-      - clenzy-network
-
-volumes:
-  postgres_data_dev:
+      clenzy-network:
+        aliases:
+          - clenzy-frontend
 
 networks:
   clenzy-network:
     driver: bridge
+    name: clenzy-network

@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.List;
 import com.clenzy.model.User;
 import com.clenzy.service.UserService;
+import com.clenzy.service.PermissionService;
 import com.clenzy.model.UserRole;
 
 @RestController
@@ -32,9 +33,11 @@ public class AuthController {
     private final String clientSecret = "";
 
     private final UserService userService;
+    private final PermissionService permissionService;
 
-    public AuthController(UserService userService) {
+    public AuthController(UserService userService, PermissionService permissionService) {
         this.userService = userService;
+        this.permissionService = permissionService;
     }
 
     @PostMapping("/auth/login")
@@ -143,8 +146,8 @@ public class AuthController {
                 claims.put("createdAt", user.getCreatedAt());
                 claims.put("updatedAt", user.getUpdatedAt());
                 
-                // Ajouter les permissions basées sur le rôle
-                List<String> permissions = getPermissionsForRole(user.getRole());
+                // Ajouter les permissions basées sur le rôle (avec support des permissions personnalisées)
+                List<String> permissions = permissionService.getUserPermissions(user.getRole().name());
                 claims.put("permissions", permissions);
                 
                 System.out.println("🔍 /me - Utilisateur trouvé: " + user.getEmail() + " avec rôle: " + user.getRole());
@@ -162,58 +165,7 @@ public class AuthController {
         }
     }
 
-    private List<String> getPermissionsForRole(UserRole role) {
-        switch (role) {
-            case ADMIN:
-                return List.of(
-                    "dashboard:view",
-                    "properties:view", "properties:create", "properties:edit", "properties:delete",
-                    "service-requests:view", "service-requests:create", "service-requests:edit", "service-requests:delete",
-                    "interventions:view", "interventions:create", "interventions:edit", "interventions:delete",
-                    "teams:view", "teams:create", "teams:edit", "teams:delete",
-                    "settings:view", "settings:edit",
-                    "users:manage",
-                    "reports:view"
-                );
-            case MANAGER:
-                return List.of(
-                    "dashboard:view",
-                    "properties:view", "properties:create", "properties:edit",
-                    "service-requests:view", "service-requests:create", "service-requests:edit",
-                    "interventions:view", "interventions:create", "interventions:edit",
-                    "teams:view", "teams:create", "teams:edit",
-                    "settings:view",
-                    "reports:view"
-                );
-            case HOST:
-                return List.of(
-                    "dashboard:view",
-                    "properties:view", "properties:create", "properties:edit",
-                    "service-requests:view", "service-requests:create",
-                    "interventions:view"
-                );
-            case TECHNICIAN:
-                return List.of(
-                    "dashboard:view",
-                    "interventions:view", "interventions:edit",
-                    "teams:view"
-                );
-            case HOUSEKEEPER:
-                return List.of(
-                    "dashboard:view",
-                    "interventions:view", "interventions:edit",
-                    "teams:view"
-                );
-            case SUPERVISOR:
-                return List.of(
-                    "dashboard:view",
-                    "interventions:view", "interventions:edit",
-                    "teams:view", "teams:edit"
-                );
-            default:
-                return List.of("dashboard:view");
-        }
-    }
+
 
     @PostMapping("/logout")
     @Operation(summary = "Déconnexion de l'utilisateur")

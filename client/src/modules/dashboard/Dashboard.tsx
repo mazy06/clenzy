@@ -44,8 +44,6 @@ const Dashboard: React.FC = () => {
   const { user, hasPermission } = useAuth();
   const { stats, activities, loading, error, formatGrowth } = useDashboardStats();
   
-  console.log('🔍 Dashboard - Rendu du composant Dashboard');
-
   // Vérifier les permissions pour déterminer le contenu à afficher
   const canViewProperties = hasPermission('properties:view');
   const canViewServiceRequests = hasPermission('service-requests:view');

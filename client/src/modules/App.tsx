@@ -5,6 +5,7 @@ import keycloak from '../keycloak';
 import { useAuth } from '../hooks/useAuth';
 import { useTokenManagement } from '../hooks/useTokenManagement';
 import { configureConsole } from '../config/console';
+import { CustomPermissionsProvider } from '../hooks/useCustomPermissions';
 import Login from './auth/Login';
 import AuthenticatedApp from './AuthenticatedApp';
 

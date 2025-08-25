@@ -194,9 +194,14 @@ const TeamDetails: React.FC = () => {
           </Box>
 
           {/* Description */}
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            {team.description}
-          </Typography>
+          <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.200' }}>
+            <Typography variant="subtitle2" color="primary.main" sx={{ mb: 1, fontWeight: 600 }}>
+              📝 Description de l'équipe
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              {team.description || 'Aucune description disponible pour cette équipe.'}
+            </Typography>
+          </Box>
 
           {/* Métriques principales */}
           <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -223,6 +228,37 @@ const TeamDetails: React.FC = () => {
               </Box>
             </Grid>
           </Grid>
+
+          {/* Informations complémentaires */}
+          <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.200' }}>
+            <Typography variant="subtitle2" color="primary.main" sx={{ mb: 1, fontWeight: 600 }}>
+              ℹ️ Informations de l'équipe
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                    Créée le:
+                  </Typography>
+                  <Typography variant="caption" color="text.primary">
+                    {team.createdAt ? new Date(team.createdAt).toLocaleDateString('fr-FR') : 'N/A'}
+                  </Typography>
+                </Box>
+              </Grid>
+              {team.updatedAt && (
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                      Modifiée le:
+                    </Typography>
+                    <Typography variant="caption" color="text.primary">
+                      {new Date(team.updatedAt).toLocaleDateString('fr-FR')}
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
+            </Grid>
+          </Box>
         </CardContent>
       </Card>
 
