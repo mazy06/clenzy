@@ -67,6 +67,7 @@ interface Property {
   address: string;
   city: string;
   type: string;
+  ownerId?: number; // Added ownerId
 }
 
 // Type pour les utilisateurs
@@ -139,10 +140,13 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
           // Si c'est un HOST, définir automatiquement sa première propriété
           if (isHost() && propertiesList.length > 0) {
             const hostProperty = propertiesList.find((prop: Property) => 
-              prop.id.toString() === user?.id
+              prop.ownerId?.toString() === user?.id?.toString()
             );
             if (hostProperty) {
+              console.log('🔍 ServiceRequestForm - Propriété HOST trouvée:', hostProperty);
               setFormData(prev => ({ ...prev, propertyId: hostProperty.id }));
+            } else {
+              console.warn('🔍 ServiceRequestForm - Aucune propriété trouvée pour le HOST:', user?.id);
             }
           }
         }
@@ -174,9 +178,12 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
           
           // Si c'est un HOST, définir automatiquement son ID comme demandeur
           if (isHost() && user?.id) {
-            const hostUser = usersList.find((u: User) => u.id.toString() === user.id);
+            const hostUser = usersList.find((u: User) => u.id.toString() === user.id.toString());
             if (hostUser) {
+              console.log('🔍 ServiceRequestForm - Utilisateur HOST trouvé:', hostUser);
               setFormData(prev => ({ ...prev, userId: hostUser.id }));
+            } else {
+              console.warn('🔍 ServiceRequestForm - Utilisateur HOST non trouvé dans la liste:', user.id);
             }
           }
         }
@@ -253,7 +260,11 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🔍 ServiceRequestForm - Tentative de soumission, formData:', formData);
+    console.log('🔍 ServiceRequestForm - propertyId:', formData.propertyId, 'userId:', formData.userId);
+    
     if (!formData.propertyId || !formData.userId) {
+      console.error('🔍 ServiceRequestForm - Erreur: propertyId ou userId manquant');
       setError('Veuillez sélectionner une propriété et un demandeur');
       return;
     }

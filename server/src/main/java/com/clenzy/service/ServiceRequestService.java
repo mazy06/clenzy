@@ -11,6 +11,7 @@ import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionType;
 import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.RequestStatus;
+import com.clenzy.model.UserRole;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
@@ -21,9 +22,13 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import com.clenzy.dto.PropertyDto;
+import com.clenzy.dto.UserDto;
+import org.springframework.data.domain.PageImpl;
 
 @Service
 @Transactional
@@ -61,22 +66,42 @@ public class ServiceRequestService {
 
     @Transactional(readOnly = true)
     public List<ServiceRequestDto> list() {
-        return serviceRequestRepository.findAll().stream().map(this::toDto).collect(Collectors.toList());
+        return serviceRequestRepository.findAllWithRelations().stream().map(this::toDto).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public Page<ServiceRequestDto> list(Pageable pageable) {
-        return serviceRequestRepository.findAll(pageable).map(this::toDto);
+        // Pour la pagination, on doit d'abord récupérer les IDs puis charger avec relations
+        Page<ServiceRequest> page = serviceRequestRepository.findAll(pageable);
+        List<ServiceRequest> withRelations = serviceRequestRepository.findAllWithRelations();
+        
+        // Filtrer selon la pagination
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), withRelations.size());
+        List<ServiceRequest> pageContent = withRelations.subList(start, end);
+        
+        return new PageImpl<>(pageContent.stream().map(this::toDto).collect(Collectors.toList()), pageable, page.getTotalElements());
     }
 
     @Transactional(readOnly = true)
     public Page<ServiceRequestDto> search(Pageable pageable, Long userId, Long propertyId, com.clenzy.model.RequestStatus status, com.clenzy.model.ServiceType serviceType) {
-        return serviceRequestRepository.findAll((root, query, cb) -> cb.and(
-                userId != null ? cb.equal(root.get("user").get("id"), userId) : cb.conjunction(),
-                propertyId != null ? cb.equal(root.get("property").get("id"), propertyId) : cb.conjunction(),
-                status != null ? cb.equal(root.get("status"), status) : cb.conjunction(),
-                serviceType != null ? cb.equal(root.get("serviceType"), serviceType) : cb.conjunction()
-        ), pageable).map(this::toDto);
+        // Utiliser la méthode avec relations et filtrer ensuite
+        List<ServiceRequest> allWithRelations = serviceRequestRepository.findAllWithRelations();
+        
+        // Filtrer selon les critères
+        List<ServiceRequest> filtered = allWithRelations.stream()
+            .filter(sr -> userId == null || (sr.getUser() != null && sr.getUser().getId().equals(userId)))
+            .filter(sr -> propertyId == null || (sr.getProperty() != null && sr.getProperty().getId().equals(propertyId)))
+            .filter(sr -> status == null || sr.getStatus().equals(status))
+            .filter(sr -> serviceType == null || sr.getServiceType().equals(serviceType))
+            .collect(Collectors.toList());
+        
+        // Appliquer la pagination
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), filtered.size());
+        List<ServiceRequest> pageContent = filtered.subList(start, end);
+        
+        return new PageImpl<>(pageContent.stream().map(this::toDto).collect(Collectors.toList()), pageable, filtered.size());
     }
 
     public void delete(Long id) {
@@ -94,10 +119,10 @@ public class ServiceRequestService {
             
             // Vérifier les droits d'accès
             System.out.println("🔍 DEBUG - Extraction du rôle utilisateur...");
-            String userRole = extractUserRole(jwt);
+            UserRole userRole = extractUserRole(jwt);
             System.out.println("🔍 DEBUG - Rôle extrait: " + userRole);
             
-            if (!"ADMIN".equals(userRole) && !"MANAGER".equals(userRole)) {
+            if (userRole != UserRole.ADMIN && userRole != UserRole.MANAGER) {
                 System.out.println("🔍 DEBUG - Rôle insuffisant: " + userRole);
                 throw new UnauthorizedException("Seuls les administrateurs et managers peuvent valider les demandes de service");
             }
@@ -175,43 +200,79 @@ public class ServiceRequestService {
     /**
      * Extrait le rôle de l'utilisateur depuis le JWT
      */
-    private String extractUserRole(Jwt jwt) {
-        System.out.println("🔍 DEBUG - extractUserRole appelé");
+    /**
+     * Extrait le rôle principal de l'utilisateur depuis le JWT
+     * Les rôles sont stockés dans realm_access.roles et préfixés avec "ROLE_"
+     */
+    private UserRole extractUserRole(Jwt jwt) {
+        System.out.println("🔍 ServiceRequestService.extractUserRole - Début de l'extraction");
+        
         if (jwt == null) {
-            System.err.println("🔍 DEBUG - JWT est null!");
+            System.err.println("🔍 ServiceRequestService.extractUserRole - JWT est null!");
             throw new UnauthorizedException("JWT manquant");
         }
         
-        System.out.println("🔍 DEBUG - JWT non-null, extraction du rôle...");
-        String role = jwt.getClaimAsString("role");
-        System.out.println("🔍 DEBUG - Rôle extrait depuis 'role': " + role);
-        
-        if (role == null) {
-            System.out.println("🔍 DEBUG - Rôle null, essai avec 'realm_access'...");
-            // Fallback: essayer de récupérer depuis les claims standards
-            String realmAccess = jwt.getClaimAsString("realm_access");
-            System.out.println("🔍 DEBUG - Realm_access brut: " + realmAccess);
+        try {
+            // Essayer d'abord realm_access.roles (format Keycloak)
+            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+            System.out.println("🔍 ServiceRequestService.extractUserRole - Realm_access: " + realmAccess);
             
             if (realmAccess != null) {
-                // Parser le JSON {roles=[ADMIN]} pour extraire le premier rôle
-                if (realmAccess.contains("ADMIN")) {
-                    role = "ADMIN";
-                } else if (realmAccess.contains("MANAGER")) {
-                    role = "MANAGER";
-                } else if (realmAccess.contains("USER")) {
-                    role = "USER";
+                Object roles = realmAccess.get("roles");
+                System.out.println("🔍 ServiceRequestService.extractUserRole - Rôles extraits: " + roles);
+                
+                if (roles instanceof List<?>) {
+                    List<?> roleList = (List<?>) roles;
+                    System.out.println("🔍 ServiceRequestService.extractUserRole - Liste des rôles: " + roleList);
+                    
+                    for (Object role : roleList) {
+                        if (role instanceof String) {
+                            String roleStr = (String) role;
+                            System.out.println("🔍 ServiceRequestService.extractUserRole - Rôle trouvé: " + roleStr);
+
+                            // Ignorer les rôles techniques Keycloak
+                            if (roleStr.equals("offline_access") || 
+                                roleStr.equals("uma_authorization") || 
+                                roleStr.equals("default-roles-clenzy")) {
+                                System.out.println("🔍 ServiceRequestService.extractUserRole - Rôle technique ignoré: " + roleStr);
+                                continue;
+                            }
+
+                            // Retourner le premier rôle métier trouvé (ADMIN, MANAGER, HOST, etc.)
+                            System.out.println("🔍 ServiceRequestService.extractUserRole - Rôle métier trouvé: " + roleStr);
+                            try {
+                                return UserRole.valueOf(roleStr.toUpperCase());
+                            } catch (IllegalArgumentException e) {
+                                System.err.println("🔍 ServiceRequestService.extractUserRole - Rôle inconnu: " + roleStr + ", fallback vers HOST");
+                                return UserRole.HOST; // Fallback vers HOST pour les rôles non reconnus
+                            }
+                        }
+                    }
                 }
-                System.out.println("🔍 DEBUG - Rôle extrait depuis realm_access: " + role);
             }
             
-            if (role == null) {
-                System.err.println("🔍 DEBUG - Aucun rôle trouvé dans le JWT!");
-                throw new UnauthorizedException("Rôle non trouvé dans le JWT");
+            // Fallback: essayer le claim "role" direct
+            String directRole = jwt.getClaimAsString("role");
+            System.out.println("🔍 ServiceRequestService.extractUserRole - Rôle direct: " + directRole);
+            
+            if (directRole != null) {
+                System.out.println("🔍 ServiceRequestService.extractUserRole - Retour du rôle direct: " + directRole.toUpperCase());
+                try {
+                    return UserRole.valueOf(directRole.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    System.err.println("🔍 ServiceRequestService.extractUserRole - Rôle direct inconnu: " + directRole + ", fallback vers HOST");
+                    return UserRole.HOST;
+                }
             }
+            
+            // Si aucun rôle trouvé, retourner HOST par défaut
+            System.out.println("🔍 ServiceRequestService.extractUserRole - Aucun rôle trouvé, retour de HOST par défaut");
+            return UserRole.HOST;
+        } catch (Exception e) {
+            System.err.println("🔍 ServiceRequestService.extractUserRole - Erreur lors de l'extraction: " + e.getMessage());
+            e.printStackTrace();
+            return UserRole.HOST; // Fallback en cas d'erreur
         }
-        
-        System.out.println("🔍 DEBUG - Rôle final retourné: " + role);
-        return role;
     }
 
     /**
@@ -332,8 +393,60 @@ public class ServiceRequestService {
         dto.approvedAt = e.getApprovedAt();
         dto.userId = e.getUser() != null ? e.getUser().getId() : null;
         dto.propertyId = e.getProperty() != null ? e.getProperty().getId() : null;
+        
+        // Inclure les objets complets pour éviter les "inconnu"
+        if (e.getProperty() != null) {
+            dto.property = propertyToDto(e.getProperty());
+        }
+        if (e.getUser() != null) {
+            dto.user = userToDto(e.getUser());
+        }
+        
         dto.createdAt = e.getCreatedAt();
         dto.updatedAt = e.getUpdatedAt();
+        return dto;
+    }
+
+    /**
+     * Convertit une propriété en DTO
+     */
+    private PropertyDto propertyToDto(Property property) {
+        PropertyDto dto = new PropertyDto();
+        dto.id = property.getId();
+        dto.name = property.getName();
+        dto.address = property.getAddress();
+        dto.city = property.getCity();
+        dto.postalCode = property.getPostalCode();
+        dto.country = property.getCountry();
+        dto.type = property.getType();
+        dto.status = property.getStatus();
+        dto.bedroomCount = property.getBedroomCount();
+        dto.bathroomCount = property.getBathroomCount();
+        dto.squareMeters = property.getSquareMeters();
+        dto.nightlyPrice = property.getNightlyPrice();
+        dto.maxGuests = property.getMaxGuests();
+        dto.description = property.getDescription();
+        dto.cleaningFrequency = property.getCleaningFrequency();
+        dto.ownerId = property.getOwner() != null ? property.getOwner().getId() : null;
+        dto.createdAt = property.getCreatedAt();
+        dto.updatedAt = property.getUpdatedAt();
+        return dto;
+    }
+
+    /**
+     * Convertit un utilisateur en DTO
+     */
+    private UserDto userToDto(User user) {
+        UserDto dto = new UserDto();
+        dto.id = user.getId();
+        dto.firstName = user.getFirstName();
+        dto.lastName = user.getLastName();
+        dto.email = user.getEmail();
+        dto.role = user.getRole();
+        dto.status = user.getStatus();
+        dto.phoneNumber = user.getPhoneNumber();
+        dto.createdAt = user.getCreatedAt();
+        dto.updatedAt = user.getUpdatedAt();
         return dto;
     }
 }

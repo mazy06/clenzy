@@ -386,10 +386,10 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete 
 
             <Grid item xs={12} md={3}>
               <Typography variant="subtitle2" color="text.secondary">
-                Chambres
+                Commodités
               </Typography>
               <Typography variant="body1" sx={{ mb: 2 }}>
-                {property.bedrooms}
+                {property.amenities.length} disponible(s)
               </Typography>
             </Grid>
 

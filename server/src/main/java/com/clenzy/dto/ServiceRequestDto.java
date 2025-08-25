@@ -47,6 +47,10 @@ public class ServiceRequestDto {
     @NotNull(groups = Create.class)
     public Long propertyId;
 
+    // Objets complets pour éviter les "inconnu"
+    public PropertyDto property;
+    public UserDto user;
+
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
 }

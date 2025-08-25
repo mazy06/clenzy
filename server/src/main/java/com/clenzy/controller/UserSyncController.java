@@ -141,4 +141,27 @@ public class UserSyncController {
     public ResponseEntity<String> getSyncStatus() {
         return ResponseEntity.ok("Service de synchronisation actif");
     }
+
+    /**
+     * TEMPORAIRE : Nettoie tous les utilisateurs de la base de données
+     * À utiliser uniquement en cas d'urgence pour résoudre les problèmes de synchronisation
+     */
+    @PostMapping("/cleanup-all-users")
+    public ResponseEntity<String> cleanupAllUsers() {
+        try {
+            System.out.println("🧹 Nettoyage d'urgence de tous les utilisateurs...");
+            
+            // Supprimer tous les utilisateurs
+            long count = userRepository.count();
+            userRepository.deleteAll();
+            
+            String result = String.format("Nettoyage terminé. %d utilisateur(s) supprimé(s)", count);
+            System.out.println("✅ " + result);
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body("Erreur lors du nettoyage: " + e.getMessage());
+        }
+    }
 }

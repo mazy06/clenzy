@@ -60,10 +60,10 @@ public class User {
     private String keycloakId;
     
     @Column(name = "email_verified")
-    private boolean emailVerified = false;
+    private Boolean emailVerified = false;
     
     @Column(name = "phone_verified")
-    private boolean phoneVerified = false;
+    private Boolean phoneVerified = false;
     
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
@@ -184,19 +184,19 @@ public class User {
         this.keycloakId = keycloakId;
     }
     
-    public boolean isEmailVerified() {
+    public Boolean isEmailVerified() {
         return emailVerified;
     }
     
-    public void setEmailVerified(boolean emailVerified) {
+    public void setEmailVerified(Boolean emailVerified) {
         this.emailVerified = emailVerified;
     }
     
-    public boolean isPhoneVerified() {
+    public Boolean isPhoneVerified() {
         return phoneVerified;
     }
     
-    public void setPhoneVerified(boolean phoneVerified) {
+    public void setPhoneVerified(Boolean phoneVerified) {
         this.phoneVerified = phoneVerified;
     }
     

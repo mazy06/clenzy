@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import com.clenzy.model.InterventionStatus;
+import com.clenzy.model.UserRole;
 import java.util.Arrays;
 
 @Service
@@ -46,8 +47,8 @@ public class InterventionService {
     
     public InterventionDto create(InterventionDto dto, Jwt jwt) {
         // Vérifier que l'utilisateur a le droit de créer des interventions
-        String userRole = extractUserRole(jwt);
-        if (!"ADMIN".equals(userRole) && !"MANAGER".equals(userRole)) {
+        UserRole userRole = extractUserRole(jwt);
+        if (userRole != UserRole.ADMIN && userRole != UserRole.MANAGER) {
             throw new UnauthorizedException("Seuls les administrateurs et managers peuvent créer des interventions");
         }
         
@@ -126,16 +127,16 @@ public class InterventionService {
         System.out.println("🔍 DEBUT listWithRoleBasedAccess - JWT: " + (jwt != null ? "présent" : "null"));
         
         try {
-            String userRole = extractUserRole(jwt);
+            UserRole userRole = extractUserRole(jwt);
             System.out.println("🔍 Rôle extrait: " + userRole);
             
             // Pour les admins et managers, on n'a pas besoin de l'userId
             List<Intervention> interventions;
             
-            if ("ADMIN".equals(userRole) || "MANAGER".equals(userRole)) {
+            if (userRole == UserRole.ADMIN || userRole == UserRole.MANAGER) {
                 System.out.println("🔍 Admin/Manager - récupération de toutes les interventions");
                 interventions = interventionRepository.findByFilters(propertyId, type, status, priority);
-            } else if ("HOST".equals(userRole)) {
+            } else if (userRole == UserRole.HOST) {
                 System.out.println("🔍 Host - récupération des interventions de ses propriétés");
                 // Pour les hosts, on peut filtrer par propriété sans avoir besoin de l'userId
                 if (propertyId != null) {
@@ -180,8 +181,8 @@ public class InterventionService {
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
         
         // Seuls les admins peuvent supprimer
-        String userRole = extractUserRole(jwt);
-        if (!"ADMIN".equals(userRole)) {
+        UserRole userRole = extractUserRole(jwt);
+        if (userRole != UserRole.ADMIN) {
             throw new UnauthorizedException("Seuls les administrateurs peuvent supprimer des interventions");
         }
         
@@ -205,8 +206,8 @@ public class InterventionService {
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
         
         // Seuls les managers et admins peuvent assigner
-        String userRole = extractUserRole(jwt);
-        if (!"ADMIN".equals(userRole) && !"MANAGER".equals(userRole)) {
+        UserRole userRole = extractUserRole(jwt);
+        if (userRole != UserRole.ADMIN && userRole != UserRole.MANAGER) {
             throw new UnauthorizedException("Seuls les administrateurs et managers peuvent assigner des interventions");
         }
         
@@ -229,11 +230,11 @@ public class InterventionService {
     private void checkAccessRights(Intervention intervention, Jwt jwt) {
         System.out.println("🔍 InterventionService.checkAccessRights - Début de la vérification");
         
-        String userRole = extractUserRole(jwt);
+        UserRole userRole = extractUserRole(jwt);
         System.out.println("🔍 InterventionService.checkAccessRights - Rôle utilisateur: " + userRole);
         
         // Pour les admins et managers, accès complet sans vérification d'ID
-        if ("ADMIN".equals(userRole) || "MANAGER".equals(userRole)) {
+        if (userRole == UserRole.ADMIN || userRole == UserRole.MANAGER) {
             System.out.println("🔍 InterventionService.checkAccessRights - Admin/Manager - accès autorisé");
             return; // Accès complet
         }
@@ -254,7 +255,7 @@ public class InterventionService {
             throw new UnauthorizedException("Impossible d'identifier l'utilisateur depuis le JWT");
         }
         
-        if ("HOST".equals(userRole)) {
+        if (userRole == UserRole.HOST) {
             System.out.println("🔍 InterventionService.checkAccessRights - Vérification des droits HOST");
             // Host peut voir les interventions de ses propriétés
             if (intervention.getProperty().getOwner().getId().equals(userId)) {
@@ -455,7 +456,7 @@ public class InterventionService {
      * Extrait le rôle principal de l'utilisateur depuis le JWT
      * Les rôles sont stockés dans realm_access.roles et préfixés avec "ROLE_"
      */
-    private String extractUserRole(Jwt jwt) {
+    private UserRole extractUserRole(Jwt jwt) {
         System.out.println("🔍 InterventionService.extractUserRole - Début de l'extraction");
         
         try {
@@ -474,9 +475,24 @@ public class InterventionService {
                     for (Object role : roleList) {
                         if (role instanceof String) {
                             String roleStr = (String) role;
-                            System.out.println("🔍 InterventionService.extractUserRole - Premier rôle trouvé: " + roleStr);
-                            // Retourner le premier rôle trouvé (ADMIN, MANAGER, etc.)
-                            return roleStr.toUpperCase();
+                            System.out.println("🔍 InterventionService.extractUserRole - Rôle trouvé: " + roleStr);
+
+                            // Ignorer les rôles techniques Keycloak
+                            if (roleStr.equals("offline_access") || 
+                                roleStr.equals("uma_authorization") || 
+                                roleStr.equals("default-roles-clenzy")) {
+                                System.out.println("🔍 InterventionService.extractUserRole - Rôle technique ignoré: " + roleStr);
+                                continue;
+                            }
+
+                            // Retourner le premier rôle métier trouvé (ADMIN, MANAGER, HOST, etc.)
+                            System.out.println("🔍 InterventionService.extractUserRole - Rôle métier trouvé: " + roleStr);
+                            try {
+                                return UserRole.valueOf(roleStr.toUpperCase());
+                            } catch (IllegalArgumentException e) {
+                                System.err.println("🔍 InterventionService.extractUserRole - Rôle inconnu: " + roleStr + ", fallback vers USER");
+                                return UserRole.HOST; // Fallback vers HOST pour les rôles non reconnus
+                            }
                         }
                     }
                 }
@@ -488,16 +504,21 @@ public class InterventionService {
             
             if (directRole != null) {
                 System.out.println("🔍 InterventionService.extractUserRole - Retour du rôle direct: " + directRole.toUpperCase());
-                return directRole.toUpperCase();
+                try {
+                    return UserRole.valueOf(directRole.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    System.err.println("🔍 InterventionService.extractUserRole - Rôle direct inconnu: " + directRole + ", fallback vers HOST");
+                    return UserRole.HOST;
+                }
             }
             
-            // Si aucun rôle trouvé, retourner "USER" par défaut
-            System.out.println("🔍 InterventionService.extractUserRole - Aucun rôle trouvé, retour de USER par défaut");
-            return "USER";
+            // Si aucun rôle trouvé, retourner HOST par défaut
+            System.out.println("🔍 InterventionService.extractUserRole - Aucun rôle trouvé, retour de HOST par défaut");
+            return UserRole.HOST;
         } catch (Exception e) {
             System.err.println("🔍 InterventionService.extractUserRole - Erreur lors de l'extraction: " + e.getMessage());
             e.printStackTrace();
-            return "USER"; // Fallback en cas d'erreur
+            return UserRole.HOST; // Fallback en cas d'erreur
         }
     }
 }

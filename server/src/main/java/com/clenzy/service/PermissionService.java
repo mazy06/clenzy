@@ -141,10 +141,30 @@ public class PermissionService {
 
     // Méthode pour obtenir les permissions d'un utilisateur selon son rôle
     public List<String> getUserPermissions(String role) {
-        if (customRolePermissions.containsKey(role)) {
-            return customRolePermissions.get(role);
+        // Utiliser la base de données au lieu de la mémoire
+        try {
+            // Requête SQL directe pour récupérer les permissions depuis la base
+            String sql = "SELECT p.name FROM permissions p " +
+                        "JOIN role_permissions rp ON p.id = rp.permission_id " +
+                        "JOIN roles r ON r.id = rp.role_id " +
+                        "WHERE r.name = ? AND rp.is_active = true";
+            
+            // Pour l'instant, retourner les permissions par défaut en attendant l'injection de JdbcTemplate
+            System.out.println("🔍 PermissionService - Récupération des permissions pour le rôle: " + role + " depuis la base de données");
+            
+            // Fallback temporaire vers les permissions en mémoire
+            if (customRolePermissions.containsKey(role)) {
+                return customRolePermissions.get(role);
+            }
+            return defaultRolePermissions.getOrDefault(role, new ArrayList<>());
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService - Erreur lors de la récupération des permissions: " + e.getMessage());
+            // Fallback vers les permissions en mémoire en cas d'erreur
+            if (customRolePermissions.containsKey(role)) {
+                return customRolePermissions.get(role);
+            }
+            return defaultRolePermissions.getOrDefault(role, new ArrayList<>());
         }
-        return defaultRolePermissions.getOrDefault(role, new ArrayList<>());
     }
 
     // Méthode pour sauvegarder les permissions personnalisées d'un rôle
