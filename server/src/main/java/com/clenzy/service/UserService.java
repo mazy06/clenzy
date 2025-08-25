@@ -171,8 +171,8 @@ public class UserService {
         dto.role = user.getRole();
         dto.status = user.getStatus();
         dto.profilePictureUrl = user.getProfilePictureUrl();
-        dto.emailVerified = user.isEmailVerified();
-        dto.phoneVerified = user.isPhoneVerified();
+        dto.emailVerified = user.isEmailVerified() != null ? user.isEmailVerified() : false;
+        dto.phoneVerified = user.isPhoneVerified() != null ? user.isPhoneVerified() : false;
         dto.lastLogin = user.getLastLogin();
         dto.createdAt = user.getCreatedAt();
         dto.updatedAt = user.getUpdatedAt();

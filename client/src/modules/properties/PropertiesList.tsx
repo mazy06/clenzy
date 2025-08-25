@@ -117,7 +117,17 @@ export default function PropertiesList() {
   const loadProperties = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/properties`, {
+      let url = `${API_CONFIG.BASE_URL}/api/properties`;
+      
+      // Si c'est un HOST, filtrer par ses propriétés
+      if (isHost() && !isAdmin() && !isManager() && user?.id) {
+        url += `?ownerId=${user.id}`;
+        console.log('🔍 PropertiesList - Chargement des propriétés du HOST:', user.id);
+      } else {
+        console.log('🔍 PropertiesList - Chargement de toutes les propriétés (ADMIN/MANAGER)');
+      }
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
         },
@@ -152,6 +162,7 @@ export default function PropertiesList() {
           return converted;
         }) || [];
         
+        console.log('🔍 PropertiesList - Propriétés chargées:', convertedProperties.length);
         setProperties(convertedProperties);
       } else {
         console.error('🔍 PropertiesList - Erreur API:', response.status);
@@ -161,7 +172,7 @@ export default function PropertiesList() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isHost, isAdmin, isManager, user?.id]);
 
   // Charger les hôtes (utilisateurs avec le rôle HOST)
   useEffect(() => {
@@ -244,16 +255,9 @@ export default function PropertiesList() {
   const getFilteredProperties = () => {
     let filteredProperties = properties;
 
-    // Si c'est un hôte, ne montrer que ses propriétés
-    if (isHost() && !isAdmin() && !isManager()) {
-      filteredProperties = properties.filter(property => property.ownerId === user?.id);
-    } else if (isAdmin() || isManager()) {
-      // ADMIN et MANAGER voient toutes les propriétés
-      filteredProperties = properties;
-    } else {
-      // Autres rôles: propriétés limitées selon les permissions
-      filteredProperties = properties;
-    }
+    // Le filtrage par propriétaire est déjà fait côté serveur
+    // Ici on applique seulement les filtres de recherche et de type/statut
+    console.log('🔍 PropertiesList - Filtrage des propriétés, total:', properties.length);
 
     // Appliquer les filtres de recherche
     const finalFiltered = filteredProperties.filter((property) => {
@@ -267,6 +271,7 @@ export default function PropertiesList() {
       return matchesSearch && matchesType && matchesStatus && matchesHost;
     });
 
+    console.log('🔍 PropertiesList - Propriétés après filtrage:', finalFiltered.length);
     return finalFiltered;
   };
 

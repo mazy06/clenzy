@@ -140,8 +140,8 @@ public class AuthController {
                 claims.put("lastName", user.getLastName());
                 claims.put("role", user.getRole().name());
                 claims.put("status", user.getStatus().name());
-                claims.put("emailVerified", user.isEmailVerified());
-                claims.put("phoneVerified", user.isPhoneVerified());
+                claims.put("emailVerified", user.isEmailVerified() != null ? user.isEmailVerified() : false);
+                claims.put("phoneVerified", user.isPhoneVerified() != null ? user.isPhoneVerified() : false);
                 claims.put("lastLogin", user.getLastLogin());
                 claims.put("createdAt", user.getCreatedAt());
                 claims.put("updatedAt", user.getUpdatedAt());

@@ -115,10 +115,9 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
     ownerId: 0,
   });
 
-  // Charger la liste des utilisateurs (pour ADMIN/MANAGER)
+  // Charger la liste des utilisateurs (nécessaire pour assigner le propriétaire)
   const loadUsers = useCallback(async () => {
-    if (!isAdmin() && !isManager()) return;
-    
+    // Charger les utilisateurs pour tous les rôles (nécessaire pour l'assignation du propriétaire)
     setLoadingUsers(true);
     try {
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/users`, {
@@ -129,7 +128,9 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
       
       if (response.ok) {
         const data = await response.json();
-        setUsers(data.content || []);
+        const usersList = data.content || data || [];
+        console.log('🔍 PropertyForm - Utilisateurs chargés:', usersList);
+        setUsers(usersList);
       } else {
         console.error('Erreur lors du chargement des utilisateurs:', response.status);
       }
@@ -138,7 +139,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
     } finally {
       setLoadingUsers(false);
     }
-  }, [isAdmin, isManager]);
+  }, []);
 
   // Charger les utilisateurs au montage
   useEffect(() => {
@@ -147,17 +148,28 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
 
   // Définir l'owner par défaut selon le rôle
   useEffect(() => {
-    if (isHost() && user?.id) {
+    console.log('🔍 PropertyForm - Définition de l\'owner, user:', user, 'users:', users);
+    console.log('🔍 PropertyForm - isHost():', isHost(), 'isAdmin():', isAdmin(), 'isManager():', isManager());
+    console.log('🔍 PropertyForm - formData actuel:', formData);
+    
+    if (isHost() && user?.email) {
       // Pour un HOST, essayer de trouver son ID dans la base
       const hostUser = users.find(u => u.email === user.email);
+      console.log('🔍 PropertyForm - HOST trouvé dans users:', hostUser);
       if (hostUser) {
         setFormData(prev => ({ ...prev, ownerId: hostUser.id }));
+        console.log('🔍 PropertyForm - ownerId défini pour HOST:', hostUser.id);
+      } else {
+        console.warn('🔍 PropertyForm - HOST non trouvé dans users, email:', user.email);
+        console.warn('🔍 PropertyForm - Liste des utilisateurs disponibles:', users.map(u => ({ id: u.id, email: u.email, name: `${u.firstName} ${u.lastName}` })));
       }
-    } else if (!isAdmin() && !isManager()) {
+    } else if (!isAdmin() && !isManager() && user?.email) {
       // Pour les autres rôles non-admin, sélectionner automatiquement l'utilisateur connecté
-      const currentUser = users.find(u => u.email === user?.email);
+      const currentUser = users.find(u => u.email === user.email);
+      console.log('🔍 PropertyForm - Utilisateur courant trouvé:', currentUser);
       if (currentUser) {
         setFormData(prev => ({ ...prev, ownerId: currentUser.id }));
+        console.log('🔍 PropertyForm - ownerId défini pour utilisateur courant:', currentUser.id);
       }
     }
   }, [users, user, isHost, isAdmin, isManager]);
@@ -248,8 +260,12 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
     setLoading(true);
     setError(null);
 
+    console.log('🔍 PropertyForm - Tentative de soumission, formData:', formData);
+    console.log('🔍 PropertyForm - ownerId actuel:', formData.ownerId);
+
     // Validation de l'owner
     if (!formData.ownerId || formData.ownerId === 0) {
+      console.error('🔍 PropertyForm - Erreur: ownerId invalide:', formData.ownerId);
       setError('Veuillez sélectionner un propriétaire.');
       setLoading(false);
       return;
@@ -498,11 +514,6 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
                     </MenuItem>
                   ))}
                 </Select>
-                {!isAdmin() && !isManager() && (
-                  <FormHelperText>
-                    Le propriétaire est automatiquement défini selon votre rôle
-                  </FormHelperText>
-                )}
               </FormControl>
             </Grid>
 
@@ -576,17 +587,17 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
                 <Alert severity="error">{error}</Alert>
               </Grid>
             )}
+            
+            {/* Bouton de soumission caché pour le PageHeader */}
+            <Button
+              type="submit"
+              sx={{ display: 'none' }}
+              data-submit-property
+            >
+              Soumettre
+            </Button>
           </Grid>
         </form>
-        
-        {/* Bouton de soumission caché pour le PageHeader */}
-        <Button
-          type="submit"
-          sx={{ display: 'none' }}
-          data-submit-property
-        >
-          Soumettre
-        </Button>
       </CardContent>
     </Card>
 

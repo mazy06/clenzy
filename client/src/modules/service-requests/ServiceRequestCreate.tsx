@@ -66,10 +66,13 @@ const ServiceRequestCreate: React.FC = () => {
             <Button
               variant="contained"
               onClick={() => {
-                // Déclencher la soumission du formulaire
-                const submitButton = document.querySelector('[data-submit-service-request]') as HTMLButtonElement;
-                if (submitButton) {
-                  submitButton.click();
+                // Appeler directement la fonction de soumission du formulaire
+                const form = document.querySelector('form');
+                if (form) {
+                  const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                  form.dispatchEvent(submitEvent);
+                } else {
+                  console.error('🔍 ServiceRequestCreate - Formulaire non trouvé');
                 }
               }}
               startIcon={<Save />}

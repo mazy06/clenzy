@@ -37,8 +37,8 @@ public class UserDto {
     public UserRole role;
     public UserStatus status;
     public String profilePictureUrl;
-    public boolean emailVerified;
-    public boolean phoneVerified;
+    public Boolean emailVerified;
+    public Boolean phoneVerified;
     public LocalDateTime lastLogin;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
