@@ -341,6 +341,11 @@ export default function InterventionsList() {
   const canModifyIntervention = (intervention: Intervention): boolean => {
     if (canEditInterventions) return true;
     
+    // Vérifier que l'intervention et assignedToType existent
+    if (!intervention || !intervention.assignedToType) {
+      return false;
+    }
+    
     // Les équipes peuvent modifier les interventions assignées
     if (intervention.assignedToType === 'team') {
       // TODO: Vérifier si l'utilisateur fait partie de l'équipe
@@ -477,14 +482,16 @@ export default function InterventionsList() {
         backPath="/dashboard"
         showBackButton={false}
         actions={
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/interventions/new')}
-          >
-            Nouvelle intervention
-          </Button>
+          canCreateInterventions ? (
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/interventions/new')}
+            >
+              Nouvelle intervention
+            </Button>
+          ) : undefined
         }
       />
 

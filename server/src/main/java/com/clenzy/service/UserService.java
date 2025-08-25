@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
@@ -39,17 +40,44 @@ public class UserService {
         // Sauvegarder d'abord dans la base métier
         user = userRepository.save(user);
         
-        // Synchronisation automatique vers Keycloak (en arrière-plan)
-        try {
-            System.out.println("🔄 Synchronisation automatique vers Keycloak pour l'utilisateur: " + user.getEmail());
-            String keycloakId = userSyncService.syncToKeycloak(user);
-            user.setKeycloakId(keycloakId);
-            user = userRepository.save(user);
-            System.out.println("✅ Utilisateur synchronisé vers Keycloak avec l'ID: " + keycloakId);
-        } catch (Exception e) {
-            // Logger l'erreur mais ne pas faire échouer la création
-            System.err.println("⚠️ Erreur lors de la synchronisation vers Keycloak: " + e.getMessage());
-            // L'utilisateur est créé dans la base métier même si la sync Keycloak échoue
+        // Synchronisation automatique vers Keycloak avec retry et fallback
+        int maxRetries = 3;
+        int retryCount = 0;
+        boolean syncSuccess = false;
+        String keycloakId = null;
+
+        while (retryCount < maxRetries && !syncSuccess) {
+            try {
+                System.out.println("🔄 Tentative " + (retryCount + 1) + " de synchronisation vers Keycloak pour l'utilisateur: " + user.getEmail());
+                keycloakId = userSyncService.syncToKeycloak(user);
+                user.setKeycloakId(keycloakId);
+                user = userRepository.save(user);
+                System.out.println("✅ Utilisateur synchronisé vers Keycloak avec l'ID: " + keycloakId);
+                syncSuccess = true;
+            } catch (Exception e) {
+                retryCount++;
+                System.err.println("⚠️ Tentative " + retryCount + " échouée: " + e.getMessage());
+                
+                if (retryCount >= maxRetries) {
+                    System.err.println("❌ Échec de la synchronisation après " + maxRetries + " tentatives");
+                    System.err.println("⚠️ L'utilisateur sera créé uniquement dans la base métier");
+                    System.err.println("🔄 Tentative de synchronisation différée dans 10 secondes...");
+                    
+                    // Programmer une synchronisation différée
+                    scheduleDelayedSync(user);
+                } else {
+                    // Attendre avant de réessayer (backoff exponentiel)
+                    try {
+                        int delayMs = 2000 * retryCount; // 2s, 4s, 6s
+                        System.out.println("⏳ Attente de " + delayMs + "ms avant la prochaine tentative...");
+                        Thread.sleep(delayMs);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        System.err.println("⚠️ Synchronisation interrompue");
+                        break;
+                    }
+                }
+            }
         }
         
         return toDto(user);
@@ -107,6 +135,28 @@ public class UserService {
     public void delete(Long id) {
         if (!userRepository.existsById(id)) throw new NotFoundException("User not found");
         userRepository.deleteById(id);
+    }
+    
+    /**
+     * Synchronisation différée d'un utilisateur vers Keycloak
+     * Se déclenche automatiquement si la synchronisation immédiate échoue
+     */
+    @Async
+    public void scheduleDelayedSync(User user) {
+        try {
+            System.out.println("⏰ Synchronisation différée programmée pour l'utilisateur: " + user.getEmail());
+            Thread.sleep(10000); // Attendre 10 secondes
+            
+            System.out.println("🔄 Lancement de la synchronisation différée pour l'utilisateur: " + user.getEmail());
+            String keycloakId = userSyncService.forceSyncToKeycloak(user);
+            user.setKeycloakId(keycloakId);
+            userRepository.save(user);
+            System.out.println("✅ Synchronisation différée réussie pour l'utilisateur: " + user.getEmail() + " (ID: " + keycloakId + ")");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Échec de la synchronisation différée pour l'utilisateur " + user.getEmail() + ": " + e.getMessage());
+            // L'utilisateur reste dans la base métier sans keycloak_id
+        }
     }
 
     private UserDto toDto(User user) {
