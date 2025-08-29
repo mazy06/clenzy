@@ -1,164 +1,142 @@
-import { useEffect, useRef, useCallback } from 'react';
-import tokenService, { TokenValidationResult, RefreshResult } from '../services/TokenService';
-import keycloak from '../keycloak';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import TokenService, { TokenValidationResult } from '../services/TokenService';
 
-export interface UseTokenManagementOptions {
-  checkInterval?: number; // Intervalle de vérification en ms
-  refreshThreshold?: number; // Seuil de rafraîchissement en secondes
-  maxRetries?: number; // Nombre maximum de tentatives
-  onTokenRefresh?: (result: RefreshResult) => void;
-  onTokenExpired?: () => void;
-  onMaxRetriesExceeded?: () => void;
+interface TokenManagementState {
+  isTokenValid: boolean;
+  timeUntilExpiry: number;
+  isLoading: boolean;
+  error: string | null;
 }
 
-export const useTokenManagement = (options: UseTokenManagementOptions = {}) => {
-  const {
-    checkInterval = 60000, // 1 minute par défaut
-    refreshThreshold = 300, // 5 minutes par défaut
-    maxRetries = 3,
-    onTokenRefresh,
-    onTokenExpired,
-    onMaxRetriesExceeded,
-  } = options;
+interface TokenManagementActions {
+  validateToken: () => Promise<void>;
+  refreshToken: () => Promise<void>;
+  resetTokenService: () => void;
+  getTokenStats: () => Promise<any>;
+}
 
-  const intervalRef = useRef<number | null>(null);
-  const isProcessingRef = useRef(false);
+export const useTokenManagement = (): TokenManagementState & TokenManagementActions => {
+  const [state, setState] = useState<TokenManagementState>({
+    isTokenValid: false,
+    timeUntilExpiry: 0,
+    isLoading: false,
+    error: null
+  });
 
-  // Fonction de vérification et rafraîchissement des tokens
-  const checkAndRefreshTokens = useCallback(async () => {
-    if (isProcessingRef.current) {
-      console.log('🔍 useTokenManagement - Vérification déjà en cours, ignorée');
-      return;
-    }
+  const tokenService = useRef(new TokenService());
+  const validationInterval = useRef<number | null>(null);
 
-    isProcessingRef.current = true;
-
+  // Validation automatique du token
+  const validateToken = useCallback(async () => {
     try {
-      const storedToken = localStorage.getItem('kc_access_token');
-      const storedRefreshToken = localStorage.getItem('kc_refresh_token');
-
-      if (!storedToken || !storedRefreshToken) {
-        console.log('🔍 useTokenManagement - Tokens manquants');
-        isProcessingRef.current = false;
-        return;
-      }
-
-      // Valider le token
-      const validation = tokenService.validateToken(storedToken);
-      console.log('🔍 useTokenManagement - Validation token:', validation);
-
-      if (!validation.isValid) {
-        console.log('🔍 useTokenManagement - Token invalide, déconnexion...');
-        onTokenExpired?.();
-        isProcessingRef.current = false;
-        return;
-      }
-
-      // Vérifier si le rafraîchissement est nécessaire
-      if (validation.needsRefresh) {
-        console.log('🔍 useTokenManagement - Rafraîchissement nécessaire');
-        
-        const refreshResult = await tokenService.refreshToken();
-        console.log('🔍 useTokenManagement - Résultat rafraîchissement:', refreshResult);
-
-        if (refreshResult.success) {
-          // Mettre à jour localStorage
-          if (refreshResult.newToken) {
-            localStorage.setItem('kc_access_token', refreshResult.newToken);
-          }
-          if (refreshResult.newRefreshToken) {
-            localStorage.setItem('kc_refresh_token', refreshResult.newRefreshToken);
-          }
-
-          onTokenRefresh?.(refreshResult);
-          console.log('🔍 useTokenManagement - Tokens mis à jour avec succès');
-        } else {
-          // Analyser l'erreur pour déterminer la stratégie
-          if (refreshResult.error === 'Max retries exceeded') {
-            console.log('🔍 useTokenManagement - Nombre maximum de tentatives atteint');
-            onMaxRetriesExceeded?.();
-          } else if (tokenService.shouldAttemptReconnection(refreshResult.error || '')) {
-            console.log('🔍 useTokenManagement - Tentative de reconnexion...');
-            const reconnected = await tokenService.attemptReconnection();
-            
-            if (reconnected) {
-              // Mettre à jour localStorage avec les nouveaux tokens
-              localStorage.setItem('kc_access_token', keycloak.token || '');
-              localStorage.setItem('kc_refresh_token', keycloak.refreshToken || '');
-              console.log('🔍 useTokenManagement - Reconnexion réussie');
-            } else {
-              console.log('🔍 useTokenManagement - Échec de la reconnexion');
-              onTokenExpired?.();
-            }
-          } else {
-            console.log('🔍 useTokenManagement - Erreur non récupérable');
-            onTokenExpired?.();
-          }
-        }
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      
+      const tokenInfo = tokenService.current.getCurrentTokenInfo();
+      
+      if (tokenInfo && tokenInfo.isValid) {
+        setState(prev => ({
+          ...prev,
+          isTokenValid: true,
+          timeUntilExpiry: tokenInfo.timeUntilExpiry || 0,
+          isLoading: false
+        }));
       } else {
-        console.log('🔍 useTokenManagement - Token encore valide, pas de rafraîchissement nécessaire');
+        setState(prev => ({
+          ...prev,
+          isTokenValid: false,
+          timeUntilExpiry: 0,
+          isLoading: false
+        }));
       }
     } catch (error) {
-      console.error('🔍 useTokenManagement - Erreur lors de la vérification:', error);
-    } finally {
-      isProcessingRef.current = false;
-    }
-  }, [onTokenRefresh, onTokenExpired, onMaxRetriesExceeded]);
-
-  // Démarrer la vérification périodique
-  const startTokenMonitoring = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
-    console.log(`🔍 useTokenManagement - Démarrage du monitoring (intervalle: ${checkInterval}ms)`);
-    
-    intervalRef.current = setInterval(checkAndRefreshTokens, checkInterval);
-    
-    // Première vérification immédiate
-    checkAndRefreshTokens();
-  }, [checkInterval, checkAndRefreshTokens]);
-
-  // Arrêter la vérification périodique
-  const stopTokenMonitoring = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-      console.log('🔍 useTokenManagement - Monitoring arrêté');
+      setState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Erreur de validation du token',
+        isLoading: false
+      }));
     }
   }, []);
 
-  // Vérification manuelle des tokens
-  const checkTokensManually = useCallback(() => {
-    return checkAndRefreshTokens();
-  }, [checkAndRefreshTokens]);
+  // Rafraîchissement du token
+  const refreshToken = useCallback(async () => {
+    try {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      
+      const result = await tokenService.current.refreshToken();
+      
+      if (result.success) {
+        await validateToken(); // Revalider après rafraîchissement
+      } else {
+        setState(prev => ({
+          ...prev,
+          error: result.error || 'Échec du rafraîchissement du token',
+          isLoading: false
+        }));
+      }
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Erreur lors du rafraîchissement',
+        isLoading: false
+      }));
+    }
+  }, [validateToken]);
 
-  // Reset du service
+  // Réinitialisation du service
   const resetTokenService = useCallback(() => {
-    tokenService.reset();
-    console.log('🔍 useTokenManagement - Service reset');
+    // Nettoyer le localStorage
+    localStorage.removeItem('clenzy_token');
+    localStorage.removeItem('clenzy_refresh_token');
+    localStorage.removeItem('clenzy_token_expiry');
+    
+    setState({
+      isTokenValid: false,
+      timeUntilExpiry: 0,
+      isLoading: false,
+      error: null
+    });
   }, []);
 
-  // Obtenir les statistiques
-  const getTokenStats = useCallback(() => {
-    return tokenService.getStats();
+  // Récupération des statistiques des tokens
+  const getTokenStats = useCallback(async () => {
+    try {
+      return await tokenService.current.getCurrentTokenInfo();
+    } catch (error) {
+      console.error('Erreur lors de la récupération des statistiques:', error);
+      return null;
+    }
   }, []);
 
-  // Nettoyage au démontage
+  // Configuration de la validation automatique
   useEffect(() => {
+    // Validation initiale
+    validateToken();
+
+    // Configuration de la validation périodique (toutes les 30 secondes)
+    validationInterval.current = window.setInterval(() => {
+      validateToken();
+    }, 30000);
+
+    // Nettoyage à la destruction du composant
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      if (validationInterval.current) {
+        clearInterval(validationInterval.current);
       }
     };
-  }, []);
+  }, [validateToken]);
+
+  // Validation automatique quand le token approche de l'expiration
+  useEffect(() => {
+    if (state.timeUntilExpiry > 0 && state.timeUntilExpiry <= 300) { // 5 minutes avant expiration
+      refreshToken();
+    }
+  }, [state.timeUntilExpiry, refreshToken]);
 
   return {
-    startTokenMonitoring,
-    stopTokenMonitoring,
-    checkTokensManually,
+    ...state,
+    validateToken,
+    refreshToken,
     resetTokenService,
-    getTokenStats,
-    isProcessing: isProcessingRef.current,
+    getTokenStats
   };
 };

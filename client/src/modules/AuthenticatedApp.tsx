@@ -1,59 +1,60 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import MainLayoutFull from './layout/MainLayoutFull';
+import ProtectedRoute from '../components/ProtectedRoute';
+import SmartRedirect from '../components/SmartRedirect';
+
+// Pages principales
 import Dashboard from './dashboard/Dashboard';
-import ActivitiesPage from './dashboard/ActivitiesPage';
 import PropertiesList from './properties/PropertiesList';
 import PropertyCreate from './properties/PropertyCreate';
+import PropertyForm from './properties/PropertyForm';
 import PropertyDetails from './properties/PropertyDetails';
 import PropertyEdit from './properties/PropertyEdit';
+
+// Service requests
 import ServiceRequestsList from './service-requests/ServiceRequestsList';
-import ServiceRequestCreate from './service-requests/ServiceRequestCreate';
+import ServiceRequestForm from './service-requests/ServiceRequestForm';
 import ServiceRequestDetails from './service-requests/ServiceRequestDetails';
 import ServiceRequestEdit from './service-requests/ServiceRequestEdit';
+
+// Interventions
 import InterventionsList from './interventions/InterventionsList';
-import InterventionCreate from './interventions/InterventionCreate';
+import InterventionForm from './interventions/InterventionForm';
 import InterventionDetails from './interventions/InterventionDetails';
 import InterventionEdit from './interventions/InterventionEdit';
+
+// Teams
 import TeamsList from './teams/TeamsList';
 import TeamForm from './teams/TeamForm';
 import TeamDetails from './teams/TeamDetails';
 import TeamEdit from './teams/TeamEdit';
+
+// Reports
+import Reports from './reports/Reports';
+
+// Users
 import UsersList from './users/UsersList';
 import UserForm from './users/UserForm';
 import UserDetails from './users/UserDetails';
 import UserEdit from './users/UserEdit';
-import Settings from './settings/Settings';
-import PermissionConfig from '../components/PermissionConfig';
-import ProtectedRoute from '../components/ProtectedRoute';
-import Reports from './reports/Reports';
-import { useAuth } from '../hooks/useAuth';
 
-// Composant de redirection intelligente
-const SmartRedirect: React.FC = () => {
-  const { hasPermissionSync } = useAuth();
-  
-  // Définir l'ordre de priorité des pages selon les permissions
-  const priorityPages = [
-    { path: '/dashboard', permission: 'dashboard:view' },
-    { path: '/properties', permission: 'properties:view' },
-    { path: '/service-requests', permission: 'service-requests:view' },
-    { path: '/interventions', permission: 'interventions:view' },
-    { path: '/teams', permission: 'teams:view' },
-    { path: '/reports', permission: 'reports:view' },
-    { path: '/settings', permission: 'settings:view' }
-  ];
-  
-  // Trouver la première page accessible
-  for (const page of priorityPages) {
-    if (hasPermissionSync(page.permission)) {
-      return <Navigate to={page.path} replace />;
-    }
-  }
-  
-  // Fallback vers la page d'accueil si aucune page n'est accessible
-  return <Navigate to="/" replace />;
-};
+// Settings
+import Settings from './settings/Settings';
+
+// Permissions
+import PermissionConfig from '../components/PermissionConfig';
+
+// Contact
+import ContactPage from './contact/ContactPage';
+import ContactCreatePage from './contact/ContactCreatePage';
+
+// Portfolios
+import PortfoliosPage from './portfolios/PortfoliosPage';
+
+// Admin pages
+import TokenMonitoringPage from './admin/TokenMonitoringPage';
+import MonitoringPage from './admin/MonitoringPage';
 
 const AuthenticatedApp: React.FC = () => {
   return (
@@ -64,11 +65,7 @@ const AuthenticatedApp: React.FC = () => {
             <Dashboard />
           </ProtectedRoute>
         } />
-        <Route path="/dashboard/activities" element={
-          <ProtectedRoute requiredPermission="dashboard:view">
-            <ActivitiesPage />
-          </ProtectedRoute>
-        } />
+        
         <Route path="/properties" element={
           <ProtectedRoute requiredPermission="properties:view">
             <PropertiesList />
@@ -89,6 +86,7 @@ const AuthenticatedApp: React.FC = () => {
             <PropertyEdit />
           </ProtectedRoute>
         } />
+        
         <Route path="/service-requests" element={
           <ProtectedRoute requiredPermission="service-requests:view">
             <ServiceRequestsList />
@@ -96,7 +94,7 @@ const AuthenticatedApp: React.FC = () => {
         } />
         <Route path="/service-requests/new" element={
           <ProtectedRoute requiredPermission="service-requests:create">
-            <ServiceRequestCreate />
+            <ServiceRequestForm />
           </ProtectedRoute>
         } />
         <Route path="/service-requests/:id" element={
@@ -109,6 +107,7 @@ const AuthenticatedApp: React.FC = () => {
             <ServiceRequestEdit />
           </ProtectedRoute>
         } />
+        
         <Route path="/interventions" element={
           <ProtectedRoute requiredPermission="interventions:view">
             <InterventionsList />
@@ -116,7 +115,7 @@ const AuthenticatedApp: React.FC = () => {
         } />
         <Route path="/interventions/new" element={
           <ProtectedRoute requiredPermission="interventions:create">
-            <InterventionCreate />
+            <InterventionForm />
           </ProtectedRoute>
         } />
         <Route path="/interventions/:id" element={
@@ -129,6 +128,7 @@ const AuthenticatedApp: React.FC = () => {
             <InterventionEdit />
           </ProtectedRoute>
         } />
+        
         <Route path="/teams" element={
           <ProtectedRoute requiredPermission="teams:view">
             <TeamsList />
@@ -149,11 +149,13 @@ const AuthenticatedApp: React.FC = () => {
             <TeamEdit />
           </ProtectedRoute>
         } />
+        
         <Route path="/reports" element={
           <ProtectedRoute requiredPermission="reports:view">
             <Reports />
           </ProtectedRoute>
         } />
+        
         <Route path="/users" element={
           <ProtectedRoute requiredPermission="users:manage">
             <UsersList />
@@ -174,16 +176,44 @@ const AuthenticatedApp: React.FC = () => {
             <UserEdit />
           </ProtectedRoute>
         } />
+        
         <Route path="/settings" element={
           <ProtectedRoute requiredPermission="settings:view">
             <Settings />
           </ProtectedRoute>
         } />
+        
         <Route path="/permissions-test" element={
           <ProtectedRoute requiredPermission="users:manage">
             <PermissionConfig />
           </ProtectedRoute>
         } />
+        
+        <Route path="/contact" element={
+          <ContactPage />
+        } />
+        <Route path="/contact/create" element={
+          <ContactCreatePage />
+        } />
+        
+        <Route path="/portfolios" element={
+          <ProtectedRoute requiredPermission="portfolios:view">
+            <PortfoliosPage />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/admin/token-monitoring" element={
+          <ProtectedRoute requiredPermission="users:manage">
+            <TokenMonitoringPage />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/admin/monitoring" element={
+          <ProtectedRoute requiredPermission="users:manage">
+            <MonitoringPage />
+          </ProtectedRoute>
+        } />
+        
         {/* Redirection intelligente vers la première page accessible selon les permissions */}
         <Route path="/" element={<SmartRedirect />} />
       </Routes>

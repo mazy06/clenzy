@@ -46,12 +46,7 @@ services:
     volumes:
       - ./keycloak/realm-clenzy.json:/opt/keycloak/data/import/realm-clenzy.json
     command: start-dev --import-realm
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/realms/clenzy"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 120s
+    # Pas de healthcheck pour l'instant - Keycloak n'a pas les outils nécessaires
     networks:
       clenzy-network:
         aliases:
