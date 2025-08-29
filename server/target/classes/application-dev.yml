@@ -14,6 +14,11 @@ spring:
           time_zone: UTC
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://clenzy-keycloak:8080/realms/clenzy
 
 # Configuration Keycloak
 keycloak:
@@ -22,6 +27,11 @@ keycloak:
   resource: clenzy-web
   credentials:
     secret: ""
+  # Configuration pour le client admin
+  admin:
+    username: admin
+    password: admin
+    client-id: admin-cli
 
 logging:
   level:

@@ -29,13 +29,17 @@ import {
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
   Info as InfoIcon,
-  Error as ErrorIcon
+  Error as ErrorIcon,
+  Business as BusinessIcon,
+  Notifications as NotificationsIcon,
+  Security
 } from '@mui/icons-material';
 import PageHeader from './PageHeader';
 import { useAuth } from '../hooks/useAuth';
 import { useRolePermissions } from '../hooks/useRolePermissions';
 import { usePermissionRefresh } from '../hooks/usePermissionRefresh';
 import PermissionEffectsDemo from './PermissionEffectsDemo';
+import Monitoring from './Monitoring';
 
 const PermissionConfig: React.FC = () => {
   const { user } = useAuth();
@@ -81,6 +85,8 @@ const PermissionConfig: React.FC = () => {
     'service-requests:view', 'service-requests:create', 'service-requests:edit', 'service-requests:delete',
     'interventions:view', 'interventions:create', 'interventions:edit', 'interventions:delete',
     'teams:view', 'teams:create', 'teams:edit', 'teams:delete',
+    'portfolios:view', 'portfolios:create', 'portfolios:edit', 'portfolios:delete', 'portfolios:manage_clients', 'portfolios:manage_team',
+    'contact:view', 'contact:send', 'contact:manage',
     'settings:view', 'settings:edit',
     'users:manage',
     'reports:view',
@@ -93,6 +99,8 @@ const PermissionConfig: React.FC = () => {
     'Demandes de Service': ['service-requests:view', 'service-requests:create', 'service-requests:edit', 'service-requests:delete'],
     'Interventions': ['interventions:view', 'interventions:create', 'interventions:edit', 'interventions:delete'],
     'Équipes': ['teams:view', 'teams:create', 'teams:edit', 'teams:delete'],
+    'Portefeuilles': ['portfolios:view', 'portfolios:create', 'portfolios:edit', 'portfolios:delete', 'portfolios:manage_clients', 'portfolios:manage_team'],
+    'Contact': ['contact:view', 'contact:send', 'contact:manage'],
     'Paramètres': ['settings:view', 'settings:edit'],
     'Utilisateurs': ['users:manage'],
     'Rapports': ['reports:view'],
@@ -106,6 +114,8 @@ const PermissionConfig: React.FC = () => {
       'Demandes de Service': <AssignmentIcon sx={{ color: 'text.secondary' }} />,
       'Interventions': <BuildIcon sx={{ color: 'text.secondary' }} />,
       'Équipes': <GroupIcon sx={{ color: 'text.secondary' }} />,
+      'Portefeuilles': <BusinessIcon sx={{ color: 'text.secondary' }} />,
+      'Contact': <NotificationsIcon sx={{ color: 'text.secondary' }} />,
       'Utilisateurs': <PersonIcon sx={{ color: 'text.secondary' }} />,
       'Paramètres': <SettingsIcon sx={{ color: 'text.secondary' }} />,
       'Rapports': <AssessmentIcon sx={{ color: 'text.secondary' }} />
@@ -195,7 +205,7 @@ const PermissionConfig: React.FC = () => {
                 disabled={loading}
                 title="Remet les permissions aux valeurs initiales stockées en base de données"
               >
-                Réinitialiser aux Valeurs Initiales
+                Valeurs Initiales
               </Button>
               <Button
                 variant="contained"
@@ -393,6 +403,14 @@ const PermissionConfig: React.FC = () => {
                 icon={<SecurityIcon sx={{ color: 'text.secondary' }} />}
                 iconPosition="start"
               />
+              <Tab 
+                label="Monitoring" 
+                id="tab-2" 
+                aria-controls="tabpanel-2"
+                disabled={!selectedRole || !rolePermissions}
+                icon={<SecurityIcon sx={{ color: 'text.secondary' }} />}
+                iconPosition="start"
+              />
             </Tabs>
           </Box>
 
@@ -529,6 +547,23 @@ const PermissionConfig: React.FC = () => {
             </Box>
           )}
 
+          {/* Contenu de l'onglet Monitoring */}
+          {activeTab === 2 && selectedRole && rolePermissions && (
+            <Box role="tabpanel" id="tabpanel-2" aria-labelledby="tab-2">
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'text.primary', display: 'flex', alignItems: 'center' }}>
+                  <Security sx={{ mr: 1, color: 'text.secondary' }} />
+                  Monitoring des Tokens
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Surveillance des tokens JWT et gestion des sessions.
+                </Typography>
+              </Box>
+              
+              <Monitoring isAdmin={true} />
+            </Box>
+          )}
+
           {/* Message si aucun rôle n'est sélectionné */}
           {!selectedRole && (
             <Box sx={{ p: 3, textAlign: 'center' }}>
@@ -560,3 +595,4 @@ const PermissionConfig: React.FC = () => {
 };
 
 export default PermissionConfig;
+

@@ -82,23 +82,15 @@ const App: React.FC = () => {
 
   // Gestion intelligente des tokens
   const {
-    startTokenMonitoring,
-    stopTokenMonitoring,
+    validateToken,
+    refreshToken,
     resetTokenService,
-  } = useTokenManagement({
-    checkInterval: 60000,
-    refreshThreshold: 300,
-    maxRetries: 3,
-    onTokenRefresh: handleTokenRefresh,
-    onTokenExpired: handleTokenExpired,
-    onMaxRetriesExceeded: handleMaxRetriesExceeded,
-  });
+  } = useTokenManagement();
 
   // Mettre à jour les refs
   useEffect(() => {
-    stopTokenMonitoringRef.current = stopTokenMonitoring;
     resetTokenServiceRef.current = resetTokenService;
-  }, [stopTokenMonitoring, resetTokenService]);
+  }, [resetTokenService]);
 
   // Gestion des événements Keycloak
   useEffect(() => {
@@ -110,7 +102,7 @@ const App: React.FC = () => {
     const handleCustomAuthSuccess = () => {
       console.log('🔍 App - Événement d\'authentification personnalisé reçu');
       setAuthenticated(true);
-      startTokenMonitoring();
+      validateToken();
       
       // Forcer la mise à jour de l'état Keycloak
       if (keycloak) {
@@ -141,7 +133,7 @@ const App: React.FC = () => {
       window.removeEventListener('keycloak-auth-success', handleCustomAuthSuccess);
       window.removeEventListener('keycloak-auth-logout', handleCustomAuthLogout);
     };
-  }, [startTokenMonitoring]);
+  }, [validateToken]);
 
   // Initialisation de Keycloak
   useEffect(() => {
@@ -174,7 +166,7 @@ const App: React.FC = () => {
               if (keycloak.refreshToken) {
                 localStorage.setItem('kc_refresh_token', keycloak.refreshToken);
               }
-              startTokenMonitoring();
+              validateToken();
             } else {
               console.log('🔍 App - Utilisateur non authentifié');
               setAuthenticated(false);
@@ -203,7 +195,7 @@ const App: React.FC = () => {
               if (keycloak.refreshToken) {
                 localStorage.setItem('kc_refresh_token', keycloak.refreshToken);
               }
-              startTokenMonitoring();
+              validateToken();
             } else {
               console.log('🔍 App - Utilisateur non authentifié');
               setAuthenticated(false);
@@ -222,7 +214,7 @@ const App: React.FC = () => {
 
       initKeycloak();
     }
-  }, [initialized, startTokenMonitoring]);
+  }, [initialized, validateToken]);
 
   // Affichage du composant de chargement
   if (!initialized || authLoading) {

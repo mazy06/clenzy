@@ -1,262 +1,365 @@
 package com.clenzy.service;
 
 import com.clenzy.dto.RolePermissionsDto;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
 @Service
 public class PermissionService {
 
-    // Permissions par défaut par rôle (stockées en mémoire pour l'instant)
-    private final Map<String, List<String>> defaultRolePermissions;
-    
-    // Permissions personnalisées par rôle (stockées en mémoire pour l'instant)
-    // En production, cela devrait être stocké en base de données
-    private final Map<String, List<String>> customRolePermissions;
-
-    public PermissionService() {
-        // Initialiser les permissions par défaut
-        defaultRolePermissions = new HashMap<>();
-        defaultRolePermissions.put("ADMIN", Arrays.asList(
-            "dashboard:view",
-            "properties:view", "properties:create", "properties:edit", "properties:delete",
-            "service-requests:view", "service-requests:create", "service-requests:edit", "service-requests:delete",
-            "interventions:view", "interventions:create", "interventions:edit", "interventions:delete",
-            "teams:view", "teams:create", "teams:edit", "teams:delete",
-            "settings:view", "settings:edit",
-            "users:manage",
-            "reports:view"
-        ));
-        
-        defaultRolePermissions.put("MANAGER", Arrays.asList(
-            "dashboard:view",
-            "properties:view", "properties:create", "properties:edit",
-            "service-requests:view", "service-requests:create", "service-requests:edit",
-            "interventions:view", "interventions:create", "interventions:edit",
-            "teams:view", "teams:create", "teams:edit",
-            "settings:view",
-            "users:view",
-            "reports:view"
-        ));
-        
-        defaultRolePermissions.put("HOST", Arrays.asList(
-            "dashboard:view",
-            "properties:view", "properties:create", "properties:edit",
-            "service-requests:view", "service-requests:create",
-            "interventions:view"
-        ));
-        
-        defaultRolePermissions.put("TECHNICIAN", Arrays.asList(
-            "dashboard:view",
-            "interventions:view", "interventions:edit",
-            "teams:view"
-        ));
-        
-        defaultRolePermissions.put("HOUSEKEEPER", Arrays.asList(
-            "dashboard:view",
-            "interventions:view", "interventions:edit",
-            "teams:view"
-        ));
-        
-        defaultRolePermissions.put("SUPERVISOR", Arrays.asList(
-            "dashboard:view",
-            "interventions:view", "interventions:edit",
-            "teams:view", "teams:edit"
-        ));
-
-        // Initialiser les permissions personnalisées vides
-        customRolePermissions = new HashMap<>();
-    }
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Cacheable("roles")
     public List<String> getAllRoles() {
-        return new ArrayList<>(defaultRolePermissions.keySet());
+        try {
+            String sql = "SELECT DISTINCT name FROM roles ORDER BY name";
+            return jdbcTemplate.queryForList(sql, String.class);
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService - Erreur lors de la récupération des rôles: " + e.getMessage());
+            // Fallback minimal en cas d'erreur
+            return Arrays.asList("ADMIN", "MANAGER", "SUPERVISOR", "TECHNICIAN", "HOUSEKEEPER", "HOST");
+        }
     }
 
     @Cacheable("rolePermissions")
     public RolePermissionsDto getRolePermissions(String role) {
-        if (!defaultRolePermissions.containsKey(role)) {
+        try {
+            List<String> permissions = getUserPermissions(role);
+            boolean isDefault = !hasCustomPermissions(role);
+            return new RolePermissionsDto(role, permissions, isDefault);
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService - Erreur lors de la récupération des permissions du rôle " + role + ": " + e.getMessage());
             throw new IllegalArgumentException("Rôle non reconnu: " + role);
         }
-
-        List<String> permissions = customRolePermissions.getOrDefault(role, defaultRolePermissions.get(role));
-        boolean isDefault = !customRolePermissions.containsKey(role);
-
-        return new RolePermissionsDto(role, permissions, isDefault);
     }
 
     @CacheEvict(value = {"rolePermissions", "userPermissions"}, allEntries = true)
+    @Transactional
     public RolePermissionsDto updateRolePermissions(String role, List<String> permissions) {
-        if (!defaultRolePermissions.containsKey(role)) {
-            throw new IllegalArgumentException("Rôle non reconnu: " + role);
-        }
-
-        // Valider que toutes les permissions existent
-        List<String> allValidPermissions = getAllValidPermissions();
-        for (String permission : permissions) {
-            if (!allValidPermissions.contains(permission)) {
-                throw new IllegalArgumentException("Permission non reconnue: " + permission);
+        try {
+            // Valider que toutes les permissions existent
+            List<String> allValidPermissions = getAllValidPermissions();
+            for (String permission : permissions) {
+                if (!allValidPermissions.contains(permission)) {
+                    throw new IllegalArgumentException("Permission non reconnue: " + permission);
+                }
             }
+
+            // Récupérer l'ID du rôle
+            Long roleId = getRoleId(role);
+            if (roleId == null) {
+                throw new IllegalArgumentException("Rôle non trouvé: " + role);
+            }
+
+            // Désactiver toutes les permissions existantes pour ce rôle
+            String deactivateSql = "UPDATE role_permissions SET is_active = false WHERE role_id = ?";
+            jdbcTemplate.update(deactivateSql, roleId);
+
+            // Activer les nouvelles permissions
+            for (String permission : permissions) {
+                Long permissionId = getPermissionId(permission);
+                if (permissionId != null) {
+                    activateRolePermission(roleId, permissionId);
+                }
+            }
+
+            System.out.println("🔧 PermissionService - Permissions mises à jour pour le rôle " + role + ": " + permissions);
+
+            return new RolePermissionsDto(role, permissions, false);
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService - Erreur lors de la mise à jour des permissions: " + e.getMessage());
+            throw new RuntimeException("Impossible de mettre à jour les permissions", e);
         }
-
-        // Sauvegarder les permissions personnalisées
-        customRolePermissions.put(role, new ArrayList<>(permissions));
-
-        // TODO: En production, sauvegarder en base de données
-        System.out.println("🔧 PermissionService - Permissions mises à jour pour le rôle " + role + ": " + permissions);
-
-        return new RolePermissionsDto(role, permissions, false);
     }
 
     @CacheEvict(value = {"rolePermissions", "userPermissions"}, allEntries = true)
+    @Transactional
     public RolePermissionsDto resetRolePermissions(String role) {
-        if (!defaultRolePermissions.containsKey(role)) {
-            throw new IllegalArgumentException("Rôle non reconnu: " + role);
+        try {
+            // Récupérer l'ID du rôle
+            Long roleId = getRoleId(role);
+            if (roleId == null) {
+                throw new IllegalArgumentException("Rôle non trouvé: " + role);
+            }
+
+            // Désactiver toutes les permissions pour ce rôle
+            String deactivateSql = "UPDATE role_permissions SET is_active = false WHERE role_id = ?";
+            jdbcTemplate.update(deactivateSql, roleId);
+
+            // Récupérer les permissions par défaut depuis la base de données
+            List<String> defaultPermissions = getDefaultPermissionsFromDatabase(role);
+            
+            // Activer les permissions par défaut
+            for (String permission : defaultPermissions) {
+                Long permissionId = getPermissionId(permission);
+                if (permissionId != null) {
+                    activateRolePermission(roleId, permissionId);
+                }
+            }
+
+            System.out.println("🔄 PermissionService - Permissions réinitialisées pour le rôle " + role);
+
+            return new RolePermissionsDto(role, defaultPermissions, true);
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService - Erreur lors de la réinitialisation des permissions: " + e.getMessage());
+            throw new RuntimeException("Impossible de réinitialiser les permissions", e);
         }
-
-        // Supprimer les permissions personnalisées
-        customRolePermissions.remove(role);
-
-        // TODO: En production, supprimer de la base de données
-        System.out.println("🔄 PermissionService - Permissions réinitialisées pour le rôle " + role);
-
-        List<String> defaultPermissions = defaultRolePermissions.get(role);
-        return new RolePermissionsDto(role, defaultPermissions, true);
     }
 
     public Map<String, List<String>> getDefaultPermissions() {
-        return new HashMap<>(defaultRolePermissions);
+        Map<String, List<String>> result = new HashMap<>();
+        List<String> roles = getAllRoles();
+
+        for (String role : roles) {
+            result.put(role, getDefaultPermissionsFromDatabase(role));
+        }
+
+        return result;
     }
 
     public List<String> getAllValidPermissions() {
-        Set<String> allPermissions = new HashSet<>();
-        for (List<String> permissions : defaultRolePermissions.values()) {
-            allPermissions.addAll(permissions);
+        try {
+            String sql = "SELECT DISTINCT name FROM permissions ORDER BY name";
+            return jdbcTemplate.queryForList(sql, String.class);
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService - Erreur lors de la récupération de toutes les permissions: " + e.getMessage());
+            // Fallback minimal en cas d'erreur
+            return Arrays.asList(
+                "dashboard:view",
+                "properties:view", "properties:create", "properties:edit", "properties:delete",
+                "service-requests:view", "service-requests:create", "service-requests:edit", "service-requests:delete",
+                "interventions:view", "interventions:create", "interventions:edit", "interventions:delete",
+                "teams:view", "teams:create", "teams:edit", "teams:delete",
+                "portfolios:view", "portfolios:create", "portfolios:edit", "portfolios:delete", "portfolios:manage_clients", "portfolios:manage_team",
+                "contact:view", "contact:send", "contact:manage",
+                "settings:view", "settings:edit",
+                "users:manage",
+                "reports:view"
+            );
         }
-        return new ArrayList<>(allPermissions);
     }
 
     // Méthode pour obtenir les permissions d'un utilisateur selon son rôle
     public List<String> getUserPermissions(String role) {
-        // Utiliser la base de données au lieu de la mémoire
         try {
-            // Requête SQL directe pour récupérer les permissions depuis la base
             String sql = "SELECT p.name FROM permissions p " +
                         "JOIN role_permissions rp ON p.id = rp.permission_id " +
                         "JOIN roles r ON r.id = rp.role_id " +
-                        "WHERE r.name = ? AND rp.is_active = true";
+                        "WHERE r.name = ? AND rp.is_active = true " +
+                        "ORDER BY p.name";
+
+            List<String> permissions = jdbcTemplate.queryForList(sql, String.class, role);
             
-            // Pour l'instant, retourner les permissions par défaut en attendant l'injection de JdbcTemplate
             System.out.println("🔍 PermissionService - Récupération des permissions pour le rôle: " + role + " depuis la base de données");
+            System.out.println("🔍 PermissionService - Permissions trouvées: " + permissions);
             
-            // Fallback temporaire vers les permissions en mémoire
-            if (customRolePermissions.containsKey(role)) {
-                return customRolePermissions.get(role);
-            }
-            return defaultRolePermissions.getOrDefault(role, new ArrayList<>());
+            return permissions;
         } catch (Exception e) {
             System.err.println("❌ PermissionService - Erreur lors de la récupération des permissions: " + e.getMessage());
-            // Fallback vers les permissions en mémoire en cas d'erreur
-            if (customRolePermissions.containsKey(role)) {
-                return customRolePermissions.get(role);
-            }
-            return defaultRolePermissions.getOrDefault(role, new ArrayList<>());
+            // Retourner une liste vide en cas d'erreur
+            return new ArrayList<>();
         }
     }
 
-    // Méthode pour sauvegarder les permissions personnalisées d'un rôle
-    public boolean saveRolePermissions(String role) {
-        if (!defaultRolePermissions.containsKey(role)) {
-            throw new IllegalArgumentException("Rôle non reconnu: " + role);
-        }
-
-        // Vérifier s'il y a des permissions personnalisées à sauvegarder
-        if (!customRolePermissions.containsKey(role)) {
-            System.out.println("🔧 PermissionService - Aucune permission personnalisée à sauvegarder pour le rôle " + role);
-            return false;
-        }
-
-        // TODO: En production, sauvegarder en base de données
-        // Pour l'instant, on simule la sauvegarde
-        System.out.println("💾 PermissionService - Sauvegarde des permissions personnalisées pour le rôle " + role);
-        System.out.println("💾 PermissionService - Permissions: " + customRolePermissions.get(role));
-        
-        // Simuler une sauvegarde réussie
-        return true;
-    }
-
-    // Méthode pour réinitialiser aux permissions initiales depuis la base de données
+    // Méthode pour réinitialiser aux permissions initiales
+    @CacheEvict(value = {"rolePermissions", "userPermissions"}, allEntries = true)
+    @Transactional
     public RolePermissionsDto resetToInitialPermissions(String role) {
-        if (!defaultRolePermissions.containsKey(role)) {
-            throw new IllegalArgumentException("Rôle non reconnu: " + role);
+        try {
+            System.out.println("🔄 PermissionService - Réinitialisation aux permissions initiales pour le rôle " + role);
+
+            // Récupérer l'ID du rôle
+            Long roleId = getRoleId(role);
+            if (roleId == null) {
+                throw new IllegalArgumentException("Rôle non trouvé: " + role);
+            }
+
+            // Désactiver toutes les permissions pour ce rôle
+            String deactivateSql = "UPDATE role_permissions SET is_active = false WHERE role_id = ?";
+            jdbcTemplate.update(deactivateSql, roleId);
+
+            // Récupérer les permissions initiales depuis la base de données
+            List<String> initialPermissions = getDefaultPermissionsFromDatabase(role);
+            
+            // Activer les permissions initiales
+            for (String permission : initialPermissions) {
+                Long permissionId = getPermissionId(permission);
+                if (permissionId != null) {
+                    activateRolePermission(roleId, permissionId);
+                }
+            }
+
+            return new RolePermissionsDto(role, initialPermissions, true);
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService - Erreur lors de la réinitialisation aux permissions initiales: " + e.getMessage());
+            throw new RuntimeException("Impossible de réinitialiser aux permissions initiales", e);
         }
-
-        System.out.println("🔄 PermissionService - Réinitialisation aux permissions initiales pour le rôle " + role);
-        
-        // TODO: En production, récupérer les permissions initiales depuis la base de données
-        // Pour l'instant, on utilise les permissions par défaut
-        List<String> initialPermissions = getInitialPermissionsFromDatabase(role);
-        
-        // Supprimer les permissions personnalisées
-        customRolePermissions.remove(role);
-        
-        // Retourner les permissions initiales
-        return new RolePermissionsDto(role, initialPermissions, true);
-    }
-
-    // Méthode pour récupérer les permissions initiales depuis la base de données
-    private List<String> getInitialPermissionsFromDatabase(String role) {
-        // TODO: En production, faire un appel à la base de données
-        // Pour l'instant, on simule en retournant les permissions par défaut
-        System.out.println("🗄️ PermissionService - Récupération des permissions initiales depuis la base pour le rôle " + role);
-        
-        // Simulation : en production, on ferait un appel à la base
-        // SELECT permissions FROM role_permissions WHERE role = ? AND is_initial = true
-        return defaultRolePermissions.getOrDefault(role, new ArrayList<>());
     }
 
     // Méthode pour vérifier si un utilisateur a une permission spécifique
     public boolean checkUserPermission(String userId, String permission) {
         try {
-            // TODO: En production, récupérer le rôle de l'utilisateur depuis la base de données
-            // Pour l'instant, on simule en utilisant un service utilisateur
+            System.out.println("🔍 PermissionService.checkUserPermission() - Vérification de la permission '" + permission + "' pour userId: '" + userId + "'");
             
-            // Simuler la récupération du rôle de l'utilisateur
-            // En production, on ferait : SELECT role FROM users WHERE id = ?
-            String userRole = getUserRoleFromDatabase(userId);
+            // Récupérer le rôle de l'utilisateur via keycloak_id (UUID)
+            String roleSql = "SELECT role FROM users WHERE keycloak_id = ?";
+            
+            String userRole = jdbcTemplate.queryForObject(roleSql, String.class, userId);
             
             if (userRole == null) {
-                System.out.println("🔍 PermissionService - Utilisateur non trouvé: " + userId);
+                System.out.println("❌ PermissionService.checkUserPermission() - Utilisateur " + userId + " sans rôle");
                 return false;
             }
             
+            System.out.println("✅ PermissionService.checkUserPermission() - Utilisateur " + userId + " a le rôle: " + userRole);
+            
             // Vérifier si le rôle a la permission
-            List<String> userPermissions = getUserPermissions(userRole);
-            boolean hasPermission = userPermissions.contains(permission);
+            return checkRolePermission(userRole, permission);
             
-            System.out.println("🔍 PermissionService - Vérification permission '" + permission + "' pour utilisateur " + userId + " (rôle: " + userRole + "): " + hasPermission);
-            
-            return hasPermission;
         } catch (Exception e) {
-            System.err.println("❌ PermissionService - Erreur lors de la vérification de permission: " + e.getMessage());
+            System.err.println("❌ PermissionService.checkUserPermission() - Erreur lors de la vérification de la permission: " + e.getMessage());
+            // En cas d'erreur, on retourne false pour la sécurité
             return false;
         }
     }
 
-    // Méthode pour récupérer le rôle d'un utilisateur depuis la base de données
-    private String getUserRoleFromDatabase(String userId) {
-        // TODO: En production, faire un appel à la base de données
-        // Pour l'instant, on simule en retournant un rôle par défaut
-        
-        // Simulation : en production, on ferait un appel à la base
-        // SELECT role FROM users WHERE id = ?
-        System.out.println("🗄️ PermissionService - Récupération du rôle pour l'utilisateur: " + userId);
-        
-        // Pour la démonstration, on retourne ADMIN pour tous les utilisateurs
-        // En production, cela viendrait de la base de données
-        return "ADMIN";
+    // Méthode pour vérifier si un rôle a une permission spécifique
+    public boolean checkRolePermission(String role, String permission) {
+        try {
+            String sql = "SELECT COUNT(*) > 0 FROM role_permissions rp " +
+                        "JOIN permissions p ON rp.permission_id = p.id " +
+                        "JOIN roles r ON rp.role_id = r.id " +
+                        "WHERE r.name = ? AND p.name = ? AND rp.is_active = true";
+            
+            Boolean hasPermission = jdbcTemplate.queryForObject(sql, Boolean.class, role, permission);
+            
+            if (hasPermission != null && hasPermission) {
+                System.out.println("✅ PermissionService.checkRolePermission() - Rôle " + role + " a la permission: " + permission);
+                return true;
+            }
+            
+            System.out.println("❌ PermissionService.checkRolePermission() - Rôle " + role + " n'a PAS la permission: " + permission);
+            return false;
+            
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService.checkRolePermission() - Erreur lors de la vérification de la permission: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // Méthode pour sauvegarder les permissions d'un rôle (maintenant gérée automatiquement par updateRolePermissions)
+    public boolean saveRolePermissions(String role) {
+        try {
+            System.out.println("💾 PermissionService - Sauvegarde des permissions pour le rôle " + role + " (gérée automatiquement)");
+            
+            // Les permissions sont déjà sauvegardées lors de updateRolePermissions
+            // Cette méthode est maintenue pour la compatibilité avec l'interface existante
+            return true;
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService - Erreur lors de la sauvegarde des permissions: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ===== MÉTHODES PRIVÉES POUR LA BASE DE DONNÉES =====
+
+    private Long getRoleId(String roleName) {
+        try {
+            String sql = "SELECT id FROM roles WHERE name = ?";
+            return jdbcTemplate.queryForObject(sql, Long.class, roleName);
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService - Erreur lors de la récupération de l'ID du rôle " + roleName + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    private Long getPermissionId(String permissionName) {
+        try {
+            String sql = "SELECT id FROM permissions WHERE name = ?";
+            return jdbcTemplate.queryForObject(sql, Long.class, permissionName);
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService - Erreur lors de la récupération de l'ID de la permission " + permissionName + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    private void activateRolePermission(Long roleId, Long permissionId) {
+        try {
+            // Vérifier si la relation existe déjà
+            String checkSql = "SELECT COUNT(*) FROM role_permissions WHERE role_id = ? AND permission_id = ?";
+            int count = jdbcTemplate.queryForObject(checkSql, Integer.class, roleId, permissionId);
+            
+            if (count > 0) {
+                // Mettre à jour la relation existante
+                String updateSql = "UPDATE role_permissions SET is_active = true WHERE role_id = ? AND permission_id = ?";
+                jdbcTemplate.update(updateSql, roleId, permissionId);
+            } else {
+                // Créer une nouvelle relation
+                String insertSql = "INSERT INTO role_permissions (role_id, permission_id, is_active) VALUES (?, ?, true)";
+                jdbcTemplate.update(insertSql, roleId, permissionId);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService - Erreur lors de l'activation de la permission: " + e.getMessage());
+        }
+    }
+
+    private List<String> getDefaultPermissionsFromDatabase(String role) {
+        try {
+            // Récupérer les permissions par défaut depuis la base de données
+            // Pour l'instant, on utilise une logique simple
+            String sql = "SELECT p.name FROM permissions p " +
+                        "JOIN role_permissions rp ON p.id = rp.permission_id " +
+                        "JOIN roles r ON r.id = rp.role_id " +
+                        "WHERE r.name = ? AND rp.is_active = true " +
+                        "ORDER BY p.name";
+            
+            return jdbcTemplate.queryForList(sql, String.class, role);
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService - Erreur lors de la récupération des permissions par défaut: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    private boolean hasCustomPermissions(String role) {
+        try {
+            // Vérifier s'il y a des permissions personnalisées dans la base de données
+            String sql = "SELECT COUNT(*) FROM role_permissions rp " +
+                        "JOIN roles r ON r.id = rp.role_id " +
+                        "WHERE r.name = ? AND rp.is_active = true";
+            
+            int count = jdbcTemplate.queryForObject(sql, Integer.class, role);
+            return count > 0;
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService - Erreur lors de la vérification des permissions personnalisées: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    // Méthode pour vérifier si un utilisateur a une permission spécifique par son email
+    public boolean checkUserPermissionByEmail(String userEmail, String permission) {
+        try {
+            // Récupérer l'ID de l'utilisateur par son email
+            String userIdSql = "SELECT id FROM users WHERE email = ?";
+            Long userId = jdbcTemplate.queryForObject(userIdSql, Long.class, userEmail);
+            
+            if (userId == null) {
+                System.out.println("❌ PermissionService.checkUserPermissionByEmail() - Utilisateur non trouvé: " + userEmail);
+                return false;
+            }
+            
+            // Utiliser la méthode existante avec l'ID
+            return checkUserPermission(userId.toString(), permission);
+            
+        } catch (Exception e) {
+            System.err.println("❌ PermissionService.checkUserPermissionByEmail() - Erreur lors de la vérification de la permission: " + e.getMessage());
+            return false;
+        }
     }
 }

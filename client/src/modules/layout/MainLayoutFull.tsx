@@ -34,6 +34,8 @@ import {
   Logout,
   Group,
   Assessment,
+  Business,
+  Security,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -284,6 +286,26 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
           });
         }
 
+        // Portefeuilles - visible si permission portfolios:view (MANAGER et ADMIN)
+        if (hasPermissionSync('portfolios:view') || isAdmin() || isManager()) {
+          roleBasedItems.push({
+            text: 'Portefeuilles',
+            icon: <Business />,
+            path: '/portfolios',
+            roles: ['ADMIN', 'MANAGER']
+          });
+        }
+
+        // Contact - visible si permission contact:view
+        if (hasPermissionSync('contact:view')) {
+          roleBasedItems.push({
+            text: 'Contact',
+            icon: <Notifications />,
+            path: '/contact',
+            roles: ['all']
+          });
+        }
+
         // Reports - visible si permission reports:view
         if (hasPermissionSync('reports:view')) {
           roleBasedItems.push({
@@ -321,6 +343,16 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             icon: <Build />,
             path: '/permissions-test',
             roles: ['ADMIN']
+          });
+        }
+
+        // Monitoring - visible aux administrateurs et managers
+        if (isAdmin() || isManager()) {
+          roleBasedItems.push({
+            text: 'Monitoring',
+            icon: <Security />,
+            path: '/admin/monitoring',
+            roles: ['ADMIN', 'MANAGER']
           });
         }
         
@@ -615,8 +647,6 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         >
           {children}
         </Box>
-
-
       </Box>
     );
 }
