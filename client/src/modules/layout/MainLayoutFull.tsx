@@ -403,97 +403,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             Propreté & Multiservices
           </Typography>
         </Box>
-        {user && user.roles && user.roles.length > 0 && (
-          <Box sx={{ 
-            p: 3, 
-            mb: 3, 
-            backgroundColor: 'rgba(166, 192, 206, 0.05)',
-            border: '1px solid rgba(166, 192, 206, 0.2)'
-          }}>
-            {/* Header de la section utilisateur */}
-            <Typography 
-              variant="caption" 
-              color="text.secondary" 
-              sx={{ 
-                display: 'block', 
-                mb: 2, 
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                fontWeight: 600
-              }}
-            >
-              Utilisateur connecté
-            </Typography>
-            
-            {/* Informations utilisateur principales */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-              <Avatar 
-                sx={{ 
-                  width: 48, 
-                  height: 48, 
-                  bgcolor: '#A6C0CE',
-                  fontSize: '1.3rem',
-                  fontWeight: 700,
-                  border: '2px solid rgba(166, 192, 206, 0.3)'
-                }}
-              >
-                {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || 'U'}
-              </Avatar>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography 
-                  variant="body1" 
-                  fontWeight={700} 
-                  color="text.primary"
-                  sx={{ mb: 0.5 }}
-                  noWrap
-                >
-                  {user.fullName || user.firstName || user.username || 'Utilisateur'}
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  color="text.secondary"
-                  sx={{ mb: 1 }}
-                  noWrap
-                >
-                  {user.email || 'email@clenzy.fr'}
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  <Chip
-                    label={user.roles[0] || 'User'}
-                    size="small"
-                    sx={{
-                      backgroundColor: '#A6C0CE',
-                      color: 'white',
-                      fontSize: '0.75rem',
-                      height: 22,
-                      fontWeight: 600,
-                      '& .MuiChip-label': {
-                        px: 1
-                      }
-                    }}
-                  />
-                  {user.roles && user.roles.length > 1 && (
-                    <Chip
-                      label={`+${user.roles.length - 1} autre${user.roles.length > 2 ? 's' : ''}`}
-                      size="small"
-                      variant="outlined"
-                      sx={{
-                        borderColor: 'rgba(166, 192, 206, 0.4)',
-                        color: 'text.secondary',
-                        fontSize: '0.7rem',
-                        height: 20
-                      }}
-                    />
-                  )}
-                </Box>
-              </Box>
-            </Box>
-            
 
-          </Box>
-        )}
-        
-        <Divider sx={{ mb: 2 }} />
         
         <List>
           {menuItems.map((item, index) => (
@@ -570,6 +480,49 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             <Box sx={{ flexGrow: 1 }} />
             
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {/* Indicateur de connexion utilisateur */}
+              {user && (
+                <Box 
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    cursor: 'pointer',
+                    p: 1,
+                    borderRadius: 1,
+                    '&:hover': {
+                      backgroundColor: 'rgba(166, 192, 206, 0.1)',
+                    },
+                    transition: 'background-color 0.2s ease'
+                  }}
+                  onClick={() => navigate('/profile')}
+                  title="Cliquer pour voir le profil"
+                >
+                  <Avatar 
+                    sx={{ 
+                      width: 32, 
+                      height: 32, 
+                      bgcolor: '#A6C0CE',
+                      fontSize: '0.9rem',
+                      fontWeight: 700,
+                      border: '2px solid rgba(166, 192, 206, 0.3)'
+                    }}
+                  >
+                    {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || 'U'}
+                  </Avatar>
+                  <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                    <Typography 
+                      variant="body2" 
+                      fontWeight={600} 
+                      color="text.primary"
+                      sx={{ lineHeight: 1 }}
+                    >
+                      {user.firstName || user.username || 'Utilisateur'}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
               {/* Notifications - visible by ADMIN, MANAGER, SUPERVISOR - with security check */}
               {typeof isAdmin === 'function' && typeof isManager === 'function' && typeof isSupervisor === 'function' && 
                (isAdmin() || isManager() || isSupervisor()) && (

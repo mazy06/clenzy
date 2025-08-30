@@ -49,6 +49,9 @@ import PermissionConfig from '../components/PermissionConfig';
 import ContactPage from './contact/ContactPage';
 import ContactCreatePage from './contact/ContactCreatePage';
 
+// Profile
+import UserProfilePage from './profile/UserProfilePage';
+
 // Portfolios
 import PortfoliosPage from './portfolios/PortfoliosPage';
 
@@ -194,6 +197,10 @@ const AuthenticatedApp: React.FC = () => {
         } />
         <Route path="/contact/create" element={
           <ContactCreatePage />
+        } />
+        
+        <Route path="/profile" element={
+          <UserProfilePage />
         } />
         
         <Route path="/portfolios" element={

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -14,7 +14,9 @@ import {
   Alert,
   CircularProgress,
   Grid,
-  Divider
+  Divider,
+  Autocomplete,
+  FormHelperText
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -24,6 +26,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
+import { API_CONFIG } from '../../config/api';
 
 interface ContactCreateFormData {
   recipient: string;
@@ -34,12 +37,30 @@ interface ContactCreateFormData {
   attachments: File[];
 }
 
+interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
+
+interface Manager {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
+
 const ContactCreatePage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [managers, setManagers] = useState<Manager[]>([]);
+  const [loadingManagers, setLoadingManagers] = useState(false);
 
   const [formData, setFormData] = useState<ContactCreateFormData>({
     recipient: '',
@@ -70,6 +91,58 @@ const ContactCreatePage: React.FC = () => {
     { value: 'bug', label: 'Signalement de bug' },
     { value: 'other', label: 'Autre' }
   ];
+
+  // Déterminer le rôle de l'utilisateur
+  const isRestrictedUser = () => {
+    if (!user) return false;
+    const userRole = user.roles?.[0]?.toLowerCase() || '';
+    return ['host', 'housekeeper', 'technician'].includes(userRole);
+  };
+
+  // Charger les managers depuis l'API
+  useEffect(() => {
+    const loadManagers = async () => {
+      if (!isRestrictedUser()) return;
+      
+      setLoadingManagers(true);
+      try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/users`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const usersList = data.content || data;
+          
+          // Filtrer seulement les managers
+          const managersList = usersList.filter((u: User) => 
+            ['manager', 'admin'].includes(u.role?.toLowerCase() || '')
+          );
+          
+          console.log('🔍 ContactCreatePage - Managers chargés:', managersList);
+          setManagers(managersList);
+          
+          // Si c'est un utilisateur restreint et qu'il y a des managers, sélectionner le premier par défaut
+          if (isRestrictedUser() && managersList.length > 0) {
+            const defaultManager = managersList[0];
+            setFormData(prev => ({
+              ...prev,
+              recipient: `${defaultManager.firstName} ${defaultManager.lastName} <${defaultManager.email}>`
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('🔍 ContactCreatePage - Erreur chargement managers:', err);
+        setSubmitError('Erreur lors du chargement des managers');
+      } finally {
+        setLoadingManagers(false);
+      }
+    };
+
+    loadManagers();
+  }, [user]);
 
   const handleInputChange = (field: keyof ContactCreateFormData, value: any) => {
     setFormData(prev => ({
@@ -131,23 +204,33 @@ const ContactCreatePage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth={false} sx={{ px: 3 }}>
       <PageHeader
         title="Nouveau message"
         subtitle="Créez et envoyez un nouveau message"
         backPath="/contact"
         showBackButton={true}
         actions={
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<SendIcon />}
-            onClick={handleSubmit}
-            disabled={isSubmitting || !formData.recipient || !formData.subject || !formData.message}
-            sx={{ minWidth: 140 }}
-          >
-            {isSubmitting ? <CircularProgress size={20} /> : 'Envoyer'}
-          </Button>
+          <Box display="flex" gap={2}>
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/contact')}
+              startIcon={<ClearIcon />}
+              disabled={isSubmitting}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<SendIcon />}
+              onClick={handleSubmit}
+              disabled={isSubmitting || !formData.recipient || !formData.subject || !formData.message}
+              sx={{ minWidth: 140 }}
+            >
+              {isSubmitting ? <CircularProgress size={20} /> : 'Envoyer'}
+            </Button>
+          </Box>
         }
       />
 
@@ -163,20 +246,57 @@ const ContactCreatePage: React.FC = () => {
         </Alert>
       )}
 
+      {isRestrictedUser() && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          En tant qu'utilisateur {user?.roles?.[0]?.toLowerCase()}, vous ne pouvez envoyer des messages qu'aux managers de votre portefeuille.
+        </Alert>
+      )}
+
       <Paper sx={{ p: 4 }}>
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
             {/* Destinataire */}
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Destinataire"
-                value={formData.recipient}
-                onChange={(e) => handleInputChange('recipient', e.target.value)}
-                placeholder="email@exemple.com ou nom d'utilisateur"
-                required
-                variant="outlined"
-              />
+              {isRestrictedUser() ? (
+                <FormControl fullWidth required>
+                  <InputLabel>Destinataire (Manager)</InputLabel>
+                  <Select
+                    value={formData.recipient}
+                    onChange={(e) => handleInputChange('recipient', e.target.value)}
+                    label="Destinataire (Manager)"
+                    disabled={loadingManagers}
+                  >
+                    {managers.map((manager) => (
+                      <MenuItem key={manager.id} value={`${manager.firstName} ${manager.lastName} <${manager.email}>`}>
+                        <Box display="flex" flexDirection="column">
+                          <Typography variant="body1">
+                            {manager.firstName} {manager.lastName}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {manager.email} • {manager.role}
+                          </Typography>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {loadingManagers && (
+                    <FormHelperText>
+                      <CircularProgress size={16} sx={{ mr: 1 }} />
+                      Chargement des managers...
+                    </FormHelperText>
+                  )}
+                </FormControl>
+              ) : (
+                <TextField
+                  fullWidth
+                  label="Destinataire"
+                  value={formData.recipient}
+                  onChange={(e) => handleInputChange('recipient', e.target.value)}
+                  placeholder="email@exemple.com ou nom d'utilisateur"
+                  required
+                  variant="outlined"
+                />
+              )}
             </Grid>
 
             {/* Sujet */}

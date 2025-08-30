@@ -22,6 +22,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Container,
 } from '@mui/material';
 import {
   Home,
@@ -40,11 +41,13 @@ import {
   PriorityHigh,
   Category,
   Group,
+  ArrowBack,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
 import { InterventionType, INTERVENTION_TYPE_OPTIONS, InterventionTypeUtils } from '../../types/interventionTypes';
+import PageHeader from '../../components/PageHeader';
 
 // Types pour les demandes de service
 export interface ServiceRequestFormData {
@@ -366,7 +369,36 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   };
 
   return (
-    <Box>
+    <Container maxWidth="lg">
+      <PageHeader
+        title="Nouvelle demande de service"
+        subtitle="Créez une nouvelle demande de service pour une propriété"
+        backPath="/service-requests"
+        showBackButton={true}
+        actions={
+          <Box display="flex" gap={2}>
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/service-requests')}
+              startIcon={<Cancel />}
+              disabled={saving}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSubmit}
+              disabled={saving || !formData.title || !formData.description || !formData.propertyId}
+              startIcon={saving ? <CircularProgress size={20} /> : <Save />}
+              sx={{ minWidth: 140 }}
+            >
+              {saving ? 'Enregistrement...' : 'Enregistrer'}
+            </Button>
+          </Box>
+        }
+      />
+
       {/* Messages d'erreur/succès */}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -375,7 +407,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
       )}
 
       {/* Formulaire */}
-      <Card>
+      <Card sx={{ mt: 3 }}>
         <CardContent sx={{ p: 4 }}>
           <form onSubmit={handleSubmit}>
             {/* Informations de base */}
@@ -653,7 +685,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
           </Button>
         </CardContent>
       </Card>
-    </Box>
+    </Container>
   );
 };
 

@@ -23,6 +23,8 @@ import {
   Delete,
   MoreVert,
   Visibility,
+  ExpandMore,
+  ExpandLess,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -62,9 +64,29 @@ const TeamsList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Fonction pour obtenir la couleur de bordure selon le type
+  const getChipBorderColor = (type: string): string => {
+    const interventionType = INTERVENTION_TYPE_OPTIONS.find(t => t.value === type);
+    if (!interventionType) return '#666666';
+    
+    switch (interventionType.category) {
+      case 'cleaning':
+        return '#4CAF50'; // Vert
+      case 'maintenance':
+        return '#FF9800'; // Orange
+      case 'specialized':
+        return '#9C27B0'; // Violet
+      case 'other':
+        return '#F44336'; // Rouge
+      default:
+        return '#666666'; // Gris par défaut
+    }
+  };
 
   // Charger les équipes
   useEffect(() => {
@@ -226,31 +248,80 @@ const TeamsList: React.FC = () => {
 
       {/* Filtres par type d'intervention */}
       <Box sx={{ mb: 4 }}>
-        {/* Filtre "Tous les types" */}
-        <Box sx={{ mb: 3 }}>
-          <Chip
-            label="Tous les types"
-            onClick={() => setSelectedType('all')}
-            color={selectedType === 'all' ? 'primary' : 'default'}
-            variant={selectedType === 'all' ? 'filled' : 'outlined'}
+        {/* Filtre sélectionné avec bouton de masquage */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 2, 
+          mb: 3,
+          flexWrap: 'wrap'
+        }}>
+          {/* Affichage du chip sélectionné */}
+          {selectedType === 'all' ? (
+            <Chip
+              label="Tous les types"
+              onClick={() => setSelectedType('all')}
+              color="primary"
+              variant="filled"
+              sx={{
+                cursor: 'pointer',
+                fontSize: '1rem',
+                py: 1,
+                px: 2,
+                borderWidth: 2,
+                borderColor: 'primary.main',
+                '&:hover': {
+                  transform: 'translateY(-1px)',
+                  boxShadow: 1,
+                  transition: 'all 0.2s ease-in-out'
+                }
+              }}
+            />
+          ) : (
+            <Chip
+              label={INTERVENTION_TYPE_OPTIONS.find(type => type.value === selectedType)?.label || selectedType}
+              onClick={() => setSelectedType(selectedType)}
+              color="primary"
+              variant="filled"
+              sx={{
+                cursor: 'pointer',
+                fontSize: '1rem',
+                py: 1,
+                px: 2,
+                borderWidth: 2,
+                borderColor: getChipBorderColor(selectedType),
+                '&:hover': {
+                  transform: 'translateY(-1px)',
+                  boxShadow: 1,
+                  transition: 'all 0.2s ease-in-out'
+                }
+              }}
+            />
+          )}
+          
+          {/* Bouton de masquage des filtres */}
+          <Button
+            variant="text"
+            size="small"
+            onClick={() => setShowFilters(!showFilters)}
+            startIcon={showFilters ? <ExpandLess /> : <ExpandMore />}
             sx={{
-              cursor: 'pointer',
-              fontSize: '1rem',
-              py: 1,
-              px: 2,
-              borderWidth: 2,
-              borderColor: selectedType === 'all' ? 'primary.main' : '#666666',
+              color: 'text.secondary',
               '&:hover': {
-                transform: 'translateY(-1px)',
-                boxShadow: 1,
-                transition: 'all 0.2s ease-in-out'
-              }
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              },
+              minWidth: 'auto',
+              px: 1,
+              py: 0.5
             }}
-          />
+          >
+            {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
+          </Button>
         </Box>
 
         {/* Filtres par catégorie sans titres */}
-        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+        {showFilters && (
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
           {/* Types de nettoyage - Bordure verte */}
           {INTERVENTION_TYPE_OPTIONS
             .filter(type => type.category === 'cleaning')
@@ -354,7 +425,8 @@ const TeamsList: React.FC = () => {
                 }}
               />
             ))}
-        </Box>
+          </Box>
+        )}
 
         {/* Compteur d'équipes avec trait horizontal */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 3 }}>
