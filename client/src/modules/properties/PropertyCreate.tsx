@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Alert, Button } from '@mui/material';
+import { Alert, Button, Box } from '@mui/material';
 import { Cancel, Save } from '@mui/icons-material';
 import PropertyForm from './PropertyForm';
 import PageHeader from '../../components/PageHeader';
@@ -9,12 +9,21 @@ import { createSpacing } from '../../theme/spacing';
 
 const PropertyCreate: React.FC = () => {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermissionAsync } = useAuth();
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Vérifier les permissions silencieusement
-  const canCreate = hasPermission('properties:create');
+  const [canCreate, setCanCreate] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canCreatePermission = await hasPermissionAsync('properties:create');
+      setCanCreate(canCreatePermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
 
   const handleClose = () => {
     navigate('/properties');

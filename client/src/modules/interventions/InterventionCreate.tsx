@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Button, Typography, Box } from '@mui/material';
 import { Cancel, Save } from '@mui/icons-material';
@@ -8,12 +8,21 @@ import { useAuth } from '../../hooks/useAuth';
 
 const InterventionCreate: React.FC = () => {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermissionAsync } = useAuth();
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Vérifier les permissions silencieusement
-  const canCreate = hasPermission('interventions:create');
+  const [canCreate, setCanCreate] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canCreatePermission = await hasPermissionAsync('interventions:create');
+      setCanCreate(canCreatePermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
 
   // Vérification conditionnelle après les hooks
   if (!canCreate) {

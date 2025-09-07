@@ -92,7 +92,7 @@ interface Team {
 const ServiceRequestEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, hasPermission, isAdmin, isManager, isHost } = useAuth();
+  const { user, hasPermissionAsync, isAdmin, isManager, isHost } = useAuth();
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -102,6 +102,19 @@ const ServiceRequestEdit: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   
+  // État pour les permissions
+  const [canEdit, setCanEdit] = useState(false);
+  
+  // Vérifier les permissions au chargement
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canEditPermission = await hasPermissionAsync('service-requests:edit');
+      setCanEdit(canEditPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
+
   // IMPORTANT: déclarer tous les hooks avant tout retour conditionnel
   const [formData, setFormData] = useState<ServiceRequestFormData>({
     title: '',
@@ -238,7 +251,7 @@ const ServiceRequestEdit: React.FC = () => {
   }, []);
 
   // Vérifier les permissions APRÈS tous les hooks
-  if (!hasPermission('service-requests:edit')) {
+  if (!canEdit) {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">

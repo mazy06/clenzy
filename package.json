@@ -12,11 +12,23 @@
     "logs": "serverless logs -f",
     "remove": "serverless remove"
   },
-  "keywords": ["airbnb", "cleaning", "maintenance", "management", "clenzy", "java", "serverless", "spring"],
+  "keywords": [
+    "airbnb",
+    "cleaning",
+    "maintenance",
+    "management",
+    "clenzy",
+    "java",
+    "serverless",
+    "spring"
+  ],
   "author": "Clenzy Team",
   "license": "MIT",
   "devDependencies": {
     "serverless": "^3.38.0",
     "serverless-offline": "^13.3.3"
+  },
+  "dependencies": {
+    "glob": "^11.0.3"
   }
 }

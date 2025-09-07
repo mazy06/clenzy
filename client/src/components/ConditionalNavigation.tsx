@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   List,
   ListItem,
@@ -91,7 +91,30 @@ const ConditionalNavigation: React.FC<ConditionalNavigationProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { hasPermission, hasRole } = useAuth();
+  const { hasPermissionAsync, hasRole } = useAuth();
+  
+  // État pour stocker les permissions de chaque élément
+  const [itemPermissions, setItemPermissions] = useState<{[key: string]: boolean}>({});
+  
+  // Vérifier les permissions au chargement
+  useEffect(() => {
+    const checkAllPermissions = async () => {
+      const permissions: {[key: string]: boolean} = {};
+      
+      for (const item of navigationItems) {
+        if (item.permission) {
+          const hasPermission = await hasPermissionAsync(item.permission);
+          permissions[item.path] = hasPermission;
+        } else {
+          permissions[item.path] = true; // Pas de permission requise
+        }
+      }
+      
+      setItemPermissions(permissions);
+    };
+    
+    checkAllPermissions();
+  }, [hasPermissionAsync]);
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -102,8 +125,8 @@ const ConditionalNavigation: React.FC<ConditionalNavigationProps> = ({
 
   const isItemVisible = (item: NavigationItem): boolean => {
     // Vérifier la permission si spécifiée
-    if (item.permission && !hasPermission(item.permission)) {
-      return false;
+    if (item.permission) {
+      return itemPermissions[item.path] || false;
     }
 
     // Vérifier les rôles si spécifiés

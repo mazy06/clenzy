@@ -156,7 +156,7 @@ export default function ServiceRequestsList() {
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { user, isAdmin, isManager, isHost, hasPermission } = useAuth();
+  const { user, isAdmin, isManager, isHost, hasPermissionAsync } = useAuth();
   // Temporairement désactivé pour déboguer
   // const { canCancelServiceRequest: canCancelByWorkflow, getRemainingCancellationTime } = useWorkflowSettings();
   
@@ -595,7 +595,7 @@ export default function ServiceRequestsList() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                   Les demandes de service permettent de gérer les besoins de nettoyage, maintenance et réparation de vos propriétés.
                 </Typography>
-                {(hasPermission('service-requests:create') || isAdmin() || isManager() || isHost()) && (
+                {(false || isAdmin() || isManager() || isHost()) && (
                   <Button
                     variant="contained"
                     startIcon={<Add />}

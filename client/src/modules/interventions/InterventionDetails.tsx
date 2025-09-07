@@ -166,7 +166,7 @@ const formatCurrency = (amount: number) => {
 export default function InterventionDetails() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermissionAsync } = useAuth();
   
   // ÉTAPE 2 : AJOUT DES USESTATE HOOKS (maintenant typés)
   const [intervention, setIntervention] = useState<InterventionDetails | null>(null);
@@ -213,7 +213,7 @@ export default function InterventionDetails() {
   
   // ÉTAPE 5 : AJOUT DE LA LOGIQUE MÉTIER
   const canModifyIntervention = (): boolean => {
-    if (hasPermission('interventions:edit')) return true;
+    if (canEditInterventions) return true;
     
     if (!intervention) return false;
     
@@ -233,8 +233,26 @@ export default function InterventionDetails() {
   };
   
   // Vérifier la permission de visualisation d'interventions
-  const canViewInterventions = hasPermission('interventions:view');
-  const canEditInterventions = hasPermission('interventions:edit');
+  const [canViewInterventions, setCanViewInterventions] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canViewInterventionsPermission = await hasPermissionAsync('interventions:view');
+      setCanViewInterventions(canViewInterventionsPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);;
+  const [canEditInterventions, setCanEditInterventions] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canEditInterventionsPermission = await hasPermissionAsync('interventions:edit');
+      setCanEditInterventions(canEditInterventionsPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);;
   
   // Si l'utilisateur n'a pas la permission de voir les interventions, afficher un message informatif
   if (!canViewInterventions) {

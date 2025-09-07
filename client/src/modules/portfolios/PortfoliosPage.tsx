@@ -6,14 +6,48 @@ import {
   Tab,
   Paper,
   Container,
-  Fab,
+  Button,
+  Grid,
+  Card,
+  CardContent,
+  Avatar,
+  Chip,
+  CircularProgress,
+  Alert,
+  IconButton,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
-import { Business as BusinessIcon, Add as AddIcon } from '@mui/icons-material';
+import { 
+  Business as BusinessIcon, 
+  People as PeopleIcon,
+  Assignment as AssignmentIcon,
+  Person,
+  Home,
+  Group,
+  Phone,
+  LocationOn,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+} from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
-import PortfolioList from './PortfolioList';
-import PortfolioForm from './PortfolioForm';
-import PortfolioCard from './PortfolioCard';
+import ConfirmationModal from '../../components/ConfirmationModal';
+import { usePermissions } from "../../hooks/usePermissions";
+import { useNavigate } from 'react-router-dom';
+import { API_CONFIG } from '../../config/api';
+import TeamManagementTab from './TeamManagementTab';
+import PortfolioStatsTab from './PortfolioStatsTab';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -50,29 +84,384 @@ function a11yProps(index: number) {
 
 const PortfoliosPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const { user, isAdmin, isManager } = useAuth();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  // États pour les données
+  const [clients, setClients] = useState<any[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editingClient, setEditingClient] = useState<any>(null);
+  const [managers, setManagers] = useState<any[]>([]);
+  const [reassignLoading, setReassignLoading] = useState(false);
+  const [expandedClients, setExpandedClients] = useState<Set<number>>(new Set());
+  
+  // États pour les modals de confirmation
+  const [confirmationModal, setConfirmationModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    severity?: 'warning' | 'error' | 'info';
+  }>({
+    open: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+  
+  // Utiliser notre système de permissions au lieu de isAdmin/isManager
+  const { hasPermission } = usePermissions();
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
-  const handleFormOpen = () => {
-    setIsFormOpen(true);
+  // Fonction pour basculer l'affichage des propriétés d'un client
+  const toggleClientExpansion = (clientId: number) => {
+    setExpandedClients(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(clientId)) {
+        newSet.delete(clientId);
+      } else {
+        newSet.add(clientId);
+      }
+      return newSet;
+    });
   };
 
-  const handleFormClose = () => {
-    setIsFormOpen(false);
+  const handleClientAssignment = () => {
+    navigate('/portfolios/client-assignment');
   };
 
-  if (!user || (!isAdmin() && !isManager())) {
-    return (
-      <Container maxWidth="lg">
-        <Typography variant="h4" color="error" sx={{ mt: 4 }}>
-          Accès refusé. Seuls les administrateurs et managers peuvent accéder à cette page.
-        </Typography>
-      </Container>
-    );
+  const handleTeamAssignment = () => {
+    navigate('/portfolios/team-assignment');
+  };
+
+  // Charger les données des associations
+  useEffect(() => {
+    if (user?.id) {
+      loadAssociations();
+      loadManagers();
+    }
+  }, [user?.id]);
+
+  const loadManagers = async () => {
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/managers/all`);
+      if (response.ok) {
+        const data = await response.json();
+        setManagers(data);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des managers:', error);
+    }
+  };
+
+  const handleReassignClient = async (clientId: number, newManagerId: number, notes: string) => {
+    setReassignLoading(true);
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/managers/${clientId}/reassign`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          newManagerId,
+          notes
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Client réassigné avec succès:', result);
+        // Recharger les associations
+        loadAssociations();
+        setEditingClient(null);
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Erreur lors de la réassignation:', errorData);
+        setError(errorData.error || 'Erreur lors de la réassignation');
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors de la réassignation:', error);
+      setError('Erreur de connexion lors de la réassignation');
+    } finally {
+      setReassignLoading(false);
+    }
+  };
+
+  // Fonctions de désassignation
+  const handleUnassignClient = (clientId: number) => {
+    if (!user?.id) return;
+    
+    setConfirmationModal({
+      open: true,
+      title: 'Désassigner le client',
+      message: 'Êtes-vous sûr de vouloir désassigner ce client ? Cette action supprimera également toutes ses propriétés associées.',
+      severity: 'warning',
+      onConfirm: () => {
+        setConfirmationModal(prev => ({ ...prev, open: false }));
+        performUnassignClient(clientId);
+      },
+    });
+  };
+
+  const performUnassignClient = async (clientId: number) => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/managers/${user.id}/clients/${clientId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Client désassigné avec succès:', result);
+        // Recharger les associations
+        loadAssociations();
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Erreur lors de la désassignation du client:', errorData);
+        setError(errorData.error || 'Erreur lors de la désassignation');
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors de la désassignation du client:', error);
+      setError('Erreur de connexion lors de la désassignation');
+    }
+  };
+
+  const handleUnassignTeam = (teamId: number) => {
+    if (!user?.id) return;
+    
+    setConfirmationModal({
+      open: true,
+      title: 'Désassigner l\'équipe',
+      message: 'Êtes-vous sûr de vouloir désassigner cette équipe ?',
+      severity: 'warning',
+      onConfirm: () => {
+        setConfirmationModal(prev => ({ ...prev, open: false }));
+        performUnassignTeam(teamId);
+      },
+    });
+  };
+
+  const performUnassignTeam = async (teamId: number) => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/managers/${user.id}/teams/${teamId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Équipe désassignée avec succès:', result);
+        // Recharger les associations
+        loadAssociations();
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Erreur lors de la désassignation de l\'équipe:', errorData);
+        setError(errorData.error || 'Erreur lors de la désassignation');
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors de la désassignation de l\'équipe:', error);
+      setError('Erreur de connexion lors de la désassignation');
+    }
+  };
+
+  const handleUnassignUser = (userId: number) => {
+    if (!user?.id) return;
+    
+    setConfirmationModal({
+      open: true,
+      title: 'Désassigner l\'utilisateur',
+      message: 'Êtes-vous sûr de vouloir désassigner cet utilisateur ?',
+      severity: 'warning',
+      onConfirm: () => {
+        setConfirmationModal(prev => ({ ...prev, open: false }));
+        performUnassignUser(userId);
+      },
+    });
+  };
+
+  const performUnassignUser = async (userId: number) => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/managers/${user.id}/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Utilisateur désassigné avec succès:', result);
+        // Recharger les associations
+        loadAssociations();
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Erreur lors de la désassignation de l\'utilisateur:', errorData);
+        setError(errorData.error || 'Erreur lors de la désassignation');
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors de la désassignation de l\'utilisateur:', error);
+      setError('Erreur de connexion lors de la désassignation');
+    }
+  };
+
+  // Fonctions pour la gestion des propriétés individuelles
+  const handleReassignProperty = async (propertyId: number) => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/managers/${user.id}/properties/${propertyId}/assign`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Propriété réassignée avec succès:', result);
+        // Recharger les associations
+        loadAssociations();
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Erreur lors de la réassignation de la propriété:', errorData);
+        setError(errorData.error || 'Erreur lors de la réassignation');
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors de la réassignation de la propriété:', error);
+      setError('Erreur de connexion lors de la réassignation');
+    }
+  };
+
+  const handleUnassignProperty = (propertyId: number) => {
+    if (!user?.id) return;
+    
+    setConfirmationModal({
+      open: true,
+      title: 'Désassigner la propriété',
+      message: 'Êtes-vous sûr de vouloir désassigner cette propriété ? Le client restera assigné mais cette propriété ne sera plus gérée par vous.',
+      severity: 'warning',
+      onConfirm: () => {
+        setConfirmationModal(prev => ({ ...prev, open: false }));
+        performUnassignProperty(propertyId);
+      },
+    });
+  };
+
+  const performUnassignProperty = async (propertyId: number) => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/managers/${user.id}/properties/${propertyId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Propriété désassignée avec succès:', result);
+        // Recharger les associations
+        loadAssociations();
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Erreur lors de la désassignation de la propriété:', errorData);
+        setError(errorData.error || 'Erreur lors de la désassignation');
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors de la désassignation de la propriété:', error);
+      setError('Erreur de connexion lors de la désassignation');
+    }
+  };
+
+  const loadAssociations = async () => {
+    if (!user?.id) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log('🔄 PortfoliosPage - Chargement des associations pour user ID:', user.id);
+      
+      // Appeler l'API des associations
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/api/managers/${user.id}/associations`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const associationsData = await response.json();
+        console.log('📊 PortfoliosPage - Données reçues:', associationsData);
+
+        setClients(associationsData.clients || []);
+        setProperties(associationsData.properties || []);
+        setTeams(associationsData.teams || []);
+        setUsers(associationsData.users || []);
+      } else {
+        const errorText = await response.text();
+        console.error('❌ PortfoliosPage - Erreur API:', response.status, errorText);
+        setError(`Erreur lors du chargement des associations: ${response.status}`);
+      }
+    } catch (err) {
+      setError('Erreur de connexion');
+      console.error('❌ PortfoliosPage - Erreur chargement associations:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string): string => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'HOST': return 'primary';
+      case 'TECHNICIAN': return 'secondary';
+      case 'HOUSEKEEPER': return 'success';
+      case 'SUPERVISOR': return 'warning';
+      default: return 'default';
+    }
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'HOST': return 'Propriétaire';
+      case 'TECHNICIAN': return 'Technicien';
+      case 'HOUSEKEEPER': return 'Agent de ménage';
+      case 'SUPERVISOR': return 'Superviseur';
+      default: return role;
+    }
+  };
+
+  // Vérifier la permission portfolios:view silencieusement
+  if (!user || !hasPermission("portfolios:view")) {
+    return null; // Retourner null au lieu d'un message d'erreur
   }
 
   return (
@@ -81,16 +470,26 @@ const PortfoliosPage: React.FC = () => {
         title="Portefeuilles"
         subtitle="Gérez vos portefeuilles clients et vos équipes opérationnelles"
         backPath="/dashboard"
-        showBackButton={true}
+        showBackButton={false}
         actions={
-          <Fab
-            color="primary"
-            aria-label="Nouveau portefeuille"
-            onClick={handleFormOpen}
-            sx={{ position: 'fixed', bottom: 16, right: 16 }}
-          >
-            <AddIcon />
-          </Fab>
+          <Box display="flex" gap={2}>
+            <Button
+              variant="outlined"
+              startIcon={<AssignmentIcon />}
+              onClick={handleClientAssignment}
+              sx={{ borderWidth: 2 }}
+            >
+              Associer Clients & Propriétés
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<PeopleIcon />}
+              onClick={handleTeamAssignment}
+              sx={{ borderWidth: 2 }}
+            >
+              Associer Équipes & Utilisateurs
+            </Button>
+          </Box>
         }
       />
 
@@ -120,38 +519,417 @@ const PortfoliosPage: React.FC = () => {
         </Box>
 
         <TabPanel value={tabValue} index={0}>
-          <PortfolioList />
+          {loading ? (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          ) : (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Mes Portefeuilles - Clients & Propriétés
+              </Typography>
+              
+              <Grid container spacing={3}>
+                {/* Clients */}
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Person color="primary" />
+                    Clients ({clients.length})
+                  </Typography>
+                  {clients.length > 0 ? (
+                    <Grid container spacing={2}>
+                      {clients.map((client) => (
+                        <Grid item xs={12} key={client.id}>
+                          <Card variant="outlined">
+                            <CardContent>
+                              <Box display="flex" alignItems="center" mb={1}>
+                                <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 32, height: 32 }}>
+                                  <Person />
+                                </Avatar>
+                                <Box flex={1}>
+                                  <Typography variant="subtitle2">
+                                    {client.firstName} {client.lastName}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {client.email}
+                                  </Typography>
+                                </Box>
+                                <Box display="flex" alignItems="center" gap={1}>
+                                  <Chip
+                                    label={getRoleLabel(client.role)}
+                                    color={getRoleColor(client.role) as any}
+                                    size="small"
+                                  />
+                                  <Tooltip title="Réassigner ce client">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => setEditingClient(client)}
+                                      sx={{ color: 'primary.main' }}
+                                    >
+                                      <EditIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Désassigner ce client">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => handleUnassignClient(client.id)}
+                                      sx={{ color: 'error.main' }}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </Box>
+                              </Box>
+                              {client.phoneNumber && (
+                                <Box display="flex" alignItems="center" mb={1}>
+                                  <Phone sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
+                                  <Typography variant="body2" color="text.secondary">
+                                    {client.phoneNumber}
+                                  </Typography>
+                                </Box>
+                              )}
+                              <Typography variant="caption" color="text.secondary">
+                                Associé le {formatDate(client.associatedAt)}
+                              </Typography>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  ) : (
+                    <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
+                      Aucun client associé
+                    </Typography>
+                  )}
+                </Grid>
+
+                {/* Propriétés groupées par client */}
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Home color="secondary" />
+                    Propriétés par Client ({properties.length})
+                  </Typography>
+                  {properties.length > 0 ? (
+                    <Box>
+                      {clients.map((client) => {
+                        const clientProperties = properties.filter(prop => prop.ownerId === client.id);
+                        return (
+                          <Box key={client.id} sx={{ mb: 3 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                              <Typography variant="h6" color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Person sx={{ fontSize: 20 }} />
+                                {client.firstName} {client.lastName}
+                                <Chip 
+                                  label={`${clientProperties.length} propriété${clientProperties.length > 1 ? 's' : ''}`}
+                                  size="small" 
+                                  color="primary" 
+                                  variant="outlined"
+                                />
+                              </Typography>
+                              <IconButton
+                                size="small"
+                                onClick={() => toggleClientExpansion(client.id)}
+                                sx={{ color: 'primary.main' }}
+                              >
+                                {expandedClients.has(client.id) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                              </IconButton>
+                            </Box>
+                            {clientProperties.length > 0 ? (
+                              expandedClients.has(client.id) ? (
+                                <Grid container spacing={1}>
+                                  {clientProperties.map((property) => (
+                                    <Grid item xs={12} key={property.id}>
+                                      <Card variant="outlined" sx={{ ml: 2, borderLeft: 3, borderLeftColor: 'primary.main' }}>
+                                        <CardContent sx={{ py: 1.5 }}>
+                                          <Box display="flex" alignItems="flex-start" mb={1}>
+                                            <Avatar sx={{ bgcolor: 'secondary.main', mr: 2, width: 28, height: 28 }}>
+                                              <Home sx={{ fontSize: 16 }} />
+                                            </Avatar>
+                                            <Box flex={1}>
+                                              <Typography variant="subtitle2">
+                                                {property.name}
+                                              </Typography>
+                                              <Box display="flex" alignItems="center" mb={0.5}>
+                                                <LocationOn sx={{ fontSize: 14, mr: 1, color: 'text.secondary' }} />
+                                                <Typography variant="body2" color="text.secondary">
+                                                  {property.address}, {property.city}
+                                                </Typography>
+                                              </Box>
+                                            </Box>
+                                            <Box display="flex" alignItems="center" gap={1}>
+                                              <Chip
+                                                label={property.type}
+                                                color="default"
+                                                size="small"
+                                              />
+                                              <Tooltip title="Réassigner cette propriété">
+                                                <IconButton
+                                                  size="small"
+                                                  onClick={() => handleReassignProperty(property.id)}
+                                                  sx={{ color: 'primary.main' }}
+                                                >
+                                                  <EditIcon fontSize="small" />
+                                                </IconButton>
+                                              </Tooltip>
+                                              <Tooltip title="Désassigner cette propriété">
+                                                <IconButton
+                                                  size="small"
+                                                  onClick={() => handleUnassignProperty(property.id)}
+                                                  sx={{ color: 'error.main' }}
+                                                >
+                                                  <DeleteIcon fontSize="small" />
+                                                </IconButton>
+                                              </Tooltip>
+                                            </Box>
+                                          </Box>
+                                          <Typography variant="caption" color="text.secondary">
+                                            Créé le {formatDate(property.createdAt)}
+                                          </Typography>
+                                        </CardContent>
+                                      </Card>
+                                    </Grid>
+                                  ))}
+                                </Grid>
+                              ) : (
+                                <Typography variant="body2" color="text.secondary" sx={{ ml: 2, fontStyle: 'italic' }}>
+                                  Cliquez sur la flèche pour voir les {clientProperties.length} propriété{clientProperties.length > 1 ? 's' : ''}
+                                </Typography>
+                              )
+                            ) : (
+                              <Typography variant="body2" color="text.secondary" sx={{ ml: 2, fontStyle: 'italic' }}>
+                                Aucune propriété pour ce client
+                              </Typography>
+                            )}
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  ) : (
+                    <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
+                      Aucune propriété associée
+                    </Typography>
+                  )}
+                </Grid>
+              </Grid>
+            </Box>
+          )}
         </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
-          <Typography variant="h6" gutterBottom>
-            Gestion des Équipes
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Gérez les membres de vos équipes opérationnelles par portefeuille.
-          </Typography>
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              Gestion des Équipes - Équipes & Utilisateurs
+            </Typography>
+            
+            <Grid container spacing={3}>
+              {/* Équipes */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Group color="success" />
+                  Équipes ({teams.length})
+                </Typography>
+                {teams.length > 0 ? (
+                  <Grid container spacing={2}>
+                    {teams.map((team) => (
+                      <Grid item xs={12} key={team.id}>
+                        <Card variant="outlined">
+                          <CardContent>
+                            <Box display="flex" alignItems="center" mb={1}>
+                              <Avatar sx={{ bgcolor: 'success.main', mr: 2, width: 32, height: 32 }}>
+                                <Group />
+                              </Avatar>
+                              <Box flex={1}>
+                                <Typography variant="subtitle2">
+                                  {team.name}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {team.memberCount} membre{team.memberCount > 1 ? 's' : ''}
+                                </Typography>
+                              </Box>
+                              <Tooltip title="Désassigner cette équipe">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleUnassignTeam(team.id)}
+                                  sx={{ color: 'error.main' }}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                            {team.description && (
+                              <Typography variant="body2" sx={{ mb: 1 }}>
+                                {team.description}
+                              </Typography>
+                            )}
+                            <Typography variant="caption" color="text.secondary">
+                              Créé le {formatDate(team.assignedAt)}
+                            </Typography>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                ) : (
+                  <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
+                    Aucune équipe associée
+                  </Typography>
+                )}
+              </Grid>
+
+              {/* Utilisateurs */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Person color="warning" />
+                  Utilisateurs ({users.length})
+                </Typography>
+                {users.length > 0 ? (
+                  <Grid container spacing={2}>
+                    {users.map((user) => (
+                      <Grid item xs={12} key={user.id}>
+                        <Card variant="outlined">
+                          <CardContent>
+                            <Box display="flex" alignItems="center" mb={1}>
+                              <Avatar sx={{ bgcolor: 'warning.main', mr: 2, width: 32, height: 32 }}>
+                                <Person />
+                              </Avatar>
+                              <Box flex={1}>
+                                <Typography variant="subtitle2">
+                                  {user.firstName} {user.lastName}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {user.email}
+                                </Typography>
+                              </Box>
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <Chip
+                                  label={getRoleLabel(user.role)}
+                                  color={getRoleColor(user.role) as any}
+                                  size="small"
+                                />
+                                <Tooltip title="Désassigner cet utilisateur">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleUnassignUser(user.id)}
+                                    sx={{ color: 'error.main' }}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </Box>
+                            <Typography variant="caption" color="text.secondary">
+                              Associé le {formatDate(user.assignedAt)}
+                            </Typography>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                ) : (
+                  <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
+                    Aucun utilisateur associé
+                  </Typography>
+                )}
+              </Grid>
+            </Grid>
+          </Box>
         </TabPanel>
 
         <TabPanel value={tabValue} index={2}>
-          <Typography variant="h6" gutterBottom>
-            Statistiques des Portefeuilles
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Consultez les statistiques et performances de vos portefeuilles.
-          </Typography>
+          <PortfolioStatsTab />
         </TabPanel>
       </Paper>
 
-      {/* Formulaire de création/édition de portefeuille */}
-      <PortfolioForm
-        open={isFormOpen}
-        onClose={handleFormClose}
-        onSuccess={() => {
-          handleFormClose();
-          // TODO: Rafraîchir la liste des portefeuilles
-        }}
+      {/* Dialogue de réassignation */}
+      <ReassignmentDialog
+        open={!!editingClient}
+        onClose={() => setEditingClient(null)}
+        client={editingClient}
+        onReassign={handleReassignClient}
+        managers={managers}
+        loading={reassignLoading}
+      />
+      
+      {/* Modal de confirmation pour les désassignations */}
+      <ConfirmationModal
+        open={confirmationModal.open}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, open: false }))}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        severity={confirmationModal.severity}
+        confirmText="Désassigner"
+        cancelText="Annuler"
       />
     </Container>
+  );
+};
+
+// Composant de dialogue pour la réassignation
+const ReassignmentDialog = ({ open, onClose, client, onReassign, managers, loading }: {
+  open: boolean;
+  onClose: () => void;
+  client: any;
+  onReassign: (clientId: number, newManagerId: number, notes: string) => void;
+  managers: any[];
+  loading: boolean;
+}) => {
+  const [selectedManagerId, setSelectedManagerId] = useState<number>(0);
+  const [notes, setNotes] = useState('');
+
+  const handleSubmit = () => {
+    if (selectedManagerId && client) {
+      onReassign(client.id, selectedManagerId, notes);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        Réassigner le client {client?.firstName} {client?.lastName}
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ pt: 2 }}>
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Nouveau Manager</InputLabel>
+            <Select
+              value={selectedManagerId}
+              onChange={(e) => setSelectedManagerId(Number(e.target.value))}
+              label="Nouveau Manager"
+            >
+              {managers.map((manager) => (
+                <MenuItem key={manager.id} value={manager.id}>
+                  {manager.firstName} {manager.lastName} - {manager.email}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            fullWidth
+            label="Notes (optionnel)"
+            multiline
+            rows={3}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Ajoutez des notes sur cette réassignation..."
+          />
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Annuler</Button>
+        <Button 
+          onClick={handleSubmit} 
+          variant="contained"
+          disabled={!selectedManagerId || loading}
+        >
+          {loading ? 'Réassignation...' : 'Réassigner'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 

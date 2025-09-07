@@ -1,6 +1,5 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import MainLayoutFull from './layout/MainLayoutFull';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SmartRedirect from '../components/SmartRedirect';
 
@@ -54,20 +53,23 @@ import UserProfilePage from './profile/UserProfilePage';
 
 // Portfolios
 import PortfoliosPage from './portfolios/PortfoliosPage';
+import ClientAssignmentPageNoAuth from './portfolios/ClientAssignmentPageNoAuth';
+import ClientAssignmentPage from './portfolios/ClientAssignmentPage';
+import ClientPropertyAssignmentForm from './portfolios/ClientPropertyAssignmentForm';
+import TeamUserAssignmentForm from './portfolios/TeamUserAssignmentForm';
+import TeamAssignmentPage from './portfolios/TeamAssignmentPage';
 
 // Admin pages
 import TokenMonitoringPage from './admin/TokenMonitoringPage';
 import MonitoringPage from './admin/MonitoringPage';
 
+
 const AuthenticatedApp: React.FC = () => {
   return (
-    <MainLayoutFull>
-      <Routes>
-        <Route path="/dashboard" element={
-          <ProtectedRoute requiredPermission="dashboard:view">
-            <Dashboard />
-          </ProtectedRoute>
-        } />
+    <Routes>
+      <Route path="/dashboard" element={
+        <Dashboard />
+      } />
         
         <Route path="/properties" element={
           <ProtectedRoute requiredPermission="properties:view">
@@ -208,6 +210,19 @@ const AuthenticatedApp: React.FC = () => {
             <PortfoliosPage />
           </ProtectedRoute>
         } />
+        <Route path="/portfolios/client-assignment" element={
+          <ProtectedRoute requiredPermission="portfolios:manage">
+            <ClientPropertyAssignmentForm />
+          </ProtectedRoute>
+        } />
+        <Route path="/test-no-auth" element={
+          <ClientAssignmentPageNoAuth />
+        } />
+        <Route path="/portfolios/team-assignment" element={
+          <ProtectedRoute requiredPermission="portfolios:manage">
+            <TeamUserAssignmentForm />
+          </ProtectedRoute>
+        } />
         
         <Route path="/admin/token-monitoring" element={
           <ProtectedRoute requiredPermission="users:manage">
@@ -224,7 +239,6 @@ const AuthenticatedApp: React.FC = () => {
         {/* Redirection intelligente vers la première page accessible selon les permissions */}
         <Route path="/" element={<SmartRedirect />} />
       </Routes>
-    </MainLayoutFull>
   );
 };
 

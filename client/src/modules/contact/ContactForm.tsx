@@ -15,6 +15,7 @@ import {
   Card,
   CardContent,
   FormHelperText,
+  Autocomplete,
 } from '@mui/material';
 import {
   Send,
@@ -77,8 +78,9 @@ const ContactForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [recipients, setRecipients] = useState<Array<{id: number, name: string, role: string}>>([]);
+  const [recipients, setRecipients] = useState<Array<{id: number, name: string, role: string, email?: string}>>([]);
   const [properties, setProperties] = useState<Array<{id: number, name: string}>>([]);
+  const [recipientSearchTerm, setRecipientSearchTerm] = useState('');
 
   // Charger les destinataires et propriétés au montage
   useEffect(() => {
@@ -90,38 +92,37 @@ const ContactForm: React.FC = () => {
 
   const loadRecipients = async () => {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users`, {
+      // Utiliser le nouvel endpoint qui applique les règles métier
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/contact/recipients`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
         },
       });
       
       if (response.ok) {
-        const data = await response.json();
-        const usersList = data.content || data;
+        const usersList = await response.json();
         
-        // Filtrer selon le rôle de l'utilisateur connecté
-        let filteredRecipients = usersList;
-        if (isHost()) {
-          // HOST peut contacter uniquement les MANAGER
-          filteredRecipients = usersList.filter((u: any) => u.role === 'MANAGER');
-        } else if (isTechnician() || isHousekeeper()) {
-          // Équipe peut contacter les MANAGER et SUPERVISOR
-          filteredRecipients = usersList.filter((u: any) => 
-            ['MANAGER', 'SUPERVISOR'].includes(u.role)
-          );
-        }
-        
-        setRecipients(filteredRecipients.map((u: any) => ({
+        setRecipients(usersList.map((u: any) => ({
           id: u.id,
           name: `${u.firstName} ${u.lastName}`,
-          role: u.role
+          role: u.role,
+          email: u.email
         })));
+        
+        console.log('📊 ContactForm - Destinataires autorisés chargés:', usersList.length);
+      } else {
+        console.error('Erreur chargement destinataires autorisés');
       }
     } catch (err) {
       console.error('Erreur chargement destinataires:', err);
     }
   };
+
+  // Filtrer les destinataires selon le terme de recherche
+  const filteredRecipients = recipients.filter(recipient => 
+    recipient.name.toLowerCase().includes(recipientSearchTerm.toLowerCase()) ||
+    (recipient.email && recipient.email.toLowerCase().includes(recipientSearchTerm.toLowerCase()))
+  );
 
   const loadUserProperties = async () => {
     try {
@@ -293,32 +294,48 @@ const ContactForm: React.FC = () => {
       <Grid container spacing={3}>
         {/* Destinataire */}
         <Grid item xs={12} md={6}>
-          <FormControl fullWidth required>
-            <InputLabel>Destinataire *</InputLabel>
-            <Select
-              value={formData.recipientId}
-              onChange={(e) => handleInputChange('recipientId', e.target.value)}
-              label="Destinataire *"
-            >
-              {recipients.map((recipient) => (
-                <MenuItem key={recipient.id} value={recipient.id}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2">
-                      {recipient.name}
+          <Autocomplete
+            options={filteredRecipients}
+            getOptionLabel={(option) => option.name}
+            value={recipients.find(r => r.id === formData.recipientId) || null}
+            onChange={(event, newValue) => {
+              handleInputChange('recipientId', newValue ? newValue.id : '');
+            }}
+            onInputChange={(event, newInputValue) => {
+              setRecipientSearchTerm(newInputValue);
+            }}
+            filterOptions={(options) => options} // On utilise notre propre filtre
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Destinataire *"
+                required
+                helperText="Recherchez par nom ou email"
+                placeholder="Tapez pour rechercher..."
+              />
+            )}
+            renderOption={(props, option) => (
+              <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box sx={{ flexGrow: 1 }}>
+                  <Typography variant="body2">
+                    {option.name}
+                  </Typography>
+                  {option.email && (
+                    <Typography variant="caption" color="text.secondary">
+                      {option.email}
                     </Typography>
-                    <Chip 
-                      label={recipient.role} 
-                      size="small" 
-                      variant="outlined"
-                    />
-                  </Box>
-                </MenuItem>
-              ))}
-            </Select>
-            <FormHelperText>
-              Sélectionnez la personne à contacter
-            </FormHelperText>
-          </FormControl>
+                  )}
+                </Box>
+                <Chip 
+                  label={option.role} 
+                  size="small" 
+                  variant="outlined"
+                />
+              </Box>
+            )}
+            noOptionsText="Aucun destinataire trouvé"
+            loading={recipients.length === 0}
+          />
         </Grid>
 
         {/* Propriété (optionnel) */}

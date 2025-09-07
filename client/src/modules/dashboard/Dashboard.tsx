@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -15,7 +15,8 @@ import {
   Chip,
   Alert,
   CardActionArea,
-  Skeleton
+  Skeleton,
+  CircularProgress
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -41,16 +42,16 @@ import { createSpacing } from '../../theme/spacing';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermissionAsync } = useAuth();
   
-  // Vérifier les permissions pour déterminer le contenu à afficher
-  const canViewProperties = hasPermission('properties:view');
-  const canViewServiceRequests = hasPermission('service-requests:view');
-  const canViewInterventions = hasPermission('interventions:view');
-  const canViewTeams = hasPermission('teams:view');
-  const canViewUsers = hasPermission('users:manage');
-  const canViewSettings = hasPermission('settings:view');
-  const canViewReports = hasPermission('reports:view');
+  // Utiliser directement les permissions de l'utilisateur (plus simple et plus rapide)
+  const canViewProperties = user?.permissions?.includes('properties:view') || false;
+  const canViewServiceRequests = user?.permissions?.includes('service-requests:view') || false;
+  const canViewInterventions = user?.permissions?.includes('interventions:view') || false;
+  const canViewTeams = user?.permissions?.includes('teams:view') || false;
+  const canViewUsers = user?.permissions?.includes('users:manage') || false;
+  const canViewSettings = user?.permissions?.includes('settings:view') || false;
+  const canViewReports = user?.permissions?.includes('reports:view') || false;
 
   // Déterminer le type d'utilisateur pour personnaliser le contenu
   const isAdmin = user?.roles?.includes('ADMIN');
@@ -206,6 +207,8 @@ const Dashboard: React.FC = () => {
     if (isSupervisor) return 'Supervision des équipes et interventions';
     return 'Vue d\'ensemble de votre activité';
   };
+
+
 
   return (
     <Box>

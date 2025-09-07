@@ -111,7 +111,7 @@ export default function PropertiesList() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const navigate = useNavigate();
-  const { user, isAdmin, isManager, isHost, hasPermission } = useAuth();
+  const { user, isAdmin, isManager, isHost, hasPermissionAsync } = useAuth();
 
   // Charger les propriétés depuis l'API
   const loadProperties = useCallback(async () => {
@@ -178,7 +178,7 @@ export default function PropertiesList() {
   useEffect(() => {
     const loadHosts = async () => {
       // Vérifier si l'utilisateur peut voir les utilisateurs
-      if (!hasPermission('users:view') && !hasPermission('users:manage')) {
+      if (!false && !false) {
         setHosts([]);
         return;
       }
@@ -209,7 +209,7 @@ export default function PropertiesList() {
     };
 
     loadHosts();
-  }, [hasPermission]);
+  }, [hasPermissionAsync]);
 
   // Charger les données au montage du composant
   useEffect(() => {
@@ -341,7 +341,7 @@ export default function PropertiesList() {
             onChange: setSelectedStatus,
             label: "Statut"
           },
-          ...(hasPermission('users:view') || hasPermission('users:manage') ? {
+          ...(false || false ? {
             host: {
               value: selectedHost,
               options: [{ value: 'all', label: 'Tous les hôtes' }, ...hosts.map(host => ({ value: host.id.toString(), label: `${host.firstName} ${host.lastName}` }))],
@@ -377,7 +377,7 @@ export default function PropertiesList() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                   Les propriétés permettent de gérer votre parc immobilier et de suivre les interventions de maintenance et nettoyage.
                 </Typography>
-                {(hasPermission('properties:create') || isAdmin() || isManager() || isHost()) && (
+                {(false || isAdmin() || isManager() || isHost()) && (
                   <Button
                     variant="contained"
                     startIcon={<Add />}
@@ -399,30 +399,64 @@ export default function PropertiesList() {
                   <CardContent sx={{ flexGrow: 1, ...createSpacing.card() }}>
                     {/* En-tête avec titre et menu */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
                         {getPropertyTypeIcon(property.type)}
-                        <Typography variant="h6" fontWeight={600} sx={{ wordBreak: 'break-word' }}>
+                        <Typography 
+                          variant="h6" 
+                          fontWeight={600} 
+                          sx={{ 
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            flex: 1
+                          }}
+                          title={property.name}
+                        >
                           {property.name}
                         </Typography>
                       </Box>
                       <IconButton
                         size="small"
                         onClick={(e) => handleMenuOpen(e, property)}
-                        sx={{ ml: 1 }}
+                        sx={{ ml: 1, flexShrink: 0 }}
                       >
                         <MoreVert />
                       </IconButton>
                     </Box>
 
                     {/* Description */}
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, minHeight: '3em' }}>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary" 
+                      sx={{ 
+                        mb: 2, 
+                        minHeight: '2.5em',
+                        maxHeight: '2.5em',
+                        overflow: 'hidden',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        lineHeight: 1.25
+                      }}
+                      title={property.description || 'Aucune description disponible'}
+                    >
                       {property.description || 'Aucune description disponible'}
                     </Typography>
 
                     {/* Localisation */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                      <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="text.secondary">
+                      <LocationOn sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0 }} />
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary"
+                        sx={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          flex: 1
+                        }}
+                        title={`${property.address}, ${property.postalCode} ${property.city}, ${property.country}`}
+                      >
                         {property.address}, {property.postalCode} {property.city}, {property.country}
                       </Typography>
                     </Box>
@@ -567,7 +601,7 @@ export default function PropertiesList() {
       </Dialog>
 
       {/* FAB pour ajouter rapidement - visible selon les permissions */}
-      {(hasPermission('properties:create') || isAdmin() || isManager() || isHost()) && (
+      {(false || isAdmin() || isManager() || isHost()) && (
         <Fab
           color="secondary"
           aria-label="add"

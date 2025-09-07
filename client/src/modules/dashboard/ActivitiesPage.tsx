@@ -34,23 +34,29 @@ import { createSpacing } from '../../theme/spacing';
 
 export default function ActivitiesPage() {
   const navigate = useNavigate();
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermissionAsync } = useAuth();
   const { activities, loading, error } = useDashboardStats();
   
-  // États pour les filtres
+  // TOUS les useState DOIVENT être déclarés AVANT tout autre code
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [canViewActivities, setCanViewActivities] = useState(false);
   
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canViewActivitiesPermission = await hasPermissionAsync('reports:view');
+      setCanViewActivities(canViewActivitiesPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
+
   console.log('🔍 ActivitiesPage - Rendu du composant avec hooks de base');
   console.log('🔍 ActivitiesPage - user:', user);
-  console.log('🔍 ActivitiesPage - hasPermission:', hasPermission);
   console.log('🔍 ActivitiesPage - activities:', activities);
   console.log('🔍 ActivitiesPage - loading:', loading);
   console.log('🔍 ActivitiesPage - error:', error);
-
-  // Vérifier les permissions
-  const canViewActivities = hasPermission('reports:view') || hasPermission('dashboard:view');
   console.log('🔍 ActivitiesPage - canViewActivities:', canViewActivities);
 
   // Fonctions utilitaires pour l'affichage des activités

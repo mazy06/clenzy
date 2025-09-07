@@ -31,7 +31,7 @@ import { InterventionStatus, INTERVENTION_STATUS_OPTIONS, Priority, PRIORITY_OPT
 export default function InterventionEdit() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermissionAsync } = useAuth();
   
   // États du composant
   const [loading, setLoading] = useState(false);
@@ -338,7 +338,16 @@ export default function InterventionEdit() {
   }, [formData, formDataExtended, formDataAdvanced, validateForm, navigate, id]);
   
   // Vérification des permissions
-  const canEditInterventions = hasPermission('interventions:edit');
+  const [canEditInterventions, setCanEditInterventions] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canEditInterventionsPermission = await hasPermissionAsync('interventions:edit');
+      setCanEditInterventions(canEditInterventionsPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);;
   
   if (!canEditInterventions) {
     return (

@@ -28,7 +28,23 @@ public class SecurityConfig {
                     "/swagger-ui.html",
                     "/swagger-ui/**",
                     "/h2-console/**",
-                    "/api/auth/**"
+                    "/api/auth/**",
+                    "/api/permissions/**",
+                    "/api/me",
+                    "/api/managers/all",
+                    "/api/managers/hosts",
+                    "/api/managers/operational-users",
+                    "/api/managers/teams",
+                    "/api/managers/properties/by-clients",
+                    "/api/managers/*/associations",
+                    "/api/managers/*/assign",
+                    "/api/managers/*/assign-teams-users",
+                    "/api/managers/*/reassign",
+                    "/api/managers/*/clients/*",
+                    "/api/managers/*/teams/*",
+                    "/api/managers/*/users/*",
+                    "/api/managers/*/properties/*",
+                    "/api/sync/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

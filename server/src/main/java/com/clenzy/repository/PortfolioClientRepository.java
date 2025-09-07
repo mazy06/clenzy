@@ -2,25 +2,43 @@ package com.clenzy.repository;
 
 import com.clenzy.model.PortfolioClient;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface PortfolioClientRepository extends JpaRepository<PortfolioClient, Long> {
     
-    // Trouver tous les clients d'un portefeuille
-    List<PortfolioClient> findByPortfolioId(Long portfolioId);
-    
-    // Trouver tous les clients actifs d'un portefeuille
+    /**
+     * Trouver tous les clients assignés à un portefeuille
+     */
     List<PortfolioClient> findByPortfolioIdAndIsActiveTrue(Long portfolioId);
     
-    // Trouver un client spécifique dans un portefeuille
-    Optional<PortfolioClient> findByPortfolioIdAndClientId(Long portfolioId, Long clientId);
+    /**
+     * Trouver tous les portefeuilles d'un client
+     */
+    List<PortfolioClient> findByClientIdAndIsActiveTrue(Long clientId);
     
-    // Vérifier si un client existe dans un portefeuille
+    /**
+     * Vérifier si un client est assigné à un portefeuille spécifique
+     */
+    boolean existsByPortfolioIdAndClientIdAndIsActiveTrue(Long portfolioId, Long clientId);
+    
+    /**
+     * Vérifier si un client est assigné à un portefeuille spécifique (sans vérifier isActive)
+     */
     boolean existsByPortfolioIdAndClientId(Long portfolioId, Long clientId);
     
-    // Trouver le portefeuille d'un client
-    Optional<PortfolioClient> findByClientIdAndIsActiveTrue(Long clientId);
+    /**
+     * Trouver l'assignation d'un client à un portefeuille
+     */
+    Optional<PortfolioClient> findByPortfolioIdAndClientIdAndIsActiveTrue(Long portfolioId, Long clientId);
+    
+    /**
+     * Trouver l'assignation d'un client à un portefeuille (sans vérifier isActive)
+     */
+    Optional<PortfolioClient> findByPortfolioIdAndClientId(Long portfolioId, Long clientId);
 }

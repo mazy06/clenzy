@@ -63,7 +63,7 @@ export interface ServiceRequestDetailsData {
 const ServiceRequestDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermissionAsync } = useAuth();
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -268,7 +268,16 @@ const ServiceRequestDetails: React.FC = () => {
   }
 
   // Vérifier les permissions pour l'édition
-  const canEdit = hasPermission('service-requests:edit');
+  const [canEdit, setCanEdit] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canEditPermission = await hasPermissionAsync('service-requests:edit');
+      setCanEdit(canEditPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);;
 
   return (
     <Box sx={{ p: 3 }}>

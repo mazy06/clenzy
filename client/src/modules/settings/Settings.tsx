@@ -39,13 +39,13 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 export default function Settings() {
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermissionAsync } = useAuth();
   const { settings: workflowSettings, updateSettings: updateWorkflowSettings } = useWorkflowSettings();
   const navigate = useNavigate();
   
   // Vérifier les permissions pour les paramètres
-  const canViewSettings = hasPermission('settings:view');
-  const canEditSettings = hasPermission('settings:edit');
+  const [canViewSettings, setCanViewSettings] = useState(false);
+  const [canEditSettings, setCanEditSettings] = useState(false);
   
   // TOUS les useState DOIVENT être déclarés AVANT les vérifications conditionnelles
   const [settings, setSettings] = useState({
@@ -74,8 +74,21 @@ export default function Settings() {
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  
-  // Attendre que l'utilisateur soit complètement chargé
+
+  // Vérifier les permissions au chargement
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const viewPermission = await hasPermissionAsync('settings:view');
+      const editPermission = await hasPermissionAsync('settings:edit');
+      
+      setCanViewSettings(viewPermission);
+      setCanEditSettings(editPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
+
+  // Attendre que l'utilisateur soit complètement chargé APRÈS tous les hooks
   if (!user) {
     console.log('🔍 Settings - Utilisateur en cours de chargement...');
     return (

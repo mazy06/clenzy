@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { API_CONFIG } from '../config/api';
+import PermissionSyncService from '../services/PermissionSyncService';
 
 export interface RolePermissions {
   role: string;
@@ -252,6 +253,16 @@ export const useRolePermissions = () => {
         // Si l'endpoint n'existe pas encore, on simule la sauvegarde
         if (response.status === 404) {
           console.log('🔧 useRolePermissions - Endpoint de sauvegarde non implémenté, simulation de la sauvegarde');
+          
+          // Déclencher la synchronisation même en mode simulation
+          try {
+            const permissionSyncService = PermissionSyncService.getInstance();
+            await permissionSyncService.syncAfterPermissionUpdate();
+            console.log('🔄 useRolePermissions - Synchronisation des permissions déclenchée après sauvegarde (simulation)');
+          } catch (syncError) {
+            console.warn('⚠️ useRolePermissions - Erreur lors de la synchronisation après sauvegarde (simulation):', syncError);
+          }
+          
           // Simuler une sauvegarde réussie
           return { success: true, message: 'Permissions sauvegardées (simulation)' };
         }
@@ -260,6 +271,17 @@ export const useRolePermissions = () => {
 
       const result = await response.json();
       console.log('💾 useRolePermissions - Permissions sauvegardées pour le rôle', role, result);
+      
+      // Déclencher la synchronisation des permissions pour tous les utilisateurs
+      try {
+        const permissionSyncService = PermissionSyncService.getInstance();
+        await permissionSyncService.syncAfterPermissionUpdate();
+        console.log('🔄 useRolePermissions - Synchronisation des permissions déclenchée après sauvegarde');
+      } catch (syncError) {
+        console.warn('⚠️ useRolePermissions - Erreur lors de la synchronisation après sauvegarde:', syncError);
+        // Ne pas faire échouer la sauvegarde à cause de la synchronisation
+      }
+      
       return result;
     } catch (err) {
       if (err instanceof Error && err.message.includes('404')) {

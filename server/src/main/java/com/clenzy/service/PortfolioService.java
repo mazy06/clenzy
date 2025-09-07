@@ -160,11 +160,11 @@ public class PortfolioService {
      * Trouver le manager responsable d'un HOST
      */
     public User findManagerForHost(User host) {
-        Optional<PortfolioClient> portfolioClient = portfolioClientRepository
+        List<PortfolioClient> portfolioClients = portfolioClientRepository
             .findByClientIdAndIsActiveTrue(host.getId());
         
-        if (portfolioClient.isPresent()) {
-            return portfolioClient.get().getPortfolio().getManager();
+        if (!portfolioClients.isEmpty()) {
+            return portfolioClients.get(0).getPortfolio().getManager();
         }
         
         throw new RuntimeException("Aucun manager trouvé pour ce HOST");

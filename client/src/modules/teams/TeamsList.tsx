@@ -58,7 +58,7 @@ interface TeamMember {
 
 const TeamsList: React.FC = () => {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermissionAsync } = useAuth();
   
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,6 +68,29 @@ const TeamsList: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
+  // États pour les permissions
+  const [permissions, setPermissions] = useState({
+    'teams:edit': false,
+    'teams:delete': false
+  });
+
+  // Vérifier toutes les permissions au chargement
+  useEffect(() => {
+    const checkAllPermissions = async () => {
+      const perms = await Promise.all([
+        hasPermissionAsync('teams:edit'),
+        hasPermissionAsync('teams:delete')
+      ]);
+      
+      setPermissions({
+        'teams:edit': perms[0],
+        'teams:delete': perms[1]
+      });
+    };
+    
+    checkAllPermissions();
+  }, [hasPermissionAsync]);
 
   // Fonction pour obtenir la couleur de bordure selon le type
   const getChipBorderColor = (type: string): string => {
@@ -472,7 +495,7 @@ const TeamsList: React.FC = () => {
           </ListItemIcon>
           Voir détails
         </MenuItem>
-        {hasPermission('teams:edit') && (
+        {permissions['teams:edit'] && (
           <MenuItem onClick={handleEdit}>
             <ListItemIcon>
               <Edit fontSize="small" />
@@ -480,7 +503,7 @@ const TeamsList: React.FC = () => {
             Modifier
           </MenuItem>
         )}
-        {hasPermission('teams:delete') && (
+        {permissions['teams:delete'] && (
           <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
             <ListItemIcon>
               <Delete fontSize="small" sx={{ color: 'error.main' }} />

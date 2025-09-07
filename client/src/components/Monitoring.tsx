@@ -44,7 +44,7 @@ const Monitoring: React.FC<MonitoringProps> = ({ isAdmin = false }) => {
             </Typography>
           </Box>
           
-          <TokenMonitoring isAdmin={true} />
+          <TokenMonitoring />
         </CardContent>
       </Card>
     </Box>

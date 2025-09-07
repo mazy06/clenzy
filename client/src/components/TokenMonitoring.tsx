@@ -1,374 +1,339 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Typography,
   Card,
   CardContent,
-  Grid,
+  Typography,
   Button,
+  Grid,
+  Badge,
   Chip,
   Alert,
-  CircularProgress,
-  Snackbar,
   LinearProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
   IconButton,
   Tooltip,
-  Badge
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
-  Security,
   Refresh,
   Delete,
-  TrendingUp,
-  TrendingDown,
+  Security,
+  Warning,
   CheckCircle,
   Error,
-  Warning,
-  Info
+  Info,
+  Visibility,
+  VisibilityOff
 } from '@mui/icons-material';
-import TokenService, { TokenStats, TokenMetrics, TokenValidationResult } from '../services/TokenService';
+import TokenService from '../services/TokenService';
 
-interface TokenMonitoringProps {
-  isAdmin?: boolean;
+interface TokenInfo {
+  tokenId: string;
+  subject: string;
+  issuer: string;
+  issuedAt: string;
+  expiresAt: string;
+  isValid: boolean;
+  timeUntilExpiry: number;
 }
 
-const TokenMonitoring: React.FC<TokenMonitoringProps> = ({ isAdmin = false }) => {
-  const [tokenStats, setTokenStats] = useState<TokenStats | null>(null);
-  const [tokenMetrics, setTokenMetrics] = useState<TokenMetrics | null>(null);
-  const [loading, setLoading] = useState(false);
+const TokenMonitoring: React.FC = () => {
+  const [tokenStats, setTokenStats] = useState<any>(null);
+  const [tokenMetrics, setTokenMetrics] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showTokenDetails, setShowTokenDetails] = useState(false);
+  const [selectedToken, setSelectedToken] = useState<TokenInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notification, setNotification] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'warning' | 'info';
-  }>({
-    open: false,
-    message: '',
-    severity: 'info'
-  });
 
-  const tokenService = new TokenService();
+  const tokenService = TokenService.getInstance();
 
-  const loadTokenStats = useCallback(async () => {
+  const loadTokenStats = async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
+      setError(null);
+      
       const stats = await tokenService.getBackendTokenStats();
-      setTokenStats(stats);
-      setError(null);
-    } catch (err) {
-      setError('Erreur lors du chargement des statistiques des tokens');
-      console.error('Erreur chargement stats:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const loadTokenMetrics = useCallback(async () => {
-    try {
-      setLoading(true);
       const metrics = await tokenService.getBackendTokenMetrics();
-      setTokenMetrics(metrics);
-      setError(null);
-    } catch (err) {
-      setError('Erreur lors du chargement des métriques des tokens');
-      console.error('Erreur chargement métriques:', err);
+      
+      if (stats) setTokenStats(stats);
+      if (metrics) setTokenMetrics(metrics);
+      
+    } catch (error) {
+      console.error('Erreur lors du chargement des statistiques:', error);
+      setError('Impossible de charger les statistiques des tokens');
     } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const handleCleanup = async () => {
-    try {
-      setLoading(true);
-      await tokenService.cleanupBackendTokens();
-      setNotification({
-        open: true,
-        message: 'Nettoyage des tokens expirés effectué avec succès',
-        severity: 'success'
-      });
-      await loadTokenStats(); // Recharger les stats
-    } catch (err) {
-      setNotification({
-        open: true,
-        message: 'Erreur lors du nettoyage des tokens',
-        severity: 'error'
-      });
-      console.error('Erreur nettoyage:', err);
-    } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const handleRefresh = () => {
-    loadTokenStats();
-    loadTokenMetrics();
+  const cleanupTokens = async () => {
+    try {
+      setIsLoading(true);
+      const result = await tokenService.cleanupExpiredTokens();
+      
+      if (result.success) {
+        console.log(`${result.cleanedCount} tokens nettoyés`);
+        await loadTokenStats(); // Recharger les stats
+      } else {
+        setError(`Erreur lors du nettoyage: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Erreur lors du nettoyage:', error);
+      setError('Erreur lors du nettoyage des tokens');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const validateToken = async (token: string) => {
+    try {
+      const result = await tokenService.validateTokenBackend(token);
+      if (result) {
+        console.log('Token validé:', result);
+        return result;
+      }
+    } catch (error) {
+      console.error('Erreur lors de la validation:', error);
+    }
+    return null;
+  };
+
+  const showTokenInfo = (token: TokenInfo) => {
+    setSelectedToken(token);
+    setShowTokenDetails(true);
   };
 
   useEffect(() => {
     loadTokenStats();
-    loadTokenMetrics();
-  }, [loadTokenStats, loadTokenMetrics]);
+  }, []);
 
-  if (!isAdmin) {
-    return (
-      <Alert severity="warning">
-        Accès restreint. Seuls les administrateurs peuvent accéder au monitoring des tokens.
-      </Alert>
-    );
-  }
+  const getCurrentTokenInfo = () => {
+    return tokenService.getCurrentTokenInfo();
+  };
+
+  const currentToken = getCurrentTokenInfo();
 
   return (
-    <Box>
-      {/* En-tête avec actions */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" component="h2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-          Monitoring des Tokens JWT
-        </Typography>
-        <Box>
-          <Tooltip title="Actualiser les données">
-            <IconButton onClick={handleRefresh} disabled={loading} color="primary">
-              <Refresh />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Nettoyer les tokens expirés">
-            <IconButton onClick={handleCleanup} disabled={loading} color="warning">
-              <Delete />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h4" gutterBottom>
+        🔐 Monitoring des Tokens
+      </Typography>
 
-      {/* Statistiques des tokens */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Security sx={{ mr: 1, color: 'primary.main' }} />
-                Statistiques des Tokens
-              </Typography>
-              
-              {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                  <CircularProgress size={24} />
-                </Box>
-              ) : tokenStats ? (
-                <Box>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Box sx={{ textAlign: 'center', p: 2 }}>
-                        <Typography variant="h4" color="primary">
-                          {(tokenStats.validTokens || 0) + (tokenStats.invalidTokens || 0) + (tokenStats.revokedTokens || 0) + (tokenStats.rejectedTokens || 0)}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Total Tokens
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Box sx={{ textAlign: 'center', p: 2 }}>
-                        <Typography variant="h4" color="success.main">
-                          {tokenStats.validTokens || 0}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Tokens Valides
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Box sx={{ textAlign: 'center', p: 2 }}>
-                        <Typography variant="h4" color="warning.main">
-                          {tokenStats.invalidTokens || 0}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Tokens Invalides
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Box sx={{ textAlign: 'center', p: 2 }}>
-                        <Typography variant="h4" color="error.main">
-                          {tokenStats.revokedTokens || 0}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Tokens Révoqués
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                </Box>
-              ) : (
-                <Typography color="text.secondary">Aucune donnée disponible</Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <TrendingUp sx={{ mr: 1, color: 'success.main' }} />
-                Métriques de Performance
-              </Typography>
-              
-              {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                  <CircularProgress size={24} />
-                </Box>
-              ) : tokenMetrics ? (
-                <Box>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Taux de Succès
-                    </Typography>
-                    <Typography variant="h6" color="success.main">
-                      {tokenMetrics.successRate}
-                    </Typography>
-                  </Box>
-                  
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Cache Hits
-                    </Typography>
-                    <Typography variant="h6" color="primary">
-                      {tokenMetrics.cacheHits}
-                    </Typography>
-                  </Box>
-                  
-                  <Box>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Erreurs
-                    </Typography>
-                    <Typography variant="h6" color="error.main">
-                      {tokenMetrics.errors}
-                    </Typography>
-                  </Box>
-                </Box>
-              ) : (
-                <Typography color="text.secondary">Aucune donnée disponible</Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* État du système */}
+      {/* Token actuel */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-            <Info sx={{ mr: 1, color: 'info.main' }} />
-            État du Système
+          <Typography variant="h6" gutterBottom>
+            Token Actuel
           </Typography>
           
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ textAlign: 'center', p: 2 }}>
-                <Badge badgeContent={tokenStats?.cacheSize || 0} color="primary">
-                  <Security sx={{ fontSize: 40, color: 'primary.main' }} />
-                </Badge>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Cache Actif
+          {currentToken.isAuthenticated ? (
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Typography variant="body2" color="text.secondary">
+                  Utilisateur: <strong>{currentToken.username || currentToken.userId}</strong>
                 </Typography>
-              </Box>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ textAlign: 'center', p: 2 }}>
-                <Badge badgeContent={tokenStats?.blacklistSize || 0} color="error">
-                  <Delete sx={{ fontSize: 40, color: 'error.main' }} />
-                </Badge>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Blacklist
+                <Typography variant="body2" color="text.secondary">
+                  Email: <strong>{currentToken.email || 'N/A'}</strong>
                 </Typography>
-              </Box>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ textAlign: 'center', p: 2 }}>
-                <CheckCircle sx={{ fontSize: 40, color: 'success.main' }} />
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Système OK
+                <Typography variant="body2" color="text.secondary">
+                  Rôles: <strong>{currentToken.roles?.join(', ') || 'Aucun'}</strong>
                 </Typography>
-              </Box>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="body2" color="text.secondary">
+                  Expire le: <strong>{currentToken.expiresAt || 'N/A'}</strong>
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Temps restant: <strong>{currentToken.timeUntilExpiry || 0}s</strong>
+                </Typography>
+                <Chip
+                  label={currentToken.isAuthenticated ? 'Authentifié' : 'Non authentifié'}
+                  color={currentToken.isAuthenticated ? 'success' : 'error'}
+                  size="small"
+                  sx={{ mt: 1 }}
+                />
+              </Grid>
             </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-                              <Box sx={{ textAlign: 'center', p: 2 }}>
-                  <Typography variant="h6" color="primary">
-                    {tokenStats?.lastCleanup || 'N/A'}
-                  </Typography>
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    Dernier Nettoyage
-                  </Typography>
-                </Box>
-            </Grid>
-          </Grid>
+          ) : (
+            <Alert severity="warning">
+              Aucun token actif trouvé
+            </Alert>
+          )}
         </CardContent>
       </Card>
 
-      {/* Actions d'administration */}
-      <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-            <Security sx={{ mr: 1, color: 'warning.main' }} />
-            Actions d'Administration
-          </Typography>
-          
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <Button
-              variant="outlined"
-              startIcon={<Refresh />}
-              onClick={handleRefresh}
-              disabled={loading}
-            >
-              Actualiser
-            </Button>
-            
-            <Button
-              variant="outlined"
-              color="warning"
-              startIcon={<Delete />}
-              onClick={handleCleanup}
-              disabled={loading}
-            >
-              Nettoyer les Tokens
-            </Button>
-            
-            <Button
-              variant="outlined"
-              color="info"
-              startIcon={<Info />}
-              disabled={loading}
-            >
-              Voir les Logs
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Notifications */}
-      <Snackbar
-        open={notification.open}
-        autoHideDuration={6000}
-        onClose={() => setNotification(prev => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setNotification(prev => ({ ...prev, open: false }))}
-          severity={notification.severity}
-          sx={{ width: '100%' }}
+      {/* Actions */}
+      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+        <Button
+          variant="contained"
+          onClick={loadTokenStats}
+          disabled={isLoading}
+          startIcon={<Refresh />}
         >
-          {notification.message}
-        </Alert>
-      </Snackbar>
+          {isLoading ? 'Chargement...' : 'Actualiser'}
+        </Button>
+        
+        <Button
+          variant="outlined"
+          onClick={cleanupTokens}
+          disabled={isLoading}
+          startIcon={<Delete />}
+          color="warning"
+        >
+          Nettoyer les tokens expirés
+        </Button>
+      </Box>
 
-      {/* Affichage des erreurs */}
+      {/* Statistiques */}
+      {tokenStats && (
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" color="primary">
+                  {tokenStats.totalTokens || 0}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Total des tokens
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" color="success">
+                  {tokenStats.activeTokens || 0}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Tokens actifs
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" color="error">
+                  {tokenStats.expiredTokens || 0}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Tokens expirés
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" color="info">
+                  {tokenStats.successRate || 'N/A'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Taux de succès
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* Métriques */}
+      {tokenMetrics && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Métriques des Tokens
+            </Typography>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={3}>
+                <Typography variant="body2" color="text.secondary">
+                  Rafraîchissements: <strong>{tokenMetrics.refreshCount || 0}</strong>
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <Typography variant="body2" color="text.secondary">
+                  Erreurs: <strong>{tokenMetrics.errorCount || 0}</strong>
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <Typography variant="body2" color="text.secondary">
+                  Dernier rafraîchissement: <strong>{tokenMetrics.lastRefresh || 'N/A'}</strong>
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <Typography variant="body2" color="text.secondary">
+                  Temps moyen: <strong>{tokenMetrics.averageRefreshTime || 0}ms</strong>
+                </Typography>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Gestion des erreurs */}
       {error && (
-        <Alert severity="error" sx={{ mt: 2 }}>
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
+
+      {/* Note sur l'architecture */}
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <Typography variant="body2">
+          💡 <strong>Architecture réactive :</strong> Ce composant utilise maintenant la nouvelle interface 
+          de TokenService avec le pattern Observer pour une gestion intelligente des tokens !
+        </Typography>
+      </Alert>
+
+      {/* Dialog pour les détails du token */}
+      <Dialog open={showTokenDetails} onClose={() => setShowTokenDetails(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Détails du Token</DialogTitle>
+        <DialogContent>
+          {selectedToken && (
+            <Box>
+              <Typography variant="body2" gutterBottom>
+                <strong>ID:</strong> {selectedToken.tokenId}
+              </Typography>
+              <Typography variant="body2" gutterBottom>
+                <strong>Sujet:</strong> {selectedToken.subject}
+              </Typography>
+              <Typography variant="body2" gutterBottom>
+                <strong>Émetteur:</strong> {selectedToken.issuer}
+              </Typography>
+              <Typography variant="body2" gutterBottom>
+                <strong>Émis le:</strong> {selectedToken.issuedAt}
+              </Typography>
+              <Typography variant="body2" gutterBottom>
+                <strong>Expire le:</strong> {selectedToken.expiresAt}
+              </Typography>
+              <Typography variant="body2" gutterBottom>
+                <strong>Valide:</strong> {selectedToken.isValid ? 'Oui' : 'Non'}
+              </Typography>
+              <Typography variant="body2" gutterBottom>
+                <strong>Temps restant:</strong> {selectedToken.timeUntilExpiry}s
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowTokenDetails(false)}>Fermer</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

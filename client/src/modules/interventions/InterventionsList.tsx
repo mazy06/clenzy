@@ -185,7 +185,7 @@ const formatDuration = (hours: number) => {
 
 export default function InterventionsList() {
   const navigate = useNavigate();
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermissionAsync } = useAuth();
   
   // TOUS les useState DOIVENT être déclarés AVANT les vérifications conditionnelles
   const [interventions, setInterventions] = useState<Intervention[]>([]);
@@ -200,22 +200,35 @@ export default function InterventionsList() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedPriority, setSelectedPriority] = useState('all');
 
-  // Vérifier les permissions pour les interventions
-  const canViewInterventions = hasPermission('interventions:view');
-  const canCreateInterventions = hasPermission('interventions:create');
-  const canEditInterventions = hasPermission('interventions:edit');
-  const canDeleteInterventions = hasPermission('interventions:delete');
-
-  // Debug des permissions
-  console.log('🔍 InterventionsList - Debug des permissions:', {
-    user: user?.email,
-    roles: user?.roles,
-    permissions: user?.permissions,
-    canViewInterventions,
-    canCreateInterventions,
-    canEditInterventions,
-    canDeleteInterventions
-  });
+  // Vérifier les permissions pour les interventions - TOUS les useState AVANT les useEffect
+  const [canViewInterventions, setCanViewInterventions] = useState(false);
+  const [canCreateInterventions, setCanCreateInterventions] = useState(false);
+  const [canEditInterventions, setCanEditInterventions] = useState(false);
+  const [canDeleteInterventions, setCanDeleteInterventions] = useState(false);
+  
+  // Vérifier toutes les permissions en une seule fois
+  useEffect(() => {
+    const checkAllPermissions = async () => {
+      const [
+        canView,
+        canCreate,
+        canEdit,
+        canDelete
+      ] = await Promise.all([
+        hasPermissionAsync('interventions:view'),
+        hasPermissionAsync('interventions:create'),
+        hasPermissionAsync('interventions:edit'),
+        hasPermissionAsync('interventions:delete')
+      ]);
+      
+      setCanViewInterventions(canView);
+      setCanCreateInterventions(canCreate);
+      setCanEditInterventions(canEdit);
+      setCanDeleteInterventions(canDelete);
+    };
+    
+    checkAllPermissions();
+  }, [hasPermissionAsync]);
 
   // Chargement automatique des interventions avec useEffect
   React.useEffect(() => {
@@ -225,6 +238,17 @@ export default function InterventionsList() {
       loadInterventions();
     }
   }, []); // Dépendances vides - exécuté une seule fois au montage
+
+  // Debug des permissions APRÈS tous les hooks
+  console.log('🔍 InterventionsList - Debug des permissions:', {
+    user: user?.email,
+    roles: user?.roles,
+    permissions: user?.permissions,
+    canViewInterventions,
+    canCreateInterventions,
+    canEditInterventions,
+    canDeleteInterventions
+  });
 
   // Fonction de chargement des interventions
   const loadInterventions = async () => {

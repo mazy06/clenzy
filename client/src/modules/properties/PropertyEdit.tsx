@@ -81,8 +81,9 @@ interface TemporaryOwner {
 const PropertyEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, hasPermission, isAdmin, isManager, isHost } = useAuth();
+  const { user, hasPermissionAsync, isAdmin, isManager, isHost } = useAuth();
   
+  // TOUS les useState DOIVENT être déclarés AVANT tout useEffect
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,8 +96,7 @@ const PropertyEdit: React.FC = () => {
     lastName: '',
     email: '',
   });
-  
-  // IMPORTANT: déclarer tous les hooks avant tout retour conditionnel
+  const [canEdit, setCanEdit] = useState(false);
   const [formData, setFormData] = useState<PropertyFormData>({
     name: '',
     address: '',
@@ -114,6 +114,16 @@ const PropertyEdit: React.FC = () => {
     cleaningFrequency: 'after_each_stay',
     ownerId: 0,
   });
+
+  // Vérifier les permissions au chargement
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canEditPermission = await hasPermissionAsync('properties:edit');
+      setCanEdit(canEditPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
 
   // Charger les données de la propriété
   useEffect(() => {
@@ -197,7 +207,7 @@ const PropertyEdit: React.FC = () => {
   }, [isHost, user?.id]);
 
   // Vérifier les permissions APRÈS tous les hooks
-  if (!hasPermission('properties:edit')) {
+  if (!canEdit) {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">

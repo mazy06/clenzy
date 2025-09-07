@@ -1,23 +1,57 @@
-import React from 'react';
-import { Box, Card, CardContent, Typography, Button, Chip, Grid } from '@mui/material';
-import { usePermissions } from '../hooks/usePermissions';
+import React, { useState, useEffect } from 'react';
+import { Box, Card, CardContent, Typography, Button, Chip, Grid, Divider } from '@mui/material';
+import { useAuth } from '../hooks/useAuth';
+import { TokenHealthMonitor } from './TokenHealthMonitor';
 
 const PermissionDemo: React.FC = () => {
-  const { hasPermission, isCustomMode } = usePermissions();
+  const { hasPermissionAsync } = useAuth();
+  
+  // États pour les permissions
+  const [permissions, setPermissions] = useState({
+    'properties:view': false,
+    'properties:create': false,
+    'users:manage': false,
+    'teams:view': false
+  });
+
+  // Vérifier toutes les permissions au chargement
+  useEffect(() => {
+    const checkAllPermissions = async () => {
+      const perms = await Promise.all([
+        hasPermissionAsync('properties:view'),
+        hasPermissionAsync('properties:create'),
+        hasPermissionAsync('users:manage'),
+        hasPermissionAsync('teams:view')
+      ]);
+      
+      setPermissions({
+        'properties:view': perms[0],
+        'properties:create': perms[1],
+        'users:manage': perms[2],
+        'teams:view': perms[3]
+      });
+    };
+    
+    checkAllPermissions();
+  }, [hasPermissionAsync]);
 
   return (
     <Box sx={{ p: 2 }}>
+      {/* Moniteur de santé des tokens */}
+      <TokenHealthMonitor />
+      
+      <Divider sx={{ my: 3 }} />
+      
+      {/* Démonstration des permissions */}
       <Card>
         <CardContent>
           <Typography variant="h6" gutterBottom>
             🧪 Démonstration des Permissions
           </Typography>
           
-          {isCustomMode && (
-            <Typography variant="body2" color="error" sx={{ mb: 2 }}>
-              ⚠️ Mode personnalisé activé - Les permissions sont modifiées en temps réel !
-            </Typography>
-          )}
+          <Typography variant="body2" color="info" sx={{ mb: 2 }}>
+            💡 Les permissions sont récupérées directement depuis Redis !
+          </Typography>
 
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
@@ -30,11 +64,11 @@ const PermissionDemo: React.FC = () => {
                   <Chip
                     label="Propriétés"
                     size="small"
-                    color={hasPermission('properties:view') ? 'success' : 'default'}
-                    variant={hasPermission('properties:view') ? 'filled' : 'outlined'}
+                    color={permissions['properties:view'] ? 'success' : 'default'}
+                    variant={permissions['properties:view'] ? 'filled' : 'outlined'}
                   />
                   <Typography variant="body2">
-                    {hasPermission('properties:view') ? '✅ Accessible' : '❌ Inaccessible'}
+                    {permissions['properties:view'] ? '✅ Accessible' : '❌ Inaccessible'}
                   </Typography>
                 </Box>
 
@@ -42,11 +76,11 @@ const PermissionDemo: React.FC = () => {
                   <Chip
                     label="Créer propriété"
                     size="small"
-                    color={hasPermission('properties:create') ? 'success' : 'default'}
-                    variant={hasPermission('properties:create') ? 'filled' : 'outlined'}
+                    color={permissions['properties:create'] ? 'success' : 'default'}
+                    variant={permissions['properties:create'] ? 'filled' : 'outlined'}
                   />
                   <Typography variant="body2">
-                    {hasPermission('properties:create') ? '✅ Accessible' : '❌ Inaccessible'}
+                    {permissions['properties:create'] ? '✅ Accessible' : '❌ Inaccessible'}
                   </Typography>
                 </Box>
 
@@ -54,11 +88,11 @@ const PermissionDemo: React.FC = () => {
                   <Chip
                     label="Gérer utilisateurs"
                     size="small"
-                    color={hasPermission('users:manage') ? 'success' : 'default'}
-                    variant={hasPermission('users:manage') ? 'filled' : 'outlined'}
+                    color={permissions['users:manage'] ? 'success' : 'default'}
+                    variant={permissions['users:manage'] ? 'filled' : 'outlined'}
                   />
                   <Typography variant="body2">
-                    {hasPermission('users:manage') ? '✅ Accessible' : '❌ Inaccessible'}
+                    {permissions['users:manage'] ? '✅ Accessible' : '❌ Inaccessible'}
                   </Typography>
                 </Box>
 
@@ -66,11 +100,11 @@ const PermissionDemo: React.FC = () => {
                   <Chip
                     label="Voir équipes"
                     size="small"
-                    color={hasPermission('teams:view') ? 'success' : 'default'}
-                    variant={hasPermission('teams:view') ? 'filled' : 'outlined'}
+                    color={permissions['teams:view'] ? 'success' : 'default'}
+                    variant={permissions['teams:view'] ? 'filled' : 'outlined'}
                   />
                   <Typography variant="body2">
-                    {hasPermission('teams:view') ? '✅ Accessible' : '❌ Inaccessible'}
+                    {permissions['teams:view'] ? '✅ Accessible' : '❌ Inaccessible'}
                   </Typography>
                 </Box>
               </Box>
@@ -82,36 +116,34 @@ const PermissionDemo: React.FC = () => {
               </Typography>
               
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {hasPermission('properties:create') && (
+                {permissions['properties:create'] && (
                   <Button variant="contained" color="primary" size="small">
                     ➕ Créer une propriété
                   </Button>
                 )}
                 
-                {hasPermission('users:manage') && (
+                {permissions['users:manage'] && (
                   <Button variant="contained" color="secondary" size="small">
                     👥 Gérer les utilisateurs
                   </Button>
                 )}
                 
-                {hasPermission('teams:view') && (
+                {permissions['teams:view'] && (
                   <Button variant="outlined" color="primary" size="small">
                     👥 Voir les équipes
                   </Button>
                 )}
-                
-                {!hasPermission('properties:view') && (
-                  <Typography variant="body2" color="error">
-                    ⚠️ Vous n'avez pas accès aux propriétés
-                  </Typography>
-                )}
               </Box>
             </Grid>
           </Grid>
-
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            💡 Ce composant se met à jour automatiquement selon vos permissions actuelles !
-          </Typography>
+          
+          {/* Note sur l'architecture */}
+          <Box sx={{ mt: 3, p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
+            <Typography variant="caption" color="success.contrastText">
+              🚀 <strong>Architecture moderne :</strong> Cette page démontre l'utilisation 
+              de Redis pour les permissions et d'un système d'événements réactif pour la santé des tokens !
+            </Typography>
+          </Box>
         </CardContent>
       </Card>
     </Box>

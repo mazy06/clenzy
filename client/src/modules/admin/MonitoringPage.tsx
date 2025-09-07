@@ -105,7 +105,7 @@ const MonitoringPage: React.FC = () => {
         </Box>
 
         <TabPanel value={tabValue} index={0}>
-          <TokenMonitoring isAdmin={true} />
+          <TokenMonitoring />
         </TabPanel>
 
         <TabPanel value={tabValue} index={1}>

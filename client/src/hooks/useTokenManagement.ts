@@ -1,142 +1,214 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import TokenService, { TokenValidationResult } from '../services/TokenService';
+import { useState, useEffect, useCallback } from 'react';
+import TokenService from '../services/TokenService';
 
-interface TokenManagementState {
-  isTokenValid: boolean;
-  timeUntilExpiry: number;
-  isLoading: boolean;
+export interface TokenManagementState {
+  isRefreshing: boolean;
+  lastRefresh: Date | null;
+  refreshCount: number;
   error: string | null;
+  tokenHealth: {
+    isHealthy: boolean;
+    timeUntilExpiry: number;
+    status: 'healthy' | 'expiring' | 'expired' | 'error';
+  };
 }
 
-interface TokenManagementActions {
-  validateToken: () => Promise<void>;
-  refreshToken: () => Promise<void>;
-  resetTokenService: () => void;
-  getTokenStats: () => Promise<any>;
-}
-
-export const useTokenManagement = (): TokenManagementState & TokenManagementActions => {
+export const useTokenManagement = () => {
   const [state, setState] = useState<TokenManagementState>({
-    isTokenValid: false,
-    timeUntilExpiry: 0,
-    isLoading: false,
-    error: null
+    isRefreshing: false,
+    lastRefresh: null,
+    refreshCount: 0,
+    error: null,
+    tokenHealth: {
+      isHealthy: false,
+      timeUntilExpiry: 0,
+      status: 'error'
+    }
   });
 
-  const tokenService = useRef(new TokenService());
-  const validationInterval = useRef<number | null>(null);
+  const tokenService = TokenService.getInstance();
 
-  // Validation automatique du token
-  const validateToken = useCallback(async () => {
+  // Vérifier la santé du token
+  const checkTokenHealth = useCallback(async () => {
     try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      
-      const tokenInfo = tokenService.current.getCurrentTokenInfo();
-      
-      if (tokenInfo && tokenInfo.isValid) {
-        setState(prev => ({
-          ...prev,
-          isTokenValid: true,
-          timeUntilExpiry: tokenInfo.timeUntilExpiry || 0,
-          isLoading: false
-        }));
-      } else {
-        setState(prev => ({
-          ...prev,
-          isTokenValid: false,
-          timeUntilExpiry: 0,
-          isLoading: false
-        }));
-      }
+      const healthInfo = await tokenService.manualHealthCheck();
+      setState(prev => ({
+        ...prev,
+        tokenHealth: {
+          isHealthy: healthInfo.isHealthy,
+          timeUntilExpiry: healthInfo.timeUntilExpiry || 0,
+          status: healthInfo.status
+        },
+        error: null
+      }));
     } catch (error) {
       setState(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Erreur de validation du token',
-        isLoading: false
+        error: 'Erreur lors de la vérification de la santé du token',
+        tokenHealth: {
+          isHealthy: false,
+          timeUntilExpiry: 0,
+          status: 'error'
+        }
       }));
     }
-  }, []);
+  }, [tokenService]);
 
-  // Rafraîchissement du token
+  // Rafraîchir le token
   const refreshToken = useCallback(async () => {
     try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      setState(prev => ({ ...prev, isRefreshing: true, error: null }));
       
-      const result = await tokenService.current.refreshToken();
+      const result = await tokenService.refreshTokenWithRetry();
       
-      if (result.success) {
-        await validateToken(); // Revalider après rafraîchissement
+      if (result) {
+        setState(prev => ({
+          ...prev,
+          isRefreshing: false,
+          lastRefresh: new Date(),
+          refreshCount: prev.refreshCount + 1,
+          error: null
+        }));
+        
+        // Vérifier la santé après le rafraîchissement
+        await checkTokenHealth();
       } else {
         setState(prev => ({
           ...prev,
-          error: result.error || 'Échec du rafraîchissement du token',
-          isLoading: false
+          isRefreshing: false,
+          error: 'Échec du rafraîchissement du token'
         }));
       }
     } catch (error) {
       setState(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Erreur lors du rafraîchissement',
-        isLoading: false
+        isRefreshing: false,
+        error: 'Erreur lors du rafraîchissement du token'
       }));
     }
-  }, [validateToken]);
+  }, [tokenService, checkTokenHealth]);
 
-  // Réinitialisation du service
-  const resetTokenService = useCallback(() => {
-    // Nettoyer le localStorage
-    localStorage.removeItem('clenzy_token');
-    localStorage.removeItem('clenzy_refresh_token');
-    localStorage.removeItem('clenzy_token_expiry');
-    
-    setState({
-      isTokenValid: false,
-      timeUntilExpiry: 0,
-      isLoading: false,
-      error: null
-    });
-  }, []);
+  // Forcer une vérification de santé
+  const forceHealthCheck = useCallback(async () => {
+    await checkTokenHealth();
+  }, [checkTokenHealth]);
 
-  // Récupération des statistiques des tokens
-  const getTokenStats = useCallback(async () => {
+  // Obtenir les informations du token actuel
+  const getCurrentTokenInfo = useCallback(() => {
+    return tokenService.getCurrentTokenInfo();
+  }, [tokenService]);
+
+  // Nettoyer les tokens expirés
+  const cleanupExpiredTokens = useCallback(async () => {
     try {
-      return await tokenService.current.getCurrentTokenInfo();
-    } catch (error) {
-      console.error('Erreur lors de la récupération des statistiques:', error);
-      return null;
-    }
-  }, []);
-
-  // Configuration de la validation automatique
-  useEffect(() => {
-    // Validation initiale
-    validateToken();
-
-    // Configuration de la validation périodique (toutes les 30 secondes)
-    validationInterval.current = window.setInterval(() => {
-      validateToken();
-    }, 30000);
-
-    // Nettoyage à la destruction du composant
-    return () => {
-      if (validationInterval.current) {
-        clearInterval(validationInterval.current);
+      setState(prev => ({ ...prev, error: null }));
+      const result = await tokenService.cleanupExpiredTokens();
+      
+      if (result.success) {
+        console.log(`${result.cleanedCount} tokens nettoyés`);
+        // Vérifier la santé après le nettoyage
+        await checkTokenHealth();
+      } else {
+        setState(prev => ({
+          ...prev,
+          error: `Erreur lors du nettoyage: ${result.error}`
+        }));
       }
-    };
-  }, [validateToken]);
-
-  // Validation automatique quand le token approche de l'expiration
-  useEffect(() => {
-    if (state.timeUntilExpiry > 0 && state.timeUntilExpiry <= 300) { // 5 minutes avant expiration
-      refreshToken();
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        error: 'Erreur lors du nettoyage des tokens'
+      }));
     }
-  }, [state.timeUntilExpiry, refreshToken]);
+  }, [tokenService, checkTokenHealth]);
+
+  // Écouter les événements de token
+  useEffect(() => {
+    const handleTokenRefreshed = () => {
+      setState(prev => ({
+        ...prev,
+        lastRefresh: new Date(),
+        refreshCount: prev.refreshCount + 1,
+        error: null
+      }));
+    };
+
+    const handleTokenExpiring = (data: any) => {
+      setState(prev => ({
+        ...prev,
+        tokenHealth: {
+          ...prev.tokenHealth,
+          status: 'expiring',
+          timeUntilExpiry: data.timeUntilExpiry || 0
+        }
+      }));
+    };
+
+    const handleTokenExpired = () => {
+      setState(prev => ({
+        ...prev,
+        tokenHealth: {
+          isHealthy: false,
+          timeUntilExpiry: 0,
+          status: 'expired'
+        }
+      }));
+    };
+
+    const handleAuthFailed = (data: any) => {
+      setState(prev => ({
+        ...prev,
+        error: data.error || 'Échec d\'authentification',
+        tokenHealth: {
+          isHealthy: false,
+          timeUntilExpiry: 0,
+          status: 'error'
+        }
+      }));
+    };
+
+    // S'abonner aux événements
+    tokenService.on('token-refreshed', handleTokenRefreshed);
+    tokenService.on('token-expiring', handleTokenExpiring);
+    tokenService.on('token-expired', handleTokenExpired);
+    tokenService.on('auth-failed', handleAuthFailed);
+
+    // Vérification initiale
+    checkTokenHealth();
+
+    // Cleanup des listeners
+    return () => {
+      tokenService.off('token-refreshed', handleTokenRefreshed);
+      tokenService.off('token-expiring', handleTokenExpiring);
+      tokenService.off('token-expired', handleTokenExpired);
+      tokenService.off('auth-failed', handleAuthFailed);
+    };
+  }, [tokenService, checkTokenHealth]);
+
+  // Vérification périodique de la santé
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Vérifier seulement si le token est proche de l'expiration
+      if (state.tokenHealth.status === 'expiring' && state.tokenHealth.timeUntilExpiry <= 60) {
+        checkTokenHealth();
+      }
+    }, 30000); // 30 secondes
+
+    return () => clearInterval(interval);
+  }, [state.tokenHealth.status, state.tokenHealth.timeUntilExpiry, checkTokenHealth]);
 
   return {
     ...state,
-    validateToken,
     refreshToken,
-    resetTokenService,
-    getTokenStats
+    checkTokenHealth,
+    forceHealthCheck,
+    getCurrentTokenInfo,
+    cleanupExpiredTokens,
+    // Utilitaires
+    isExpiringSoon: state.tokenHealth.status === 'expiring' && state.tokenHealth.timeUntilExpiry <= 60,
+    isCritical: state.tokenHealth.status === 'expiring' && state.tokenHealth.timeUntilExpiry <= 10,
+    timeUntilExpiryFormatted: state.tokenHealth.timeUntilExpiry > 0 
+      ? `${Math.floor(state.tokenHealth.timeUntilExpiry / 60)}m ${state.tokenHealth.timeUntilExpiry % 60}s`
+      : 'Expiré'
   };
 };

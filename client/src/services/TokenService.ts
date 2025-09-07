@@ -1,52 +1,68 @@
+import Keycloak from 'keycloak-js';
 import keycloak from '../keycloak';
 import { buildApiUrl } from '../config/api';
 
-// Types pour les tokens
-export interface TokenInfo {
-  tokenId: string;
-  subject: string;
-  issuer: string;
-  issuedAt: string;
-  expiresAt: string;
-  isValid: boolean;
-  timeUntilExpiry: number;
+// Types pour les événements de token
+export interface TokenEventData {
+  timestamp: number;
+  userId?: string;
+  error?: string;
+  retryCount?: number;
+  timeUntilExpiry?: number;
 }
 
 export interface TokenStats {
-  cacheSize: number;
-  blacklistSize: number;
-  validTokens: number;
-  invalidTokens: number;
-  revokedTokens: number;
-  rejectedTokens: number;
-  cacheHits: number;
-  errors: number;
-  lastCleanup: string;
-}
-
-export interface TokenValidationResult {
-  valid: boolean;
-  error?: string;
-  tokenInfo?: TokenInfo;
-}
-
-export interface TokenMetrics {
-  validTokens: number;
-  invalidTokens: number;
-  revokedTokens: number;
-  rejectedTokens: number;
-  cacheHits: number;
-  errors: number;
   totalTokens: number;
+  activeTokens: number;
+  expiredTokens: number;
   successRate: string;
 }
 
+export interface TokenMetrics {
+  refreshCount: number;
+  errorCount: number;
+  lastRefresh: string;
+  averageRefreshTime: number;
+}
+
+export interface TokenValidationResult {
+  isValid: boolean;
+  expiresAt?: string;
+  timeUntilExpiry?: number;
+  error?: string;
+}
+
+// Événements supportés par le service
+export type TokenEvent = 
+  | 'token-expiring' 
+  | 'token-expired' 
+  | 'auth-changed' 
+  | 'auth-failed'
+  | 'token-refreshed'
+  | 'token-health-check';
+
 class TokenService {
-  private tokenRefreshInterval: number | null = null;
+  private static instance: TokenService;
+  private listeners: Map<TokenEvent, Function[]> = new Map();
   private isInitialized = false;
+  private retryCount = 0;
+  private maxRetries = 3;
+  private lastHealthCheck = 0;
+  private healthCheckInterval = 30000; // 30 secondes entre les vérifications
 
   constructor() {
-    this.initializeMultiTabSupport();
+    // Ne pas initialiser immédiatement, attendre l'appel à initialize()
+    console.log('TokenService - Instance créée, initialisation différée');
+  }
+
+  /**
+   * Obtient l'instance singleton du service
+   */
+  static getInstance(): TokenService {
+    if (!TokenService.instance) {
+      TokenService.instance = new TokenService();
+    }
+    return TokenService.instance;
   }
 
   /**
@@ -64,8 +80,11 @@ class TokenService {
         return false;
       }
 
-      // Démarrer le rafraîchissement automatique des tokens
-      this.startTokenRefresh();
+      // Initialiser le support multi-onglets
+      this.initializeMultiTabSupport();
+      
+      // Démarrer la surveillance de santé des tokens
+      this.startTokenHealthMonitoring();
       
       this.isInitialized = true;
       console.log('TokenService - Service initialisé avec succès');
@@ -78,19 +97,124 @@ class TokenService {
   }
 
   /**
-   * Démarre le rafraîchissement automatique des tokens
+   * Démarre la surveillance de santé des tokens (sans polling automatique)
    */
-  private startTokenRefresh(): void {
-    if (this.tokenRefreshInterval) {
-      clearInterval(this.tokenRefreshInterval);
+  private startTokenHealthMonitoring(): void {
+    // Vérification initiale
+    this.checkTokenHealth();
+    
+    // Vérification périodique légère (seulement pour la surveillance)
+    setInterval(() => {
+      this.checkTokenHealth();
+    }, this.healthCheckInterval);
+  }
+
+  /**
+   * Vérifie la santé du token et déclenche les actions appropriées
+   */
+  async checkTokenHealth(): Promise<void> {
+    if (!keycloak.authenticated) return;
+    
+    const now = Date.now();
+    if (now - this.lastHealthCheck < this.healthCheckInterval) {
+      return; // Éviter les vérifications trop fréquentes
     }
+    
+    this.lastHealthCheck = now;
+    
+    try {
+      // Vérifier l'expiration du token
+      const tokenExp = keycloak.tokenParsed?.exp;
+      if (!tokenExp) {
+        this.notify('auth-changed', { error: 'Token invalide', timestamp: now });
+        return;
+      }
+      
+      const currentTime = Math.floor(now / 1000);
+      const timeUntilExpiry = tokenExp - currentTime;
+      
+      if (timeUntilExpiry <= 60) { // 1 minute avant expiration
+        this.notify('token-expiring', { 
+          timeUntilExpiry, 
+          timestamp: now,
+          userId: keycloak.tokenParsed?.sub 
+        });
+        await this.refreshTokenWithRetry();
+      } else if (timeUntilExpiry <= 0) {
+        this.notify('token-expired', { 
+          timestamp: now,
+          userId: keycloak.tokenParsed?.sub 
+        });
+        // Déclencher re-login ou redirection
+        this.handleTokenExpired();
+      } else {
+        // Token en bonne santé
+        this.notify('token-health-check', { 
+          timeUntilExpiry, 
+          timestamp: now,
+          userId: keycloak.tokenParsed?.sub 
+        });
+      }
+    } catch (error) {
+      this.notify('auth-changed', { 
+        error: error instanceof Error ? error.message : String(error), 
+        timestamp: now 
+      });
+    }
+  }
 
-    // Rafraîchir le token toutes les 4 minutes (token valide 5 minutes)
-    this.tokenRefreshInterval = setInterval(async () => {
-      await this.refreshToken();
-    }, 4 * 60 * 1000);
+  /**
+   * Gère l'expiration du token
+   */
+  private handleTokenExpired(): void {
+    console.log('TokenService - Token expiré, tentative de re-login...');
+    
+    // Essayer de rafraîchir le token
+    this.refreshTokenWithRetry().catch(() => {
+      // Si le rafraîchissement échoue, forcer la re-connexion
+      console.log('TokenService - Re-login forcé...');
+      keycloak.logout();
+    });
+  }
 
-    console.log('TokenService - Rafraîchissement automatique des tokens démarré');
+  /**
+   * Rafraîchit le token avec retry intelligent
+   */
+  async refreshTokenWithRetry(): Promise<boolean> {
+    try {
+      const result = await this.refreshToken();
+      if (result.success) {
+        this.retryCount = 0; // Reset en cas de succès
+        this.notify('token-refreshed', { 
+          timestamp: Date.now(),
+          userId: keycloak.tokenParsed?.sub 
+        });
+        return true;
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      this.retryCount++;
+      
+      if (this.retryCount <= this.maxRetries) {
+        // Backoff exponentiel : 1s, 2s, 4s
+        const delay = Math.pow(2, this.retryCount - 1) * 1000;
+        console.log(`TokenService - Retry ${this.retryCount}/${this.maxRetries} dans ${delay}ms...`);
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.refreshTokenWithRetry();
+      }
+      
+      // Trop d'échecs, déclencher re-login
+      this.notify('auth-failed', { 
+        error: error instanceof Error ? error.message : String(error), 
+        retryCount: this.retryCount,
+        timestamp: Date.now()
+      });
+      
+      console.error('TokenService - Échec du rafraîchissement après tous les retries');
+      return false;
+    }
   }
 
   /**
@@ -122,6 +246,76 @@ class TokenService {
         success: false,
         error: `Échec du rafraîchissement du token: ${error instanceof Error ? error.message : String(error)}`
       };
+    }
+  }
+
+  /**
+   * Écouter les événements de token
+   */
+  on(event: TokenEvent, callback: Function): void {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, []);
+    }
+    this.listeners.get(event)!.push(callback);
+  }
+
+  /**
+   * Supprimer un listener
+   */
+  off(event: TokenEvent, callback: Function): void {
+    const callbacks = this.listeners.get(event);
+    if (callbacks) {
+      const index = callbacks.indexOf(callback);
+      if (index > -1) {
+        callbacks.splice(index, 1);
+      }
+    }
+  }
+
+  /**
+   * Notifier tous les listeners d'un événement
+   */
+  private notify(event: TokenEvent, data?: TokenEventData): void {
+    const callbacks = this.listeners.get(event) || [];
+    callbacks.forEach(callback => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error(`TokenService - Erreur dans le listener pour l'événement ${event}:`, error);
+      }
+    });
+  }
+
+  /**
+   * Vérifier manuellement la santé du token (pour les composants React)
+   */
+  async manualHealthCheck(): Promise<{
+    isHealthy: boolean;
+    timeUntilExpiry?: number;
+    status: 'healthy' | 'expiring' | 'expired' | 'error';
+  }> {
+    try {
+      if (!keycloak.authenticated) {
+        return { isHealthy: false, status: 'error' };
+      }
+
+      const tokenExp = keycloak.tokenParsed?.exp;
+      if (!tokenExp) {
+        return { isHealthy: false, status: 'error' };
+      }
+
+      const currentTime = Math.floor(Date.now() / 1000);
+      const timeUntilExpiry = tokenExp - currentTime;
+
+      if (timeUntilExpiry <= 0) {
+        return { isHealthy: false, status: 'expired' };
+      } else if (timeUntilExpiry <= 60) {
+        return { isHealthy: true, timeUntilExpiry, status: 'expiring' };
+      } else {
+        return { isHealthy: true, timeUntilExpiry, status: 'healthy' };
+      }
+    } catch (error) {
+      return { isHealthy: false, status: 'error' };
     }
   }
 
@@ -193,15 +387,10 @@ class TokenService {
 
       if (response.ok) {
         const result = await response.json();
-        if (result.valid) {
-          console.log('TokenService - Token validé côté backend:', result);
-          return result;
-        } else {
-          console.warn('TokenService - Token invalide côté backend:', result.error);
-          return null;
-        }
+        console.log('TokenService - Validation backend réussie:', result);
+        return result;
       } else {
-        console.warn('TokenService - Erreur lors de la validation backend:', response.status);
+        console.warn('TokenService - Échec de la validation backend:', response.status);
         return null;
       }
     } catch (error) {
@@ -213,7 +402,7 @@ class TokenService {
   /**
    * Nettoie les tokens expirés côté backend
    */
-  async cleanupBackendTokens(): Promise<boolean> {
+  async cleanupExpiredTokens(): Promise<{ success: boolean; cleanedCount?: number; error?: string }> {
     try {
       const response = await fetch(buildApiUrl('/admin/tokens/cleanup'), {
         method: 'POST',
@@ -225,16 +414,68 @@ class TokenService {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('TokenService - Nettoyage backend terminé:', result);
-        return true;
+        console.log('TokenService - Nettoyage des tokens réussi:', result);
+        return { success: true, cleanedCount: result.cleanedCount };
       } else {
-        console.warn('TokenService - Erreur lors du nettoyage backend:', response.status);
-        return false;
+        console.warn('TokenService - Échec du nettoyage des tokens:', response.status);
+        return { success: false, error: `Erreur ${response.status}` };
       }
     } catch (error) {
-      console.error('TokenService - Erreur lors du nettoyage backend:', error);
-      return false;
+      console.error('TokenService - Erreur lors du nettoyage des tokens:', error);
+      return { success: false, error: 'Erreur de connexion' };
     }
+  }
+
+  /**
+   * Obtient des informations détaillées sur le token actuel
+   */
+  getCurrentTokenInfo(): {
+    isAuthenticated: boolean;
+    userId?: string;
+    username?: string;
+    email?: string;
+    roles?: string[];
+    expiresAt?: string;
+    timeUntilExpiry?: number;
+  } {
+    if (!keycloak.authenticated || !keycloak.tokenParsed) {
+      return { isAuthenticated: false };
+    }
+
+    const token = keycloak.tokenParsed;
+    if (!token.exp) {
+      return { isAuthenticated: false };
+    }
+    
+    const currentTime = Math.floor(Date.now() / 1000);
+    const timeUntilExpiry = token.exp - currentTime;
+
+    return {
+      isAuthenticated: true,
+      userId: token.sub,
+      username: token.preferred_username,
+      email: token.email,
+      roles: token.realm_access?.roles || [],
+      expiresAt: new Date(token.exp * 1000).toISOString(),
+      timeUntilExpiry: timeUntilExpiry > 0 ? timeUntilExpiry : 0,
+    };
+  }
+
+  /**
+   * Force la vérification de santé du token (pour les composants qui en ont besoin)
+   */
+  async forceHealthCheck(): Promise<void> {
+    await this.checkTokenHealth();
+  }
+
+  /**
+   * Arrête le service et nettoie les ressources
+   */
+  shutdown(): void {
+    this.listeners.clear();
+    this.isInitialized = false;
+    this.retryCount = 0;
+    console.log('TokenService - Service arrêté');
   }
 
   /**
@@ -310,41 +551,6 @@ class TokenService {
   }
 
   /**
-   * Obtient les informations du token actuel
-   */
-  getCurrentTokenInfo(): TokenInfo | null {
-    if (!keycloak.token) {
-      return null;
-    }
-
-    try {
-      // Décoder le token JWT (partie payload)
-      const tokenParts = keycloak.token.split('.');
-      if (tokenParts.length !== 3) {
-        return null;
-      }
-
-      const payload = JSON.parse(atob(tokenParts[1]));
-      const now = Math.floor(Date.now() / 1000);
-      const expiresAt = payload.exp;
-      const timeUntilExpiry = expiresAt - now;
-
-      return {
-        tokenId: keycloak.token.substring(0, 8) + '...' + keycloak.token.substring(keycloak.token.length - 4),
-        subject: payload.sub || 'unknown',
-        issuer: payload.iss || 'unknown',
-        issuedAt: new Date(payload.iat * 1000).toISOString(),
-        expiresAt: new Date(expiresAt * 1000).toISOString(),
-        isValid: timeUntilExpiry > 0,
-        timeUntilExpiry: Math.max(0, timeUntilExpiry),
-      };
-    } catch (error) {
-      console.error('TokenService - Erreur lors du décodage du token:', error);
-      return null;
-    }
-  }
-
-  /**
    * Déconnecte l'utilisateur
    */
   async logout(): Promise<void> {
@@ -360,12 +566,8 @@ class TokenService {
    * Réinitialise le service
    */
   reset(): void {
-    if (this.tokenRefreshInterval) {
-      clearInterval(this.tokenRefreshInterval);
-      this.tokenRefreshInterval = null;
-    }
-    this.isInitialized = false;
-    console.log('TokenService - Service réinitialisé');
+    // No-op for now, as the service is event-driven
+    console.log('TokenService - Service réinitialisé (pas de rafraîchissement automatique)');
   }
 
   /**
@@ -376,4 +578,5 @@ class TokenService {
   }
 }
 
+// Export par défaut
 export default TokenService;

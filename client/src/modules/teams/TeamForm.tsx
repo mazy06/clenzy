@@ -91,7 +91,7 @@ const teamRoles = [
 
 const TeamForm: React.FC = () => {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermissionAsync } = useAuth();
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -99,6 +99,19 @@ const TeamForm: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  
+  // État pour les permissions
+  const [canCreate, setCanCreate] = useState(false);
+  
+  // Vérifier les permissions au chargement
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canCreatePermission = await hasPermissionAsync('teams:create');
+      setCanCreate(canCreatePermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
   
   const [formData, setFormData] = useState<TeamFormData>({
     name: '',
@@ -135,7 +148,7 @@ const TeamForm: React.FC = () => {
   }, []);
 
   // Vérifier les permissions APRÈS tous les hooks
-  if (!hasPermission('teams:create')) {
+  if (!canCreate) {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">

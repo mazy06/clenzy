@@ -15,19 +15,25 @@ public class KeycloakConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(KeycloakConfig.class);
 
-    @Value("${keycloak.auth-server-url:http://localhost:8080}")
+    @Value("${KEYCLOAK_AUTH_SERVER_URL:http://localhost:8080}")
     private String keycloakUrl;
 
     @Value("${keycloak.realm:clenzy}")
+    private String realm;
+
+    @Value("${KEYCLOAK_MASTER_REALM:master}")
     private String masterRealm;
 
-    @Value("${keycloak.admin.username:admin}")
+    @Value("${keycloak.admin-realm:clenzy}")
+    private String adminRealm;
+
+    @Value("${KEYCLOAK_ADMIN_USERNAME:admin}")
     private String adminUsername;
 
-    @Value("${keycloak.admin.password:admin}")
+    @Value("${KEYCLOAK_ADMIN_PASSWORD:admin}")
     private String adminPassword;
 
-    @Value("${keycloak.admin.client-id:admin-cli}")
+    @Value("${KEYCLOAK_ADMIN_CLIENT_ID:admin-cli}")
     private String adminClientId;
 
     @Bean
@@ -35,7 +41,8 @@ public class KeycloakConfig {
     public Keycloak keycloak() {
         logger.info("🔧 Configuration Keycloak - Création du bean Keycloak");
         logger.info("🔧 URL: {}", keycloakUrl);
-        logger.info("🔧 Realm: {}", masterRealm);
+        logger.info("🔧 Master Realm (Auth): {}", masterRealm);
+        logger.info("🔧 Target Realm (Users): {}", realm);
         logger.info("🔧 Username: {}", adminUsername);
         logger.info("🔧 Client ID: {}", adminClientId);
         

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Grid, Card, CardContent, CardHeader, IconButton } from '@mui/material';
 import { 
   Assessment as AssessmentIcon,
@@ -11,13 +11,36 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 
 const Reports: React.FC = () => {
-  const { user, hasPermissionSync } = useAuth();
+  const { user, hasPermissionAsync } = useAuth();
 
-  // Vérifier les permissions pour afficher les sections appropriées
-  const canViewFinancialReports = hasPermissionSync('reports:view');
-  const canViewInterventionReports = hasPermissionSync('interventions:view');
-  const canViewTeamReports = hasPermissionSync('teams:view');
-  const canViewPropertyReports = hasPermissionSync('properties:view');
+  // États pour les permissions
+  const [permissions, setPermissions] = useState({
+    'reports:view': false,
+    'interventions:view': false,
+    'teams:view': false,
+    'properties:view': false
+  });
+
+  // Vérifier toutes les permissions au chargement
+  useEffect(() => {
+    const checkAllPermissions = async () => {
+      const perms = await Promise.all([
+        hasPermissionAsync('reports:view'),
+        hasPermissionAsync('interventions:view'),
+        hasPermissionAsync('teams:view'),
+        hasPermissionAsync('properties:view')
+      ]);
+      
+      setPermissions({
+        'reports:view': perms[0],
+        'interventions:view': perms[1],
+        'teams:view': perms[2],
+        'properties:view': perms[3]
+      });
+    };
+    
+    checkAllPermissions();
+  }, [hasPermissionAsync]);
 
   const reportSections = [
     {
@@ -25,7 +48,7 @@ const Reports: React.FC = () => {
       icon: <EuroIcon color="primary" />,
       description: 'Revenus, coûts et analyses financières',
       permission: 'reports:view',
-      canView: canViewFinancialReports,
+      canView: permissions['reports:view'],
       route: '/reports/financial'
     },
     {
@@ -33,7 +56,7 @@ const Reports: React.FC = () => {
       icon: <ScheduleIcon color="success" />,
       description: 'Planification, suivi et performance des interventions',
       permission: 'interventions:view',
-      canView: canViewInterventionReports,
+      canView: permissions['interventions:view'],
       route: '/reports/interventions'
     },
     {
@@ -41,7 +64,7 @@ const Reports: React.FC = () => {
       icon: <PeopleIcon color="info" />,
       description: 'Performance, disponibilités et planning des équipes',
       permission: 'teams:view',
-      canView: canViewTeamReports,
+      canView: permissions['teams:view'],
       route: '/reports/teams'
     },
     {
@@ -49,7 +72,7 @@ const Reports: React.FC = () => {
       icon: <HomeIcon color="warning" />,
       description: 'État, maintenance et coûts des propriétés',
       permission: 'properties:view',
-      canView: canViewPropertyReports,
+      canView: permissions['properties:view'],
       route: '/reports/properties'
     }
   ];
@@ -112,7 +135,7 @@ const Reports: React.FC = () => {
       </Grid>
 
       {/* Message d'information */}
-      {!canViewFinancialReports && !canViewInterventionReports && !canViewTeamReports && !canViewPropertyReports && (
+      {!permissions['reports:view'] && !permissions['interventions:view'] && !permissions['teams:view'] && !permissions['properties:view'] && (
         <Paper sx={{ p: 3, mt: 4, bgcolor: 'info.light', border: '1px solid', borderColor: 'info.main' }}>
           <Typography variant="body1" color="info.contrastText" sx={{ textAlign: 'center' }}>
             Vous n'avez actuellement aucune permission pour consulter les rapports. 
