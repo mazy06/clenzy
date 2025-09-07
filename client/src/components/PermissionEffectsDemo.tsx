@@ -29,7 +29,7 @@ const PermissionEffectsDemo: React.FC<PermissionEffectsDemoProps> = ({
   // Si aucun rôle n'est sélectionné, afficher un message
   if (!selectedRole || !rolePermissions) {
     return (
-      <Box sx={{ p: 2 }}>
+      <Box>
         <Alert severity="info">
           Veuillez sélectionner un rôle pour voir la démonstration des effets
         </Alert>

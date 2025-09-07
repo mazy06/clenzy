@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  Container,
   Table,
   TableBody,
   TableCell,
@@ -150,16 +149,16 @@ const ClientAssignmentPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg">
+      <Box>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
           <CircularProgress />
         </Box>
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg">
+    <Box>
       <PageHeader
         title="Association Clients & Propriétés"
         subtitle="Associez vos clients et leurs propriétés aux portefeuilles"
@@ -355,7 +354,7 @@ const ClientAssignmentPage: React.FC = () => {
           </Table>
         </TableContainer>
       </Paper>
-    </Container>
+    </Box>
   );
 };
 

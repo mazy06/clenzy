@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  Container,
   Table,
   TableBody,
   TableCell,
@@ -215,16 +214,16 @@ const TeamAssignmentPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg">
+      <Box>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
           <CircularProgress />
         </Box>
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg">
+    <Box>
       <PageHeader
         title="Association Équipes & Utilisateurs"
         subtitle="Associez vos équipes et utilisateurs aux portefeuilles"
@@ -453,7 +452,7 @@ const TeamAssignmentPage: React.FC = () => {
           </Table>
         </TableContainer>
       </Paper>
-    </Container>
+    </Box>
   );
 };
 

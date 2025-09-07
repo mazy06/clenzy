@@ -78,7 +78,7 @@ const Reports: React.FC = () => {
   ];
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       {/* En-tête */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>

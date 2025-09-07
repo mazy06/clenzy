@@ -39,6 +39,8 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
 import { PropertyStatus, PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
+import PageHeader from '../../components/PageHeader';
+import { useNavigate } from 'react-router-dom';
 
 // Types pour les propriétés
 export interface PropertyFormData {
@@ -84,6 +86,7 @@ interface PropertyFormProps {
 
 const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
   const { user, hasPermissionAsync, isAdmin, isManager, isHost } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -339,9 +342,36 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
   }
 
   return (
-    <>
-    <Card sx={{ mt: 2, width: '100%' }}>
-      <CardContent sx={{ p: 3 }}>
+    <Box>
+      <PageHeader
+        title="Nouvelle propriété"
+        subtitle="Créer une nouvelle propriété dans le système"
+        backPath="/properties"
+        actions={
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<CancelIcon />}
+              onClick={() => navigate('/properties')}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<SaveIcon />}
+              onClick={() => {
+                const submitButton = document.querySelector('[data-submit-property]') as HTMLButtonElement;
+                if (submitButton) submitButton.click();
+              }}
+            >
+              Créer la propriété
+            </Button>
+          </Box>
+        }
+      />
+
+      <Card sx={{ mt: 2 }}>
+        <CardContent sx={{ p: 3 }}>
         <form onSubmit={handleSubmit}>
           <Grid container spacing={4}>
             {/* Informations de base */}
@@ -607,10 +637,10 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             </Button>
           </Grid>
         </form>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
 
-    {/* Dialog pour créer un nouvel owner temporaire */}
+      {/* Dialog pour créer un nouvel owner temporaire */}
     <Dialog open={showOwnerDialog} onClose={() => setShowOwnerDialog(false)} maxWidth="sm" fullWidth>
       <DialogTitle>
         <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -668,7 +698,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
         </Button>
       </DialogActions>
     </Dialog>
-  </>
+    </Box>
   );
 };
 
