@@ -13,6 +13,7 @@ import PropertyEdit from './properties/PropertyEdit';
 
 // Service requests
 import ServiceRequestsList from './service-requests/ServiceRequestsList';
+import ServiceRequestCreate from './service-requests/ServiceRequestCreate';
 import ServiceRequestForm from './service-requests/ServiceRequestForm';
 import ServiceRequestDetails from './service-requests/ServiceRequestDetails';
 import ServiceRequestEdit from './service-requests/ServiceRequestEdit';
@@ -99,7 +100,7 @@ const AuthenticatedApp: React.FC = () => {
         } />
         <Route path="/service-requests/new" element={
           <ProtectedRoute requiredPermission="service-requests:create">
-            <ServiceRequestForm />
+            <ServiceRequestCreate />
           </ProtectedRoute>
         } />
         <Route path="/service-requests/:id" element={

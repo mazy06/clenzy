@@ -54,8 +54,6 @@ const ServiceRequestCreate: React.FC = () => {
 
   return (
     <Box>
-
-
       <PageHeader
         title="Nouvelle demande de service"
         subtitle="Créer une nouvelle demande de service dans le système"
