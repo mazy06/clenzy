@@ -5,7 +5,6 @@ import {
   Tabs,
   Tab,
   Paper,
-  Container,
   Button,
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
@@ -65,7 +64,7 @@ const ContactPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg">
+    <Box>
       <PageHeader
         title="Contact"
         subtitle="Communiquez avec votre équipe et vos interlocuteurs"
@@ -111,7 +110,7 @@ const ContactPage: React.FC = () => {
           <ContactMessages type="sent" />
         </TabPanel>
       </Paper>
-    </Container>
+    </Box>
   );
 };
 

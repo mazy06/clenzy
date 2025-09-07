@@ -124,7 +124,7 @@ const PermissionConfig: React.FC = () => {
 
   if (!user) {
     return (
-      <Box sx={{ p: 3 }}>
+      <Box>
         <Alert severity="warning">
           Aucun utilisateur connecté
         </Alert>
@@ -134,7 +134,7 @@ const PermissionConfig: React.FC = () => {
 
   if (loading) {
     return (
-      <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
         <CircularProgress />
       </Box>
     );
@@ -142,7 +142,7 @@ const PermissionConfig: React.FC = () => {
 
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
+      <Box>
         <Alert severity="error">
           Erreur: {error}
         </Alert>
@@ -151,7 +151,7 @@ const PermissionConfig: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box>
       <PageHeader
         title="Roles & Permissions"
         subtitle={`Utilisateur: ${user.username} (${user.email}) - Rôle: ${user.roles.join(', ')}`}

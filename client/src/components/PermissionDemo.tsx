@@ -36,7 +36,7 @@ const PermissionDemo: React.FC = () => {
   }, [hasPermissionAsync]);
 
   return (
-    <Box sx={{ p: 2 }}>
+    <Box>
       {/* Moniteur de santé des tokens */}
       <TokenHealthMonitor />
       

@@ -5,7 +5,6 @@ import {
   Tabs,
   Tab,
   Paper,
-  Container,
   Button,
   Grid,
   Card,
@@ -465,7 +464,7 @@ const PortfoliosPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg">
+    <Box>
       <PageHeader
         title="Portefeuilles"
         subtitle="Gérez vos portefeuilles clients et vos équipes opérationnelles"
@@ -865,7 +864,7 @@ const PortfoliosPage: React.FC = () => {
         confirmText="Désassigner"
         cancelText="Annuler"
       />
-    </Container>
+    </Box>
   );
 };
 

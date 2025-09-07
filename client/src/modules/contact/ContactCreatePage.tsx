@@ -5,7 +5,6 @@ import {
   TextField,
   Button,
   Paper,
-  Container,
   FormControl,
   InputLabel,
   Select,
@@ -204,7 +203,7 @@ const ContactCreatePage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth={false} sx={{ px: 3 }}>
+    <Box>
       <PageHeader
         title="Nouveau message"
         subtitle="Créez et envoyez un nouveau message"
@@ -456,7 +455,7 @@ const ContactCreatePage: React.FC = () => {
           </Grid>
         </form>
       </Paper>
-    </Container>
+    </Box>
   );
 };
 

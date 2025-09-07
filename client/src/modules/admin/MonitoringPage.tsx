@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Box,
-  Container,
   Tabs,
   Tab,
   Typography,
@@ -60,7 +59,7 @@ const MonitoringPage: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="xl">
+    <Box>
       <PageHeader
         title="Monitoring Système"
         subtitle="Surveillance complète de la plateforme Clenzy"
@@ -120,7 +119,7 @@ const MonitoringPage: React.FC = () => {
           <HealthChecks />
         </TabPanel>
       </Paper>
-    </Container>
+    </Box>
   );
 };
 
