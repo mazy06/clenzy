@@ -68,10 +68,19 @@ const userStatuses = [
 const UserDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermissionAsync } = useAuth();
   
   // Vérifier la permission de gestion des utilisateurs
-  const canManageUsers = hasPermission('users:manage');
+  const [canManageUsers, setCanManageUsers] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canManageUsersPermission = await hasPermissionAsync('users:manage');
+      setCanManageUsers(canManageUsersPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);;
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

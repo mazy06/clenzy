@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Button, Box } from '@mui/material';
 import { Cancel, Save } from '@mui/icons-material';
@@ -8,12 +8,21 @@ import { useAuth } from '../../hooks/useAuth';
 
 const ServiceRequestCreate: React.FC = () => {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermissionAsync } = useAuth();
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Vérifier les permissions silencieusement
-  const canCreate = hasPermission('service-requests:create');
+  const [canCreate, setCanCreate] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canCreatePermission = await hasPermissionAsync('service-requests:create');
+      setCanCreate(canCreatePermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
 
   const handleClose = () => {
     navigate('/service-requests');

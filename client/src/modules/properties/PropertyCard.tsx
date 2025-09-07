@@ -1,40 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Box,
   Card,
   CardContent,
+  CardActions,
   Typography,
-  Grid,
-  Chip,
   Button,
+  Box,
+  Chip,
+  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  IconButton,
+  Grid,
   Divider,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
   Avatar,
-  Badge,
+  Rating,
   Tooltip,
 } from '@mui/material';
 import {
-  Home,
-  LocationOn,
-  Euro,
-  Bed,
-  Bathroom,
-  SquareFoot,
-  Star,
-  Visibility,
   Edit,
   Delete,
-  Close,
-  Phone,
-  Email,
+  Visibility,
+  LocationOn,
+  Euro,
+  Star,
+  Home,
+  Apartment,
+  Villa,
+  Hotel,
+  Person as PersonIcon,
+  Bed as BedIcon,
+  Bathroom as BathroomIcon,
   CleaningServices,
-  Group,
+  Schedule,
+  Info,
+  Close,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
 // Interface pour les propriétés détaillées
@@ -73,12 +80,31 @@ interface PropertyCardProps {
 
 const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete }) => {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermissionAsync } = useAuth();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   // Vérifier les permissions
-  const canEdit = hasPermission('properties:edit');
-  const canDelete = hasPermission('properties:delete');
+  const [canEdit, setCanEdit] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canEditPermission = await hasPermissionAsync('properties:edit');
+      setCanEdit(canEditPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
+  
+  const [canDelete, setCanDelete] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canDeletePermission = await hasPermissionAsync('properties:delete');
+      setCanDelete(canDeletePermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
 
   // Obtenir l'icône du type de propriété
   const getPropertyTypeIcon = (type: string) => {
@@ -139,9 +165,19 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete 
         <CardContent sx={{ flexGrow: 1, p: 3 }}>
           {/* En-tête avec nom et statut */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
               {getPropertyTypeIcon(property.propertyType)}
-              <Typography variant="h6" fontWeight={600} noWrap>
+              <Typography 
+                variant="h6" 
+                fontWeight={600} 
+                sx={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1
+                }}
+                title={property.name}
+              >
                 {property.name}
               </Typography>
             </Box>
@@ -149,14 +185,24 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete 
               label={property.status}
               color={getStatusColor(property.status) as any}
               size="small"
-              sx={{ textTransform: 'capitalize' }}
+              sx={{ textTransform: 'capitalize', flexShrink: 0 }}
             />
           </Box>
 
           {/* Adresse */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
-            <Typography variant="body2" color="text.secondary">
+            <LocationOn sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0 }} />
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1
+              }}
+              title={`${property.address}, ${property.postalCode} ${property.city}, ${property.country}`}
+            >
               {property.address}, {property.postalCode} {property.city}, {property.country}
             </Typography>
           </Box>
@@ -165,7 +211,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete 
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid item xs={3}>
               <Box sx={{ textAlign: 'center' }}>
-                <Bed sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
+                <BedIcon sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
                 <Typography variant="body2" fontWeight={500}>
                   {property.bedrooms}
                 </Typography>
@@ -176,7 +222,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete 
             </Grid>
             <Grid item xs={3}>
               <Box sx={{ textAlign: 'center' }}>
-                <Bathroom sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
+                <BathroomIcon sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
                 <Typography variant="body2" fontWeight={500}>
                   {property.bathrooms}
                 </Typography>
@@ -187,7 +233,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete 
             </Grid>
             <Grid item xs={3}>
               <Box sx={{ textAlign: 'center' }}>
-                <SquareFoot sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
+                <Info sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
                 <Typography variant="body2" fontWeight={500}>
                   {property.surfaceArea}
                 </Typography>
@@ -198,7 +244,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete 
             </Grid>
             <Grid item xs={3}>
               <Box sx={{ textAlign: 'center' }}>
-                <Group sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
+                <PersonIcon sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
                 <Typography variant="body2" fontWeight={500}>
                   {property.maxGuests}
                 </Typography>
@@ -510,7 +556,17 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete 
                   </Typography>
                 </Grid>
                 <Grid item xs={12}>
-                  <Typography variant="body1">
+                  <Typography 
+                    variant="body1"
+                    sx={{
+                      overflow: 'hidden',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      lineHeight: 1.4
+                    }}
+                    title={property.description}
+                  >
                     {property.description}
                   </Typography>
                 </Grid>

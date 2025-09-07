@@ -100,7 +100,7 @@ interface ServiceRequestFormProps {
 
 const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSuccess, setLoading, loading }) => {
   const navigate = useNavigate();
-  const { user, hasPermission, isAdmin, isManager, isHost } = useAuth();
+  const { user, hasPermissionAsync,  isAdmin, isManager, isHost } = useAuth();
   
   const [isLoading, setIsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -241,7 +241,16 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   }, [users, user, isHost, isAdmin, isManager]);
 
   // Vérifier les permissions silencieusement
-  const canCreate = hasPermission('service-requests:create');
+  const [canCreate, setCanCreate] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canCreatePermission = await hasPermissionAsync('service-requests:create');
+      setCanCreate(canCreatePermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);;
   
   // Si l'utilisateur n'a pas les permissions, ne rien afficher
   if (!canCreate) {

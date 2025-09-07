@@ -83,7 +83,7 @@ interface PropertyFormProps {
 }
 
 const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
-  const { user, hasPermission, isAdmin, isManager, isHost } = useAuth();
+  const { user, hasPermissionAsync, isAdmin, isManager, isHost } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -174,9 +174,18 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
     }
   }, [users, user, isHost, isAdmin, isManager]);
 
-  // Vérifier les permissions silencieusement
-  const canCreate = hasPermission('properties:create');
+  // Vérifier les permissions au chargement
+  const [canCreate, setCanCreate] = useState(false);
   
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const createPermission = await hasPermissionAsync('properties:create');
+      setCanCreate(createPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
+
   // Si l'utilisateur n'a pas les permissions, ne rien afficher
   if (!canCreate) {
     return null;

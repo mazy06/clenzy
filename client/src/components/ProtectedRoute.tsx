@@ -19,34 +19,40 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   fallbackPath = '/',
   fallbackMessage
 }) => {
-  const { hasPermissionAsync, hasPermissionSync, user } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
-  const [checking, setChecking] = useState(false);
 
-  // Vérifier la permission en temps réel
+  // Vérifier la permission de manière synchrone
   useEffect(() => {
-    const checkPermission = async () => {
-      if (!requiredPermission) {
-        setHasAccess(true);
-        return;
-      }
+    if (!requiredPermission) {
+      setHasAccess(true);
+      return;
+    }
 
-      setChecking(true);
-      try {
-        const result = await hasPermissionAsync(requiredPermission);
-        setHasAccess(result);
-      } catch (error) {
-        console.error('🔍 ProtectedRoute - Erreur lors de la vérification de permission:', error);
-        setHasAccess(false);
-      } finally {
-        setChecking(false);
-      }
-    };
+    if (!user) {
+      setHasAccess(false);
+      return;
+    }
 
-    checkPermission();
-  }, [requiredPermission, hasPermissionAsync]);
+    console.log('🔍 ProtectedRoute - Vérification de permission:', {
+      requiredPermission,
+      user: user ? { id: user.id, roles: user.roles, permissions: user.permissions } : null,
+      currentPath: location.pathname
+    });
+
+    // Vérification synchrone des permissions
+    const hasPermission = user.permissions?.includes(requiredPermission) || false;
+    
+    console.log('🔍 ProtectedRoute - Résultat de la vérification:', {
+      permission: requiredPermission,
+      result: hasPermission,
+      userPermissions: user?.permissions || []
+    });
+    
+    setHasAccess(hasPermission);
+  }, [requiredPermission, user?.id, user?.permissions, location.pathname]);
 
   // Si aucune permission n'est requise, afficher le composant
   if (!requiredPermission) {
@@ -54,7 +60,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Pendant la vérification, afficher un loader
-  if (checking) {
+  if (hasAccess === null) {
     return (
       <Box sx={{ 
         p: 4, 
@@ -122,7 +128,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       
       // Trouver la première page accessible
       for (const page of priorityPages) {
-        if (hasPermissionSync && hasPermissionSync(page.permission)) {
+        if (user?.permissions?.includes(page.permission)) {
           return page.path;
         }
       }

@@ -14,7 +14,6 @@ import {
   Tab,
 } from '@mui/material';
 import {
-  ArrowBack,
   Edit,
   Home,
   LocationOn,
@@ -66,14 +65,12 @@ interface Intervention {
   id: string;
   type: string;
   status: string;
-  description: string;
   scheduledDate: string;
-  completedDate?: string;
-  assignedTeam?: string;
-  priority: string;
+  description: string;
+  assignedTo?: string;
+  cost?: number;
 }
 
-// Interface pour les onglets
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
@@ -110,13 +107,15 @@ function a11yProps(index: number) {
 const PropertyDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermissionAsync } = useAuth();
   
+  // TOUS les useState DOIVENT être déclarés AVANT tout useEffect
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [property, setProperty] = useState<PropertyDetailsData | null>(null);
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [tabValue, setTabValue] = useState(0);
+  const [canEdit, setCanEdit] = useState(false);
 
   // Charger les données de la propriété
   useEffect(() => {
@@ -150,12 +149,12 @@ const PropertyDetails: React.FC = () => {
             bathrooms: propertyData.bathroomCount || 1,
             surfaceArea: propertyData.squareMeters || 0,
             description: propertyData.description || '',
-            amenities: [], // Pas d'amenities dans le backend pour l'instant
+            amenities: [],
             cleaningFrequency: propertyData.cleaningFrequency?.toLowerCase() || 'after_each_stay',
             maxGuests: propertyData.maxGuests || 2,
-            contactPhone: '', // Pas de contact phone dans le backend pour l'instant
-            contactEmail: '', // Pas de contact email dans le backend pour l'instant
-            rating: 4.5, // Valeur par défaut
+            contactPhone: '',
+            contactEmail: '',
+            rating: 4.5,
             lastCleaning: undefined,
             nextCleaning: undefined,
             ownerId: propertyData.ownerId?.toString(),
@@ -198,12 +197,21 @@ const PropertyDetails: React.FC = () => {
         }
       } catch (err) {
         console.error('🔍 PropertyDetails - Erreur chargement interventions:', err);
-        // Pas d'erreur critique, on peut continuer sans les interventions
       }
     };
 
     loadInterventions();
   }, [id]);
+
+  // Vérifier les permissions pour l'édition
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canEditPermission = await hasPermissionAsync('properties:edit');
+      setCanEdit(canEditPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
 
   // Gestion du changement d'onglet
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -260,31 +268,6 @@ const PropertyDetails: React.FC = () => {
     }
   };
 
-  // Filtrer les interventions par type
-  const cleaningInterventions = interventions.filter(i => 
-    i.type.toLowerCase().includes('cleaning') || 
-    i.type.toLowerCase().includes('nettoyage') ||
-    i.type.toLowerCase().includes('ménage')
-  );
-
-  const maintenanceInterventions = interventions.filter(i => 
-    i.type.toLowerCase().includes('maintenance') || 
-    i.type.toLowerCase().includes('entretien') ||
-    i.type.toLowerCase().includes('préventif')
-  );
-
-  const repairInterventions = interventions.filter(i => 
-    i.type.toLowerCase().includes('repair') || 
-    i.type.toLowerCase().includes('réparation') ||
-    i.type.toLowerCase().includes('dépannage')
-  );
-
-  const inspectionInterventions = interventions.filter(i => 
-    i.type.toLowerCase().includes('inspection') || 
-    i.type.toLowerCase().includes('contrôle') ||
-    i.type.toLowerCase().includes('qualité')
-  );
-
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
@@ -313,18 +296,12 @@ const PropertyDetails: React.FC = () => {
     );
   }
 
-  // Vérifier les permissions pour l'édition
-  const canEdit = hasPermission('properties:edit');
-
   return (
-    <Box sx={{ p: 3 }}>
-      {/* PageHeader avec titre, sous-titre, bouton retour et bouton modifier */}
+    <Box>
       <PageHeader
-        title="Détails de la propriété"
-        subtitle="Vue détaillée de votre propriété"
+        title={property.name}
+        subtitle="Détails de la propriété"
         backPath="/properties"
-        backLabel="Retour aux propriétés"
-        showBackButton={true}
         actions={
           canEdit && (
             <Button
@@ -338,103 +315,6 @@ const PropertyDetails: React.FC = () => {
         }
       />
 
-      {/* Carte principale avec résumé */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent sx={{ p: 4 }}>
-          {/* En-tête de la propriété */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {getPropertyTypeIcon(property.propertyType)}
-              <Typography variant="h5" fontWeight={600}>
-                {property.name}
-              </Typography>
-            </Box>
-            <Chip
-              label={property.status}
-              color={getStatusColor(property.status) as any}
-              size="medium"
-              sx={{ textTransform: 'capitalize' }}
-            />
-          </Box>
-
-          {/* Adresse */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-            <LocationOn sx={{ fontSize: 20, color: 'text.secondary' }} />
-            <Typography variant="body1" color="text.secondary">
-              {property.address}, {property.postalCode} {property.city}, {property.country}
-            </Typography>
-          </Box>
-
-          {/* Métriques principales */}
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={6} md={3}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Bed sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
-                <Typography variant="body2" fontWeight={500}>
-                  {property.bedrooms}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Chambres
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Bathroom sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
-                <Typography variant="body2" fontWeight={500}>
-                  {property.bathrooms}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  SDB
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Box sx={{ textAlign: 'center' }}>
-                <SquareFoot sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
-                <Typography variant="body2" fontWeight={500}>
-                  {property.surfaceArea}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  m²
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Person sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
-                <Typography variant="body2" fontWeight={500}>
-                  {property.maxGuests}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Voyageurs
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-
-          {/* Prix */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-            <Euro sx={{ fontSize: 24, color: 'success.main' }} />
-            <Typography variant="h4" fontWeight={700} color="success.main">
-              {property.nightlyPrice}
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              /nuit
-            </Typography>
-          </Box>
-
-          {/* Fréquence de nettoyage */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CleaningServices sx={{ fontSize: 18, color: 'text.secondary' }} />
-            <Typography variant="body2" color="text.secondary">
-              Nettoyage : {formatCleaningFrequency(property.cleaningFrequency)}
-            </Typography>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Système d'onglets */}
       <Card>
         <CardContent sx={{ p: 0 }}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -451,315 +331,156 @@ const PropertyDetails: React.FC = () => {
                 {...a11yProps(0)} 
               />
               <Tab 
-                label="Interventions de ménage" 
-                icon={<CleaningServices />} 
-                iconPosition="start"
-                {...a11yProps(1)} 
-              />
-              <Tab 
-                label="Maintenance" 
-                icon={<Build />} 
-                iconPosition="start"
-                {...a11yProps(2)} 
-              />
-              <Tab 
-                label="Réparation" 
-                icon={<Build />} 
-                iconPosition="start"
-                {...a11yProps(3)} 
-              />
-              <Tab 
-                label="Inspection" 
+                label="Interventions" 
                 icon={<List />} 
                 iconPosition="start"
-                {...a11yProps(4)} 
+                {...a11yProps(1)} 
               />
             </Tabs>
           </Box>
 
-          {/* Contenu des onglets */}
           <TabPanel value={tabValue} index={0}>
-            <Box sx={{ p: 4 }}>
-              <Grid container spacing={4}>
-                {/* Informations de base */}
-                <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-                    Informations de base
-                  </Typography>
-                </Grid>
-
+            <Box sx={{ p: 3 }}>
+              <Grid container spacing={3}>
+                {/* Informations générales */}
                 <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Nom
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {property.name}
-                  </Typography>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {getPropertyTypeIcon(property.propertyType)}
+                        Informations générales
+                      </Typography>
+                      
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <LocationOn color="action" />
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Adresse</Typography>
+                            <Typography variant="body1">
+                              {property.address}, {property.city} {property.postalCode}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Euro color="action" />
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Prix par nuit</Typography>
+                            <Typography variant="body1">{property.nightlyPrice}€</Typography>
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Bed color="action" />
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Chambres</Typography>
+                            <Typography variant="body1">{property.bedrooms}</Typography>
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Bathroom color="action" />
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Salles de bain</Typography>
+                            <Typography variant="body1">{property.bathrooms}</Typography>
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <SquareFoot color="action" />
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Surface</Typography>
+                            <Typography variant="body1">{property.surfaceArea} m²</Typography>
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Person color="action" />
+                          <Box>
+                            <Typography variant="body2" color="text.secondary">Capacité max</Typography>
+                            <Typography variant="body1">{property.maxGuests} personnes</Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
                 </Grid>
 
+                {/* Statut et nettoyage */}
                 <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Type
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {property.propertyType}
-                  </Typography>
-                </Grid>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CleaningServices />
+                        Statut et entretien
+                      </Typography>
+                      
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">Statut</Typography>
+                          <Chip 
+                            label={property.status} 
+                            color={getStatusColor(property.status) as any}
+                            size="small"
+                          />
+                        </Box>
 
-                {/* Adresse complète */}
-                <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-                    Adresse
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Adresse complète
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {property.address}
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12} md={4}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Ville
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {property.city}
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12} md={4}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Code postal
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {property.postalCode}
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12} md={4}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Pays
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {property.country}
-                  </Typography>
-                </Grid>
-
-                {/* Caractéristiques détaillées */}
-                <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-                    Caractéristiques
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12} md={3}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Chambres
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {property.bedrooms}
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12} md={3}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Salles de bain
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {property.bathrooms}
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12} md={3}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Surface
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {property.surfaceArea} m²
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12} md={3}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Prix/nuit
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {property.nightlyPrice} €
-                  </Typography>
-                </Grid>
-
-                {/* Commodités */}
-                <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-                    Commodités
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12}>
-                  {property.amenities.length > 0 ? (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                      {property.amenities.map((amenity, index) => (
-                        <Chip
-                          key={index}
-                          label={amenity}
-                          color="primary"
-                          variant="outlined"
-                        />
-                      ))}
-                    </Box>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      Aucune commodité renseignée
-                    </Typography>
-                  )}
-                </Grid>
-
-                {/* Configuration */}
-                <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-                    Configuration
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Statut
-                  </Typography>
-                  <Chip
-                    label={property.status}
-                    color={getStatusColor(property.status) as any}
-                    sx={{ mb: 2 }}
-                  />
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Fréquence de nettoyage
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {formatCleaningFrequency(property.cleaningFrequency)}
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Nombre max de voyageurs
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {property.maxGuests}
-                  </Typography>
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">Fréquence de nettoyage</Typography>
+                          <Typography variant="body1">
+                            {formatCleaningFrequency(property.cleaningFrequency)}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
                 </Grid>
 
                 {/* Description */}
-                {property.description && (
-                  <>
-                    <Grid item xs={12}>
-                      <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+                <Grid item xs={12}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
                         Description
                       </Typography>
-                    </Grid>
-                    <Grid item xs={12}>
                       <Typography variant="body1">
-                        {property.description}
+                        {property.description || 'Aucune description disponible'}
                       </Typography>
-                    </Grid>
-                  </>
-                )}
-
-                {/* Contact */}
-                {(property.contactPhone || property.contactEmail) && (
-                  <>
-                    <Grid item xs={12}>
-                      <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-                        Contact
-                      </Typography>
-                    </Grid>
-                    {property.contactPhone && (
-                      <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          Téléphone
-                        </Typography>
-                        <Typography variant="body1" sx={{ mb: 2 }}>
-                          {property.contactPhone}
-                        </Typography>
-                      </Grid>
-                    )}
-                    {property.contactEmail && (
-                      <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle2" color="text.secondary">
-                          Email
-                        </Typography>
-                        <Typography variant="body1" sx={{ mb: 2 }}>
-                          {property.contactEmail}
-                        </Typography>
-                      </Grid>
-                    )}
-                  </>
-                )}
-
-                {/* Métadonnées */}
-                <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-                    Informations système
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Créé le
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {property.createdAt ? new Date(property.createdAt).toLocaleDateString('fr-FR') : 'Non renseigné'}
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Modifié le
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
-                    {property.updatedAt ? new Date(property.updatedAt).toLocaleDateString('fr-FR') : 'Non renseigné'}
-                  </Typography>
+                    </CardContent>
+                  </Card>
                 </Grid>
               </Grid>
             </Box>
           </TabPanel>
 
-          {/* Onglet Interventions de ménage */}
           <TabPanel value={tabValue} index={1}>
-            <Box sx={{ p: 4 }}>
-              <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-                Interventions de ménage et nettoyage
+            <Box sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Interventions
               </Typography>
               
-              {cleaningInterventions.length > 0 ? (
+              {interventions.length > 0 ? (
                 <Grid container spacing={2}>
-                  {cleaningInterventions.map((intervention) => (
-                    <Grid item xs={12} key={intervention.id}>
+                  {interventions.map((intervention) => (
+                    <Grid item xs={12} md={6} key={intervention.id}>
                       <Card variant="outlined">
                         <CardContent>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <Box>
-                              <Typography variant="subtitle1" fontWeight={600}>
-                                {intervention.description}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Type: {intervention.type}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Date prévue: {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR')}
-                              </Typography>
-                            </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                            <Typography variant="subtitle1">
+                              {intervention.type}
+                            </Typography>
                             <Chip 
                               label={intervention.status} 
                               color={intervention.status === 'completed' ? 'success' : 'warning'}
                               size="small"
                             />
                           </Box>
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            {intervention.description}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Date prévue: {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR')}
+                          </Typography>
                         </CardContent>
                       </Card>
                     </Grid>
@@ -767,145 +488,7 @@ const PropertyDetails: React.FC = () => {
                 </Grid>
               ) : (
                 <Alert severity="info">
-                  Aucune intervention de ménage programmée pour cette propriété.
-                </Alert>
-              )}
-            </Box>
-          </TabPanel>
-
-          {/* Onglet Maintenance */}
-          <TabPanel value={tabValue} index={2}>
-            <Box sx={{ p: 4 }}>
-              <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-                Interventions de maintenance préventive
-              </Typography>
-              
-              {maintenanceInterventions.length > 0 ? (
-                <Grid container spacing={2}>
-                  {maintenanceInterventions.map((intervention) => (
-                    <Grid item xs={12} key={intervention.id}>
-                      <Card variant="outlined">
-                        <CardContent>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <Box>
-                              <Typography variant="subtitle1" fontWeight={600}>
-                                {intervention.description}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Type: {intervention.type}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Date prévue: {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR')}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Priorité: {intervention.priority}
-                              </Typography>
-                            </Box>
-                            <Chip 
-                              label={intervention.status} 
-                              color={intervention.status === 'completed' ? 'success' : 'warning'}
-                              size="small"
-                            />
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              ) : (
-                <Alert severity="info">
-                  Aucune intervention de maintenance programmée pour cette propriété.
-                </Alert>
-              )}
-            </Box>
-          </TabPanel>
-
-          {/* Onglet Réparation */}
-          <TabPanel value={tabValue} index={3}>
-            <Box sx={{ p: 4 }}>
-              <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-                Interventions de réparation et dépannage
-              </Typography>
-              
-              {repairInterventions.length > 0 ? (
-                <Grid container spacing={2}>
-                  {repairInterventions.map((intervention) => (
-                    <Grid item xs={12} key={intervention.id}>
-                      <Card variant="outlined">
-                        <CardContent>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <Box>
-                              <Typography variant="subtitle1" fontWeight={600}>
-                                {intervention.description}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Type: {intervention.type}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Date prévue: {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR')}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Priorité: {intervention.priority}
-                              </Typography>
-                            </Box>
-                            <Chip 
-                              label={intervention.status} 
-                              color={intervention.status === 'completed' ? 'success' : 'warning'}
-                              size="small"
-                            />
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              ) : (
-                <Alert severity="info">
-                  Aucune intervention de réparation programmée pour cette propriété.
-                </Alert>
-              )}
-            </Box>
-          </TabPanel>
-
-          {/* Onglet Inspection */}
-          <TabPanel value={tabValue} index={4}>
-            <Box sx={{ p: 4 }}>
-              <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-                Inspections et contrôles de qualité
-              </Typography>
-              
-              {inspectionInterventions.length > 0 ? (
-                <Grid container spacing={2}>
-                  {inspectionInterventions.map((intervention) => (
-                    <Grid item xs={12} key={intervention.id}>
-                      <Card variant="outlined">
-                        <CardContent>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <Box>
-                              <Typography variant="subtitle1" fontWeight={600}>
-                                {intervention.description}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Type: {intervention.type}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                Date prévue: {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR')}
-                              </Typography>
-                            </Box>
-                            <Chip 
-                              label={intervention.status} 
-                              color={intervention.status === 'completed' ? 'success' : 'warning'}
-                              size="small"
-                            />
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              ) : (
-                <Alert severity="info">
-                  Aucune inspection programmée pour cette propriété.
+                  Aucune intervention programmée pour cette propriété.
                 </Alert>
               )}
             </Box>

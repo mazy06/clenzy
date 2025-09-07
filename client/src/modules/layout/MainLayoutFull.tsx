@@ -1,47 +1,20 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
-  Button,
-  Drawer,
   AppBar,
   Toolbar,
-  List,
-  Typography,
-  Divider,
   IconButton,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
   useTheme,
   useMediaQuery,
-  Avatar,
-  Menu,
-  MenuItem,
-  Badge,
-  Chip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  Dashboard,
-  Home,
-  Build,
-  Assignment,
-  People,
-  Settings,
-  Notifications,
-  AccountCircle,
-  Logout,
-  Group,
-  Assessment,
-  Business,
-  Security,
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
-import keycloak from '../../keycloak';
-import clenzyLogo from '../../assets/Clenzy_logo.png';
-import { API_CONFIG } from '../../config/api';
+import { useLayoutState } from '../../hooks/useLayoutState';
+import { useNavigationMenu } from '../../hooks/useNavigationMenu';
+import { NavigationDrawer } from '../../components/NavigationDrawer';
+import { UserProfile } from '../../components/UserProfile';
+import { LoadingStates } from '../../components/LoadingStates';
 
 const drawerWidth = 280;
 
@@ -50,411 +23,60 @@ interface MainLayoutFullProps {
 }
 
 export default function MainLayoutFull({ children }: MainLayoutFullProps) {
+  // Hooks d'état et de logique métier
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  
-  // Utilisation sécurisée du thème
   const theme = useTheme();
-  const isMobile = useMediaQuery('md');
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user, isAdmin, isManager, isHost, isTechnician, isHousekeeper, isSupervisor, hasPermission, hasPermissionSync, clearUser, restoreKeycloakState } = useAuth();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // Hooks personnalisés pour la gestion d'état
+  const layoutState = useLayoutState();
+  const { menuItems, loading: menuLoading, error: menuError, refreshMenu } = useNavigationMenu();
 
-    // Identifiant unique pour ce rendu
-    const renderId = React.useId();
-    
-    // Debug: monitor user changes
-    useEffect(() => {
-      if (user) {
-        // Log silencieux pour le débogage si nécessaire
-        // console.log('🔍 MainLayoutFull - User changed:', user.email);
-      }
-    }, [user]);
-    
-    // Tentative de restauration (optionnelle) au montage - non bloquante
-    useEffect(() => {
-      if (!user && !keycloak.authenticated) {
-        restoreKeycloakState();
-      }
+  // Gestionnaires d'événements mémorisés
+  const handleDrawerToggle = useCallback(() => {
+    setMobileOpen(prev => !prev);
     }, []);
 
-    // Écouter les changements de permissions pour rafraîchir l'interface
-    useEffect(() => {
-      const handlePermissionsRefresh = () => {
-        // Forcer le re-rendu du composant pour mettre à jour la navigation
-        window.location.reload();
-      };
-
-      window.addEventListener('permissions-refreshed', handlePermissionsRefresh);
-
-      return () => {
-        window.removeEventListener('permissions-refreshed', handlePermissionsRefresh);
-      };
+  const handleLogout = useCallback(() => {
+    // La logique de déconnexion est gérée dans UserProfile
+    console.log('Logout initiated');
     }, []);
 
-    // Si pas d'utilisateur, ne pas rediriger ici pour éviter les boucles.
-    // Le routeur au niveau de App.tsx s'occupe de la redirection.
-    if (!user) {
-      return null;
-    }
+  // Déterminer l'état de chargement
+  const loadingState = useMemo(() => {
+    if (layoutState.loading) return 'loading';
+    if (!layoutState.user) return 'user-loading';
+    if (!layoutState.functionsDefined) return 'permissions-loading';
+    if (layoutState.error) return 'error-loading';
+    if (menuLoading) return 'permissions-loading';
+    return 'ready';
+  }, [layoutState, menuLoading]);
 
-  // Security check: ensure role functions are defined
-  // But don't crash if they are not yet
-  const functionsDefined = typeof isAdmin === 'function' && 
-                          typeof isManager === 'function' && 
-                          typeof isHost === 'function' && 
-                          typeof isTechnician === 'function' && 
-                          typeof isHousekeeper === 'function' && 
-                          typeof isSupervisor === 'function';
-    
-  if (!functionsDefined) {
+  // Gestion des erreurs
+  const handleRetry = useCallback(async () => {
+    await layoutState.refreshUser();
+    refreshMenu();
+  }, [layoutState.refreshUser, refreshMenu]);
+
+  const handleClearError = useCallback(() => {
+    layoutState.clearError();
+  }, [layoutState.clearError]);
+
+  // Afficher les états de chargement
+  if (loadingState !== 'ready') {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        height: '100vh' 
-      }}>
-        <Typography>Loading permissions...</Typography>
-      </Box>
+      <LoadingStates
+        state={loadingState}
+        error={layoutState.error || menuError}
+        onRetry={handleRetry}
+        onClearError={handleClearError}
+      />
     );
   }
-
-  // Check that role functions work without error
-  let canRender = true;
-  try {
-    // Simple test of role functions
-    // isAdmin();
-    // isManager();
-    // isHost();
-    // isTechnician();
-    // isHousekeeper();
-    // isSupervisor();
-  } catch (error) {
-    console.error('🔍 MainLayoutFull - Error testing role functions:', error);
-    canRender = false;
-  }
-
-  if (!canRender) {
-    return (
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        height: '100vh' 
-      }}>
-        <Typography>Error loading permissions...</Typography>
-      </Box>
-    );
-  }
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
-
-
-
-  const handleLogout = async () => {
-      console.log('🔍 MainLayoutFull - Logout requested');
-      
-      try {
-        // Call backend logout endpoint
-        const response = await fetch(API_CONFIG.ENDPOINTS.LOGOUT, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${keycloak.token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        // Nettoyage local même si le backend renvoie une erreur
-        if (!response.ok) {
-          console.error('🔍 MainLayoutFull - Error during logout:', response.status);
-        }
-
-        console.log('🔍 MainLayoutFull - Performing local logout cleanup');
-        try {
-          // Purge des tokens locaux
-          localStorage.removeItem('kc_access_token');
-          localStorage.removeItem('kc_refresh_token');
-          localStorage.removeItem('kc_id_token');
-          localStorage.removeItem('kc_expires_in');
-        } catch {}
-
-        // Réinitialiser l’état Keycloak minimal
-        (keycloak as any).token = undefined;
-        (keycloak as any).refreshToken = undefined;
-        (keycloak as any).authenticated = false;
-
-        // Nettoyage de l’état utilisateur React
-        clearUser();
-
-        // Déclencher l'événement de déconnexion pour informer App.tsx
-        window.dispatchEvent(new CustomEvent('keycloak-auth-logout'));
-
-        // Laisser App.tsx gérer la redirection
-      } catch (error) {
-        console.error('🔍 MainLayoutFull - Error during logout:', error);
-      }
-  };
-
-  const handleNavigation = (path: string) => {
-    navigate(path);
-    if (isMobile) {
-      setMobileOpen(false);
-    }
-  };
-
-  // Build menu items without useMemo to avoid React error #310
-  const buildMenuItems = () => {
-      // Protection: check that all functions are defined
-      if (!functionsDefined) {
-        return [
-          {
-            text: 'Tableau de bord',
-            icon: <Dashboard />,
-            path: '/dashboard',
-            roles: ['all']
-          }
-        ];
-      }
-
-      const baseItems: Array<{
-        text: string;
-        icon: React.ReactNode;
-        path: string;
-        roles: string[];
-      }> = [
-        // Le tableau de bord est maintenant géré par les permissions
-      ];
-
-      const roleBasedItems: Array<{
-        text: string;
-        icon: React.ReactNode;
-        path: string;
-        roles: string[];
-      }> = [];
-
-      try {
-        // Dashboard - visible si permission dashboard:view
-        if (hasPermissionSync('dashboard:view')) {
-          roleBasedItems.push({
-            text: 'Tableau de bord',
-            icon: <Dashboard />,
-            path: '/dashboard',
-            roles: ['all']
-          });
-        }
-
-        // Properties - visible si permission properties:view
-        if (hasPermissionSync('properties:view')) {
-          roleBasedItems.push({
-            text: 'Propriétés',
-            icon: <Home />,
-            path: '/properties',
-            roles: ['ADMIN', 'MANAGER', 'HOST']
-          });
-        }
-
-        // Service Requests - visible si permission service-requests:view
-        if (hasPermissionSync('service-requests:view')) {
-          roleBasedItems.push({
-            text: 'Demandes de service',
-            icon: <Assignment />,
-            path: '/service-requests',
-            roles: ['ADMIN', 'MANAGER', 'HOST', 'SUPERVISOR']
-          });
-        }
-
-        // Interventions - visible si permission interventions:view
-        if (hasPermissionSync('interventions:view')) {
-          roleBasedItems.push({
-            text: 'Interventions',
-            icon: <Build />,
-            path: '/interventions',
-            roles: ['ADMIN', 'MANAGER', 'TECHNICIAN', 'HOUSEKEEPER', 'SUPERVISOR']
-          });
-        }
-
-        // Teams - visible si permission teams:view
-        if (hasPermissionSync('teams:view')) {
-          roleBasedItems.push({
-            text: 'Équipes',
-            icon: <People />,
-            path: '/teams',
-            roles: ['ADMIN', 'MANAGER', 'SUPERVISOR']
-          });
-        }
-
-        // Portefeuilles - visible si permission portfolios:view (MANAGER et ADMIN)
-        if (hasPermissionSync('portfolios:view') || isAdmin() || isManager()) {
-          roleBasedItems.push({
-            text: 'Portefeuilles',
-            icon: <Business />,
-            path: '/portfolios',
-            roles: ['ADMIN', 'MANAGER']
-          });
-        }
-
-        // Contact - visible si permission contact:view
-        if (hasPermissionSync('contact:view')) {
-          roleBasedItems.push({
-            text: 'Contact',
-            icon: <Notifications />,
-            path: '/contact',
-            roles: ['all']
-          });
-        }
-
-        // Reports - visible si permission reports:view
-        if (hasPermissionSync('reports:view')) {
-          roleBasedItems.push({
-            text: 'Rapports',
-            icon: <Assessment />,
-            path: '/reports',
-            roles: ['ADMIN', 'MANAGER']
-          });
-        }
-
-        // Users - visible uniquement si permission users:manage
-        if (hasPermissionSync('users:manage')) {
-          roleBasedItems.push({
-            text: 'Utilisateurs',
-            icon: <People />,
-            path: '/users',
-            roles: ['ADMIN']
-          });
-        }
-
-        // Settings - visible si permission settings:view
-        if (hasPermissionSync('settings:view')) {
-          roleBasedItems.push({
-            text: 'Paramètres',
-            icon: <Settings />,
-            path: '/settings',
-            roles: ['all']
-          });
-        }
-
-        // Configuration des permissions - visible uniquement aux administrateurs avec permission users:manage
-        if (hasPermissionSync('users:manage') && isAdmin()) {
-          roleBasedItems.push({
-            text: 'Roles & Permissions',
-            icon: <Build />,
-            path: '/permissions-test',
-            roles: ['ADMIN']
-          });
-        }
-
-        // Monitoring - visible aux administrateurs et managers
-        if (isAdmin() || isManager()) {
-          roleBasedItems.push({
-            text: 'Monitoring',
-            icon: <Security />,
-            path: '/admin/monitoring',
-            roles: ['ADMIN', 'MANAGER']
-          });
-        }
-        
-      } catch (error) {
-        console.error('🔍 MainLayoutFull - Error building menu:', error);
-        // In case of error, return only the base menu
-        return baseItems;
-      }
-
-      const finalMenu = [...baseItems, ...roleBasedItems];
-      return finalMenu;
-  };
-
-  // Build menu items
-  const menuItems = buildMenuItems();
-  
-  const drawer = (
-      <Box>
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          p: 3, 
-          mb: 3,
-          backgroundColor: 'rgba(166, 192, 206, 0.08)',
-          border: '1px solid rgba(166, 192, 206, 0.15)'
-        }}>
-          <img 
-            src={clenzyLogo} 
-            alt="Clenzy Logo" 
-            style={{ 
-              height: '60px', 
-              width: 'auto',
-              maxWidth: '200px',
-              marginBottom: '8px'
-            }} 
-          />
-          <Typography 
-            variant="caption" 
-            color="text.secondary"
-            sx={{ 
-              textTransform: 'uppercase',
-              letterSpacing: '1px',
-              fontWeight: 600,
-              textAlign: 'center'
-            }}
-          >
-            Propreté & Multiservices
-          </Typography>
-        </Box>
-
-        
-        <List>
-          {menuItems.map((item, index) => (
-            <ListItem key={index} disablePadding>
-              <ListItemButton
-                onClick={() => handleNavigation(item.path)}
-                selected={location.pathname === item.path}
-                sx={{
-                  borderRadius: 2,
-                  mx: 1,
-                  mb: 0.5,
-                  '&.Mui-selected': {
-                    backgroundColor: '#A6C0CE',
-                    color: 'white',
-                    '&:hover': {
-                      backgroundColor: '#8BA3B3',
-                    },
-                  },
-                  '&:hover': {
-                    backgroundColor: 'rgba(166, 192, 206, 0.1)',
-                  },
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    color: location.pathname === item.path ? 'inherit' : '#666666',
-                    minWidth: 40,
-                    '& .MuiSvgIcon-root': {
-                      color: location.pathname === item.path ? 'inherit' : '#666666',
-                    },
-                  }}
-                >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText 
-                  primary={item.text} 
-                  primaryTypographyProps={{
-                    fontSize: '0.9rem',
-                    fontWeight: 500,
-                    color: location.pathname === item.path ? 'inherit' : '#666666',
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-      </Box>
-  );
-  
+  // Rendu principal de l'interface
   return (
       <Box sx={{ display: 'flex' }}>
+      {/* AppBar */}
         <AppBar
           position="fixed"
           sx={{
@@ -479,116 +101,20 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             
             <Box sx={{ flexGrow: 1 }} />
             
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {/* Indicateur de connexion utilisateur */}
-              {user && (
-                <Box 
-                  sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 1,
-                    cursor: 'pointer',
-                    p: 1,
-                    borderRadius: 1,
-                    '&:hover': {
-                      backgroundColor: 'rgba(166, 192, 206, 0.1)',
-                    },
-                    transition: 'background-color 0.2s ease'
-                  }}
-                  onClick={() => navigate('/profile')}
-                  title="Cliquer pour voir le profil"
-                >
-                  <Avatar 
-                    sx={{ 
-                      width: 32, 
-                      height: 32, 
-                      bgcolor: '#A6C0CE',
-                      fontSize: '0.9rem',
-                      fontWeight: 700,
-                      border: '2px solid rgba(166, 192, 206, 0.3)'
-                    }}
-                  >
-                    {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || 'U'}
-                  </Avatar>
-                  <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-                    <Typography 
-                      variant="body2" 
-                      fontWeight={600} 
-                      color="text.primary"
-                      sx={{ lineHeight: 1 }}
-                    >
-                      {user.firstName || user.username || 'Utilisateur'}
-                    </Typography>
-                  </Box>
-                </Box>
-              )}
-
-              {/* Notifications - visible by ADMIN, MANAGER, SUPERVISOR - with security check */}
-              {typeof isAdmin === 'function' && typeof isManager === 'function' && typeof isSupervisor === 'function' && 
-               (isAdmin() || isManager() || isSupervisor()) && (
-                <IconButton color="inherit">
-                  <Badge badgeContent={3} color="error">
-                    <Notifications />
-                  </Badge>
-                </IconButton>
-              )}
-              
-              <Button
-                onClick={handleLogout}
-                color="inherit"
-                startIcon={<Logout />}
-                sx={{ 
-                  textTransform: 'none',
-                  fontWeight: 500,
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                  }
-                }}
-              >
-                Déconnexion
-              </Button>
-            </Box>
+          {/* Profil utilisateur et actions */}
+          <UserProfile onLogout={handleLogout} />
           </Toolbar>
         </AppBar>
 
-        <Box
-          component="nav"
-          sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
-        >
-          <Drawer
-            variant="temporary"
-            open={mobileOpen}
-            onClose={handleDrawerToggle}
-            ModalProps={{
-              keepMounted: true,
-            }}
-            sx={{
-              display: { xs: 'block', md: 'none' },
-              '& .MuiDrawer-paper': { 
-                boxSizing: 'border-box', 
-                width: drawerWidth,
-                borderRadius: 0
-              },
-            }}
-          >
-            {drawer}
-          </Drawer>
-          <Drawer
-            variant="permanent"
-            sx={{
-              display: { xs: 'none', md: 'block' },
-              '& .MuiDrawer-paper': { 
-                boxSizing: 'border-box', 
-                width: drawerWidth,
-                borderRadius: 0
-              },
-            }}
-            open
-          >
-            {drawer}
-          </Drawer>
-        </Box>
+      {/* Navigation Drawer */}
+      <NavigationDrawer
+        menuItems={menuItems}
+        mobileOpen={mobileOpen}
+        onDrawerToggle={handleDrawerToggle}
+        drawerWidth={drawerWidth}
+      />
 
+      {/* Contenu principal */}
         <Box
           component="main"
           sx={{

@@ -14,7 +14,7 @@ const TokenMonitoringPage: React.FC = () => {
       />
       
       <Box mt={3}>
-        <TokenMonitoring isAdmin={true} />
+        <TokenMonitoring />
       </Box>
     </Container>
   );

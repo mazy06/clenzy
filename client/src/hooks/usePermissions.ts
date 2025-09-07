@@ -3,11 +3,11 @@ import { useAuth } from './useAuth';
 import { useCustomPermissions } from './useCustomPermissions';
 
 export const usePermissions = () => {
-  const { user, hasPermission: authHasPermission, hasRole: authHasRole } = useAuth();
+  const { user, hasPermissionAsync: authHasPermissionAsync, hasRole: authHasRole } = useAuth();
   const { isCustomMode, hasCustomPermission } = useCustomPermissions();
 
   // Fonction de vérification des permissions qui prend en compte les permissions personnalisées
-  const hasPermission = useCallback((permission: string): boolean => {
+  const hasPermission = useCallback(async (permission: string): Promise<boolean> => {
     if (!user) return false;
     
     // Si le mode personnalisé est activé, utiliser les permissions personnalisées
@@ -17,8 +17,8 @@ export const usePermissions = () => {
     }
     
     // Sinon, utiliser les permissions normales
-    return authHasPermission(permission);
-  }, [user, isCustomMode, hasCustomPermission, authHasPermission]);
+    return await authHasPermissionAsync(permission);
+  }, [user, isCustomMode, hasCustomPermission, authHasPermissionAsync]);
 
   // Fonction de vérification des rôles qui prend en compte les permissions personnalisées
   const hasRole = useCallback((role: string): boolean => {

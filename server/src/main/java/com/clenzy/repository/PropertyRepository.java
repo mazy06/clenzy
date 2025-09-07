@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSpecificationExecutor<Property> {
     List<Property> findByOwner(User owner);
+    List<Property> findByOwnerId(Long ownerId);
 }
 
 

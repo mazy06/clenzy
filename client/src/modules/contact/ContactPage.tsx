@@ -70,7 +70,7 @@ const ContactPage: React.FC = () => {
         title="Contact"
         subtitle="Communiquez avec votre équipe et vos interlocuteurs"
         backPath="/dashboard"
-        showBackButton={true}
+        showBackButton={false}
         actions={
           <Button
             variant="contained"

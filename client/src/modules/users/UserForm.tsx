@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -67,10 +67,19 @@ const userStatuses = USER_STATUS_OPTIONS.map(option => ({
 
 const UserForm: React.FC = () => {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermissionAsync } = useAuth();
   
   // Vérifier la permission de gestion des utilisateurs
-  const canManageUsers = hasPermission('users:manage');
+  const [canManageUsers, setCanManageUsers] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canManageUsersPermission = await hasPermissionAsync('users:manage');
+      setCanManageUsers(canManageUsersPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
   
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

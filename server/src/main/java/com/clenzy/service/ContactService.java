@@ -44,6 +44,12 @@ public class ContactService {
     @Autowired
     private PortfolioService portfolioService;
     
+    @Autowired
+    private ManagerService managerService;
+    
+    @Autowired
+    private com.clenzy.repository.ManagerUserRepository managerUserRepository;
+    
     // Dossier de stockage des fichiers
     private static final String UPLOAD_DIR = "uploads/contact/";
     
@@ -57,6 +63,11 @@ public class ContactService {
         
         User recipient = userRepository.findById(messageDto.getRecipientId())
             .orElseThrow(() -> new RuntimeException("Destinataire non trouvé"));
+        
+        // Validation des permissions d'envoi selon les règles métier
+        if (!canSendMessage(sender.getId(), recipient.getId())) {
+            throw new RuntimeException("Vous n'êtes pas autorisé à envoyer un message à cet utilisateur");
+        }
         
         // Validation de la propriété si spécifiée
         Property property = null;
@@ -293,5 +304,63 @@ public class ContactService {
         dto.setId(attachment.getId());
         dto.setUploadedAt(attachment.getUploadedAt());
         return dto;
+    }
+    
+    /**
+     * Récupérer les destinataires autorisés pour un utilisateur selon les règles métier
+     */
+    @Transactional(readOnly = true)
+    public List<User> getAuthorizedRecipients(Long senderId) {
+        System.out.println("🔄 ContactService - Récupération des destinataires autorisés pour l'utilisateur " + senderId);
+        
+        User sender = userRepository.findById(senderId)
+            .orElseThrow(() -> new RuntimeException("Expéditeur non trouvé"));
+        
+        List<User> authorizedRecipients = new java.util.ArrayList<>();
+        
+        // Règle 1: ADMIN et MANAGER peuvent envoyer à tout le monde
+        if (sender.getRole() == com.clenzy.model.UserRole.ADMIN || sender.getRole() == com.clenzy.model.UserRole.MANAGER) {
+            System.out.println("📊 ContactService - " + sender.getRole() + " peut envoyer à tout le monde");
+            authorizedRecipients = userRepository.findAll();
+        } else {
+            // Règle 2: HOST, HOUSEKEEPER, TECHNICIAN, SUPERVISOR peuvent envoyer UNIQUEMENT à leur manager associé
+            System.out.println("📊 ContactService - " + sender.getRole() + " peut envoyer uniquement à son manager associé");
+            
+            // Récupérer le manager associé via les associations
+            com.clenzy.dto.ManagerAssociationsDto associations = managerService.getManagerAssociations(senderId);
+            
+            // Extraire les managers uniques des associations
+            java.util.Set<Long> managerIds = new java.util.HashSet<>();
+            
+            // Pour les utilisateurs opérationnels, on doit trouver leur manager associé
+            // Cette logique sera simplifiée - on cherche directement les managers qui ont cet utilisateur dans leurs associations
+            
+            // Chercher dans les associations manager-utilisateur
+            List<com.clenzy.model.ManagerUser> managerUsers = managerUserRepository.findByUserIdAndIsActiveTrue(senderId);
+            for (com.clenzy.model.ManagerUser managerUser : managerUsers) {
+                managerIds.add(managerUser.getManagerId());
+            }
+            
+            // Chercher dans les associations manager-équipe si l'utilisateur fait partie d'une équipe
+            // (Cette partie nécessiterait une relation inverse équipe-utilisateur)
+            
+            // Récupérer les utilisateurs managers
+            for (Long managerId : managerIds) {
+                userRepository.findById(managerId).ifPresent(authorizedRecipients::add);
+            }
+            
+            System.out.println("📊 ContactService - " + authorizedRecipients.size() + " destinataires autorisés trouvés pour " + sender.getRole());
+        }
+        
+        return authorizedRecipients;
+    }
+    
+    /**
+     * Valider si un utilisateur peut envoyer un message à un destinataire
+     */
+    @Transactional(readOnly = true)
+    public boolean canSendMessage(Long senderId, Long recipientId) {
+        List<User> authorizedRecipients = getAuthorizedRecipients(senderId);
+        return authorizedRecipients.stream().anyMatch(user -> user.getId().equals(recipientId));
     }
 }

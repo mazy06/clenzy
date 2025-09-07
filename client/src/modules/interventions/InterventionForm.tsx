@@ -91,10 +91,19 @@ interface InterventionFormProps {
 }
 
 const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess, setLoading, loading }) => {
-  const { user, hasPermission, isAdmin, isManager, isHost } = useAuth();
+  const { user, hasPermissionAsync, isAdmin, isManager, isHost } = useAuth();
   
-  // Vérifier la permission de création d'interventions silencieusement
-  const canCreateInterventions = isAdmin() || isManager();
+  // Vérifier la permission de création d'interventions
+  const [canCreateInterventions, setCanCreateInterventions] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canCreate = isAdmin() || isManager();
+      setCanCreateInterventions(canCreate);
+    };
+    
+    checkPermissions();
+  }, [isAdmin, isManager]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState(false);

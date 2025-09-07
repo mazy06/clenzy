@@ -7,6 +7,7 @@ import { useTokenManagement } from '../hooks/useTokenManagement';
 import { configureConsole } from '../config/console';
 import { CustomPermissionsProvider } from '../hooks/useCustomPermissions';
 import Login from './auth/Login';
+import MainLayoutFull from './layout/MainLayoutFull';
 import AuthenticatedApp from './AuthenticatedApp';
 
 const App: React.FC = () => {
@@ -82,15 +83,23 @@ const App: React.FC = () => {
 
   // Gestion intelligente des tokens
   const {
-    validateToken,
     refreshToken,
-    resetTokenService,
+    checkTokenHealth,
+    forceHealthCheck,
+    getCurrentTokenInfo,
+    cleanupExpiredTokens,
+    isExpiringSoon,
+    isCritical,
+    timeUntilExpiryFormatted
   } = useTokenManagement();
 
   // Mettre à jour les refs
   useEffect(() => {
-    resetTokenServiceRef.current = resetTokenService;
-  }, [resetTokenService]);
+    resetTokenServiceRef.current = () => {
+      // Le service se réinitialise automatiquement maintenant
+      console.log('TokenService - Réinitialisation automatique');
+    };
+  }, []);
 
   // Gestion des événements Keycloak
   useEffect(() => {
@@ -102,7 +111,7 @@ const App: React.FC = () => {
     const handleCustomAuthSuccess = () => {
       console.log('🔍 App - Événement d\'authentification personnalisé reçu');
       setAuthenticated(true);
-      validateToken();
+      checkTokenHealth();
       
       // Forcer la mise à jour de l'état Keycloak
       if (keycloak) {
@@ -133,7 +142,7 @@ const App: React.FC = () => {
       window.removeEventListener('keycloak-auth-success', handleCustomAuthSuccess);
       window.removeEventListener('keycloak-auth-logout', handleCustomAuthLogout);
     };
-  }, [validateToken]);
+  }, [checkTokenHealth]);
 
   // Initialisation de Keycloak
   useEffect(() => {
@@ -142,63 +151,20 @@ const App: React.FC = () => {
         try {
           console.log('🔍 App - Initialisation de Keycloak...');
           
-          if (keycloak.authenticated !== undefined) {
+          if (keycloak.authenticated) {
             console.log('🔍 App - Keycloak déjà initialisé, état:', keycloak.authenticated);
-            
-            // Nettoyer les tokens si Keycloak n'est pas authentifié
-            if (!keycloak.authenticated) {
-              const hasTokens = localStorage.getItem('kc_access_token') || localStorage.getItem('kc_refresh_token');
-              if (hasTokens) {
-                console.log('🔍 App - Tokens trouvés mais Keycloak non authentifié, nettoyage...');
-                localStorage.removeItem('kc_access_token');
-                localStorage.removeItem('kc_refresh_token');
-              }
-            }
-            
+            setAuthenticated(true);
             setInitialized(true);
             
-            if (keycloak.authenticated) {
-              console.log('🔍 App - Utilisateur déjà authentifié');
-              setAuthenticated(true);
-              if (keycloak.token) {
-                localStorage.setItem('kc_access_token', keycloak.token);
-              }
-              if (keycloak.refreshToken) {
-                localStorage.setItem('kc_refresh_token', keycloak.refreshToken);
-              }
-              validateToken();
-            } else {
-              console.log('🔍 App - Utilisateur non authentifié');
-              setAuthenticated(false);
-            }
-            return;
-          }
-          
-          const success = await keycloak.init({
-            onLoad: 'check-sso',
-            silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
-            checkLoginIframe: false,
-            enableLogging: false,
-            silentCheckSsoFallback: false,
-          });
-          
-          if (success) {
-            console.log('🔍 App - Keycloak initialisé avec succès');
-            setInitialized(true);
+            // Vérifier la santé du token
+            checkTokenHealth();
             
-            if (keycloak.authenticated) {
-              console.log('🔍 App - Utilisateur déjà authentifié');
-              setAuthenticated(true);
-              if (keycloak.token) {
-                localStorage.setItem('kc_access_token', keycloak.token);
-              }
-              if (keycloak.refreshToken) {
-                localStorage.setItem('kc_refresh_token', keycloak.refreshToken);
-              }
-              validateToken();
-            } else {
-              console.log('🔍 App - Utilisateur non authentifié');
-              setAuthenticated(false);
+            // Sauvegarder les tokens en localStorage
+            if (keycloak.token) {
+              localStorage.setItem('kc_access_token', keycloak.token);
+            }
+            if (keycloak.refreshToken) {
+              localStorage.setItem('kc_refresh_token', keycloak.refreshToken);
             }
           } else {
             console.log('🔍 App - Keycloak non authentifié');
@@ -214,7 +180,7 @@ const App: React.FC = () => {
 
       initKeycloak();
     }
-  }, [initialized, validateToken]);
+  }, [initialized, checkTokenHealth]);
 
   // Affichage du composant de chargement
   if (!initialized || authLoading) {
@@ -242,66 +208,68 @@ const App: React.FC = () => {
   console.log('🔍 App - Rendu de l\'application avec routage');
   
   return (
-    <Routes>
-      {/* Route publique pour le login */}
-      <Route 
-        path="/login" 
-        element={
-          !authenticated || !keycloak.authenticated ? (
-            <Login />
-          ) : (
-            <Navigate to="/dashboard" replace />
-          )
-        } 
-      />
-      
-      {/* Routes protégées */}
-      <Route 
-        path="/*" 
-        element={
-          !authenticated || !keycloak.authenticated ? (
-            <Navigate to="/login" replace />
-          ) : (
-            // Si authentifié, afficher soit le chargement soit l'app
-            authLoading ? (
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                height: '100vh', 
-                gap: 2 
-              }}>
-                <CircularProgress size={60} />
-                <Typography variant="h6" color="text.secondary">
-                  Chargement de l'utilisateur...
-                </Typography>
-              </Box>
-            ) : user ? (
-              <AuthenticatedApp />
+    <CustomPermissionsProvider>
+        <Routes>
+          {/* Route publique pour le login */}
+          <Route 
+            path="/login" 
+            element={
+              !authenticated || !keycloak.authenticated ? (
+                <Login />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            } 
+          />
+        
+        {/* Routes protégées */}
+        <Route 
+          path="/*" 
+          element={
+            !authenticated || !keycloak.authenticated ? (
+              <Navigate to="/login" replace />
             ) : (
-              // Si pas d'utilisateur mais authentifié, afficher un chargement temporaire
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                height: '100vh', 
-                gap: 2 
-              }}>
-                <CircularProgress size={60} />
-                <Typography variant="h6" color="text.secondary">
-                  Préparation de l'interface...
-                </Typography>
-              </Box>
+              // Si authentifié, afficher soit le chargement soit l'app
+              authLoading ? (
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  height: '100vh', 
+                  gap: 2 
+                }}>
+                  <CircularProgress size={60} />
+                  <Typography variant="h6" color="text.secondary">
+                    Chargement de l'utilisateur...
+                  </Typography>
+                </Box>
+              ) : user ? (
+                <MainLayoutFull>
+                  <AuthenticatedApp />
+                </MainLayoutFull>
+              ) : (
+                // Si pas d'utilisateur mais authentifié, afficher un chargement temporaire
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  height: '100vh', 
+                  gap: 2 
+                }}>
+                  <CircularProgress size={60} />
+                  <Typography variant="h6" color="text.secondary">
+                    Chargement des données utilisateur...
+                  </Typography>
+                </Box>
+              )
             )
-          )
-        } 
-      />
-    </Routes>
+          } 
+        />
+        </Routes>
+    </CustomPermissionsProvider>
   );
 };
 
 export default App;
-
-

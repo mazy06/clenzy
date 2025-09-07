@@ -15,6 +15,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import com.clenzy.model.User;
 
 @RestController
 @RequestMapping("/api/contact")
@@ -143,6 +146,44 @@ public class ContactController {
             
             List<ContactMessageDto> urgentMessages = contactService.getUrgentMessages(userIdLong);
             return ResponseEntity.ok(urgentMessages);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    /**
+     * Récupérer les destinataires autorisés pour l'utilisateur connecté
+     */
+    @GetMapping("/recipients")
+    public ResponseEntity<List<User>> getAuthorizedRecipients(@AuthenticationPrincipal Jwt jwt) {
+        try {
+            String userId = jwt.getSubject();
+            // TODO: Extraire l'ID utilisateur depuis le JWT ou la base de données
+            Long userIdLong = 1L; // Temporaire
+            
+            List<User> recipients = contactService.getAuthorizedRecipients(userIdLong);
+            return ResponseEntity.ok(recipients);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    /**
+     * Valider si l'utilisateur peut envoyer un message à un destinataire
+     */
+    @GetMapping("/validate/{recipientId}")
+    public ResponseEntity<Map<String, Boolean>> validateRecipient(
+            @PathVariable Long recipientId,
+            @AuthenticationPrincipal Jwt jwt) {
+        try {
+            String userId = jwt.getSubject();
+            // TODO: Extraire l'ID utilisateur depuis le JWT ou la base de données
+            Long userIdLong = 1L; // Temporaire
+            
+            boolean canSend = contactService.canSendMessage(userIdLong, recipientId);
+            Map<String, Boolean> response = new HashMap<>();
+            response.put("canSend", canSend);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }

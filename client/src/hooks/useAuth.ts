@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback, useContext } from 'react';
+import { useState, useEffect, useCallback, useContext, useRef } from 'react';
 import keycloak from '../keycloak';
 import { API_CONFIG } from '../config/api';
 import { CustomPermissionsContext } from './useCustomPermissions';
+import PermissionSyncService from '../services/PermissionSyncService';
+import RedisCacheService from '../services/RedisCacheService';
 
 export interface UserRole {
   name: string;
@@ -22,8 +24,13 @@ export interface AuthUser {
 export const useAuth = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const permissionSyncService = PermissionSyncService.getInstance();
+  const isInitializedRef = useRef(false);
 
   useEffect(() => {
+    if (isInitializedRef.current) return;
+    isInitializedRef.current = true;
+    
     const loadUserInfo = async () => {
       // Vérifier d'abord si on a des tokens en localStorage
       const storedToken = localStorage.getItem('kc_access_token');
@@ -59,12 +66,26 @@ export const useAuth = () => {
 
         if (response.ok) {
           const userData = await response.json();
+          console.log('🔍 useAuth - Données utilisateur complètes reçues:', userData);
+          console.log('🔍 useAuth - userData.role:', userData.role);
+          console.log('🔍 useAuth - userData.realm_access:', userData.realm_access);
+          console.log('🔍 useAuth - userData.resource_access:', userData.resource_access);
           
           // Utiliser directement les permissions depuis l'API
           const permissions = userData.permissions || [];
-          // Le backend retourne 'role' (singulier), pas 'roles' (pluriel)
-          const role = userData.role || '';
-          const roles = role ? [role] : [];
+          
+          // Extraire les rôles depuis realm_access (Keycloak) si le backend ne les retourne pas
+          let roles: string[] = [];
+          if (userData.role) {
+            // Le backend retourne 'role' (singulier)
+            roles = [userData.role];
+          } else if (userData.realm_access && userData.realm_access.roles) {
+            // Extraire depuis realm_access (Keycloak)
+            roles = userData.realm_access.roles.filter((role: string) => role !== 'default-roles-clenzy' && role !== 'offline_access');
+          }
+          
+          console.log('🔍 useAuth - Rôles extraits:', roles);
+          console.log('🔍 useAuth - Permissions extraites:', permissions);
           
           // Créer l'objet utilisateur avec les permissions directes ET les données métier
           const user: AuthUser = {
@@ -82,6 +103,17 @@ export const useAuth = () => {
           
           setUser(user);
           setLoading(false);
+          
+          // Initialiser le service de synchronisation des permissions
+          permissionSyncService.initialize(user);
+          
+          // Forcer une synchronisation immédiate pour résoudre le problème d'accès
+          try {
+            console.log('🔄 useAuth - Synchronisation forcée immédiate au chargement');
+            await permissionSyncService.syncNow();
+          } catch (error) {
+            console.warn('⚠️ useAuth - Erreur lors de la synchronisation forcée:', error);
+          }
         } else if (response.status === 400 || response.status === 401) {
           // Erreur 400/401, essayer de rafraîchir le token
           try {
@@ -118,16 +150,19 @@ export const useAuth = () => {
     
     // Écouter les changements d'état de Keycloak
     const handleAuthSuccess = () => {
+      console.log('🔍 useAuth - handleAuthSuccess appelé');
       loadUserInfo();
     };
     
     const handleAuthLogout = () => {
+      console.log('🔍 useAuth - handleAuthLogout appelé');
       setUser(null);
       setLoading(false);
     };
     
     // Écouter l'événement personnalisé de rechargement forcé
     const handleForceUserReload = () => {
+      console.log('🔍 useAuth - handleForceUserReload appelé');
       // Ajouter un délai pour éviter les appels trop fréquents
       setTimeout(() => {
         loadUserInfo();
@@ -141,13 +176,27 @@ export const useAuth = () => {
     // Ajouter l'écouteur d'événement personnalisé
     window.addEventListener('force-user-reload', handleForceUserReload);
     
-    // Écouter les changements de permissions
+        // Écouter les changements de permissions
     const handlePermissionsRefresh = () => {
       // Recharger les informations utilisateur pour obtenir les nouvelles permissions
       loadUserInfo();
     };
-    
+
+    // Écouter les mises à jour automatiques des permissions
+    const handlePermissionsUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log('🔍 useAuth - Mise à jour automatique des permissions reçue:', customEvent.detail);
+      if (user && customEvent.detail.userId === user.id) {
+        // Mettre à jour les permissions de l'utilisateur
+        setUser(prevUser => prevUser ? {
+          ...prevUser,
+          permissions: customEvent.detail.permissions
+        } : null);
+      }
+    };
+
     window.addEventListener('permissions-refreshed', handlePermissionsRefresh);
+    window.addEventListener('permissions-updated', handlePermissionsUpdated);
     
     return () => {
       // Nettoyer les écouteurs
@@ -155,45 +204,42 @@ export const useAuth = () => {
       keycloak.onAuthLogout = undefined;
       window.removeEventListener('force-user-reload', handleForceUserReload);
       window.removeEventListener('permissions-refreshed', handlePermissionsRefresh);
-    };
-  }, []); // Dépendances vides pour s'exécuter une seule fois au montage
-
-  // Fonction pour vérifier les permissions - TOUJOURS depuis la base de données
-  const hasPermissionAsync = useCallback(async (permission: string): Promise<boolean> => {
-    if (!user) return false;
-    
-    try {
-      // Appel API pour vérifier la permission en temps réel
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/check`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          permission: permission,
-          userId: user.id
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        return result.hasPermission === true;
-      }
+      window.removeEventListener('permissions-updated', handlePermissionsUpdated);
       
-      return false;
-    } catch (error) {
-      console.error('🔍 useAuth - Erreur lors de la vérification de permission:', error);
+      // Arrêter le service de synchronisation
+      permissionSyncService.shutdown();
+    };
+  }, []); // Dépendances vides avec useRef pour éviter les violations des règles des hooks
+
+  // Fonction unique pour la vérification des permissions (appelle Redis directement)
+  const hasPermissionAsync = useCallback(async (permission: string): Promise<boolean> => {
+    if (!user) {
+      console.log('🔍 useAuth.hasPermissionAsync - Aucun utilisateur connecté');
       return false;
     }
-  }, [user]);
-
-  // Fonction synchrone pour la compatibilité (utilise les permissions en cache)
-  const hasPermission = useCallback((permission: string): boolean => {
-    if (!user) return false;
     
-    // Utiliser les permissions du serveur (avec support des permissions personnalisées)
-    return user.permissions.includes(permission);
+    console.log('🔍 useAuth.hasPermissionAsync - Vérification de permission:', {
+      permission,
+      userId: user.id,
+      userRoles: user.roles
+    });
+    
+    try {
+      // Appel direct à Redis (pas de cache local)
+      const redisCacheService = RedisCacheService.getInstance();
+      const redisPermissions = await redisCacheService.getPermissionsFromRedis(user.id);
+      
+      if (redisPermissions && redisPermissions.length > 0) {
+        console.log('✅ useAuth.hasPermissionAsync - Permissions trouvées dans Redis:', redisPermissions.length);
+        return redisPermissions.includes(permission);
+      }
+      
+      console.log('⚠️ useAuth.hasPermissionAsync - Aucune permission dans Redis, accès refusé');
+      return false;
+    } catch (error) {
+      console.error('❌ useAuth.hasPermissionAsync - Erreur Redis:', error);
+      return false;
+    }
   }, [user]);
 
   const hasRole = useCallback((role: string): boolean => {
@@ -285,8 +331,6 @@ export const useAuth = () => {
   return {
     user,
     loading,
-    hasPermission,
-    hasPermissionSync: hasPermission, // Fonction synchrone pour la navigation (permissions en cache)
     hasPermissionAsync, // Fonction pour vérifier les permissions en temps réel
     hasRole,
     hasAnyRole,

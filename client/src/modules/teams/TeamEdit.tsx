@@ -48,7 +48,7 @@ interface TeamFormData {
 const TeamEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermissionAsync } = useAuth();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -233,7 +233,16 @@ const TeamEdit: React.FC = () => {
   }
 
   // Vérifier les permissions pour l'édition
-  const canEdit = hasPermission('teams:edit');
+  const [canEdit, setCanEdit] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canEditPermission = await hasPermissionAsync('teams:edit');
+      setCanEdit(canEditPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);;
 
   if (!canEdit) {
     return (

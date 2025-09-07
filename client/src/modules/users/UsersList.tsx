@@ -97,10 +97,19 @@ const UsersList: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const navigate = useNavigate();
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermissionAsync } = useAuth();
 
   // Vérifier la permission de gestion des utilisateurs
-  const canManageUsers = hasPermission('users:manage');
+  const [canManageUsers, setCanManageUsers] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canManageUsersPermission = await hasPermissionAsync('users:manage');
+      setCanManageUsers(canManageUsersPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);;
 
   // Charger les utilisateurs depuis l'API
   useEffect(() => {
