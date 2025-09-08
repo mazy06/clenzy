@@ -55,6 +55,13 @@ public class PropertyController {
         return propertyService.search(pageable, ownerId, status, type, city);
     }
 
+    @GetMapping("/with-managers")
+    @Operation(summary = "Lister les logements avec leurs managers associés")
+    public Page<PropertyDto> listWithManagers(@PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+                                             @RequestParam(required = false) String ownerKeycloakId) {
+        return propertyService.searchWithManagers(pageable, ownerKeycloakId);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Supprimer un logement")

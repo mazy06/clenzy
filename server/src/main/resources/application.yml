@@ -2,7 +2,7 @@ spring:
   application:
     name: clenzy
   profiles:
-    active: prod
+    active: dev
 
 # Configuration Keycloak
 keycloak:

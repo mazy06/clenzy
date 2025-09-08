@@ -6,6 +6,7 @@ import com.clenzy.model.Property;
 import com.clenzy.model.User;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.repository.ManagerPropertyRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,10 +20,12 @@ import org.springframework.data.domain.Pageable;
 public class PropertyService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final ManagerPropertyRepository managerPropertyRepository;
 
-    public PropertyService(PropertyRepository propertyRepository, UserRepository userRepository) {
+    public PropertyService(PropertyRepository propertyRepository, UserRepository userRepository, ManagerPropertyRepository managerPropertyRepository) {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
+        this.managerPropertyRepository = managerPropertyRepository;
     }
 
     public PropertyDto create(PropertyDto dto) {
@@ -63,6 +66,13 @@ public class PropertyService {
                 type != null ? cb.equal(root.get("type"), type) : cb.conjunction(),
                 city != null ? cb.like(cb.lower(root.get("city")), "%" + city.toLowerCase() + "%") : cb.conjunction()
         ), pageable).map(this::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PropertyDto> searchWithManagers(Pageable pageable, String ownerKeycloakId) {
+        return propertyRepository.findAll((root, query, cb) -> cb.and(
+                ownerKeycloakId != null ? cb.equal(root.get("owner").get("keycloakId"), ownerKeycloakId) : cb.conjunction()
+        ), pageable).map(this::toDtoWithManager);
     }
 
     public void delete(Long id) {
@@ -129,6 +139,26 @@ public class PropertyService {
         dto.ownerId = p.getOwner() != null ? p.getOwner().getId() : null;
         dto.createdAt = p.getCreatedAt();
         dto.updatedAt = p.getUpdatedAt();
+        return dto;
+    }
+
+    private PropertyDto toDtoWithManager(Property p) {
+        PropertyDto dto = toDto(p);
+        
+        // Récupérer le manager associé à cette propriété
+        List<com.clenzy.model.ManagerProperty> managerProperties = managerPropertyRepository.findByPropertyId(p.getId());
+        if (!managerProperties.isEmpty()) {
+            com.clenzy.model.ManagerProperty managerProperty = managerProperties.get(0); // Prendre le premier
+            User manager = managerProperty.getManager();
+            if (manager != null) {
+                // Ajouter les informations du manager au DTO
+                dto.managerId = manager.getId();
+                dto.managerFirstName = manager.getFirstName();
+                dto.managerLastName = manager.getLastName();
+                dto.managerEmail = manager.getEmail();
+            }
+        }
+        
         return dto;
     }
 }

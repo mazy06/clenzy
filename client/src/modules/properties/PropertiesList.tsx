@@ -120,6 +120,15 @@ export default function PropertiesList() {
       let url = `${API_CONFIG.BASE_URL}/api/properties`;
       
       // Si c'est un HOST, filtrer par ses propriétés
+      console.log('🔍 PropertiesList - Debug utilisateur:', {
+        isHost: isHost(),
+        isAdmin: isAdmin(),
+        isManager: isManager(),
+        userId: user?.id,
+        userRoles: user?.roles,
+        userEmail: user?.email
+      });
+      
       if (isHost() && !isAdmin() && !isManager() && user?.id) {
         url += `?ownerId=${user.id}`;
         console.log('🔍 PropertiesList - Chargement des propriétés du HOST:', user.id);

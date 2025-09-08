@@ -13,7 +13,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
-@Profile("dev")
 public class SecurityConfig {
 
     @Bean
@@ -30,6 +29,7 @@ public class SecurityConfig {
                     "/h2-console/**",
                     "/api/auth/**",
                     "/api/permissions/**",
+                    "/api/health/**",
                     "/api/me",
                     "/api/managers/all",
                     "/api/managers/hosts",
@@ -44,6 +44,7 @@ public class SecurityConfig {
                     "/api/managers/*/teams/*",
                     "/api/managers/*/users/*",
                     "/api/managers/*/properties/*",
+                    "/api/properties/with-managers",
                     "/api/sync/**"
                 ).permitAll()
                 .anyRequest().authenticated()
@@ -59,9 +60,16 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.addAllowedOrigin("http://localhost:3000");
         config.addAllowedOrigin("http://localhost:3001");
-        config.addAllowedMethod("*");
-        config.addAllowedHeader("*");
+        config.addAllowedMethod("GET");
+        config.addAllowedMethod("POST");
+        config.addAllowedMethod("PUT");
+        config.addAllowedMethod("DELETE");
+        config.addAllowedMethod("OPTIONS");
+        config.addAllowedHeader("Authorization");
+        config.addAllowedHeader("Content-Type");
+        config.addAllowedHeader("Accept");
         config.setAllowCredentials(true);
+        config.setMaxAge(3600L); // Cache preflight requests for 1 hour
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
