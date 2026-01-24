@@ -37,6 +37,7 @@
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/config/KeycloakConfig.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/RolePermission.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/repository/ServiceRequestRepository.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/config/MonitoringConfig.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/controller/InterventionController.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/PropertyAssociationDto.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/controller/TokenAdminController.java
@@ -68,6 +69,7 @@
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/Permission.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/Property.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/controller/AuthProxyController.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/config/CacheConfig.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/repository/PropertyRepository.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/controller/UserController.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/ManagerProperty.java
@@ -84,6 +86,7 @@
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/repository/UserRepository.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/config/SecurityConfigProd.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/ManagerTeam.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/config/MetricsConfig.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/repository/PortfolioRepository.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/User.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/controller/NewUserController.java

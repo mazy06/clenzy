@@ -23,13 +23,14 @@ public class SecurityConfig {
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
+                    "/actuator/**",
                     "/v3/api-docs/**",
                     "/swagger-ui.html",
                     "/swagger-ui/**",
                     "/h2-console/**",
                     "/api/auth/**",
                     "/api/permissions/**",
-                    "/api/health/**",
+                    "/api/health",
                     "/api/me",
                     "/api/managers/all",
                     "/api/managers/hosts",

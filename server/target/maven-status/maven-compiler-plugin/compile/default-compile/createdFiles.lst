@@ -1,5 +1,6 @@
 com/clenzy/model/PropertyStatus.class
 com/clenzy/exception/NotFoundException.class
+com/clenzy/config/CacheConfig.class
 com/clenzy/dto/UserAssociationDto.class
 com/clenzy/dto/PortfolioClientDto.class
 com/clenzy/model/UserRole.class
@@ -20,6 +21,7 @@ com/clenzy/service/PropertyService.class
 com/clenzy/service/JwtTokenService$TokenInfo.class
 com/clenzy/controller/SyncController.class
 com/clenzy/dto/InterventionDto.class
+com/clenzy/config/MonitoringConfig.class
 com/clenzy/controller/HealthController.class
 com/clenzy/model/PortfolioClient.class
 com/clenzy/repository/ServiceRequestRepository.class
@@ -57,6 +59,7 @@ com/clenzy/dto/RolePermissionsDto.class
 com/clenzy/model/InterventionStatus.class
 com/clenzy/model/ManagerUser.class
 com/clenzy/model/PropertyType.class
+com/clenzy/config/MetricsConfig.class
 com/clenzy/controller/AuthController.class
 com/clenzy/dto/ReassignmentRequest.class
 com/clenzy/repository/PortfolioTeamRepository.class

@@ -226,11 +226,15 @@ const Dashboard: React.FC = () => {
           Array.from({ length: 4 }).map((_, index) => (
             <Grid item xs={12} sm={6} md={3} key={index}>
               <Card sx={{ height: '100%' }}>
-                <CardContent sx={{ textAlign: 'center', ...createSpacing.card() }}>
-                  <Skeleton variant="circular" width={40} height={40} sx={{ mx: 'auto', mb: 2 }} />
-                  <Skeleton variant="text" width="60%" height={40} sx={{ mx: 'auto', mb: 1 }} />
-                  <Skeleton variant="text" width="80%" height={20} sx={{ mx: 'auto', mb: 2 }} />
-                  <Skeleton variant="text" width="40%" height={20} sx={{ mx: 'auto' }} />
+                <CardContent sx={{ p: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Skeleton variant="rectangular" width={48} height={48} sx={{ borderRadius: 1.5 }} />
+                    <Box sx={{ flex: 1 }}>
+                      <Skeleton variant="text" width="60%" height={32} sx={{ mb: 0.5 }} />
+                      <Skeleton variant="text" width="80%" height={16} sx={{ mb: 0.5 }} />
+                      <Skeleton variant="text" width="40%" height={14} />
+                    </Box>
+                  </Box>
                 </CardContent>
               </Card>
             </Grid>
@@ -244,32 +248,89 @@ const Dashboard: React.FC = () => {
         ) : (
           dynamicStats.map((stat, index) => (
             <Grid item xs={12} sm={6} md={3} key={index}>
-              <Card sx={{ height: '100%' }}>
+              <Card 
+                sx={{ 
+                  height: '100%',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: 4,
+                  }
+                }}
+              >
                 <CardActionArea onClick={() => navigate(stat.route)}>
-                  <CardContent sx={{ textAlign: 'center', ...createSpacing.card() }}>
-                    <Box sx={{ mb: 2 }}>
-                      {stat.icon}
-                    </Box>
-                    <Typography variant="h4" component="div" sx={{ mb: 1, fontWeight: 700 }}>
-                      {stat.value}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {stat.title}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                      {stat.growth.type === 'up' ? (
-                        <TrendingUp color="success" fontSize="small" />
-                      ) : stat.growth.type === 'down' ? (
-                        <TrendingDown color="error" fontSize="small" />
-                      ) : (
-                        <Star color="info" fontSize="small" />
-                      )}
-                      <Typography 
-                        variant="caption" 
-                        color={stat.growth.type === 'up' ? 'success.main' : stat.growth.type === 'down' ? 'error.main' : 'info.main'}
+                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      {/* Icône */}
+                      <Box 
+                        sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          minWidth: 48,
+                          height: 48,
+                          borderRadius: 1.5,
+                          bgcolor: 'rgba(166, 192, 206, 0.1)',
+                          '& .MuiSvgIcon-root': {
+                            fontSize: 28,
+                          }
+                        }}
                       >
-                        {stat.growth.value}
-                      </Typography>
+                        {stat.icon}
+                      </Box>
+                      
+                      {/* Contenu principal */}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography 
+                          variant="h5" 
+                          component="div" 
+                          sx={{ 
+                            fontWeight: 700,
+                            lineHeight: 1.2,
+                            mb: 0.5,
+                            fontSize: { xs: '1.25rem', sm: '1.5rem' }
+                          }}
+                        >
+                          {stat.value}
+                        </Typography>
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary" 
+                          sx={{ 
+                            fontSize: '0.75rem',
+                            lineHeight: 1.2,
+                            mb: 0.5,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {stat.title}
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          {stat.growth.type === 'up' ? (
+                            <TrendingUp color="success" sx={{ fontSize: 16 }} />
+                          ) : stat.growth.type === 'down' ? (
+                            <TrendingDown color="error" sx={{ fontSize: 16 }} />
+                          ) : (
+                            <Star color="info" sx={{ fontSize: 16 }} />
+                          )}
+                          <Typography 
+                            variant="caption" 
+                            sx={{
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              color: stat.growth.type === 'up' 
+                                ? 'success.main' 
+                                : stat.growth.type === 'down' 
+                                ? 'error.main' 
+                                : 'text.secondary'
+                            }}
+                          >
+                            {stat.growth.value}
+                          </Typography>
+                        </Box>
+                      </Box>
                     </Box>
                   </CardContent>
                 </CardActionArea>

@@ -1,0 +1,206 @@
+version: '3.8'
+
+services:
+  # PostgreSQL optimisé pour la performance
+  postgres:
+    image: postgres:15-alpine
+    container_name: clenzy-postgres-perf
+    environment:
+      POSTGRES_DB: clenzy_perf
+      POSTGRES_USER: clenzy
+      POSTGRES_PASSWORD: clenzy123
+      # Optimisations PostgreSQL
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./postgres-data-perf:/var/lib/postgresql/data
+      - ./postgresql-perf.conf:/etc/postgresql/postgresql.conf
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clenzy -d clenzy_perf"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # Redis optimisé pour la performance
+  redis:
+    image: redis:7-alpine
+    container_name: clenzy-redis-perf
+    hostname: clenzy-redis-perf
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./redis-data-perf:/data
+    command: >
+      redis-server 
+      --appendonly yes 
+      --maxmemory 512mb 
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 60
+      --timeout 300
+      --tcp-backlog 511
+      --databases 16
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  # Keycloak optimisé
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    container_name: clenzy-keycloak-perf
+    hostname: clenzy-keycloak-perf
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_perf
+      KC_DB_USERNAME: clenzy
+      KC_DB_PASSWORD: clenzy123
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+      # Optimisations JVM
+      JAVA_OPTS: "-Xms512m -Xmx1g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+    ports:
+      - "8086:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./keycloak/realm-clenzy.json:/opt/keycloak/data/import/realm-clenzy.json
+    command: start-dev --import-realm
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # Serveur Spring Boot optimisé
+  server:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    container_name: clenzy-server-perf
+    environment:
+      SPRING_PROFILES_ACTIVE: performance
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/clenzy_perf
+      SPRING_DATASOURCE_USERNAME: clenzy
+      SPRING_DATASOURCE_PASSWORD: clenzy123
+      SPRING_REDIS_HOST: clenzy-redis-perf
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_DATABASE: 0
+      KEYCLOAK_AUTH_SERVER_URL: http://clenzy-keycloak-perf:8080
+      KEYCLOAK_REALM: clenzy
+      # Optimisations JVM
+      JAVA_OPTS: >
+        -Xms1g -Xmx2g 
+        -XX:+UseG1GC 
+        -XX:MaxGCPauseMillis=200 
+        -XX:+UseStringDeduplication
+        -XX:+OptimizeStringConcat
+        -Dspring.profiles.active=performance
+    ports:
+      - "8087:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    volumes:
+      - ../server:/workspace
+      - ~/.m2:/root/.m2
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend optimisé
+  frontend:
+    build:
+      context: ../client
+      dockerfile: Dockerfile
+    container_name: clenzy-frontend-perf
+    ports:
+      - "3001:80"
+    depends_on:
+      - server
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # Prometheus pour le monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: clenzy-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # Grafana pour les dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: clenzy-grafana
+    ports:
+      - "3002:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./grafana-data:/var/lib/grafana
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+networks:
+  default:
+    name: clenzy-performance-network

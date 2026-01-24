@@ -1,505 +1,399 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Grid,
+  Card,
+  CardContent,
+  Typography,
   TextField,
+  Button,
+  Grid,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Button,
-  Typography,
   Chip,
   Alert,
   CircularProgress,
-  Card,
-  CardContent,
-  FormHelperText,
   Autocomplete,
+  FormHelperText,
+  Paper,
+  Divider
 } from '@mui/material';
 import {
-  Send,
-  AttachFile,
-  Delete,
-  CloudUpload,
+  Send as SendIcon,
+  AttachFile as AttachFileIcon,
+  Person as PersonIcon,
+  Email as EmailIcon,
+  Subject as SubjectIcon,
+  Message as MessageIcon,
+  PriorityHigh as PriorityIcon,
+  Category as CategoryIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
 
-// Types de messages et priorités (synchronisés avec le backend)
-const MESSAGE_TYPES = [
-  { value: 'QUESTION_FACTURATION', label: 'Question facturation' },
-  { value: 'DEMANDE_ADMINISTRATIVE', label: 'Demande administrative' },
-  { value: 'CLARIFICATION_CONTRAT', label: 'Clarification contrat' },
-  { value: 'QUESTION_PORTEFEUILLE', label: 'Question portefeuille' },
-  { value: 'SUGGESTION', label: 'Suggestion' },
-  { value: 'PROBLEME_COMMUNICATION', label: 'Problème de communication' },
-  { value: 'DEMANDE_RENDEZ_VOUS', label: 'Demande de rendez-vous' },
-  { value: 'REMARQUE_FEEDBACK', label: 'Remarque/Feedback' },
-  { value: 'QUESTION_GENERALE', label: 'Question générale' },
-];
-
-const PRIORITIES = [
-  { value: 'BASSE', label: 'Basse', color: 'default' },
-  { value: 'MOYENNE', label: 'Moyenne', color: 'primary' },
-  { value: 'HAUTE', label: 'Haute', color: 'warning' },
-  { value: 'URGENTE', label: 'Urgente', color: 'error' },
-];
-
 interface ContactFormData {
-  recipientId: number | '';
-  propertyId: number | '';
-  messageType: string;
-  priority: string;
+  recipientId: string;
   subject: string;
-  content: string;
+  message: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  category: 'GENERAL' | 'TECHNICAL' | 'MAINTENANCE' | 'CLEANING' | 'EMERGENCY';
+  attachments: File[];
 }
 
-interface FileUpload {
-  file: File;
+interface User {
   id: string;
-  name: string;
-  size: number;
-  type: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
 }
 
 const ContactForm: React.FC = () => {
-  const { user, isHost, isTechnician, isHousekeeper } = useAuth();
+  const { user } = useAuth();
+  const isRestrictedUser = user?.roles?.includes('HOST') || user?.roles?.includes('HOUSEKEEPER') || user?.roles?.includes('TECHNICIAN') || user?.roles?.includes('SUPERVISOR');
   const [formData, setFormData] = useState<ContactFormData>({
     recipientId: '',
-    propertyId: '',
-    messageType: 'QUESTION_GENERALE',
-    priority: 'BASSE',
     subject: '',
-    content: '',
+    message: '',
+    priority: 'MEDIUM',
+    category: 'GENERAL',
+    attachments: []
   });
-  
-  const [files, setFiles] = useState<FileUpload[]>([]);
+
+  const [usersList, setUsersList] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [recipients, setRecipients] = useState<Array<{id: number, name: string, role: string, email?: string}>>([]);
-  const [properties, setProperties] = useState<Array<{id: number, name: string}>>([]);
-  const [recipientSearchTerm, setRecipientSearchTerm] = useState('');
+  const [success, setSuccess] = useState<string | null>(null);
 
-  // Charger les destinataires et propriétés au montage
+  // Charger la liste des destinataires autorisés
   useEffect(() => {
-    loadRecipients();
-    if (isHost()) {
-      loadUserProperties();
-    }
-  }, [user]);
+    const loadRecipients = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/contact/recipients`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
-  const loadRecipients = async () => {
-    try {
-      // Utiliser le nouvel endpoint qui applique les règles métier
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/contact/recipients`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-      });
-      
-      if (response.ok) {
-        const usersList = await response.json();
-        
-        setRecipients(usersList.map((u: any) => ({
-          id: u.id,
-          name: `${u.firstName} ${u.lastName}`,
-          role: u.role,
-          email: u.email
-        })));
-        
-        console.log('📊 ContactForm - Destinataires autorisés chargés:', usersList.length);
-      } else {
-        console.error('Erreur chargement destinataires autorisés');
-      }
-    } catch (err) {
-      console.error('Erreur chargement destinataires:', err);
-    }
-  };
-
-  // Filtrer les destinataires selon le terme de recherche
-  const filteredRecipients = recipients.filter(recipient => 
-    recipient.name.toLowerCase().includes(recipientSearchTerm.toLowerCase()) ||
-    (recipient.email && recipient.email.toLowerCase().includes(recipientSearchTerm.toLowerCase()))
-  );
-
-  const loadUserProperties = async () => {
-    try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/properties`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const propertiesList = data.content || data;
-        
-        // Pour les HOST, filtrer leurs propriétés
-        if (isHost() && user) {
-          const userProperties = propertiesList.filter((p: any) => 
-            p.owner?.id === user.id
-          );
-          setProperties(userProperties.map((p: any) => ({
-            id: p.id,
-            name: p.name
-          })));
+        if (response.ok) {
+          const users = await response.json();
+          setUsersList(users);
+          console.log('📊 ContactForm - Destinataires autorisés chargés:', users.length);
         } else {
-          setProperties(propertiesList.map((p: any) => ({
-            id: p.id,
-            name: p.name
-          })));
+          console.error('❌ Erreur lors du chargement des destinataires');
         }
+      } catch (error) {
+        console.error('❌ Erreur lors du chargement des destinataires:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Erreur chargement propriétés:', err);
-    }
-  };
+    };
+
+    loadRecipients();
+  }, []);
 
   const handleInputChange = (field: keyof ContactFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Mettre à jour automatiquement la priorité selon le type de message
-    if (field === 'messageType') {
-      const newPriority = determinePriority(value);
-      setFormData(prev => ({ ...prev, priority: newPriority }));
-    }
-  };
-
-  const determinePriority = (messageType: string): string => {
-    switch (messageType) {
-      case 'QUESTION_FACTURATION':
-      case 'CLARIFICATION_CONTRAT':
-      case 'DEMANDE_RENDEZ_VOUS':
-        return 'MOYENNE';
-      case 'DEMANDE_ADMINISTRATIVE':
-      case 'QUESTION_PORTEFEUILLE':
-      case 'SUGGESTION':
-      case 'REMARQUE_FEEDBACK':
-      case 'QUESTION_GENERALE':
-        return 'BASSE';
-      case 'PROBLEME_COMMUNICATION':
-        return 'MOYENNE';
-      default:
-        return 'BASSE';
-    }
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const uploadedFiles = Array.from(event.target.files || []);
-    
-    const newFiles = uploadedFiles.map(file => ({
-      file,
-      id: Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      size: file.size,
-      type: file.type,
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
     }));
-    
-    setFiles(prev => [...prev, ...newFiles]);
+    setError(null);
   };
 
-  const removeFile = (fileId: string) => {
-    setFiles(prev => prev.filter(f => f.id !== fileId));
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      const fileArray = Array.from(files);
+      setFormData(prev => ({
+        ...prev,
+        attachments: [...prev.attachments, ...fileArray]
+      }));
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, i) => i !== index)
+    }));
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
-    if (!formData.recipientId || !formData.subject || !formData.content) {
+    if (!formData.recipientId || !formData.subject || !formData.message) {
       setError('Veuillez remplir tous les champs obligatoires');
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
     try {
-      // Préparer les données du message
-      const messageData = {
-        ...formData,
-        senderId: user?.id,
-        recipientId: formData.recipientId,
-        propertyId: formData.propertyId || null,
-      };
+      setSubmitting(true);
+      setError(null);
 
-      // Créer FormData pour l'upload de fichiers
       const formDataToSend = new FormData();
-      formDataToSend.append('message', new Blob([JSON.stringify(messageData)], {
-        type: 'application/json'
-      }));
+      formDataToSend.append('recipientId', formData.recipientId);
+      formDataToSend.append('subject', formData.subject);
+      formDataToSend.append('message', formData.message);
+      formDataToSend.append('priority', formData.priority);
+      formDataToSend.append('category', formData.category);
 
-      // Ajouter les fichiers
-      files.forEach(fileUpload => {
-        formDataToSend.append('files', fileUpload.file);
+      // Ajouter les pièces jointes
+      formData.attachments.forEach((file, index) => {
+        formDataToSend.append(`attachments`, file);
       });
 
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/contact/messages`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: formDataToSend,
+        body: formDataToSend
       });
 
       if (response.ok) {
-        setSuccess(true);
+        setSuccess('Message envoyé avec succès !');
         setFormData({
           recipientId: '',
-          propertyId: '',
-          messageType: 'QUESTION_GENERALE',
-          priority: 'BASSE',
           subject: '',
-          content: '',
+          message: '',
+          priority: 'MEDIUM',
+          category: 'GENERAL',
+          attachments: []
         });
-        setFiles([]);
-        
-        // Réinitialiser le formulaire après 3 secondes
-        setTimeout(() => setSuccess(false), 3000);
       } else {
-        const errorData = await response.text();
-        setError(`Erreur lors de l'envoi: ${errorData}`);
+        const errorData = await response.json();
+        setError(errorData.message || 'Erreur lors de l\'envoi du message');
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'envoi du message:', error);
       setError('Erreur de connexion. Veuillez réessayer.');
-      console.error('Erreur envoi message:', err);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+  const priorityOptions = [
+    { value: 'LOW', label: 'Faible', color: 'success' },
+    { value: 'MEDIUM', label: 'Moyenne', color: 'info' },
+    { value: 'HIGH', label: 'Élevée', color: 'warning' },
+    { value: 'URGENT', label: 'Urgente', color: 'error' }
+  ];
+
+  const categoryOptions = [
+    { value: 'GENERAL', label: 'Général' },
+    { value: 'TECHNICAL', label: 'Technique' },
+    { value: 'MAINTENANCE', label: 'Maintenance' },
+    { value: 'CLEANING', label: 'Nettoyage' },
+    { value: 'EMERGENCY', label: 'Urgence' }
+  ];
 
   return (
-    <Box component="form" onSubmit={handleSubmit}>
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
-          Message envoyé avec succès !
-        </Alert>
-      )}
+    <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
+      <Card>
+        <CardContent>
+          <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <MessageIcon color="primary" />
+            Nouveau Message
+          </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
+          {isRestrictedUser && (
+            <Alert severity="info" sx={{ mb: 3 }}>
+              En tant qu'utilisateur restreint, vous ne pouvez envoyer des messages qu'aux managers de votre portefeuille.
+            </Alert>
+          )}
 
-      <Grid container spacing={3}>
-        {/* Destinataire */}
-        <Grid item xs={12} md={6}>
-          <Autocomplete
-            options={filteredRecipients}
-            getOptionLabel={(option) => option.name}
-            value={recipients.find(r => r.id === formData.recipientId) || null}
-            onChange={(event, newValue) => {
-              handleInputChange('recipientId', newValue ? newValue.id : '');
-            }}
-            onInputChange={(event, newInputValue) => {
-              setRecipientSearchTerm(newInputValue);
-            }}
-            filterOptions={(options) => options} // On utilise notre propre filtre
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Destinataire *"
-                required
-                helperText="Recherchez par nom ou email"
-                placeholder="Tapez pour rechercher..."
-              />
-            )}
-            renderOption={(props, option) => (
-              <Box component="li" {...props} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="body2">
-                    {option.name}
-                  </Typography>
-                  {option.email && (
-                    <Typography variant="caption" color="text.secondary">
-                      {option.email}
-                    </Typography>
-                  )}
-                </Box>
-                <Chip 
-                  label={option.role} 
-                  size="small" 
-                  variant="outlined"
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          )}
+
+          {success && (
+            <Alert severity="success" sx={{ mb: 3 }}>
+              {success}
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <Grid container spacing={3}>
+              {/* Destinataire */}
+              <Grid item xs={12}>
+                <FormControl fullWidth required>
+                  <InputLabel>Destinataire</InputLabel>
+                  <Select
+                    value={formData.recipientId}
+                    onChange={(e) => handleInputChange('recipientId', e.target.value)}
+                    disabled={loading}
+                  >
+                    {usersList.map((user) => (
+                      <MenuItem key={user.id} value={user.id}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <PersonIcon fontSize="small" />
+                          <Box>
+                            <Typography variant="body2">
+                              {user.firstName} {user.lastName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {user.email} • {user.role}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* Sujet */}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Sujet"
+                  value={formData.subject}
+                  onChange={(e) => handleInputChange('subject', e.target.value)}
+                  required
+                  InputProps={{
+                    startAdornment: <SubjectIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                  }}
                 />
-              </Box>
-            )}
-            noOptionsText="Aucun destinataire trouvé"
-            loading={recipients.length === 0}
-          />
-        </Grid>
+              </Grid>
 
-        {/* Propriété (optionnel) */}
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth>
-            <InputLabel>Propriété (optionnel)</InputLabel>
-            <Select
-              value={formData.propertyId}
-              onChange={(e) => handleInputChange('propertyId', e.target.value)}
-              label="Propriété (optionnel)"
-            >
-              <MenuItem value="">
-                <em>Aucune propriété spécifique</em>
-              </MenuItem>
-              {properties.map((property) => (
-                <MenuItem key={property.id} value={property.id}>
-                  {property.name}
-                </MenuItem>
-              ))}
-            </Select>
-            <FormHelperText>
-              Liez votre message à une propriété si nécessaire
-            </FormHelperText>
-          </FormControl>
-        </Grid>
+              {/* Priorité et Catégorie */}
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Priorité</InputLabel>
+                  <Select
+                    value={formData.priority}
+                    onChange={(e) => handleInputChange('priority', e.target.value)}
+                  >
+                    {priorityOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        <Chip
+                          label={option.label}
+                          size="small"
+                          color={option.color as any}
+                          sx={{ mr: 1 }}
+                        />
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
 
-        {/* Type de message */}
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth required>
-            <InputLabel>Type de message *</InputLabel>
-            <Select
-              value={formData.messageType}
-              onChange={(e) => handleInputChange('messageType', e.target.value)}
-              label="Type de message *"
-            >
-              {MESSAGE_TYPES.map((type) => (
-                <MenuItem key={type.value} value={type.value}>
-                  {type.label}
-                </MenuItem>
-              ))}
-            </Select>
-            <FormHelperText>
-              Le type détermine automatiquement la priorité
-            </FormHelperText>
-          </FormControl>
-        </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Catégorie</InputLabel>
+                  <Select
+                    value={formData.category}
+                    onChange={(e) => handleInputChange('category', e.target.value)}
+                  >
+                    {categoryOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        <CategoryIcon sx={{ mr: 1, fontSize: 16 }} />
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
 
-        {/* Priorité (automatique) */}
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth>
-            <InputLabel>Priorité</InputLabel>
-            <Select
-              value={formData.priority}
-              onChange={(e) => handleInputChange('priority', e.target.value)}
-              label="Priorité"
-              disabled
-            >
-              {PRIORITIES.map((priority) => (
-                <MenuItem key={priority.value} value={priority.value}>
-                  <Chip 
-                    label={priority.label} 
-                    color={priority.color as any}
-                    size="small"
-                  />
-                </MenuItem>
-              ))}
-            </Select>
-            <FormHelperText>
-              Priorité automatique basée sur le type de message
-            </FormHelperText>
-          </FormControl>
-        </Grid>
+              {/* Message */}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Message"
+                  multiline
+                  rows={6}
+                  value={formData.message}
+                  onChange={(e) => handleInputChange('message', e.target.value)}
+                  required
+                  InputProps={{
+                    startAdornment: <MessageIcon sx={{ mr: 1, color: 'text.secondary', alignSelf: 'flex-start', mt: 1 }} />
+                  }}
+                />
+              </Grid>
 
-        {/* Sujet */}
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Sujet *"
-            value={formData.subject}
-            onChange={(e) => handleInputChange('subject', e.target.value)}
-            required
-            helperText="Donnez un titre clair à votre message"
-          />
-        </Grid>
-
-        {/* Contenu */}
-        <Grid item xs={12}>
-          <TextField
-            fullWidth
-            label="Message *"
-            value={formData.content}
-            onChange={(e) => handleInputChange('content', e.target.value)}
-            required
-            multiline
-            rows={6}
-            helperText="Décrivez votre demande ou question en détail"
-          />
-        </Grid>
-
-        {/* Upload de fichiers */}
-        <Grid item xs={12}>
-          <Card variant="outlined">
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Pièces jointes
-              </Typography>
-              
-              <Box sx={{ mb: 2 }}>
-                <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<CloudUpload />}
-                  sx={{ mr: 2 }}
-                >
-                  Ajouter des fichiers
+              {/* Pièces jointes */}
+              <Grid item xs={12}>
+                <Paper variant="outlined" sx={{ p: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    <AttachFileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    Pièces jointes
+                  </Typography>
+                  
                   <input
                     type="file"
                     multiple
-                    hidden
-                    onChange={handleFileUpload}
-                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                    id="file-input"
                   />
-                </Button>
-                <Typography variant="caption" color="text.secondary">
-                  Photos, documents (max 10MB par fichier)
-                </Typography>
-              </Box>
+                  <label htmlFor="file-input">
+                    <Button
+                      variant="outlined"
+                      component="span"
+                      startIcon={<AttachFileIcon />}
+                      size="small"
+                    >
+                      Ajouter des fichiers
+                    </Button>
+                  </label>
 
-              {/* Liste des fichiers */}
-              {files.length > 0 && (
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Fichiers sélectionnés ({files.length})
-                  </Typography>
-                  {files.map((fileUpload) => (
-                    <Chip
-                      key={fileUpload.id}
-                      label={`${fileUpload.name} (${formatFileSize(fileUpload.size)})`}
-                      onDelete={() => removeFile(fileUpload.id)}
-                      deleteIcon={<Delete />}
-                      sx={{ mr: 1, mb: 1 }}
-                    />
-                  ))}
+                  {formData.attachments.length > 0 && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Fichiers sélectionnés :
+                      </Typography>
+                      {formData.attachments.map((file, index) => (
+                        <Chip
+                          key={index}
+                          label={file.name}
+                          onDelete={() => removeAttachment(index)}
+                          size="small"
+                          sx={{ mr: 1, mb: 1 }}
+                        />
+                      ))}
+                    </Box>
+                  )}
+                </Paper>
+              </Grid>
+
+              {/* Boutons */}
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setFormData({
+                      recipientId: '',
+                      subject: '',
+                      message: '',
+                      priority: 'MEDIUM',
+                      category: 'GENERAL',
+                      attachments: []
+                    })}
+                    disabled={submitting}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    startIcon={submitting ? <CircularProgress size={20} /> : <SendIcon />}
+                    disabled={submitting || loading}
+                  >
+                    {submitting ? 'Envoi en cours...' : 'Envoyer'}
+                  </Button>
                 </Box>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Bouton d'envoi */}
-        <Grid item xs={12}>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-            <Button
-              type="submit"
-              variant="contained"
-              startIcon={loading ? <CircularProgress size={20} /> : <Send />}
-              disabled={loading || !formData.recipientId || !formData.subject || !formData.content}
-              size="large"
-            >
-              {loading ? 'Envoi en cours...' : 'Envoyer le message'}
-            </Button>
-          </Box>
-        </Grid>
-      </Grid>
+              </Grid>
+            </Grid>
+          </form>
+        </CardContent>
+      </Card>
     </Box>
   );
 };

@@ -7,6 +7,8 @@ import com.clenzy.model.User;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.ManagerPropertyRepository;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ public class PropertyService {
         this.managerPropertyRepository = managerPropertyRepository;
     }
 
+    @CacheEvict(value = "properties", allEntries = true)
     public PropertyDto create(PropertyDto dto) {
         Property property = new Property();
         apply(dto, property);
@@ -35,6 +38,7 @@ public class PropertyService {
         return toDto(property);
     }
 
+    @CacheEvict(value = "properties", allEntries = true)
     public PropertyDto update(Long id, PropertyDto dto) {
         Property property = propertyRepository.findById(id).orElseThrow(() -> new NotFoundException("Property not found"));
         apply(dto, property);
@@ -43,6 +47,7 @@ public class PropertyService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "properties", key = "#id")
     public PropertyDto getById(Long id) {
         Property entity = propertyRepository.findById(id).orElseThrow(() -> new NotFoundException("Property not found"));
         return toDto(entity);
