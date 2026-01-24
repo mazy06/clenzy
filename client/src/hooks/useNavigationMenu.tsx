@@ -200,13 +200,10 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
 
   // Construire le menu au montage et quand les dépendances changent
   useEffect(() => {
-    if (user?.id) {
-      const newMenuItems = buildMenuItems();
-      setMenuItems(newMenuItems);
-    } else {
-      setMenuItems([]);
+    if (user) {
+      refreshMenu();
     }
-  }, [user?.id, user?.permissions, buildMenuItems]);
+  }, [user?.id, user?.permissions]); // Dépendre seulement de l'ID et des permissions
 
   // Mémoriser le résultat pour éviter les re-renders inutiles
   const memoizedMenuItems = useMemo(() => menuItems, [menuItems]);

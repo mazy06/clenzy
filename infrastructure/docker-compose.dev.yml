@@ -58,6 +58,9 @@ services:
       KC_DB_PASSWORD: clenzy123
       KC_HEALTH_ENABLED: true
       KC_METRICS_ENABLED: true
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HTTP_ENABLED: true
     ports:
       - "8083:8080"
     depends_on:
@@ -101,6 +104,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: clenzy123
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://clenzy-keycloak:8080/realms/clenzy
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://clenzy-keycloak:8080/realms/clenzy/protocol/openid-connect/certs
       KEYCLOAK_TOKEN_URI: http://clenzy-keycloak:8080/realms/clenzy/protocol/openid-connect/token
       KEYCLOAK_LOGOUT_URI: http://clenzy-keycloak:8080/realms/clenzy/protocol/openid-connect/logout
       KEYCLOAK_CLIENT_ID: clenzy-web

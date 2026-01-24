@@ -27,3 +27,7 @@ const ClientAssignmentPageSimple: React.FC = () => {
 export default ClientAssignmentPageSimple;
 
 
+
+
+
+

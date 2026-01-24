@@ -48,23 +48,22 @@
       "standardFlowEnabled": true,
       "secret": "clenzy-secret",
       "redirectUris": ["*"],
-      "webOrigins": ["*"]
+      "webOrigins": ["*"],
+      "enabled": true
     },
     {
       "clientId": "clenzy-web",
       "protocol": "openid-connect",
       "name": "Clenzy Web",
       "publicClient": true,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
       "directAccessGrantsEnabled": true,
       "standardFlowEnabled": true,
-      "redirectUris": [
-        "http://localhost:3000/*",
-        "http://localhost:3000",
-        "http://localhost:3000/silent-check-sso.html"
-      ],
-      "webOrigins": ["http://localhost:3000"]
+      "implicitFlowEnabled": false,
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"],
+      "enabled": true
     }
   ]
 }
-
-

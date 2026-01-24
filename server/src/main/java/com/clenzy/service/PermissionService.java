@@ -10,6 +10,8 @@ import com.clenzy.repository.RolePermissionRepository;
 import com.clenzy.repository.RoleRepository;
 import com.clenzy.repository.PermissionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -50,52 +52,24 @@ public class PermissionService {
         System.out.println("📋 Toutes les permissions viennent de la base de données");
     }
 
+    @Cacheable(value = "roles", key = "'all'")
     public List<String> getAllRoles() {
-        String key = ROLES_KEY;
-        List<String> roles = (List<String>) redisTemplate.opsForValue().get(key);
-
-        if (roles == null) {
-            // Récupérer les rôles depuis la base de données
-            roles = getRolesFromDatabase();
-            redisTemplate.opsForValue().set(key, roles);
-            System.out.println("📋 PermissionService.getAllRoles() - Récupération depuis la base de données et mise en cache");
-        } else {
-            System.out.println("📋 PermissionService.getAllRoles() - Récupération depuis le cache Redis");
-        }
-
-        return roles;
+        System.out.println("📋 PermissionService.getAllRoles() - Récupération depuis la base de données et mise en cache");
+        return getRolesFromDatabase();
     }
 
+    @Cacheable(value = "permissions", key = "#role")
     public RolePermissionsDto getRolePermissions(String role) {
-        String key = ROLE_PERMISSIONS_KEY + role;
-        List<String> permissions = (List<String>) redisTemplate.opsForValue().get(key);
-
-        if (permissions == null || permissions.isEmpty()) {
-            // Première fois : récupération depuis la base de données
-            permissions = getPermissionsFromDatabase(role);
-            if (permissions != null && !permissions.isEmpty()) {
-                // Cache permanent (pas d'expiration) - Forcer l'utilisation de set() simple
-                redisTemplate.opsForValue().set(key, permissions);
-                System.out.println("🔍 PermissionService.getRolePermissions() - Récupération pour le rôle: " + role + " depuis la base de données et mise en cache permanent");
-            } else {
-                System.out.println("⚠️ PermissionService.getRolePermissions() - Aucune permission trouvée en base pour le rôle: " + role);
-            }
-        } else {
-            System.out.println("🚀 PermissionService.getRolePermissions() - Récupération pour le rôle: " + role + " depuis le cache Redis (ultra-rapide)");
-        }
-
+        System.out.println("🔍 PermissionService.getRolePermissions() - Récupération pour le rôle: " + role + " depuis la base de données et mise en cache");
+        List<String> permissions = getPermissionsFromDatabase(role);
         boolean isDefault = !hasCustomPermissions(role);
         return new RolePermissionsDto(role, permissions, isDefault);
     }
 
+    @CacheEvict(value = "permissions", key = "#role")
     public RolePermissionsDto updateRolePermissions(String role, List<String> permissions) {
         validatePermissions(permissions);
         savePermissionsToDatabase(role, permissions);
-        String key = ROLE_PERMISSIONS_KEY + role;
-        
-        // Cache permanent (pas d'expiration) - Forcer l'utilisation de set() simple
-        redisTemplate.opsForValue().set(key, permissions);
-        
         invalidateUserPermissionsCache(role);
         System.out.println("💾 PermissionService.updateRolePermissions() - Mise à jour des permissions pour le rôle: " + role);
         return new RolePermissionsDto(role, permissions, false);
