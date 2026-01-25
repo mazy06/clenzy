@@ -321,6 +321,7 @@ export default function PropertiesList() {
             color="primary"
             startIcon={<Add />}
             onClick={() => navigate('/properties/new')}
+            size="small"
           >
             Nouvelle propriété
           </Button>
@@ -370,20 +371,20 @@ export default function PropertiesList() {
       {/* Liste des propriétés */}
       {filteredProperties.length === 0 ? (
           <Grid item xs={12}>
-            <Card sx={{ textAlign: 'center', py: 4, px: 3, ...createSpacing.card() }}>
+            <Card sx={{ textAlign: 'center', py: 2.5, px: 2, ...createSpacing.card() }}>
               <CardContent>
-                <Box sx={{ mb: 2 }}>
-                  <Home sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.6 }} />
+                <Box sx={{ mb: 1.5 }}>
+                  <Home sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.6 }} />
                 </Box>
-                <Typography variant="h5" color="text.secondary" gutterBottom>
+                <Typography variant="h6" color="text.secondary" gutterBottom>
                   Aucune propriété trouvée
                 </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
                   {isAdmin() || isManager() 
                     ? "Aucune propriété n'a encore été créée dans le système."
                     : "Aucune propriété ne vous est actuellement assignée."}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
                   Les propriétés permettent de gérer votre parc immobilier et de suivre les interventions de maintenance et nettoyage.
                 </Typography>
                 {(false || isAdmin() || isManager() || isHost()) && (
@@ -391,8 +392,8 @@ export default function PropertiesList() {
                     variant="contained"
                     startIcon={<Add />}
                     onClick={() => navigate('/properties/new')}
-                    size="large"
-                    sx={{ borderRadius: 2 }}
+                    size="small"
+                    sx={{ borderRadius: 1.5 }}
                   >
                     Créer votre première propriété
                   </Button>
@@ -401,23 +402,26 @@ export default function PropertiesList() {
             </Card>
           </Grid>
         ) : (
-          <Grid container spacing={3}>
+          <Grid container spacing={2}>
             {filteredProperties.map((property) => (
               <Grid item xs={12} md={6} lg={4} key={property.id}>
                 <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardContent sx={{ flexGrow: 1, ...createSpacing.card() }}>
+                  <CardContent sx={{ flexGrow: 1, p: 1.5 }}>
                     {/* En-tête avec titre et menu */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
-                        {getPropertyTypeIcon(property.type)}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1, minWidth: 0 }}>
+                        <Box sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0 }}>
+                          {getPropertyTypeIcon(property.type)}
+                        </Box>
                         <Typography 
-                          variant="h6" 
+                          variant="subtitle1" 
                           fontWeight={600} 
                           sx={{ 
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            flex: 1
+                            flex: 1,
+                            fontSize: '0.95rem'
                           }}
                           title={property.name}
                         >
@@ -427,9 +431,9 @@ export default function PropertiesList() {
                       <IconButton
                         size="small"
                         onClick={(e) => handleMenuOpen(e, property)}
-                        sx={{ ml: 1, flexShrink: 0 }}
+                        sx={{ ml: 0.5, flexShrink: 0, p: 0.5 }}
                       >
-                        <MoreVert />
+                        <MoreVert sx={{ fontSize: 18 }} />
                       </IconButton>
                     </Box>
 
@@ -438,14 +442,11 @@ export default function PropertiesList() {
                       variant="body2" 
                       color="text.secondary" 
                       sx={{ 
-                        mb: 2, 
-                        minHeight: '2.5em',
-                        maxHeight: '2.5em',
+                        mb: 1, 
                         overflow: 'hidden',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        lineHeight: 1.25
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        fontSize: '0.75rem'
                       }}
                       title={property.description || 'Aucune description disponible'}
                     >
@@ -453,25 +454,26 @@ export default function PropertiesList() {
                     </Typography>
 
                     {/* Localisation */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                      <LocationOn sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0 }} />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                      <LocationOn sx={{ fontSize: 14, color: 'text.secondary', flexShrink: 0 }} />
                       <Typography 
-                        variant="body2" 
+                        variant="caption" 
                         color="text.secondary"
                         sx={{
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
-                          flex: 1
+                          flex: 1,
+                          fontSize: '0.7rem'
                         }}
                         title={`${property.address}, ${property.postalCode} ${property.city}, ${property.country}`}
                       >
-                        {property.address}, {property.postalCode} {property.city}, {property.country}
+                        {property.address}, {property.postalCode} {property.city}
                       </Typography>
                     </Box>
 
                     {/* Chips pour type et statut */}
-                    <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                    <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
                       <Chip
                         label={property.type === 'apartment' ? 'Appartement' : 
                                property.type === 'house' ? 'Maison' : 
@@ -480,46 +482,47 @@ export default function PropertiesList() {
                         color="primary"
                         size="small"
                         variant="outlined"
+                        sx={{ height: 20, fontSize: '0.7rem' }}
                       />
                       <Chip
                         label={property.status}
                         color={property.status === 'active' ? 'success' : 'warning'}
                         size="small"
-                        sx={{ textTransform: 'capitalize' }}
+                        sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.7rem' }}
                       />
                     </Box>
 
                     {/* Caractéristiques principales */}
-                    <Grid container spacing={2} sx={{ mb: 2 }}>
+                    <Grid container spacing={1} sx={{ mb: 1 }}>
                       <Grid item xs={4}>
                         <Box sx={{ textAlign: 'center' }}>
-                          <BedIcon sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
-                          <Typography variant="caption" color="text.secondary" display="block">
+                          <BedIcon sx={{ fontSize: 16, color: 'text.secondary', mb: 0.25 }} />
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.65rem', lineHeight: 1 }}>
                             Chambres
                           </Typography>
-                          <Typography variant="body2" fontWeight={600}>
+                          <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                             {property.bedrooms}
                           </Typography>
                         </Box>
                       </Grid>
                       <Grid item xs={4}>
                         <Box sx={{ textAlign: 'center' }}>
-                          <PersonIcon sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
-                          <Typography variant="caption" color="text.secondary" display="block">
+                          <PersonIcon sx={{ fontSize: 16, color: 'text.secondary', mb: 0.25 }} />
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.65rem', lineHeight: 1 }}>
                             Voyageurs
                           </Typography>
-                          <Typography variant="body2" fontWeight={600}>
+                          <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                             {property.guests}
                           </Typography>
                         </Box>
                       </Grid>
                       <Grid item xs={4}>
                         <Box sx={{ textAlign: 'center' }}>
-                          <BathroomIcon sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
-                          <Typography variant="caption" color="text.secondary" display="block">
+                          <BathroomIcon sx={{ fontSize: 16, color: 'text.secondary', mb: 0.25 }} />
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.65rem', lineHeight: 1 }}>
                             SDB
                           </Typography>
-                          <Typography variant="body2" fontWeight={600}>
+                          <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                             {property.bathrooms}
                           </Typography>
                         </Box>
@@ -527,30 +530,22 @@ export default function PropertiesList() {
                     </Grid>
 
                     {/* Divider pour séparer les informations */}
-                    <Divider sx={{ my: 2 }} />
+                    <Divider sx={{ my: 1 }} />
 
                     {/* Prix et actions */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <Euro sx={{ fontSize: 16, color: 'success.main' }} />
-                          <Typography variant="h6" fontWeight={700} color="success.main">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                          <Euro sx={{ fontSize: 14, color: 'success.main' }} />
+                          <Typography variant="subtitle1" fontWeight={700} color="success.main" sx={{ fontSize: '0.95rem' }}>
                             {property.nightlyPrice}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                             /nuit
                           </Typography>
                         </Box>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                          Surface: {property.squareMeters || 'N/A'} m²
-                        </Typography>
-                      </Box>
-                      <Box textAlign="right">
-                        <Typography variant="h6" color="primary">
-                          {property.bedrooms}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Chambres
+                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25, fontSize: '0.7rem' }}>
+                          {property.squareMeters || 'N/A'} m²
                         </Typography>
                       </Box>
                     </Box>
@@ -614,7 +609,8 @@ export default function PropertiesList() {
         <Fab
           color="secondary"
           aria-label="add"
-          sx={{ position: 'fixed', bottom: 16, right: 16, display: { md: 'none' } }}
+          size="small"
+          sx={{ position: 'fixed', bottom: 12, right: 12, display: { md: 'none' } }}
           onClick={() => navigate('/properties/new')}
         >
           <Add />

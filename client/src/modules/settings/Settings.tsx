@@ -144,22 +144,22 @@ export default function Settings() {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6" fontWeight={700} gutterBottom sx={{ fontSize: '1.25rem' }}>
           Paramètres
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
           Configurez votre application selon vos préférences
         </Typography>
       </Box>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {/* Notifications */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-              <Notifications sx={{ color: '#A6C0CE' }} />
-              <Typography variant="h6" fontWeight={600}>
+          <Paper sx={{ p: 2, height: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+              <Notifications sx={{ color: 'secondary.main', fontSize: 20 }} />
+              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
                 Notifications
               </Typography>
             </Box>
@@ -221,10 +221,10 @@ export default function Settings() {
 
         {/* Sécurité */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-              <Security sx={{ color: '#A6C0CE' }} />
-              <Typography variant="h6" fontWeight={600}>
+          <Paper sx={{ p: 2, height: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+              <Security sx={{ color: '#A6C0CE', fontSize: 20 }} />
+              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
                 Sécurité
               </Typography>
             </Box>
@@ -280,10 +280,10 @@ export default function Settings() {
 
         {/* Entreprise */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-              <Business sx={{ color: '#A6C0CE' }} />
-              <Typography variant="h6" fontWeight={600}>
+          <Paper sx={{ p: 2, height: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+              <Business sx={{ color: 'secondary.main', fontSize: 20 }} />
+              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
                 Entreprise
               </Typography>
             </Box>
@@ -357,10 +357,10 @@ export default function Settings() {
 
         {/* Workflow */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-              <Storage sx={{ color: '#A6C0CE' }} />
-              <Typography variant="h6" fontWeight={600}>
+          <Paper sx={{ p: 2, height: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+              <Storage sx={{ color: 'secondary.main', fontSize: 20 }} />
+              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
                 Workflow
               </Typography>
             </Box>
@@ -419,10 +419,10 @@ export default function Settings() {
 
         {/* Affichage */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-              <Palette sx={{ color: '#A6C0CE' }} />
-              <Typography variant="h6" fontWeight={600}>
+          <Paper sx={{ p: 2, height: '100%' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+              <Palette sx={{ color: 'secondary.main', fontSize: 20 }} />
+              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
                 Affichage
               </Typography>
             </Box>

@@ -118,111 +118,114 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardContent sx={{ flexGrow: 1, ...createSpacing.card() }}>
+      <CardContent sx={{ flexGrow: 1, p: 1.5 }}>
         {/* En-tête avec titre et menu */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-            {typeIcons[request.type as keyof typeof typeIcons] || <Category />}
-            <Typography variant="h6" fontWeight={600} sx={{ wordBreak: 'break-word' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1, minWidth: 0 }}>
+            <Box sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0 }}>
+              {typeIcons[request.type as keyof typeof typeIcons] || <Category />}
+            </Box>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ wordBreak: 'break-word', fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={request.title}>
               {request.title}
             </Typography>
           </Box>
           <IconButton
             size="small"
             onClick={(e) => onMenuOpen(e, request)}
-            sx={{ ml: 1 }}
+            sx={{ ml: 0.5, flexShrink: 0, p: 0.5 }}
           >
-            <MoreVert />
+            <MoreVert sx={{ fontSize: 18 }} />
           </IconButton>
         </Box>
 
         {/* Description */}
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, minHeight: '3em' }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem' }} title={request.description}>
           {request.description}
         </Typography>
 
         {/* Localisation */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
-          <Typography variant="body2" color="text.secondary">
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+          <LocationOn sx={{ fontSize: 14, color: 'text.secondary', flexShrink: 0 }} />
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={request.propertyName}>
             {request.propertyName}
           </Typography>
         </Box>
 
         {/* Statut et priorité */}
-        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+        <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
           <Chip
             label={statuses.find(s => s.value === request.status)?.label || request.status}
             color={statusColors[request.status as keyof typeof statusColors] as any}
             size="small"
-            sx={{ textTransform: 'capitalize' }}
+            sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.7rem' }}
           />
           <Chip
             label={priorities.find(p => p.value === request.priority)?.label || request.priority}
             color={priorityColors[request.priority as keyof typeof priorityColors] as any}
             size="small"
-            sx={{ textTransform: 'capitalize' }}
+            sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.7rem' }}
           />
         </Box>
 
         {/* Demandeur */}
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.75, fontSize: '0.7rem' }}>
           Demandé par {request.requestorName}
         </Typography>
 
         {/* Date de création */}
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 1, fontSize: '0.7rem' }}>
           Créé le {formatDate(request.createdAt)}
         </Typography>
 
         {/* Date d'échéance */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <CalendarToday sx={{ fontSize: 16, color: 'text.secondary' }} />
-          <Typography variant="body2" color="text.secondary">
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+          <CalendarToday sx={{ fontSize: 14, color: 'text.secondary', flexShrink: 0 }} />
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
             Échéance: {formatDate(request.dueDate)}
           </Typography>
         </Box>
 
         {/* Durée estimée */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <AccessTime sx={{ fontSize: 16, color: 'text.secondary' }} />
-          <Typography variant="body2" color="text.secondary">
-            Durée estimée: {formatDuration(request.estimatedDuration)}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+          <AccessTime sx={{ fontSize: 14, color: 'text.secondary', flexShrink: 0 }} />
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+            Durée: {formatDuration(request.estimatedDuration)}
           </Typography>
         </Box>
 
         {/* Assignation */}
         {request.assignedToName && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
             {request.assignedToType === 'team' ? (
-              <Group sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Group sx={{ fontSize: 14, color: 'text.secondary', flexShrink: 0 }} />
             ) : (
-              <Assignment sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Assignment sx={{ fontSize: 14, color: 'text.secondary', flexShrink: 0 }} />
             )}
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={request.assignedToName}>
               Assigné à: {request.assignedToName}
-              {request.assignedToType === 'team' && (
-                <Chip 
-                  label="Équipe" 
-                  size="small" 
-                  variant="outlined" 
-                  sx={{ ml: 1 }}
-                />
-              )}
             </Typography>
+            {request.assignedToType === 'team' && (
+              <Chip 
+                label="Équipe" 
+                size="small" 
+                variant="outlined" 
+                sx={{ ml: 0.5, height: 18, fontSize: '0.65rem' }}
+              />
+            )}
           </Box>
         )}
       </CardContent>
 
       {/* Actions */}
-      <CardActions sx={{ pt: 0, ...createSpacing.card() }}>
-        <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
+      <CardActions sx={{ pt: 0, p: 1 }}>
+        <Box sx={{ display: 'flex', gap: 0.5, width: '100%' }}>
           {/* Bouton principal */}
           <Button
             variant="outlined"
-            startIcon={<Visibility />}
+            startIcon={<Visibility sx={{ fontSize: 16 }} />}
             onClick={() => navigate(`/service-requests/${request.id}`)}
             sx={{ flex: 1 }}
+            size="small"
           >
             Voir détails
           </Button>
@@ -233,7 +236,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
               variant="outlined"
               size="small"
               onClick={() => onStatusChange(request)}
-              sx={{ minWidth: 'auto', px: 2 }}
+              sx={{ minWidth: 'auto', px: 1.5, fontSize: '0.75rem' }}
               startIcon={getStatusButtonIcon(request.status)}
             >
               Statut

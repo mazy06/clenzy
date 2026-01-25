@@ -3,8 +3,6 @@ import {
   Box,
   Avatar,
   Typography,
-  IconButton,
-  Badge,
   Menu,
   MenuItem,
   Divider,
@@ -12,7 +10,6 @@ import {
   useMediaQuery
 } from '@mui/material';
 import {
-  Notifications,
   Logout,
   Person
 } from '@mui/icons-material';
@@ -38,7 +35,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
 
   // Menus à afficher dans le menu déroulant (tous sauf ceux affichés directement dans la top nav)
   const dropdownMenus = menuItems.filter(item => 
-    !['/dashboard', '/properties', '/service-requests', '/interventions', '/teams'].includes(item.path)
+    !['/dashboard', '/properties', '/service-requests', '/interventions', '/teams', '/portfolios', '/contact'].includes(item.path)
   );
 
   const isActive = (path: string) => {
@@ -102,26 +99,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
     handleMenuClose();
   };
 
-  const canSeeNotifications = typeof isAdmin === 'function' && 
-                             typeof isManager === 'function' && 
-                             typeof isSupervisor === 'function' && 
-                             (isAdmin() || isManager() || isSupervisor());
-
   if (!user) {
     return null;
   }
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      {/* Notifications */}
-      {canSeeNotifications && (
-        <IconButton color="inherit" title="Notifications">
-          <Badge badgeContent={3} color="error">
-            <Notifications />
-          </Badge>
-        </IconButton>
-      )}
-
       {/* Profil utilisateur avec menu déroulant */}
       <Box 
         sx={{ 
@@ -143,12 +126,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
       >
         <Avatar 
           sx={{ 
-            width: 32, 
-            height: 32, 
+            width: 28, // 32 → 28
+            height: 28, // 32 → 28
             bgcolor: '#A6C0CE',
-            fontSize: '0.9rem',
+            fontSize: '0.8125rem', // 0.9rem → 0.8125rem
             fontWeight: 700,
-            border: '2px solid rgba(166, 192, 206, 0.3)'
+            border: '1.5px solid rgba(166, 192, 206, 0.3)' // 2px → 1.5px
           }}
         >
           {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || 'U'}
@@ -158,7 +141,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
             variant="body2" 
             fontWeight={600} 
             color="text.primary"
-            sx={{ lineHeight: 1, px: 0.5 }}
+            sx={{ lineHeight: 1, px: 0.5, fontSize: '0.8125rem' }}
           >
             {user.firstName || user.username || 'Utilisateur'}
           </Typography>
@@ -168,45 +151,147 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
       {/* Menu déroulant */}
       <Menu
         id="user-menu"
-        anchorEl={anchorEl}
         open={open}
         onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
+        anchorReference="anchorPosition"
+        anchorPosition={{ top: 56, right: 0 }}
         transformOrigin={{
           vertical: 'top',
           horizontal: 'right',
         }}
-        PaperProps={{
-          sx: {
-            mt: 1.5,
-            minWidth: 200,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            '& .MuiMenuItem-root': {
-              px: 2,
-              py: 1.5,
+        disableAutoFocusItem
+        slotProps={{
+          paper: {
+            elevation: 3,
+            sx: {
+              mt: 0,
+              minWidth: 240,
+              borderRadius: 0,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              backgroundColor: 'white',
+              borderTop: '2px solid',
+              borderColor: '#A6C0CE',
+              maxHeight: 'calc(100vh - 56px)',
+              overflow: 'auto',
+              zIndex: 1300,
+              position: 'fixed',
+              right: 0,
+              top: '56px !important',
+              '& .MuiMenuItem-root': {
+                px: 1.5,
+                py: 1.25,
+                fontSize: '0.875rem',
+                '&:hover': {
+                  backgroundColor: 'rgba(166, 192, 206, 0.08)',
+                },
+              },
             },
           },
         }}
+        MenuListProps={{
+          sx: {
+            py: 0,
+          },
+        }}
+        disableScrollLock
+        BackdropProps={{
+          sx: {
+            backgroundColor: 'transparent',
+          },
+        }}
+        sx={{
+          '& .MuiPaper-root': {
+            marginTop: '0px !important',
+            top: '56px !important',
+            right: '0px !important',
+            left: 'auto !important',
+          },
+          '& .MuiBackdrop-root': {
+            backgroundColor: 'transparent',
+          },
+        }}
       >
-        {/* Informations utilisateur */}
-        <MenuItem disabled>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-            <Typography variant="body2" fontWeight={600}>
+        {/* Badge utilisateur intégré - partie intégrante de la top nav */}
+        <Box
+          sx={{
+            px: 2,
+            py: 1.5,
+            backgroundColor: 'rgba(166, 192, 206, 0.08)',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            minHeight: 64,
+          }}
+        >
+          <Avatar 
+            sx={{ 
+              width: 44,
+              height: 44,
+              bgcolor: '#A6C0CE',
+              fontSize: '1.1rem',
+              fontWeight: 700,
+              border: '2px solid rgba(166, 192, 206, 0.4)',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            }}
+          >
+            {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || 'U'}
+          </Avatar>
+          <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+            <Typography 
+              variant="body1" 
+              fontWeight={700} 
+              sx={{ 
+                color: 'text.primary', 
+                lineHeight: 1.3,
+                fontSize: '0.9375rem',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {user.firstName || user.username || 'Utilisateur'}
             </Typography>
+            {user.email && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: 'text.secondary', 
+                  fontSize: '0.75rem', 
+                  mt: 0.25,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {user.email}
+              </Typography>
+            )}
+            {user.roles && user.roles.length > 0 && (
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  color: '#A6C0CE', 
+                  fontSize: '0.7rem', 
+                  mt: 0.25,
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                }}
+              >
+                {user.roles[0]}
+              </Typography>
+            )}
           </Box>
-        </MenuItem>
+        </Box>
         
         <Divider />
 
         {/* Profil */}
         <MenuItem onClick={handleProfileNavigation}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Person fontSize="small" />
-            <Typography variant="body2">Mon profil</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Person sx={{ fontSize: '18px', color: 'secondary.main' }} />
+            <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>Mon profil</Typography>
           </Box>
         </MenuItem>
 
@@ -220,9 +305,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
                 onClick={() => handleMenuNavigation(item.path)}
                 selected={isActive(item.path)}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  {item.icon}
-                  <Typography variant="body2">{item.text}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ '& .MuiSvgIcon-root': { fontSize: '18px', color: 'secondary.main' } }}>{item.icon}</Box>
+                  <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>{item.text}</Typography>
                 </Box>
               </MenuItem>
             ))}
@@ -242,9 +327,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
             },
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Logout fontSize="small" />
-            <Typography variant="body2" fontWeight={500}>Déconnexion</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Logout sx={{ fontSize: '18px', color: 'error.main' }} />
+            <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.875rem' }}>Déconnexion</Typography>
           </Box>
         </MenuItem>
       </Menu>

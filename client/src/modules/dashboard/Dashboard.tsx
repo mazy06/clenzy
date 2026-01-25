@@ -220,7 +220,7 @@ const Dashboard: React.FC = () => {
       />
       
       {/* Statistiques principales */}
-      <Grid container spacing={3} sx={createSpacing.section()}>
+      <Grid container spacing={2} sx={{ mb: 2 }}> {/* spacing: 3 → 2, mb réduit */}
         {loading ? (
           // Skeleton loading
           Array.from({ length: 4 }).map((_, index) => (
@@ -228,11 +228,11 @@ const Dashboard: React.FC = () => {
               <Card sx={{ height: '100%' }}>
                 <CardContent sx={{ p: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Skeleton variant="rectangular" width={48} height={48} sx={{ borderRadius: 1.5 }} />
+                    <Skeleton variant="rectangular" width={40} height={40} sx={{ borderRadius: 1 }} />
                     <Box sx={{ flex: 1 }}>
-                      <Skeleton variant="text" width="60%" height={32} sx={{ mb: 0.5 }} />
-                      <Skeleton variant="text" width="80%" height={16} sx={{ mb: 0.5 }} />
-                      <Skeleton variant="text" width="40%" height={14} />
+                      <Skeleton variant="text" width="60%" height={24} sx={{ mb: 0.25 }} />
+                      <Skeleton variant="text" width="80%" height={14} sx={{ mb: 0.25 }} />
+                      <Skeleton variant="text" width="40%" height={12} />
                     </Box>
                   </Box>
                 </CardContent>
@@ -259,20 +259,20 @@ const Dashboard: React.FC = () => {
                 }}
               >
                 <CardActionArea onClick={() => navigate(stat.route)}>
-                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}> {/* p: 2 → 1.5 */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}> {/* gap: 2 → 1.5 */}
                       {/* Icône */}
                       <Box 
                         sx={{ 
                           display: 'flex', 
                           alignItems: 'center', 
                           justifyContent: 'center',
-                          minWidth: 48,
-                          height: 48,
-                          borderRadius: 1.5,
+                          minWidth: 40, // 48 → 40
+                          height: 40, // 48 → 40
+                          borderRadius: 1,
                           bgcolor: 'rgba(166, 192, 206, 0.1)',
                           '& .MuiSvgIcon-root': {
-                            fontSize: 28,
+                            fontSize: 24, // 28 → 24
                           }
                         }}
                       >
@@ -282,13 +282,13 @@ const Dashboard: React.FC = () => {
                       {/* Contenu principal */}
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography 
-                          variant="h5" 
+                          variant="h6" // h5 → h6
                           component="div" 
                           sx={{ 
                             fontWeight: 700,
                             lineHeight: 1.2,
-                            mb: 0.5,
-                            fontSize: { xs: '1.25rem', sm: '1.5rem' }
+                            mb: 0.25, // 0.5 → 0.25
+                            fontSize: { xs: '1rem', sm: '1.125rem' } // Réduit
                           }}
                         >
                           {stat.value}
@@ -299,7 +299,7 @@ const Dashboard: React.FC = () => {
                           sx={{ 
                             fontSize: '0.75rem',
                             lineHeight: 1.2,
-                            mb: 0.5,
+                            mb: 0.25, // 0.5 → 0.25
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap'
@@ -309,16 +309,16 @@ const Dashboard: React.FC = () => {
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           {stat.growth.type === 'up' ? (
-                            <TrendingUp color="success" sx={{ fontSize: 16 }} />
+                            <TrendingUp color="success" sx={{ fontSize: 14 }} />
                           ) : stat.growth.type === 'down' ? (
-                            <TrendingDown color="error" sx={{ fontSize: 16 }} />
+                            <TrendingDown color="error" sx={{ fontSize: 14 }} />
                           ) : (
-                            <Star color="info" sx={{ fontSize: 16 }} />
+                            <Star color="info" sx={{ fontSize: 14 }} />
                           )}
                           <Typography 
                             variant="caption" 
                             sx={{
-                              fontSize: '0.7rem',
+                              fontSize: '0.6875rem',
                               fontWeight: 600,
                               color: stat.growth.type === 'up' 
                                 ? 'success.main' 
@@ -341,19 +341,24 @@ const Dashboard: React.FC = () => {
       </Grid>
 
       {/* Activités récentes */}
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         <Grid item xs={12} md={8}>
           <Card>
-            <CardContent sx={createSpacing.card()}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">
+            <CardContent sx={{ p: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
                   Activités récentes
                 </Typography>
                 <Button
                   variant="text"
                   size="small"
                   onClick={() => navigate('/dashboard/activities')}
-                  sx={{ textTransform: 'none' }}
+                  sx={{ 
+                    textTransform: 'none',
+                    fontSize: '0.8125rem',
+                    py: 0.5,
+                    px: 1
+                  }}
                 >
                   Voir toutes les activités
                 </Button>
@@ -361,43 +366,60 @@ const Dashboard: React.FC = () => {
               {loading ? (
                 // Skeleton loading pour les activités
                 Array.from({ length: 3 }).map((_, index) => (
-                  <Box key={index} sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Skeleton variant="circular" width={24} height={24} />
+                  <Box key={index} sx={{ mb: 1.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Skeleton variant="circular" width={20} height={20} />
                       <Box sx={{ flex: 1 }}>
-                        <Skeleton variant="text" width="60%" height={20} />
-                        <Skeleton variant="text" width="40%" height={16} />
+                        <Skeleton variant="text" width="60%" height={16} />
+                        <Skeleton variant="text" width="40%" height={14} />
                       </Box>
-                      <Skeleton variant="rectangular" width={60} height={24} />
+                      <Skeleton variant="rectangular" width={50} height={20} />
                     </Box>
                   </Box>
                 ))
               ) : recentActivities.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 1.5, fontSize: '0.8125rem' }}>
                   Aucune activité récente
                 </Typography>
               ) : (
-                <List>
+                <List sx={{ py: 0 }}>
                   {recentActivities.map((activity, index) => (
-                    <ListItem key={index} sx={{ px: 0 }}>
-                      <ListItemIcon>
+                    <ListItem 
+                      key={index} 
+                      sx={{ 
+                        px: 0,
+                        py: 1, // Padding vertical réduit
+                        '&:not(:last-child)': {
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                        }
+                      }}
+                    >
+                      <ListItemIcon sx={{ minWidth: 36 }}>
                         {activity.status === 'completed' ? (
-                          <CheckCircle color="success" />
+                          <CheckCircle color="success" sx={{ fontSize: '20px' }} />
                         ) : activity.status === 'urgent' ? (
-                          <Warning color="error" />
+                          <Warning color="error" sx={{ fontSize: '20px' }} />
                         ) : activity.status === 'scheduled' ? (
-                          <Assignment color="info" />
+                          <Assignment color="info" sx={{ fontSize: '20px' }} />
                         ) : (
-                          <Notifications color="primary" />
+                          <Notifications color="primary" sx={{ fontSize: '20px' }} />
                         )}
                       </ListItemIcon>
                       <ListItemText
                         primary={activity.type}
                         secondary={`${activity.property} • ${activity.time}`}
+                        primaryTypographyProps={{
+                          sx: { fontSize: '0.875rem', fontWeight: 500 }
+                        }}
+                        secondaryTypographyProps={{
+                          sx: { fontSize: '0.75rem' }
+                        }}
                       />
                       <Chip
                         label={activity.status}
                         size="small"
+                        sx={{ fontSize: '0.6875rem', height: 20 }}
                         color={
                           activity.status === 'completed' ? 'success' :
                           activity.status === 'urgent' ? 'error' :
@@ -415,24 +437,26 @@ const Dashboard: React.FC = () => {
         {/* Actions rapides selon le rôle */}
         <Grid item xs={12} md={4}>
           <Card>
-            <CardContent sx={createSpacing.card()}>
-              <Typography variant="h6" gutterBottom>
+            <CardContent sx={{ p: 2 }}>
+              <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 1.5 }}>
                 Actions rapides
               </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 {canViewProperties && (
                   <Button
                     variant="outlined"
-                    startIcon={<Add />}
+                    startIcon={<Add sx={{ fontSize: '18px' }} />}
                     fullWidth
                     onClick={() => navigate('/properties/new')}
                     sx={{
                       justifyContent: 'flex-start',
                       textAlign: 'left',
-                      py: 1,
-                      px: 1.5,
+                      py: 0.75,
+                      px: 1.25,
                       borderRadius: 1,
                       borderWidth: 1.5,
+                      fontSize: '0.8125rem',
+                      minHeight: 36,
                       '&:hover': {
                         borderWidth: 1.5,
                         transform: 'translateY(-1px)',
@@ -448,16 +472,18 @@ const Dashboard: React.FC = () => {
                 {canViewServiceRequests && (
                   <Button
                     variant="outlined"
-                    startIcon={<Add />}
+                    startIcon={<Add sx={{ fontSize: '18px' }} />}
                     fullWidth
                     onClick={() => navigate('/service-requests/new')}
                     sx={{
                       justifyContent: 'flex-start',
                       textAlign: 'left',
-                      py: 1,
-                      px: 1.5,
+                      py: 0.75,
+                      px: 1.25,
                       borderRadius: 1,
                       borderWidth: 1.5,
+                      fontSize: '0.8125rem',
+                      minHeight: 36,
                       '&:hover': {
                         borderWidth: 1.5,
                         transform: 'translateY(-1px)',
@@ -473,16 +499,18 @@ const Dashboard: React.FC = () => {
                 {canViewInterventions && !isHost && (
                   <Button
                     variant="outlined"
-                    startIcon={<Build />}
+                    startIcon={<Build sx={{ fontSize: '18px' }} />}
                     fullWidth
                     onClick={() => navigate('/interventions/new')}
                     sx={{
                       justifyContent: 'flex-start',
                       textAlign: 'left',
-                      py: 1,
-                      px: 1.5,
+                      py: 0.75,
+                      px: 1.25,
                       borderRadius: 1,
                       borderWidth: 1.5,
+                      fontSize: '0.8125rem',
+                      minHeight: 36,
                       '&:hover': {
                         borderWidth: 1.5,
                         transform: 'translateY(-1px)',
@@ -498,16 +526,18 @@ const Dashboard: React.FC = () => {
                 {canViewTeams && !isHost && (
                   <Button
                     variant="outlined"
-                    startIcon={<Add />}
+                    startIcon={<Add sx={{ fontSize: '18px' }} />}
                     fullWidth
                     onClick={() => navigate('/teams/new')}
                     sx={{
                       justifyContent: 'flex-start',
                       textAlign: 'left',
-                      py: 1,
-                      px: 1.5,
+                      py: 0.75,
+                      px: 1.25,
                       borderRadius: 1,
                       borderWidth: 1.5,
+                      fontSize: '0.8125rem',
+                      minHeight: 36,
                       '&:hover': {
                         borderWidth: 1.5,
                         transform: 'translateY(-1px)',
@@ -523,16 +553,18 @@ const Dashboard: React.FC = () => {
                 {canViewUsers && !isHost && (
                   <Button
                     variant="outlined"
-                    startIcon={<Add />}
+                    startIcon={<Add sx={{ fontSize: '18px' }} />}
                     fullWidth
                     onClick={() => navigate('/users/new')}
                     sx={{
                       justifyContent: 'flex-start',
                       textAlign: 'left',
-                      py: 1,
-                      px: 1.5,
+                      py: 0.75,
+                      px: 1.25,
                       borderRadius: 1,
                       borderWidth: 1.5,
+                      fontSize: '0.8125rem',
+                      minHeight: 36,
                       '&:hover': {
                         borderWidth: 1.5,
                         transform: 'translateY(-1px)',

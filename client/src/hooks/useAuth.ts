@@ -221,8 +221,18 @@ export const useAuth = () => {
     console.log('🔍 useAuth.hasPermissionAsync - Vérification de permission:', {
       permission,
       userId: user.id,
-      userRoles: user.roles
+      userRoles: user.roles,
+      userPermissions: user.permissions
     });
+    
+    // Vérifier d'abord dans les permissions de l'utilisateur chargées depuis l'API
+    if (user.permissions && user.permissions.length > 0) {
+      const hasPermission = user.permissions.includes(permission);
+      console.log('✅ useAuth.hasPermissionAsync - Permission trouvée dans user.permissions:', hasPermission);
+      if (hasPermission) {
+        return true;
+      }
+    }
     
     try {
       // Appel direct à Redis (pas de cache local)
@@ -231,10 +241,41 @@ export const useAuth = () => {
       
       if (redisPermissions && redisPermissions.length > 0) {
         console.log('✅ useAuth.hasPermissionAsync - Permissions trouvées dans Redis:', redisPermissions.length);
-        return redisPermissions.includes(permission);
+        const hasPermission = redisPermissions.includes(permission);
+        if (hasPermission) {
+          return true;
+        }
       }
       
-      console.log('⚠️ useAuth.hasPermissionAsync - Aucune permission dans Redis, accès refusé');
+      // Si pas dans Redis, essayer de synchroniser depuis l'API
+      console.log('⚠️ useAuth.hasPermissionAsync - Aucune permission dans Redis, tentative de synchronisation');
+      try {
+        const syncResponse = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/sync`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: user.id }),
+        });
+        
+        if (syncResponse.ok) {
+          const syncData = await syncResponse.json();
+          if (syncData.permissions && syncData.permissions.length > 0) {
+            console.log('✅ useAuth.hasPermissionAsync - Permissions synchronisées depuis l\'API:', syncData.permissions.length);
+            // Mettre à jour les permissions de l'utilisateur
+            setUser(prevUser => prevUser ? {
+              ...prevUser,
+              permissions: syncData.permissions
+            } : null);
+            return syncData.permissions.includes(permission);
+          }
+        }
+      } catch (syncError) {
+        console.warn('⚠️ useAuth.hasPermissionAsync - Erreur lors de la synchronisation:', syncError);
+      }
+      
+      console.log('⚠️ useAuth.hasPermissionAsync - Permission non trouvée, accès refusé');
       return false;
     } catch (error) {
       console.error('❌ useAuth.hasPermissionAsync - Erreur Redis:', error);

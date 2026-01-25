@@ -79,42 +79,44 @@ export default function Login() {
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center', 
-      background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)',
+      background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)', // Palette Clenzy
       p: 2 
     }}>
       <Paper elevation={8} sx={{ 
-        p: 4, 
+        p: 2.5, 
         width: '100%', 
         maxWidth: 400, 
-        borderRadius: 3,
+        borderRadius: 2,
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(10px)',
         border: '1px solid rgba(255, 255, 255, 0.2)'
       }}>
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+        <Box sx={{ textAlign: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
             <img 
               src={clenzyLogo} 
               alt="Clenzy Logo" 
               style={{ 
-                height: '60px', 
+                height: '48px', 
                 width: 'auto',
                 maxWidth: '200px'
               }} 
             />
           </Box>
-          <Typography variant="body1" color="text.secondary" sx={{ 
+          <Typography variant="body2" sx={{ 
             fontWeight: 500,
-            color: '#A6C0CE'
+            color: 'secondary.main',
+            fontSize: '0.85rem'
           }}>
             Connectez-vous à votre compte
           </Typography>
         </Box>
         
         <form onSubmit={handleSubmit}>
-          <Stack spacing={3}>
+          <Stack spacing={2}>
             <TextField 
               fullWidth 
+              size="small"
               label="Email" 
               type="email" 
               value={email} 
@@ -124,19 +126,20 @@ export default function Login() {
               sx={{
                 '& .MuiOutlinedInput-root': {
                   '&:hover fieldset': {
-                    borderColor: '#A6C0CE',
+                    borderColor: 'secondary.main',
                   },
                   '&.Mui-focused fieldset': {
-                    borderColor: '#A6C0CE',
+                    borderColor: 'secondary.main',
                   },
                 },
                 '& .MuiInputLabel-root.Mui-focused': {
-                  color: '#A6C0CE',
+                  color: 'secondary.main',
                 },
               }}
             />
             <TextField 
               fullWidth 
+              size="small"
               label="Mot de passe" 
               type="password" 
               value={password} 
@@ -146,50 +149,50 @@ export default function Login() {
               sx={{
                 '& .MuiOutlinedInput-root': {
                   '&:hover fieldset': {
-                    borderColor: '#A6C0CE',
+                    borderColor: 'secondary.main',
                   },
                   '&.Mui-focused fieldset': {
-                    borderColor: '#A6C0CE',
+                    borderColor: 'secondary.main',
                   },
                 },
                 '& .MuiInputLabel-root.Mui-focused': {
-                  color: '#A6C0CE',
+                  color: 'secondary.main',
                 },
               }}
             />
             
             {error && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                {error}
+              <Alert severity="error" sx={{ mt: 1, py: 0.75 }}>
+                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{error}</Typography>
               </Alert>
             )}
             
             <Button 
               type="submit" 
               variant="contained" 
-              size="large" 
+              size="medium" 
               disabled={loading} 
               sx={{ 
-                py: 1.5, 
-                fontSize: '1.1rem', 
+                py: 1, 
+                fontSize: '0.9rem', 
                 fontWeight: 600,
-                backgroundColor: '#A6C0CE',
+                backgroundColor: 'secondary.main',
                 '&:hover': {
-                  backgroundColor: '#8BA3B3',
+                  backgroundColor: 'secondary.dark',
                 },
                 '&:active': {
-                  backgroundColor: '#6B8A9A',
+                  backgroundColor: 'primary.main',
                 },
                 '&:disabled': {
-                  backgroundColor: '#C5D5E0',
+                  backgroundColor: 'secondary.light',
                 },
-                borderRadius: 2,
+                borderRadius: 1.5,
                 boxShadow: '0 4px 12px rgba(166, 192, 206, 0.3)',
                 transition: 'all 0.3s ease',
               }}
             >
               {loading ? (
-                <CircularProgress size={24} color="inherit" />
+                <CircularProgress size={20} color="inherit" />
               ) : (
                 'Se connecter'
               )}
@@ -197,10 +200,11 @@ export default function Login() {
           </Stack>
         </form>
         
-        <Box sx={{ mt: 3, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary" sx={{ 
-            color: '#A6C0CE',
-            fontWeight: 500
+        <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Typography variant="caption" sx={{ 
+            color: 'secondary.main',
+            fontWeight: 500,
+            fontSize: '0.75rem'
           }}>
             Besoin d'aide ? Contactez le support
           </Typography>

@@ -288,7 +288,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+        <CircularProgress size={32} />
       </Box>
     );
   }
@@ -296,22 +296,22 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   return (
     <Box>
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
           {error}
         </Alert>
       )}
 
       <form onSubmit={handleSubmit}>
-        <Grid container spacing={3}>
+        <Grid container spacing={2}>
           {/* Informations principales */}
           <Grid item xs={12} md={8}>
             <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
+              <CardContent sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
                   Informations principales
                 </Typography>
                 
-                <Grid container spacing={2}>
+                <Grid container spacing={1.5}>
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
@@ -321,6 +321,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                       required
                       error={!formData.title}
                       helperText={!formData.title ? 'Le titre est obligatoire' : ''}
+                      size="small"
                     />
                   </Grid>
                   
@@ -333,6 +334,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                       multiline
                       rows={3}
                       required
+                      size="small"
                     />
                   </Grid>
                   
@@ -343,6 +345,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                         value={formData.type}
                         onChange={(e) => handleInputChange('type', e.target.value)}
                         label="Type d'intervention"
+                        size="small"
                       >
                         {interventionTypes.map((type) => {
                           const typeOption = INTERVENTION_TYPE_OPTIONS.find(option => option.value === type.value);
@@ -350,9 +353,9 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                           
                           return (
                             <MenuItem key={type.value} value={type.value}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                {IconComponent && <IconComponent sx={{ fontSize: '1.2em' }} />}
-                                {type.label}
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                {IconComponent && <IconComponent sx={{ fontSize: 18 }} />}
+                                <Typography variant="body2">{type.label}</Typography>
                               </Box>
                             </MenuItem>
                           );
@@ -368,6 +371,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                         value={formData.status}
                         onChange={(e) => handleInputChange('status', e.target.value)}
                         label="Statut"
+                        size="small"
                       >
                         {statuses.map((status) => (
                           <MenuItem key={status.value} value={status.value}>
@@ -385,6 +389,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                         value={formData.priority}
                         onChange={(e) => handleInputChange('priority', e.target.value)}
                         label="Priorité"
+                        size="small"
                       >
                         {priorities.map((priority) => (
                           <MenuItem key={priority.value} value={priority.value}>
@@ -403,6 +408,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                       value={formData.scheduledDate}
                       onChange={(e) => handleInputChange('scheduledDate', e.target.value)}
                       required
+                      size="small"
                       InputLabelProps={{
                         shrink: true,
                       }}
@@ -418,6 +424,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                       onChange={(e) => handleInputChange('estimatedDurationHours', parseInt(e.target.value))}
                       required
                       inputProps={{ min: 1, max: 24 }}
+                      size="small"
                     />
                   </Grid>
                   
@@ -429,6 +436,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                       value={formData.progressPercentage}
                       onChange={(e) => handleInputChange('progressPercentage', parseInt(e.target.value))}
                       inputProps={{ min: 0, max: 100 }}
+                      size="small"
                     />
                   </Grid>
                 </Grid>
@@ -439,22 +447,23 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
           {/* Informations secondaires */}
           <Grid item xs={12} md={4}>
             {/* Propriété et demandeur */}
-            <Card sx={{ mb: 2 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
+            <Card sx={{ mb: 1.5 }}>
+              <CardContent sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
                   Propriété et demandeur
                 </Typography>
                 
-                <FormControl fullWidth required sx={{ mb: 2 }}>
+                <FormControl fullWidth required sx={{ mb: 1.5 }}>
                   <InputLabel>Propriété</InputLabel>
                   <Select
                     value={formData.propertyId}
                     onChange={(e) => handleInputChange('propertyId', e.target.value)}
                     label="Propriété"
+                    size="small"
                   >
                     {properties.map((property) => (
                       <MenuItem key={property.id} value={property.id}>
-                        {property.name} - {property.address}, {property.city}
+                        <Typography variant="body2">{property.name} - {property.address}, {property.city}</Typography>
                       </MenuItem>
                     ))}
                   </Select>
@@ -467,15 +476,16 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                     onChange={(e) => handleInputChange('requestorId', e.target.value)}
                     label="Demandeur"
                     disabled={!isAdmin() && !isManager()} // Seuls les admin/manager peuvent changer le demandeur
+                    size="small"
                   >
                     {users.map((user) => (
                       <MenuItem key={user.id} value={user.id}>
-                        {user.firstName} {user.lastName} ({user.email})
+                        <Typography variant="body2">{user.firstName} {user.lastName} ({user.email})</Typography>
                       </MenuItem>
                     ))}
                   </Select>
                   {!isAdmin() && !isManager() && (
-                    <FormHelperText>
+                    <FormHelperText sx={{ fontSize: '0.7rem' }}>
                       Le demandeur est automatiquement défini selon votre rôle
                     </FormHelperText>
                   )}
@@ -484,13 +494,13 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
             </Card>
 
             {/* Assignation */}
-            <Card sx={{ mb: 2 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
+            <Card sx={{ mb: 1.5 }}>
+              <CardContent sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
                   Assignation
                 </Typography>
                 
-                <FormControl fullWidth sx={{ mb: 2 }}>
+                <FormControl fullWidth sx={{ mb: 1.5 }}>
                   <InputLabel>Type d'assignation</InputLabel>
                   <Select
                     value={formData.assignedToType || ''}
@@ -499,6 +509,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                       handleInputChange('assignedToId', undefined);
                     }}
                     label="Type d'assignation"
+                    size="small"
                   >
                     <MenuItem value="">Aucune assignation</MenuItem>
                     <MenuItem value="user">Utilisateur</MenuItem>
@@ -513,10 +524,11 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                       value={formData.assignedToId || ''}
                       onChange={(e) => handleInputChange('assignedToId', e.target.value)}
                       label="Utilisateur assigné"
+                      size="small"
                     >
                       {users.filter(user => ['TECHNICIAN', 'SUPERVISOR', 'MANAGER'].includes(user.role)).map((user) => (
                         <MenuItem key={user.id} value={user.id}>
-                          {user.firstName} {user.lastName} ({user.role})
+                          <Typography variant="body2">{user.firstName} {user.lastName} ({user.role})</Typography>
                         </MenuItem>
                       ))}
                     </Select>
@@ -530,10 +542,11 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                       value={formData.assignedToId || ''}
                       onChange={(e) => handleInputChange('assignedToId', e.target.value)}
                       label="Équipe assignée"
+                      size="small"
                     >
                       {teams.map((team) => (
                         <MenuItem key={team.id} value={team.id}>
-                          {team.name} ({team.interventionType})
+                          <Typography variant="body2">{team.name} ({team.interventionType})</Typography>
                         </MenuItem>
                       ))}
                     </Select>
@@ -544,8 +557,8 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
 
             {/* Coûts */}
             <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
+              <CardContent sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
                   Coûts
                 </Typography>
                 
@@ -556,6 +569,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                   value={formData.estimatedCost || ''}
                   onChange={(e) => handleInputChange('estimatedCost', e.target.value ? parseFloat(e.target.value) : undefined)}
                   inputProps={{ min: 0, step: 0.01 }}
+                  size="small"
                 />
               </CardContent>
             </Card>
@@ -564,8 +578,8 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
           {/* Notes et photos */}
           <Grid item xs={12}>
             <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
+              <CardContent sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
                   Notes et photos
                 </Typography>
                 
@@ -576,7 +590,8 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                   onChange={(e) => handleInputChange('notes', e.target.value)}
                   multiline
                   rows={3}
-                  sx={{ mb: 2 }}
+                  sx={{ mb: 1.5 }}
+                  size="small"
                 />
                 
                 <TextField
@@ -585,6 +600,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                   value={formData.photos}
                   onChange={(e) => handleInputChange('photos', e.target.value)}
                   placeholder="Séparer les URLs par des virgules"
+                  size="small"
                 />
               </CardContent>
             </Card>

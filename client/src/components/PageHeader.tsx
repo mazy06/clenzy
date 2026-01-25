@@ -25,21 +25,21 @@ export default function PageHeader({
   const navigate = useNavigate();
 
   return (
-    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
+    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}> {/* mb: 3 → 2 */}
       {/* Titre et sous-titre à gauche */}
       <Box>
-        <Typography variant="h4" component="h1" gutterBottom>
+        <Typography variant="h5" component="h1" sx={{ mb: 0.5, fontSize: '1.125rem', fontWeight: 600 }}> {/* h4 → h5, mb réduit */}
           {title}
         </Typography>
         {subtitle && (
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}> {/* body1 → body2 */}
             {subtitle}
           </Typography>
         )}
       </Box>
       
       {/* Actions à droite */}
-      <Box display="flex" gap={2} alignItems="center">
+      <Box display="flex" gap={1.5} alignItems="center"> {/* gap: 2 → 1.5 */}
         {/* Actions personnalisées (boutons, etc.) */}
         {actions}
         
@@ -47,9 +47,14 @@ export default function PageHeader({
         {showBackButton && (
           <Button
             variant="outlined"
-            startIcon={<ArrowBackIcon />}
+            size="small"
+            startIcon={<ArrowBackIcon sx={{ fontSize: '18px' }} />}
             onClick={() => navigate(backPath)}
-            sx={{ borderWidth: 2 }}
+            sx={{ 
+              borderWidth: 1.5,
+              fontSize: '0.8125rem',
+              py: 0.5
+            }}
           >
             {backLabel}
           </Button>
@@ -59,9 +64,14 @@ export default function PageHeader({
         {showBackButtonWithActions && (
           <Button
             variant="outlined"
-            startIcon={<ArrowBackIcon />}
+            size="small"
+            startIcon={<ArrowBackIcon sx={{ fontSize: '18px' }} />}
             onClick={() => navigate(backPath)}
-            sx={{ borderWidth: 2 }}
+            sx={{ 
+              borderWidth: 1.5,
+              fontSize: '0.8125rem',
+              py: 0.5
+            }}
           >
             {backLabel}
           </Button>

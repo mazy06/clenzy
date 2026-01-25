@@ -149,30 +149,33 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
   };
 
   return (
-          <Card sx={{ height: '380px', display: 'flex', flexDirection: 'column' }}>
-              <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', pb: 1.5 }}>
+          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', p: 1.5 }}>
         {/* En-tête de la carte avec icône */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
               <Box sx={{ 
                 color: 'primary.main', 
                 display: 'flex', 
                 alignItems: 'center',
-                flexShrink: 0
+                flexShrink: 0,
+                fontSize: 18
               }}>
                 {getInterventionTypeIcon(team.interventionType)}
               </Box>
               <Typography 
-                variant="h6" 
+                variant="subtitle1" 
                 component="h3" 
+                fontWeight={600}
                 sx={{ 
-                  fontWeight: 600,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
-                  flexGrow: 1
+                  flexGrow: 1,
+                  fontSize: '0.95rem'
                 }}
+                title={team.name}
               >
                 {team.name}
               </Typography>
@@ -181,14 +184,13 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
               variant="body2" 
               color="text.secondary" 
               sx={{ 
-                mb: 2,
+                mb: 1,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                lineHeight: 1.4
+                whiteSpace: 'nowrap',
+                fontSize: '0.75rem'
               }}
+              title={team.description || 'Aucune description'}
             >
               {team.description || 'Aucune description'}
             </Typography>
@@ -196,20 +198,20 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
           <IconButton
             size="small"
             onClick={(e) => onMenuOpen(e, team)}
-            sx={{ ml: 1, flexShrink: 0 }}
+            sx={{ ml: 0.5, flexShrink: 0, p: 0.5 }}
           >
-            <MoreVert />
+            <MoreVert sx={{ fontSize: 18 }} />
           </IconButton>
         </Box>
 
         {/* Type d'intervention et statut */}
-        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
           <Chip
             label={INTERVENTION_TYPE_OPTIONS.find(t => t.value === team.interventionType)?.label || team.interventionType}
             size="small"
             sx={{
-              fontSize: '0.75rem',
-              height: '20px'
+              fontSize: '0.7rem',
+              height: 20
             }}
           />
           <Chip
@@ -218,18 +220,18 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
             color={getStatusColor(getTeamStatus(team)) as any}
             variant="outlined"
             sx={{
-              fontSize: '0.75rem',
-              height: '20px'
+              fontSize: '0.7rem',
+              height: 20
             }}
           />
         </Box>
 
         {/* Informations supplémentaires */}
-        <Box sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ mb: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           {/* Nombre total d'interventions */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Build fontSize="small" color="action" />
-            <Typography variant="caption" color="text.secondary">
+            <Build sx={{ fontSize: 14 }} color="action" />
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
               {displayData.totalInterventions === 0 
                 ? 'Aucune intervention' 
                 : `${displayData.totalInterventions} intervention${displayData.totalInterventions > 1 ? 's' : ''}`
@@ -239,42 +241,41 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
           
           {/* Dernière intervention */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Support fontSize="small" color="action" />
-            <Typography variant="caption" color="text.secondary">
+            <Support sx={{ fontSize: 14 }} color="action" />
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
               {displayData.lastIntervention 
                 ? `Dernière: ${formatDate(displayData.lastIntervention)}`
-                : 'Aucune intervention récente'
+                : 'Aucune récente'
               }
             </Typography>
           </Box>
         </Box>
 
         {/* Membres de l'équipe */}
-                       <List dense sx={{ 
-                 mb: 1, 
-                 flexGrow: 1, 
-                 overflow: 'hidden',
-                 maxHeight: '160px'
-               }}>
+        <List dense sx={{ 
+          mb: 0.75, 
+          flexGrow: 1, 
+          overflow: 'hidden',
+          maxHeight: '140px'
+        }}>
           {team.members.slice(0, 2).map((member, index) => (
             <React.Fragment key={member.id}>
               <ListItem sx={{ px: 0, py: 0.5 }}>
-                <ListItemAvatar sx={{ minWidth: 32 }}>
-                  <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
+                <ListItemAvatar sx={{ minWidth: 28 }}>
+                  <Avatar sx={{ width: 20, height: 20, fontSize: '0.65rem' }}>
                     {member.firstName.charAt(0)}{member.lastName.charAt(0)}
                   </Avatar>
                 </ListItemAvatar>
                 <ListItemText
-                  primary={`${member.firstName} ${member.lastName}`}
-                  secondary={member.email}
-                  primaryTypographyProps={{ variant: 'body2' }}
-                  secondaryTypographyProps={{ variant: 'caption' }}
+                  primary={<Typography variant="body2" sx={{ fontSize: '0.8rem' }}>{`${member.firstName} ${member.lastName}`}</Typography>}
+                  secondary={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>{member.email}</Typography>}
                 />
                 <Chip
                   label={getRoleLabel(member.role)}
                   size="small"
                   color={getRoleColor(member.role) as any}
                   variant="outlined"
+                  sx={{ height: 20, fontSize: '0.65rem' }}
                 />
               </ListItem>
               {index < Math.min(team.members.length, 2) - 1 && <Divider variant="inset" component="li" />}
@@ -283,8 +284,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
           {team.members.length > 2 && (
             <ListItem sx={{ px: 0, py: 0.5 }}>
               <ListItemText
-                primary={`... et ${team.members.length - 2} autre(s) membre(s)`}
-                primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
+                primary={<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{`... et ${team.members.length - 2} autre(s) membre(s)`}</Typography>}
               />
             </ListItem>
           )}
@@ -296,7 +296,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
           flexShrink: 0,
           py: 0.5
         }}>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
             Total: {team.members.length} membre{team.members.length > 1 ? 's' : ''}
           </Typography>
         </Box>

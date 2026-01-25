@@ -53,6 +53,13 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
      */
     @Query("SELECT p.id FROM Property p WHERE p.owner.keycloakId = :ownerKeycloakId")
     List<Long> findIdsByOwnerKeycloakId(@Param("ownerKeycloakId") String ownerKeycloakId);
+    
+    /**
+     * Requête optimisée avec FETCH JOIN pour charger la propriété avec son owner
+     * Évite les LazyInitializationException
+     */
+    @Query("SELECT p FROM Property p LEFT JOIN FETCH p.owner WHERE p.id = :id")
+    java.util.Optional<Property> findByIdWithOwner(@Param("id") Long id);
 }
 
 

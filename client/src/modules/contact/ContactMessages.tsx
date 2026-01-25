@@ -103,7 +103,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
         `${API_CONFIG.BASE_URL}/api/contact/messages/${endpoint}?page=${page - 1}&size=${pageSize}`,
         {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
             'Content-Type': 'application/json'
           }
         }
@@ -152,7 +152,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
         {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
             'Content-Type': 'application/json'
           }
         }
@@ -182,7 +182,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
         {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`
           }
         }
       );
@@ -266,10 +266,11 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
           )}
 
           {/* Filtres */}
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6}>
+          <Grid container spacing={2} sx={{ mb: 3, alignItems: 'center' }}>
+            <Grid item xs={12} sm={8}>
               <TextField
                 fullWidth
+                size="small"
                 placeholder="Rechercher dans les messages..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -278,12 +279,17 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Statut</InputLabel>
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" sx={{ minWidth: '60px', color: 'text.secondary' }}>
+                  Statut:
+                </Typography>
                 <Select
+                  fullWidth
+                  size="small"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
+                  sx={{ flexGrow: 1 }}
                 >
                   <MenuItem value="ALL">Tous les statuts</MenuItem>
                   <MenuItem value="SENT">Envoyé</MenuItem>
@@ -291,7 +297,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
                   <MenuItem value="READ">Lu</MenuItem>
                   <MenuItem value="REPLIED">Répondu</MenuItem>
                 </Select>
-              </FormControl>
+              </Box>
             </Grid>
           </Grid>
 

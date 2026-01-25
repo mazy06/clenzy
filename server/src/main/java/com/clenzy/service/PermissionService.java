@@ -14,10 +14,14 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.Arrays;
 import com.clenzy.model.UserRole;
 
 @Service
@@ -37,6 +41,9 @@ public class PermissionService {
     
     @Autowired
     private PermissionRepository permissionRepository;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private static final String ROLE_PERMISSIONS_KEY = "role:permissions:";
     private static final String USER_PERMISSIONS_KEY = "user:permissions:";
@@ -63,16 +70,56 @@ public class PermissionService {
         System.out.println("🔍 PermissionService.getRolePermissions() - Récupération pour le rôle: " + role + " depuis la base de données et mise en cache");
         List<String> permissions = getPermissionsFromDatabase(role);
         boolean isDefault = !hasCustomPermissions(role);
-        return new RolePermissionsDto(role, permissions, isDefault);
+        RolePermissionsDto dto = new RolePermissionsDto(role, permissions, isDefault);
+        System.out.println("📊 PermissionService.getRolePermissions() - DTO créé avec " + permissions.size() + " permissions pour le rôle: " + role);
+        return dto;
+    }
+    
+    /**
+     * Méthode pour récupérer les permissions sans utiliser le cache Spring
+     * Utilisée après la sauvegarde pour forcer la relecture depuis la base
+     */
+    public RolePermissionsDto getRolePermissionsWithoutCache(String role) {
+        System.out.println("🔍 PermissionService.getRolePermissionsWithoutCache() - Récupération SANS CACHE pour le rôle: " + role);
+        List<String> permissions = getPermissionsFromDatabase(role);
+        boolean isDefault = !hasCustomPermissions(role);
+        RolePermissionsDto dto = new RolePermissionsDto(role, permissions, isDefault);
+        System.out.println("📊 PermissionService.getRolePermissionsWithoutCache() - DTO créé avec " + permissions.size() + " permissions pour le rôle: " + role);
+        return dto;
     }
 
-    @CacheEvict(value = "permissions", key = "#role")
+    @CacheEvict(value = "permissions", allEntries = true)
+    @Transactional
     public RolePermissionsDto updateRolePermissions(String role, List<String> permissions) {
         validatePermissions(permissions);
         savePermissionsToDatabase(role, permissions);
-        invalidateUserPermissionsCache(role);
+        
+        // Invalider le cache Redis pour forcer la relecture depuis la base
+        invalidateCache(role);
+        
+        // Invalider le cache de tous les utilisateurs ayant ce rôle
+        try {
+            UserRole userRole = UserRole.valueOf(role);
+            List<User> usersWithRole = userRepository.findByRoleIn(Arrays.asList(userRole));
+            for (User user : usersWithRole) {
+                if (user.getKeycloakId() != null) {
+                    invalidateUserPermissionsCache(user.getKeycloakId());
+                }
+            }
+            System.out.println("🔄 PermissionService.updateRolePermissions() - Cache invalidé pour " + usersWithRole.size() + " utilisateurs avec le rôle " + role);
+        } catch (Exception e) {
+            System.out.println("⚠️ PermissionService.updateRolePermissions() - Erreur lors de l'invalidation du cache utilisateur: " + e.getMessage());
+        }
+        
+        // Recharger les permissions depuis la base de données pour retourner les vraies valeurs persistées
+        // Utiliser getRolePermissionsWithoutCache pour éviter le cache Spring
+        RolePermissionsDto savedRolePermissions = getRolePermissionsWithoutCache(role);
+        
         System.out.println("💾 PermissionService.updateRolePermissions() - Mise à jour des permissions pour le rôle: " + role);
-        return new RolePermissionsDto(role, permissions, false);
+        System.out.println("✅ PermissionService.updateRolePermissions() - Permissions sauvegardées et rechargées: " + savedRolePermissions.getPermissions().size() + " permissions");
+        System.out.println("📋 Permissions retournées: " + String.join(", ", savedRolePermissions.getPermissions()));
+        
+        return savedRolePermissions;
     }
 
     public RolePermissionsDto resetToDefaultPermissions(String role) {
@@ -129,8 +176,21 @@ public class PermissionService {
     public void invalidateCache(String role) {
         String key = ROLE_PERMISSIONS_KEY + role;
         redisTemplate.delete(key);
-        invalidateUserPermissionsCache(role);
-        System.out.println("🔄 PermissionService.invalidateCache() - Invalidation du cache pour le rôle: " + role);
+        System.out.println("🔄 PermissionService.invalidateCache() - Cache Redis invalidé pour le rôle: " + role);
+        
+        // Invalider le cache de tous les utilisateurs ayant ce rôle
+        try {
+            UserRole userRole = UserRole.valueOf(role);
+            List<User> usersWithRole = userRepository.findByRoleIn(Arrays.asList(userRole));
+            for (User user : usersWithRole) {
+                if (user.getKeycloakId() != null) {
+                    invalidateUserPermissionsCache(user.getKeycloakId());
+                }
+            }
+            System.out.println("🔄 PermissionService.invalidateCache() - Cache invalidé pour " + usersWithRole.size() + " utilisateurs avec le rôle " + role);
+        } catch (Exception e) {
+            System.out.println("⚠️ PermissionService.invalidateCache() - Erreur lors de l'invalidation du cache utilisateur: " + e.getMessage());
+        }
     }
 
     public void invalidateAllCache() {
@@ -169,10 +229,14 @@ public class PermissionService {
             System.out.println("💾 PermissionService.getPermissionsFromDatabase() - Récupération depuis la base pour le rôle: " + role);
             
             // Récupération des vraies permissions depuis la base de données
+            // Note: On utilise une requête directe pour éviter le cache Hibernate
             List<String> permissions = rolePermissionRepository.findActivePermissionsByRoleName(role);
+            
+            System.out.println("🔍 PermissionService.getPermissionsFromDatabase() - Permissions récupérées: " + permissions);
             
             if (permissions != null && !permissions.isEmpty()) {
                 System.out.println("✅ PermissionService.getPermissionsFromDatabase() - " + permissions.size() + " permissions trouvées pour le rôle: " + role);
+                System.out.println("📋 Liste complète: " + String.join(", ", permissions));
                 return permissions;
             } else {
                 System.out.println("⚠️ PermissionService.getPermissionsFromDatabase() - Aucune permission trouvée en base pour le rôle: " + role);
@@ -181,12 +245,14 @@ public class PermissionService {
             }
         } catch (Exception e) {
             System.out.println("❌ PermissionService.getPermissionsFromDatabase() - Erreur lors de la récupération: " + e.getMessage());
+            e.printStackTrace();
             return new ArrayList<>();
         }
     }
     
 
 
+    @Transactional
     private void savePermissionsToDatabase(String role, List<String> permissions) {
         try {
             System.out.println("💾 PermissionService.savePermissionsToDatabase() - Sauvegarde pour le rôle: " + role + ": " + permissions);
@@ -199,36 +265,67 @@ public class PermissionService {
             }
             Role roleObj = roleOpt.get();
             
-            // 2. Récupérer les objets Permission
+            // 2. Récupérer les objets Permission et créer celles qui manquent
             List<Permission> permissionObjs = permissionRepository.findByNameIn(permissions);
             System.out.println("🔍 PermissionService.savePermissionsToDatabase() - Permissions demandées: " + permissions);
             System.out.println("🔍 PermissionService.savePermissionsToDatabase() - Permissions trouvées en base: " + permissionObjs.size() + "/" + permissions.size());
             
-            if (permissionObjs.size() != permissions.size()) {
-                System.out.println("⚠️ PermissionService.savePermissionsToDatabase() - Certaines permissions non trouvées en base");
-                System.out.println("🔍 Permissions manquantes: " + permissions.stream()
-                    .filter(p -> permissionObjs.stream().noneMatch(po -> po.getName().equals(p)))
-                    .collect(Collectors.toList()));
-                return;
+            // Créer les permissions manquantes automatiquement
+            List<String> existingPermissionNames = permissionObjs.stream()
+                .map(Permission::getName)
+                .collect(Collectors.toList());
+            
+            List<String> missingPermissions = permissions.stream()
+                .filter(p -> !existingPermissionNames.contains(p))
+                .collect(Collectors.toList());
+            
+            if (!missingPermissions.isEmpty()) {
+                System.out.println("⚠️ PermissionService.savePermissionsToDatabase() - Certaines permissions non trouvées en base, création automatique");
+                System.out.println("🔍 Permissions manquantes: " + missingPermissions);
+                
+                for (String permissionName : missingPermissions) {
+                    // Extraire le module depuis le nom de la permission (ex: "contact:view" -> "contact")
+                    String module = permissionName.split(":")[0];
+                    String description = "Permission " + permissionName + " (créée automatiquement)";
+                    
+                    Permission newPermission = new Permission(permissionName, description, module);
+                    Permission savedPermission = permissionRepository.save(newPermission);
+                    permissionObjs.add(savedPermission);
+                    
+                    System.out.println("✅ PermissionService.savePermissionsToDatabase() - Permission créée: " + permissionName + " (module: " + module + ")");
+                }
             }
             
             // 3. Supprimer les anciennes permissions du rôle
+            System.out.println("🗑️ PermissionService.savePermissionsToDatabase() - Suppression des anciennes permissions pour le rôle: " + role);
             rolePermissionRepository.deleteByRoleName(role);
             
+            // Forcer le flush pour s'assurer que la suppression est bien effectuée
+            entityManager.flush();
+            entityManager.clear(); // Nettoyer le contexte de persistance pour forcer la relecture
+            
             // 4. Sauvegarder les nouvelles permissions
+            System.out.println("💾 PermissionService.savePermissionsToDatabase() - Sauvegarde de " + permissionObjs.size() + " permissions pour le rôle: " + role);
+            List<String> savedPermissionNames = new ArrayList<>();
             for (Permission permission : permissionObjs) {
                 RolePermission rolePermission = new RolePermission(roleObj, permission);
                 rolePermission.setIsActive(true);
                 rolePermission.setIsDefault(false); // Permissions modifiées par l'utilisateur
-                rolePermissionRepository.save(rolePermission);
+                RolePermission saved = rolePermissionRepository.save(rolePermission);
+                savedPermissionNames.add(permission.getName());
+                System.out.println("  ✅ Permission sauvegardée: " + permission.getName() + " (isActive=" + saved.getIsActive() + ")");
             }
+            
+            // Forcer le flush pour s'assurer que toutes les sauvegardes sont bien effectuées
+            entityManager.flush();
             
             // 🚀 INVALIDATION AUTOMATIQUE : Supprimer le cache Redis pour forcer la relecture
             String key = ROLE_PERMISSIONS_KEY + role;
             redisTemplate.delete(key);
             
             System.out.println("🔄 PermissionService.savePermissionsToDatabase() - Cache Redis invalidé automatiquement pour le rôle: " + role);
-            System.out.println("✅ PermissionService.savePermissionsToDatabase() - " + permissions.size() + " permissions sauvegardées en base pour le rôle: " + role);
+            System.out.println("✅ PermissionService.savePermissionsToDatabase() - " + savedPermissionNames.size() + " permissions sauvegardées en base pour le rôle: " + role);
+            System.out.println("📋 Permissions sauvegardées: " + String.join(", ", savedPermissionNames));
             System.out.println("💡 Le prochain appel récupérera automatiquement depuis la base et remettra en cache");
         } catch (Exception e) {
             System.out.println("❌ PermissionService.savePermissionsToDatabase() - Erreur lors de la sauvegarde: " + e.getMessage());
@@ -300,7 +397,28 @@ public class PermissionService {
 
     public boolean saveRolePermissions(String role) {
         System.out.println("💾 PermissionService.saveRolePermissions() - Sauvegarde des permissions pour le rôle: " + role);
-        // TODO: Implémenter la sauvegarde en base de données
+        
+        // Invalider le cache du rôle pour forcer la relecture depuis la base de données
+        invalidateCache(role);
+        
+        // Invalider le cache de tous les utilisateurs ayant ce rôle
+        try {
+            UserRole userRole = UserRole.valueOf(role);
+            List<User> usersWithRole = userRepository.findByRoleIn(Arrays.asList(userRole));
+            for (User user : usersWithRole) {
+                if (user.getKeycloakId() != null) {
+                    invalidateUserPermissionsCache(user.getKeycloakId());
+                }
+            }
+            System.out.println("🔄 PermissionService.saveRolePermissions() - Cache invalidé pour " + usersWithRole.size() + " utilisateurs avec le rôle " + role);
+        } catch (Exception e) {
+            System.out.println("⚠️ PermissionService.saveRolePermissions() - Erreur lors de l'invalidation du cache utilisateur: " + e.getMessage());
+        }
+        
+        // Recharger les permissions depuis la base pour s'assurer qu'elles sont à jour
+        getRolePermissions(role);
+        
+        System.out.println("✅ PermissionService.saveRolePermissions() - Cache invalidé et permissions rechargées pour le rôle: " + role);
         return true;
     }
 

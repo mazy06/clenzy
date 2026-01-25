@@ -34,7 +34,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: 2 }}>
           {children}
         </Box>
       )}
@@ -86,15 +86,16 @@ const ContactPage: React.FC = () => {
       {/* Bouton flottant pour nouveau message */}
       <Fab
         color="primary"
+        size="small"
         aria-label="nouveau message"
         onClick={handleNewMessage}
         sx={{
           position: 'fixed',
-          bottom: 16,
-          right: 16,
+          bottom: 12,
+          right: 12,
         }}
       >
-        <AddIcon />
+        <AddIcon sx={{ fontSize: 20 }} />
       </Fab>
     </Box>
   );

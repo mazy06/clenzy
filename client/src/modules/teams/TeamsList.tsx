@@ -25,6 +25,7 @@ import {
   Visibility,
   ExpandMore,
   ExpandLess,
+  Refresh,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -238,7 +239,7 @@ const TeamsList: React.FC = () => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
+        <CircularProgress size={32} />
       </Box>
     );
   }
@@ -256,6 +257,7 @@ const TeamsList: React.FC = () => {
             color="primary"
             startIcon={<Add />}
             onClick={() => navigate('/teams/new')}
+            size="small"
           >
             Nouvelle équipe
           </Button>
@@ -264,19 +266,19 @@ const TeamsList: React.FC = () => {
 
       {/* Message d'erreur */}
       {error && (
-        <Alert severity="error" sx={{ mb: 4 }}>
+        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
           {error}
         </Alert>
       )}
 
       {/* Filtres par type d'intervention */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 2 }}>
         {/* Filtre sélectionné avec bouton de masquage */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
-          gap: 2, 
-          mb: 3,
+          gap: 1.5, 
+          mb: 2,
           flexWrap: 'wrap'
         }}>
           {/* Affichage du chip sélectionné */}
@@ -286,12 +288,14 @@ const TeamsList: React.FC = () => {
               onClick={() => setSelectedType('all')}
               color="primary"
               variant="filled"
+              size="small"
               sx={{
                 cursor: 'pointer',
-                fontSize: '1rem',
-                py: 1,
-                px: 2,
-                borderWidth: 2,
+                fontSize: '0.85rem',
+                py: 0.5,
+                px: 1.5,
+                height: 28,
+                borderWidth: 1.5,
                 borderColor: 'primary.main',
                 '&:hover': {
                   transform: 'translateY(-1px)',
@@ -306,12 +310,14 @@ const TeamsList: React.FC = () => {
               onClick={() => setSelectedType(selectedType)}
               color="primary"
               variant="filled"
+              size="small"
               sx={{
                 cursor: 'pointer',
-                fontSize: '1rem',
-                py: 1,
-                px: 2,
-                borderWidth: 2,
+                fontSize: '0.85rem',
+                py: 0.5,
+                px: 1.5,
+                height: 28,
+                borderWidth: 1.5,
                 borderColor: getChipBorderColor(selectedType),
                 '&:hover': {
                   transform: 'translateY(-1px)',
@@ -322,14 +328,37 @@ const TeamsList: React.FC = () => {
             />
           )}
           
+          {/* Bouton de réinitialisation des filtres */}
+          {selectedType !== 'all' && (
+            <Button
+              variant="text"
+              size="small"
+              onClick={() => setSelectedType('all')}
+              startIcon={<Refresh sx={{ fontSize: 18 }} />}
+              sx={{
+                color: 'text.secondary',
+                fontSize: '0.8rem',
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                },
+                minWidth: 'auto',
+                px: 1,
+                py: 0.5
+              }}
+            >
+              Réinitialiser
+            </Button>
+          )}
+          
           {/* Bouton de masquage des filtres */}
           <Button
             variant="text"
             size="small"
             onClick={() => setShowFilters(!showFilters)}
-            startIcon={showFilters ? <ExpandLess /> : <ExpandMore />}
+            startIcon={showFilters ? <ExpandLess sx={{ fontSize: 18 }} /> : <ExpandMore sx={{ fontSize: 18 }} />}
             sx={{
               color: 'text.secondary',
+              fontSize: '0.8rem',
               '&:hover': {
                 backgroundColor: 'rgba(0, 0, 0, 0.04)',
               },
@@ -338,13 +367,13 @@ const TeamsList: React.FC = () => {
               py: 0.5
             }}
           >
-            {showFilters ? 'Masquer les filtres' : 'Afficher les filtres'}
+            {showFilters ? 'Masquer' : 'Afficher'}
           </Button>
         </Box>
 
         {/* Filtres par catégorie sans titres */}
         {showFilters && (
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
           {/* Types de nettoyage - Bordure verte */}
           {INTERVENTION_TYPE_OPTIONS
             .filter(type => type.category === 'cleaning')
@@ -355,13 +384,15 @@ const TeamsList: React.FC = () => {
                 onClick={() => setSelectedType(type.value)}
                 color={selectedType === type.value ? 'primary' : 'default'}
                 variant={selectedType === type.value ? 'filled' : 'outlined'}
+                size="small"
                 sx={{
                   cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  py: 1,
-                  px: 1.5,
-                  borderWidth: 2,
-                  borderColor: selectedType === type.value ? 'primary.main' : '#4CAF50',
+                  fontSize: '0.75rem',
+                  py: 0.5,
+                  px: 1,
+                  height: 26,
+                  borderWidth: 1.5,
+                  borderColor: selectedType === type.value ? 'primary.main' : 'success.main',
                   '&:hover': {
                     transform: 'translateY(-1px)',
                     boxShadow: 1,
@@ -381,13 +412,15 @@ const TeamsList: React.FC = () => {
                 onClick={() => setSelectedType(type.value)}
                 color={selectedType === type.value ? 'primary' : 'default'}
                 variant={selectedType === type.value ? 'filled' : 'outlined'}
+                size="small"
                 sx={{
                   cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  py: 1,
-                  px: 1.5,
-                  borderWidth: 2,
-                  borderColor: selectedType === type.value ? 'primary.main' : '#FF9800',
+                  fontSize: '0.75rem',
+                  py: 0.5,
+                  px: 1,
+                  height: 26,
+                  borderWidth: 1.5,
+                  borderColor: selectedType === type.value ? 'primary.main' : 'warning.main',
                   '&:hover': {
                     transform: 'translateY(-1px)',
                     boxShadow: 1,
@@ -407,13 +440,15 @@ const TeamsList: React.FC = () => {
                 onClick={() => setSelectedType(type.value)}
                 color={selectedType === type.value ? 'primary' : 'default'}
                 variant={selectedType === type.value ? 'filled' : 'outlined'}
+                size="small"
                 sx={{
                   cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  py: 1,
-                  px: 1.5,
-                  borderWidth: 2,
-                  borderColor: selectedType === type.value ? 'primary.main' : '#9C27B0',
+                  fontSize: '0.75rem',
+                  py: 0.5,
+                  px: 1,
+                  height: 26,
+                  borderWidth: 1.5,
+                  borderColor: selectedType === type.value ? 'primary.main' : 'info.main',
                   '&:hover': {
                     transform: 'translateY(-1px)',
                     boxShadow: 1,
@@ -433,13 +468,15 @@ const TeamsList: React.FC = () => {
                 onClick={() => setSelectedType(type.value)}
                 color={selectedType === type.value ? 'primary' : 'default'}
                 variant={selectedType === type.value ? 'filled' : 'outlined'}
+                size="small"
                 sx={{
                   cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  py: 1,
-                  px: 1.5,
-                  borderWidth: 2,
-                  borderColor: selectedType === type.value ? 'primary.main' : '#F44336',
+                  fontSize: '0.75rem',
+                  py: 0.5,
+                  px: 1,
+                  height: 26,
+                  borderWidth: 1.5,
+                  borderColor: selectedType === type.value ? 'primary.main' : 'error.main',
                   '&:hover': {
                     transform: 'translateY(-1px)',
                     boxShadow: 1,
@@ -452,9 +489,9 @@ const TeamsList: React.FC = () => {
         )}
 
         {/* Compteur d'équipes avec trait horizontal */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 2 }}>
           <Divider sx={{ flex: 1 }} />
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
             {filteredTeams.length} équipe{filteredTeams.length > 1 ? 's' : ''} disponible{filteredTeams.length > 1 ? 's' : ''}
           </Typography>
         </Box>
@@ -464,7 +501,7 @@ const TeamsList: React.FC = () => {
 
 
       {/* Liste des équipes */}
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {filteredTeams.map((team) => (
           <Grid item xs={12} md={6} lg={4} key={team.id}>
             <TeamCard 
@@ -489,24 +526,24 @@ const TeamsList: React.FC = () => {
           horizontal: 'right',
         }}
       >
-        <MenuItem onClick={handleViewDetails}>
+        <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', py: 0.75 }}>
           <ListItemIcon>
-            <Visibility fontSize="small" />
+            <Visibility fontSize="small" sx={{ fontSize: 18 }} />
           </ListItemIcon>
           Voir détails
         </MenuItem>
         {permissions['teams:edit'] && (
-          <MenuItem onClick={handleEdit}>
+          <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
             <ListItemIcon>
-              <Edit fontSize="small" />
+              <Edit fontSize="small" sx={{ fontSize: 18 }} />
             </ListItemIcon>
             Modifier
           </MenuItem>
         )}
         {permissions['teams:delete'] && (
-          <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+          <MenuItem onClick={handleDelete} sx={{ color: 'error.main', fontSize: '0.85rem', py: 0.75 }}>
             <ListItemIcon>
-              <Delete fontSize="small" sx={{ color: 'error.main' }} />
+              <Delete fontSize="small" sx={{ color: 'error.main', fontSize: 18 }} />
             </ListItemIcon>
             Supprimer
           </MenuItem>
@@ -515,15 +552,15 @@ const TeamsList: React.FC = () => {
 
       {/* Dialog de confirmation de suppression */}
       <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
-        <DialogTitle>Confirmer la suppression</DialogTitle>
-        <DialogContent>
-          <Typography>
+        <DialogTitle sx={{ pb: 1 }}>Confirmer la suppression</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Typography variant="body2">
             Êtes-vous sûr de vouloir supprimer l'équipe "{selectedTeam?.name}" ? Cette action est irréversible.
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDeleteDialog}>Annuler</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
+        <DialogActions sx={{ px: 2, pb: 1.5 }}>
+          <Button onClick={handleCloseDeleteDialog} size="small">Annuler</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained" size="small">
             Supprimer
           </Button>
         </DialogActions>

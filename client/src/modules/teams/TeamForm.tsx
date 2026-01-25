@@ -150,8 +150,8 @@ const TeamForm: React.FC = () => {
   // Vérifier les permissions APRÈS tous les hooks
   if (!canCreate) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
+      <Box sx={{ p: 2 }}>
+        <Alert severity="error" sx={{ py: 1 }}>
           Vous n'avez pas les permissions nécessaires pour créer des équipes.
         </Alert>
       </Box>
@@ -311,7 +311,7 @@ const TeamForm: React.FC = () => {
   if (loadingUsers) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
+        <CircularProgress size={32} />
       </Box>
     );
   }
@@ -321,7 +321,7 @@ const TeamForm: React.FC = () => {
   const selectedInterventionType = interventionTypes.find(type => type.value === formData.interventionType);
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 2 }}>
       <PageHeader
         title="Nouvelle équipe"
         subtitle="Créer une nouvelle équipe dans le système"
@@ -335,6 +335,7 @@ const TeamForm: React.FC = () => {
               startIcon={<Cancel />}
               disabled={saving}
               sx={{ mr: 1 }}
+              size="small"
             >
               Annuler
             </Button>
@@ -347,8 +348,9 @@ const TeamForm: React.FC = () => {
                   submitButton.click();
                 }
               }}
-              startIcon={saving ? <CircularProgress size={20} /> : <Save />}
+              startIcon={saving ? <CircularProgress size={16} /> : <Save sx={{ fontSize: 16 }} />}
               disabled={saving || filteredUsers.length === 0}
+              size="small"
             >
               {saving ? 'Création...' : 'Créer l\'équipe'}
             </Button>
@@ -358,27 +360,27 @@ const TeamForm: React.FC = () => {
 
       {/* Messages d'erreur/succès */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
           {error}
         </Alert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
+        <Alert severity="success" sx={{ mb: 2, py: 1 }}>
           Équipe créée avec succès ! Redirection en cours...
         </Alert>
       )}
 
       {/* Formulaire */}
       <Card>
-        <CardContent sx={{ p: 4 }}>
+        <CardContent sx={{ p: 2 }}>
           <form onSubmit={handleSubmit}>
             {/* Informations de base */}
-            <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
               Informations de l'équipe
             </Typography>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
@@ -387,6 +389,7 @@ const TeamForm: React.FC = () => {
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   required
                   placeholder="Ex: Équipe de nettoyage Centre"
+                  size="small"
                 />
               </Grid>
 
@@ -397,12 +400,13 @@ const TeamForm: React.FC = () => {
                     value={formData.interventionType}
                     onChange={(e) => handleInputChange('interventionType', e.target.value)}
                     label="Type d'intervention *"
+                    size="small"
                   >
                     {interventionTypes.map((type) => (
                       <MenuItem key={type.value} value={type.value}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span style={{ fontSize: '1.2em' }}>{type.icon}</span>
-                          {type.label}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <span style={{ fontSize: '1em' }}>{type.icon}</span>
+                          <Typography variant="body2">{type.label}</Typography>
                         </Box>
                       </MenuItem>
                     ))}
@@ -412,7 +416,7 @@ const TeamForm: React.FC = () => {
             </Grid>
 
             {/* Description */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -420,47 +424,49 @@ const TeamForm: React.FC = () => {
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   placeholder="Description de l'équipe et de ses responsabilités"
+                  size="small"
                 />
               </Grid>
             </Grid>
 
             {/* Informations sur le type d'intervention */}
             {selectedInterventionType && (
-              <Box sx={{ mb: 4, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Typography variant="subtitle2" color="primary" sx={{ mb: 1 }}>
+              <Box sx={{ mb: 2, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <Typography variant="caption" fontWeight={600} color="primary" sx={{ mb: 0.75, fontSize: '0.75rem', display: 'block' }}>
                   📋 Type d'intervention : {selectedInterventionType.icon} {selectedInterventionType.label}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }}>
                   Rôles autorisés : {selectedInterventionType.roles.map(role => 
                     teamRoles.find(r => r.value === role)?.label
                   ).join(', ')}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, fontSize: '0.7rem', display: 'block' }}>
                   {filteredUsers.length} utilisateur(s) disponible(s) pour ce type d'intervention
                 </Typography>
               </Box>
             )}
 
             {/* Membres de l'équipe */}
-            <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
               Membres de l'équipe
             </Typography>
 
             {formData.members.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              <Box sx={{ textAlign: 'center', py: 2.5 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontSize: '0.85rem' }}>
                   Aucun membre ajouté
                 </Typography>
                 <Button
                   variant="outlined"
-                  startIcon={<Add />}
+                  startIcon={<Add sx={{ fontSize: 16 }} />}
                   onClick={handleAddMember}
                   disabled={filteredUsers.length === 0}
+                  size="small"
                 >
                   {filteredUsers.length === 0 ? 'Aucun utilisateur disponible' : 'Ajouter le premier membre'}
                 </Button>
                 {filteredUsers.length === 0 && (
-                  <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1 }}>
+                  <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1, fontSize: '0.7rem' }}>
                     Aucun utilisateur avec les rôles appropriés n'est disponible pour ce type d'intervention
                   </Typography>
                 )}
@@ -469,8 +475,8 @@ const TeamForm: React.FC = () => {
               <List>
                 {formData.members.map((member, index) => (
                   <React.Fragment key={index}>
-                    <ListItem sx={{ px: 0 }}>
-                      <Grid container spacing={2} alignItems="center">
+                    <ListItem sx={{ px: 0, py: 0.75 }}>
+                      <Grid container spacing={1.5} alignItems="center">
                         <Grid item xs={12} md={4}>
                           <Autocomplete
                             options={filteredUsers}
@@ -487,9 +493,9 @@ const TeamForm: React.FC = () => {
                             )}
                             renderOption={(props, user) => (
                               <li {...props}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Person />
-                                  {user.firstName} {user.lastName} ({user.email})
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                  <Person sx={{ fontSize: 18 }} />
+                                  <Typography variant="body2">{user.firstName} {user.lastName} ({user.email})</Typography>
                                 </Box>
                               </li>
                             )}
@@ -514,17 +520,19 @@ const TeamForm: React.FC = () => {
                         </Grid>
 
                         <Grid item xs={12} md={3}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
                             <Chip
                               label={member.firstName && member.lastName ? `${member.firstName} ${member.lastName}` : 'Non sélectionné'}
                               color={member.userId ? 'primary' : 'default'}
                               size="small"
+                              sx={{ height: 22, fontSize: '0.7rem' }}
                             />
                             {member.role && (
                               <Chip
                                 label={availableRoles.find(r => r.value === member.role)?.label || member.role}
                                 variant="outlined"
                                 size="small"
+                                sx={{ height: 22, fontSize: '0.7rem' }}
                               />
                             )}
                           </Box>
@@ -535,8 +543,9 @@ const TeamForm: React.FC = () => {
                             onClick={() => handleRemoveMember(index)}
                             color="error"
                             size="small"
+                            sx={{ p: 0.5 }}
                           >
-                            <Delete />
+                            <Delete sx={{ fontSize: 18 }} />
                           </IconButton>
                         </Grid>
                       </Grid>
@@ -549,11 +558,12 @@ const TeamForm: React.FC = () => {
 
             {/* Bouton ajouter membre */}
             {formData.members.length > 0 && filteredUsers.length > formData.members.length && (
-              <Box sx={{ textAlign: 'center', mt: 2 }}>
+              <Box sx={{ textAlign: 'center', mt: 1.5 }}>
                 <Button
                   variant="outlined"
-                  startIcon={<Add />}
+                  startIcon={<Add sx={{ fontSize: 16 }} />}
                   onClick={handleAddMember}
+                  size="small"
                 >
                   Ajouter un membre
                 </Button>

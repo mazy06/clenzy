@@ -89,7 +89,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ pt: 3 }}>
+        <Box sx={{ pt: 0 }}>
           {children}
         </Box>
       )}
@@ -271,15 +271,15 @@ const PropertyDetails: React.FC = () => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
+        <CircularProgress size={32} />
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
+      <Box sx={{ p: 2 }}>
+        <Alert severity="error" sx={{ py: 1 }}>
           {error}
         </Alert>
       </Box>
@@ -288,8 +288,8 @@ const PropertyDetails: React.FC = () => {
 
   if (!property) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="warning">
+      <Box sx={{ p: 2 }}>
+        <Alert severity="warning" sx={{ py: 1 }}>
           Propriété non trouvée
         </Alert>
       </Box>
@@ -308,6 +308,7 @@ const PropertyDetails: React.FC = () => {
               variant="contained"
               startIcon={<Edit />}
               onClick={() => navigate(`/properties/${id}/edit`)}
+              size="small"
             >
               Modifier
             </Button>
@@ -322,83 +323,85 @@ const PropertyDetails: React.FC = () => {
               value={tabValue} 
               onChange={handleTabChange} 
               aria-label="Détails de la propriété"
-              sx={{ px: 3 }}
+              sx={{ px: 2 }}
             >
               <Tab 
                 label="Informations détaillées" 
-                icon={<Info />} 
+                icon={<Info sx={{ fontSize: 18 }} />} 
                 iconPosition="start"
-                {...a11yProps(0)} 
+                {...a11yProps(0)}
+                sx={{ fontSize: '0.85rem', minHeight: 48 }}
               />
               <Tab 
                 label="Interventions" 
-                icon={<List />} 
+                icon={<List sx={{ fontSize: 18 }} />} 
                 iconPosition="start"
-                {...a11yProps(1)} 
+                {...a11yProps(1)}
+                sx={{ fontSize: '0.85rem', minHeight: 48 }}
               />
             </Tabs>
           </Box>
 
           <TabPanel value={tabValue} index={0}>
-            <Box sx={{ p: 3 }}>
-              <Grid container spacing={3}>
+            <Box sx={{ p: 2 }}>
+              <Grid container spacing={2}>
                 {/* Informations générales */}
                 <Grid item xs={12} md={6}>
                   <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {getPropertyTypeIcon(property.propertyType)}
+                    <CardContent sx={{ p: 1.5 }}>
+                      <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
+                        <Box sx={{ fontSize: 18 }}>{getPropertyTypeIcon(property.propertyType)}</Box>
                         Informations générales
                       </Typography>
                       
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <LocationOn color="action" />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <LocationOn color="action" sx={{ fontSize: 18 }} />
                           <Box>
-                            <Typography variant="body2" color="text.secondary">Adresse</Typography>
-                            <Typography variant="body1">
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Adresse</Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                               {property.address}, {property.city} {property.postalCode}
                             </Typography>
                           </Box>
                         </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Euro color="action" />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <Euro color="action" sx={{ fontSize: 18 }} />
                           <Box>
-                            <Typography variant="body2" color="text.secondary">Prix par nuit</Typography>
-                            <Typography variant="body1">{property.nightlyPrice}€</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Prix par nuit</Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{property.nightlyPrice}€</Typography>
                           </Box>
                         </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Bed color="action" />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <Bed color="action" sx={{ fontSize: 18 }} />
                           <Box>
-                            <Typography variant="body2" color="text.secondary">Chambres</Typography>
-                            <Typography variant="body1">{property.bedrooms}</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Chambres</Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{property.bedrooms}</Typography>
                           </Box>
                         </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Bathroom color="action" />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <Bathroom color="action" sx={{ fontSize: 18 }} />
                           <Box>
-                            <Typography variant="body2" color="text.secondary">Salles de bain</Typography>
-                            <Typography variant="body1">{property.bathrooms}</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Salles de bain</Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{property.bathrooms}</Typography>
                           </Box>
                         </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <SquareFoot color="action" />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <SquareFoot color="action" sx={{ fontSize: 18 }} />
                           <Box>
-                            <Typography variant="body2" color="text.secondary">Surface</Typography>
-                            <Typography variant="body1">{property.surfaceArea} m²</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Surface</Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{property.surfaceArea} m²</Typography>
                           </Box>
                         </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Person color="action" />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <Person color="action" sx={{ fontSize: 18 }} />
                           <Box>
-                            <Typography variant="body2" color="text.secondary">Capacité max</Typography>
-                            <Typography variant="body1">{property.maxGuests} personnes</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Capacité max</Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{property.maxGuests} personnes</Typography>
                           </Box>
                         </Box>
                       </Box>
@@ -409,25 +412,26 @@ const PropertyDetails: React.FC = () => {
                 {/* Statut et nettoyage */}
                 <Grid item xs={12} md={6}>
                   <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CleaningServices />
+                    <CardContent sx={{ p: 1.5 }}>
+                      <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
+                        <CleaningServices sx={{ fontSize: 18 }} />
                         Statut et entretien
                       </Typography>
                       
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Statut</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Statut</Typography>
                           <Chip 
                             label={property.status} 
                             color={getStatusColor(property.status) as any}
                             size="small"
+                            sx={{ height: 22, fontSize: '0.7rem', mt: 0.5 }}
                           />
                         </Box>
 
                         <Box>
-                          <Typography variant="body2" color="text.secondary">Fréquence de nettoyage</Typography>
-                          <Typography variant="body1">
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Fréquence de nettoyage</Typography>
+                          <Typography variant="body2" sx={{ fontSize: '0.85rem', mt: 0.5 }}>
                             {formatCleaningFrequency(property.cleaningFrequency)}
                           </Typography>
                         </Box>
@@ -439,11 +443,11 @@ const PropertyDetails: React.FC = () => {
                 {/* Description */}
                 <Grid item xs={12}>
                   <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
+                    <CardContent sx={{ p: 1.5 }}>
+                      <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1 }}>
                         Description
                       </Typography>
-                      <Typography variant="body1">
+                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                         {property.description || 'Aucune description disponible'}
                       </Typography>
                     </CardContent>
@@ -454,31 +458,32 @@ const PropertyDetails: React.FC = () => {
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
-            <Box sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
+            <Box sx={{ p: 2 }}>
+              <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
                 Interventions
               </Typography>
               
               {interventions.length > 0 ? (
-                <Grid container spacing={2}>
+                <Grid container spacing={1.5}>
                   {interventions.map((intervention) => (
                     <Grid item xs={12} md={6} key={intervention.id}>
                       <Card variant="outlined">
-                        <CardContent>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                            <Typography variant="subtitle1">
+                        <CardContent sx={{ p: 1.5 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.75 }}>
+                            <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                               {intervention.type}
                             </Typography>
                             <Chip 
                               label={intervention.status} 
                               color={intervention.status === 'completed' ? 'success' : 'warning'}
                               size="small"
+                              sx={{ height: 22, fontSize: '0.7rem' }}
                             />
                           </Box>
-                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                          <Typography variant="caption" color="text.secondary" gutterBottom sx={{ fontSize: '0.75rem', display: 'block', mb: 0.5 }}>
                             {intervention.description}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                             Date prévue: {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR')}
                           </Typography>
                         </CardContent>
@@ -487,7 +492,7 @@ const PropertyDetails: React.FC = () => {
                   ))}
                 </Grid>
               ) : (
-                <Alert severity="info">
+                <Alert severity="info" sx={{ py: 1 }}>
                   Aucune intervention programmée pour cette propriété.
                 </Alert>
               )}
