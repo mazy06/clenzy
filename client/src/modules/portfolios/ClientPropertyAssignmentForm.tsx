@@ -38,6 +38,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { usePermissions } from '../../hooks/usePermissions';
 import PageHeader from '../../components/PageHeader';
 import { API_CONFIG } from '../../config/api';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface Portfolio {
   id: number;
@@ -80,17 +81,21 @@ interface Property {
   isActive: boolean;
 }
 
-const steps = [
-  'Sélectionner le manager',
-  'Choisir les clients',
-  'Choisir les propriétés',
-  'Confirmer les assignations'
-];
+// steps sera généré dynamiquement avec les traductions
 
 const ClientPropertyAssignmentForm: React.FC = () => {
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
+  const { t } = useTranslation();
   const [activeStep, setActiveStep] = useState(0);
+  
+  // Générer les étapes avec traductions
+  const steps = [
+    t('portfolios.steps.selectManager'),
+    t('portfolios.steps.chooseClients'),
+    t('portfolios.steps.chooseProperties'),
+    t('portfolios.steps.confirmAssignments')
+  ];
   const [managers, setManagers] = useState<Manager[]>([]);
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -391,10 +396,10 @@ const ClientPropertyAssignmentForm: React.FC = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Sélectionnez le manager
+              {t('portfolios.steps.selectManagerTitle')}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Choisissez le manager dont vous voulez gérer les portefeuilles.
+              {t('portfolios.steps.selectManagerDescription')}
             </Typography>
             <FormControl fullWidth sx={{ mt: 2 }}>
               <InputLabel shrink={true} sx={{ 
@@ -419,7 +424,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 displayEmpty
                 renderValue={(value) => {
                   if (!value || value === 0) {
-                    return <span style={{ color: '#999' }}>Sélectionnez un manager...</span>;
+                    return <span style={{ color: '#999' }}>{t('portfolios.fields.selectManager')}</span>;
                   }
                   const selectedManagerData = managers.find(m => m.id === value);
                   if (selectedManagerData) {
@@ -460,7 +465,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 ) : (
                   <MenuItem disabled>
                     <Typography variant="body2" color="text.secondary">
-                      Aucun manager trouvé
+                      {t('portfolios.fields.noManagerFound')}
                     </Typography>
                   </MenuItem>
                 )}
@@ -491,10 +496,10 @@ const ClientPropertyAssignmentForm: React.FC = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Sélectionnez les clients à assigner
+              {t('portfolios.fields.selectClientsToAssign')}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Sélectionnez les clients (utilisateurs HOST) à assigner au portefeuille.
+              {t('portfolios.fields.selectClientsDescription')}
             </Typography>
             
             <FormControl fullWidth sx={{ mt: 2 }}>
@@ -545,9 +550,9 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 }}
               >
                 <MenuItem value="">
-                  <Typography variant="body2" color="text.secondary">
-                    Sélectionnez des clients...
-                  </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {t('portfolios.fields.selectClients')}
+                    </Typography>
                 </MenuItem>
                 {hostUsers.length > 0 ? (
                   hostUsers.map((client) => (
@@ -560,7 +565,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 ) : (
                   <MenuItem disabled>
                     <Typography variant="body2" color="text.secondary">
-                      Aucun client HOST trouvé
+                      {t('portfolios.fields.noClientFound')}
                     </Typography>
                   </MenuItem>
                 )}
@@ -570,7 +575,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
             {selectedClients.length > 0 && (
               <Box sx={{ mt: 2 }}>
                 <Typography variant="subtitle2" gutterBottom>
-                  Clients sélectionnés ({selectedClients.length}) :
+                  {t('portfolios.fields.clientsSelected')} ({selectedClients.length}) :
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   {selectedClients.map(clientId => {
@@ -591,7 +596,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
             
             {hostUsers.length === 0 && (
               <Alert severity="info" sx={{ mt: 2 }}>
-                Aucun utilisateur HOST trouvé.
+                {t('portfolios.fields.noClientFound')}
               </Alert>
             )}
           </Box>
@@ -601,10 +606,10 @@ const ClientPropertyAssignmentForm: React.FC = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Sélectionnez les propriétés à assigner
+              {t('portfolios.fields.selectProperties')}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Propriétés des clients sélectionnés (toutes cochées par défaut). Décochez celles que vous ne souhaitez pas assigner.
+              {t('portfolios.fields.propertiesDescription')}
             </Typography>
             <Grid container spacing={2}>
               {properties.map((property) => (
@@ -677,13 +682,13 @@ const ClientPropertyAssignmentForm: React.FC = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Confirmez les assignations
+              {t('portfolios.fields.confirmAssignments')}
             </Typography>
             
             <Paper sx={{ p: 3, mb: 3 }}>
               <Typography variant="subtitle1" gutterBottom>
                 <People sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Manager sélectionné
+                {t('portfolios.fields.selectedManager')}
               </Typography>
               {selectedManagerData ? (
                 <>
@@ -696,7 +701,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 </>
               ) : (
                 <Typography variant="body2" color="error">
-                  Aucun manager trouvé pour l'ID: {selectedManager}
+                  {t('portfolios.confirmations.noManagerFound')}: {selectedManager}
                 </Typography>
               )}
             </Paper>
@@ -707,7 +712,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 <Paper sx={{ p: 2 }}>
                   <Typography variant="subtitle1" gutterBottom>
                     <People sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Clients sélectionnés ({selectedClientsData.length})
+                    {t('portfolios.fields.selectedClients')} ({selectedClientsData.length})
                   </Typography>
                   <List dense>
                     {selectedClientsData.map((client) => (
@@ -729,7 +734,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 <Paper sx={{ p: 2 }}>
                   <Typography variant="subtitle1" gutterBottom>
                     <Assignment sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Propriétés sélectionnées ({selectedPropertiesData.length})
+                    {t('portfolios.fields.selectedProperties')} ({selectedPropertiesData.length})
                   </Typography>
                   <List dense>
                     {selectedPropertiesData.map((property) => (
@@ -759,8 +764,8 @@ const ClientPropertyAssignmentForm: React.FC = () => {
     return (
       <Container maxWidth="lg">
         <PageHeader
-          title="Association Clients & Propriétés"
-          subtitle="Associez vos clients et leurs propriétés aux portefeuilles"
+          title={t('portfolios.forms.clientPropertyAssociation')}
+          subtitle={t('portfolios.forms.clientPropertyAssociationSubtitle')}
           backPath="/portfolios"
           showBackButton={true}
         />
@@ -783,8 +788,8 @@ const ClientPropertyAssignmentForm: React.FC = () => {
     return (
       <Container maxWidth="lg">
         <PageHeader
-          title="Association Clients & Propriétés"
-          subtitle="Associez vos clients et leurs propriétés aux portefeuilles"
+          title={t('portfolios.forms.clientPropertyAssociation')}
+          subtitle={t('portfolios.forms.clientPropertyAssociationSubtitle')}
           backPath="/portfolios"
           showBackButton={true}
         />
@@ -806,8 +811,8 @@ const ClientPropertyAssignmentForm: React.FC = () => {
   return (
     <Container maxWidth="lg">
       <PageHeader
-        title="Association Clients & Propriétés"
-        subtitle="Associez vos clients et leurs propriétés aux portefeuilles"
+        title={t('portfolios.forms.clientPropertyAssociation')}
+        subtitle={t('portfolios.forms.clientPropertyAssociationSubtitle')}
         backPath="/portfolios"
         showBackButton={true}
       />
@@ -849,7 +854,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
             onClick={handleBack}
             startIcon={<ArrowBack />}
           >
-            Retour
+            {t('portfolios.forms.back')}
           </Button>
           
           {activeStep === steps.length - 1 ? (
@@ -859,7 +864,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
               disabled={loading || !selectedManager || selectedClients.length === 0 || selectedProperties.length === 0}
               startIcon={loading ? <CircularProgress size={20} /> : <CheckCircle />}
             >
-              {loading ? 'Assignation...' : 'Confirmer les assignations'}
+              {loading ? t('portfolios.forms.assigning') : t('portfolios.forms.confirmAssignments')}
             </Button>
           ) : (
             <Button
@@ -872,7 +877,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
               }
               endIcon={<ArrowForward />}
             >
-              Suivant
+              {t('portfolios.forms.next')}
             </Button>
           )}
         </Box>

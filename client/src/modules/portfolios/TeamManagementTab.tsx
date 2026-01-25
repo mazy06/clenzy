@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface TeamMember {
   id: number;
@@ -54,6 +55,7 @@ interface Team {
 
 const TeamManagementTab: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [teams, setTeams] = useState<Team[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,10 +89,10 @@ const TeamManagementTab: React.FC = () => {
         const data = await response.json();
         setTeams(data);
       } else {
-        setError('Erreur lors du chargement des équipes');
+        setError(t('portfolios.teamManagement.loadError'));
       }
     } catch (err) {
-      setError('Erreur de connexion');
+      setError(t('portfolios.teamManagement.connectionError'));
       console.error('Erreur chargement équipes:', err);
     } finally {
       setLoading(false);
@@ -174,10 +176,10 @@ const TeamManagementTab: React.FC = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h6" gutterBottom>
-            Mes Équipes ({teams.length})
+            {t('portfolios.teamManagement.title')} ({teams.length})
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Gérez les équipes assignées à vos portefeuilles
+            {t('portfolios.teamManagement.subtitle')}
           </Typography>
         </Box>
         <Button
@@ -185,7 +187,7 @@ const TeamManagementTab: React.FC = () => {
           startIcon={<Assignment />}
           onClick={() => window.location.href = '/portfolios/team-assignment'}
         >
-          Assigner des Équipes
+          {t('portfolios.teamManagement.assignTeams')}
         </Button>
       </Box>
 
@@ -250,7 +252,7 @@ const TeamManagementTab: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={team.isActive ? 'Actif' : 'Inactif'}
+                      label={team.isActive ? t('portfolios.teamManagement.active') : t('portfolios.teamManagement.inactive')}
                       size="small"
                       color={team.isActive ? 'success' : 'default'}
                     />

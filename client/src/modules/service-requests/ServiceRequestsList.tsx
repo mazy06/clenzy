@@ -47,6 +47,7 @@ import ServiceRequestCard from '../../components/ServiceRequestCard';
 import { API_CONFIG } from '../../config/api';
 import { RequestStatus, REQUEST_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } from '../../types/statusEnums';
 import { createSpacing } from '../../theme/spacing';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface ServiceRequest {
   id: string;
@@ -71,47 +72,7 @@ interface ServiceRequest {
 }
 
 // Données mockées supprimées - utilisation de l'API uniquement
-
-const serviceTypes = [
-  { value: 'all', label: 'Tous les types' },
-  { value: 'CLEANING', label: 'Nettoyage' },
-  { value: 'EXPRESS_CLEANING', label: 'Nettoyage Express' },
-  { value: 'DEEP_CLEANING', label: 'Nettoyage en Profondeur' },
-  { value: 'WINDOW_CLEANING', label: 'Nettoyage des Vitres' },
-  { value: 'FLOOR_CLEANING', label: 'Nettoyage des Sols' },
-  { value: 'KITCHEN_CLEANING', label: 'Nettoyage de la Cuisine' },
-  { value: 'BATHROOM_CLEANING', label: 'Nettoyage des Sanitaires' },
-  { value: 'PREVENTIVE_MAINTENANCE', label: 'Maintenance Préventive' },
-  { value: 'EMERGENCY_REPAIR', label: 'Réparation d\'Urgence' },
-  { value: 'ELECTRICAL_REPAIR', label: 'Réparation Électrique' },
-  { value: 'PLUMBING_REPAIR', label: 'Réparation Plomberie' },
-  { value: 'HVAC_REPAIR', label: 'Réparation Climatisation' },
-  { value: 'APPLIANCE_REPAIR', label: 'Réparation Électroménager' },
-  { value: 'GARDENING', label: 'Jardinage' },
-  { value: 'EXTERIOR_CLEANING', label: 'Nettoyage Extérieur' },
-  { value: 'PEST_CONTROL', label: 'Désinsectisation' },
-  { value: 'DISINFECTION', label: 'Désinfection' },
-  { value: 'RESTORATION', label: 'Remise en État' },
-  { value: 'OTHER', label: 'Autre' },
-];
-
-// Utilisation des enums partagés pour les statuts
-const statuses = [
-  { value: 'all', label: 'Tous les statuts' },
-  ...REQUEST_STATUS_OPTIONS.map(option => ({
-    value: option.value,
-    label: option.label
-  }))
-];
-
-// Utilisation des enums partagés pour les priorités
-const priorities = [
-  { value: 'all', label: 'Toutes priorités' },
-  ...PRIORITY_OPTIONS.map(option => ({
-    value: option.value,
-    label: option.label
-  }))
-];
+// serviceTypes, statuses et priorities seront générés dynamiquement avec les traductions dans le composant
 
 // Utilisation des enums partagés pour les couleurs
 const statusColors = Object.fromEntries(
@@ -157,6 +118,7 @@ export default function ServiceRequestsList() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user, isAdmin, isManager, isHost, hasPermissionAsync } = useAuth();
+  const { t } = useTranslation();
   // Temporairement désactivé pour déboguer
   // const { canCancelServiceRequest: canCancelByWorkflow, getRemainingCancellationTime } = useWorkflowSettings();
   
@@ -523,11 +485,53 @@ export default function ServiceRequestsList() {
 
 
 
+  // Générer les types de service avec traductions
+  const serviceTypes = [
+    { value: 'all', label: t('serviceRequests.allTypes') },
+    { value: 'CLEANING', label: 'Nettoyage' },
+    { value: 'EXPRESS_CLEANING', label: 'Nettoyage Express' },
+    { value: 'DEEP_CLEANING', label: 'Nettoyage en Profondeur' },
+    { value: 'WINDOW_CLEANING', label: 'Nettoyage des Vitres' },
+    { value: 'FLOOR_CLEANING', label: 'Nettoyage des Sols' },
+    { value: 'KITCHEN_CLEANING', label: 'Nettoyage de la Cuisine' },
+    { value: 'BATHROOM_CLEANING', label: 'Nettoyage des Sanitaires' },
+    { value: 'PREVENTIVE_MAINTENANCE', label: 'Maintenance Préventive' },
+    { value: 'EMERGENCY_REPAIR', label: 'Réparation d\'Urgence' },
+    { value: 'ELECTRICAL_REPAIR', label: 'Réparation Électrique' },
+    { value: 'PLUMBING_REPAIR', label: 'Réparation Plomberie' },
+    { value: 'HVAC_REPAIR', label: 'Réparation Climatisation' },
+    { value: 'APPLIANCE_REPAIR', label: 'Réparation Électroménager' },
+    { value: 'GARDENING', label: 'Jardinage' },
+    { value: 'EXTERIOR_CLEANING', label: 'Nettoyage Extérieur' },
+    { value: 'PEST_CONTROL', label: 'Désinsectisation' },
+    { value: 'DISINFECTION', label: 'Désinfection' },
+    { value: 'RESTORATION', label: 'Remise en État' },
+    { value: 'OTHER', label: 'Autre' },
+  ];
+
+  // Générer les statuts avec traductions
+  const statuses = [
+    { value: 'all', label: t('serviceRequests.allStatuses') },
+    ...REQUEST_STATUS_OPTIONS.map(option => ({
+      value: option.value,
+      label: option.label
+    }))
+  ];
+
+  // Générer les priorités avec traductions
+  const priorities = [
+    { value: 'all', label: t('serviceRequests.allPriorities') },
+    ...PRIORITY_OPTIONS.map(option => ({
+      value: option.value,
+      label: option.label
+    }))
+  ];
+
   return (
     <Box>
       <PageHeader
-        title="Demandes de service"
-        subtitle="Gestion des demandes de maintenance et nettoyage"
+        title={t('serviceRequests.title')}
+        subtitle={t('serviceRequests.subtitle')}
         backPath="/dashboard"
         showBackButton={false}
         actions={
@@ -538,7 +542,7 @@ export default function ServiceRequestsList() {
             onClick={() => navigate('/service-requests/new')}
             size="small"
           >
-            Nouvelle demande
+            {t('serviceRequests.create')}
           </Button>
         }
       />
@@ -547,29 +551,29 @@ export default function ServiceRequestsList() {
       <FilterSearchBar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Rechercher une demande..."
+        searchPlaceholder={t('serviceRequests.search')}
         filters={{
           type: {
             value: selectedType,
             options: serviceTypes,
             onChange: setSelectedType,
-            label: "Type"
+            label: t('common.type')
           },
           status: {
             value: selectedStatus,
             options: statuses,
             onChange: setSelectedStatus,
-            label: "Statut"
+            label: t('common.status')
           },
           priority: {
             value: selectedPriority,
             options: priorities,
             onChange: setSelectedPriority,
-            label: "Priorité"
+            label: t('serviceRequests.fields.priority')
           }
         }}
         counter={{
-          label: "demande",
+          label: t('serviceRequests.request'),
           count: filteredServiceRequests.length,
           singular: "",
           plural: "s"
@@ -586,26 +590,28 @@ export default function ServiceRequestsList() {
                   <Description sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.6 }} />
                 </Box>
                 <Typography variant="h6" color="text.secondary" gutterBottom>
-                  Aucune demande de service
+                  {t('serviceRequests.noRequestFound')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
                   {isAdmin() || isManager() 
-                    ? "Aucune demande de service n'a encore été créée dans le système."
-                    : "Aucune demande de service ne vous est actuellement assignée."}
+                    ? t('serviceRequests.noRequestCreated')
+                    : t('serviceRequests.noRequestAssigned')}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
-                  Les demandes de service permettent de gérer les besoins de nettoyage, maintenance et réparation de vos propriétés.
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 3, display: 'block' }}>
+                  {t('serviceRequests.requestsDescription')}
                 </Typography>
                 {(false || isAdmin() || isManager() || isHost()) && (
-                  <Button
-                    variant="contained"
-                    startIcon={<Add />}
-                    onClick={() => navigate('/service-requests/new')}
-                    size="small"
-                    sx={{ borderRadius: 1.5 }}
-                  >
-                    Créer votre première demande
-                  </Button>
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={() => navigate('/service-requests/new')}
+                      size="small"
+                      sx={{ borderRadius: 1.5 }}
+                    >
+                      {t('serviceRequests.createFirst')}
+                    </Button>
+                  </Box>
                 )}
               </CardContent>
             </Card>
@@ -647,7 +653,7 @@ export default function ServiceRequestsList() {
           <ListItemIcon>
             <Visibility fontSize="small" />
           </ListItemIcon>
-          Voir détails
+          {t('serviceRequests.viewDetails')}
         </MenuItem>
         
         {/* Action de validation et création d'intervention - visible pour managers et admins */}
@@ -659,7 +665,7 @@ export default function ServiceRequestsList() {
             <ListItemIcon>
               <CheckCircle fontSize="small" color="success" />
             </ListItemIcon>
-            Valider et créer une intervention
+            {t('serviceRequests.validateAndCreateIntervention')}
           </MenuItem>
         )}
         
@@ -669,7 +675,7 @@ export default function ServiceRequestsList() {
             <ListItemIcon>
               <Edit fontSize="small" />
             </ListItemIcon>
-            Modifier
+            {t('serviceRequests.modify')}
           </MenuItem>
         )}
         
@@ -679,7 +685,7 @@ export default function ServiceRequestsList() {
             <ListItemIcon>
               <Delete fontSize="small" />
             </ListItemIcon>
-            Supprimer
+            {t('serviceRequests.delete')}
           </MenuItem>
         )}
         
@@ -695,7 +701,7 @@ export default function ServiceRequestsList() {
               <Cancel fontSize="small" color="warning" />
             </ListItemIcon>
             <ListItemText
-              primary="Annuler la demande"
+              primary={t('serviceRequests.cancel')}
               secondary={`Temps restant: ${Math.round(getRemainingCancellationTime(selectedServiceRequest.approvedAt || selectedServiceRequest.createdAt))}h`}
             />
           </MenuItem>
@@ -704,30 +710,29 @@ export default function ServiceRequestsList() {
 
       {/* Dialog de confirmation de suppression */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle sx={{ pb: 1 }}>Confirmer la suppression</DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>{t('serviceRequests.confirmDelete')}</DialogTitle>
         <DialogContent sx={{ pt: 1.5 }}>
           <Typography variant="body2">
-            Êtes-vous sûr de vouloir supprimer la demande de service "{selectedServiceRequest?.title}" ?
-            Cette action est irréversible.
+            {t('serviceRequests.confirmDeleteMessage', { title: selectedServiceRequest?.title })}
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} size="small">Annuler</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)} size="small">{t('common.cancel')}</Button>
           <Button onClick={confirmDelete} color="error" variant="contained" size="small">
-            Supprimer
+            {t('serviceRequests.delete')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog de changement de statut */}
       <Dialog open={statusChangeDialogOpen} onClose={() => setStatusChangeDialogOpen(false)}>
-        <DialogTitle sx={{ pb: 1 }}>Changer le statut</DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>{t('serviceRequests.changeStatus')}</DialogTitle>
         <DialogContent sx={{ pt: 1.5 }}>
           <Typography variant="caption" sx={{ mb: 1.5, fontSize: '0.75rem' }}>
-            Changer le statut de la demande "{selectedRequestForStatusChange?.title}"
+            {t('serviceRequests.changeStatusMessage', { title: selectedRequestForStatusChange?.title })}
           </Typography>
           <FormControl fullWidth>
-            <InputLabel>Nouveau statut</InputLabel>
+            <InputLabel>{t('serviceRequests.newStatus')}</InputLabel>
             <Select
               value={newStatus}
               onChange={(e) => setNewStatus(e.target.value)}
@@ -745,9 +750,9 @@ export default function ServiceRequestsList() {
           </FormControl>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => setStatusChangeDialogOpen(false)} size="small">Annuler</Button>
+          <Button onClick={() => setStatusChangeDialogOpen(false)} size="small">{t('common.cancel')}</Button>
           <Button onClick={confirmStatusChange} variant="contained" size="small">
-            Confirmer
+            {t('common.confirm')}
           </Button>
         </DialogActions>
       </Dialog>

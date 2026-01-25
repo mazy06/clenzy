@@ -29,11 +29,13 @@ import {
   Delete,
   Group,
   Person,
+  ArrowBack,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
 import PageHeader from '../../components/PageHeader';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Types pour les équipes
 export interface TeamFormData {
@@ -82,16 +84,12 @@ const interventionTypes = [
   { value: 'OTHER', label: 'Autre', icon: '📋', roles: ['housekeeper', 'technician', 'supervisor', 'manager'] }
 ];
 
-const teamRoles = [
-  { value: 'housekeeper', label: 'Agent de ménage' },
-  { value: 'technician', label: 'Technicien' },
-  { value: 'supervisor', label: 'Superviseur' },
-  { value: 'manager', label: 'Manager' },
-];
+// teamRoles sera généré dynamiquement avec les traductions
 
 const TeamForm: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
+  const { t } = useTranslation();
   
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -152,7 +150,7 @@ const TeamForm: React.FC = () => {
     return (
       <Box sx={{ p: 2 }}>
         <Alert severity="error" sx={{ py: 1 }}>
-          Vous n'avez pas les permissions nécessaires pour créer des équipes.
+          {t('teams.errors.noPermission')}
         </Alert>
       </Box>
     );
@@ -176,6 +174,14 @@ const TeamForm: React.FC = () => {
       selectedType.roles.includes(user.role.toLowerCase())
     );
   };
+
+  // Générer les rôles avec traductions
+  const teamRoles = [
+    { value: 'housekeeper', label: t('teams.roles.housekeeper') },
+    { value: 'technician', label: t('teams.roles.technician') },
+    { value: 'supervisor', label: t('teams.roles.supervisor') },
+    { value: 'manager', label: t('teams.roles.manager') },
+  ];
 
   // Obtenir les rôles disponibles pour le type d'intervention sélectionné
   const getAvailableRoles = () => {
@@ -250,17 +256,17 @@ const TeamForm: React.FC = () => {
     e.preventDefault();
     
     if (!formData.name.trim()) {
-      setError('Le nom de l\'équipe est obligatoire');
+      setError(t('teams.errors.nameRequired'));
       return;
     }
 
     if (!formData.interventionType) {
-      setError('Le type d\'intervention est obligatoire');
+      setError(t('teams.errors.interventionTypeRequired'));
       return;
     }
 
     if (formData.members.length === 0) {
-      setError('L\'équipe doit avoir au moins un membre');
+      setError(t('teams.errors.atLeastOneMember'));
       return;
     }
 
@@ -298,11 +304,11 @@ const TeamForm: React.FC = () => {
       } else {
         const errorData = await response.json();
         console.error('🔍 TeamForm - Erreur création:', errorData);
-        setError('Erreur lors de la création: ' + (errorData.message || 'Erreur inconnue'));
+        setError(t('teams.errors.createErrorDetails') + ': ' + (errorData.message || 'Erreur inconnue'));
       }
     } catch (err) {
       console.error('🔍 TeamForm - Erreur création:', err);
-      setError('Erreur lors de la création de l\'équipe');
+      setError(t('teams.errors.createError'));
     } finally {
       setSaving(false);
     }
@@ -322,11 +328,25 @@ const TeamForm: React.FC = () => {
 
   return (
     <Box sx={{ p: 2 }}>
+      {/* Header avec bouton retour et titre */}
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+        <IconButton 
+          onClick={() => navigate('/teams')} 
+          sx={{ mr: 1.5 }}
+          size="small"
+        >
+          <ArrowBack sx={{ fontSize: 20 }} />
+        </IconButton>
+        <Typography variant="h6" fontWeight={600}>
+          {t('teams.createTitle')}
+        </Typography>
+      </Box>
+
       <PageHeader
-        title="Nouvelle équipe"
-        subtitle="Créer une nouvelle équipe dans le système"
+        title={t('teams.createTitle')}
+        subtitle={t('teams.createSubtitle')}
         backPath="/teams"
-        showBackButton={true}
+        showBackButton={false}
         actions={
           <>
             <Button
@@ -337,7 +357,7 @@ const TeamForm: React.FC = () => {
               sx={{ mr: 1 }}
               size="small"
             >
-              Annuler
+              {t('teams.cancel')}
             </Button>
             <Button
               variant="contained"
@@ -352,7 +372,7 @@ const TeamForm: React.FC = () => {
               disabled={saving || filteredUsers.length === 0}
               size="small"
             >
-              {saving ? 'Création...' : 'Créer l\'équipe'}
+              {saving ? t('teams.creating') : t('teams.createTeam')}
             </Button>
           </>
         }
@@ -367,7 +387,7 @@ const TeamForm: React.FC = () => {
 
       {success && (
         <Alert severity="success" sx={{ mb: 2, py: 1 }}>
-          Équipe créée avec succès ! Redirection en cours...
+          {t('teams.createSuccess')}
         </Alert>
       )}
 
@@ -377,29 +397,29 @@ const TeamForm: React.FC = () => {
           <form onSubmit={handleSubmit}>
             {/* Informations de base */}
             <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-              Informations de l'équipe
+              {t('teams.sections.teamInfo')}
             </Typography>
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="Nom de l'équipe *"
+                  label={`${t('teams.fields.teamName')} *`}
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   required
-                  placeholder="Ex: Équipe de nettoyage Centre"
+                  placeholder={t('teams.fields.teamNamePlaceholder')}
                   size="small"
                 />
               </Grid>
 
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth required>
-                  <InputLabel>Type d'intervention *</InputLabel>
+                  <InputLabel>{t('teams.fields.interventionType')} *</InputLabel>
                   <Select
                     value={formData.interventionType}
                     onChange={(e) => handleInputChange('interventionType', e.target.value)}
-                    label="Type d'intervention *"
+                    label={`${t('teams.fields.interventionType')} *`}
                     size="small"
                   >
                     {interventionTypes.map((type) => (
@@ -420,10 +440,10 @@ const TeamForm: React.FC = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Description"
+                  label={t('teams.fields.description')}
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Description de l'équipe et de ses responsabilités"
+                  placeholder={t('teams.fields.descriptionPlaceholder')}
                   size="small"
                 />
               </Grid>
@@ -433,41 +453,43 @@ const TeamForm: React.FC = () => {
             {selectedInterventionType && (
               <Box sx={{ mb: 2, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
                 <Typography variant="caption" fontWeight={600} color="primary" sx={{ mb: 0.75, fontSize: '0.75rem', display: 'block' }}>
-                  📋 Type d'intervention : {selectedInterventionType.icon} {selectedInterventionType.label}
+                  📋 {t('teams.fields.interventionTypeInfo')} : {selectedInterventionType.icon} {selectedInterventionType.label}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }}>
-                  Rôles autorisés : {selectedInterventionType.roles.map(role => 
+                  {t('teams.fields.authorizedRoles')} : {selectedInterventionType.roles.map(role => 
                     teamRoles.find(r => r.value === role)?.label
                   ).join(', ')}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, fontSize: '0.7rem', display: 'block' }}>
-                  {filteredUsers.length} utilisateur(s) disponible(s) pour ce type d'intervention
+                  {filteredUsers.length} {t('teams.fields.usersAvailable')}
                 </Typography>
               </Box>
             )}
 
             {/* Membres de l'équipe */}
             <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-              Membres de l'équipe
+              {t('teams.sections.teamMembers')}
             </Typography>
 
             {formData.members.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 2.5 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontSize: '0.85rem' }}>
-                  Aucun membre ajouté
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3, display: 'block', fontSize: '0.85rem' }}>
+                  {t('teams.fields.noMemberAdded')}
                 </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<Add sx={{ fontSize: 16 }} />}
-                  onClick={handleAddMember}
-                  disabled={filteredUsers.length === 0}
-                  size="small"
-                >
-                  {filteredUsers.length === 0 ? 'Aucun utilisateur disponible' : 'Ajouter le premier membre'}
-                </Button>
+                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<Add sx={{ fontSize: 16 }} />}
+                    onClick={handleAddMember}
+                    disabled={filteredUsers.length === 0}
+                    size="small"
+                  >
+                    {filteredUsers.length === 0 ? t('teams.fields.noUserAvailable') : t('teams.fields.addFirstMember')}
+                  </Button>
+                </Box>
                 {filteredUsers.length === 0 && (
                   <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1, fontSize: '0.7rem' }}>
-                    Aucun utilisateur avec les rôles appropriés n'est disponible pour ce type d'intervention
+                    {t('teams.fields.noUserWithRoles')}
                   </Typography>
                 )}
               </Box>
@@ -486,7 +508,7 @@ const TeamForm: React.FC = () => {
                             renderInput={(params) => (
                               <TextField
                                 {...params}
-                                label="Sélectionner un utilisateur *"
+                                label={`${t('teams.fields.selectUser')} *`}
                                 required
                                 size="small"
                               />
@@ -504,11 +526,11 @@ const TeamForm: React.FC = () => {
 
                         <Grid item xs={12} md={3}>
                           <FormControl fullWidth size="small">
-                            <InputLabel>Rôle dans l'équipe</InputLabel>
+                            <InputLabel>{t('teams.fields.roleInTeam')}</InputLabel>
                             <Select
                               value={member.role}
                               onChange={(e) => handleMemberChange(index, 'role', e.target.value)}
-                              label="Rôle dans l'équipe"
+                              label={t('teams.fields.roleInTeam')}
                             >
                               {availableRoles.map((role) => (
                                 <MenuItem key={role.value} value={role.value}>
@@ -522,7 +544,7 @@ const TeamForm: React.FC = () => {
                         <Grid item xs={12} md={3}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
                             <Chip
-                              label={member.firstName && member.lastName ? `${member.firstName} ${member.lastName}` : 'Non sélectionné'}
+                              label={member.firstName && member.lastName ? `${member.firstName} ${member.lastName}` : t('teams.fields.notSelected')}
                               color={member.userId ? 'primary' : 'default'}
                               size="small"
                               sx={{ height: 22, fontSize: '0.7rem' }}
@@ -565,7 +587,7 @@ const TeamForm: React.FC = () => {
                   onClick={handleAddMember}
                   size="small"
                 >
-                  Ajouter un membre
+                  {t('teams.fields.addMember')}
                 </Button>
               </Box>
             )}

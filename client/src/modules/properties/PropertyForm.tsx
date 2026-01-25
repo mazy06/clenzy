@@ -39,6 +39,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
 import { PropertyStatus, PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Types pour les propriétés
 export interface PropertyFormData {
@@ -84,6 +85,7 @@ interface PropertyFormProps {
 
 const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
   const { user, hasPermissionAsync, isAdmin, isManager, isHost } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -193,16 +195,16 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
 
   // Types de propriétés disponibles (correspondant au backend)
   const propertyTypes = [
-    { value: 'APARTMENT', label: 'Appartement' },
-    { value: 'HOUSE', label: 'Maison' },
-    { value: 'VILLA', label: 'Villa' },
-    { value: 'STUDIO', label: 'Studio' },
-    { value: 'LOFT', label: 'Loft' },
-    { value: 'GUEST_ROOM', label: 'Chambre d\'hôte' },
-    { value: 'COTTAGE', label: 'Gîte rural' },
-    { value: 'CHALET', label: 'Chalet' },
-    { value: 'BOAT', label: 'Bateau' },
-    { value: 'OTHER', label: 'Autre' },
+    { value: 'APARTMENT', label: t('properties.types.apartment') },
+    { value: 'HOUSE', label: t('properties.types.house') },
+    { value: 'VILLA', label: t('properties.types.villa') },
+    { value: 'STUDIO', label: t('properties.types.studio') },
+    { value: 'LOFT', label: t('properties.types.loft') },
+    { value: 'GUEST_ROOM', label: t('properties.types.guestRoom') },
+    { value: 'COTTAGE', label: t('properties.types.cottage') },
+    { value: 'CHALET', label: t('properties.types.chalet') },
+    { value: 'BOAT', label: t('properties.types.boat') },
+    { value: 'OTHER', label: t('properties.types.other') },
   ];
 
   // Utilisation des enums partagés pour les statuts des propriétés
@@ -213,11 +215,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
 
   // Fréquences de nettoyage (correspondant au backend)
   const cleaningFrequencies = [
-    { value: 'AFTER_EACH_STAY', label: 'Après chaque séjour' },
-    { value: 'WEEKLY', label: 'Hebdomadaire' },
-    { value: 'BIWEEKLY', label: 'Bi-hebdomadaire' },
-    { value: 'MONTHLY', label: 'Mensuel' },
-    { value: 'ON_DEMAND', label: 'Sur demande' },
+    { value: 'AFTER_EACH_STAY', label: t('properties.cleaningFrequencies.afterEachStay') },
+    { value: 'WEEKLY', label: t('properties.cleaningFrequencies.weekly') },
+    { value: 'BIWEEKLY', label: t('properties.cleaningFrequencies.biweekly') },
+    { value: 'MONTHLY', label: t('properties.cleaningFrequencies.monthly') },
+    { value: 'ON_DEMAND', label: t('properties.cleaningFrequencies.onDemand') },
   ];
 
   // Gestion des changements de formulaire
@@ -275,7 +277,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
     // Validation de l'owner
     if (!formData.ownerId || formData.ownerId === 0) {
       console.error('🔍 PropertyForm - Erreur: ownerId invalide:', formData.ownerId);
-      setError('Veuillez sélectionner un propriétaire.');
+      setError(t('properties.selectOwner'));
       setLoading(false);
       return;
     }
@@ -333,7 +335,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
   if (success) {
     return (
       <Alert severity="success" sx={{ mt: 2 }}>
-        Propriété créée avec succès ! Redirection en cours...
+        {t('properties.create')} {t('common.success')} ! {t('common.loading')}
       </Alert>
     );
   }
@@ -347,29 +349,29 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             {/* Informations de base */}
             <Grid item xs={12}>
               <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-                Informations de base
+                {t('properties.tabs.overview')}
               </Typography>
             </Grid>
 
             <Grid item xs={12} md={8}>
               <TextField
                 fullWidth
-                label="Nom de la propriété"
+                label={t('properties.propertyName')}
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 required
-                placeholder="Ex: Appartement T2 Centre-ville"
+                placeholder={t('properties.propertyNamePlaceholder')}
                 size="small"
               />
             </Grid>
 
             <Grid item xs={12} md={4}>
               <FormControl fullWidth required>
-                <InputLabel>Type de propriété</InputLabel>
+                <InputLabel>{t('properties.propertyType')}</InputLabel>
                 <Select
                   value={formData.type}
                   onChange={(e) => handleInputChange('type', e.target.value)}
-                  label="Type de propriété"
+                  label={t('properties.propertyType')}
                   size="small"
                 >
                   {propertyTypes.map(type => (
@@ -385,18 +387,18 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             <Grid item xs={12}>
               <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <LocationOn sx={{ fontSize: 18 }} />
-                Adresse
+                {t('properties.address')}
               </Typography>
             </Grid>
 
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Adresse complète"
+                label={t('properties.fullAddress')}
                 value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
                 required
-                placeholder="Ex: 15 rue de la Paix"
+                placeholder={t('properties.fullAddressPlaceholder')}
                 size="small"
               />
             </Grid>
@@ -404,11 +406,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                label="Ville"
+                label={t('properties.city')}
                 value={formData.city}
                 onChange={(e) => handleInputChange('city', e.target.value)}
                 required
-                placeholder="Ex: Paris"
+                placeholder={t('properties.cityPlaceholder')}
                 size="small"
               />
             </Grid>
@@ -416,11 +418,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                label="Code postal"
+                label={t('properties.postalCode')}
                 value={formData.postalCode}
                 onChange={(e) => handleInputChange('postalCode', e.target.value)}
                 required
-                placeholder="Ex: 75001"
+                placeholder={t('properties.postalCodePlaceholder')}
                 size="small"
               />
             </Grid>
@@ -428,7 +430,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                label="Pays"
+                label={t('properties.country')}
                 value={formData.country}
                 onChange={(e) => handleInputChange('country', e.target.value)}
                 required
@@ -439,7 +441,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             {/* Caractéristiques */}
             <Grid item xs={12}>
               <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-                Caractéristiques
+                {t('properties.characteristics')}
               </Typography>
             </Grid>
 
@@ -447,7 +449,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
               <TextField
                 fullWidth
                 type="number"
-                label="Chambres"
+                label={t('properties.bedroomCount')}
                 value={formData.bedroomCount}
                 onChange={(e) => handleInputChange('bedroomCount', parseInt(e.target.value))}
                 required
@@ -462,7 +464,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
               <TextField
                 fullWidth
                 type="number"
-                label="Salles de bain"
+                label={t('properties.bathroomCount')}
                 value={formData.bathroomCount}
                 onChange={(e) => handleInputChange('bathroomCount', parseInt(e.target.value))}
                 required
@@ -477,7 +479,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
               <TextField
                 fullWidth
                 type="number"
-                label="Surface (m²)"
+                label={t('properties.surface')}
                 value={formData.squareMeters}
                 onChange={(e) => handleInputChange('squareMeters', parseFloat(e.target.value))}
                 required
@@ -492,14 +494,14 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
               <TextField
                 fullWidth
                 type="number"
-                label="Prix de la nuit (€)"
+                label={t('properties.nightlyPriceField')}
                 value={formData.nightlyPrice}
                 onChange={(e) => handleInputChange('nightlyPrice', parseFloat(e.target.value))}
                 size="small"
                 InputProps={{
                   startAdornment: <Euro sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />,
                 }}
-                placeholder="0.00"
+                placeholder={t('properties.nightlyPricePlaceholder')}
                 inputProps={{
                   step: "0.01",
                   min: "0"
@@ -510,18 +512,18 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             {/* Configuration */}
             <Grid item xs={12}>
               <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-                Configuration
+                {t('properties.configuration')}
               </Typography>
             </Grid>
 
             {/* Champ Owner - comportement différent selon le rôle */}
             <Grid item xs={12} md={6}>
               <FormControl fullWidth required>
-                <InputLabel>Propriétaire *</InputLabel>
+                <InputLabel>{t('properties.owner')} *</InputLabel>
                 <Select
                   value={formData.ownerId}
                   onChange={(e) => handleInputChange('ownerId', e.target.value)}
-                  label="Propriétaire *"
+                  label={`${t('properties.owner')} *`}
                   disabled={!isAdmin() && !isManager()} // Seuls les admin/manager peuvent changer le propriétaire
                   size="small"
                 >
@@ -539,11 +541,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
 
             <Grid item xs={12} md={6}>
               <FormControl fullWidth required>
-                <InputLabel>Statut</InputLabel>
+                <InputLabel>{t('properties.status')}</InputLabel>
                 <Select
                   value={formData.status}
                   onChange={(e) => handleInputChange('status', e.target.value)}
-                  label="Statut"
+                  label={t('properties.status')}
                   size="small"
                 >
                   {propertyStatuses.map(status => (
@@ -557,11 +559,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
 
             <Grid item xs={12} md={6}>
               <FormControl fullWidth required>
-                <InputLabel>Fréquence de nettoyage</InputLabel>
+                <InputLabel>{t('properties.cleaningFrequency')}</InputLabel>
                 <Select
                   value={formData.cleaningFrequency}
                   onChange={(e) => handleInputChange('cleaningFrequency', e.target.value)}
-                  label="Fréquence de nettoyage"
+                  label={t('properties.cleaningFrequency')}
                   size="small"
                 >
                   {cleaningFrequencies.map(freq => (
@@ -577,7 +579,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
               <TextField
                 fullWidth
                 type="number"
-                label="Nombre max de voyageurs"
+                label={t('properties.maxGuests')}
                 value={formData.maxGuests}
                 onChange={(e) => handleInputChange('maxGuests', parseInt(e.target.value))}
                 required
@@ -588,19 +590,19 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             {/* Description */}
             <Grid item xs={12}>
               <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-                Description
+                {t('properties.description')}
               </Typography>
             </Grid>
 
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Description"
+                label={t('properties.description')}
                 multiline
                 rows={3}
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Décrivez votre propriété, ses atouts, son environnement..."
+                placeholder={t('properties.descriptionPlaceholder')}
                 size="small"
               />
             </Grid>
@@ -630,7 +632,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
       <DialogTitle sx={{ pb: 1 }}>
         <Typography variant="subtitle1" fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Person color="primary" sx={{ fontSize: 18 }} />
-          Nouveau propriétaire temporaire
+          {t('properties.newOwnerDialog')}
         </Typography>
       </DialogTitle>
       
@@ -639,7 +641,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label="Prénom *"
+              label={`${t('properties.firstName')} *`}
               value={temporaryOwner.firstName}
               onChange={(e) => setTemporaryOwner(prev => ({ ...prev, firstName: e.target.value }))}
               required
@@ -650,7 +652,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label="Nom *"
+              label={`${t('properties.lastName')} *`}
               value={temporaryOwner.lastName}
               onChange={(e) => setTemporaryOwner(prev => ({ ...prev, lastName: e.target.value }))}
               required
@@ -661,13 +663,13 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Email *"
+              label={`${t('properties.email')} *`}
               type="email"
               value={temporaryOwner.email}
               onChange={(e) => setTemporaryOwner(prev => ({ ...prev, email: e.target.value }))}
               required
               size="small"
-              helperText="Un mot de passe sécurisé sera généré automatiquement (8+ caractères)"
+              helperText={t('properties.passwordHelper')}
             />
           </Grid>
         </Grid>
@@ -675,7 +677,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
       
       <DialogActions sx={{ px: 2, pb: 1.5 }}>
         <Button onClick={() => setShowOwnerDialog(false)} size="small">
-          Annuler
+          {t('common.cancel')}
         </Button>
         <Button 
           onClick={handleCreateTemporaryOwner}
@@ -683,7 +685,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
           disabled={!temporaryOwner.firstName || !temporaryOwner.lastName || !temporaryOwner.email}
           size="small"
         >
-          Créer
+          {t('common.create')}
         </Button>
       </DialogActions>
     </Dialog>

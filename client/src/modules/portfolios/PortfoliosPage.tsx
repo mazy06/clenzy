@@ -47,6 +47,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '../../config/api';
 import TeamManagementTab from './TeamManagementTab';
 import PortfolioStatsTab from './PortfolioStatsTab';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -85,6 +86,7 @@ const PortfoliosPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   // États pour les données
   const [clients, setClients] = useState<any[]>([]);
@@ -183,11 +185,11 @@ const PortfoliosPage: React.FC = () => {
       } else {
         const errorData = await response.json();
         console.error('❌ Erreur lors de la réassignation:', errorData);
-        setError(errorData.error || 'Erreur lors de la réassignation');
+        setError(errorData.error || t('portfolios.errors.reassignError'));
       }
     } catch (error) {
       console.error('❌ Erreur lors de la réassignation:', error);
-      setError('Erreur de connexion lors de la réassignation');
+      setError(t('portfolios.errors.reassignConnectionError'));
     } finally {
       setReassignLoading(false);
     }
@@ -199,8 +201,8 @@ const PortfoliosPage: React.FC = () => {
     
     setConfirmationModal({
       open: true,
-      title: 'Désassigner le client',
-      message: 'Êtes-vous sûr de vouloir désassigner ce client ? Cette action supprimera également toutes ses propriétés associées.',
+      title: t('portfolios.confirmations.unassignClientTitle'),
+      message: t('portfolios.confirmations.unassignClientMessage'),
       severity: 'warning',
       onConfirm: () => {
         setConfirmationModal(prev => ({ ...prev, open: false }));
@@ -228,11 +230,11 @@ const PortfoliosPage: React.FC = () => {
       } else {
         const errorData = await response.json();
         console.error('❌ Erreur lors de la désassignation du client:', errorData);
-        setError(errorData.error || 'Erreur lors de la désassignation');
+        setError(errorData.error || t('portfolios.errors.unassignError'));
       }
     } catch (error) {
       console.error('❌ Erreur lors de la désassignation du client:', error);
-      setError('Erreur de connexion lors de la désassignation');
+      setError(t('portfolios.errors.connectionError'));
     }
   };
 
@@ -241,7 +243,7 @@ const PortfoliosPage: React.FC = () => {
     
     setConfirmationModal({
       open: true,
-      title: 'Désassigner l\'équipe',
+      title: t('teams.delete'),
       message: 'Êtes-vous sûr de vouloir désassigner cette équipe ?',
       severity: 'warning',
       onConfirm: () => {
@@ -283,8 +285,8 @@ const PortfoliosPage: React.FC = () => {
     
     setConfirmationModal({
       open: true,
-      title: 'Désassigner l\'utilisateur',
-      message: 'Êtes-vous sûr de vouloir désassigner cet utilisateur ?',
+      title: t('portfolios.confirmations.unassignClientTitle'),
+      message: t('portfolios.confirmations.unassignClientMessage'),
       severity: 'warning',
       onConfirm: () => {
         setConfirmationModal(prev => ({ ...prev, open: false }));
@@ -312,11 +314,11 @@ const PortfoliosPage: React.FC = () => {
       } else {
         const errorData = await response.json();
         console.error('❌ Erreur lors de la désassignation de l\'utilisateur:', errorData);
-        setError(errorData.error || 'Erreur lors de la désassignation');
+        setError(errorData.error || t('portfolios.errors.unassignError'));
       }
     } catch (error) {
       console.error('❌ Erreur lors de la désassignation de l\'utilisateur:', error);
-      setError('Erreur de connexion lors de la désassignation');
+      setError(t('portfolios.errors.connectionError'));
     }
   };
 
@@ -340,11 +342,11 @@ const PortfoliosPage: React.FC = () => {
       } else {
         const errorData = await response.json();
         console.error('❌ Erreur lors de la réassignation de la propriété:', errorData);
-        setError(errorData.error || 'Erreur lors de la réassignation');
+        setError(errorData.error || t('portfolios.errors.reassignError'));
       }
     } catch (error) {
       console.error('❌ Erreur lors de la réassignation de la propriété:', error);
-      setError('Erreur de connexion lors de la réassignation');
+      setError(t('portfolios.errors.reassignConnectionError'));
     }
   };
 
@@ -382,11 +384,11 @@ const PortfoliosPage: React.FC = () => {
       } else {
         const errorData = await response.json();
         console.error('❌ Erreur lors de la désassignation de la propriété:', errorData);
-        setError(errorData.error || 'Erreur lors de la désassignation');
+        setError(errorData.error || t('portfolios.errors.unassignError'));
       }
     } catch (error) {
       console.error('❌ Erreur lors de la désassignation de la propriété:', error);
-      setError('Erreur de connexion lors de la désassignation');
+      setError(t('portfolios.errors.connectionError'));
     }
   };
 
@@ -420,10 +422,10 @@ const PortfoliosPage: React.FC = () => {
       } else {
         const errorText = await response.text();
         console.error('❌ PortfoliosPage - Erreur API:', response.status, errorText);
-        setError(`Erreur lors du chargement des associations: ${response.status}`);
+        setError(`${t('portfolios.errors.loadError')}: ${response.status}`);
       }
     } catch (err) {
-      setError('Erreur de connexion');
+      setError(t('portfolios.errors.connectionError'));
       console.error('❌ PortfoliosPage - Erreur chargement associations:', err);
     } finally {
       setLoading(false);
@@ -450,10 +452,10 @@ const PortfoliosPage: React.FC = () => {
 
   const getRoleLabel = (role: string) => {
     switch (role) {
-      case 'HOST': return 'Propriétaire';
-      case 'TECHNICIAN': return 'Technicien';
-      case 'HOUSEKEEPER': return 'Agent de ménage';
-      case 'SUPERVISOR': return 'Superviseur';
+      case 'HOST': return t('portfolios.roles.owner');
+      case 'TECHNICIAN': return t('portfolios.roles.technician');
+      case 'HOUSEKEEPER': return t('portfolios.roles.housekeeper');
+      case 'SUPERVISOR': return t('portfolios.roles.supervisor');
       default: return role;
     }
   };
@@ -466,8 +468,8 @@ const PortfoliosPage: React.FC = () => {
   return (
     <Box>
       <PageHeader
-        title="Portefeuilles"
-        subtitle="Gérez vos portefeuilles clients et vos équipes opérationnelles"
+        title={t('portfolios.title')}
+        subtitle={t('portfolios.subtitle')}
         backPath="/dashboard"
         showBackButton={false}
         actions={
@@ -478,7 +480,7 @@ const PortfoliosPage: React.FC = () => {
               onClick={handleClientAssignment}
               sx={{ borderWidth: 2 }}
             >
-              Associer Clients & Propriétés
+              {t('portfolios.associateClientsProperties')}
             </Button>
             <Button
               variant="outlined"
@@ -486,7 +488,7 @@ const PortfoliosPage: React.FC = () => {
               onClick={handleTeamAssignment}
               sx={{ borderWidth: 2 }}
             >
-              Associer Équipes & Utilisateurs
+              {t('portfolios.associateTeamsUsers')}
             </Button>
           </Box>
         }
@@ -501,17 +503,17 @@ const PortfoliosPage: React.FC = () => {
             sx={{ px: 2 }}
           >
             <Tab
-              label="Mes Portefeuilles"
+              label={t('portfolios.tabs.myPortfolios')}
               {...a11yProps(0)}
               icon={<BusinessIcon />}
               iconPosition="start"
             />
             <Tab
-              label="Gestion des Équipes"
+              label={t('portfolios.tabs.teamManagement')}
               {...a11yProps(1)}
             />
             <Tab
-              label="Statistiques"
+              label={t('portfolios.tabs.statistics')}
               {...a11yProps(2)}
             />
           </Tabs>
@@ -529,7 +531,7 @@ const PortfoliosPage: React.FC = () => {
           ) : (
             <Box>
               <Typography variant="h6" gutterBottom>
-                Mes Portefeuilles - Clients & Propriétés
+                {t('portfolios.sections.clientsProperties')}
               </Typography>
               
               <Grid container spacing={3}>
@@ -537,7 +539,7 @@ const PortfoliosPage: React.FC = () => {
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Person color="primary" />
-                    Clients ({clients.length})
+                    {t('portfolios.sections.clients')} ({clients.length})
                   </Typography>
                   {clients.length > 0 ? (
                     <Grid container spacing={2}>
@@ -563,7 +565,7 @@ const PortfoliosPage: React.FC = () => {
                                     color={getRoleColor(client.role) as any}
                                     size="small"
                                   />
-                                  <Tooltip title="Réassigner ce client">
+                                  <Tooltip title={t('portfolios.fields.reassignClient')}>
                                     <IconButton
                                       size="small"
                                       onClick={() => setEditingClient(client)}
@@ -572,7 +574,7 @@ const PortfoliosPage: React.FC = () => {
                                       <EditIcon fontSize="small" />
                                     </IconButton>
                                   </Tooltip>
-                                  <Tooltip title="Désassigner ce client">
+                                  <Tooltip title={t('portfolios.fields.unassignClient')}>
                                     <IconButton
                                       size="small"
                                       onClick={() => handleUnassignClient(client.id)}
@@ -601,7 +603,7 @@ const PortfoliosPage: React.FC = () => {
                     </Grid>
                   ) : (
                     <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-                      Aucun client associé
+                      {t('portfolios.fields.noClientAssociated')}
                     </Typography>
                   )}
                 </Grid>
@@ -610,7 +612,7 @@ const PortfoliosPage: React.FC = () => {
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Home color="secondary" />
-                    Propriétés par Client ({properties.length})
+                    {t('portfolios.sections.propertiesByClient')} ({properties.length})
                   </Typography>
                   {properties.length > 0 ? (
                     <Box>
@@ -623,7 +625,7 @@ const PortfoliosPage: React.FC = () => {
                                 <Person sx={{ fontSize: 20 }} />
                                 {client.firstName} {client.lastName}
                                 <Chip 
-                                  label={`${clientProperties.length} propriété${clientProperties.length > 1 ? 's' : ''}`}
+                                  label={`${clientProperties.length} ${clientProperties.length > 1 ? t('portfolios.fields.properties') : t('portfolios.fields.properties').replace('(ies)', '').trim()}`}
                                   size="small" 
                                   color="primary" 
                                   variant="outlined"
@@ -686,7 +688,7 @@ const PortfoliosPage: React.FC = () => {
                                             </Box>
                                           </Box>
                                           <Typography variant="caption" color="text.secondary">
-                                            Créé le {formatDate(property.createdAt)}
+                                            {t('portfolios.fields.createdOn')} {formatDate(property.createdAt)}
                                           </Typography>
                                         </CardContent>
                                       </Card>
@@ -695,12 +697,12 @@ const PortfoliosPage: React.FC = () => {
                                 </Grid>
                               ) : (
                                 <Typography variant="body2" color="text.secondary" sx={{ ml: 2, fontStyle: 'italic' }}>
-                                  Cliquez sur la flèche pour voir les {clientProperties.length} propriété{clientProperties.length > 1 ? 's' : ''}
+                                  {t('portfolios.fields.clickArrowToSee', { count: clientProperties.length })}
                                 </Typography>
                               )
                             ) : (
                               <Typography variant="body2" color="text.secondary" sx={{ ml: 2, fontStyle: 'italic' }}>
-                                Aucune propriété pour ce client
+                                {t('portfolios.fields.noClientAssociated')}
                               </Typography>
                             )}
                           </Box>
@@ -709,7 +711,7 @@ const PortfoliosPage: React.FC = () => {
                     </Box>
                   ) : (
                     <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-                      Aucune propriété associée
+                      {t('portfolios.fields.noClientAssociated')}
                     </Typography>
                   )}
                 </Grid>
@@ -721,7 +723,7 @@ const PortfoliosPage: React.FC = () => {
         <TabPanel value={tabValue} index={1}>
           <Box>
             <Typography variant="h6" gutterBottom>
-              Gestion des Équipes - Équipes & Utilisateurs
+              {t('portfolios.sections.teamsUsers')}
             </Typography>
             
             <Grid container spacing={3}>
@@ -729,7 +731,7 @@ const PortfoliosPage: React.FC = () => {
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Group color="success" />
-                  Équipes ({teams.length})
+                  {t('teams.title')} ({teams.length})
                 </Typography>
                 {teams.length > 0 ? (
                   <Grid container spacing={2}>
@@ -749,7 +751,7 @@ const PortfoliosPage: React.FC = () => {
                                   {team.memberCount} membre{team.memberCount > 1 ? 's' : ''}
                                 </Typography>
                               </Box>
-                              <Tooltip title="Désassigner cette équipe">
+                              <Tooltip title={t('teams.delete')}>
                                 <IconButton
                                   size="small"
                                   onClick={() => handleUnassignTeam(team.id)}
@@ -765,7 +767,7 @@ const PortfoliosPage: React.FC = () => {
                               </Typography>
                             )}
                             <Typography variant="caption" color="text.secondary">
-                              Créé le {formatDate(team.assignedAt)}
+                              {t('portfolios.fields.createdOn')} {formatDate(team.assignedAt)}
                             </Typography>
                           </CardContent>
                         </Card>
@@ -774,7 +776,7 @@ const PortfoliosPage: React.FC = () => {
                   </Grid>
                 ) : (
                   <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-                    Aucune équipe associée
+                    {t('portfolios.fields.noClientAssociated')}
                   </Typography>
                 )}
               </Grid>
@@ -783,7 +785,7 @@ const PortfoliosPage: React.FC = () => {
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Person color="warning" />
-                  Utilisateurs ({users.length})
+                  {t('users.title')} ({users.length})
                 </Typography>
                 {users.length > 0 ? (
                   <Grid container spacing={2}>
@@ -809,7 +811,7 @@ const PortfoliosPage: React.FC = () => {
                                   color={getRoleColor(user.role) as any}
                                   size="small"
                                 />
-                                <Tooltip title="Désassigner cet utilisateur">
+                                <Tooltip title={t('portfolios.fields.unassignClient')}>
                                   <IconButton
                                     size="small"
                                     onClick={() => handleUnassignUser(user.id)}
@@ -820,9 +822,9 @@ const PortfoliosPage: React.FC = () => {
                                 </Tooltip>
                               </Box>
                             </Box>
-                            <Typography variant="caption" color="text.secondary">
-                              Associé le {formatDate(user.assignedAt)}
-                            </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {t('portfolios.fields.associatedOn')} {formatDate(user.assignedAt)}
+                              </Typography>
                           </CardContent>
                         </Card>
                       </Grid>
@@ -830,7 +832,7 @@ const PortfoliosPage: React.FC = () => {
                   </Grid>
                 ) : (
                   <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-                    Aucun utilisateur associé
+                    {t('portfolios.fields.noClientAssociated')}
                   </Typography>
                 )}
               </Grid>
@@ -861,8 +863,8 @@ const PortfoliosPage: React.FC = () => {
         title={confirmationModal.title}
         message={confirmationModal.message}
         severity={confirmationModal.severity}
-        confirmText="Désassigner"
-        cancelText="Annuler"
+        confirmText={t('portfolios.fields.unassignClient')}
+        cancelText={t('common.cancel')}
       />
     </Box>
   );
@@ -877,6 +879,7 @@ const ReassignmentDialog = ({ open, onClose, client, onReassign, managers, loadi
   managers: any[];
   loading: boolean;
 }) => {
+  const { t } = useTranslation();
   const [selectedManagerId, setSelectedManagerId] = useState<number>(0);
   const [notes, setNotes] = useState('');
 
@@ -889,12 +892,12 @@ const ReassignmentDialog = ({ open, onClose, client, onReassign, managers, loadi
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        Réassigner le client {client?.firstName} {client?.lastName}
+        {t('portfolios.fields.reassignClient')} {client?.firstName} {client?.lastName}
       </DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 2 }}>
           <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Nouveau Manager</InputLabel>
+            <InputLabel>{t('portfolios.fields.newManager')}</InputLabel>
             <Select
               value={selectedManagerId}
               onChange={(e) => setSelectedManagerId(Number(e.target.value))}

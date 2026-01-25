@@ -19,6 +19,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MenuItem as MenuItemType } from '../hooks/useNavigationMenu';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface TopNavigationProps {
   menuItems: MenuItemType[];
@@ -29,6 +30,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ menuItems }) => {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Menus à afficher directement dans la barre : Tableau de bord, Propriétés, Demandes de service, Interventions, Équipes, Portefeuilles, Contact
@@ -98,7 +100,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ menuItems }) => {
               }}
             >
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Menu
+                {t('navigation.menu')}
               </Typography>
               <IconButton
                 onClick={handleMobileMenuClose}
@@ -190,7 +192,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ menuItems }) => {
         ))
       ) : (
         <Box sx={{ px: 2, color: '#999', fontSize: '0.875rem' }}>
-          Aucun menu disponible
+          {t('navigation.noMenuAvailable')}
         </Box>
       )}
     </Box>

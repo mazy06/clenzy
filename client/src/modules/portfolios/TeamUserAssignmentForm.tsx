@@ -43,6 +43,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { usePermissions } from '../../hooks/usePermissions';
 import PageHeader from '../../components/PageHeader';
 import { API_CONFIG } from '../../config/api';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface Portfolio {
   id: number;
@@ -82,17 +83,21 @@ interface User {
   isActive: boolean;
 }
 
-const steps = [
-  'Sélectionner le manager',
-  'Choisir les équipes',
-  'Choisir les utilisateurs',
-  'Confirmer les assignations'
-];
+// steps sera généré dynamiquement avec les traductions
 
 const TeamUserAssignmentForm: React.FC = () => {
   const { user } = useAuth();
   const { hasPermission } = usePermissions();
+  const { t } = useTranslation();
   const [activeStep, setActiveStep] = useState(0);
+  
+  // Générer les étapes avec traductions
+  const steps = [
+    t('portfolios.steps.selectManager'),
+    t('portfolios.steps.chooseTeams'),
+    t('portfolios.steps.chooseUsers'),
+    t('portfolios.steps.confirmAssignments')
+  ];
   const [managers, setManagers] = useState<Manager[]>([]);
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -279,7 +284,7 @@ const TeamUserAssignmentForm: React.FC = () => {
 
       if (response.ok) {
         const result = await response.json();
-        setSuccess(`Assignation réussie ! ${result.teamsAssigned} équipe(s) et ${result.usersAssigned} utilisateur(s) assigné(s).`);
+        setSuccess(t('portfolios.errors.assignmentSuccess') + ` ${result.teamsAssigned} ${t('teams.title')} et ${result.usersAssigned} ${t('users.title')} assigné(s).`);
         setTimeout(() => {
           window.location.href = '/portfolios';
         }, 2000);
@@ -315,9 +320,9 @@ const TeamUserAssignmentForm: React.FC = () => {
 
   const getRoleLabel = (role: string) => {
     switch (role) {
-      case 'HOUSEKEEPER': return 'Agent de nettoyage';
-      case 'TECHNICIAN': return 'Technicien';
-      case 'SUPERVISOR': return 'Superviseur';
+      case 'HOUSEKEEPER': return t('portfolios.roles.housekeeper');
+      case 'TECHNICIAN': return t('portfolios.roles.technician');
+      case 'SUPERVISOR': return t('portfolios.roles.supervisor');
       default: return role;
     }
   };
@@ -328,10 +333,10 @@ const TeamUserAssignmentForm: React.FC = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Sélectionnez le manager
+              {t('portfolios.steps.selectManagerTitle')}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Choisissez le manager dont vous voulez gérer les portefeuilles.
+              {t('portfolios.steps.selectManagerDescription')}
             </Typography>
             <FormControl fullWidth sx={{ mt: 2 }}>
               <InputLabel shrink={true} sx={{ 
@@ -356,7 +361,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                 displayEmpty
                 renderValue={(value) => {
                   if (!value || value === 0) {
-                    return <span style={{ color: '#999' }}>Sélectionnez un manager...</span>;
+                    return <span style={{ color: '#999' }}>{t('portfolios.fields.selectManager')}</span>;
                   }
                   const selectedManagerData = managers.find(m => m.id === value);
                   if (selectedManagerData) {
@@ -382,9 +387,9 @@ const TeamUserAssignmentForm: React.FC = () => {
                 }}
               >
                 <MenuItem value="">
-                  <Typography variant="body2" color="text.secondary">
-                    Sélectionnez un manager...
-                  </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {t('portfolios.fields.selectManager')}
+                    </Typography>
                 </MenuItem>
                 {managers.length > 0 ? (
                   managers.map((manager) => (
@@ -428,11 +433,11 @@ const TeamUserAssignmentForm: React.FC = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Sélectionnez les équipes à assigner
+              {t('portfolios.fields.selectTeams')}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Choisissez les équipes opérationnelles à assigner au portefeuille. 
-              <strong>Cette étape est optionnelle</strong> - vous pouvez passer à l'étape suivante pour assigner des utilisateurs individuels.
+              {t('portfolios.fields.selectTeamsDescription')} 
+              <strong>{t('portfolios.fields.optionalStep')}</strong>
             </Typography>
             <Grid container spacing={2}>
               {teams.map((team) => (
@@ -468,7 +473,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                           color={team.interventionType === 'CLEANING' ? 'success' : 'info'} 
                         />
                         <Typography variant="caption" color="text.secondary">
-                          {team.memberCount} membre{team.memberCount > 1 ? 's' : ''}
+                          {team.memberCount} {team.memberCount > 1 ? t('portfolios.fields.members') : t('portfolios.fields.member')}
                         </Typography>
                       </Box>
                     </CardContent>
@@ -483,14 +488,14 @@ const TeamUserAssignmentForm: React.FC = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Sélectionnez les utilisateurs à assigner
+              {t('portfolios.fields.selectUsers')}
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Choisissez les utilisateurs opérationnels à assigner directement au manager.
+              {t('portfolios.fields.selectUsersDescription')}
               {selectedTeams.length === 0 ? (
-                <strong> Vous devez sélectionner au moins un utilisateur pour continuer</strong>
+                <strong> {t('portfolios.fields.mustSelectAtLeastOneUser')}</strong>
               ) : (
-                <strong> Sélection optionnelle - vous pouvez passer à l'étape suivante</strong>
+                <strong> {t('portfolios.fields.optionalSelection')}</strong>
               )}
             </Typography>
             
@@ -498,7 +503,7 @@ const TeamUserAssignmentForm: React.FC = () => {
             <Box sx={{ mb: 3 }}>
               <TextField
                 fullWidth
-                placeholder="Rechercher un utilisateur par nom, email ou rôle..."
+                placeholder={t('portfolios.fields.searchUser')}
                 value={userSearchTerm}
                 onChange={(e) => setUserSearchTerm(e.target.value)}
                 InputProps={{
@@ -520,7 +525,7 @@ const TeamUserAssignmentForm: React.FC = () => {
             {/* Message d'alerte si aucune équipe sélectionnée et aucun utilisateur */}
             {selectedTeams.length === 0 && selectedUsers.length === 0 && (
               <Alert severity="warning" sx={{ mb: 2 }}>
-                <strong>Attention :</strong> Aucune équipe n'a été sélectionnée. Vous devez choisir au moins un utilisateur pour continuer.
+                <strong>{t('portfolios.warnings.attention')} :</strong> {t('portfolios.warnings.noTeamSelectedWarning')}
               </Alert>
             )}
 
@@ -528,12 +533,12 @@ const TeamUserAssignmentForm: React.FC = () => {
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <People sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
                 <Typography variant="h6" color="text.secondary" gutterBottom>
-                  {userSearchTerm ? 'Aucun utilisateur trouvé' : 'Aucun utilisateur disponible'}
+                  {userSearchTerm ? t('portfolios.fields.noUserFound') : t('portfolios.fields.noUserAvailable')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {userSearchTerm 
-                    ? `Aucun utilisateur ne correspond à "${userSearchTerm}"`
-                    : 'Aucun utilisateur opérationnel n\'est disponible pour l\'assignation'
+                    ? `${t('portfolios.fields.noUserMatch')} "${userSearchTerm}"`
+                    : t('portfolios.fields.noOperationalUser')
                   }
                 </Typography>
               </Box>
@@ -590,13 +595,13 @@ const TeamUserAssignmentForm: React.FC = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Confirmez les assignations
+              {t('portfolios.fields.confirmAssignments')}
             </Typography>
             
             <Paper sx={{ p: 3, mb: 3 }}>
               <Typography variant="subtitle1" gutterBottom>
                 <People sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Manager sélectionné
+                {t('portfolios.fields.selectedManager')}
               </Typography>
               <Typography variant="h6" color="primary">
                 {selectedManagerData?.firstName} {selectedManagerData?.lastName}
@@ -612,7 +617,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                 <Paper sx={{ p: 2 }}>
                   <Typography variant="subtitle1" gutterBottom>
                     <Group sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Équipes sélectionnées ({selectedTeamsData.length})
+                    {t('portfolios.fields.selectedTeams')} ({selectedTeamsData.length})
                   </Typography>
                   {selectedTeamsData.length > 0 ? (
                     <List dense>
@@ -623,7 +628,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                           </ListItemIcon>
                           <ListItemText
                             primary={team.name}
-                            secondary={`${team.memberCount} membre${team.memberCount > 1 ? 's' : ''} • ${team.interventionType}`}
+                            secondary={`${team.memberCount} ${team.memberCount > 1 ? t('portfolios.fields.members') : t('portfolios.fields.member')} • ${team.interventionType}`}
                           />
                         </ListItem>
                       ))}
@@ -640,7 +645,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                 <Paper sx={{ p: 2 }}>
                   <Typography variant="subtitle1" gutterBottom>
                     <People sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Utilisateurs sélectionnés ({selectedUsersData.length})
+                    {t('portfolios.fields.selectedUsers')} ({selectedUsersData.length})
                   </Typography>
                   {selectedUsersData.length > 0 ? (
                     <List dense>
@@ -658,7 +663,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                     </List>
                   ) : (
                     <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                      Aucun utilisateur sélectionné
+                      {t('portfolios.fields.noUserAvailable')}
                     </Typography>
                   )}
                 </Paper>
@@ -668,7 +673,7 @@ const TeamUserAssignmentForm: React.FC = () => {
         );
 
       default:
-        return 'Étape inconnue';
+        return t('common.error');
     }
   };
 
@@ -676,8 +681,8 @@ const TeamUserAssignmentForm: React.FC = () => {
     return (
       <Container maxWidth="lg">
         <PageHeader
-          title="Association Équipes & Utilisateurs"
-          subtitle="Associez vos équipes et utilisateurs aux portefeuilles"
+          title={t('portfolios.forms.teamUserAssociation')}
+          subtitle={t('portfolios.forms.teamUserAssociationSubtitle')}
           backPath="/portfolios"
           showBackButton={true}
         />
@@ -700,8 +705,8 @@ const TeamUserAssignmentForm: React.FC = () => {
     return (
       <Container maxWidth="lg">
         <PageHeader
-          title="Association Équipes & Utilisateurs"
-          subtitle="Associez vos équipes et utilisateurs aux portefeuilles"
+          title={t('portfolios.forms.teamUserAssociation')}
+          subtitle={t('portfolios.forms.teamUserAssociationSubtitle')}
           backPath="/portfolios"
           showBackButton={true}
         />
@@ -723,8 +728,8 @@ const TeamUserAssignmentForm: React.FC = () => {
   return (
     <Container maxWidth="lg">
       <PageHeader
-        title="Association Équipes & Utilisateurs"
-        subtitle="Associez vos équipes et utilisateurs aux portefeuilles"
+        title={t('portfolios.forms.teamUserAssociation')}
+        subtitle={t('portfolios.forms.teamUserAssociationSubtitle')}
         backPath="/portfolios"
         showBackButton={true}
       />
@@ -760,7 +765,7 @@ const TeamUserAssignmentForm: React.FC = () => {
             onClick={handleBack}
             startIcon={<ArrowBack />}
           >
-            Retour
+            {t('portfolios.forms.back')}
           </Button>
           
           {activeStep === steps.length - 1 ? (
@@ -770,7 +775,7 @@ const TeamUserAssignmentForm: React.FC = () => {
               disabled={loading || !selectedManager || (selectedTeams.length === 0 && selectedUsers.length === 0)}
               startIcon={loading ? <CircularProgress size={20} /> : <CheckCircle />}
             >
-              {loading ? 'Assignation...' : 'Confirmer les assignations'}
+              {loading ? t('portfolios.forms.assigning') : t('portfolios.forms.confirmAssignments')}
             </Button>
           ) : (
             <Button
@@ -782,7 +787,7 @@ const TeamUserAssignmentForm: React.FC = () => {
               }
               endIcon={<ArrowForward />}
             >
-              Suivant
+              {t('portfolios.forms.next')}
             </Button>
           )}
         </Box>

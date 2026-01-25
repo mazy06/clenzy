@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './modules/App'
 import theme from './theme/theme'
 import ThemeSafetyWrapper from './components/ThemeSafetyWrapper'
+import './i18n/config'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

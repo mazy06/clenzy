@@ -5,10 +5,12 @@ import { Cancel, Save } from '@mui/icons-material';
 import InterventionForm from './InterventionForm';
 import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const InterventionCreate: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
+  const { t } = useTranslation();
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 

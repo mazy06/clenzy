@@ -42,6 +42,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
 import { PropertyStatus, PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
 import PageHeader from '../../components/PageHeader';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Types pour les propriétés
 export interface PropertyFormData {
@@ -82,6 +83,7 @@ const PropertyEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, hasPermissionAsync, isAdmin, isManager, isHost } = useAuth();
+  const { t } = useTranslation();
   
   // TOUS les useState DOIVENT être déclarés AVANT tout useEffect
   const [loading, setLoading] = useState(false);
@@ -160,11 +162,11 @@ const PropertyEdit: React.FC = () => {
             ownerId: property.ownerId || 0,
           });
         } else {
-          setError('Erreur lors du chargement de la propriété');
+          setError(t('properties.loadError'));
         }
       } catch (err) {
         console.error('🔍 PropertyEdit - Erreur chargement propriété:', err);
-        setError('Erreur lors du chargement de la propriété');
+        setError(t('properties.loadError'));
       } finally {
         setLoading(false);
       }
@@ -211,7 +213,7 @@ const PropertyEdit: React.FC = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
-          Vous n'avez pas les permissions nécessaires pour modifier les propriétés.
+          {t('properties.noPermission')}
         </Alert>
       </Box>
     );
@@ -280,7 +282,7 @@ const PropertyEdit: React.FC = () => {
       }
     } catch (err) {
       console.error('🔍 PropertyEdit - Erreur mise à jour:', err);
-      setError('Erreur lors de la mise à jour de la propriété');
+      setError(t('properties.updateError'));
     } finally {
       setSaving(false);
     }
@@ -331,11 +333,11 @@ const PropertyEdit: React.FC = () => {
 
   // Constantes pour les enums
   const propertyTypes = [
-    { value: 'apartment', label: 'Appartement' },
-    { value: 'house', label: 'Maison' },
-    { value: 'villa', label: 'Villa' },
-    { value: 'studio', label: 'Studio' },
-    { value: 'loft', label: 'Loft' },
+    { value: 'apartment', label: t('properties.types.apartment') },
+    { value: 'house', label: t('properties.types.house') },
+    { value: 'villa', label: t('properties.types.villa') },
+    { value: 'studio', label: t('properties.types.studio') },
+    { value: 'loft', label: t('properties.types.loft') },
   ];
 
   // Utilisation des enums partagés pour les statuts des propriétés
@@ -345,12 +347,12 @@ const PropertyEdit: React.FC = () => {
   }));
 
   const cleaningFrequencies = [
-    { value: 'after_each_stay', label: 'Après chaque séjour' },
-    { value: 'daily', label: 'Quotidien' },
-    { value: 'weekly', label: 'Hebdomadaire' },
-    { value: 'biweekly', label: 'Bi-hebdomadaire' },
-    { value: 'monthly', label: 'Mensuel' },
-    { value: 'on_demand', label: 'Sur demande' },
+    { value: 'after_each_stay', label: t('properties.cleaningFrequencies.afterEachStay') },
+    { value: 'daily', label: t('properties.cleaningFrequencies.daily') },
+    { value: 'weekly', label: t('properties.cleaningFrequencies.weekly') },
+    { value: 'biweekly', label: t('properties.cleaningFrequencies.biweekly') },
+    { value: 'monthly', label: t('properties.cleaningFrequencies.monthly') },
+    { value: 'on_demand', label: t('properties.cleaningFrequencies.onDemand') },
   ];
 
   return (
@@ -370,7 +372,7 @@ const PropertyEdit: React.FC = () => {
               startIcon={<Cancel />}
               disabled={saving}
             >
-              Annuler
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -394,7 +396,7 @@ const PropertyEdit: React.FC = () => {
 
       {success && (
         <Alert severity="success" sx={{ mb: 3 }}>
-          Propriété mise à jour avec succès ! Redirection en cours...
+          {t('properties.updateSuccess')}
         </Alert>
       )}
 
@@ -404,14 +406,14 @@ const PropertyEdit: React.FC = () => {
           <form onSubmit={handleSubmit}>
             {/* Informations de base */}
             <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-              Informations de base
+              {t('properties.tabs.overview')}
             </Typography>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12} md={8}>
                 <TextField
                   fullWidth
-                  label="Nom de la propriété *"
+                  label={`${t('properties.propertyName')} *`}
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   required
@@ -421,11 +423,11 @@ const PropertyEdit: React.FC = () => {
 
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth required>
-                  <InputLabel>Type de propriété *</InputLabel>
+                  <InputLabel>{t('properties.propertyType')} *</InputLabel>
                   <Select
                     value={formData.type}
                     onChange={(e) => handleInputChange('type', e.target.value)}
-                    label="Type de propriété *"
+                    label={`${t('properties.propertyType')} *`}
                   >
                     {propertyTypes.map((type) => (
                       <MenuItem key={type.value} value={type.value}>
@@ -439,14 +441,14 @@ const PropertyEdit: React.FC = () => {
 
             {/* Adresse */}
             <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-              Adresse
+              {t('properties.address')}
             </Typography>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Adresse complète *"
+                  label={`${t('properties.address')} *`}
                   value={formData.address}
                   onChange={(e) => handleInputChange('address', e.target.value)}
                   required
@@ -457,7 +459,7 @@ const PropertyEdit: React.FC = () => {
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Ville"
+                  label={t('properties.city')}
                   value={formData.city}
                   onChange={(e) => handleInputChange('city', e.target.value)}
                   required
@@ -468,7 +470,7 @@ const PropertyEdit: React.FC = () => {
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Code postal"
+                  label={t('properties.postalCode')}
                   value={formData.postalCode}
                   onChange={(e) => handleInputChange('postalCode', e.target.value)}
                   required
@@ -479,7 +481,7 @@ const PropertyEdit: React.FC = () => {
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Pays"
+                  label={t('properties.country')}
                   value={formData.country}
                   onChange={(e) => handleInputChange('country', e.target.value)}
                   required
@@ -489,7 +491,7 @@ const PropertyEdit: React.FC = () => {
 
             {/* Caractéristiques */}
             <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-              Caractéristiques
+              {t('properties.characteristics')}
             </Typography>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -497,7 +499,7 @@ const PropertyEdit: React.FC = () => {
                 <TextField
                   fullWidth
                   type="number"
-                  label="Chambres"
+                  label={t('properties.bedroomCount')}
                   value={formData.bedroomCount}
                   onChange={(e) => handleInputChange('bedroomCount', parseInt(e.target.value))}
                   required
@@ -539,7 +541,7 @@ const PropertyEdit: React.FC = () => {
                 <TextField
                   fullWidth
                   type="number"
-                  label="Prix de la nuit (€)"
+                  label={t('properties.nightlyPriceField')}
                   value={formData.nightlyPrice}
                   onChange={(e) => handleInputChange('nightlyPrice', parseFloat(e.target.value))}
                   InputProps={{
@@ -556,7 +558,7 @@ const PropertyEdit: React.FC = () => {
 
             {/* Configuration */}
             <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-              Configuration
+              {t('properties.configuration')}
             </Typography>
 
             {/* Champ Owner - comportement différent selon le rôle */}
@@ -595,8 +597,8 @@ const PropertyEdit: React.FC = () => {
                     renderInput={(params) => (
                       <TextField
                         {...params}
-                        label="Sélectionner un propriétaire"
-                        placeholder="Rechercher un propriétaire..."
+                        label={t('properties.selectOwnerLabel')}
+                        placeholder={t('properties.searchOwner')}
                       />
                     )}
                   />
@@ -615,11 +617,11 @@ const PropertyEdit: React.FC = () => {
             <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth required>
-                  <InputLabel>Statut *</InputLabel>
+                  <InputLabel>{t('properties.status')} *</InputLabel>
                   <Select
                     value={formData.status}
                     onChange={(e) => handleInputChange('status', e.target.value)}
-                    label="Statut *"
+                    label={`${t('properties.status')} *`}
                   >
                     {propertyStatuses.map((status) => (
                       <MenuItem key={status.value} value={status.value}>
@@ -651,7 +653,7 @@ const PropertyEdit: React.FC = () => {
                 <TextField
                   fullWidth
                   type="number"
-                  label="Nombre max de voyageurs *"
+                  label={`${t('properties.maxGuests')} *`}
                   value={formData.maxGuests}
                   onChange={(e) => handleInputChange('maxGuests', parseInt(e.target.value))}
                   required
@@ -664,7 +666,7 @@ const PropertyEdit: React.FC = () => {
 
             {/* Description */}
             <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-              Description
+              {t('properties.description')}
             </Typography>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -673,10 +675,10 @@ const PropertyEdit: React.FC = () => {
                   fullWidth
                   multiline
                   rows={4}
-                  label="Description de la propriété"
+                  label={t('properties.description')}
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Décrivez votre propriété..."
+                  placeholder={t('properties.descriptionPlaceholder')}
                 />
               </Grid>
             </Grid>
@@ -698,7 +700,7 @@ const PropertyEdit: React.FC = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Prénom *"
+                label={`${t('properties.firstName')} *`}
                 value={temporaryOwner.firstName}
                 onChange={(e) => setTemporaryOwner(prev => ({ ...prev, firstName: e.target.value }))}
                 required
@@ -708,7 +710,7 @@ const PropertyEdit: React.FC = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Nom *"
+                label={`${t('properties.lastName')} *`}
                 value={temporaryOwner.lastName}
                 onChange={(e) => setTemporaryOwner(prev => ({ ...prev, lastName: e.target.value }))}
                 required
@@ -731,10 +733,10 @@ const PropertyEdit: React.FC = () => {
         
         <DialogActions>
           <Button onClick={() => setShowOwnerDialog(false)}>
-            Annuler
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleCreateTemporaryOwner} variant="contained">
-            Créer
+            {t('common.create')}
           </Button>
         </DialogActions>
       </Dialog>

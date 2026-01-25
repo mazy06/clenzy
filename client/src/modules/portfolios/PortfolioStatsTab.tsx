@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface PortfolioStats {
   totalPortfolios: number;
@@ -52,6 +53,7 @@ interface PortfolioStats {
 
 const PortfolioStatsTab: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [stats, setStats] = useState<PortfolioStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,7 +121,7 @@ const PortfolioStatsTab: React.FC = () => {
   if (!stats) {
     return (
       <Alert severity="info">
-        Aucune donnée disponible pour le moment.
+        {t('portfolios.statistics.noDataAvailable')}
       </Alert>
     );
   }
@@ -127,10 +129,10 @@ const PortfolioStatsTab: React.FC = () => {
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
-        Statistiques des Portefeuilles
+        {t('portfolios.statistics.title')}
       </Typography>
       <Typography variant="body2" color="text.secondary" paragraph>
-        Consultez les statistiques et performances de vos portefeuilles.
+        {t('portfolios.subtitle')}
       </Typography>
 
       {/* Cartes de statistiques principales */}
@@ -163,7 +165,7 @@ const PortfolioStatsTab: React.FC = () => {
                     {stats.totalClients}
                   </Typography>
                   <Typography color="text.secondary">
-                    Clients
+                    {t('portfolios.statistics.clients')}
                   </Typography>
                 </Box>
               </Box>
@@ -199,7 +201,7 @@ const PortfolioStatsTab: React.FC = () => {
                     {stats.totalTeamMembers}
                   </Typography>
                   <Typography color="text.secondary">
-                    Membres d'équipe
+                    {t('teams.members')}
                   </Typography>
                 </Box>
               </Box>
@@ -213,7 +215,7 @@ const PortfolioStatsTab: React.FC = () => {
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Détail par Portefeuille
+              {t('portfolios.statistics.title')}
             </Typography>
             <List>
               {stats.portfolioBreakdown.map((portfolio, index) => (
@@ -247,11 +249,11 @@ const PortfolioStatsTab: React.FC = () => {
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Assignations Récentes
+              {t('portfolios.fields.associatedOn')}
             </Typography>
             {stats.recentAssignments.length === 0 ? (
               <Typography variant="body2" color="text.secondary">
-                Aucune assignation récente
+                {t('portfolios.fields.noClientAssociated')}
               </Typography>
             ) : (
               <List>

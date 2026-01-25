@@ -46,6 +46,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
 import { InterventionType, INTERVENTION_TYPE_OPTIONS, InterventionTypeUtils } from '../../types/interventionTypes';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Types pour les demandes de service
 export interface ServiceRequestFormData {
@@ -99,6 +100,7 @@ interface ServiceRequestFormProps {
 const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSuccess, setLoading, loading }) => {
   const navigate = useNavigate();
   const { user, hasPermissionAsync,  isAdmin, isManager, isHost } = useAuth();
+  const { t } = useTranslation();
   
   const [isLoading, setIsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -275,7 +277,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     
     if (!formData.propertyId || !formData.userId) {
       console.error('🔍 ServiceRequestForm - Erreur: propertyId ou userId manquant');
-      setError('Veuillez sélectionner une propriété et un demandeur');
+      setError(t('serviceRequests.errors.selectPropertyRequestor'));
       return;
     }
 
@@ -322,11 +324,11 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
       } else {
         const errorData = await response.json();
         console.error('🔍 ServiceRequestForm - Erreur création:', errorData);
-        setError('Erreur lors de la création: ' + (errorData.message || 'Erreur inconnue'));
+        setError(t('serviceRequests.errors.createErrorDetails') + ': ' + (errorData.message || 'Erreur inconnue'));
       }
     } catch (err) {
       console.error('🔍 ServiceRequestForm - Erreur création:', err);
-      setError('Erreur lors de la création de la demande de service');
+      setError(t('serviceRequests.errors.createError'));
     } finally {
       setSaving(false);
     }
@@ -339,21 +341,21 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   }));
 
   const priorities = [
-    { value: 'LOW', label: 'Faible' },
-    { value: 'NORMAL', label: 'Normale' },
-    { value: 'HIGH', label: 'Élevée' },
-    { value: 'CRITICAL', label: 'Critique' },
+    { value: 'LOW', label: t('serviceRequests.priorities.low') },
+    { value: 'NORMAL', label: t('serviceRequests.priorities.normal') },
+    { value: 'HIGH', label: t('serviceRequests.priorities.high') },
+    { value: 'CRITICAL', label: t('serviceRequests.priorities.critical') },
   ];
 
   const durations = [
-    { value: 0.5, label: '30 min' },
-    { value: 1, label: '1h' },
-    { value: 1.5, label: '1h30' },
-    { value: 2, label: '2h' },
-    { value: 3, label: '3h' },
-    { value: 4, label: '4h' },
-    { value: 6, label: '6h' },
-    { value: 8, label: '8h' },
+    { value: 0.5, label: t('serviceRequests.durations.30min') },
+    { value: 1, label: t('serviceRequests.durations.1h') },
+    { value: 1.5, label: t('serviceRequests.durations.1h30') },
+    { value: 2, label: t('serviceRequests.durations.2h') },
+    { value: 3, label: t('serviceRequests.durations.3h') },
+    { value: 4, label: t('serviceRequests.durations.4h') },
+    { value: 6, label: t('serviceRequests.durations.6h') },
+    { value: 8, label: t('serviceRequests.durations.8h') },
   ];
 
   // Filtrer les utilisateurs par rôle approprié pour l'assignation
@@ -365,14 +367,14 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
   // Obtenir le label du type d'intervention
   const getInterventionTypeLabel = (type: string) => {
-    const interventionTypes = {
-      cleaning: '🧹 Nettoyage',
-      maintenance: '🔧 Maintenance',
-      repair: '🔨 Réparation',
-      inspection: '🔍 Inspection',
-      mixed: '👥 Mixte',
+    const interventionTypes: Record<string, string> = {
+      cleaning: t('serviceRequests.interventionTypes.cleaning'),
+      maintenance: t('serviceRequests.interventionTypes.maintenance'),
+      repair: t('serviceRequests.interventionTypes.repair'),
+      inspection: t('serviceRequests.interventionTypes.inspection'),
+      mixed: t('serviceRequests.interventionTypes.mixed'),
     };
-    return interventionTypes[type as keyof typeof interventionTypes] || type;
+    return interventionTypes[type.toLowerCase()] || type;
   };
 
   return (
@@ -390,29 +392,29 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
           <form onSubmit={handleSubmit}>
             {/* Informations de base */}
             <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-              Informations de base
+              {t('serviceRequests.sections.basicInfo')}
             </Typography>
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={8}>
                 <TextField
                   fullWidth
-                  label="Titre de la demande *"
+                  label={`${t('serviceRequests.fields.title')} *`}
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
                   required
-                  placeholder="Ex: Nettoyage après départ"
+                  placeholder={t('serviceRequests.fields.titlePlaceholder')}
                   size="small"
                 />
               </Grid>
 
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth required>
-                  <InputLabel>Type de service *</InputLabel>
+                  <InputLabel>{t('serviceRequests.fields.serviceType')} *</InputLabel>
                   <Select
                     value={formData.serviceType}
                     onChange={(e) => handleInputChange('serviceType', e.target.value)}
-                    label="Type de service *"
+                    label={`${t('serviceRequests.fields.serviceType')} *`}
                     size="small"
                   >
                     {serviceTypes.map((type) => {
@@ -435,7 +437,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
             {/* Description */}
             <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-              Description
+              {t('serviceRequests.sections.description')}
             </Typography>
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -444,11 +446,11 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                   fullWidth
                   multiline
                   rows={3}
-                  label="Description détaillée *"
+                  label={`${t('serviceRequests.fields.detailedDescription')} *`}
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   required
-                  placeholder="Décrivez en détail la demande de service..."
+                  placeholder={t('serviceRequests.fields.descriptionPlaceholder')}
                   size="small"
                 />
               </Grid>
@@ -456,17 +458,17 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
             {/* Propriété */}
             <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-              Propriété concernée
+              {t('serviceRequests.sections.property')}
             </Typography>
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12}>
                 <FormControl fullWidth required>
-                  <InputLabel>Propriété *</InputLabel>
+                  <InputLabel>{t('serviceRequests.fields.property')} *</InputLabel>
                   <Select
                     value={formData.propertyId}
                     onChange={(e) => handleInputChange('propertyId', e.target.value)}
-                    label="Propriété *"
+                    label={`${t('serviceRequests.fields.property')} *`}
                     size="small"
                   >
                     {properties.map((property) => (
@@ -484,17 +486,17 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
             {/* Priorité et durée */}
             <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-              Priorité et planification
+              {t('serviceRequests.sections.priorityPlanning')}
             </Typography>
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth required>
-                  <InputLabel>Priorité *</InputLabel>
+                  <InputLabel>{t('serviceRequests.fields.priority')} *</InputLabel>
                   <Select
                     value={formData.priority}
                     onChange={(e) => handleInputChange('priority', e.target.value)}
-                    label="Priorité *"
+                    label={`${t('serviceRequests.fields.priority')} *`}
                     size="small"
                   >
                     {priorities.map((priority) => (
@@ -511,11 +513,11 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth required>
-                  <InputLabel>Durée estimée *</InputLabel>
+                  <InputLabel>{t('serviceRequests.fields.estimatedDuration')} *</InputLabel>
                   <Select
                     value={formData.estimatedDurationHours}
                     onChange={(e) => handleInputChange('estimatedDurationHours', e.target.value)}
-                    label="Durée estimée *"
+                    label={`${t('serviceRequests.fields.estimatedDuration')} *`}
                     size="small"
                   >
                     {durations.map((duration) => (
@@ -533,7 +535,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Date d'échéance *"
+                  label={`${t('serviceRequests.fields.dueDate')} *`}
                   type="datetime-local"
                   value={formData.desiredDate}
                   onChange={(e) => handleInputChange('desiredDate', e.target.value)}
@@ -548,18 +550,18 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
             {/* Demandeur et assignation */}
             <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-              Demandeur et assignation
+              {t('serviceRequests.sections.requestorAssignment')}
             </Typography>
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               {/* Demandeur */}
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth required>
-                  <InputLabel>Demandeur *</InputLabel>
+                  <InputLabel>{t('serviceRequests.fields.requestor')} *</InputLabel>
                   <Select
                     value={formData.userId}
                     onChange={(e) => handleInputChange('userId', e.target.value)}
-                    label="Demandeur *"
+                    label={`${t('serviceRequests.fields.requestor')} *`}
                     disabled={!isAdmin() && !isManager()} // Seuls les admin/manager peuvent changer le demandeur
                     size="small"
                   >
@@ -574,7 +576,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                   </Select>
                   {!isAdmin() && !isManager() && (
                     <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                      Le demandeur est automatiquement défini selon votre rôle
+                      {t('serviceRequests.fields.requestorHelper')}
                     </FormHelperText>
                   )}
                 </FormControl>
@@ -582,29 +584,29 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Type d'assignation</InputLabel>
+                  <InputLabel>{t('serviceRequests.fields.assignmentType')}</InputLabel>
                   <Select
                     value={formData.assignedToType || ''}
                     onChange={(e) => {
                       handleInputChange('assignedToType', e.target.value || undefined);
                       handleInputChange('assignedToId', undefined);
                     }}
-                    label="Type d'assignation"
+                    label={t('serviceRequests.fields.assignmentType')}
                     size="small"
                   >
                     <MenuItem value="">
-                      <em>Aucune assignation</em>
+                      <em>{t('serviceRequests.fields.noAssignment')}</em>
                     </MenuItem>
                     <MenuItem value="user">
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                         <Person sx={{ fontSize: 18 }} />
-                        <Typography variant="body2">Utilisateur individuel</Typography>
+                        <Typography variant="body2">{t('serviceRequests.fields.individualUser')}</Typography>
                       </Box>
                     </MenuItem>
                     <MenuItem value="team">
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                         <Group sx={{ fontSize: 18 }} />
-                        <Typography variant="body2">Équipe</Typography>
+                        <Typography variant="body2">{t('serviceRequests.fields.team')}</Typography>
                       </Box>
                     </MenuItem>
                   </Select>
@@ -618,16 +620,16 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                 <Grid item xs={12}>
                   <FormControl fullWidth>
                     <InputLabel>
-                      {formData.assignedToType === 'user' ? 'Assigné à (utilisateur)' : 'Assigné à (équipe)'}
+                      {formData.assignedToType === 'user' ? t('serviceRequests.fields.assignedToUser') : t('serviceRequests.fields.assignedToTeam')}
                     </InputLabel>
                     <Select
                       value={formData.assignedToId || ''}
                       onChange={(e) => handleInputChange('assignedToId', e.target.value || undefined)}
-                      label={formData.assignedToType === 'user' ? 'Assigné à (utilisateur)' : 'Assigné à (équipe)'}
+                      label={formData.assignedToType === 'user' ? t('serviceRequests.fields.assignedToUser') : t('serviceRequests.fields.assignedToTeam')}
                       size="small"
                     >
                       <MenuItem value="">
-                        <em>Sélectionner...</em>
+                        <em>{t('serviceRequests.fields.select')}</em>
                       </MenuItem>
                       {formData.assignedToType === 'user' ? (
                         getAssignableUsers().map((user) => (
@@ -648,7 +650,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                                   {team.name}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                                  {team.memberCount} membre(s) • {getInterventionTypeLabel(team.interventionType)}
+                                  {team.memberCount} {t('serviceRequests.members')} • {getInterventionTypeLabel(team.interventionType)}
                                 </Typography>
                               </Box>
                             </Box>

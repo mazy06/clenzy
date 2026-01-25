@@ -39,10 +39,12 @@ import { useAuth } from '../../hooks/useAuth';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
 import PageHeader from '../../components/PageHeader';
 import { createSpacing } from '../../theme/spacing';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, hasPermissionAsync } = useAuth();
+  const { t } = useTranslation();
   
   // Utiliser directement les permissions de l'utilisateur (plus simple et plus rapide)
   const canViewProperties = user?.permissions?.includes('properties:view') || false;
@@ -72,7 +74,7 @@ const Dashboard: React.FC = () => {
     return 'USER';
   };
 
-  const { stats, activities, loading, error, formatGrowth } = useDashboardStats(getUserRole());
+  const { stats, activities, loading, error, formatGrowth } = useDashboardStats(getUserRole(), t);
   
   // Générer les statistiques dynamiques selon le rôle
   const getDynamicStats = () => {
@@ -82,28 +84,28 @@ const Dashboard: React.FC = () => {
       // Statistiques globales (ADMIN, MANAGER, SUPERVISOR)
       return [
         {
-          title: 'Propriétés actives',
+          title: t('dashboard.stats.activeProperties'),
           value: stats.properties.active.toString(),
           icon: <Home color="primary" />,
           growth: formatGrowth(stats.properties.growth),
           route: '/properties'
         },
         {
-          title: 'Demandes en cours',
+          title: t('dashboard.stats.pendingRequests'),
           value: stats.serviceRequests.pending.toString(),
           icon: <Assignment color="secondary" />,
           growth: formatGrowth(stats.serviceRequests.growth),
           route: '/service-requests'
         },
         {
-          title: 'Interventions du jour',
+          title: t('dashboard.stats.todayInterventions'),
           value: stats.interventions.today.toString(),
           icon: <Build color="success" />,
           growth: formatGrowth(stats.interventions.growth),
           route: '/interventions'
         },
         {
-          title: 'Revenus du mois',
+          title: t('dashboard.stats.monthlyRevenue'),
           value: '€0', // À implémenter plus tard
           icon: <Euro color="warning" />,
           growth: { value: '0%', type: 'neutral' },
@@ -114,28 +116,28 @@ const Dashboard: React.FC = () => {
       // Statistiques pour les HOST (propriétaires)
       return [
         {
-          title: 'Mes propriétés',
+          title: t('dashboard.stats.myProperties'),
           value: stats.properties.active.toString(),
           icon: <Home color="primary" />,
           growth: formatGrowth(stats.properties.growth),
           route: '/properties'
         },
         {
-          title: 'Mes demandes en cours',
+          title: t('dashboard.stats.myPendingRequests'),
           value: stats.serviceRequests.pending.toString(),
           icon: <Assignment color="secondary" />,
           growth: formatGrowth(stats.serviceRequests.growth),
           route: '/service-requests'
         },
         {
-          title: 'Mes interventions planifiées',
+          title: t('dashboard.stats.myScheduledInterventions'),
           value: stats.interventions.today.toString(),
           icon: <Build color="success" />,
           growth: formatGrowth(stats.interventions.growth),
           route: '/interventions'
         },
         {
-          title: 'Mes notifications',
+          title: t('dashboard.stats.myNotifications'),
           value: '0', // À implémenter plus tard
           icon: <Notifications color="info" />,
           growth: { value: '0%', type: 'neutral' },
@@ -146,29 +148,29 @@ const Dashboard: React.FC = () => {
       // Statistiques pour les TECHNICIAN/HOUSEKEEPER
       return [
         {
-          title: 'Interventions assignées',
+          title: t('dashboard.stats.assignedInterventions'),
           value: stats.interventions.total.toString(),
           icon: <Build color="primary" />,
           growth: formatGrowth(stats.interventions.growth),
           route: '/interventions'
         },
         {
-          title: 'Interventions terminées',
+          title: t('dashboard.stats.completedInterventions'),
           value: '0', // À calculer plus tard
           icon: <CheckCircle color="success" />,
           growth: { value: '0%', type: 'neutral' },
           route: '/interventions'
         },
         {
-          title: 'Temps de travail',
+          title: t('dashboard.stats.workTime'),
           value: '0h', // À calculer plus tard
           icon: <Assignment color="info" />,
           growth: { value: '0%', type: 'neutral' },
           route: '/reports'
         },
         {
-          title: 'Équipe',
-          value: 'Équipe', // À récupérer plus tard
+          title: t('dashboard.stats.team'),
+          value: t('dashboard.stats.team'), // À récupérer plus tard
           icon: <People color="secondary" />,
           growth: { value: 'Active', type: 'neutral' },
           route: '/teams'
@@ -189,23 +191,23 @@ const Dashboard: React.FC = () => {
 
   // Titre et description personnalisés selon le rôle
   const getDashboardTitle = () => {
-    if (isAdmin) return 'Tableau de bord Administrateur';
-    if (isManager) return 'Tableau de bord Manager';
-    if (isHost) return 'Tableau de bord Propriétaire';
-    if (isTechnician) return 'Tableau de bord Technicien';
-    if (isHousekeeper) return 'Tableau de bord Agent de ménage';
-    if (isSupervisor) return 'Tableau de bord Superviseur';
-    return 'Tableau de bord';
+    if (isAdmin) return t('dashboard.titleAdmin');
+    if (isManager) return t('dashboard.titleManager');
+    if (isHost) return t('dashboard.titleHost');
+    if (isTechnician) return t('dashboard.titleTechnician');
+    if (isHousekeeper) return t('dashboard.titleHousekeeper');
+    if (isSupervisor) return t('dashboard.titleSupervisor');
+    return t('dashboard.title');
   };
 
   const getDashboardDescription = () => {
-    if (isAdmin) return 'Vue d\'ensemble complète de la plateforme Clenzy';
-    if (isManager) return 'Gestion des opérations et suivi des équipes';
-    if (isHost) return 'Suivi de vos propriétés et demandes de service';
-    if (isTechnician) return 'Vos interventions et planification de travail';
-    if (isHousekeeper) return 'Vos tâches de nettoyage et planification';
-    if (isSupervisor) return 'Supervision des équipes et interventions';
-    return 'Vue d\'ensemble de votre activité';
+    if (isAdmin) return t('dashboard.subtitleAdmin');
+    if (isManager) return t('dashboard.subtitleManager');
+    if (isHost) return t('dashboard.subtitleHost');
+    if (isTechnician) return t('dashboard.subtitleTechnician');
+    if (isHousekeeper) return t('dashboard.subtitleHousekeeper');
+    if (isSupervisor) return t('dashboard.subtitleSupervisor');
+    return t('dashboard.subtitle');
   };
 
 
@@ -347,7 +349,7 @@ const Dashboard: React.FC = () => {
             <CardContent sx={{ p: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
                 <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
-                  Activités récentes
+                  {t('dashboard.recentActivities')}
                 </Typography>
                 <Button
                   variant="text"
@@ -360,7 +362,7 @@ const Dashboard: React.FC = () => {
                     px: 1
                   }}
                 >
-                  Voir toutes les activités
+                  {t('dashboard.viewAllActivities')}
                 </Button>
               </Box>
               {loading ? (
@@ -379,7 +381,7 @@ const Dashboard: React.FC = () => {
                 ))
               ) : recentActivities.length === 0 ? (
                 <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 1.5, fontSize: '0.8125rem' }}>
-                  Aucune activité récente
+                  {t('dashboard.noRecentActivities')}
                 </Typography>
               ) : (
                 <List sx={{ py: 0 }}>
@@ -439,7 +441,7 @@ const Dashboard: React.FC = () => {
           <Card>
             <CardContent sx={{ p: 2 }}>
               <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 1.5 }}>
-                Actions rapides
+                {t('dashboard.quickActions')}
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 {canViewProperties && (
@@ -465,7 +467,7 @@ const Dashboard: React.FC = () => {
                       }
                     }}
                   >
-                    Créer une propriété
+                    {t('dashboard.createProperty')}
                   </Button>
                 )}
 
@@ -492,7 +494,7 @@ const Dashboard: React.FC = () => {
                       }
                     }}
                   >
-                    Créer une demande
+                    {t('dashboard.createRequest')}
                   </Button>
                 )}
 
@@ -519,7 +521,7 @@ const Dashboard: React.FC = () => {
                       }
                     }}
                   >
-                    Créer une intervention
+                    {t('dashboard.createIntervention')}
                   </Button>
                 )}
 
@@ -546,7 +548,7 @@ const Dashboard: React.FC = () => {
                       }
                     }}
                   >
-                    Créer une équipe
+                    {t('dashboard.createTeam')}
                   </Button>
                 )}
 
@@ -573,7 +575,7 @@ const Dashboard: React.FC = () => {
                       }
                     }}
                   >
-                    Créer un utilisateur
+                    {t('dashboard.createUser')}
                   </Button>
                 )}
               </Box>
