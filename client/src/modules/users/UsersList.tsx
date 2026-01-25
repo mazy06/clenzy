@@ -148,12 +148,12 @@ const UsersList: React.FC = () => {
   if (!user || !canManageUsers) {
     console.log('🔍 UsersList - Permission refusée ou utilisateur non chargé');
     return (
-      <Box sx={createSpacing.page()}>
-        <Alert severity="info">
-          <Typography variant="h6" gutterBottom>
+      <Box sx={{ p: 2 }}>
+        <Alert severity="info" sx={{ p: 2, py: 1 }}>
+          <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}>
             Accès non autorisé
           </Typography>
-          <Typography variant="body1">
+          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
             Vous n'avez pas les permissions nécessaires pour gérer les utilisateurs.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
@@ -332,7 +332,7 @@ const UsersList: React.FC = () => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
+        <CircularProgress size={32} />
       </Box>
     );
   }
@@ -345,21 +345,25 @@ const UsersList: React.FC = () => {
         backPath="/dashboard"
         showBackButton={false}
         actions={
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
             <Button
               variant="outlined"
               color="secondary"
-              startIcon={<Sync />}
+              size="small"
+              startIcon={<Sync sx={{ fontSize: 18 }} />}
               onClick={handleSyncUsers}
               disabled={syncing}
+              sx={{ fontSize: '0.8125rem' }}
             >
               {syncing ? 'Synchronisation...' : 'Synchroniser'}
             </Button>
             <Button
               variant="contained"
               color="primary"
-              startIcon={<Add />}
+              size="small"
+              startIcon={<Add sx={{ fontSize: 18 }} />}
               onClick={() => navigate('/users/new')}
+              sx={{ fontSize: '0.8125rem' }}
             >
               Nouvel utilisateur
             </Button>
@@ -368,15 +372,15 @@ const UsersList: React.FC = () => {
       />
 
       {/* Statistiques */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 2 }}>
         <Grid container spacing={2}>
           <Grid item xs={12} md={3}>
             <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="primary" fontWeight={700}>
+              <CardContent sx={{ textAlign: 'center', py: 1.5, px: 2 }}>
+                <Typography variant="h6" color="primary" fontWeight={700} sx={{ fontSize: '1.5rem' }}>
                   {users.length}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                   Total utilisateurs
                 </Typography>
               </CardContent>
@@ -384,11 +388,11 @@ const UsersList: React.FC = () => {
           </Grid>
           <Grid item xs={12} md={3}>
             <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="success.main" fontWeight={700}>
+              <CardContent sx={{ textAlign: 'center', py: 1.5, px: 2 }}>
+                <Typography variant="h6" color="success.main" fontWeight={700} sx={{ fontSize: '1.5rem' }}>
                   {users.filter(u => u.status === 'ACTIVE').length}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                   Utilisateurs actifs
                 </Typography>
               </CardContent>
@@ -396,11 +400,11 @@ const UsersList: React.FC = () => {
           </Grid>
           <Grid item xs={12} md={3}>
             <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="warning.main" fontWeight={700}>
+              <CardContent sx={{ textAlign: 'center', py: 1.5, px: 2 }}>
+                <Typography variant="h6" color="warning.main" fontWeight={700} sx={{ fontSize: '1.5rem' }}>
                   {users.filter(u => u.role === 'ADMIN').length}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                   Administrateurs
                 </Typography>
               </CardContent>
@@ -408,11 +412,11 @@ const UsersList: React.FC = () => {
           </Grid>
           <Grid item xs={12} md={3}>
             <Card>
-              <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h4" color="info.main" fontWeight={700}>
+              <CardContent sx={{ textAlign: 'center', py: 1.5, px: 2 }}>
+                <Typography variant="h6" color="info.main" fontWeight={700} sx={{ fontSize: '1.5rem' }}>
                   {users.filter(u => ['TECHNICIAN', 'HOUSEKEEPER'].includes(u.role)).length}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                   Personnel opérationnel
                 </Typography>
               </CardContent>
@@ -455,29 +459,33 @@ const UsersList: React.FC = () => {
       />
 
       {/* Liste des utilisateurs */}
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {filteredUsers.length === 0 ? (
           <Grid item xs={12}>
-            <Typography variant="h6" align="center">
-              {users.length === 0 ? 'Aucun utilisateur trouvé.' : 'Aucun utilisateur ne correspond aux filtres.'}
-            </Typography>
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 2.5, px: 2 }}>
+                <Typography variant="h6" align="center" sx={{ fontSize: '0.95rem', mb: 1 }}>
+                  {users.length === 0 ? 'Aucun utilisateur trouvé.' : 'Aucun utilisateur ne correspond aux filtres.'}
+                </Typography>
+              </CardContent>
+            </Card>
           </Grid>
         ) : (
           filteredUsers.map((user) => (
-            <Grid item xs={12} md={6} lg={4} key={user.id}>
+            <Grid item xs={12} sm={6} md={4} lg={3} key={user.id}>
               <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardContent sx={{ flexGrow: 1, ...createSpacing.card() }}>
+                <CardContent sx={{ flexGrow: 1, p: 1.5 }}>
                   {/* En-tête avec avatar et menu */}
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
-                      <Avatar sx={{ width: 48, height: 48, bgcolor: 'primary.main' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+                      <Avatar sx={{ width: 40, height: 40, bgcolor: 'primary.main', fontSize: '0.875rem' }}>
                         {user.firstName.charAt(0)}{user.lastName.charAt(0)}
                       </Avatar>
-                      <Box>
-                        <Typography variant="h6" fontWeight={600}>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
                           {user.firstName} {user.lastName}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                           {user.email}
                         </Typography>
                       </Box>
@@ -485,25 +493,27 @@ const UsersList: React.FC = () => {
                     <IconButton
                       size="small"
                       onClick={(e) => handleMenuOpen(e, user)}
-                      sx={{ ml: 1 }}
+                      sx={{ p: 0.5, ml: 0.5 }}
                     >
-                      <MoreVert />
+                      <MoreVert sx={{ fontSize: 18 }} />
                     </IconButton>
                   </Box>
 
                   {/* Rôle et statut */}
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                  <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
                     <Chip
                       icon={getRoleInfo(user.role).icon}
                       label={getRoleInfo(user.role).label}
                       color={getRoleInfo(user.role).color as any}
                       size="small"
+                      sx={{ height: 20, fontSize: '0.7rem' }}
                     />
                     <Chip
                       label={getStatusInfo(user.status).label}
                       color={getStatusInfo(user.status).color as any}
                       size="small"
                       variant="outlined"
+                      sx={{ height: 20, fontSize: '0.7rem' }}
                     />
                   </Box>
 
@@ -511,43 +521,45 @@ const UsersList: React.FC = () => {
                   <List dense sx={{ py: 0 }}>
                     {user.phoneNumber && (
                       <ListItem sx={{ px: 0, py: 0.5 }}>
-                        <ListItemIcon sx={{ minWidth: 32 }}>
-                          <Phone sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <ListItemIcon sx={{ minWidth: 28 }}>
+                          <Phone sx={{ fontSize: 14, color: 'text.secondary' }} />
                         </ListItemIcon>
                         <ListItemText
                           primary={user.phoneNumber}
-                          primaryTypographyProps={{ variant: 'body2' }}
+                          primaryTypographyProps={{ variant: 'caption', sx: { fontSize: '0.7rem' } }}
                         />
                       </ListItem>
                     )}
                     <ListItem sx={{ px: 0, py: 0.5 }}>
-                      <ListItemIcon sx={{ minWidth: 32 }}>
-                        <Email sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <ListItemIcon sx={{ minWidth: 28 }}>
+                        <Email sx={{ fontSize: 14, color: 'text.secondary' }} />
                       </ListItemIcon>
                       <ListItemText
                         primary={user.email}
-                        primaryTypographyProps={{ variant: 'body2' }}
+                        primaryTypographyProps={{ variant: 'caption', sx: { fontSize: '0.7rem' } }}
                       />
                     </ListItem>
                     <ListItem sx={{ px: 0, py: 0.5 }}>
-                      <ListItemIcon sx={{ minWidth: 32 }}>
-                        <Person sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <ListItemIcon sx={{ minWidth: 28 }}>
+                        <Person sx={{ fontSize: 14, color: 'text.secondary' }} />
                       </ListItemIcon>
                       <ListItemText
                         primary={`Créé le ${formatDate(user.createdAt)}`}
-                        primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
+                        primaryTypographyProps={{ variant: 'caption', sx: { fontSize: '0.7rem', color: 'text.secondary' } }}
                       />
                     </ListItem>
                   </List>
                 </CardContent>
 
                 {/* Actions */}
-                <CardActions sx={{ pt: 0, ...createSpacing.card() }}>
+                <CardActions sx={{ pt: 0, p: 1 }}>
                   <Button
                     variant="outlined"
-                    startIcon={<Visibility />}
+                    size="small"
+                    startIcon={<Visibility sx={{ fontSize: 16 }} />}
                     onClick={() => navigate(`/users/${user.id}`)}
                     fullWidth
+                    sx={{ fontSize: '0.75rem' }}
                   >
                     Voir détails
                   </Button>
@@ -572,21 +584,21 @@ const UsersList: React.FC = () => {
           horizontal: 'right',
         }}
       >
-        <MenuItem onClick={handleViewDetails}>
+        <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', py: 0.75 }}>
           <ListItemIcon>
-            <Visibility fontSize="small" />
+            <Visibility sx={{ fontSize: 18 }} />
           </ListItemIcon>
           Voir détails
         </MenuItem>
-        <MenuItem onClick={handleEdit}>
+        <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
           <ListItemIcon>
-            <Edit fontSize="small" />
+            <Edit sx={{ fontSize: 18 }} />
           </ListItemIcon>
           Modifier
         </MenuItem>
-        <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+        <MenuItem onClick={handleDelete} sx={{ color: 'error.main', fontSize: '0.85rem', py: 0.75 }}>
           <ListItemIcon>
-            <Delete fontSize="small" sx={{ color: 'error.main' }} />
+            <Delete sx={{ fontSize: 18, color: 'error.main' }} />
           </ListItemIcon>
           Supprimer
         </MenuItem>
@@ -594,12 +606,13 @@ const UsersList: React.FC = () => {
 
       {/* Dialog de modification */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Modifier l'utilisateur</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+        <DialogTitle sx={{ pb: 1 }}>Modifier l'utilisateur</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
+                size="small"
                 label="Prénom *"
                 value={editFormData.firstName || ''}
                 onChange={(e) => setEditFormData(prev => ({ ...prev, firstName: e.target.value }))}
@@ -609,6 +622,7 @@ const UsersList: React.FC = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
+                size="small"
                 label="Nom *"
                 value={editFormData.lastName || ''}
                 onChange={(e) => setEditFormData(prev => ({ ...prev, lastName: e.target.value }))}
@@ -618,6 +632,7 @@ const UsersList: React.FC = () => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
+                size="small"
                 label="Email *"
                 type="email"
                 value={editFormData.email || ''}
@@ -628,13 +643,14 @@ const UsersList: React.FC = () => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
+                size="small"
                 label="Téléphone"
                 value={editFormData.phoneNumber || ''}
                 onChange={(e) => setEditFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
+              <FormControl fullWidth size="small">
                 <InputLabel>Rôle</InputLabel>
                 <Select
                   value={editFormData.role || ''}
@@ -644,8 +660,8 @@ const UsersList: React.FC = () => {
                   {userRoles.map((role) => (
                     <MenuItem key={role.value} value={role.value}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {role.icon}
-                        {role.label}
+                        <Box sx={{ fontSize: 18 }}>{role.icon}</Box>
+                        <Typography variant="body2">{role.label}</Typography>
                       </Box>
                     </MenuItem>
                   ))}
@@ -653,7 +669,7 @@ const UsersList: React.FC = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
+              <FormControl fullWidth size="small">
                 <InputLabel>Statut</InputLabel>
                 <Select
                   value={editFormData.status || ''}
@@ -662,7 +678,7 @@ const UsersList: React.FC = () => {
                 >
                   {userStatuses.map((status) => (
                     <MenuItem key={status.value} value={status.value}>
-                      {status.label}
+                      <Typography variant="body2">{status.label}</Typography>
                     </MenuItem>
                   ))}
                 </Select>
@@ -670,11 +686,12 @@ const UsersList: React.FC = () => {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditDialogOpen(false)}>Annuler</Button>
+        <DialogActions sx={{ px: 2, pb: 1.5 }}>
+          <Button onClick={() => setEditDialogOpen(false)} size="small">Annuler</Button>
           <Button 
             onClick={handleEditSave} 
             variant="contained"
+            size="small"
             disabled={saving || !editFormData.firstName || !editFormData.lastName || !editFormData.email}
           >
             {saving ? 'Sauvegarde...' : 'Sauvegarder'}
@@ -684,16 +701,16 @@ const UsersList: React.FC = () => {
 
       {/* Dialog de confirmation de suppression */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Confirmer la suppression</DialogTitle>
-        <DialogContent>
-          <Typography>
+        <DialogTitle sx={{ pb: 1 }}>Confirmer la suppression</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Typography variant="body2">
             Êtes-vous sûr de vouloir supprimer l'utilisateur "{selectedUser?.firstName} {selectedUser?.lastName}" ?
             Cette action est irréversible.
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Annuler</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
+        <DialogActions sx={{ px: 2, pb: 1.5 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} size="small">Annuler</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained" size="small">
             Supprimer
           </Button>
         </DialogActions>

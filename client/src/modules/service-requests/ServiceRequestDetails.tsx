@@ -242,15 +242,15 @@ const ServiceRequestDetails: React.FC = () => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
+        <CircularProgress size={32} />
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
+      <Box sx={{ p: 2 }}>
+        <Alert severity="error" sx={{ py: 1 }}>
           {error}
         </Alert>
       </Box>
@@ -259,8 +259,8 @@ const ServiceRequestDetails: React.FC = () => {
 
   if (!serviceRequest) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="warning">
+      <Box sx={{ p: 2 }}>
+        <Alert severity="warning" sx={{ py: 1 }}>
           Demande de service non trouvée
         </Alert>
       </Box>
@@ -280,18 +280,18 @@ const ServiceRequestDetails: React.FC = () => {
   }, [hasPermissionAsync]);;
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 2 }}>
       {/* Header avec bouton retour et bouton modifier */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <IconButton 
             onClick={() => navigate('/service-requests')} 
-            sx={{ mr: 2 }}
-            size="large"
+            sx={{ mr: 1.5 }}
+            size="small"
           >
-            <ArrowBack />
+            <ArrowBack sx={{ fontSize: 20 }} />
           </IconButton>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography variant="h6" fontWeight={600}>
             Détails de la demande de service
           </Typography>
         </Box>
@@ -301,6 +301,7 @@ const ServiceRequestDetails: React.FC = () => {
             variant="contained"
             startIcon={<Edit />}
             onClick={() => navigate(`/service-requests/${id}/edit`)}
+            size="small"
           >
             Modifier
           </Button>
@@ -308,40 +309,42 @@ const ServiceRequestDetails: React.FC = () => {
       </Box>
 
       {/* Carte principale avec résumé */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent sx={{ p: 4 }}>
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ p: 2 }}>
           {/* En-tête de la demande */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {getTypeIcon(serviceRequest.type)}
-              <Typography variant="h5" fontWeight={600}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ fontSize: 20 }}>{getTypeIcon(serviceRequest.type)}</Box>
+              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '1rem' }}>
                 {serviceRequest.title}
               </Typography>
             </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 0.5 }}>
               <Chip
                 label={getStatusLabel(serviceRequest.status)}
                 color={getStatusColor(serviceRequest.status) as any}
-                size="medium"
+                size="small"
+                sx={{ height: 24, fontSize: '0.75rem' }}
               />
               <Chip
                 label={getPriorityLabel(serviceRequest.priority)}
                 color={getPriorityColor(serviceRequest.priority) as any}
-                size="medium"
-                icon={<PriorityHigh />}
+                size="small"
+                icon={<PriorityHigh sx={{ fontSize: 14 }} />}
+                sx={{ height: 24, fontSize: '0.75rem' }}
               />
             </Box>
           </Box>
 
           {/* Description */}
-          <Typography variant="body1" sx={{ mb: 3 }}>
+          <Typography variant="body2" sx={{ mb: 2, fontSize: '0.85rem' }}>
             {serviceRequest.description}
           </Typography>
 
           {/* Propriété */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-            <LocationOn sx={{ fontSize: 20, color: 'text.secondary' }} />
-            <Typography variant="body1" color="text.secondary">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 2 }}>
+            <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
               {serviceRequest.propertyName} - {serviceRequest.propertyAddress}, {serviceRequest.propertyCity}
               {serviceRequest.propertyPostalCode && `, ${serviceRequest.propertyPostalCode}`}
               {serviceRequest.propertyCountry && `, ${serviceRequest.propertyCountry}`}
@@ -349,47 +352,47 @@ const ServiceRequestDetails: React.FC = () => {
           </Box>
 
           {/* Métriques principales */}
-          <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid container spacing={2} sx={{ mb: 0 }}>
             <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center' }}>
-                <Category sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
-                <Typography variant="body2" fontWeight={500}>
+                <Category sx={{ fontSize: 18, color: 'text.secondary', mb: 0.25 }} />
+                <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                   {getTypeLabel(serviceRequest.type)}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                   Type
                 </Typography>
               </Box>
             </Grid>
             <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center' }}>
-                <AccessTime sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
-                <Typography variant="body2" fontWeight={500}>
+                <AccessTime sx={{ fontSize: 18, color: 'text.secondary', mb: 0.25 }} />
+                <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                   {formatDuration(serviceRequest.estimatedDuration)}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                   Durée estimée
                 </Typography>
               </Box>
             </Grid>
             <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center' }}>
-                <CalendarToday sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
-                <Typography variant="body2" fontWeight={500}>
+                <CalendarToday sx={{ fontSize: 18, color: 'text.secondary', mb: 0.25 }} />
+                <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                   {formatDate(serviceRequest.dueDate)}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                   Échéance
                 </Typography>
               </Box>
             </Grid>
             <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center' }}>
-                <Schedule sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
-                <Typography variant="body2" fontWeight={500}>
+                <Schedule sx={{ fontSize: 18, color: 'text.secondary', mb: 0.25 }} />
+                <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                   {formatDate(serviceRequest.createdAt)}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                   Créé le
                 </Typography>
               </Box>
@@ -400,88 +403,90 @@ const ServiceRequestDetails: React.FC = () => {
 
       {/* Détails complets */}
       <Card>
-        <CardContent sx={{ p: 4 }}>
-          <Grid container spacing={4}>
+        <CardContent sx={{ p: 2 }}>
+          <Grid container spacing={2}>
             {/* Informations de base */}
             <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
                 Informations de base
               </Typography>
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                 Titre
               </Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>
+              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
                 {serviceRequest.title}
               </Typography>
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                 Type de service
               </Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>
+              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
                 {getTypeLabel(serviceRequest.type)}
               </Typography>
             </Grid>
 
             {/* Description complète */}
             <Grid item xs={12}>
-              <Typography variant="subtitle2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                 Description détaillée
               </Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>
+              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
                 {serviceRequest.description}
               </Typography>
             </Grid>
 
             {/* Statut et priorité */}
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                 Statut
               </Typography>
               <Chip
                 label={getStatusLabel(serviceRequest.status)}
                 color={getStatusColor(serviceRequest.status) as any}
-                sx={{ mb: 2 }}
+                size="small"
+                sx={{ mb: 1, height: 22, fontSize: '0.7rem' }}
               />
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                 Priorité
               </Typography>
               <Chip
                 label={getPriorityLabel(serviceRequest.priority)}
                 color={getPriorityColor(serviceRequest.priority) as any}
-                sx={{ mb: 2 }}
-                icon={<PriorityHigh />}
+                size="small"
+                icon={<PriorityHigh sx={{ fontSize: 14 }} />}
+                sx={{ mb: 1, height: 22, fontSize: '0.7rem' }}
               />
             </Grid>
 
             {/* Propriété */}
             <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
                 Propriété concernée
               </Typography>
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                 Nom de la propriété
               </Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>
+              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
                 {serviceRequest.propertyName}
               </Typography>
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                 Adresse complète
               </Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>
+              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
                 {serviceRequest.propertyAddress}, {serviceRequest.propertyCity}
                 {serviceRequest.propertyPostalCode && `, ${serviceRequest.propertyPostalCode}`}
                 {serviceRequest.propertyCountry && `, ${serviceRequest.propertyCountry}`}
@@ -490,52 +495,52 @@ const ServiceRequestDetails: React.FC = () => {
 
             {/* Planification */}
             <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
                 Planification
               </Typography>
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <Typography variant="subtitle2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                 Durée estimée
               </Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>
+              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
                 {formatDuration(serviceRequest.estimatedDuration)}
               </Typography>
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <Typography variant="subtitle2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                 Date d'échéance
               </Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>
+              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
                 {formatDate(serviceRequest.dueDate)}
               </Typography>
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <Typography variant="subtitle2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                 Date de création
               </Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>
+              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
                 {formatDate(serviceRequest.createdAt)}
               </Typography>
             </Grid>
 
             {/* Personnes impliquées */}
             <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
                 Personnes impliquées
               </Typography>
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                 Demandeur
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <Person sx={{ fontSize: 18, color: 'text.secondary' }} />
-                <Typography variant="body1">
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
+                <Person sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                   {serviceRequest.requestorName}
                   {serviceRequest.requestorEmail && ` (${serviceRequest.requestorEmail})`}
                 </Typography>
@@ -544,17 +549,17 @@ const ServiceRequestDetails: React.FC = () => {
 
             {/* Assignation */}
             <Grid item xs={12} md={6}>
-              <Typography variant="subtitle2" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                 Assigné à
               </Typography>
               {serviceRequest.assignedToName ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
                   {serviceRequest.assignedToType === 'team' ? (
-                    <Group sx={{ fontSize: 18, color: 'text.secondary' }} />
+                    <Group sx={{ fontSize: 16, color: 'text.secondary' }} />
                   ) : (
-                    <Assignment sx={{ fontSize: 18, color: 'text.secondary' }} />
+                    <Assignment sx={{ fontSize: 16, color: 'text.secondary' }} />
                   )}
-                  <Typography variant="body1">
+                  <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                     {serviceRequest.assignedToName}
                     {serviceRequest.assignedToEmail && serviceRequest.assignedToType === 'user' && ` (${serviceRequest.assignedToEmail})`}
                     {serviceRequest.assignedToType === 'team' && (
@@ -562,13 +567,13 @@ const ServiceRequestDetails: React.FC = () => {
                         label="Équipe" 
                         size="small" 
                         variant="outlined" 
-                        sx={{ ml: 1 }}
+                        sx={{ ml: 0.5, height: 20, fontSize: '0.65rem' }}
                       />
                     )}
                   </Typography>
                 </Box>
               ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, fontSize: '0.75rem' }}>
                   Aucune assignation
                 </Typography>
               )}
@@ -578,16 +583,16 @@ const ServiceRequestDetails: React.FC = () => {
             {serviceRequest.updatedAt && (
               <>
                 <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
                     Informations système
                   </Typography>
                 </Grid>
 
                 <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                     Modifié le
                   </Typography>
-                  <Typography variant="body1" sx={{ mb: 2 }}>
+                  <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
                     {formatDate(serviceRequest.updatedAt)}
                   </Typography>
                 </Grid>
@@ -596,10 +601,10 @@ const ServiceRequestDetails: React.FC = () => {
 
             {serviceRequest.completedAt && (
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                   Terminé le
                 </Typography>
-                <Typography variant="body1" sx={{ mb: 2 }}>
+                <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
                   {formatDate(serviceRequest.completedAt)}
                 </Typography>
               </Grid>

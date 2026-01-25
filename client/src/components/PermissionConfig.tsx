@@ -53,6 +53,7 @@ const PermissionConfig: React.FC = () => {
     resetToInitialPermissions,
     saveRolePermissions,
     applyLocalChanges,
+    loadRolePermissions,
   } = useRolePermissions();
   
   const { triggerGlobalRefresh } = usePermissionRefresh();
@@ -213,8 +214,19 @@ const PermissionConfig: React.FC = () => {
                 onClick={async () => {
                   try {
                     await applyLocalChanges(selectedRole);
+                    
+                    // Recharger les permissions depuis la base de données après la sauvegarde
+                    // pour s'assurer qu'on a les vraies valeurs persistées
+                    if (selectedRole) {
+                      await loadRolePermissions(selectedRole);
+                    }
+                    
                     // Déclencher le rafraîchissement global des permissions
                     triggerGlobalRefresh();
+                    
+                    // Forcer le rechargement de l'utilisateur pour obtenir les nouvelles permissions
+                    window.dispatchEvent(new CustomEvent('force-user-reload'));
+                    
                     console.log('💾 Permissions sauvegardées pour le rôle', selectedRole);
                     
                     // Afficher une notification de succès

@@ -149,12 +149,12 @@ const UserEdit: React.FC = () => {
   // Vérifier les permissions - accès uniquement aux utilisateurs avec la permission users:manage
   if (!canManageUsers) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info">
-          <Typography variant="h6" gutterBottom>
+      <Box sx={{ p: 2 }}>
+        <Alert severity="info" sx={{ p: 2, py: 1 }}>
+          <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}>
             Accès non autorisé
           </Typography>
-          <Typography variant="body1">
+          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
             Vous n'avez pas les permissions nécessaires pour modifier des utilisateurs.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
@@ -280,15 +280,15 @@ const UserEdit: React.FC = () => {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
+        <CircularProgress size={32} />
       </Box>
     );
   }
 
   if (error && !user) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
+      <Box sx={{ p: 2 }}>
+        <Alert severity="error" sx={{ p: 2, py: 1 }}>
           {error}
         </Alert>
       </Box>
@@ -296,7 +296,7 @@ const UserEdit: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 2 }}>
       <PageHeader
         title="Modifier l'utilisateur"
         subtitle={`Modification des informations de ${user?.firstName || ''} ${user?.lastName || ''}`}
@@ -306,18 +306,21 @@ const UserEdit: React.FC = () => {
           <>
             <Button
               variant="outlined"
+              size="small"
               onClick={() => navigate(`/users/${id}`)}
-              startIcon={<Cancel />}
+              startIcon={<Cancel sx={{ fontSize: 16 }} />}
               disabled={saving}
+              sx={{ fontSize: '0.8125rem' }}
             >
               Annuler
             </Button>
             <Button
               variant="contained"
+              size="small"
               onClick={handleSubmit}
-              startIcon={<Save />}
+              startIcon={<Save sx={{ fontSize: 16 }} />}
               disabled={saving}
-              sx={{ ml: 1 }}
+              sx={{ ml: 1, fontSize: '0.8125rem' }}
             >
               {saving ? 'Sauvegarde...' : 'Sauvegarder'}
             </Button>
@@ -327,37 +330,38 @@ const UserEdit: React.FC = () => {
 
       {/* Messages d'erreur/succès */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
           {error}
         </Alert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
+        <Alert severity="success" sx={{ mb: 2, py: 1 }}>
           Utilisateur modifié avec succès ! Redirection en cours...
         </Alert>
       )}
 
       {/* Formulaire */}
       <Card>
-        <CardContent sx={{ p: 4 }}>
+        <CardContent sx={{ p: 2 }}>
           <form onSubmit={handleSubmit}>
             {/* Informations personnelles */}
-            <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
               Informations personnelles
             </Typography>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
+                  size="small"
                   label="Prénom *"
                   value={formData.firstName}
                   onChange={(e) => handleInputChange('firstName', e.target.value)}
                   required
                   placeholder="Ex: Jean"
                   InputProps={{
-                    startAdornment: <Person sx={{ mr: 1, color: 'text.secondary' }} />,
+                    startAdornment: <Person sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
                   }}
                 />
               </Grid>
@@ -365,27 +369,29 @@ const UserEdit: React.FC = () => {
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
+                  size="small"
                   label="Nom *"
                   value={formData.lastName}
                   onChange={(e) => handleInputChange('lastName', e.target.value)}
                   required
                   placeholder="Ex: Dupont"
                   InputProps={{
-                    startAdornment: <Person sx={{ mr: 1, color: 'text.secondary' }} />,
+                    startAdornment: <Person sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
                   }}
                 />
               </Grid>
             </Grid>
 
             {/* Informations de contact */}
-            <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
               Informations de contact
             </Typography>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={8}>
                 <TextField
                   fullWidth
+                  size="small"
                   label="Email *"
                   type="email"
                   value={formData.email}
@@ -393,7 +399,7 @@ const UserEdit: React.FC = () => {
                   required
                   placeholder="Ex: jean.dupont@clenzy.fr"
                   InputProps={{
-                    startAdornment: <Email sx={{ mr: 1, color: 'text.secondary' }} />,
+                    startAdornment: <Email sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
                   }}
                 />
               </Grid>
@@ -401,25 +407,26 @@ const UserEdit: React.FC = () => {
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
+                  size="small"
                   label="Téléphone"
                   value={formData.phoneNumber}
                   onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                   placeholder="Ex: +33 6 12 34 56 78"
                   InputProps={{
-                    startAdornment: <Phone sx={{ mr: 1, color: 'text.secondary' }} />,
+                    startAdornment: <Phone sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
                   }}
                 />
               </Grid>
             </Grid>
 
             {/* Rôle et statut */}
-            <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
               Rôle et statut
             </Typography>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth required>
+                <FormControl fullWidth required size="small">
                   <InputLabel>Rôle *</InputLabel>
                   <Select
                     value={formData.role}
@@ -429,13 +436,13 @@ const UserEdit: React.FC = () => {
                     {userRoles.map((role) => (
                       <MenuItem key={role.value} value={role.value}>
                         <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          {role.icon}
-                          {role.label}
+                          <Box sx={{ fontSize: 18 }}>{role.icon}</Box>
+                          <Typography variant="body2">{role.label}</Typography>
                         </MuiBox>
                       </MenuItem>
                     ))}
                   </Select>
-                  <FormHelperText>
+                  <FormHelperText sx={{ fontSize: '0.7rem' }}>
                     Le rôle détermine les permissions de l'utilisateur
                   </FormHelperText>
                 </FormControl>

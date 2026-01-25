@@ -474,7 +474,7 @@ export default function InterventionsList() {
     console.log('🔍 InterventionsList - Utilisateur en cours de chargement...');
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+        <CircularProgress size={32} />
       </Box>
     );
   }
@@ -512,6 +512,7 @@ export default function InterventionsList() {
               color="primary"
               startIcon={<AddIcon />}
               onClick={() => navigate('/interventions/new')}
+              size="small"
             >
               Nouvelle intervention
             </Button>
@@ -520,7 +521,7 @@ export default function InterventionsList() {
       />
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
           {error}
         </Alert>
       )}
@@ -558,26 +559,26 @@ export default function InterventionsList() {
         }}
       />
 
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {filteredInterventions.length === 0 ? (
           <Grid item xs={12}>
-            <Card sx={{ textAlign: 'center', py: 4, px: 3, ...createSpacing.card() }}>
+            <Card sx={{ textAlign: 'center', py: 2.5, px: 2, ...createSpacing.card() }}>
               <CardContent>
-                <Box sx={{ mb: 2 }}>
-                  <Build sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.6 }} />
+                <Box sx={{ mb: 1.5 }}>
+                  <Build sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.6 }} />
                 </Box>
-                <Typography variant="h5" color="text.secondary" gutterBottom>
+                <Typography variant="h6" color="text.secondary" gutterBottom>
                   Aucune intervention
                 </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
                   {canCreateInterventions 
                     ? "Aucune demande de service n'a encore été validée pour créer des interventions."
                     : "Aucune intervention ne vous est actuellement assignée."}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
                   Les interventions sont créées automatiquement à partir des demandes de service validées par les managers et administrateurs.
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.7rem' }}>
                   💡 Pour créer une intervention, validez d'abord une demande de service depuis le menu "Demandes de service".
                 </Typography>
               </CardContent>
@@ -597,102 +598,108 @@ export default function InterventionsList() {
             return (
               <Grid item xs={12} md={6} lg={4} key={intervention.id}>
               <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', ...createSpacing.card() }}>
-                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                    <Typography variant="h6" component="h2" sx={{ flex: 1, mr: 1 }}>
+                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 1.5 }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                    <Typography variant="subtitle1" component="h2" fontWeight={600} sx={{ flex: 1, mr: 0.5, fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={intervention.title}>
                       {intervention.title}
                     </Typography>
                     <IconButton
                       size="small"
                       onClick={(e) => handleMenuOpen(e, intervention)}
+                      sx={{ p: 0.5, flexShrink: 0 }}
                     >
-                      <MoreVertIcon />
+                      <MoreVertIcon sx={{ fontSize: 18 }} />
                     </IconButton>
                   </Box>
 
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="textSecondary" sx={{ mb: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem' }} title={intervention.description}>
                     {intervention.description}
                   </Typography>
 
-                  <Box display="flex" gap={1} mb={2} flexWrap="wrap">
+                  <Box display="flex" gap={0.5} mb={1} flexWrap="wrap">
                     <Chip
                       label={getTypeLabel(intervention.type)}
                       size="small"
                       color="primary"
                       variant="outlined"
+                      sx={{ height: 20, fontSize: '0.7rem' }}
                     />
                     <Chip
                       label={getStatusLabel(intervention.status)}
                       size="small"
                       color={getStatusColor(intervention.status) as any}
+                      sx={{ height: 20, fontSize: '0.7rem' }}
                     />
                     <Chip
                       label={getPriorityLabel(intervention.priority)}
                       size="small"
                       color={getPriorityColor(intervention.priority) as any}
+                      sx={{ height: 20, fontSize: '0.7rem' }}
                     />
                   </Box>
 
-                  <Box mb={2}>
-                    <Box display="flex" alignItems="center" mb={1}>
-                      <LocationIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="body2">
+                  <Box mb={1}>
+                    <Box display="flex" alignItems="center" mb={0.5}>
+                      <LocationIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                      <Typography variant="caption" sx={{ fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={intervention.propertyName}>
                         {intervention.propertyName}
                       </Typography>
                     </Box>
-                    <Typography variant="body2" color="textSecondary" sx={{ ml: 3 }}>
+                    <Typography variant="caption" color="textSecondary" sx={{ ml: 2, fontSize: '0.7rem' }}>
                       {intervention.propertyAddress}
                     </Typography>
                   </Box>
 
-                  <Box mb={2}>
-                    <Box display="flex" alignItems="center" mb={1}>
-                      <PersonIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="body2">
+                  <Box mb={1}>
+                    <Box display="flex" alignItems="center" mb={0.5}>
+                      <PersonIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                      <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
                         Demandeur: {intervention.requestorName}
                       </Typography>
                     </Box>
                     <Box display="flex" alignItems="center">
                       {intervention.assignedToType === 'team' ? (
-                        <GroupIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                        <GroupIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
                       ) : (
-                        <PersonIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                        <PersonIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
                       )}
-                      <Typography variant="body2">
+                      <Typography variant="caption" sx={{ fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={intervention.assignedToName || 'Non assigné'}>
                         Assigné à: {intervention.assignedToName || 'Non assigné'}
                       </Typography>
                     </Box>
                   </Box>
 
-                  <Divider sx={{ my: 2 }} />
+                  <Divider sx={{ my: 1 }} />
 
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                     <Box>
-                      <Typography variant="body2" color="textSecondary">
+                      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem', display: 'block' }}>
                         Planifié: {formatDate(intervention.scheduledDate)}
                       </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        Durée estimée: {formatDuration(intervention.estimatedDurationHours)}
+                      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
+                        Durée: {formatDuration(intervention.estimatedDurationHours)}
                       </Typography>
                     </Box>
                     <Box textAlign="right">
-                      <Typography variant="h6" color="primary">
+                      <Typography variant="subtitle1" fontWeight={700} color="primary" sx={{ fontSize: '0.95rem' }}>
                         {intervention.progressPercentage}%
                       </Typography>
-                      <Typography variant="body2" color="textSecondary">
+                      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
                         Progression
                       </Typography>
                     </Box>
                   </Box>
                   
                   {/* Bouton Voir détail */}
-                  <Box sx={{ mt: 'auto', pt: 2 }}>
+                  <Box sx={{ mt: 'auto', pt: 1 }}>
                     <Button
                       variant="contained"
                       color="primary"
                       fullWidth
                       onClick={() => navigate(`/interventions/${intervention.id}`)}
-                      startIcon={<VisibilityIcon />}
+                      startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
+                      size="small"
+                      sx={{ fontSize: '0.75rem' }}
                     >
                       Voir détail
                     </Button>
@@ -725,19 +732,19 @@ export default function InterventionsList() {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={handleViewDetails}>
-          <VisibilityIcon sx={{ mr: 1 }} />
+        <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', py: 0.75 }}>
+          <VisibilityIcon sx={{ mr: 1, fontSize: 18 }} />
           Voir détails
         </MenuItem>
         {canModifyIntervention(selectedIntervention!) && (
-          <MenuItem onClick={handleEdit}>
-            <EditIcon sx={{ mr: 1 }} />
+          <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
+            <EditIcon sx={{ mr: 1, fontSize: 18 }} />
             Modifier
           </MenuItem>
         )}
         {canDeleteInterventions && (
-          <MenuItem onClick={handleDelete}>
-            <DeleteIcon sx={{ mr: 1 }} />
+          <MenuItem onClick={handleDelete} sx={{ fontSize: '0.85rem', py: 0.75 }}>
+            <DeleteIcon sx={{ mr: 1, fontSize: 18 }} />
             Supprimer
           </MenuItem>
         )}

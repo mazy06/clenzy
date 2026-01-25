@@ -257,12 +257,12 @@ export default function InterventionDetails() {
   // Si l'utilisateur n'a pas la permission de voir les interventions, afficher un message informatif
   if (!canViewInterventions) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info">
-          <Typography variant="h6" gutterBottom>
+      <Box sx={{ p: 2 }}>
+        <Alert severity="info" sx={{ py: 1 }}>
+          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
             Accès non autorisé
           </Typography>
-          <Typography variant="body1">
+          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
             Vous n'avez pas les permissions nécessaires pour visualiser les détails des interventions.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
@@ -274,7 +274,7 @@ export default function InterventionDetails() {
 
   // COMPOSANT SIMPLIFIÉ - ÉTAPE 6
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 2 }}>
       {/* Header */}
       <PageHeader
         title="Détails de l'intervention"
@@ -289,6 +289,7 @@ export default function InterventionDetails() {
                 color="primary"
                 startIcon={<EditIcon />}
                 onClick={() => navigate(`/interventions/${id}/edit`)}
+                size="small"
               >
                 Modifier
               </Button>
@@ -302,36 +303,36 @@ export default function InterventionDetails() {
       {/* ÉTAPE 6 : AFFICHAGE AVEC MATERIAL-UI */}
       {loading && (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
+          <CircularProgress size={32} />
         </Box>
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
           {error}
         </Alert>
       )}
 
       {intervention && !loading && (
-        <Grid container spacing={3}>
+        <Grid container spacing={2}>
           {/* Informations principales */}
           <Grid item xs={12} md={8}>
             <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
+              <CardContent sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
                   Description
                 </Typography>
-                <Typography variant="body1" color="textSecondary" paragraph>
+                <Typography variant="body2" color="textSecondary" paragraph sx={{ fontSize: '0.85rem' }}>
                   {intervention.description}
                 </Typography>
 
-                <Divider sx={{ my: 2 }} />
+                <Divider sx={{ my: 1.5 }} />
 
-                <Grid container spacing={2}>
+                <Grid container spacing={1.5}>
                   <Grid item xs={12} sm={6}>
-                    <Box display="flex" alignItems="center" mb={1}>
-                      <BuildIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="textSecondary">
+                    <Box display="flex" alignItems="center" mb={0.75}>
+                      <BuildIcon sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />
+                      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
                         Type:
                       </Typography>
                     </Box>
@@ -339,75 +340,81 @@ export default function InterventionDetails() {
                       label={getTypeLabel(intervention.type)}
                       color="primary"
                       variant="outlined"
+                      size="small"
+                      sx={{ height: 22, fontSize: '0.7rem' }}
                     />
                   </Grid>
 
                   <Grid item xs={12} sm={6}>
-                    <Box display="flex" alignItems="center" mb={1}>
-                      {getStatusIcon(intervention.status)}
-                      <Typography variant="body2" color="textSecondary" sx={{ ml: 1 }}>
+                    <Box display="flex" alignItems="center" mb={0.75}>
+                      <Box sx={{ fontSize: 18, mr: 0.75 }}>{getStatusIcon(intervention.status)}</Box>
+                      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
                         Statut:
                       </Typography>
                     </Box>
                     <Chip
                       label={getStatusLabel(intervention.status)}
                       color={getStatusColor(intervention.status) as any}
+                      size="small"
+                      sx={{ height: 22, fontSize: '0.7rem' }}
                     />
                   </Grid>
 
                   <Grid item xs={12} sm={6}>
-                    <Box display="flex" alignItems="center" mb={1}>
-                      <PriorityHighIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="textSecondary">
+                    <Box display="flex" alignItems="center" mb={0.75}>
+                      <PriorityHighIcon sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />
+                      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
                         Priorité:
                       </Typography>
                     </Box>
                     <Chip
                       label={getPriorityLabel(intervention.priority)}
                       color={getPriorityColor(intervention.priority) as any}
+                      size="small"
+                      sx={{ height: 22, fontSize: '0.7rem' }}
                     />
                   </Grid>
 
                   <Grid item xs={12} sm={6}>
-                    <Box display="flex" alignItems="center" mb={1}>
-                      <ScheduleIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="textSecondary">
+                    <Box display="flex" alignItems="center" mb={0.75}>
+                      <ScheduleIcon sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />
+                      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
                         Planifié:
                       </Typography>
                     </Box>
-                    <Typography variant="body1">
+                    <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                       {formatDate(intervention.scheduledDate)}
                     </Typography>
                   </Grid>
                 </Grid>
 
-                <Divider sx={{ my: 2 }} />
+                <Divider sx={{ my: 1.5 }} />
 
                 {/* Progression */}
-                <Box mb={2}>
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                    <Typography variant="h6">
+                <Box mb={1.5}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.75}>
+                    <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
                       Progression
                     </Typography>
-                    <Typography variant="h6" color="primary">
+                    <Typography variant="subtitle1" fontWeight={700} color="primary" sx={{ fontSize: '0.95rem' }}>
                       {intervention.progressPercentage}%
                     </Typography>
                   </Box>
                   <LinearProgress
                     variant="determinate"
                     value={intervention.progressPercentage}
-                    sx={{ height: 8, borderRadius: 4 }}
+                    sx={{ height: 6, borderRadius: 3 }}
                   />
                 </Box>
 
                 {/* Notes */}
                 {intervention.notes && (
                   <>
-                    <Divider sx={{ my: 2 }} />
-                    <Typography variant="h6" gutterBottom>
+                    <Divider sx={{ my: 1.5 }} />
+                    <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1 }}>
                       Notes
                     </Typography>
-                    <Typography variant="body1" color="textSecondary">
+                    <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.85rem' }}>
                       {intervention.notes}
                     </Typography>
                   </>
@@ -419,19 +426,19 @@ export default function InterventionDetails() {
           {/* Informations secondaires */}
           <Grid item xs={12} md={4}>
             {/* Propriété */}
-            <Card sx={{ mb: 2 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
+            <Card sx={{ mb: 1.5 }}>
+              <CardContent sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1 }}>
                   Propriété
                 </Typography>
                 <List dense>
-                  <ListItem>
-                    <ListItemIcon>
-                      <LocationIcon />
+                  <ListItem sx={{ px: 0, py: 0.5 }}>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      <LocationIcon sx={{ fontSize: 18 }} />
                     </ListItemIcon>
                     <ListItemText
-                      primary={intervention.propertyName}
-                      secondary={`${intervention.propertyAddress}, ${intervention.propertyCity} ${intervention.propertyPostalCode}, ${intervention.propertyCountry}`}
+                      primary={<Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{intervention.propertyName}</Typography>}
+                      secondary={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>{`${intervention.propertyAddress}, ${intervention.propertyCity} ${intervention.propertyPostalCode}, ${intervention.propertyCountry}`}</Typography>}
                     />
                   </ListItem>
                 </List>
@@ -439,36 +446,36 @@ export default function InterventionDetails() {
             </Card>
 
             {/* Demandeur */}
-            <Card sx={{ mb: 2 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
+            <Card sx={{ mb: 1.5 }}>
+              <CardContent sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1 }}>
                   Demandeur
                 </Typography>
                 <List dense>
-                  <ListItem>
-                    <ListItemIcon>
-                      <PersonIcon />
+                  <ListItem sx={{ px: 0, py: 0.5 }}>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      <PersonIcon sx={{ fontSize: 18 }} />
                     </ListItemIcon>
-                    <ListItemText primary={intervention.requestorName} />
+                    <ListItemText primary={<Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{intervention.requestorName}</Typography>} />
                   </ListItem>
                 </List>
               </CardContent>
             </Card>
 
             {/* Assignation */}
-            <Card sx={{ mb: 2 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
+            <Card sx={{ mb: 1.5 }}>
+              <CardContent sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1 }}>
                   Assignation
                 </Typography>
                 <List dense>
-                  <ListItem>
-                    <ListItemIcon>
-                      {intervention.assignedToType === 'team' ? <GroupIcon /> : <PersonIcon />}
+                  <ListItem sx={{ px: 0, py: 0.5 }}>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      {intervention.assignedToType === 'team' ? <GroupIcon sx={{ fontSize: 18 }} /> : <PersonIcon sx={{ fontSize: 18 }} />}
                     </ListItemIcon>
                     <ListItemText
-                      primary={intervention.assignedToName}
-                      secondary={intervention.assignedToType === 'team' ? 'Équipe' : 'Utilisateur'}
+                      primary={<Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{intervention.assignedToName}</Typography>}
+                      secondary={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>{intervention.assignedToType === 'team' ? 'Équipe' : 'Utilisateur'}</Typography>}
                     />
                   </ListItem>
                 </List>
@@ -477,28 +484,28 @@ export default function InterventionDetails() {
 
             {/* Détails techniques */}
             <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
+              <CardContent sx={{ p: 2 }}>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1 }}>
                   Détails techniques
                 </Typography>
                 <List dense>
-                  <ListItem>
-                    <ListItemIcon>
-                      <ScheduleIcon />
+                  <ListItem sx={{ px: 0, py: 0.5 }}>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      <ScheduleIcon sx={{ fontSize: 18 }} />
                     </ListItemIcon>
                     <ListItemText
-                      primary="Durée estimée"
-                      secondary={formatDuration(intervention.estimatedDurationHours)}
+                      primary={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>Durée estimée</Typography>}
+                      secondary={<Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{formatDuration(intervention.estimatedDurationHours)}</Typography>}
                     />
                   </ListItem>
                   {intervention.estimatedCost && (
-                    <ListItem>
-                      <ListItemIcon>
-                        <PriorityHighIcon />
+                    <ListItem sx={{ px: 0, py: 0.5 }}>
+                      <ListItemIcon sx={{ minWidth: 32 }}>
+                        <PriorityHighIcon sx={{ fontSize: 18 }} />
                       </ListItemIcon>
                       <ListItemText
-                        primary="Coût estimé"
-                        secondary={formatCurrency(intervention.estimatedCost)}
+                        primary={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>Coût estimé</Typography>}
+                        secondary={<Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{formatCurrency(intervention.estimatedCost)}</Typography>}
                       />
                     </ListItem>
                   )}
@@ -511,33 +518,33 @@ export default function InterventionDetails() {
 
       {/* Informations temporelles */}
       {intervention && (
-        <Card sx={{ mt: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
+        <Card sx={{ mt: 2 }}>
+          <CardContent sx={{ p: 2 }}>
+            <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
               Informations temporelles
             </Typography>
-            <Grid container spacing={2}>
+            <Grid container spacing={1.5}>
               <Grid item xs={12} sm={4}>
-                <Typography variant="body2" color="textSecondary">
+                <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
                   Créée le
                 </Typography>
-                <Typography variant="body1">
+                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                   {formatDate(intervention.createdAt)}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <Typography variant="body2" color="textSecondary">
+                <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
                   Dernière mise à jour
                 </Typography>
-                <Typography variant="body1">
+                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                   {intervention.updatedAt ? formatDate(intervention.updatedAt) : 'Aucune'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <Typography variant="body2" color="textSecondary">
+                <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
                   Terminée le
                 </Typography>
-                <Typography variant="body1">
+                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                   {intervention.completedAt ? formatDate(intervention.completedAt) : 'Non terminée'}
                 </Typography>
               </Grid>

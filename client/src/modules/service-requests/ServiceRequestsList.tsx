@@ -536,6 +536,7 @@ export default function ServiceRequestsList() {
             color="primary"
             startIcon={<Add />}
             onClick={() => navigate('/service-requests/new')}
+            size="small"
           >
             Nouvelle demande
           </Button>
@@ -576,23 +577,23 @@ export default function ServiceRequestsList() {
       />
 
       {/* Liste des demandes de service */}
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {filteredServiceRequests.length === 0 ? (
           <Grid item xs={12}>
-            <Card sx={{ textAlign: 'center', py: 4, px: 3, ...createSpacing.card() }}>
+            <Card sx={{ textAlign: 'center', py: 2.5, px: 2, ...createSpacing.card() }}>
               <CardContent>
-                <Box sx={{ mb: 2 }}>
-                  <Description sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.6 }} />
+                <Box sx={{ mb: 1.5 }}>
+                  <Description sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.6 }} />
                 </Box>
-                <Typography variant="h5" color="text.secondary" gutterBottom>
+                <Typography variant="h6" color="text.secondary" gutterBottom>
                   Aucune demande de service
                 </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
                   {isAdmin() || isManager() 
                     ? "Aucune demande de service n'a encore été créée dans le système."
                     : "Aucune demande de service ne vous est actuellement assignée."}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
                   Les demandes de service permettent de gérer les besoins de nettoyage, maintenance et réparation de vos propriétés.
                 </Typography>
                 {(false || isAdmin() || isManager() || isHost()) && (
@@ -600,8 +601,8 @@ export default function ServiceRequestsList() {
                     variant="contained"
                     startIcon={<Add />}
                     onClick={() => navigate('/service-requests/new')}
-                    size="large"
-                    sx={{ borderRadius: 2 }}
+                    size="small"
+                    sx={{ borderRadius: 1.5 }}
                   >
                     Créer votre première demande
                   </Button>
@@ -703,16 +704,16 @@ export default function ServiceRequestsList() {
 
       {/* Dialog de confirmation de suppression */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Confirmer la suppression</DialogTitle>
-        <DialogContent>
-          <Typography>
+        <DialogTitle sx={{ pb: 1 }}>Confirmer la suppression</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Typography variant="body2">
             Êtes-vous sûr de vouloir supprimer la demande de service "{selectedServiceRequest?.title}" ?
             Cette action est irréversible.
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Annuler</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
+        <DialogActions sx={{ px: 2, pb: 1.5 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} size="small">Annuler</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained" size="small">
             Supprimer
           </Button>
         </DialogActions>
@@ -720,9 +721,9 @@ export default function ServiceRequestsList() {
 
       {/* Dialog de changement de statut */}
       <Dialog open={statusChangeDialogOpen} onClose={() => setStatusChangeDialogOpen(false)}>
-        <DialogTitle>Changer le statut</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2 }}>
+        <DialogTitle sx={{ pb: 1 }}>Changer le statut</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Typography variant="caption" sx={{ mb: 1.5, fontSize: '0.75rem' }}>
             Changer le statut de la demande "{selectedRequestForStatusChange?.title}"
           </Typography>
           <FormControl fullWidth>
@@ -731,6 +732,7 @@ export default function ServiceRequestsList() {
               value={newStatus}
               onChange={(e) => setNewStatus(e.target.value)}
               label="Nouveau statut"
+              size="small"
             >
               {statuses
                 .filter(status => status.value !== 'all')
@@ -742,9 +744,9 @@ export default function ServiceRequestsList() {
             </Select>
           </FormControl>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setStatusChangeDialogOpen(false)}>Annuler</Button>
-          <Button onClick={confirmStatusChange} variant="contained">
+        <DialogActions sx={{ px: 2, pb: 1.5 }}>
+          <Button onClick={() => setStatusChangeDialogOpen(false)} size="small">Annuler</Button>
+          <Button onClick={confirmStatusChange} variant="contained" size="small">
             Confirmer
           </Button>
         </DialogActions>

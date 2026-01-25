@@ -20,6 +20,7 @@ import com.clenzy.model.User;
 import com.clenzy.service.UserService;
 import com.clenzy.service.PermissionService;
 import com.clenzy.model.UserRole;
+import com.clenzy.dto.RolePermissionsDto;
 
 @RestController
 @RequestMapping("/api")
@@ -147,11 +148,14 @@ public class AuthController {
                 claims.put("updatedAt", user.getUpdatedAt());
                 
                 // Ajouter les permissions basées sur le rôle (avec support des permissions personnalisées)
-                List<String> permissions = permissionService.getUserPermissions(user.getRole().name());
+                // Utiliser getRolePermissions pour obtenir les permissions depuis la base de données
+                RolePermissionsDto rolePermissions = permissionService.getRolePermissions(user.getRole().name());
+                List<String> permissions = rolePermissions.getPermissions();
                 claims.put("permissions", permissions);
                 
                 System.out.println("🔍 /me - Utilisateur trouvé: " + user.getEmail() + " avec rôle: " + user.getRole());
-                System.out.println("🔍 /me - Permissions: " + permissions);
+                System.out.println("🔍 /me - Permissions récupérées: " + permissions.size() + " permissions");
+                System.out.println("🔍 /me - Liste complète des permissions: " + permissions);
             } else {
                 System.out.println("⚠️ /me - Utilisateur non trouvé pour keycloakId: " + keycloakId);
             }

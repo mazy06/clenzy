@@ -74,7 +74,7 @@ const ContactForm: React.FC = () => {
         setLoading(true);
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/contact/recipients`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
             'Content-Type': 'application/json'
           }
         });
@@ -149,7 +149,7 @@ const ContactForm: React.FC = () => {
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/contact/messages`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`
         },
         body: formDataToSend
       });

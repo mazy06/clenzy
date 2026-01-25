@@ -20,70 +20,78 @@ declare module '@mui/material/Button' {
 
 const theme = createTheme({
   palette: {
+    // Couleur principale : Bleu-gris Clenzy (identité visuelle)
     primary: {
-      main: '#1976d2', // Bleu professionnel
-      light: '#42a5f5',
-      dark: '#1565c0',
+      main: '#6B8A9A', // Bleu-gris foncé Clenzy - couleur principale
+      light: '#8BA3B3', // Bleu-gris moyen
+      dark: '#5A7684', // Bleu-gris très foncé
       contrastText: '#ffffff',
     },
+    // Couleur secondaire : Bleu-gris clair Clenzy
     secondary: {
-      main: '#ff6b35', // Orange Clenzy
-      light: '#ff8a65',
-      dark: '#e64a19',
-      contrastText: '#ffffff',
+      main: '#A6C0CE', // Bleu-gris clair Clenzy - couleur secondaire
+      light: '#C5D5E0', // Bleu-gris très clair
+      dark: '#8BA3B3', // Bleu-gris moyen
+      contrastText: '#1e293b', // Texte foncé pour meilleur contraste
     },
+    // Success : Vert harmonieux avec la palette bleu-gris
     success: {
-      main: '#2e7d32',
-      light: '#4caf50',
-      dark: '#1b5e20',
+      main: '#4A9B8E', // Vert-bleu harmonieux
+      light: '#6BB5A8',
+      dark: '#3A7A6F',
       contrastText: '#ffffff',
     },
+    // Warning : Ambre/Orange harmonieux
     warning: {
-      main: '#ed6c02',
-      light: '#ff9800',
-      dark: '#e65100',
-      contrastText: '#ffffff',
+      main: '#D4A574', // Ambre/beige chaud harmonieux
+      light: '#E8C19A',
+      dark: '#B88A5A',
+      contrastText: '#1e293b',
     },
+    // Error : Rouge-brun harmonieux (moins agressif)
     error: {
-      main: '#d32f2f',
-      light: '#ef5350',
-      dark: '#c62828',
+      main: '#C97A7A', // Rouge-rose doux harmonieux
+      light: '#E09A9A',
+      dark: '#B05A5A',
       contrastText: '#ffffff',
     },
+    // Info : Bleu harmonieux avec la palette
     info: {
-      main: '#0288d1',
-      light: '#03a9f4',
-      dark: '#01579b',
+      main: '#7BA3C2', // Bleu harmonieux avec Clenzy
+      light: '#9BB8D1',
+      dark: '#5B7A92',
       contrastText: '#ffffff',
     },
+    // Neutral : Gris harmonieux avec la palette
     neutral: {
-      main: '#64748B',
-      light: '#94A3B8',
-      dark: '#475569',
+      main: '#8B9AAB', // Gris-bleu harmonieux
+      light: '#A8B5C3',
+      dark: '#6B7A8A',
       contrastText: '#ffffff',
     },
+    // Clenzy : Couleur de marque principale (bleu-gris clair)
     clenzy: {
-      main: '#A6C0CE',
-      light: '#C5D5E0',
-      dark: '#8BA3B3',
-      contrastText: '#ffffff',
+      main: '#A6C0CE', // Bleu-gris clair Clenzy
+      light: '#C5D5E0', // Bleu-gris très clair
+      dark: '#8BA3B3', // Bleu-gris moyen
+      contrastText: '#1e293b', // Texte foncé pour meilleur contraste
     },
-    // Couleurs supplémentaires pour éviter les erreurs
+    // Nuances de gris harmonisées avec la palette Clenzy
     grey: {
-      50: '#fafafa',
-      100: '#f5f5f5',
-      200: '#eeeeee',
-      300: '#e0e0e0',
-      400: '#bdbdbd',
-      500: '#9e9e9e',
-      600: '#757575',
-      700: '#616161',
-      800: '#424242',
-      900: '#212121',
-      A100: '#d5d5d5',
-      A200: '#aaaaaa',
-      A400: '#303030',
-      A700: '#616161',
+      50: '#F8FAFC', // Fond très clair
+      100: '#F1F5F9', // Fond clair
+      200: '#E2E8F0', // Bordure claire
+      300: '#CBD5E1', // Bordure moyenne
+      400: '#94A3B8', // Texte secondaire clair
+      500: '#64748B', // Texte secondaire
+      600: '#475569', // Texte secondaire foncé
+      700: '#334155', // Texte principal foncé
+      800: '#1E293B', // Texte principal très foncé
+      900: '#0F172A', // Texte principal extrêmement foncé
+      A100: '#E2E8F0',
+      A200: '#CBD5E1',
+      A400: '#64748B',
+      A700: '#334155',
     },
     // Couleurs de base Material-UI
     common: {
@@ -105,84 +113,111 @@ const theme = createTheme({
       activatedOpacity: 0.12,
     },
     background: {
-      default: '#f8fafc',
+      default: '#F8FAFC', // Fond très clair harmonisé
       paper: '#ffffff',
     },
     text: {
-      primary: '#1e293b',
-      secondary: '#64748b',
+      primary: '#1E293B', // Texte principal foncé
+      secondary: '#64748B', // Texte secondaire harmonisé
     },
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
       fontWeight: 700,
-      fontSize: '2.5rem',
+      fontSize: '1.75rem', // 2.5rem → 1.75rem
       lineHeight: 1.2,
     },
     h2: {
       fontWeight: 700,
-      fontSize: '2rem',
-      lineHeight: 1.3,
+      fontSize: '1.5rem', // 2rem → 1.5rem
+      lineHeight: 1.25,
     },
     h3: {
       fontWeight: 600,
-      fontSize: '1.75rem',
+      fontSize: '1.25rem', // 1.75rem → 1.25rem
       lineHeight: 1.3,
     },
     h4: {
       fontWeight: 600,
-      fontSize: '1.5rem',
-      lineHeight: 1.4,
+      fontSize: '1.125rem', // 1.5rem → 1.125rem
+      lineHeight: 1.35,
     },
     h5: {
       fontWeight: 600,
-      fontSize: '1.25rem',
+      fontSize: '1rem', // 1.25rem → 1rem
       lineHeight: 1.4,
     },
     h6: {
       fontWeight: 600,
-      fontSize: '1.125rem',
+      fontSize: '0.875rem', // 1.125rem → 0.875rem
       lineHeight: 1.4,
     },
+    subtitle1: {
+      fontSize: '0.875rem',
+      lineHeight: 1.5,
+      fontWeight: 500,
+    },
+    subtitle2: {
+      fontSize: '0.8125rem',
+      lineHeight: 1.5,
+      fontWeight: 500,
+    },
     body1: {
-      fontSize: '1rem',
-      lineHeight: 1.6,
+      fontSize: '0.875rem', // 1rem → 0.875rem
+      lineHeight: 1.5, // 1.6 → 1.5
     },
     body2: {
-      fontSize: '0.875rem',
-      lineHeight: 1.6,
+      fontSize: '0.8125rem', // 0.875rem → 0.8125rem
+      lineHeight: 1.5, // 1.6 → 1.5
+    },
+    caption: {
+      fontSize: '0.6875rem', // 0.75rem → 0.6875rem
+      lineHeight: 1.4,
     },
     button: {
       fontWeight: 600,
       textTransform: 'none',
+      fontSize: '0.8125rem', // Ajout taille de police pour boutons
     },
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 8, // 12 → 8 pour plus de compacité
   },
+  spacing: 6, // Réduire l'espacement de base (8px → 6px)
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
-          padding: '8px 24px',
-          fontSize: '0.875rem',
+          borderRadius: 6,
+          padding: '6px 16px', // 8px 24px → 6px 16px
+          fontSize: '0.8125rem', // 0.875rem → 0.8125rem
           fontWeight: 600,
+          minHeight: 36, // Hauteur minimale réduite
           boxShadow: 'none',
           '&:hover': {
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
           },
+        },
+        sizeSmall: {
+          padding: '4px 12px',
+          fontSize: '0.75rem',
+          minHeight: 32,
+        },
+        sizeLarge: {
+          padding: '8px 20px',
+          fontSize: '0.875rem',
+          minHeight: 40,
         },
         contained: {
           '&:hover': {
-            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           },
         },
         outlined: {
-          borderWidth: '2px',
+          borderWidth: '1.5px', // 2px → 1.5px
           '&:hover': {
-            borderWidth: '2px',
+            borderWidth: '1.5px',
           },
         },
       },
@@ -190,10 +225,20 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
+          borderRadius: 8, // 16 → 8
+          boxShadow: '0 1px 2px rgba(0,0,0,0.08), 0 1px 1px rgba(0,0,0,0.04)',
           '&:hover': {
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
+          },
+        },
+      },
+    },
+    MuiCardContent: {
+      styleOverrides: {
+        root: {
+          padding: '16px', // Padding par défaut réduit
+          '&:last-child': {
+            paddingBottom: '16px',
           },
         },
       },
@@ -215,14 +260,26 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            borderRadius: 8,
+            borderRadius: 6,
+            fontSize: '0.875rem',
+            '& input': {
+              padding: '10px 14px', // Réduire le padding pour hauteur 48px
+              height: '1.4375em',
+            },
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#1976d2',
+              borderColor: '#6B8A9A', // Couleur primary Clenzy
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#1976d2',
-              borderWidth: '2px',
+              borderColor: '#6B8A9A', // Couleur primary Clenzy
+              borderWidth: '1.5px', // 2px → 1.5px
             },
+          },
+          '& .MuiInputLabel-root': {
+            fontSize: '0.875rem',
+          },
+          '& .MuiFormHelperText-root': {
+            fontSize: '0.75rem',
+            marginTop: '4px',
           },
         },
       },
@@ -237,11 +294,20 @@ const theme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
+          borderRadius: 12, // 16 → 12
           fontWeight: 500,
+          height: 24, // Hauteur réduite
+          fontSize: '0.75rem',
+          '& .MuiChip-label': {
+            padding: '0 8px',
+          },
+        },
+        sizeSmall: {
+          height: 20,
+          fontSize: '0.6875rem',
         },
         outlined: {
-          borderWidth: '1.5px',
+          borderWidth: '1px', // 1.5px → 1px
         },
       },
     },
@@ -263,21 +329,54 @@ const theme = createTheme({
     MuiListItemButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
-          margin: '2px 8px',
+          borderRadius: 6,
+          margin: '1px 6px', // 2px 8px → 1px 6px
+          minHeight: 40, // Hauteur réduite
+          padding: '8px 12px', // Padding réduit
           '&:hover': {
-            backgroundColor: 'rgba(25, 118, 210, 0.08)',
+            backgroundColor: 'rgba(107, 138, 154, 0.08)', // Primary Clenzy avec opacité
           },
           '&.Mui-selected': {
-            backgroundColor: '#1976d2',
+            backgroundColor: '#6B8A9A', // Primary Clenzy
             color: '#ffffff',
             '&:hover': {
-              backgroundColor: '#1565c0',
+              backgroundColor: '#5A7684', // Primary dark Clenzy
             },
             '& .MuiListItemIcon-root': {
               color: '#ffffff',
             },
           },
+        },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          fontSize: '0.875rem',
+          minHeight: 40, // Hauteur réduite
+          padding: '8px 16px', // Padding réduit
+        },
+      },
+    },
+    MuiTableRow: {
+      styleOverrides: {
+        root: {
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+          },
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          padding: '12px 16px', // Padding réduit
+          fontSize: '0.875rem',
+        },
+        head: {
+          fontSize: '0.8125rem',
+          fontWeight: 600,
+          padding: '10px 16px',
         },
       },
     },

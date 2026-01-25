@@ -258,7 +258,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   if (loadingData) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
+        <CircularProgress size={32} />
       </Box>
     );
   }
@@ -379,21 +379,21 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     <Box>
       {/* Messages d'erreur/succès */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
           {error}
         </Alert>
       )}
 
       {/* Formulaire */}
-      <Card sx={{ mt: 3 }}>
-        <CardContent sx={{ p: 4 }}>
+      <Card sx={{ mt: 2 }}>
+        <CardContent sx={{ p: 2 }}>
           <form onSubmit={handleSubmit}>
             {/* Informations de base */}
-            <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
               Informations de base
             </Typography>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={8}>
                 <TextField
                   fullWidth
@@ -402,6 +402,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                   onChange={(e) => handleInputChange('title', e.target.value)}
                   required
                   placeholder="Ex: Nettoyage après départ"
+                  size="small"
                 />
               </Grid>
 
@@ -412,6 +413,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                     value={formData.serviceType}
                     onChange={(e) => handleInputChange('serviceType', e.target.value)}
                     label="Type de service *"
+                    size="small"
                   >
                     {serviceTypes.map((type) => {
                       const typeOption = INTERVENTION_TYPE_OPTIONS.find(option => option.value === type.value);
@@ -419,9 +421,9 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                       
                       return (
                         <MenuItem key={type.value} value={type.value}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            {IconComponent && <IconComponent sx={{ fontSize: '1.2em' }} />}
-                            {type.label}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            {IconComponent && <IconComponent sx={{ fontSize: 18 }} />}
+                            <Typography variant="body2">{type.label}</Typography>
                           </Box>
                         </MenuItem>
                       );
@@ -432,31 +434,32 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
             </Grid>
 
             {/* Description */}
-            <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
               Description
             </Typography>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
                   multiline
-                  rows={4}
+                  rows={3}
                   label="Description détaillée *"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   required
                   placeholder="Décrivez en détail la demande de service..."
+                  size="small"
                 />
               </Grid>
             </Grid>
 
             {/* Propriété */}
-            <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
               Propriété concernée
             </Typography>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12}>
                 <FormControl fullWidth required>
                   <InputLabel>Propriété *</InputLabel>
@@ -464,12 +467,13 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                     value={formData.propertyId}
                     onChange={(e) => handleInputChange('propertyId', e.target.value)}
                     label="Propriété *"
+                    size="small"
                   >
                     {properties.map((property) => (
                       <MenuItem key={property.id} value={property.id}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Home />
-                          {property.name} - {property.address}, {property.city}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <Home sx={{ fontSize: 18 }} />
+                          <Typography variant="body2">{property.name} - {property.address}, {property.city}</Typography>
                         </Box>
                       </MenuItem>
                     ))}
@@ -479,11 +483,11 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
             </Grid>
 
             {/* Priorité et durée */}
-            <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
               Priorité et planification
             </Typography>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth required>
                   <InputLabel>Priorité *</InputLabel>
@@ -491,12 +495,13 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                     value={formData.priority}
                     onChange={(e) => handleInputChange('priority', e.target.value)}
                     label="Priorité *"
+                    size="small"
                   >
                     {priorities.map((priority) => (
                       <MenuItem key={priority.value} value={priority.value}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <PriorityHigh />
-                          {priority.label}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <PriorityHigh sx={{ fontSize: 18 }} />
+                          <Typography variant="body2">{priority.label}</Typography>
                         </Box>
                       </MenuItem>
                     ))}
@@ -511,12 +516,13 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                     value={formData.estimatedDurationHours}
                     onChange={(e) => handleInputChange('estimatedDurationHours', e.target.value)}
                     label="Durée estimée *"
+                    size="small"
                   >
                     {durations.map((duration) => (
                       <MenuItem key={duration.value} value={duration.value}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Schedule />
-                          {duration.label}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <Schedule sx={{ fontSize: 18 }} />
+                          <Typography variant="body2">{duration.label}</Typography>
                         </Box>
                       </MenuItem>
                     ))}
@@ -532,6 +538,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                   value={formData.desiredDate}
                   onChange={(e) => handleInputChange('desiredDate', e.target.value)}
                   required
+                  size="small"
                   InputLabelProps={{
                     shrink: true,
                   }}
@@ -540,11 +547,11 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
             </Grid>
 
             {/* Demandeur et assignation */}
-            <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
               Demandeur et assignation
             </Typography>
 
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
               {/* Demandeur */}
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth required>
@@ -554,18 +561,19 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                     onChange={(e) => handleInputChange('userId', e.target.value)}
                     label="Demandeur *"
                     disabled={!isAdmin() && !isManager()} // Seuls les admin/manager peuvent changer le demandeur
+                    size="small"
                   >
                     {users.map((user) => (
                       <MenuItem key={user.id} value={user.id}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Person />
-                          {user.firstName} {user.lastName} ({user.role}) - {user.email}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <Person sx={{ fontSize: 18 }} />
+                          <Typography variant="body2">{user.firstName} {user.lastName} ({user.role}) - {user.email}</Typography>
                         </Box>
                       </MenuItem>
                     ))}
                   </Select>
                   {!isAdmin() && !isManager() && (
-                    <FormHelperText>
+                    <FormHelperText sx={{ fontSize: '0.7rem' }}>
                       Le demandeur est automatiquement défini selon votre rôle
                     </FormHelperText>
                   )}
@@ -582,20 +590,21 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                       handleInputChange('assignedToId', undefined);
                     }}
                     label="Type d'assignation"
+                    size="small"
                   >
                     <MenuItem value="">
                       <em>Aucune assignation</em>
                     </MenuItem>
                     <MenuItem value="user">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Person />
-                        Utilisateur individuel
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <Person sx={{ fontSize: 18 }} />
+                        <Typography variant="body2">Utilisateur individuel</Typography>
                       </Box>
                     </MenuItem>
                     <MenuItem value="team">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Group />
-                        Équipe
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <Group sx={{ fontSize: 18 }} />
+                        <Typography variant="body2">Équipe</Typography>
                       </Box>
                     </MenuItem>
                   </Select>
@@ -605,7 +614,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
             {/* Assignation spécifique */}
             {formData.assignedToType && (
-              <Grid container spacing={3} sx={{ mb: 4 }}>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
                 <Grid item xs={12}>
                   <FormControl fullWidth>
                     <InputLabel>
@@ -615,6 +624,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                       value={formData.assignedToId || ''}
                       onChange={(e) => handleInputChange('assignedToId', e.target.value || undefined)}
                       label={formData.assignedToType === 'user' ? 'Assigné à (utilisateur)' : 'Assigné à (équipe)'}
+                      size="small"
                     >
                       <MenuItem value="">
                         <em>Sélectionner...</em>
@@ -622,22 +632,22 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                       {formData.assignedToType === 'user' ? (
                         getAssignableUsers().map((user) => (
                           <MenuItem key={user.id} value={user.id}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Person />
-                              {user.firstName} {user.lastName} ({user.role}) - {user.email}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                              <Person sx={{ fontSize: 18 }} />
+                              <Typography variant="body2">{user.firstName} {user.lastName} ({user.role}) - {user.email}</Typography>
                             </Box>
                           </MenuItem>
                         ))
                       ) : (
                         teams.map((team) => (
                           <MenuItem key={team.id} value={team.id}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Group />
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                              <Group sx={{ fontSize: 18 }} />
                               <Box>
-                                <Typography variant="body2" fontWeight={500}>
+                                <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.85rem' }}>
                                   {team.name}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                                   {team.memberCount} membre(s) • {getInterventionTypeLabel(team.interventionType)}
                                 </Typography>
                               </Box>

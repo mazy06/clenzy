@@ -12,27 +12,27 @@ export const SPACING = {
   XL: 5,      // 40px
   XXL: 6,     // 48px
 
-  // Espacement spécifique aux pages
-  PAGE_PADDING: 3,        // 24px - Padding principal des pages
-  SECTION_SPACING: 3,     // 24px - Espacement entre sections
-  CARD_PADDING: 3,        // 24px - Padding des cartes
-  FORM_SPACING: 3,        // 24px - Espacement des formulaires
+  // Espacement spécifique aux pages (réduits de ~25%)
+  PAGE_PADDING: 2,        // 16px (24px → 16px) - Padding principal des pages
+  SECTION_SPACING: 2,     // 16px (24px → 16px) - Espacement entre sections
+  CARD_PADDING: 2,        // 16px (24px → 16px) - Padding des cartes
+  FORM_SPACING: 2,        // 16px (24px → 16px) - Espacement des formulaires
   
   // Espacement des composants
-  COMPONENT_MARGIN: 3,    // 24px - Marge entre composants
-  COMPONENT_PADDING: 3,   // 24px - Padding des composants
+  COMPONENT_MARGIN: 2,    // 16px (24px → 16px) - Marge entre composants
+  COMPONENT_PADDING: 2,   // 16px (24px → 16px) - Padding des composants
   
   // Espacement des listes
-  LIST_ITEM_SPACING: 2,   // 16px - Espacement entre éléments de liste
-  LIST_SECTION_SPACING: 3, // 24px - Espacement entre sections de liste
+  LIST_ITEM_SPACING: 1.5,   // 12px (16px → 12px) - Espacement entre éléments de liste
+  LIST_SECTION_SPACING: 2, // 16px (24px → 16px) - Espacement entre sections de liste
   
   // Espacement des formulaires
-  FORM_FIELD_SPACING: 3,  // 24px - Espacement entre champs de formulaire
-  FORM_SECTION_SPACING: 4, // 32px - Espacement entre sections de formulaire
+  FORM_FIELD_SPACING: 2,  // 16px (24px → 16px) - Espacement entre champs de formulaire
+  FORM_SECTION_SPACING: 3, // 24px (32px → 24px) - Espacement entre sections de formulaire
   
   // Espacement des actions
-  ACTION_SPACING: 2,      // 16px - Espacement entre boutons d'action
-  ACTION_MARGIN: 3,       // 24px - Marge des boutons d'action
+  ACTION_SPACING: 1.5,      // 12px (16px → 12px) - Espacement entre boutons d'action
+  ACTION_MARGIN: 2,       // 16px (24px → 16px) - Marge des boutons d'action
 } as const;
 
 /**

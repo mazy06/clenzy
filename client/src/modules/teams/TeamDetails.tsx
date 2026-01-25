@@ -55,9 +55,11 @@ const TeamDetails: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
   
+  // TOUS les hooks doivent être déclarés AVANT les returns conditionnels
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [team, setTeam] = useState<Team | null>(null);
+  const [canEdit, setCanEdit] = useState(false);
 
   // Charger les données de l'équipe
   useEffect(() => {
@@ -89,6 +91,16 @@ const TeamDetails: React.FC = () => {
 
     loadTeam();
   }, [id]);
+
+  // Vérifier les permissions pour l'édition
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canEditPermission = await hasPermissionAsync('teams:edit');
+      setCanEdit(canEditPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
 
   // Gestion du changement d'onglet
   const handleEdit = () => {
@@ -122,6 +134,7 @@ const TeamDetails: React.FC = () => {
     }
   };
 
+  // Returns conditionnels APRÈS tous les hooks
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
@@ -149,18 +162,6 @@ const TeamDetails: React.FC = () => {
       </Box>
     );
   }
-
-  // Vérifier les permissions pour l'édition
-  const [canEdit, setCanEdit] = useState(false);
-  
-  useEffect(() => {
-    const checkPermissions = async () => {
-      const canEditPermission = await hasPermissionAsync('teams:edit');
-      setCanEdit(canEditPermission);
-    };
-    
-    checkPermissions();
-  }, [hasPermissionAsync]);;
 
   return (
     <Box sx={{ p: 3 }}>

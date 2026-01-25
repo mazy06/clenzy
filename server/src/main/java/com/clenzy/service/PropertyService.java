@@ -49,8 +49,19 @@ public class PropertyService {
     @Transactional(readOnly = true)
     @Cacheable(value = "properties", key = "#id")
     public PropertyDto getById(Long id) {
-        Property entity = propertyRepository.findById(id).orElseThrow(() -> new NotFoundException("Property not found"));
-        return toDto(entity);
+        try {
+            // Utiliser la méthode avec JOIN FETCH pour charger la relation owner
+            Property entity = propertyRepository.findByIdWithOwner(id)
+                .orElseThrow(() -> new NotFoundException("Property not found with id: " + id));
+            
+            return toDto(entity);
+        } catch (NotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            System.err.println("❌ PropertyService.getById - Erreur lors de la récupération de la propriété ID: " + id);
+            e.printStackTrace();
+            throw new RuntimeException("Erreur lors de la récupération de la propriété: " + e.getMessage(), e);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -116,35 +127,50 @@ public class PropertyService {
     }
 
     private PropertyDto toDto(Property p) {
-        PropertyDto dto = new PropertyDto();
-        dto.id = p.getId();
-        dto.name = p.getName();
-        dto.description = p.getDescription();
-        dto.address = p.getAddress();
-        dto.postalCode = p.getPostalCode();
-        dto.city = p.getCity();
-        dto.country = p.getCountry();
-        dto.latitude = p.getLatitude();
-        dto.longitude = p.getLongitude();
-        dto.bedroomCount = p.getBedroomCount();
-        dto.bathroomCount = p.getBathroomCount();
-        dto.maxGuests = p.getMaxGuests();
-        dto.squareMeters = p.getSquareMeters();
-        dto.nightlyPrice = p.getNightlyPrice();
-        dto.type = p.getType();
-        dto.status = p.getStatus();
-        dto.airbnbListingId = p.getAirbnbListingId();
-        dto.airbnbUrl = p.getAirbnbUrl();
-        dto.cleaningFrequency = p.getCleaningFrequency();
-        dto.maintenanceContract = p.isMaintenanceContract();
-        dto.emergencyContact = p.getEmergencyContact();
-        dto.emergencyPhone = p.getEmergencyPhone();
-        dto.accessInstructions = p.getAccessInstructions();
-        dto.specialRequirements = p.getSpecialRequirements();
-        dto.ownerId = p.getOwner() != null ? p.getOwner().getId() : null;
-        dto.createdAt = p.getCreatedAt();
-        dto.updatedAt = p.getUpdatedAt();
-        return dto;
+        try {
+            PropertyDto dto = new PropertyDto();
+            dto.id = p.getId();
+            dto.name = p.getName();
+            dto.description = p.getDescription();
+            dto.address = p.getAddress();
+            dto.postalCode = p.getPostalCode();
+            dto.city = p.getCity();
+            dto.country = p.getCountry();
+            dto.latitude = p.getLatitude();
+            dto.longitude = p.getLongitude();
+            dto.bedroomCount = p.getBedroomCount();
+            dto.bathroomCount = p.getBathroomCount();
+            dto.maxGuests = p.getMaxGuests();
+            dto.squareMeters = p.getSquareMeters();
+            dto.nightlyPrice = p.getNightlyPrice();
+            dto.type = p.getType();
+            dto.status = p.getStatus();
+            dto.airbnbListingId = p.getAirbnbListingId();
+            dto.airbnbUrl = p.getAirbnbUrl();
+            dto.cleaningFrequency = p.getCleaningFrequency();
+            dto.maintenanceContract = p.isMaintenanceContract();
+            dto.emergencyContact = p.getEmergencyContact();
+            dto.emergencyPhone = p.getEmergencyPhone();
+            dto.accessInstructions = p.getAccessInstructions();
+            dto.specialRequirements = p.getSpecialRequirements();
+            
+            // Gestion sécurisée de la relation owner (lazy loading)
+            try {
+                dto.ownerId = p.getOwner() != null ? p.getOwner().getId() : null;
+            } catch (Exception e) {
+                System.err.println("⚠️ PropertyService.toDto - Erreur lors de l'accès à owner: " + e.getMessage());
+                dto.ownerId = null; // Valeur par défaut si l'accès échoue
+            }
+            
+            dto.createdAt = p.getCreatedAt();
+            dto.updatedAt = p.getUpdatedAt();
+            return dto;
+        } catch (Exception e) {
+            System.err.println("❌ PropertyService.toDto - Erreur lors de la conversion Property -> PropertyDto");
+            System.err.println("   Property ID: " + (p != null ? p.getId() : "null"));
+            e.printStackTrace();
+            throw new RuntimeException("Erreur lors de la conversion de la propriété: " + e.getMessage(), e);
+        }
     }
 
     private PropertyDto toDtoWithManager(Property p) {

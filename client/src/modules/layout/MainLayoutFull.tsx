@@ -77,9 +77,10 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       >
         <Toolbar 
           sx={{ 
-            px: { xs: 1, sm: 2, md: 3 },
-            minHeight: '64px !important',
-            gap: 1,
+            px: { xs: 1, sm: 1.5, md: 2 },
+            minHeight: '56px !important', // 64px → 56px
+            gap: 0.75, // 1 → 0.75
+            position: 'relative', // Pour permettre le positionnement absolu des enfants
           }}
         >
           {/* Logo et tagline */}
@@ -88,9 +89,10 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
               display: 'flex',
               alignItems: 'center',
               gap: { xs: 1, sm: 2 },
-              mr: { xs: 1, sm: 2, md: 3 },
               cursor: 'pointer',
               flexShrink: 0,
+              position: 'absolute',
+              left: { xs: 1, sm: 1.5, md: 2 },
               '&:hover': {
                 opacity: 0.8,
               },
@@ -102,21 +104,38 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
               src={clenzyLogo}
               alt="Clenzy Logo"
               style={{
-                height: '36px',
+                height: '32px', // 36px → 32px
                 width: 'auto',
-                maxWidth: '140px',
+                maxWidth: '120px', // 140px → 120px
               }}
             />
           </Box>
 
-          {/* Navigation horizontale */}
-          <TopNavigation menuItems={menuItems} />
+          {/* Navigation horizontale - centrée */}
+          <Box sx={{ 
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            '& > *': {
+              pointerEvents: 'auto',
+            }
+          }}>
+            <TopNavigation menuItems={menuItems} />
+          </Box>
 
-          {/* Espace flexible */}
+          {/* Espace flexible pour équilibrer */}
           <Box sx={{ flexGrow: 1, minWidth: { xs: 0, sm: 16 } }} />
 
           {/* Profil utilisateur et actions */}
-          <Box sx={{ flexShrink: 0 }}>
+          <Box sx={{ 
+            flexShrink: 0,
+            position: 'absolute',
+            right: { xs: 1, sm: 1.5, md: 2 },
+          }}>
             <UserProfile onLogout={handleLogout} menuItems={menuItems} />
           </Box>
         </Toolbar>
@@ -127,9 +146,9 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: 2, // 3 → 2
           width: '100%',
-          mt: '64px',
+          mt: '56px', // 64px → 56px
         }}
       >
         {children}
