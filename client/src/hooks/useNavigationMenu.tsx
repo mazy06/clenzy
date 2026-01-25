@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './useAuth';
+import { useTranslation } from './useTranslation';
 import {
   Dashboard,
   Home,
@@ -20,6 +21,7 @@ export interface MenuItem {
   path: string;
   roles: string[];
   permission?: string;
+  translationKey?: string;
 }
 
 interface UseNavigationMenuReturn {
@@ -29,100 +31,100 @@ interface UseNavigationMenuReturn {
   refreshMenu: () => void;
 }
 
-// Configuration centralisée du menu
-const MENU_CONFIG: Omit<MenuItem, 'id'>[] = [
+// Configuration centralisée du menu (les textes seront traduits dynamiquement)
+const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   {
-    text: 'Tableau de bord',
     icon: <Dashboard />,
     path: '/dashboard',
     roles: ['all'],
-    permission: 'dashboard:view'
+    permission: 'dashboard:view',
+    translationKey: 'navigation.dashboard'
   },
   {
-    text: 'Propriétés',
     icon: <Home />,
     path: '/properties',
     roles: ['ADMIN', 'MANAGER', 'HOST'],
-    permission: 'properties:view'
+    permission: 'properties:view',
+    translationKey: 'navigation.properties'
   },
   {
-    text: 'Demandes de service',
     icon: <Assignment />,
     path: '/service-requests',
     roles: ['ADMIN', 'MANAGER', 'HOST', 'SUPERVISOR'],
-    permission: 'service-requests:view'
+    permission: 'service-requests:view',
+    translationKey: 'navigation.serviceRequests'
   },
   {
-    text: 'Interventions',
     icon: <Build />,
     path: '/interventions',
     roles: ['ADMIN', 'MANAGER', 'TECHNICIAN', 'HOUSEKEEPER', 'SUPERVISOR'],
-    permission: 'interventions:view'
+    permission: 'interventions:view',
+    translationKey: 'navigation.interventions'
   },
   {
-    text: 'Équipes',
     icon: <People />,
     path: '/teams',
     roles: ['ADMIN', 'MANAGER', 'SUPERVISOR'],
-    permission: 'teams:view'
+    permission: 'teams:view',
+    translationKey: 'navigation.teams'
   },
   {
-    text: 'Portefeuilles',
     icon: <Business />,
     path: '/portfolios',
     roles: ['ADMIN', 'MANAGER'],
-    permission: 'portfolios:view'
+    permission: 'portfolios:view',
+    translationKey: 'navigation.portfolios'
   },
   {
-    text: 'Contact',
     icon: <Notifications />,
     path: '/contact',
     roles: ['all'],
-    permission: 'contact:view'
+    permission: 'contact:view',
+    translationKey: 'navigation.contact'
   },
   {
-    text: 'Rapports',
     icon: <Assessment />,
     path: '/reports',
     roles: ['ADMIN', 'MANAGER'],
-    permission: 'reports:view'
+    permission: 'reports:view',
+    translationKey: 'navigation.reports'
   },
   {
-    text: 'Utilisateurs',
     icon: <People />,
     path: '/users',
     roles: ['ADMIN'],
-    permission: 'users:manage'
+    permission: 'users:manage',
+    translationKey: 'navigation.users'
   },
   {
-    text: 'Paramètres',
     icon: <Settings />,
     path: '/settings',
     roles: ['ADMIN', 'MANAGER'],
-    permission: 'settings:view'
+    permission: 'settings:view',
+    translationKey: 'navigation.settings'
   },
   {
-    text: 'Roles & Permissions',
     icon: <Build />,
     path: '/permissions-test',
-    roles: ['ADMIN']
-    // Pas de permission spécifique, juste le rôle ADMIN
+    roles: ['ADMIN'],
+    translationKey: 'navigation.rolesPermissions'
   },
   {
-    text: 'Monitoring',
     icon: <Security />,
     path: '/admin/monitoring',
-    roles: ['ADMIN', 'MANAGER']
+    roles: ['ADMIN', 'MANAGER'],
+    translationKey: 'navigation.monitoring'
   }
 ];
 
 export const useNavigationMenu = (): UseNavigationMenuReturn => {
   const { hasPermissionAsync, isAdmin, isManager, user } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Fonction pour vérifier si un utilisateur a accès à un élément de menu (synchronisée)
-  const hasMenuAccess = useCallback((item: Omit<MenuItem, 'id'>): boolean => {
+  const hasMenuAccess = useCallback((item: Omit<MenuItem, 'id' | 'text'>): boolean => {
     try {
       // Vérifier la permission si spécifiée
       if (item.permission) {
@@ -160,12 +162,17 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
     try {
       const accessibleItems: MenuItem[] = [];
 
-      for (const item of MENU_CONFIG) {
+      for (const item of MENU_CONFIG_BASE) {
         const hasAccess = hasMenuAccess(item);
         if (hasAccess) {
           accessibleItems.push({
             id: item.path,
-            ...item
+            text: item.translationKey ? t(item.translationKey) : item.path,
+            icon: item.icon,
+            path: item.path,
+            roles: item.roles,
+            permission: item.permission,
+            translationKey: item.translationKey
           });
         }
       }
@@ -179,15 +186,16 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       // Retourner un menu de base en cas d'erreur
       return [{
         id: '/dashboard',
-        text: 'Tableau de bord',
+        text: t('navigation.dashboard'),
         icon: <Dashboard />,
         path: '/dashboard',
-        roles: ['all']
+        roles: ['all'],
+        translationKey: 'navigation.dashboard'
       }];
     } finally {
       setLoading(false);
     }
-  }, [user, hasMenuAccess]);
+  }, [user, hasMenuAccess, t]);
 
   // État mémorisé du menu
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -203,7 +211,7 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
     if (user) {
       refreshMenu();
     }
-  }, [user?.id, user?.permissions]); // Dépendre seulement de l'ID et des permissions
+  }, [user?.id, user?.permissions, refreshMenu]); // Dépendre de l'ID, des permissions et de la fonction de rafraîchissement
 
   // Mémoriser le résultat pour éviter les re-renders inutiles
   const memoizedMenuItems = useMemo(() => menuItems, [menuItems]);

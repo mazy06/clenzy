@@ -31,6 +31,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface ContactFormData {
   recipientId: string;
@@ -51,6 +52,7 @@ interface User {
 
 const ContactForm: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const isRestrictedUser = user?.roles?.includes('HOST') || user?.roles?.includes('HOUSEKEEPER') || user?.roles?.includes('TECHNICIAN') || user?.roles?.includes('SUPERVISOR');
   const [formData, setFormData] = useState<ContactFormData>({
     recipientId: '',
@@ -155,7 +157,7 @@ const ContactForm: React.FC = () => {
       });
 
       if (response.ok) {
-        setSuccess('Message envoyé avec succès !');
+        setSuccess(t('contact.success.messageSent'));
         setFormData({
           recipientId: '',
           subject: '',
@@ -166,29 +168,30 @@ const ContactForm: React.FC = () => {
         });
       } else {
         const errorData = await response.json();
-        setError(errorData.message || 'Erreur lors de l\'envoi du message');
+        setError(errorData.message || t('contact.errors.sendError'));
       }
     } catch (error) {
       console.error('❌ Erreur lors de l\'envoi du message:', error);
-      setError('Erreur de connexion. Veuillez réessayer.');
+      setError(t('contact.errors.connectionError'));
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Générer les options avec traductions
   const priorityOptions = [
-    { value: 'LOW', label: 'Faible', color: 'success' },
-    { value: 'MEDIUM', label: 'Moyenne', color: 'info' },
-    { value: 'HIGH', label: 'Élevée', color: 'warning' },
-    { value: 'URGENT', label: 'Urgente', color: 'error' }
+    { value: 'LOW', label: t('contact.priorities.low'), color: 'success' },
+    { value: 'MEDIUM', label: t('contact.priorities.medium'), color: 'info' },
+    { value: 'HIGH', label: t('contact.priorities.high'), color: 'warning' },
+    { value: 'URGENT', label: t('contact.priorities.urgent'), color: 'error' }
   ];
 
   const categoryOptions = [
-    { value: 'GENERAL', label: 'Général' },
-    { value: 'TECHNICAL', label: 'Technique' },
-    { value: 'MAINTENANCE', label: 'Maintenance' },
-    { value: 'CLEANING', label: 'Nettoyage' },
-    { value: 'EMERGENCY', label: 'Urgence' }
+    { value: 'GENERAL', label: t('contact.categories.general') },
+    { value: 'TECHNICAL', label: t('contact.categories.technical') },
+    { value: 'MAINTENANCE', label: t('contact.categories.maintenance') },
+    { value: 'CLEANING', label: t('contact.categories.cleaning') },
+    { value: 'EMERGENCY', label: t('contact.categories.emergency') }
   ];
 
   return (
@@ -197,12 +200,12 @@ const ContactForm: React.FC = () => {
         <CardContent>
           <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <MessageIcon color="primary" />
-            Nouveau Message
+            {t('contact.newMessageTitle')}
           </Typography>
 
           {isRestrictedUser && (
             <Alert severity="info" sx={{ mb: 3 }}>
-              En tant qu'utilisateur restreint, vous ne pouvez envoyer des messages qu'aux managers de votre portefeuille.
+              {t('contact.info.restrictedUser')}
             </Alert>
           )}
 
@@ -223,7 +226,7 @@ const ContactForm: React.FC = () => {
               {/* Destinataire */}
               <Grid item xs={12}>
                 <FormControl fullWidth required>
-                  <InputLabel>Destinataire</InputLabel>
+                  <InputLabel>{t('contact.recipient')}</InputLabel>
                   <Select
                     value={formData.recipientId}
                     onChange={(e) => handleInputChange('recipientId', e.target.value)}
@@ -252,7 +255,7 @@ const ContactForm: React.FC = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Sujet"
+                  label={t('contact.subject')}
                   value={formData.subject}
                   onChange={(e) => handleInputChange('subject', e.target.value)}
                   required
@@ -265,7 +268,7 @@ const ContactForm: React.FC = () => {
               {/* Priorité et Catégorie */}
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Priorité</InputLabel>
+                  <InputLabel>{t('contact.priority')}</InputLabel>
                   <Select
                     value={formData.priority}
                     onChange={(e) => handleInputChange('priority', e.target.value)}
@@ -287,7 +290,7 @@ const ContactForm: React.FC = () => {
 
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Catégorie</InputLabel>
+                  <InputLabel>{t('contact.category')}</InputLabel>
                   <Select
                     value={formData.category}
                     onChange={(e) => handleInputChange('category', e.target.value)}
@@ -306,7 +309,7 @@ const ContactForm: React.FC = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Message"
+                  label={t('contact.message')}
                   multiline
                   rows={6}
                   value={formData.message}
@@ -323,7 +326,7 @@ const ContactForm: React.FC = () => {
                 <Paper variant="outlined" sx={{ p: 2 }}>
                   <Typography variant="subtitle2" gutterBottom>
                     <AttachFileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Pièces jointes
+                    {t('contact.attachments')}
                   </Typography>
                   
                   <input
@@ -340,14 +343,14 @@ const ContactForm: React.FC = () => {
                       startIcon={<AttachFileIcon />}
                       size="small"
                     >
-                      Ajouter des fichiers
+                      {t('contact.addFiles')}
                     </Button>
                   </label>
 
                   {formData.attachments.length > 0 && (
                     <Box sx={{ mt: 2 }}>
                       <Typography variant="body2" color="text.secondary" gutterBottom>
-                        Fichiers sélectionnés :
+                        {t('contact.selectedFiles')}
                       </Typography>
                       {formData.attachments.map((file, index) => (
                         <Chip
@@ -378,7 +381,7 @@ const ContactForm: React.FC = () => {
                     })}
                     disabled={submitting}
                   >
-                    Annuler
+                    {t('contact.cancel')}
                   </Button>
                   <Button
                     type="submit"
@@ -386,7 +389,7 @@ const ContactForm: React.FC = () => {
                     startIcon={submitting ? <CircularProgress size={20} /> : <SendIcon />}
                     disabled={submitting || loading}
                   >
-                    {submitting ? 'Envoi en cours...' : 'Envoyer'}
+                    {submitting ? t('contact.sending') : t('contact.send')}
                   </Button>
                 </Box>
               </Grid>

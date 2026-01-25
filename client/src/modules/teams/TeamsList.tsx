@@ -34,6 +34,7 @@ import PageHeader from '../../components/PageHeader';
 import TeamCard from '../../components/TeamCard';
 import { InterventionType, INTERVENTION_TYPE_OPTIONS, InterventionTypeUtils } from '../../types/interventionTypes';
 import { createSpacing } from '../../theme/spacing';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface Team {
   id: number;
@@ -60,6 +61,7 @@ interface TeamMember {
 const TeamsList: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
+  const { t } = useTranslation();
   
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,23 +146,23 @@ const TeamsList: React.FC = () => {
           }
         } else if (response.status === 401) {
           console.error('🔍 TeamsList - Erreur d\'authentification (401)');
-          setError('Erreur d\'authentification. Veuillez vous reconnecter.');
+          setError(t('teams.errors.authError'));
           setTeams([]);
         } else if (response.status === 403) {
           console.error('🔍 TeamsList - Accès interdit (403) - Permissions insuffisantes');
-          setError('Accès interdit. Vous n\'avez pas les permissions nécessaires pour voir les équipes.');
+          setError(t('teams.errors.forbiddenError'));
           setTeams([]);
         } else if (response.status === 404) {
           console.log('🔍 TeamsList - Endpoint non trouvé, tableau vide');
           setTeams([]);
         } else {
           console.error('🔍 TeamsList - Erreur API:', response.status);
-          setError(`Erreur ${response.status}: ${response.statusText}`);
+          setError(`${t('teams.errors.loadError')}: ${response.status} ${response.statusText}`);
           setTeams([]);
         }
       } catch (err) {
         console.error('🔍 TeamsList - Erreur lors du chargement:', err);
-        setError('Erreur de connexion au serveur');
+        setError(t('teams.errors.connectionError'));
         setTeams([]);
       } finally {
         setLoading(false);
@@ -247,8 +249,8 @@ const TeamsList: React.FC = () => {
   return (
     <Box>
       <PageHeader
-        title="Équipes"
-        subtitle="Gestion des équipes d'intervention"
+        title={t('teams.title')}
+        subtitle={t('teams.subtitle')}
         backPath="/dashboard"
         showBackButton={false}
         actions={
@@ -259,7 +261,7 @@ const TeamsList: React.FC = () => {
             onClick={() => navigate('/teams/new')}
             size="small"
           >
-            Nouvelle équipe
+            {t('teams.create')}
           </Button>
         }
       />
@@ -284,7 +286,7 @@ const TeamsList: React.FC = () => {
           {/* Affichage du chip sélectionné */}
           {selectedType === 'all' ? (
             <Chip
-              label="Tous les types"
+              label={t('teams.allTypes')}
               onClick={() => setSelectedType('all')}
               color="primary"
               variant="filled"
@@ -346,7 +348,7 @@ const TeamsList: React.FC = () => {
                 py: 0.5
               }}
             >
-              Réinitialiser
+              {t('teams.reset')}
             </Button>
           )}
           
@@ -367,7 +369,7 @@ const TeamsList: React.FC = () => {
               py: 0.5
             }}
           >
-            {showFilters ? 'Masquer' : 'Afficher'}
+            {showFilters ? t('teams.hide') : t('teams.show')}
           </Button>
         </Box>
 
@@ -492,7 +494,7 @@ const TeamsList: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 2 }}>
           <Divider sx={{ flex: 1 }} />
           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-            {filteredTeams.length} équipe{filteredTeams.length > 1 ? 's' : ''} disponible{filteredTeams.length > 1 ? 's' : ''}
+            {filteredTeams.length} {filteredTeams.length > 1 ? t('teams.teams') : t('teams.team')} {t('teams.available')}
           </Typography>
         </Box>
       </Box>
@@ -501,16 +503,45 @@ const TeamsList: React.FC = () => {
 
 
       {/* Liste des équipes */}
-      <Grid container spacing={2}>
-        {filteredTeams.map((team) => (
-          <Grid item xs={12} md={6} lg={4} key={team.id}>
-            <TeamCard 
-              team={team} 
-              onMenuOpen={handleMenuOpen}
-            />
-          </Grid>
-        ))}
-      </Grid>
+      {filteredTeams.length === 0 ? (
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          py: 8,
+          textAlign: 'center'
+        }}>
+          <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
+            {t('teams.noTeamFound')}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 500 }}>
+            {t('teams.noTeamCreated')}
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Add />}
+              onClick={() => navigate('/teams/new')}
+              size="medium"
+            >
+              {t('teams.createFirst')}
+            </Button>
+          </Box>
+        </Box>
+      ) : (
+        <Grid container spacing={2}>
+          {filteredTeams.map((team) => (
+            <Grid item xs={12} md={6} lg={4} key={team.id}>
+              <TeamCard 
+                team={team} 
+                onMenuOpen={handleMenuOpen}
+              />
+            </Grid>
+          ))}
+        </Grid>
+      )}
 
       {/* Menu contextuel */}
       <Menu
@@ -530,14 +561,14 @@ const TeamsList: React.FC = () => {
           <ListItemIcon>
             <Visibility fontSize="small" sx={{ fontSize: 18 }} />
           </ListItemIcon>
-          Voir détails
+          {t('teams.viewDetails')}
         </MenuItem>
         {permissions['teams:edit'] && (
           <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
             <ListItemIcon>
               <Edit fontSize="small" sx={{ fontSize: 18 }} />
             </ListItemIcon>
-            Modifier
+            {t('teams.modify')}
           </MenuItem>
         )}
         {permissions['teams:delete'] && (
@@ -552,16 +583,16 @@ const TeamsList: React.FC = () => {
 
       {/* Dialog de confirmation de suppression */}
       <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
-        <DialogTitle sx={{ pb: 1 }}>Confirmer la suppression</DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>{t('teams.confirmDelete')}</DialogTitle>
         <DialogContent sx={{ pt: 1.5 }}>
           <Typography variant="body2">
-            Êtes-vous sûr de vouloir supprimer l'équipe "{selectedTeam?.name}" ? Cette action est irréversible.
+            {t('teams.confirmDeleteMessage', { name: selectedTeam?.name })}
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={handleCloseDeleteDialog} size="small">Annuler</Button>
+          <Button onClick={handleCloseDeleteDialog} size="small">{t('teams.cancel')}</Button>
           <Button onClick={confirmDelete} color="error" variant="contained" size="small">
-            Supprimer
+            {t('teams.delete')}
           </Button>
         </DialogActions>
       </Dialog>

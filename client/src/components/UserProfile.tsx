@@ -18,6 +18,8 @@ import { useAuth } from '../hooks/useAuth';
 import { API_CONFIG } from '../config/api';
 import keycloak from '../keycloak';
 import { MenuItem as MenuItemType } from '../hooks/useNavigationMenu';
+import LanguageSwitcher from './LanguageSwitcher';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface UserProfileProps {
   onLogout: () => void;
@@ -30,6 +32,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
@@ -143,7 +146,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
             color="text.primary"
             sx={{ lineHeight: 1, px: 0.5, fontSize: '0.8125rem' }}
           >
-            {user.firstName || user.username || 'Utilisateur'}
+            {user.firstName || user.username || t('navigation.defaultUser')}
           </Typography>
         )}
       </Box>
@@ -251,7 +254,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
                 whiteSpace: 'nowrap',
               }}
             >
-              {user.firstName || user.username || 'Utilisateur'}
+              {user.firstName || user.username || t('navigation.defaultUser')}
             </Typography>
             {user.email && (
               <Typography 
@@ -279,7 +282,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
                   textTransform: 'uppercase',
                 }}
               >
-                {user.roles[0]}
+                {t(`navigation.roles.${user.roles[0]}`) || user.roles[0]}
               </Typography>
             )}
           </Box>
@@ -291,7 +294,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
         <MenuItem onClick={handleProfileNavigation}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Person sx={{ fontSize: '18px', color: 'secondary.main' }} />
-            <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>Mon profil</Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>{t('navigation.myProfile')}</Typography>
           </Box>
         </MenuItem>
 
@@ -316,6 +319,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
 
         <Divider />
 
+        {/* Sélecteur de langue */}
+        <Box sx={{ px: 1.5, py: 1 }}>
+          <LanguageSwitcher variant="select" />
+        </Box>
+
+        <Divider />
+
         {/* Déconnexion */}
         <MenuItem 
           onClick={handleLogout}
@@ -329,7 +339,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Logout sx={{ fontSize: '18px', color: 'error.main' }} />
-            <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.875rem' }}>Déconnexion</Typography>
+            <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.875rem' }}>{t('navigation.logout')}</Typography>
           </Box>
         </MenuItem>
       </Menu>

@@ -43,6 +43,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface ContactMessage {
   id: string;
@@ -81,6 +82,7 @@ interface ContactMessagesProps {
 
 const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -218,10 +220,10 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'SENT': return 'Envoyé';
-      case 'DELIVERED': return 'Livré';
-      case 'READ': return 'Lu';
-      case 'REPLIED': return 'Répondu';
+      case 'SENT': return t('contact.statuses.sent');
+      case 'DELIVERED': return t('contact.statuses.delivered');
+      case 'READ': return t('contact.statuses.read');
+      case 'REPLIED': return t('contact.statuses.replied');
       default: return status;
     }
   };
@@ -247,7 +249,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h6">
-              {type === 'sent' ? 'Messages Envoyés' : 'Messages Reçus'}
+              {type === 'sent' ? t('contact.messagesSent') : t('contact.messagesReceived')}
             </Typography>
             <Button
               variant="outlined"
@@ -255,7 +257,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
               onClick={loadMessages}
               disabled={loading}
             >
-              Actualiser
+              {t('contact.refresh')}
             </Button>
           </Box>
 
@@ -271,7 +273,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
               <TextField
                 fullWidth
                 size="small"
-                placeholder="Rechercher dans les messages..."
+                placeholder={t('contact.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
@@ -282,7 +284,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
             <Grid item xs={12} sm={4}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="body2" sx={{ minWidth: '60px', color: 'text.secondary' }}>
-                  Statut:
+                  {t('contact.statusLabel')}
                 </Typography>
                 <Select
                   fullWidth
@@ -291,11 +293,11 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
                   onChange={(e) => setFilterStatus(e.target.value)}
                   sx={{ flexGrow: 1 }}
                 >
-                  <MenuItem value="ALL">Tous les statuts</MenuItem>
-                  <MenuItem value="SENT">Envoyé</MenuItem>
-                  <MenuItem value="DELIVERED">Livré</MenuItem>
-                  <MenuItem value="READ">Lu</MenuItem>
-                  <MenuItem value="REPLIED">Répondu</MenuItem>
+                  <MenuItem value="ALL">{t('contact.allStatuses')}</MenuItem>
+                  <MenuItem value="SENT">{t('contact.statuses.sent')}</MenuItem>
+                  <MenuItem value="DELIVERED">{t('contact.statuses.delivered')}</MenuItem>
+                  <MenuItem value="READ">{t('contact.statuses.read')}</MenuItem>
+                  <MenuItem value="REPLIED">{t('contact.statuses.replied')}</MenuItem>
                 </Select>
               </Box>
             </Grid>
@@ -305,13 +307,13 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Sujet</TableCell>
-                  <TableCell>{type === 'sent' ? 'Destinataire' : 'Expéditeur'}</TableCell>
-                  <TableCell>Priorité</TableCell>
-                  <TableCell>Catégorie</TableCell>
-                  <TableCell>Statut</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell>{t('contact.subject')}</TableCell>
+                  <TableCell>{type === 'sent' ? t('contact.recipient') : t('contact.sender')}</TableCell>
+                  <TableCell>{t('contact.priority')}</TableCell>
+                  <TableCell>{t('contact.category')}</TableCell>
+                  <TableCell>{t('contact.status')}</TableCell>
+                  <TableCell>{t('contact.date')}</TableCell>
+                  <TableCell>{t('contact.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -323,7 +325,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
                       </Typography>
                       {message.attachments.length > 0 && (
                         <Typography variant="caption" color="text.secondary">
-                          📎 {message.attachments.length} pièce(s) jointe(s)
+                          📎 {message.attachments.length} {t('contact.attachmentCount')}
                         </Typography>
                       )}
                     </TableCell>
@@ -404,21 +406,21 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
       >
         <MenuItem onClick={handleViewMessage}>
           <VisibilityIcon sx={{ mr: 1 }} />
-          Voir le message
+          {t('contact.viewMessage')}
         </MenuItem>
         <MenuItem onClick={handleReply}>
           <ReplyIcon sx={{ mr: 1 }} />
-          Répondre
+          {t('contact.reply')}
         </MenuItem>
         {type === 'received' && selectedMessage?.status !== 'READ' && (
           <MenuItem onClick={handleMarkAsRead}>
             <MarkAsReadIcon sx={{ mr: 1 }} />
-            Marquer comme lu
+            {t('contact.markAsRead')}
           </MenuItem>
         )}
         <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
           <DeleteIcon sx={{ mr: 1 }} />
-          Supprimer
+          {t('contact.delete')}
         </MenuItem>
       </Menu>
 
@@ -438,7 +440,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
               <Grid container spacing={2} sx={{ mb: 2 }}>
                 <Grid item xs={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    {type === 'sent' ? 'Destinataire' : 'Expéditeur'}
+                    {type === 'sent' ? t('contact.recipient') : t('contact.sender')}
                   </Typography>
                   <Typography variant="body2">
                     {type === 'sent' 
@@ -452,7 +454,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Date d'envoi
+                    {t('contact.sendDate')}
                   </Typography>
                   <Typography variant="body2">
                     {new Date(selectedMessage.createdAt).toLocaleString()}
@@ -487,7 +489,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
               {selectedMessage.attachments.length > 0 && (
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="subtitle2" gutterBottom>
-                    Pièces jointes :
+                    {t('contact.attachmentsLabel')}
                   </Typography>
                   {selectedMessage.attachments.map((attachment, index) => (
                     <Chip
@@ -504,10 +506,10 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setViewDialogOpen(false)}>
-            Fermer
+            {t('contact.close')}
           </Button>
           <Button onClick={handleReply} variant="contained">
-            Répondre
+            {t('contact.reply')}
           </Button>
         </DialogActions>
       </Dialog>

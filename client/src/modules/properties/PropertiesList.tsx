@@ -46,6 +46,7 @@ import PageHeader from '../../components/PageHeader';
 import { API_CONFIG } from '../../config/api';
 import { PropertyStatus, PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
 import { createSpacing } from '../../theme/spacing';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Types pour les propriétés
 interface Property {
@@ -81,13 +82,7 @@ interface User {
 
 // Données mockées supprimées - utilisation de l'API uniquement
 
-const propertyTypes = [
-  { value: 'all', label: 'Tous les types' },
-  { value: 'apartment', label: 'Appartement' },
-  { value: 'house', label: 'Maison' },
-  { value: 'villa', label: 'Villa' },
-  { value: 'studio', label: 'Studio' },
-];
+// propertyTypes sera généré dynamiquement avec les traductions
 
 // Utilisation des enums partagés pour les statuts des propriétés
 const statusColors = Object.fromEntries(
@@ -112,6 +107,7 @@ export default function PropertiesList() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { user, isAdmin, isManager, isHost, hasPermissionAsync } = useAuth();
+  const { t } = useTranslation();
 
   // Charger les propriétés depuis l'API
   const loadProperties = useCallback(async () => {
@@ -308,11 +304,29 @@ export default function PropertiesList() {
     return false;
   };
 
+  // Générer les types de propriétés avec traductions
+  const propertyTypes = [
+    { value: 'all', label: t('properties.allTypes') },
+    { value: 'apartment', label: t('properties.types.apartment') },
+    { value: 'house', label: t('properties.types.house') },
+    { value: 'villa', label: t('properties.types.villa') },
+    { value: 'studio', label: t('properties.types.studio') },
+  ];
+
+  // Générer les statuts avec traductions
+  const statusOptions = [
+    { value: 'all', label: t('properties.allStatuses') },
+    ...PROPERTY_STATUS_OPTIONS.map(option => ({
+      value: option.value.toLowerCase(),
+      label: option.label
+    }))
+  ];
+
   return (
     <Box>
       <PageHeader
-        title="Propriétés"
-        subtitle="Gestion du parc immobilier"
+        title={t('properties.title')}
+        subtitle={t('properties.subtitle')}
         backPath="/dashboard"
         showBackButton={false}
         actions={
@@ -323,7 +337,7 @@ export default function PropertiesList() {
             onClick={() => navigate('/properties/new')}
             size="small"
           >
-            Nouvelle propriété
+            {t('properties.create')}
           </Button>
         }
       />
@@ -332,36 +346,31 @@ export default function PropertiesList() {
       <FilterSearchBar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder={isHost() ? "Rechercher ma propriété..." : "Rechercher une propriété..."}
+        searchPlaceholder={isHost() ? t('properties.searchMy') : t('properties.search')}
         filters={{
           type: {
             value: selectedType,
             options: propertyTypes,
             onChange: setSelectedType,
-            label: "Type de propriété"
+            label: t('properties.type')
           },
           status: {
             value: selectedStatus,
-            options: [
-              { value: 'all', label: 'Tous les statuts' },
-              { value: 'active', label: 'Actif' },
-              { value: 'inactive', label: 'Inactif' },
-              { value: 'maintenance', label: 'Maintenance' }
-            ],
+            options: statusOptions,
             onChange: setSelectedStatus,
-            label: "Statut"
+            label: t('properties.status')
           },
           ...(false || false ? {
             host: {
               value: selectedHost,
-              options: [{ value: 'all', label: 'Tous les hôtes' }, ...hosts.map(host => ({ value: host.id.toString(), label: `${host.firstName} ${host.lastName}` }))],
+              options: [{ value: 'all', label: t('properties.allHosts') }, ...hosts.map(host => ({ value: host.id.toString(), label: `${host.firstName} ${host.lastName}` }))],
               onChange: setSelectedHost,
-              label: "Hôte"
+              label: t('properties.owner')
             }
           } : {})
         }}
         counter={{
-          label: "propriété",
+          label: t('properties.property'),
           count: filteredProperties.length,
           singular: "",
           plural: "s"
@@ -377,15 +386,15 @@ export default function PropertiesList() {
                   <Home sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.6 }} />
                 </Box>
                 <Typography variant="h6" color="text.secondary" gutterBottom>
-                  Aucune propriété trouvée
+                  {t('properties.noPropertyFound')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
                   {isAdmin() || isManager() 
-                    ? "Aucune propriété n'a encore été créée dans le système."
-                    : "Aucune propriété ne vous est actuellement assignée."}
+                    ? t('properties.noPropertyCreated')
+                    : t('properties.noPropertyAssigned')}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
-                  Les propriétés permettent de gérer votre parc immobilier et de suivre les interventions de maintenance et nettoyage.
+                  {t('properties.propertiesDescription')}
                 </Typography>
                 {(false || isAdmin() || isManager() || isHost()) && (
                   <Button
@@ -395,7 +404,7 @@ export default function PropertiesList() {
                     size="small"
                     sx={{ borderRadius: 1.5 }}
                   >
-                    Créer votre première propriété
+                    {t('properties.createFirst')}
                   </Button>
                 )}
               </CardContent>
@@ -448,9 +457,9 @@ export default function PropertiesList() {
                         whiteSpace: 'nowrap',
                         fontSize: '0.75rem'
                       }}
-                      title={property.description || 'Aucune description disponible'}
+                      title={property.description || t('properties.noDescription')}
                     >
-                      {property.description || 'Aucune description disponible'}
+                      {property.description || t('properties.noDescription')}
                     </Typography>
 
                     {/* Localisation */}
@@ -475,10 +484,10 @@ export default function PropertiesList() {
                     {/* Chips pour type et statut */}
                     <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
                       <Chip
-                        label={property.type === 'apartment' ? 'Appartement' : 
-                               property.type === 'house' ? 'Maison' : 
-                               property.type === 'villa' ? 'Villa' : 
-                               property.type === 'studio' ? 'Studio' : property.type}
+                        label={property.type === 'apartment' ? t('properties.types.apartment') : 
+                               property.type === 'house' ? t('properties.types.house') : 
+                               property.type === 'villa' ? t('properties.types.villa') : 
+                               property.type === 'studio' ? t('properties.types.studio') : property.type}
                         color="primary"
                         size="small"
                         variant="outlined"
@@ -498,7 +507,7 @@ export default function PropertiesList() {
                         <Box sx={{ textAlign: 'center' }}>
                           <BedIcon sx={{ fontSize: 16, color: 'text.secondary', mb: 0.25 }} />
                           <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.65rem', lineHeight: 1 }}>
-                            Chambres
+                            {t('properties.bedrooms')}
                           </Typography>
                           <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                             {property.bedrooms}
@@ -509,7 +518,7 @@ export default function PropertiesList() {
                         <Box sx={{ textAlign: 'center' }}>
                           <PersonIcon sx={{ fontSize: 16, color: 'text.secondary', mb: 0.25 }} />
                           <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.65rem', lineHeight: 1 }}>
-                            Voyageurs
+                            {t('properties.guests')}
                           </Typography>
                           <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                             {property.guests}
@@ -520,7 +529,7 @@ export default function PropertiesList() {
                         <Box sx={{ textAlign: 'center' }}>
                           <BathroomIcon sx={{ fontSize: 16, color: 'text.secondary', mb: 0.25 }} />
                           <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.65rem', lineHeight: 1 }}>
-                            SDB
+                            {t('properties.bathrooms')}
                           </Typography>
                           <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                             {property.bathrooms}
@@ -541,11 +550,11 @@ export default function PropertiesList() {
                             {property.nightlyPrice}
                           </Typography>
                           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                            /nuit
+                            {t('properties.perNight')}
                           </Typography>
                         </Box>
                         <Typography variant="caption" color="text.secondary" sx={{ mt: 0.25, fontSize: '0.7rem' }}>
-                          {property.squareMeters || 'N/A'} m²
+                          {property.squareMeters || 'N/A'} {t('properties.squareMeters')}
                         </Typography>
                       </Box>
                     </Box>
@@ -566,7 +575,7 @@ export default function PropertiesList() {
           <ListItemIcon>
             <Visibility fontSize="small" />
           </ListItemIcon>
-          Voir détails
+          {t('properties.viewDetails')}
         </MenuItem>
         {/* Actions d'édition/suppression - visibles selon les permissions */}
         {selectedProperty && canModifyProperty(selectedProperty) && (
@@ -575,13 +584,13 @@ export default function PropertiesList() {
               <ListItemIcon>
                 <Edit fontSize="small" />
               </ListItemIcon>
-              Modifier
+              {t('properties.modify')}
             </MenuItem>
             <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
               <ListItemIcon>
                 <Delete fontSize="small" sx={{ color: 'error.main' }} />
               </ListItemIcon>
-              Supprimer
+              {t('properties.delete')}
             </MenuItem>
           </>
         )}
@@ -589,17 +598,16 @@ export default function PropertiesList() {
 
       {/* Dialog de confirmation de suppression */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Confirmer la suppression</DialogTitle>
+        <DialogTitle>{t('properties.confirmDelete')}</DialogTitle>
         <DialogContent>
           <Typography>
-            Êtes-vous sûr de vouloir supprimer la propriété "{selectedProperty?.name}" ? 
-            Cette action est irréversible.
+            {t('properties.confirmDeleteMessage', { name: selectedProperty?.name })}
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Annuler</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)}>{t('common.cancel')}</Button>
           <Button onClick={confirmDelete} color="error" variant="contained">
-            Supprimer
+            {t('properties.delete')}
           </Button>
         </DialogActions>
       </Dialog>

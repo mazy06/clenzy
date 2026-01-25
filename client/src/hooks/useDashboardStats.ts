@@ -45,7 +45,7 @@ export interface ActivityItem {
   };
 }
 
-export const useDashboardStats = (userRole?: string) => {
+export const useDashboardStats = (userRole?: string, t?: (key: string, options?: any) => string) => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -164,7 +164,7 @@ export const useDashboardStats = (userRole?: string) => {
   };
 
   // Charger les activités récentes
-  const loadRecentActivities = async (userRole?: string): Promise<ActivityItem[]> => {
+  const loadRecentActivities = async (userRole?: string, translationFn?: (key: string, options?: any) => string): Promise<ActivityItem[]> => {
     try {
       // Combiner les données des différents endpoints pour créer des activités
       const [propertiesRes, requestsRes, interventionsRes, usersRes, teamsRes] = await Promise.all([
@@ -203,9 +203,9 @@ export const useDashboardStats = (userRole?: string) => {
         filteredProperties.slice(0, 2).forEach((prop: any) => {
           activities.push({
             id: prop.id,
-            type: 'Nouvelle propriété créée',
-            property: prop.name || 'Propriété',
-            time: formatTimeAgo(new Date(prop.createdAt || prop.updatedAt)),
+            type: t ? t('dashboard.activities.newPropertyCreated') : 'Nouvelle propriété créée',
+            property: prop.name || (t ? t('properties.title') : 'Propriété'),
+            time: formatTimeAgo(new Date(prop.createdAt || prop.updatedAt), t),
             status: 'created',
             timestamp: prop.createdAt || prop.updatedAt,
             category: 'property',
@@ -232,11 +232,12 @@ export const useDashboardStats = (userRole?: string) => {
         }
         
         filteredRequests.slice(0, 2).forEach((req: any) => {
+          const serviceRequestLabel = t ? t('dashboard.activities.serviceRequest') : 'Demande de service';
           activities.push({
             id: req.id,
-            type: `Demande de service - ${req.type}`,
-            property: req.propertyName || 'Propriété',
-            time: formatTimeAgo(new Date(req.createdAt)),
+            type: `${serviceRequestLabel} - ${req.type}`,
+            property: req.propertyName || (t ? t('properties.title') : 'Propriété'),
+            time: formatTimeAgo(new Date(req.createdAt), t),
             status: req.status.toLowerCase(),
             timestamp: req.createdAt,
             category: 'service-request',
@@ -262,11 +263,12 @@ export const useDashboardStats = (userRole?: string) => {
         }
         
         filteredInterventions.slice(0, 2).forEach((int: any) => {
+          const interventionLabel = t ? t('dashboard.activities.intervention') : 'Intervention';
           activities.push({
             id: int.id,
-            type: `Intervention - ${int.type}`,
-            property: int.propertyName || 'Propriété',
-            time: formatTimeAgo(new Date(int.scheduledDate || int.createdAt)),
+            type: `${interventionLabel} - ${int.type}`,
+            property: int.propertyName || (t ? t('properties.title') : 'Propriété'),
+            time: formatTimeAgo(new Date(int.scheduledDate || int.createdAt), t),
             status: int.status.toLowerCase(),
             timestamp: int.scheduledDate || int.createdAt,
             category: 'intervention',
@@ -288,9 +290,9 @@ export const useDashboardStats = (userRole?: string) => {
           users.slice(0, 1).forEach((user: any) => {
             activities.push({
               id: user.id,
-              type: 'Nouvel utilisateur créé',
-              property: user.email || 'Utilisateur',
-              time: formatTimeAgo(new Date(user.createdAt || user.updatedAt)),
+              type: t ? t('dashboard.activities.newUserCreated') : 'Nouvel utilisateur créé',
+              property: user.email || (t ? t('users.title') : 'Utilisateur'),
+              time: formatTimeAgo(new Date(user.createdAt || user.updatedAt), t),
               status: 'created',
               timestamp: user.createdAt || user.updatedAt,
               category: 'user',
@@ -310,9 +312,9 @@ export const useDashboardStats = (userRole?: string) => {
           teams.slice(0, 1).forEach((team: any) => {
             activities.push({
               id: team.id,
-              type: 'Nouvelle équipe créée',
-              property: team.name || 'Équipe',
-              time: formatTimeAgo(new Date(team.createdAt || team.updatedAt)),
+              type: t ? t('dashboard.activities.newTeamCreated') : 'Nouvelle équipe créée',
+              property: team.name || (t ? t('teams.title') : 'Équipe'),
+              time: formatTimeAgo(new Date(team.createdAt || team.updatedAt), t),
               status: 'created',
               timestamp: team.createdAt || team.updatedAt,
               category: 'team',
@@ -334,12 +336,23 @@ export const useDashboardStats = (userRole?: string) => {
   };
 
   // Formater le temps écoulé
-  const formatTimeAgo = (date: Date): string => {
+  const formatTimeAgo = (date: Date, translationFn?: (key: string, options?: any) => string): string => {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
 
+    if (translationFn) {
+      if (diffDays > 0) {
+        return translationFn('dashboard.activities.timeAgo.days', { count: diffDays });
+      } else if (diffHours > 0) {
+        return translationFn('dashboard.activities.timeAgo.hours', { count: diffHours });
+      } else {
+        return translationFn('dashboard.activities.timeAgo.now');
+      }
+    }
+
+    // Fallback en français si pas de traduction
     if (diffDays > 0) {
       return `Il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
     } else if (diffHours > 0) {

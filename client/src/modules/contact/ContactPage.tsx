@@ -15,6 +15,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ContactMessages from './ContactMessages';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -45,6 +46,7 @@ function TabPanel(props: TabPanelProps) {
 const ContactPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -61,13 +63,13 @@ const ContactPage: React.FC = () => {
           <Tabs value={tabValue} onChange={handleTabChange} aria-label="contact tabs">
             <Tab 
               icon={<InboxIcon />} 
-              label="Messages Reçus" 
+              label={t('contact.messagesReceived')} 
               id="contact-tab-0"
               aria-controls="contact-tabpanel-0"
             />
             <Tab 
               icon={<SendIcon />} 
-              label="Messages Envoyés" 
+              label={t('contact.messagesSent')} 
               id="contact-tab-1"
               aria-controls="contact-tabpanel-1"
             />
@@ -87,7 +89,7 @@ const ContactPage: React.FC = () => {
       <Fab
         color="primary"
         size="small"
-        aria-label="nouveau message"
+        aria-label={t('contact.ariaLabel.newMessage')}
         onClick={handleNewMessage}
         sx={{
           position: 'fixed',

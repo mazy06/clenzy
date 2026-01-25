@@ -46,6 +46,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
 import { RequestStatus, REQUEST_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } from '../../types/statusEnums';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Types pour les demandes de service
 export interface ServiceRequestFormData {
@@ -92,6 +93,7 @@ interface Team {
 const ServiceRequestEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user, hasPermissionAsync, isAdmin, isManager, isHost } = useAuth();
   
   const [loading, setLoading] = useState(false);
@@ -161,11 +163,11 @@ const ServiceRequestEdit: React.FC = () => {
             status: serviceRequest.status || 'PENDING',
           });
         } else {
-          setError('Erreur lors du chargement de la demande de service');
+          setError(t('serviceRequests.loadError'));
         }
       } catch (err) {
         console.error('🔍 ServiceRequestEdit - Erreur chargement demande:', err);
-        setError('Erreur lors du chargement de la demande de service');
+        setError(t('serviceRequests.loadError'));
       } finally {
         setLoading(false);
       }
@@ -255,7 +257,7 @@ const ServiceRequestEdit: React.FC = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
-          Vous n'avez pas les permissions nécessaires pour modifier les demandes de service.
+          {t('serviceRequests.noPermissionEdit')}
         </Alert>
       </Box>
     );
@@ -311,11 +313,11 @@ const ServiceRequestEdit: React.FC = () => {
       } else {
         const errorData = await response.json();
         console.error('🔍 ServiceRequestEdit - Erreur mise à jour:', errorData);
-        setError('Erreur lors de la mise à jour: ' + (errorData.message || 'Erreur inconnue'));
+        setError(t('serviceRequests.updateErrorDetails') + ': ' + (errorData.message || 'Erreur inconnue'));
       }
     } catch (err) {
       console.error('🔍 ServiceRequestEdit - Erreur mise à jour:', err);
-      setError('Erreur lors de la mise à jour de la demande de service');
+      setError(t('serviceRequests.updateError'));
     } finally {
       setSaving(false);
     }
@@ -334,15 +336,14 @@ const ServiceRequestEdit: React.FC = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="info" sx={{ mb: 3 }}>
-          Cette demande de service a été approuvée et ne peut plus être modifiée.
-          Une intervention a été créée automatiquement.
+          {t('serviceRequests.approvedCannotEdit')}
         </Alert>
         <Button
           variant="contained"
           onClick={() => navigate(`/service-requests/${id}`)}
           startIcon={<ArrowBack />}
         >
-          Retour aux détails
+          {t('common.back')}
         </Button>
       </Box>
     );
@@ -426,7 +427,7 @@ const ServiceRequestEdit: React.FC = () => {
           <ArrowBack />
         </IconButton>
         <Typography variant="h4" fontWeight={700}>
-          Modifier la demande de service
+          {t('serviceRequests.edit')}
         </Typography>
       </Box>
 
@@ -439,7 +440,7 @@ const ServiceRequestEdit: React.FC = () => {
 
       {success && (
         <Alert severity="success" sx={{ mb: 3 }}>
-          Demande de service mise à jour avec succès ! Redirection en cours...
+          {t('serviceRequests.updateRequestSuccess')}
         </Alert>
       )}
 
@@ -449,28 +450,28 @@ const ServiceRequestEdit: React.FC = () => {
           <form onSubmit={handleSubmit}>
             {/* Informations de base */}
             <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-              Informations de base
+              {t('serviceRequests.sections.basicInfo')}
             </Typography>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="Titre de la demande *"
+                  label={`${t('serviceRequests.fields.title')} *`}
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
                   required
-                  placeholder="Ex: Nettoyage après départ"
+                  placeholder={t('serviceRequests.fields.titlePlaceholder')}
                 />
               </Grid>
 
               <Grid item xs={12} md={3}>
                 <FormControl fullWidth required>
-                  <InputLabel>Type de service *</InputLabel>
+                  <InputLabel>{t('serviceRequests.fields.serviceType')} *</InputLabel>
                   <Select
                     value={formData.type}
                     onChange={(e) => handleInputChange('type', e.target.value)}
-                    label="Type de service *"
+                    label={`${t('serviceRequests.fields.serviceType')} *`}
                   >
                     {serviceTypes.map((type) => (
                       <MenuItem key={type.value} value={type.value}>
@@ -486,11 +487,11 @@ const ServiceRequestEdit: React.FC = () => {
 
               <Grid item xs={12} md={3}>
                 <FormControl fullWidth required>
-                  <InputLabel>Statut *</InputLabel>
+                  <InputLabel>{t('common.status')} *</InputLabel>
                   <Select
                     value={formData.status}
                     onChange={(e) => handleInputChange('status', e.target.value)}
-                    label="Statut *"
+                    label={`${t('common.status')} *`}
                   >
                     {statuses.map((status) => (
                       <MenuItem key={status.value} value={status.value}>
@@ -504,7 +505,7 @@ const ServiceRequestEdit: React.FC = () => {
 
             {/* Description */}
             <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-              Description
+              {t('serviceRequests.sections.description')}
             </Typography>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -513,28 +514,28 @@ const ServiceRequestEdit: React.FC = () => {
                   fullWidth
                   multiline
                   rows={4}
-                  label="Description détaillée *"
+                  label={`${t('serviceRequests.fields.detailedDescription')} *`}
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   required
-                  placeholder="Décrivez en détail la demande de service..."
+                  placeholder={t('serviceRequests.fields.descriptionPlaceholder')}
                 />
               </Grid>
             </Grid>
 
             {/* Propriété */}
             <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-              Propriété concernée
+              {t('serviceRequests.sections.property')}
             </Typography>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12}>
                 <FormControl fullWidth required>
-                  <InputLabel>Propriété *</InputLabel>
+                  <InputLabel>{t('serviceRequests.fields.property')} *</InputLabel>
                   <Select
                     value={formData.propertyId}
                     onChange={(e) => handleInputChange('propertyId', e.target.value)}
-                    label="Propriété *"
+                    label={`${t('serviceRequests.fields.property')} *`}
                   >
                     {properties.map((property) => (
                       <MenuItem key={property.id} value={property.id}>
@@ -551,17 +552,17 @@ const ServiceRequestEdit: React.FC = () => {
 
             {/* Priorité et durée */}
             <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-              Priorité et planification
+              {t('serviceRequests.sections.priorityPlanning')}
             </Typography>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth required>
-                  <InputLabel>Priorité *</InputLabel>
+                  <InputLabel>{t('serviceRequests.fields.priority')} *</InputLabel>
                   <Select
                     value={formData.priority}
                     onChange={(e) => handleInputChange('priority', e.target.value)}
-                    label="Priorité *"
+                    label={`${t('serviceRequests.fields.priority')} *`}
                   >
                     {priorities.map((priority) => (
                       <MenuItem key={priority.value} value={priority.value}>
@@ -577,11 +578,11 @@ const ServiceRequestEdit: React.FC = () => {
 
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth required>
-                  <InputLabel>Durée estimée *</InputLabel>
+                  <InputLabel>{t('serviceRequests.fields.estimatedDuration')} *</InputLabel>
                   <Select
                     value={formData.estimatedDuration}
                     onChange={(e) => handleInputChange('estimatedDuration', e.target.value)}
-                    label="Durée estimée *"
+                    label={`${t('serviceRequests.fields.estimatedDuration')} *`}
                   >
                     {durations.map((duration) => (
                       <MenuItem key={duration.value} value={duration.value}>
@@ -598,7 +599,7 @@ const ServiceRequestEdit: React.FC = () => {
               <Grid item xs={12} md={4}>
                 <TextField
                   fullWidth
-                  label="Date d'échéance *"
+                  label={`${t('serviceRequests.fields.dueDate')} *`}
                   type="datetime-local"
                   value={formData.dueDate}
                   onChange={(e) => handleInputChange('dueDate', e.target.value)}
@@ -612,17 +613,17 @@ const ServiceRequestEdit: React.FC = () => {
 
             {/* Demandeur et assignation */}
             <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-              Demandeur et assignation
+              {t('serviceRequests.sections.requestorAssignment')}
             </Typography>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth required>
-                  <InputLabel>Demandeur *</InputLabel>
+                  <InputLabel>{t('serviceRequests.fields.requestor')} *</InputLabel>
                   <Select
                     value={formData.requestorId}
                     onChange={(e) => handleInputChange('requestorId', e.target.value)}
-                    label="Demandeur *"
+                    label={`${t('serviceRequests.fields.requestor')} *`}
                   >
                     {users.map((user) => (
                       <MenuItem key={user.id} value={user.id}>
@@ -638,28 +639,28 @@ const ServiceRequestEdit: React.FC = () => {
 
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Type d'assignation</InputLabel>
+                  <InputLabel>{t('serviceRequests.fields.assignmentType')}</InputLabel>
                   <Select
                     value={formData.assignedToType || ''}
                     onChange={(e) => {
                       handleInputChange('assignedToType', e.target.value || undefined);
                       handleInputChange('assignedToId', undefined);
                     }}
-                    label="Type d'assignation"
+                    label={t('serviceRequests.fields.assignmentType')}
                   >
                     <MenuItem value="">
-                      <em>Aucune assignation</em>
+                      <em>{t('serviceRequests.fields.noAssignment')}</em>
                     </MenuItem>
                     <MenuItem value="user">
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Person />
-                        Utilisateur individuel
+                        {t('serviceRequests.fields.individualUser')}
                       </Box>
                     </MenuItem>
                     <MenuItem value="team">
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Group />
-                        Équipe
+                        {t('serviceRequests.fields.team')}
                       </Box>
                     </MenuItem>
                   </Select>
@@ -673,15 +674,15 @@ const ServiceRequestEdit: React.FC = () => {
                 <Grid item xs={12}>
                   <FormControl fullWidth>
                     <InputLabel>
-                      {formData.assignedToType === 'user' ? 'Assigné à (utilisateur)' : 'Assigné à (équipe)'}
+                      {formData.assignedToType === 'user' ? t('serviceRequests.fields.assignedToUser') : t('serviceRequests.fields.assignedToTeam')}
                     </InputLabel>
                     <Select
                       value={formData.assignedToId || ''}
                       onChange={(e) => handleInputChange('assignedToId', e.target.value || undefined)}
-                      label={formData.assignedToType === 'user' ? 'Assigné à (utilisateur)' : 'Assigné à (équipe)'}
+                      label={formData.assignedToType === 'user' ? t('serviceRequests.fields.assignedToUser') : t('serviceRequests.fields.assignedToTeam')}
                     >
                       <MenuItem value="">
-                        <em>Sélectionner...</em>
+                        <em>{t('serviceRequests.fields.select')}</em>
                       </MenuItem>
                       {formData.assignedToType === 'user' ? (
                         getAssignableUsers().map((user) => (
@@ -702,7 +703,7 @@ const ServiceRequestEdit: React.FC = () => {
                                   {team.name}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                  {team.memberCount} membre(s) • {getInterventionTypeLabel(team.interventionType)}
+                                  {team.memberCount} {t('serviceRequests.members')} • {getInterventionTypeLabel(team.interventionType)}
                                 </Typography>
                               </Box>
                             </Box>
@@ -723,7 +724,7 @@ const ServiceRequestEdit: React.FC = () => {
                 startIcon={<Cancel />}
                 disabled={saving}
               >
-                Annuler
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -731,7 +732,7 @@ const ServiceRequestEdit: React.FC = () => {
                 startIcon={saving ? <CircularProgress size={20} /> : <Save />}
                 disabled={saving}
               >
-                {saving ? 'Mise à jour...' : 'Mettre à jour'}
+                {saving ? t('serviceRequests.updating') : t('serviceRequests.update')}
               </Button>
             </Box>
           </form>

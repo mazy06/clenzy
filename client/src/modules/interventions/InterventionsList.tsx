@@ -38,6 +38,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
 import { InterventionStatus, INTERVENTION_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } from '../../types/statusEnums';
 import { createSpacing } from '../../theme/spacing';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface Intervention {
   id: number;
@@ -84,23 +85,7 @@ const interventionTypes = [
   { value: 'OTHER', label: 'Autre' }
 ];
 
-// Utilisation des enums partagés pour les statuts
-const statuses = [
-  { value: 'all', label: 'Tous les statuts' },
-  ...INTERVENTION_STATUS_OPTIONS.map(option => ({
-    value: option.value,
-    label: option.label
-  }))
-];
-
-// Utilisation des enums partagés pour les priorités
-const priorities = [
-  { value: 'all', label: 'Toutes priorités' },
-  ...PRIORITY_OPTIONS.map(option => ({
-    value: option.value,
-    label: option.label
-  }))
-];
+// statuses et priorities seront générés dynamiquement avec les traductions
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -178,14 +163,15 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const formatDuration = (hours: number) => {
-  if (hours === 1) return '1 heure';
-  return `${hours} heures`;
-};
+  const formatDuration = (hours: number) => {
+    if (hours === 1) return `1 ${t('interventions.hour')}`;
+    return `${hours} ${t('interventions.hours')}`;
+  };
 
 export default function InterventionsList() {
   const navigate = useNavigate();
   const { user, hasPermissionAsync } = useAuth();
+  const { t } = useTranslation();
   
   // TOUS les useState DOIVENT être déclarés AVANT les vérifications conditionnelles
   const [interventions, setInterventions] = useState<Intervention[]>([]);
@@ -486,23 +472,69 @@ export default function InterventionsList() {
       <Box sx={createSpacing.page()}>
         <Alert severity="info">
           <Typography variant="h6" gutterBottom>
-            Accès non autorisé
+            {t('interventions.errors.noPermission')}
           </Typography>
           <Typography variant="body1">
-            Vous n'avez pas les permissions nécessaires pour accéder à cette section.
-            <br />
-            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+            {t('interventions.noPermissionMessage')}
           </Typography>
         </Alert>
       </Box>
     );
   }
 
+  // Fonction pour formater la durée
+  const formatDuration = (hours: number) => {
+    if (hours === 1) return `1 ${t('interventions.hour')}`;
+    return `${hours} ${t('interventions.hours')}`;
+  };
+
+  // Générer les types d'intervention avec traductions
+  const interventionTypes = [
+    { value: 'all', label: t('interventions.allTypes') },
+    { value: 'CLEANING', label: 'Nettoyage' },
+    { value: 'EXPRESS_CLEANING', label: 'Nettoyage Express' },
+    { value: 'DEEP_CLEANING', label: 'Nettoyage en Profondeur' },
+    { value: 'WINDOW_CLEANING', label: 'Nettoyage des Vitres' },
+    { value: 'FLOOR_CLEANING', label: 'Nettoyage des Sols' },
+    { value: 'KITCHEN_CLEANING', label: 'Nettoyage de la Cuisine' },
+    { value: 'BATHROOM_CLEANING', label: 'Nettoyage des Sanitaires' },
+    { value: 'PREVENTIVE_MAINTENANCE', label: 'Maintenance Préventive' },
+    { value: 'EMERGENCY_REPAIR', label: 'Réparation d\'Urgence' },
+    { value: 'ELECTRICAL_REPAIR', label: 'Réparation Électrique' },
+    { value: 'PLUMBING_REPAIR', label: 'Réparation Plomberie' },
+    { value: 'HVAC_REPAIR', label: 'Réparation Climatisation' },
+    { value: 'APPLIANCE_REPAIR', label: 'Réparation Électroménager' },
+    { value: 'GARDENING', label: 'Jardinage' },
+    { value: 'EXTERIOR_CLEANING', label: 'Nettoyage Extérieur' },
+    { value: 'PEST_CONTROL', label: 'Désinsectisation' },
+    { value: 'DISINFECTION', label: 'Désinfection' },
+    { value: 'RESTORATION', label: 'Remise en État' },
+    { value: 'OTHER', label: 'Autre' }
+  ];
+
+  // Générer les statuts avec traductions
+  const statuses = [
+    { value: 'all', label: t('interventions.allStatuses') },
+    ...INTERVENTION_STATUS_OPTIONS.map(option => ({
+      value: option.value,
+      label: option.label
+    }))
+  ];
+
+  // Générer les priorités avec traductions
+  const priorities = [
+    { value: 'all', label: t('interventions.allPriorities') },
+    ...PRIORITY_OPTIONS.map(option => ({
+      value: option.value,
+      label: option.label
+    }))
+  ];
+
   return (
     <Box>
       <PageHeader
-        title="Interventions"
-        subtitle="Gestion et suivi des interventions"
+        title={t('interventions.title')}
+        subtitle={t('interventions.subtitle')}
         backPath="/dashboard"
         showBackButton={false}
         actions={
@@ -514,7 +546,7 @@ export default function InterventionsList() {
               onClick={() => navigate('/interventions/new')}
               size="small"
             >
-              Nouvelle intervention
+              {t('interventions.create')}
             </Button>
           ) : undefined
         }
@@ -530,29 +562,29 @@ export default function InterventionsList() {
       <FilterSearchBar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Rechercher une intervention..."
+        searchPlaceholder={t('interventions.search')}
         filters={{
           type: {
             value: selectedType,
             options: interventionTypes,
             onChange: setSelectedType,
-            label: "Type"
+            label: t('common.type')
           },
           status: {
             value: selectedStatus,
             options: statuses,
             onChange: setSelectedStatus,
-            label: "Statut"
+            label: t('common.status')
           },
           priority: {
             value: selectedPriority,
             options: priorities,
             onChange: setSelectedPriority,
-            label: "Priorité"
+            label: t('interventions.fields.priority')
           }
         }}
         counter={{
-          label: "intervention",
+          label: t('interventions.intervention'),
           count: filteredInterventions.length,
           singular: "",
           plural: "s"
@@ -568,18 +600,18 @@ export default function InterventionsList() {
                   <Build sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.6 }} />
                 </Box>
                 <Typography variant="h6" color="text.secondary" gutterBottom>
-                  Aucune intervention
+                  {t('interventions.noInterventionFound')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
                   {canCreateInterventions 
-                    ? "Aucune demande de service n'a encore été validée pour créer des interventions."
-                    : "Aucune intervention ne vous est actuellement assignée."}
+                    ? t('interventions.noInterventionValidated')
+                    : t('interventions.noInterventionAssigned')}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
-                  Les interventions sont créées automatiquement à partir des demandes de service validées par les managers et administrateurs.
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 3, display: 'block' }}>
+                  {t('interventions.interventionsDescription')}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.7rem' }}>
-                  💡 Pour créer une intervention, validez d'abord une demande de service depuis le menu "Demandes de service".
+                <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', fontSize: '0.7rem', display: 'block', mb: 2 }}>
+                  💡 {t('interventions.interventionsTip')}
                 </Typography>
               </CardContent>
             </Card>
@@ -663,8 +695,8 @@ export default function InterventionsList() {
                       ) : (
                         <PersonIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
                       )}
-                      <Typography variant="caption" sx={{ fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={intervention.assignedToName || 'Non assigné'}>
-                        Assigné à: {intervention.assignedToName || 'Non assigné'}
+                      <Typography variant="caption" sx={{ fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={intervention.assignedToName || t('interventions.notAssigned')}>
+                        {t('interventions.assignedTo')}: {intervention.assignedToName || t('interventions.notAssigned')}
                       </Typography>
                     </Box>
                   </Box>
@@ -674,10 +706,10 @@ export default function InterventionsList() {
                   <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                     <Box>
                       <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem', display: 'block' }}>
-                        Planifié: {formatDate(intervention.scheduledDate)}
+                        {t('interventions.scheduled')}: {formatDate(intervention.scheduledDate)}
                       </Typography>
                       <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
-                        Durée: {formatDuration(intervention.estimatedDurationHours)}
+                        {t('interventions.duration')}: {formatDuration(intervention.estimatedDurationHours)}
                       </Typography>
                     </Box>
                     <Box textAlign="right">
@@ -685,7 +717,7 @@ export default function InterventionsList() {
                         {intervention.progressPercentage}%
                       </Typography>
                       <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
-                        Progression
+                        {t('interventions.progress')}
                       </Typography>
                     </Box>
                   </Box>
@@ -701,7 +733,7 @@ export default function InterventionsList() {
                       size="small"
                       sx={{ fontSize: '0.75rem' }}
                     >
-                      Voir détail
+                      {t('interventions.viewDetails')}
                     </Button>
                   </Box>
                 </CardContent>
@@ -734,7 +766,7 @@ export default function InterventionsList() {
       >
         <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', py: 0.75 }}>
           <VisibilityIcon sx={{ mr: 1, fontSize: 18 }} />
-          Voir détails
+          {t('interventions.viewDetails')}
         </MenuItem>
         {canModifyIntervention(selectedIntervention!) && (
           <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
@@ -745,7 +777,7 @@ export default function InterventionsList() {
         {canDeleteInterventions && (
           <MenuItem onClick={handleDelete} sx={{ fontSize: '0.85rem', py: 0.75 }}>
             <DeleteIcon sx={{ mr: 1, fontSize: 18 }} />
-            Supprimer
+            {t('interventions.delete')}
           </MenuItem>
         )}
       </Menu>

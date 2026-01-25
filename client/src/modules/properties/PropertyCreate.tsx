@@ -6,10 +6,12 @@ import PropertyForm from './PropertyForm';
 import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { createSpacing } from '../../theme/spacing';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const PropertyCreate: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
+  const { t } = useTranslation();
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -47,7 +49,7 @@ const PropertyCreate: React.FC = () => {
     return (
       <Box sx={createSpacing.page()}>
         <Alert severity="success" sx={createSpacing.section()}>
-          Propriété créée avec succès ! Redirection en cours...
+          {t('properties.create')} {t('common.success')} ! {t('common.loading')}
         </Alert>
       </Box>
     );
@@ -56,8 +58,8 @@ const PropertyCreate: React.FC = () => {
   return (
     <Box sx={createSpacing.page()}>
       <PageHeader
-        title="Nouvelle propriété"
-        subtitle="Créer une nouvelle propriété dans le système"
+        title={t('properties.create')}
+        subtitle={t('properties.subtitle')}
         backPath="/properties"
         showBackButton={true}
         actions={
@@ -69,7 +71,7 @@ const PropertyCreate: React.FC = () => {
               disabled={loading}
               sx={{ mr: 1 }}
             >
-              Annuler
+              {t('common.cancel')}
             </Button>
             <Button
               variant="contained"
@@ -83,7 +85,7 @@ const PropertyCreate: React.FC = () => {
               startIcon={<Save />}
               disabled={loading}
             >
-              {loading ? 'Création...' : 'Créer la propriété'}
+              {loading ? t('properties.creating') : t('properties.createProperty')}
             </Button>
           </>
         }

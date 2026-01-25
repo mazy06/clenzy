@@ -5,10 +5,12 @@ import { Cancel, Save } from '@mui/icons-material';
 import ServiceRequestForm from './ServiceRequestForm';
 import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const ServiceRequestCreate: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
+  const { t } = useTranslation();
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -46,7 +48,7 @@ const ServiceRequestCreate: React.FC = () => {
     return (
       <Box>
         <Alert severity="success" sx={{ mb: 3 }}>
-          Demande de service créée avec succès ! Redirection en cours...
+          {t('serviceRequests.createSuccess')}
         </Alert>
       </Box>
     );
@@ -55,8 +57,8 @@ const ServiceRequestCreate: React.FC = () => {
   return (
     <Box>
       <PageHeader
-        title="Nouvelle demande de service"
-        subtitle="Créer une nouvelle demande de service dans le système"
+        title={t('serviceRequests.create')}
+        subtitle={t('serviceRequests.createSubtitle')}
         backPath="/service-requests"
         showBackButton={true}
         actions={
@@ -68,7 +70,7 @@ const ServiceRequestCreate: React.FC = () => {
               disabled={loading}
               sx={{ mr: 1 }}
             >
-              Annuler
+              {t('common.cancel')}
             </Button>
             <Button
               variant="contained"
@@ -85,7 +87,7 @@ const ServiceRequestCreate: React.FC = () => {
               startIcon={<Save />}
               disabled={loading}
             >
-              {loading ? 'Création...' : 'Créer la demande'}
+              {loading ? t('serviceRequests.creating') : t('serviceRequests.createRequest')}
             </Button>
           </>
         }

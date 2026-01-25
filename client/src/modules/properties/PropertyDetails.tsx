@@ -31,6 +31,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
 import PageHeader from '../../components/PageHeader';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // Interface pour les propriétés détaillées
 export interface PropertyDetailsData {
@@ -108,6 +109,7 @@ const PropertyDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
+  const { t } = useTranslation();
   
   // TOUS les useState DOIVENT être déclarés AVANT tout useEffect
   const [loading, setLoading] = useState(true);
@@ -164,11 +166,11 @@ const PropertyDetails: React.FC = () => {
           
           setProperty(convertedProperty);
         } else {
-          setError('Erreur lors du chargement de la propriété');
+          setError(t('properties.loadError'));
         }
       } catch (err) {
         console.error('🔍 PropertyDetails - Erreur chargement propriété:', err);
-        setError('Erreur lors du chargement de la propriété');
+        setError(t('properties.loadError'));
       } finally {
         setLoading(false);
       }
@@ -250,22 +252,15 @@ const PropertyDetails: React.FC = () => {
   };
 
   const formatCleaningFrequency = (freq: string) => {
-    switch (freq) {
-      case 'daily':
-        return 'Quotidien';
-      case 'weekly':
-        return 'Hebdomadaire';
-      case 'biweekly':
-        return 'Bi-hebdomadaire';
-      case 'monthly':
-        return 'Mensuel';
-      case 'on_demand':
-        return 'Sur demande';
-      case 'after_each_stay':
-        return 'Après chaque séjour';
-      default:
-        return freq;
-    }
+    const freqMap: Record<string, string> = {
+      'daily': t('properties.cleaningFrequencies.daily'),
+      'weekly': t('properties.cleaningFrequencies.weekly'),
+      'biweekly': t('properties.cleaningFrequencies.biweekly'),
+      'monthly': t('properties.cleaningFrequencies.monthly'),
+      'on_demand': t('properties.cleaningFrequencies.onDemand'),
+      'after_each_stay': t('properties.cleaningFrequencies.afterEachStay'),
+    };
+    return freqMap[freq.toLowerCase()] || freq;
   };
 
   if (loading) {
@@ -290,7 +285,7 @@ const PropertyDetails: React.FC = () => {
     return (
       <Box sx={{ p: 2 }}>
         <Alert severity="warning" sx={{ py: 1 }}>
-          Propriété non trouvée
+          {t('properties.notFound')}
         </Alert>
       </Box>
     );
@@ -300,7 +295,7 @@ const PropertyDetails: React.FC = () => {
     <Box>
       <PageHeader
         title={property.name}
-        subtitle="Détails de la propriété"
+        subtitle={t('properties.details')}
         backPath="/properties"
         actions={
           canEdit && (
@@ -310,7 +305,7 @@ const PropertyDetails: React.FC = () => {
               onClick={() => navigate(`/properties/${id}/edit`)}
               size="small"
             >
-              Modifier
+              {t('properties.modify')}
             </Button>
           )
         }
@@ -322,18 +317,18 @@ const PropertyDetails: React.FC = () => {
             <Tabs 
               value={tabValue} 
               onChange={handleTabChange} 
-              aria-label="Détails de la propriété"
+              aria-label={t('properties.details')}
               sx={{ px: 2 }}
             >
               <Tab 
-                label="Informations détaillées" 
+                label={t('properties.tabs.overview')} 
                 icon={<Info sx={{ fontSize: 18 }} />} 
                 iconPosition="start"
                 {...a11yProps(0)}
                 sx={{ fontSize: '0.85rem', minHeight: 48 }}
               />
               <Tab 
-                label="Interventions" 
+                label={t('properties.tabs.interventions')} 
                 icon={<List sx={{ fontSize: 18 }} />} 
                 iconPosition="start"
                 {...a11yProps(1)}
@@ -351,14 +346,14 @@ const PropertyDetails: React.FC = () => {
                     <CardContent sx={{ p: 1.5 }}>
                       <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
                         <Box sx={{ fontSize: 18 }}>{getPropertyTypeIcon(property.propertyType)}</Box>
-                        Informations générales
+                        {t('properties.informationsGeneral')}
                       </Typography>
                       
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                           <LocationOn color="action" sx={{ fontSize: 18 }} />
                           <Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Adresse</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.address')}</Typography>
                             <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                               {property.address}, {property.city} {property.postalCode}
                             </Typography>
@@ -368,7 +363,7 @@ const PropertyDetails: React.FC = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                           <Euro color="action" sx={{ fontSize: 18 }} />
                           <Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Prix par nuit</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.nightlyPrice')}</Typography>
                             <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{property.nightlyPrice}€</Typography>
                           </Box>
                         </Box>
@@ -376,7 +371,7 @@ const PropertyDetails: React.FC = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                           <Bed color="action" sx={{ fontSize: 18 }} />
                           <Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Chambres</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.bedrooms')}</Typography>
                             <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{property.bedrooms}</Typography>
                           </Box>
                         </Box>
@@ -384,7 +379,7 @@ const PropertyDetails: React.FC = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                           <Bathroom color="action" sx={{ fontSize: 18 }} />
                           <Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Salles de bain</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.bathroomCount')}</Typography>
                             <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{property.bathrooms}</Typography>
                           </Box>
                         </Box>
@@ -392,16 +387,16 @@ const PropertyDetails: React.FC = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                           <SquareFoot color="action" sx={{ fontSize: 18 }} />
                           <Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Surface</Typography>
-                            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{property.surfaceArea} m²</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.surface')}</Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{property.surfaceArea} {t('properties.squareMeters')}</Typography>
                           </Box>
                         </Box>
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                           <Person color="action" sx={{ fontSize: 18 }} />
                           <Box>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Capacité max</Typography>
-                            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{property.maxGuests} personnes</Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.maxCapacity')}</Typography>
+                            <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{property.maxGuests} {t('properties.people')}</Typography>
                           </Box>
                         </Box>
                       </Box>
@@ -493,7 +488,7 @@ const PropertyDetails: React.FC = () => {
                 </Grid>
               ) : (
                 <Alert severity="info" sx={{ py: 1 }}>
-                  Aucune intervention programmée pour cette propriété.
+                  {t('properties.noInterventions')}
                 </Alert>
               )}
             </Box>
