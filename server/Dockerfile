@@ -7,7 +7,10 @@ COPY pom.xml /workspace/pom.xml
 COPY src /workspace/src
 
 # Build jar (skip tests)
-RUN mvn -B -DskipTests package
+# -U: force update of dependencies
+# Clean Maven cache to avoid version conflicts
+RUN rm -rf ~/.m2/repository/ch/qos/logback || true && \
+    mvn -B -U -DskipTests clean package
 
 # ====== Runtime stage ======
 FROM eclipse-temurin:17-jre

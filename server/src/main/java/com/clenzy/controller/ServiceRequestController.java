@@ -2,6 +2,7 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.ServiceRequestDto;
 import com.clenzy.dto.InterventionDto;
+import com.clenzy.dto.ServiceRequestValidationRequest;
 import com.clenzy.service.ServiceRequestService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -54,8 +55,9 @@ public class ServiceRequestController {
                                         @RequestParam(required = false) Long userId,
                                         @RequestParam(required = false) Long propertyId,
                                         @RequestParam(required = false) com.clenzy.model.RequestStatus status,
-                                        @RequestParam(required = false) com.clenzy.model.ServiceType serviceType) {
-        return service.search(pageable, userId, propertyId, status, serviceType);
+                                        @RequestParam(required = false) com.clenzy.model.ServiceType serviceType,
+                                        @AuthenticationPrincipal Jwt jwt) {
+        return service.searchWithRoleBasedAccess(pageable, userId, propertyId, status, serviceType, jwt);
     }
 
     @DeleteMapping("/{id}")
@@ -69,11 +71,14 @@ public class ServiceRequestController {
     @Operation(summary = "Valider une demande de service et créer une intervention", 
                description = "Seuls les managers et admins peuvent valider les demandes de service. " +
                            "Cette action change le statut de la demande à APPROVED et crée automatiquement " +
-                           "une intervention correspondante.")
+                           "une intervention correspondante. Permet d'assigner une équipe ou un utilisateur lors de la création.")
     public ResponseEntity<InterventionDto> validateAndCreateIntervention(
             @PathVariable Long id,
+            @RequestBody(required = false) ServiceRequestValidationRequest request,
             @AuthenticationPrincipal Jwt jwt) {
-        InterventionDto intervention = service.validateAndCreateIntervention(id, jwt);
+        Long teamId = request != null ? request.getTeamId() : null;
+        Long userId = request != null ? request.getUserId() : null;
+        InterventionDto intervention = service.validateAndCreateIntervention(id, teamId, userId, jwt);
         return ResponseEntity.status(HttpStatus.CREATED).body(intervention);
     }
 }

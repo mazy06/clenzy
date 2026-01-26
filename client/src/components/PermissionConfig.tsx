@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -38,6 +38,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useRolePermissions } from '../hooks/useRolePermissions';
 import { usePermissionRefresh } from '../hooks/usePermissionRefresh';
 import PermissionEffectsDemo from './PermissionEffectsDemo';
+import { API_CONFIG } from '../config/api';
 
 const PermissionConfig: React.FC = () => {
   const { user } = useAuth();
@@ -77,34 +78,108 @@ const PermissionConfig: React.FC = () => {
     setActiveTab(newValue);
   };
 
-  // Toutes les permissions disponibles (récupérées depuis la base de données)
-  const allPermissions = [
-    // TODO: Récupérer depuis l'API au lieu d'être hardcodées
-    'dashboard:view',
-    'properties:view', 'properties:create', 'properties:edit', 'properties:delete',
-    'service-requests:view', 'service-requests:create', 'service-requests:edit', 'service-requests:delete',
-    'interventions:view', 'interventions:create', 'interventions:edit', 'interventions:delete',
-    'teams:view', 'teams:create', 'teams:edit', 'teams:delete',
-    'portfolios:view', 'portfolios:manage',
-    'contact:view', 'contact:send', 'contact:manage',
-    'settings:view', 'settings:edit',
-    'users:manage',
-    'reports:view',
-  ];
+  // État pour toutes les permissions disponibles
+  const [allPermissions, setAllPermissions] = useState<string[]>([]);
+  const [permissionsByModule, setPermissionsByModule] = useState<Record<string, string[]>>({});
+  const [loadingPermissions, setLoadingPermissions] = useState(true);
 
-  // Grouper les permissions par module
-  const permissionsByModule = {
-    'Dashboard': ['dashboard:view'],
-    'Propriétés': ['properties:view', 'properties:create', 'properties:edit', 'properties:delete'],
-    'Demandes de Service': ['service-requests:view', 'service-requests:create', 'service-requests:edit', 'service-requests:delete'],
-    'Interventions': ['interventions:view', 'interventions:create', 'interventions:edit', 'interventions:delete'],
-    'Équipes': ['teams:view', 'teams:create', 'teams:edit', 'teams:delete'],
-    'Portefeuilles': ['portfolios:view', 'portfolios:manage'],
-    'Contact': ['contact:view', 'contact:send', 'contact:manage'],
-    'Paramètres': ['settings:view', 'settings:edit'],
-    'Utilisateurs': ['users:manage'],
-    'Rapports': ['reports:view'],
+  // Fonction pour obtenir le nom d'affichage du module (doit être définie avant useEffect)
+  const getModuleDisplayName = (module: string): string => {
+    const moduleMap: Record<string, string> = {
+      'dashboard': 'Dashboard',
+      'properties': 'Propriétés',
+      'service-requests': 'Demandes de Service',
+      'interventions': 'Interventions',
+      'teams': 'Équipes',
+      'portfolios': 'Portefeuilles',
+      'contact': 'Contact',
+      'settings': 'Paramètres',
+      'users': 'Utilisateurs',
+      'reports': 'Rapports',
+    };
+    return moduleMap[module] || module.charAt(0).toUpperCase() + module.slice(1);
   };
+
+  // Charger toutes les permissions disponibles depuis l'API
+  useEffect(() => {
+    const loadAllPermissions = async () => {
+      try {
+        setLoadingPermissions(true);
+        const token = localStorage.getItem('kc_access_token');
+        if (!token) {
+          console.error('🔍 PermissionConfig - Pas de token d\'authentification');
+          return;
+        }
+
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/all`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+        }
+
+        const permissions = await response.json();
+        console.log('🔍 PermissionConfig - Permissions chargées depuis l\'API:', permissions);
+        
+        setAllPermissions(permissions);
+        
+        // Grouper les permissions par module
+        const grouped: Record<string, string[]> = {};
+        permissions.forEach((permission: string) => {
+          const [module] = permission.split(':');
+          const moduleName = getModuleDisplayName(module);
+          if (!grouped[moduleName]) {
+            grouped[moduleName] = [];
+          }
+          grouped[moduleName].push(permission);
+        });
+        
+        // Trier les permissions dans chaque module
+        Object.keys(grouped).forEach(module => {
+          grouped[module].sort();
+        });
+        
+        setPermissionsByModule(grouped);
+        console.log('🔍 PermissionConfig - Permissions groupées par module:', grouped);
+      } catch (err) {
+        console.error('🔍 PermissionConfig - Erreur lors du chargement des permissions:', err);
+        // En cas d'erreur, utiliser les permissions par défaut
+        const defaultPermissions = [
+          'dashboard:view',
+          'properties:view', 'properties:create', 'properties:edit', 'properties:delete',
+          'service-requests:view', 'service-requests:create', 'service-requests:edit', 'service-requests:delete',
+          'interventions:view', 'interventions:create', 'interventions:edit', 'interventions:delete',
+          'teams:view', 'teams:create', 'teams:edit', 'teams:delete',
+          'portfolios:view', 'portfolios:manage',
+          'contact:view', 'contact:send', 'contact:manage',
+          'settings:view', 'settings:edit',
+          'users:manage',
+          'reports:view', 'reports:generate', 'reports:download', 'reports:manage',
+        ];
+        setAllPermissions(defaultPermissions);
+        setPermissionsByModule({
+          'Dashboard': ['dashboard:view'],
+          'Propriétés': ['properties:view', 'properties:create', 'properties:edit', 'properties:delete'],
+          'Demandes de Service': ['service-requests:view', 'service-requests:create', 'service-requests:edit', 'service-requests:delete'],
+          'Interventions': ['interventions:view', 'interventions:create', 'interventions:edit', 'interventions:delete'],
+          'Équipes': ['teams:view', 'teams:create', 'teams:edit', 'teams:delete'],
+          'Portefeuilles': ['portfolios:view', 'portfolios:manage'],
+          'Contact': ['contact:view', 'contact:send', 'contact:manage'],
+          'Paramètres': ['settings:view', 'settings:edit'],
+          'Utilisateurs': ['users:manage'],
+          'Rapports': ['reports:view', 'reports:generate', 'reports:download', 'reports:manage'],
+        });
+      } finally {
+        setLoadingPermissions(false);
+      }
+    };
+
+    loadAllPermissions();
+  }, []);
 
   // Fonction pour obtenir l'icône appropriée pour chaque module
   const getModuleIcon = (moduleName: string) => {
@@ -133,7 +208,7 @@ const PermissionConfig: React.FC = () => {
     );
   }
 
-  if (loading) {
+  if (loading || loadingPermissions) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
         <CircularProgress />
@@ -428,9 +503,17 @@ const PermissionConfig: React.FC = () => {
                 
                 {/* Instructions pour la modification des permissions */}
                 <Alert severity="info" sx={{ mb: 3, fontSize: '1rem' }}>
-                  <strong>Mode modification :</strong> Cliquez sur les permissions pour les activer/désactiver. 
-                  Les modifications sont temporaires jusqu'à la sauvegarde. Utilisez les boutons d'action en haut de page pour persister les changements.
+                  <strong>Mode modification :</strong> Cliquez sur les badges de permissions (chips) pour les activer/désactiver. 
+                  Les permissions <strong>vertes</strong> sont actives, les permissions <strong>grises</strong> sont inactives.
+                  Les modifications sont temporaires jusqu'à la sauvegarde. Utilisez le bouton <strong>"Sauvegarder"</strong> en haut de page pour persister les changements.
                 </Alert>
+                
+                {/* Message si aucune permission n'est disponible */}
+                {allPermissions.length === 0 && (
+                  <Alert severity="warning" sx={{ mb: 3 }}>
+                    Aucune permission disponible. Veuillez vérifier que la base de données contient les permissions nécessaires.
+                  </Alert>
+                )}
                 
                 <Grid container spacing={3}>
                   {Object.entries(permissionsByModule).map(([moduleName, permissions]) => (

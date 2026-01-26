@@ -101,6 +101,13 @@ public class ServiceRequest {
     @JoinColumn(name = "property_id", nullable = false)
     private Property property;
     
+    // Assignation de la demande de service
+    @Column(name = "assigned_to_id")
+    private Long assignedToId;
+    
+    @Column(name = "assigned_to_type", length = 10)
+    private String assignedToType; // 'user' or 'team'
+    
     @OneToMany(mappedBy = "serviceRequest", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Intervention> interventions = new HashSet<>();
     
@@ -306,7 +313,21 @@ public class ServiceRequest {
         this.property = property;
     }
     
-
+    public Long getAssignedToId() {
+        return assignedToId;
+    }
+    
+    public void setAssignedToId(Long assignedToId) {
+        this.assignedToId = assignedToId;
+    }
+    
+    public String getAssignedToType() {
+        return assignedToType;
+    }
+    
+    public void setAssignedToType(String assignedToType) {
+        this.assignedToType = assignedToType;
+    }
     
     public Set<Intervention> getInterventions() {
         return interventions;

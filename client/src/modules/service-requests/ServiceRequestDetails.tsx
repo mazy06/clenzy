@@ -70,6 +70,9 @@ const ServiceRequestDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [serviceRequest, setServiceRequest] = useState<ServiceRequestDetailsData | null>(null);
+  
+  // Vérifier les permissions pour l'édition - DOIT être déclaré avant tout retour conditionnel
+  const [canEdit, setCanEdit] = useState(false);
 
   // Charger les données de la demande de service
   useEffect(() => {
@@ -93,25 +96,27 @@ const ServiceRequestDetails: React.FC = () => {
             id: data.id.toString(),
             title: data.title,
             description: data.description,
-            type: data.type?.toLowerCase() || 'other',
-            status: data.status?.toLowerCase() || 'pending',
-            priority: data.priority?.toLowerCase() || 'medium',
+            type: (data.serviceType || data.type)?.toString().toLowerCase() || 'other',
+            status: data.status?.toString().toLowerCase() || 'pending',
+            priority: data.priority?.toString().toLowerCase() || 'medium',
             propertyId: data.propertyId,
-            propertyName: data.property?.name || 'Propriété inconnue',
+            propertyName: data.property?.name || t('serviceRequests.unknownProperty'),
             propertyAddress: data.property?.address || '',
             propertyCity: data.property?.city || '',
             propertyPostalCode: data.property?.postalCode,
             propertyCountry: data.property?.country,
-            requestorId: data.requestorId,
-            requestorName: data.requestor ? `${data.requestor.firstName} ${data.requestor.lastName}` : t('serviceRequests.unknownRequestor'),
-            requestorEmail: data.requestor?.email,
+            requestorId: data.userId || data.requestorId,
+            requestorName: data.user ? `${data.user.firstName} ${data.user.lastName}` : (data.requestor ? `${data.requestor.firstName} ${data.requestor.lastName}` : t('serviceRequests.unknownRequestor')),
+            requestorEmail: data.user?.email || data.requestor?.email,
             assignedToId: data.assignedToId,
-            assignedToName: data.assignedTo ? `${data.assignedTo.firstName} ${data.assignedTo.lastName}` : undefined,
-            assignedToEmail: data.assignedTo?.email,
-            assignedToType: data.assignedToType || (data.assignedTo ? 'user' : undefined),
-            estimatedDuration: data.estimatedDuration || 1,
-            dueDate: data.dueDate,
-            createdAt: data.createdAt,
+            assignedToName: data.assignedToUser 
+              ? `${data.assignedToUser.firstName} ${data.assignedToUser.lastName}` 
+              : (data.assignedToTeam ? data.assignedToTeam.name : undefined),
+            assignedToEmail: data.assignedToUser?.email,
+            assignedToType: data.assignedToType || (data.assignedToUser ? 'user' : (data.assignedToTeam ? 'team' : undefined)),
+            estimatedDuration: data.estimatedDurationHours || data.estimatedDuration || 1,
+            dueDate: data.desiredDate || data.dueDate || '',
+            createdAt: data.createdAt || '',
             updatedAt: data.updatedAt,
             completedAt: data.completedAt,
           };
@@ -131,6 +136,16 @@ const ServiceRequestDetails: React.FC = () => {
     loadServiceRequest();
   }, [id]);
 
+  // Vérifier les permissions pour l'édition
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canEditPermission = await hasPermissionAsync('service-requests:edit');
+      setCanEdit(canEditPermission);
+    };
+    
+    checkPermissions();
+  }, [hasPermissionAsync]);
+
   // Fonctions utilitaires
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -148,15 +163,20 @@ const ServiceRequestDetails: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    const statusLower = status?.toLowerCase() || '';
+    switch (statusLower) {
       case 'pending':
         return 'warning';
+      case 'approved':
+        return 'info';
       case 'in_progress':
         return 'info';
       case 'completed':
         return 'success';
       case 'cancelled':
         return 'default';
+      case 'rejected':
+        return 'error';
       default:
         return 'default';
     }
@@ -178,15 +198,20 @@ const ServiceRequestDetails: React.FC = () => {
   };
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
+    const statusLower = status?.toLowerCase() || '';
+    switch (statusLower) {
       case 'pending':
-        return 'En attente';
+        return t('serviceRequests.statuses.pending');
+      case 'approved':
+        return t('serviceRequests.statuses.approved');
       case 'in_progress':
-        return 'En cours';
+        return t('serviceRequests.statuses.inProgress');
       case 'completed':
-        return 'Terminé';
+        return t('serviceRequests.statuses.completed');
       case 'cancelled':
-        return 'Annulé';
+        return t('serviceRequests.statuses.cancelled');
+      case 'rejected':
+        return t('serviceRequests.statuses.rejected');
       default:
         return status;
     }
@@ -268,18 +293,6 @@ const ServiceRequestDetails: React.FC = () => {
       </Box>
     );
   }
-
-  // Vérifier les permissions pour l'édition
-  const [canEdit, setCanEdit] = useState(false);
-  
-  useEffect(() => {
-    const checkPermissions = async () => {
-      const canEditPermission = await hasPermissionAsync('service-requests:edit');
-      setCanEdit(canEditPermission);
-    };
-    
-    checkPermissions();
-  }, [hasPermissionAsync]);;
 
   return (
     <Box sx={{ p: 2 }}>
@@ -415,7 +428,7 @@ const ServiceRequestDetails: React.FC = () => {
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', mb: 0.5, display: 'block' }}>
                 {t('serviceRequests.titleLabel')}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
@@ -424,7 +437,7 @@ const ServiceRequestDetails: React.FC = () => {
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', mb: 0.5, display: 'block' }}>
                 {t('serviceRequests.fields.serviceType')}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
@@ -434,8 +447,8 @@ const ServiceRequestDetails: React.FC = () => {
 
             {/* Description complète */}
             <Grid item xs={12}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                {t('serviceRequests.detailedDescription')}
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', mb: 0.5, display: 'block' }}>
+                {t('serviceRequests.fields.detailedDescription')}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
                 {serviceRequest.description}
@@ -444,28 +457,32 @@ const ServiceRequestDetails: React.FC = () => {
 
             {/* Statut et priorité */}
             <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                Statut
-              </Typography>
-              <Chip
-                label={getStatusLabel(serviceRequest.status)}
-                color={getStatusColor(serviceRequest.status) as any}
-                size="small"
-                sx={{ mb: 1, height: 22, fontSize: '0.7rem' }}
-              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', whiteSpace: 'nowrap' }}>
+                  {t('serviceRequests.fields.status')}
+                </Typography>
+                <Chip
+                  label={getStatusLabel(serviceRequest.status)}
+                  color={getStatusColor(serviceRequest.status) as any}
+                  size="small"
+                  sx={{ height: 22, fontSize: '0.7rem' }}
+                />
+              </Box>
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                {t('serviceRequests.fields.priority')}
-              </Typography>
-              <Chip
-                label={getPriorityLabel(serviceRequest.priority)}
-                color={getPriorityColor(serviceRequest.priority) as any}
-                size="small"
-                icon={<PriorityHigh sx={{ fontSize: 14 }} />}
-                sx={{ mb: 1, height: 22, fontSize: '0.7rem' }}
-              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', whiteSpace: 'nowrap' }}>
+                  {t('serviceRequests.fields.priority')}
+                </Typography>
+                <Chip
+                  label={`${getPriorityLabel(serviceRequest.priority)}`}
+                  color={getPriorityColor(serviceRequest.priority) as any}
+                  size="small"
+                  icon={<PriorityHigh sx={{ fontSize: 14, mr: 0.5 }} />}
+                  sx={{ height: 22, fontSize: '0.7rem', '& .MuiChip-icon': { marginLeft: '4px' } }}
+                />
+              </Box>
             </Grid>
 
             {/* Propriété */}
@@ -476,7 +493,7 @@ const ServiceRequestDetails: React.FC = () => {
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', mb: 0.5, display: 'block' }}>
                 {t('serviceRequests.propertyNameLabel')}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
@@ -485,7 +502,7 @@ const ServiceRequestDetails: React.FC = () => {
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', mb: 0.5, display: 'block' }}>
                 {t('serviceRequests.fullAddressLabel')}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
@@ -503,7 +520,7 @@ const ServiceRequestDetails: React.FC = () => {
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', mb: 0.5, display: 'block' }}>
                 {t('serviceRequests.estimatedDurationLabel')}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
@@ -512,7 +529,7 @@ const ServiceRequestDetails: React.FC = () => {
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', mb: 0.5, display: 'block' }}>
                 {t('serviceRequests.dueDateLabel')}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
@@ -521,7 +538,7 @@ const ServiceRequestDetails: React.FC = () => {
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', mb: 0.5, display: 'block' }}>
                 {t('serviceRequests.createdDateLabel')}
               </Typography>
               <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
@@ -537,7 +554,7 @@ const ServiceRequestDetails: React.FC = () => {
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', mb: 0.5, display: 'block' }}>
                 {t('serviceRequests.fields.requestor')}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
@@ -551,7 +568,7 @@ const ServiceRequestDetails: React.FC = () => {
 
             {/* Assignation */}
             <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', mb: 0.5, display: 'block' }}>
                 {t('serviceRequests.assignedTo')}
               </Typography>
               {serviceRequest.assignedToName ? (
@@ -575,7 +592,7 @@ const ServiceRequestDetails: React.FC = () => {
                   </Typography>
                 </Box>
               ) : (
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, fontSize: '0.75rem' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: '0.85rem' }}>
                   {t('serviceRequests.fields.noAssignment')}
                 </Typography>
               )}
@@ -591,7 +608,7 @@ const ServiceRequestDetails: React.FC = () => {
                 </Grid>
 
                 <Grid item xs={12} md={6}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', mb: 0.5, display: 'block' }}>
                     {t('serviceRequests.updatedDateShort')}
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>

@@ -23,6 +23,10 @@ import InterventionsList from './interventions/InterventionsList';
 import InterventionForm from './interventions/InterventionForm';
 import InterventionDetails from './interventions/InterventionDetails';
 import InterventionEdit from './interventions/InterventionEdit';
+import PaymentSuccess from './interventions/PaymentSuccess';
+import PaymentCancel from './interventions/PaymentCancel';
+import InterventionsPendingValidation from './interventions/InterventionsPendingValidation';
+import InterventionsPendingPayment from './interventions/InterventionsPendingPayment';
 
 // Teams
 import TeamsList from './teams/TeamsList';
@@ -32,6 +36,8 @@ import TeamEdit from './teams/TeamEdit';
 
 // Reports
 import Reports from './reports/Reports';
+import ReportDetails from './reports/ReportDetails';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 // Users
 import UsersList from './users/UsersList';
@@ -134,6 +140,22 @@ const AuthenticatedApp: React.FC = () => {
             <InterventionEdit />
           </ProtectedRoute>
         } />
+        <Route path="/interventions/payment/success" element={
+          <PaymentSuccess />
+        } />
+        <Route path="/interventions/payment/cancel" element={
+          <PaymentCancel />
+        } />
+        <Route path="/interventions/pending-validation" element={
+          <ProtectedRoute requiredPermission="interventions:view">
+            <InterventionsPendingValidation />
+          </ProtectedRoute>
+        } />
+        <Route path="/interventions/pending-payment" element={
+          <ProtectedRoute requiredPermission="interventions:view">
+            <InterventionsPendingPayment />
+          </ProtectedRoute>
+        } />
         
         <Route path="/teams" element={
           <ProtectedRoute requiredPermission="teams:view">
@@ -159,6 +181,13 @@ const AuthenticatedApp: React.FC = () => {
         <Route path="/reports" element={
           <ProtectedRoute requiredPermission="reports:view">
             <Reports />
+          </ProtectedRoute>
+        } />
+        <Route path="/reports/:type" element={
+          <ProtectedRoute requiredPermission="reports:view">
+            <ErrorBoundary>
+              <ReportDetails />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
         

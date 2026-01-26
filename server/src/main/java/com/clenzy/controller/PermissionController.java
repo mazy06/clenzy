@@ -47,6 +47,12 @@ public class PermissionController {
         Map<String, List<String>> defaultPermissions = permissionService.getDefaultPermissions();
         return ResponseEntity.ok(defaultPermissions);
     }
+    
+    @GetMapping("/all")
+    public ResponseEntity<List<String>> getAllAvailablePermissions() {
+        List<String> permissions = permissionService.getAllAvailablePermissions();
+        return ResponseEntity.ok(permissions);
+    }
 
     @GetMapping("/user/{role}")
     public ResponseEntity<List<String>> getUserPermissions(@PathVariable String role) {

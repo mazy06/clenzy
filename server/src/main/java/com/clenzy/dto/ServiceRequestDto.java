@@ -50,6 +50,12 @@ public class ServiceRequestDto {
     // Objets complets pour éviter les "inconnu"
     public PropertyDto property;
     public UserDto user;
+    
+    // Assignation de la demande de service
+    public Long assignedToId;
+    public String assignedToType; // 'user' or 'team'
+    public UserDto assignedToUser; // Si assigné à un utilisateur
+    public TeamDto assignedToTeam; // Si assigné à une équipe
 
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;

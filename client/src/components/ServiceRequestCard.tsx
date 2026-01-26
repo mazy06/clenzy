@@ -17,10 +17,6 @@ import {
   AccessTime,
   Group,
   Assignment,
-  Pause,
-  PlayArrow,
-  CheckCircle,
-  Cancel,
   Category,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -51,8 +47,6 @@ interface ServiceRequest {
 interface ServiceRequestCardProps {
   request: ServiceRequest;
   onMenuOpen: (event: React.MouseEvent<HTMLElement>, request: ServiceRequest) => void;
-  onStatusChange: (request: ServiceRequest) => void;
-  canChangeStatus: boolean;
   typeIcons: { [key: string]: React.ReactElement };
   statuses: Array<{ value: string; label: string }>;
   priorities: Array<{ value: string; label: string }>;
@@ -63,8 +57,6 @@ interface ServiceRequestCardProps {
 const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
   request,
   onMenuOpen,
-  onStatusChange,
-  canChangeStatus,
   typeIcons,
   statuses,
   priorities,
@@ -100,21 +92,6 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
     return `${hours}h${remainingMinutes}min`;
   };
 
-  // Obtenir l'icône du bouton de statut
-  const getStatusButtonIcon = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return <Pause sx={{ fontSize: 16 }} />;
-      case 'IN_PROGRESS':
-        return <PlayArrow sx={{ fontSize: 16 }} />;
-      case 'COMPLETED':
-        return <CheckCircle sx={{ fontSize: 16 }} />;
-      case 'CANCELLED':
-        return <Cancel sx={{ fontSize: 16 }} />;
-      default:
-        return <MoreVert sx={{ fontSize: 16 }} />;
-    }
-  };
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -167,14 +144,9 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
           />
         </Box>
 
-        {/* Demandeur */}
-        <Typography variant="caption" color="text.secondary" sx={{ mb: 0.75, fontSize: '0.7rem' }}>
-          Demandé par {request.requestorName}
-        </Typography>
-
-        {/* Date de création */}
+        {/* Demandeur et date de création */}
         <Typography variant="caption" color="text.secondary" sx={{ mb: 1, fontSize: '0.7rem' }}>
-          Créé le {formatDate(request.createdAt)}
+          Demandé par {request.requestorName} Créé le {formatDate(request.createdAt)}
         </Typography>
 
         {/* Date d'échéance */}
@@ -189,7 +161,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
           <AccessTime sx={{ fontSize: 14, color: 'text.secondary', flexShrink: 0 }} />
           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-            Durée: {formatDuration(request.estimatedDuration)}
+            Durée: {formatDuration(request.estimatedDuration * 60)}
           </Typography>
         </Box>
 
@@ -218,31 +190,15 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
 
       {/* Actions */}
       <CardActions sx={{ pt: 0, p: 1 }}>
-        <Box sx={{ display: 'flex', gap: 0.5, width: '100%' }}>
-          {/* Bouton principal */}
-          <Button
-            variant="outlined"
-            startIcon={<Visibility sx={{ fontSize: 16 }} />}
-            onClick={() => navigate(`/service-requests/${request.id}`)}
-            sx={{ flex: 1 }}
-            size="small"
-          >
-            Voir détails
-          </Button>
-          
-          {/* Bouton de changement de statut rapide - visible pour managers et admins */}
-          {canChangeStatus && (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => onStatusChange(request)}
-              sx={{ minWidth: 'auto', px: 1.5, fontSize: '0.75rem' }}
-              startIcon={getStatusButtonIcon(request.status)}
-            >
-              Statut
-            </Button>
-          )}
-        </Box>
+        <Button
+          variant="outlined"
+          startIcon={<Visibility sx={{ fontSize: 16 }} />}
+          onClick={() => navigate(`/service-requests/${request.id}`)}
+          fullWidth
+          size="small"
+        >
+          Voir détails
+        </Button>
       </CardActions>
     </Card>
   );

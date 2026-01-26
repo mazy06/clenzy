@@ -29,13 +29,27 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
+import { useTranslation } from '../../hooks/useTranslation';
 import PageHeader from '../../components/PageHeader';
 import { createSpacing } from '../../theme/spacing';
 
 export default function ActivitiesPage() {
   const navigate = useNavigate();
   const { user, hasPermissionAsync } = useAuth();
-  const { activities, loading, error } = useDashboardStats();
+  const { t } = useTranslation();
+  
+  // Déterminer le rôle de l'utilisateur
+  const userRole = (() => {
+    if (user?.roles?.includes('ADMIN')) return 'ADMIN';
+    if (user?.roles?.includes('MANAGER')) return 'MANAGER';
+    if (user?.roles?.includes('SUPERVISOR')) return 'SUPERVISOR';
+    if (user?.roles?.includes('TECHNICIAN')) return 'TECHNICIAN';
+    if (user?.roles?.includes('HOUSEKEEPER')) return 'HOUSEKEEPER';
+    if (user?.roles?.includes('HOST')) return 'HOST';
+    return 'USER';
+  })();
+  
+  const { activities, loading, error } = useDashboardStats(userRole, user, t, undefined); // Pas de limite pour la page des activités
   
   // TOUS les useState DOIVENT être déclarés AVANT tout autre code
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,8 +59,9 @@ export default function ActivitiesPage() {
   
   useEffect(() => {
     const checkPermissions = async () => {
-      const canViewActivitiesPermission = await hasPermissionAsync('reports:view');
-      setCanViewActivities(canViewActivitiesPermission);
+      // Permettre l'accès à tous les utilisateurs pour voir leurs propres activités
+      // La permission reports:view n'est pas nécessaire pour voir les activités
+      setCanViewActivities(true);
     };
     
     checkPermissions();
@@ -120,20 +135,38 @@ export default function ActivitiesPage() {
     return matchesSearch && matchesCategory && matchesStatus;
   }) || [];
 
-  // Si pas de permission, afficher un message informatif
-  if (!user || !canViewActivities) {
+  // Afficher un message de chargement
+  if (loading) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info">
-          <Typography variant="h6" gutterBottom>
-            Accès non autorisé
-          </Typography>
-          <Typography variant="body1">
-            Vous n'avez pas les permissions nécessaires pour accéder à cette section.
-            <br />
-            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </Typography>
-        </Alert>
+      <Box>
+        <PageHeader
+          title="Journal d'activités"
+          subtitle="Suivi de toutes les activités de la plateforme"
+          backPath="/dashboard"
+          backLabel="Retour au Dashboard"
+        />
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
+          <CircularProgress />
+        </Box>
+      </Box>
+    );
+  }
+
+  // Afficher un message d'erreur
+  if (error) {
+    return (
+      <Box>
+        <PageHeader
+          title="Journal d'activités"
+          subtitle="Suivi de toutes les activités de la plateforme"
+          backPath="/dashboard"
+          backLabel="Retour au Dashboard"
+        />
+        <Box sx={{ p: 3 }}>
+          <Alert severity="error">
+            {error}
+          </Alert>
+        </Box>
       </Box>
     );
   }
@@ -167,12 +200,12 @@ export default function ActivitiesPage() {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 label="Catégorie"
               >
-                <MenuItem value="">Toutes</MenuItem>
+                <MenuItem value="all">Toutes</MenuItem>
                 <MenuItem value="property">Propriétés</MenuItem>
                 <MenuItem value="user">Utilisateurs</MenuItem>
                 <MenuItem value="team">Équipes</MenuItem>
                 <MenuItem value="intervention">Interventions</MenuItem>
-                <MenuItem value="service">Demandes de service</MenuItem>
+                <MenuItem value="service-request">Demandes de service</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -184,11 +217,13 @@ export default function ActivitiesPage() {
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 label="Statut"
               >
-                <MenuItem value="">Tous</MenuItem>
+                <MenuItem value="all">Tous</MenuItem>
                 <MenuItem value="created">Créé</MenuItem>
-                <MenuItem value="updated">Modifié</MenuItem>
-                <MenuItem value="started">Démarré</MenuItem>
+                <MenuItem value="pending">En attente</MenuItem>
+                <MenuItem value="approved">Approuvé</MenuItem>
+                <MenuItem value="in_progress">En cours</MenuItem>
                 <MenuItem value="completed">Terminé</MenuItem>
+                <MenuItem value="scheduled">Planifié</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -203,11 +238,10 @@ export default function ActivitiesPage() {
       </Paper>
 
       {/* Affichage des données */}
-      {!loading && !error && (
-        <Box sx={{ mt: 3 }}>
-          
-          {/* Liste des activités */}
-          {filteredActivities && filteredActivities.length > 0 ? (
+      <Box sx={{ mt: 3 }}>
+        
+        {/* Liste des activités */}
+        {filteredActivities && filteredActivities.length > 0 ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {filteredActivities.map((activity, index) => (
                 <Card key={activity.id || index} sx={{ boxShadow: 2 }}>
@@ -259,8 +293,7 @@ export default function ActivitiesPage() {
               </Typography>
             </Box>
           )}
-        </Box>
-      )}
+      </Box>
     </Box>
   );
 }

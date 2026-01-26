@@ -15,6 +15,7 @@
     "confirm": "Confirmer",
     "close": "Fermer",
     "back": "Retour",
+    "processing": "Traitement en cours...",
     "next": "Suivant",
     "previous": "Précédent",
     "submit": "Envoyer",
@@ -25,7 +26,8 @@
     "description": "Description",
     "type": "Type",
     "priority": "Priorité",
-    "all": "Tous"
+    "all": "Tous",
+    "refresh": "Actualiser"
   },
   "navigation": {
     "dashboard": "Tableau de bord",
@@ -91,6 +93,8 @@
     "viewAllActivities": "Voir toutes les activités",
     "noRecentActivities": "Aucune activité récente",
     "quickActions": "Actions rapides",
+    "noPermissions": "Aucune permission",
+    "noPermissionsMessage": "Vous n'avez actuellement aucune permission pour accéder aux fonctionnalités du tableau de bord. Veuillez contacter votre administrateur pour obtenir les permissions nécessaires.",
     "activities": {
       "newPropertyCreated": "Nouvelle propriété créée",
       "newUserCreated": "Nouvel utilisateur créé",
@@ -109,7 +113,30 @@
     "createRequest": "Créer une demande",
     "createIntervention": "Créer une intervention",
     "createTeam": "Créer une équipe",
-    "createUser": "Créer un utilisateur"
+    "createUser": "Créer un utilisateur",
+    "managePermissions": "Gérer les permissions",
+    "manageTeams": "Gérer les équipes",
+    "systemSettings": "Paramètres système",
+    "security": "Sécurité",
+    "tokenMonitoring": "Monitoring des tokens",
+    "userManagement": "Gestion des utilisateurs",
+    "upcomingInterventions": "Interventions à venir",
+    "noUpcomingInterventions": "Aucune intervention à venir",
+    "serviceRequests": "Demandes de service",
+    "noServiceRequests": "Aucune demande de service",
+    "today": "Aujourd'hui",
+    "tomorrow": "Demain",
+    "interventionStatusDistribution": "Répartition des statuts",
+    "noData": "Aucune donnée disponible",
+    "alerts": "Alertes",
+    "noAlerts": "Aucune alerte",
+    "urgentInterventions": "Interventions urgentes",
+    "interventionsRequireAttention": "interventions nécessitent une attention",
+    "interventionsPendingValidation": "Interventions en attente de validation",
+    "interventionsAwaitingValidation": "interventions en attente de validation",
+    "interventionsPendingPayment": "Interventions en attente de paiement",
+    "interventionsAwaitingPayment": "interventions en attente de paiement",
+    "viewAll": "Voir tout"
   },
   "properties": {
     "title": "Propriétés",
@@ -279,13 +306,24 @@
       "team": "Équipe",
       "assignedToUser": "Assigné à (utilisateur)",
       "assignedToTeam": "Assigné à (équipe)",
-      "select": "Sélectionner..."
+      "select": "Sélectionner...",
+      "status": "Statut",
+      "noTeamsAvailable": "Aucune équipe disponible",
+      "noUsersAvailable": "Aucun utilisateur disponible"
     },
     "priorities": {
       "low": "Faible",
       "normal": "Normale",
       "high": "Élevée",
       "critical": "Critique"
+    },
+    "statuses": {
+      "pending": "En attente",
+      "approved": "Approuvé",
+      "inProgress": "En cours",
+      "completed": "Terminé",
+      "cancelled": "Annulé",
+      "rejected": "Rejeté"
     },
     "durations": {
       "30min": "30 min",
@@ -302,7 +340,15 @@
       "createError": "Erreur lors de la création de la demande de service",
       "createErrorDetails": "Erreur lors de la création"
     },
+    "assign": "Assigner",
+    "assignDescription": "Assignez cette demande de service à une équipe ou un utilisateur avant de pouvoir la valider.",
+    "mustAssignBeforeValidation": "Vous devez d'abord assigner cette demande de service à une équipe ou un utilisateur avant de pouvoir la valider.",
+    "confirmValidation": "Voulez-vous valider la demande \"{{title}}\" et créer une intervention ?",
     "validateAndCreateIntervention": "Valider et créer une intervention",
+    "validateAndCreateInterventionDescription": "Une intervention sera créée automatiquement. Vous pouvez optionnellement assigner une équipe ou un utilisateur.",
+    "validateSuccess": "La demande \"{{title}}\" a été validée avec succès et une intervention a été créée.",
+    "validateError": "Erreur lors de la validation",
+    "assignmentType": "Type d'assignation",
     "changeStatus": "Changer le statut",
     "changeStatusMessage": "Changer le statut de la demande \"{{title}}\"",
     "newStatus": "Nouveau statut",
@@ -330,7 +376,18 @@
     "updatedDateLabel": "Date de mise à jour",
     "completedDateLabel": "Date de complétion",
     "systemInfo": "Informations système",
-    "assignedTo": "Assigné à"
+    "assignedTo": "Assigné à",
+    "dueDateShort": "Date d'échéance",
+    "createdDateShort": "Date de création",
+    "updatedDateShort": "Date de mise à jour",
+    "completedDateShort": "Date de complétion",
+    "titleLabel": "Titre",
+    "propertyNameLabel": "Nom de la propriété",
+    "fullAddressLabel": "Adresse complète",
+    "planning": "Planification",
+    "peopleInvolved": "Personnes impliquées",
+    "noDate": "Non définie",
+    "invalidDate": "Date invalide"
   },
   "interventions": {
     "title": "Interventions",
@@ -402,7 +459,33 @@
     "duration": "Durée",
     "progress": "Progression",
     "hour": "heure",
-    "hours": "heures"
+    "hours": "heures",
+    "pendingValidation": {
+      "title": "Interventions en attente de validation",
+      "subtitle": "Validez les interventions et définissez le coût estimé",
+      "noInterventions": "Aucune intervention en attente de validation",
+      "validate": "Valider",
+      "viewDetails": "Voir les détails",
+      "validateDialog": {
+        "title": "Valider l'intervention",
+        "intervention": "Intervention"
+      }
+    },
+    "pendingPayment": {
+      "title": "Interventions en attente de paiement",
+      "subtitle": "Payer vos interventions validées",
+      "noInterventions": "Aucune intervention en attente de paiement",
+      "pay": "Payer",
+      "viewDetails": "Voir les détails"
+    },
+    "statuses": {
+      "PENDING": "En attente",
+      "AWAITING_VALIDATION": "En attente de validation",
+      "AWAITING_PAYMENT": "En attente de paiement",
+      "IN_PROGRESS": "En cours",
+      "COMPLETED": "Terminé",
+      "CANCELLED": "Annulé"
+    }
   },
   "teams": {
     "title": "Équipes",
@@ -677,7 +760,8 @@
     },
     "ariaLabel": {
       "newMessage": "nouveau message"
-    }
+    },
+    "noMessagesFound": "Aucun message trouvé"
   },
   "users": {
     "title": "Utilisateurs",
@@ -727,5 +811,113 @@
     "french": "Français",
     "english": "English",
     "switchLanguage": "Changer la langue"
+  },
+  "reports": {
+    "title": "Rapports",
+    "subtitle": "Générez et consultez les rapports de votre plateforme Clenzy",
+    "permission": "Permission",
+    "available": "Disponible",
+    "notAuthorized": "Non autorisé",
+    "noPermissions": "Vous n'avez actuellement aucune permission pour consulter les rapports. Contactez votre administrateur pour obtenir les accès nécessaires.",
+    "development": {
+      "title": "🚧 Module en développement",
+      "description": "Ce module de rapports est actuellement en cours de développement. Les fonctionnalités seront progressivement ajoutées selon vos besoins."
+    },
+    "sections": {
+      "financial": {
+        "title": "Rapports Financiers",
+        "description": "Revenus, coûts et analyses financières"
+      },
+      "interventions": {
+        "title": "Rapports d'Interventions",
+        "description": "Planification, suivi et performance des interventions"
+      },
+      "teams": {
+        "title": "Rapports d'Équipes",
+        "description": "Performance, disponibilités et planning des équipes"
+      },
+      "properties": {
+        "title": "Rapports de Propriétés",
+        "description": "État, maintenance et coûts des propriétés"
+      }
+    },
+    "selectReport": "Sélectionnez un rapport à générer",
+    "invalidType": "Type de rapport invalide",
+    "noPermission": "Vous n'avez pas la permission d'accéder à ce type de rapport",
+    "noPermissionMessage": "Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.",
+    "noReportsAvailable": "Aucun rapport disponible pour le moment",
+    "generate": "Générer",
+    "download": "Télécharger",
+    "generationStarted": "Génération du rapport démarrée",
+    "generationError": "Erreur lors de la génération du rapport",
+    "downloadStarted": "Téléchargement du rapport démarré",
+    "authenticationError": "Erreur d'authentification",
+    "dateRange": {
+      "current": "Actuel",
+      "weekly": "Hebdomadaire",
+      "monthly": "Mensuel",
+      "yearly": "Annuel"
+    },
+    "status": {
+      "available": "Disponible",
+      "generating": "En génération",
+      "error": "Erreur"
+    },
+    "financial": {
+      "revenue": {
+        "title": "Rapport des Revenus",
+        "description": "Analyse détaillée des revenus par période"
+      },
+      "costs": {
+        "title": "Rapport des Coûts",
+        "description": "Analyse des coûts et dépenses"
+      },
+      "profit": {
+        "title": "Rapport de Profitabilité",
+        "description": "Analyse de la rentabilité et des marges"
+      }
+    },
+    "interventions": {
+      "performance": {
+        "title": "Rapport de Performance",
+        "description": "Performance et efficacité des interventions"
+      },
+      "planning": {
+        "title": "Rapport de Planification",
+        "description": "Planification et suivi des interventions"
+      },
+      "completion": {
+        "title": "Rapport de Complétion",
+        "description": "Taux de complétion et délais"
+      }
+    },
+    "teams": {
+      "performance": {
+        "title": "Rapport de Performance des Équipes",
+        "description": "Performance et productivité des équipes"
+      },
+      "availability": {
+        "title": "Rapport de Disponibilité",
+        "description": "Disponibilité et planning des équipes"
+      },
+      "workload": {
+        "title": "Rapport de Charge de Travail",
+        "description": "Répartition de la charge de travail"
+      }
+    },
+    "properties": {
+      "status": {
+        "title": "Rapport d'État des Propriétés",
+        "description": "État et statut de toutes les propriétés"
+      },
+      "maintenance": {
+        "title": "Rapport de Maintenance",
+        "description": "Historique et planning de maintenance"
+      },
+      "costs": {
+        "title": "Rapport des Coûts par Propriété",
+        "description": "Coûts et dépenses par propriété"
+      }
+    }
   }
 }

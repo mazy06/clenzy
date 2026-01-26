@@ -32,10 +32,17 @@ function TabPanel(props: TabPanelProps) {
       hidden={value !== index}
       id={`contact-tabpanel-${index}`}
       aria-labelledby={`contact-tab-${index}`}
+      style={{ 
+        display: value === index ? 'flex' : 'none',
+        flex: 1,
+        flexDirection: 'column',
+        minHeight: 0,
+        overflow: 'hidden'
+      }}
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, p: 0 }}>
           {children}
         </Box>
       )}
@@ -57,9 +64,9 @@ const ContactPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <Paper sx={{ width: '100%', mb: 2 }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+    <Box sx={{ width: '100%', height: 'calc(100vh - 56px - 32px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', height: '100%' }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
           <Tabs value={tabValue} onChange={handleTabChange} aria-label="contact tabs">
             <Tab 
               icon={<InboxIcon />} 
@@ -76,13 +83,15 @@ const ContactPage: React.FC = () => {
           </Tabs>
         </Box>
         
-        <TabPanel value={tabValue} index={0}>
-          <ContactMessages type="received" />
-        </TabPanel>
-        
-        <TabPanel value={tabValue} index={1}>
-          <ContactMessages type="sent" />
-        </TabPanel>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+          <TabPanel value={tabValue} index={0}>
+            <ContactMessages type="received" />
+          </TabPanel>
+          
+          <TabPanel value={tabValue} index={1}>
+            <ContactMessages type="sent" />
+          </TabPanel>
+        </Box>
       </Paper>
 
       {/* Bouton flottant pour nouveau message */}

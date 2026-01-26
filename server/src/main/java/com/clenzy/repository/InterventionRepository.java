@@ -1,9 +1,11 @@
 package com.clenzy.repository;
 
 import com.clenzy.model.Intervention;
+import com.clenzy.model.InterventionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -69,8 +71,10 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     })
     Page<Intervention> findAllWithRelations(Pageable pageable);
     
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.requestor WHERE " +
-           "(:propertyId IS NULL OR i.property.id = :propertyId) AND " +
+    // Utiliser EntityGraph pour charger les relations nécessaires avec pagination
+    @EntityGraph(attributePaths = {"property", "property.owner", "assignedUser", "requestor"})
+    @Query("SELECT DISTINCT i FROM Intervention i " +
+           "WHERE (:propertyId IS NULL OR i.property.id = :propertyId) AND " +
            "(:type IS NULL OR i.type = :type) AND " +
            "(:status IS NULL OR i.status = :status) AND " +
            "(:priority IS NULL OR i.priority = :priority)")
@@ -79,9 +83,30 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     })
     Page<Intervention> findByFiltersWithRelations(@Param("propertyId") Long propertyId,
                                                 @Param("type") String type,
-                                                @Param("status") String status,
+                                                @Param("status") InterventionStatus status,
                                                 @Param("priority") String priority,
                                                 Pageable pageable);
+    
+    /**
+     * Trouver les interventions assignées à un utilisateur (individuellement ou via une équipe)
+     */
+    @EntityGraph(attributePaths = {"property", "property.owner", "assignedUser", "requestor"})
+    @Query("SELECT DISTINCT i FROM Intervention i " +
+           "WHERE (i.assignedUser.id = :userId OR " +
+           "EXISTS (SELECT 1 FROM TeamMember tm WHERE tm.team.id = i.teamId AND tm.user.id = :userId)) AND " +
+           "(:propertyId IS NULL OR i.property.id = :propertyId) AND " +
+           "(:type IS NULL OR i.type = :type) AND " +
+           "(:status IS NULL OR i.status = :status) AND " +
+           "(:priority IS NULL OR i.priority = :priority)")
+    @QueryHints({
+        @QueryHint(name = "org.hibernate.cacheable", value = "true")
+    })
+    Page<Intervention> findByAssignedUserOrTeamWithFilters(@Param("userId") Long userId,
+                                                          @Param("propertyId") Long propertyId,
+                                                          @Param("type") String type,
+                                                          @Param("status") InterventionStatus status,
+                                                          @Param("priority") String priority,
+                                                          Pageable pageable);
     
     /**
      * Requêtes de comptage optimisées
@@ -114,6 +139,12 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      * Vérifications d'existence
      */
     boolean existsByServiceRequestId(Long serviceRequestId);
+    
+    /**
+     * Trouver une intervention par son ID de session Stripe
+     */
+    @Query("SELECT i FROM Intervention i WHERE i.stripeSessionId = :sessionId")
+    java.util.Optional<Intervention> findByStripeSessionId(@Param("sessionId") String sessionId);
     
     /**
      * Méthode de compatibilité pour les services existants

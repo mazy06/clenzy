@@ -41,7 +41,7 @@ public class TeamController {
         // Log pour debug
         System.out.println("🔍 TeamController.create - JWT reçu: " + jwt.getSubject());
         
-        return ResponseEntity.status(HttpStatus.CREATED).body(teamService.create(dto));
+        return ResponseEntity.status(HttpStatus.CREATED).body(teamService.create(dto, jwt));
     }
 
     @PutMapping("/{id}")
@@ -68,7 +68,7 @@ public class TeamController {
         // Log pour debug
         System.out.println("🔍 TeamController.list - JWT reçu: " + jwt.getSubject());
         
-        return teamService.list(pageable);
+        return teamService.list(pageable, jwt);
     }
 
     @DeleteMapping("/{id}")

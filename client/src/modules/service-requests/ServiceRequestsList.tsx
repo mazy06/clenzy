@@ -21,6 +21,11 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormLabel,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add,
@@ -37,6 +42,7 @@ import {
   CheckCircle,
   Cancel,
   Description,
+  Assignment,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -137,6 +143,28 @@ export default function ServiceRequestsList() {
   const [statusChangeDialogOpen, setStatusChangeDialogOpen] = useState(false);
   const [selectedRequestForStatusChange, setSelectedRequestForStatusChange] = useState<ServiceRequest | null>(null);
   const [newStatus, setNewStatus] = useState<string>('');
+  
+  
+  // États pour l'assignation de la demande de service
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedRequestForAssignment, setSelectedRequestForAssignment] = useState<ServiceRequest | null>(null);
+  const [assignAssignmentType, setAssignAssignmentType] = useState<'team' | 'user' | 'none'>('none');
+  const [assignSelectedTeamId, setAssignSelectedTeamId] = useState<number | null>(null);
+  const [assignSelectedUserId, setAssignSelectedUserId] = useState<number | null>(null);
+  const [assignTeams, setAssignTeams] = useState<any[]>([]);
+  const [assignUsers, setAssignUsers] = useState<any[]>([]);
+  const [loadingAssignData, setLoadingAssignData] = useState(false);
+
+  // États pour le dialogue de confirmation de validation
+  const [validateDialogOpen, setValidateDialogOpen] = useState(false);
+  const [selectedRequestForValidation, setSelectedRequestForValidation] = useState<ServiceRequest | null>(null);
+  const [validating, setValidating] = useState(false);
+  
+  // États pour les notifications d'erreur/succès
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   // Charger les demandes de service depuis l'API
   const loadServiceRequests = useCallback(async () => {
@@ -157,20 +185,20 @@ export default function ServiceRequestsList() {
           id: req.id.toString(),
           title: req.title,
           description: req.description,
-          type: req.type?.toLowerCase() || 'other',
+          type: req.type?.toLowerCase() || req.serviceType?.toLowerCase() || 'other',
           status: req.status || 'PENDING',
           priority: req.priority?.toLowerCase() || 'medium',
           propertyId: req.propertyId,
           propertyName: req.property?.name || 'Propriété inconnue',
           propertyAddress: req.property?.address || '',
           propertyCity: req.property?.city || '',
-          requestorId: req.requestorId,
-          requestorName: req.requestor ? `${req.requestor.firstName} ${req.requestor.lastName}` : 'Demandeur inconnu',
-          assignedToId: req.assignedToId,
+          requestorId: req.userId || req.requestorId,
+          requestorName: req.user ? `${req.user.firstName} ${req.user.lastName}` : (req.requestor ? `${req.requestor.firstName} ${req.requestor.lastName}` : t('serviceRequests.unknownRequestor')),
+          assignedToId: req.assignedToId || undefined,
           assignedToName: req.assignedTo ? `${req.assignedTo.firstName} ${req.assignedTo.lastName}` : undefined,
           assignedToType: req.assignedToType || (req.assignedTo ? 'user' : undefined),
-          estimatedDuration: req.estimatedDuration || 1,
-          dueDate: req.desiredDate,
+          estimatedDuration: req.estimatedDurationHours || req.estimatedDuration || 1,
+          dueDate: req.desiredDate || req.dueDate,
           createdAt: req.createdAt,
         }));
 
@@ -304,43 +332,13 @@ export default function ServiceRequestsList() {
       });
 
       if (response.ok) {
-        // Si le statut passe à APPROVED, utiliser l'endpoint /validate au lieu de /update
+        // Si le statut passe à APPROVED, ouvrir le dialogue de validation avec assignation
         if (newStatus.toUpperCase() === 'APPROVED') {
-          try {
-            console.log('🔍 Statut passé à APPROVED, utilisation de l\'endpoint /validate...');
-            const interventionResponse = await fetch(`${API_CONFIG.BASE_URL}/api/service-requests/${selectedRequestForStatusChange.id}/validate`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-              },
-            });
-
-            if (interventionResponse.ok) {
-              const intervention = await interventionResponse.json();
-              console.log('🔍 Intervention créée avec succès:', intervention);
-              
-              // Mettre à jour la liste locale avec le nouveau statut
-              setServiceRequests(prev => 
-                prev.map(req => 
-                  req.id === selectedRequestForStatusChange.id 
-                    ? { ...req, status: newStatus }
-                    : req
-                )
-              );
-              setStatusChangeDialogOpen(false);
-              setSelectedRequestForStatusChange(null);
-              setNewStatus('');
-              return; // Sortir de la fonction car l'intervention est déjà créée
-            } else {
-              console.error('🔍 Erreur lors de la création de l\'intervention:', interventionResponse.status);
-              const errorData = await interventionResponse.text();
-              console.error('🔍 Détails de l\'erreur:', errorData);
-              // Continuer avec la mise à jour normale du statut
-            }
-          } catch (interventionError) {
-            console.error('🔍 Erreur lors de la création de l\'intervention:', interventionError);
-            // Continuer avec la mise à jour normale du statut
-          }
+          setStatusChangeDialogOpen(false);
+          handleValidateAndCreateIntervention(selectedRequestForStatusChange);
+          setSelectedRequestForStatusChange(null);
+          setNewStatus('');
+          return; // Sortir de la fonction car on va ouvrir le dialogue de validation
         }
 
         // Si le statut passe à CANCELLED, annuler aussi l'intervention associée
@@ -382,33 +380,186 @@ export default function ServiceRequestsList() {
   };
 
   // Fonction pour valider et créer une intervention (seuls managers et admins)
-  const handleValidateAndCreateIntervention = async (request: ServiceRequest) => {
+
+  // Charger les équipes et utilisateurs pour l'assignation de la demande de service
+  useEffect(() => {
+    const loadAssignData = async () => {
+      if (!assignDialogOpen) return;
+      
+      setLoadingAssignData(true);
+      try {
+        const [teamsRes, usersRes] = await Promise.all([
+          fetch(`${API_CONFIG.BASE_URL}/api/teams`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+            },
+          }),
+          fetch(`${API_CONFIG.BASE_URL}/api/users`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+            },
+          })
+        ]);
+
+        if (teamsRes.ok) {
+          const teamsData = await teamsRes.json();
+          setAssignTeams(teamsData.content || teamsData || []);
+        }
+
+        if (usersRes.ok) {
+          const usersData = await usersRes.json();
+          const usersList = usersData.content || usersData || [];
+          // Filtrer pour ne garder que les utilisateurs opérationnels
+          const operationalUsers = usersList.filter((u: any) => 
+            ['TECHNICIAN', 'HOUSEKEEPER', 'SUPERVISOR'].includes(u.role)
+          );
+          setAssignUsers(operationalUsers);
+        }
+      } catch (err) {
+        console.error('Erreur chargement équipes/utilisateurs pour assignation:', err);
+      } finally {
+        setLoadingAssignData(false);
+      }
+    };
+
+    loadAssignData();
+  }, [assignDialogOpen]);
+
+  const handleAssignServiceRequest = (request: ServiceRequest) => {
+    setSelectedRequestForAssignment(request);
+    setAssignAssignmentType(request.assignedToType || 'none');
+    setAssignSelectedTeamId(request.assignedToType === 'team' ? request.assignedToId || null : null);
+    setAssignSelectedUserId(request.assignedToType === 'user' ? request.assignedToId || null : null);
+    setAssignDialogOpen(true);
+  };
+
+  const confirmAssignment = async () => {
+    if (!selectedRequestForAssignment) return;
+
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/service-requests/${request.id}/validate`, {
-        method: 'POST',
+      const updateData: any = {
+        id: parseInt(selectedRequestForAssignment.id),
+        title: selectedRequestForAssignment.title,
+        description: selectedRequestForAssignment.description,
+        serviceType: selectedRequestForAssignment.type.toUpperCase(),
+        priority: selectedRequestForAssignment.priority.toUpperCase(),
+        status: selectedRequestForAssignment.status,
+        desiredDate: selectedRequestForAssignment.dueDate,
+        estimatedDurationHours: selectedRequestForAssignment.estimatedDuration,
+        userId: selectedRequestForAssignment.requestorId,
+        propertyId: selectedRequestForAssignment.propertyId,
+      };
+
+      if (assignSelectedTeamId) {
+        updateData.assignedToId = assignSelectedTeamId;
+        updateData.assignedToType = 'team';
+      } else if (assignSelectedUserId) {
+        updateData.assignedToId = assignSelectedUserId;
+        updateData.assignedToType = 'user';
+      } else {
+        updateData.assignedToId = null;
+        updateData.assignedToType = null;
+      }
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/service-requests/${selectedRequestForAssignment.id}`, {
+        method: 'PUT',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
         },
+        body: JSON.stringify(updateData),
       });
 
       if (response.ok) {
-        // Mettre à jour la liste locale avec le nouveau statut
-        setServiceRequests(prev => 
-          prev.map(req => 
-            req.id === request.id 
-              ? { ...req, status: 'APPROVED' }
-              : req
-          )
-        );
-        // Optionnel : afficher un message de succès
-        console.log('Demande validée et intervention créée avec succès');
+        // Recharger la liste pour avoir les données à jour
+        await loadServiceRequests();
+        
+        setAssignDialogOpen(false);
+        setSelectedRequestForAssignment(null);
+        setAssignAssignmentType('none');
+        setAssignSelectedTeamId(null);
+        setAssignSelectedUserId(null);
+        
+        console.log('Demande assignée avec succès');
       } else {
-        console.error('Erreur lors de la validation de la demande');
+        const errorData = await response.text();
+        console.error('Erreur lors de l\'assignation:', response.status, errorData);
+        alert('Erreur lors de l\'assignation: ' + errorData);
       }
     } catch (error) {
-      console.error('Erreur lors de la validation de la demande:', error);
+      console.error('Erreur lors de l\'assignation:', error);
+      alert('Erreur lors de l\'assignation');
     }
   };
+
+  const handleValidateAndCreateIntervention = (request: ServiceRequest) => {
+    // Vérifier que la demande est assignée
+    if (!request.assignedToId) {
+      setErrorMessage(t('serviceRequests.mustAssignBeforeValidation'));
+      setErrorDialogOpen(true);
+      return;
+    }
+    
+    // Ouvrir le dialogue de confirmation
+    setSelectedRequestForValidation(request);
+    setValidateDialogOpen(true);
+  };
+
+  const confirmValidation = async () => {
+    if (!selectedRequestForValidation) return;
+    
+    setValidating(true);
+    
+    try {
+      const requestBody: any = {};
+      // Utiliser l'assignation de la demande
+      if (selectedRequestForValidation.assignedToType === 'team') {
+        requestBody.teamId = selectedRequestForValidation.assignedToId;
+      } else if (selectedRequestForValidation.assignedToType === 'user') {
+        requestBody.userId = selectedRequestForValidation.assignedToId;
+      }
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/service-requests/${selectedRequestForValidation.id}/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (response.ok) {
+        const intervention = await response.json();
+        console.log('🔍 Intervention créée avec succès:', intervention);
+        
+        // Sauvegarder le titre avant de réinitialiser l'état
+        const requestTitle = selectedRequestForValidation.title;
+        
+        // Recharger la liste pour avoir les données à jour
+        await loadServiceRequests();
+        
+        // Fermer le dialogue de confirmation
+        setValidateDialogOpen(false);
+        setSelectedRequestForValidation(null);
+        
+        // Afficher le message de succès
+        setSuccessMessage(t('serviceRequests.validateSuccess', { title: requestTitle }));
+        setSuccessDialogOpen(true);
+      } else {
+        const errorData = await response.text();
+        console.error('Erreur lors de la validation:', response.status, errorData);
+        setErrorMessage(t('serviceRequests.validateError') + ': ' + errorData);
+        setErrorDialogOpen(true);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la validation:', error);
+      setErrorMessage(t('serviceRequests.validateError'));
+      setErrorDialogOpen(true);
+    } finally {
+      setValidating(false);
+    }
+  };
+
 
   // Filtrer les demandes de service
   const getFilteredServiceRequests = () => {
@@ -622,8 +773,6 @@ export default function ServiceRequestsList() {
               <ServiceRequestCard
                 request={request}
                 onMenuOpen={handleMenuOpen}
-                onStatusChange={handleStatusChange}
-                canChangeStatus={isAdmin() || isManager()}
                 typeIcons={typeIcons}
                 statuses={statuses}
                 priorities={priorities}
@@ -656,8 +805,21 @@ export default function ServiceRequestsList() {
           {t('serviceRequests.viewDetails')}
         </MenuItem>
         
-        {/* Action de validation et création d'intervention - visible pour managers et admins */}
-        {(isAdmin() || isManager()) && selectedServiceRequest?.status === 'PENDING' && (
+        {/* Action d'assignation - visible pour managers et admins si la demande n'est pas assignée */}
+        {(isAdmin() || isManager()) && selectedServiceRequest?.status === 'PENDING' && !selectedServiceRequest.assignedToId && (
+          <MenuItem onClick={() => {
+            handleAssignServiceRequest(selectedServiceRequest);
+            handleMenuClose();
+          }}>
+            <ListItemIcon>
+              <Assignment fontSize="small" color="primary" />
+            </ListItemIcon>
+            {t('serviceRequests.assign')}
+          </MenuItem>
+        )}
+        
+        {/* Action de validation et création d'intervention - visible pour managers et admins seulement si assignée */}
+        {(isAdmin() || isManager()) && selectedServiceRequest?.status === 'PENDING' && selectedServiceRequest.assignedToId && (
           <MenuItem onClick={() => {
             handleValidateAndCreateIntervention(selectedServiceRequest);
             handleMenuClose();
@@ -753,6 +915,245 @@ export default function ServiceRequestsList() {
           <Button onClick={() => setStatusChangeDialogOpen(false)} size="small">{t('common.cancel')}</Button>
           <Button onClick={confirmStatusChange} variant="contained" size="small">
             {t('common.confirm')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
+      {/* Dialogue d'assignation de la demande de service */}
+      <Dialog 
+        open={assignDialogOpen} 
+        onClose={() => {
+          setAssignDialogOpen(false);
+          setSelectedRequestForAssignment(null);
+          setAssignAssignmentType('none');
+          setAssignSelectedTeamId(null);
+          setAssignSelectedUserId(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {t('serviceRequests.assign')}
+        </DialogTitle>
+        <DialogContent>
+          {selectedRequestForAssignment && (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {t('serviceRequests.assign')}: <strong>{selectedRequestForAssignment.title}</strong>
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {t('serviceRequests.assignDescription')}
+              </Typography>
+            </Box>
+          )}
+          
+          <FormControl component="fieldset" sx={{ width: '100%', mt: 2 }}>
+            <FormLabel component="legend">{t('serviceRequests.assignmentType')}</FormLabel>
+            <RadioGroup
+              value={assignAssignmentType}
+              onChange={(e) => {
+                const newType = e.target.value as 'team' | 'user' | 'none';
+                setAssignAssignmentType(newType);
+                if (newType === 'team') {
+                  setAssignSelectedUserId(null);
+                } else if (newType === 'user') {
+                  setAssignSelectedTeamId(null);
+                } else {
+                  setAssignSelectedTeamId(null);
+                  setAssignSelectedUserId(null);
+                }
+              }}
+            >
+              <FormControlLabel value="team" control={<Radio />} label={t('serviceRequests.fields.team')} />
+              {assignAssignmentType === 'team' && (
+                <FormControl fullWidth sx={{ ml: 4, mt: 1, mb: 2 }}>
+                  <InputLabel>{t('serviceRequests.fields.team')}</InputLabel>
+                  <Select
+                    value={assignSelectedTeamId || ''}
+                    onChange={(e) => setAssignSelectedTeamId(e.target.value as number)}
+                    label={t('serviceRequests.fields.team')}
+                    disabled={loadingAssignData}
+                  >
+                    {assignTeams.length === 0 && !loadingAssignData && (
+                      <MenuItem disabled>{t('serviceRequests.noTeamsAvailable')}</MenuItem>
+                    )}
+                    {assignTeams.map((team) => (
+                      <MenuItem key={team.id} value={team.id}>
+                        {team.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+              
+              <FormControlLabel value="user" control={<Radio />} label={t('serviceRequests.fields.assignedToUser')} />
+              {assignAssignmentType === 'user' && (
+                <FormControl fullWidth sx={{ ml: 4, mt: 1, mb: 2 }}>
+                  <InputLabel>{t('serviceRequests.fields.assignedToUser')}</InputLabel>
+                  <Select
+                    value={assignSelectedUserId || ''}
+                    onChange={(e) => setAssignSelectedUserId(e.target.value as number)}
+                    label={t('serviceRequests.fields.assignedToUser')}
+                    disabled={loadingAssignData}
+                  >
+                    {assignUsers.length === 0 && !loadingAssignData && (
+                      <MenuItem disabled>{t('serviceRequests.noUsersAvailable')}</MenuItem>
+                    )}
+                    {assignUsers.map((user) => (
+                      <MenuItem key={user.id} value={user.id}>
+                        {user.firstName} {user.lastName} ({user.role})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+              
+              <FormControlLabel value="none" control={<Radio />} label={t('serviceRequests.fields.noAssignment')} />
+            </RadioGroup>
+          </FormControl>
+          
+          {loadingAssignData && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setAssignDialogOpen(false);
+            setSelectedRequestForAssignment(null);
+            setAssignAssignmentType('none');
+            setAssignSelectedTeamId(null);
+            setAssignSelectedUserId(null);
+          }}>
+            {t('common.cancel')}
+          </Button>
+          <Button 
+            onClick={confirmAssignment} 
+            variant="contained" 
+            color="primary"
+            disabled={loadingAssignData || (assignAssignmentType === 'team' && !assignSelectedTeamId) || (assignAssignmentType === 'user' && !assignSelectedUserId)}
+          >
+            {t('serviceRequests.assign')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialogue de confirmation de validation */}
+      <Dialog 
+        open={validateDialogOpen} 
+        onClose={() => {
+          if (!validating) {
+            setValidateDialogOpen(false);
+            setSelectedRequestForValidation(null);
+          }
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CheckCircle color="success" />
+          {t('serviceRequests.validateAndCreateIntervention')}
+        </DialogTitle>
+        <DialogContent>
+          {selectedRequestForValidation && (
+            <Box>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                {t('serviceRequests.confirmValidation', { title: selectedRequestForValidation.title })}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {t('serviceRequests.validateAndCreateInterventionDescription')}
+              </Typography>
+              {selectedRequestForValidation.assignedToName && (
+                <Box sx={{ mt: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                    {selectedRequestForValidation.assignedToType === 'team' ? t('serviceRequests.fields.team') : t('serviceRequests.fields.assignedToUser')}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {selectedRequestForValidation.assignedToName}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 1.5 }}>
+          <Button 
+            onClick={() => {
+              setValidateDialogOpen(false);
+              setSelectedRequestForValidation(null);
+            }}
+            disabled={validating}
+            size="small"
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button 
+            onClick={confirmValidation} 
+            variant="contained" 
+            color="success"
+            disabled={validating}
+            size="small"
+            startIcon={validating ? <CircularProgress size={16} /> : <CheckCircle />}
+          >
+            {validating ? t('common.processing') : t('common.confirm')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialogue d'erreur */}
+      <Dialog 
+        open={errorDialogOpen} 
+        onClose={() => setErrorDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main' }}>
+          <Cancel color="error" />
+          {t('common.error')}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            {errorMessage}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 1.5 }}>
+          <Button 
+            onClick={() => setErrorDialogOpen(false)} 
+            variant="contained" 
+            color="error"
+            size="small"
+          >
+            {t('common.close')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialogue de succès */}
+      <Dialog 
+        open={successDialogOpen} 
+        onClose={() => setSuccessDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'success.main' }}>
+          <CheckCircle color="success" />
+          {t('common.success')}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            {successMessage}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 1.5 }}>
+          <Button 
+            onClick={() => setSuccessDialogOpen(false)} 
+            variant="contained" 
+            color="success"
+            size="small"
+          >
+            {t('common.close')}
           </Button>
         </DialogActions>
       </Dialog>

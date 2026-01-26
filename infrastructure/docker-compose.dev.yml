@@ -61,6 +61,9 @@ services:
       KC_HOSTNAME_STRICT: false
       KC_HOSTNAME_STRICT_HTTPS: false
       KC_HTTP_ENABLED: true
+      KC_HOSTNAME_STRICT_BACKCHANNEL: false
+      KC_PROXY: edge
+      KC_PROXY_ADDRESS_FORWARDING: true
     ports:
       - "8083:8080"
     depends_on:

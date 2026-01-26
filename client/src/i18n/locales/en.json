@@ -14,7 +14,9 @@
     "success": "Success",
     "confirm": "Confirm",
     "close": "Close",
+    "processing": "Processing...",
     "back": "Back",
+    "processing": "Processing...",
     "next": "Next",
     "previous": "Previous",
     "submit": "Submit",
@@ -25,7 +27,8 @@
     "description": "Description",
     "type": "Type",
     "priority": "Priority",
-    "all": "All"
+    "all": "All",
+    "refresh": "Refresh"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -91,6 +94,8 @@
     "viewAllActivities": "View all activities",
     "noRecentActivities": "No recent activities",
     "quickActions": "Quick Actions",
+    "noPermissions": "No permissions",
+    "noPermissionsMessage": "You currently do not have any permissions to access dashboard features. Please contact your administrator to obtain the necessary permissions.",
     "activities": {
       "newPropertyCreated": "New property created",
       "newUserCreated": "New user created",
@@ -109,7 +114,30 @@
     "createRequest": "Create a request",
     "createIntervention": "Create an intervention",
     "createTeam": "Create a team",
-    "createUser": "Create a user"
+    "createUser": "Create a user",
+    "managePermissions": "Manage Permissions",
+    "manageTeams": "Manage Teams",
+    "systemSettings": "System Settings",
+    "security": "Security",
+    "tokenMonitoring": "Token Monitoring",
+    "userManagement": "User Management",
+    "upcomingInterventions": "Upcoming Interventions",
+    "noUpcomingInterventions": "No upcoming interventions",
+    "serviceRequests": "Service Requests",
+    "noServiceRequests": "No service requests",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "interventionStatusDistribution": "Status Distribution",
+    "noData": "No data available",
+    "alerts": "Alerts",
+    "noAlerts": "No alerts",
+    "urgentInterventions": "Urgent Interventions",
+    "interventionsRequireAttention": "interventions require attention",
+    "interventionsPendingValidation": "Interventions Pending Validation",
+    "interventionsAwaitingValidation": "interventions awaiting validation",
+    "interventionsPendingPayment": "Interventions Pending Payment",
+    "interventionsAwaitingPayment": "interventions awaiting payment",
+    "viewAll": "View all"
   },
   "properties": {
     "title": "Properties",
@@ -279,13 +307,24 @@
       "team": "Team",
       "assignedToUser": "Assigned to (user)",
       "assignedToTeam": "Assigned to (team)",
-      "select": "Select..."
+      "select": "Select...",
+      "status": "Status",
+      "noTeamsAvailable": "No teams available",
+      "noUsersAvailable": "No users available"
     },
     "priorities": {
       "low": "Low",
       "normal": "Normal",
       "high": "High",
       "critical": "Critical"
+    },
+    "statuses": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "rejected": "Rejected"
     },
     "durations": {
       "30min": "30 min",
@@ -302,7 +341,15 @@
       "createError": "Error creating the service request",
       "createErrorDetails": "Error creating"
     },
+    "assign": "Assign",
+    "assignDescription": "Assign this service request to a team or user before you can validate it.",
+    "mustAssignBeforeValidation": "You must first assign this service request to a team or user before you can validate it.",
+    "confirmValidation": "Do you want to validate the request \"{{title}}\" and create an intervention?",
     "validateAndCreateIntervention": "Validate and create intervention",
+    "validateAndCreateInterventionDescription": "An intervention will be automatically created. You can optionally assign a team or user.",
+    "validateSuccess": "The request \"{{title}}\" has been successfully validated and an intervention has been created.",
+    "validateError": "Error during validation",
+    "assignmentType": "Assignment type",
     "changeStatus": "Change status",
     "changeStatusMessage": "Change the status of request \"{{title}}\"",
     "newStatus": "New status",
@@ -330,7 +377,18 @@
     "updatedDateLabel": "Update date",
     "completedDateLabel": "Completion date",
     "systemInfo": "System information",
-    "assignedTo": "Assigned to"
+    "assignedTo": "Assigned to",
+    "dueDateShort": "Due date",
+    "createdDateShort": "Creation date",
+    "updatedDateShort": "Update date",
+    "completedDateShort": "Completion date",
+    "titleLabel": "Title",
+    "propertyNameLabel": "Property name",
+    "fullAddressLabel": "Full address",
+    "planning": "Planning",
+    "peopleInvolved": "People involved",
+    "noDate": "Not defined",
+    "invalidDate": "Invalid date"
   },
   "interventions": {
     "title": "Interventions",
@@ -402,7 +460,33 @@
     "duration": "Duration",
     "progress": "Progress",
     "hour": "hour",
-    "hours": "hours"
+    "hours": "hours",
+    "pendingValidation": {
+      "title": "Interventions Pending Validation",
+      "subtitle": "Validate interventions and set estimated cost",
+      "noInterventions": "No interventions pending validation",
+      "validate": "Validate",
+      "viewDetails": "View details",
+      "validateDialog": {
+        "title": "Validate Intervention",
+        "intervention": "Intervention"
+      }
+    },
+    "pendingPayment": {
+      "title": "Interventions Pending Payment",
+      "subtitle": "Pay your validated interventions",
+      "noInterventions": "No interventions pending payment",
+      "pay": "Pay",
+      "viewDetails": "View details"
+    },
+    "statuses": {
+      "PENDING": "Pending",
+      "AWAITING_VALIDATION": "Awaiting Validation",
+      "AWAITING_PAYMENT": "Awaiting Payment",
+      "IN_PROGRESS": "In Progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    }
   },
   "teams": {
     "title": "Teams",
@@ -677,7 +761,8 @@
     },
     "ariaLabel": {
       "newMessage": "new message"
-    }
+    },
+    "noMessagesFound": "No messages found"
   },
   "users": {
     "title": "Users",
@@ -727,5 +812,113 @@
     "french": "Français",
     "english": "English",
     "switchLanguage": "Switch language"
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Generate and consult reports for your Clenzy platform",
+    "permission": "Permission",
+    "available": "Available",
+    "notAuthorized": "Not authorized",
+    "noPermissions": "You currently have no permissions to view reports. Contact your administrator to obtain the necessary access.",
+    "development": {
+      "title": "🚧 Module under development",
+      "description": "This reports module is currently under development. Features will be progressively added according to your needs."
+    },
+    "sections": {
+      "financial": {
+        "title": "Financial Reports",
+        "description": "Revenues, costs and financial analyses"
+      },
+      "interventions": {
+        "title": "Intervention Reports",
+        "description": "Planning, tracking and performance of interventions"
+      },
+      "teams": {
+        "title": "Team Reports",
+        "description": "Performance, availabilities and team planning"
+      },
+      "properties": {
+        "title": "Property Reports",
+        "description": "Status, maintenance and costs of properties"
+      }
+    },
+    "selectReport": "Select a report to generate",
+    "invalidType": "Invalid report type",
+    "noPermission": "You do not have permission to access this report type",
+    "noPermissionMessage": "Contact your administrator if you think this is an error.",
+    "noReportsAvailable": "No reports available at the moment",
+    "generate": "Generate",
+    "download": "Download",
+    "generationStarted": "Report generation started",
+    "generationError": "Error generating report",
+    "downloadStarted": "Report download started",
+    "authenticationError": "Authentication error",
+    "dateRange": {
+      "current": "Current",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "yearly": "Yearly"
+    },
+    "status": {
+      "available": "Available",
+      "generating": "Generating",
+      "error": "Error"
+    },
+    "financial": {
+      "revenue": {
+        "title": "Revenue Report",
+        "description": "Detailed revenue analysis by period"
+      },
+      "costs": {
+        "title": "Costs Report",
+        "description": "Cost and expense analysis"
+      },
+      "profit": {
+        "title": "Profitability Report",
+        "description": "Profitability and margin analysis"
+      }
+    },
+    "interventions": {
+      "performance": {
+        "title": "Performance Report",
+        "description": "Intervention performance and efficiency"
+      },
+      "planning": {
+        "title": "Planning Report",
+        "description": "Intervention planning and tracking"
+      },
+      "completion": {
+        "title": "Completion Report",
+        "description": "Completion rates and deadlines"
+      }
+    },
+    "teams": {
+      "performance": {
+        "title": "Team Performance Report",
+        "description": "Team performance and productivity"
+      },
+      "availability": {
+        "title": "Availability Report",
+        "description": "Team availability and scheduling"
+      },
+      "workload": {
+        "title": "Workload Report",
+        "description": "Workload distribution"
+      }
+    },
+    "properties": {
+      "status": {
+        "title": "Property Status Report",
+        "description": "Status of all properties"
+      },
+      "maintenance": {
+        "title": "Maintenance Report",
+        "description": "Maintenance history and planning"
+      },
+      "costs": {
+        "title": "Property Costs Report",
+        "description": "Costs and expenses per property"
+      }
+    }
   }
 }

@@ -4,7 +4,6 @@ import com.clenzy.dto.validation.Create;
 import com.clenzy.model.CleaningFrequency;
 import com.clenzy.model.PropertyStatus;
 import com.clenzy.model.PropertyType;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,7 +13,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
 public class PropertyDto {
     public Long id;
 

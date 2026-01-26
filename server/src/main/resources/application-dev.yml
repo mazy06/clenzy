@@ -101,4 +101,13 @@ server:
   port: 8080
   address: 0.0.0.0
 
+# Configuration Stripe
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY:sk_test_your_secret_key_here}
+  publishable-key: ${STRIPE_PUBLISHABLE_KEY:pk_test_your_publishable_key_here}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_your_webhook_secret_here}
+  currency: eur
+  success-url: ${FRONTEND_URL:http://localhost:3001}/interventions/payment/success?session_id={CHECKOUT_SESSION_ID}
+  cancel-url: ${FRONTEND_URL:http://localhost:3001}/interventions/payment/cancel
+
 
