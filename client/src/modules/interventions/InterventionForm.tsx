@@ -132,7 +132,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
     assignedToType: undefined,
     scheduledDate: '',
     estimatedDurationHours: 1,
-    estimatedCost: undefined,
+    estimatedCost: undefined, // Les HOST ne peuvent pas définir le coût
     notes: '',
     photos: '',
     progressPercentage: 0
@@ -227,7 +227,8 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
 
   // Si l'utilisateur n'a pas la permission de créer des interventions, ne rien afficher
   // ATTENTION : Cette vérification doit être APRÈS tous les hooks !
-  if (!canCreateInterventions) {
+  // Seuls les ADMIN et MANAGER peuvent créer des interventions manuellement
+  if (!canCreateInterventions || (!isAdmin() && !isManager())) {
     return null;
   }
 
@@ -254,6 +255,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
     setError(null);
 
     try {
+      // Étape 1: Créer l'intervention
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/interventions`, {
         method: 'POST',
         headers: {
@@ -263,20 +265,56 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
         body: JSON.stringify(formData)
       });
 
-      if (response.ok) {
-        const savedIntervention = await response.json();
-        console.log('🔍 InterventionForm - Intervention créée:', savedIntervention);
-        
-        // Utiliser onSuccess si fourni, sinon rediriger
-        if (onSuccess) {
-          onSuccess();
-        } else {
-          // Redirection par défaut si pas de callback
-          window.location.href = `/interventions/${savedIntervention.id}`;
-        }
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
         setError(errorData.message || t('interventions.errors.createError'));
+        return;
+      }
+
+      const savedIntervention = await response.json();
+      console.log('🔍 InterventionForm - Intervention créée:', savedIntervention);
+      
+      // Étape 2: Si un coût estimé est défini ET que ce n'est pas un HOST, créer une session de paiement
+      // Les HOST ne paient pas directement, ils attendent la validation du manager
+      if (!isHost() && formData.estimatedCost && formData.estimatedCost > 0) {
+        try {
+          const paymentResponse = await fetch(`${API_CONFIG.BASE_URL}/api/payments/create-session`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              interventionId: savedIntervention.id,
+              amount: formData.estimatedCost
+            })
+          });
+
+          if (paymentResponse.ok) {
+            const paymentData = await paymentResponse.json();
+            // Rediriger vers Stripe Checkout
+            window.location.href = paymentData.url;
+            return; // Ne pas continuer, la redirection va se faire
+          } else {
+            const errorData = await paymentResponse.json();
+            setError(errorData.message || 'Erreur lors de la création de la session de paiement');
+            // L'intervention a été créée mais le paiement a échoué
+            // On peut continuer ou annuler selon les besoins
+          }
+        } catch (paymentErr) {
+          console.error('🔍 InterventionForm - Erreur paiement:', paymentErr);
+          setError('Erreur lors de la création de la session de paiement');
+          // L'intervention a été créée mais le paiement a échoué
+        }
+      }
+      
+      // Si pas de paiement requis ou paiement échoué, continuer normalement
+      // Utiliser onSuccess si fourni, sinon rediriger
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        // Redirection par défaut si pas de callback
+        window.location.href = `/interventions/${savedIntervention.id}`;
       }
     } catch (err) {
       console.error('🔍 InterventionForm - Erreur création:', err);
@@ -575,24 +613,26 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
               </CardContent>
             </Card>
 
-            {/* Coûts */}
-            <Card>
-              <CardContent sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
-                  {t('interventions.sections.costs')}
-                </Typography>
-                
-                <TextField
-                  fullWidth
-                  label={t('interventions.fields.estimatedCost')}
-                  type="number"
-                  value={formData.estimatedCost || ''}
-                  onChange={(e) => handleInputChange('estimatedCost', e.target.value ? parseFloat(e.target.value) : undefined)}
-                  inputProps={{ min: 0, step: 0.01 }}
-                  size="small"
-                />
-              </CardContent>
-            </Card>
+            {/* Coûts - Seulement pour les admins et managers, pas pour les HOST */}
+            {!isHost() && (
+              <Card>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
+                    {t('interventions.sections.costs')}
+                  </Typography>
+                  
+                  <TextField
+                    fullWidth
+                    label={t('interventions.fields.estimatedCost')}
+                    type="number"
+                    value={formData.estimatedCost || ''}
+                    onChange={(e) => handleInputChange('estimatedCost', e.target.value ? parseFloat(e.target.value) : undefined)}
+                    inputProps={{ min: 0, step: 0.01 }}
+                    size="small"
+                  />
+                </CardContent>
+              </Card>
+            )}
           </Grid>
 
           {/* Notes et photos */}

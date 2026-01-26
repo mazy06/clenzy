@@ -33,7 +33,7 @@ import {
   Build,
   Refresh
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { API_CONFIG } from '../../config/api';
 import { InterventionStatus, INTERVENTION_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } from '../../types/statusEnums';
@@ -89,6 +89,9 @@ const interventionTypes = [
 
 const getStatusColor = (status: string) => {
   switch (status) {
+    case 'PENDING': return 'warning';
+    case 'AWAITING_VALIDATION': return 'warning';
+    case 'AWAITING_PAYMENT': return 'warning';
     case 'SCHEDULED': return 'info';
     case 'IN_PROGRESS': return 'primary';
     case 'ON_HOLD': return 'warning';
@@ -98,12 +101,14 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const getStatusLabel = (status: string) => {
+const getStatusLabel = (status: string, t: (key: string) => string) => {
   switch (status) {
-    case 'PENDING': return 'En attente';
-    case 'IN_PROGRESS': return 'En cours';
-    case 'COMPLETED': return 'Terminé';
-    case 'CANCELLED': return 'Annulé';
+    case 'PENDING': return t('interventions.statuses.PENDING');
+    case 'AWAITING_VALIDATION': return t('interventions.statuses.AWAITING_VALIDATION');
+    case 'AWAITING_PAYMENT': return t('interventions.statuses.AWAITING_PAYMENT');
+    case 'IN_PROGRESS': return t('interventions.statuses.IN_PROGRESS');
+    case 'COMPLETED': return t('interventions.statuses.COMPLETED');
+    case 'CANCELLED': return t('interventions.statuses.CANCELLED');
     default: return status;
   }
 };
@@ -163,14 +168,10 @@ const formatDate = (dateString: string) => {
   });
 };
 
-  const formatDuration = (hours: number) => {
-    if (hours === 1) return `1 ${t('interventions.hour')}`;
-    return `${hours} ${t('interventions.hours')}`;
-  };
-
 export default function InterventionsList() {
   const navigate = useNavigate();
-  const { user, hasPermissionAsync } = useAuth();
+  const location = useLocation();
+  const { user, hasPermissionAsync, isHost, isManager, isAdmin } = useAuth();
   const { t } = useTranslation();
   
   // TOUS les useState DOIVENT être déclarés AVANT les vérifications conditionnelles
@@ -220,10 +221,10 @@ export default function InterventionsList() {
   React.useEffect(() => {
     console.log('🔍 InterventionsList - Chargement automatique des interventions');
     // Ne pas recharger si on a déjà une erreur 403 ou si pas de permission
-    if ((!error || !error.includes('Accès interdit')) && canViewInterventions) {
+    if (canViewInterventions && location.pathname === '/interventions') {
       loadInterventions();
     }
-  }, []); // Dépendances vides - exécuté une seule fois au montage
+  }, [canViewInterventions, location.pathname]); // Recharger quand les permissions changent ou quand on navigue vers cette page
 
   // Debug des permissions APRÈS tous les hooks
   console.log('🔍 InterventionsList - Debug des permissions:', {
@@ -538,17 +539,49 @@ export default function InterventionsList() {
         backPath="/dashboard"
         showBackButton={false}
         actions={
-          canCreateInterventions ? (
+          <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={() => navigate('/interventions/new')}
+              variant="outlined"
+              startIcon={<Refresh />}
+              onClick={loadInterventions}
+              disabled={loading}
               size="small"
+              sx={{ textTransform: 'none' }}
             >
-              {t('interventions.create')}
+              {t('common.refresh')}
             </Button>
-          ) : undefined
+            {(isManager() || isAdmin()) && (
+              <Button
+                variant="outlined"
+                onClick={() => navigate('/interventions/pending-validation')}
+                sx={{ textTransform: 'none' }}
+              >
+                {t('interventions.pendingValidation.title')}
+              </Button>
+            )}
+            {isHost() && (
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={() => navigate('/interventions/pending-payment')}
+                sx={{ textTransform: 'none' }}
+              >
+                {t('interventions.pendingPayment.title')}
+              </Button>
+            )}
+            {/* Seuls les ADMIN et MANAGER peuvent créer des interventions manuellement */}
+            {canCreateInterventions && (isAdmin() || isManager()) && (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={() => navigate('/interventions/new')}
+                size="small"
+              >
+                {t('interventions.create')}
+              </Button>
+            )}
+          </Box>
         }
       />
 
@@ -657,7 +690,7 @@ export default function InterventionsList() {
                       sx={{ height: 20, fontSize: '0.7rem' }}
                     />
                     <Chip
-                      label={getStatusLabel(intervention.status)}
+                      label={getStatusLabel(intervention.status, t)}
                       size="small"
                       color={getStatusColor(intervention.status) as any}
                       sx={{ height: 20, fontSize: '0.7rem' }}

@@ -7,6 +7,10 @@ import com.clenzy.model.User;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.ManagerPropertyRepository;
+import com.clenzy.repository.PortfolioClientRepository;
+import com.clenzy.repository.PortfolioRepository;
+import com.clenzy.model.Portfolio;
+import com.clenzy.model.UserRole;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
@@ -23,11 +27,18 @@ public class PropertyService {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final ManagerPropertyRepository managerPropertyRepository;
+    private final PortfolioClientRepository portfolioClientRepository;
+    private final PortfolioRepository portfolioRepository;
 
-    public PropertyService(PropertyRepository propertyRepository, UserRepository userRepository, ManagerPropertyRepository managerPropertyRepository) {
+    public PropertyService(PropertyRepository propertyRepository, UserRepository userRepository, 
+                          ManagerPropertyRepository managerPropertyRepository,
+                          PortfolioClientRepository portfolioClientRepository,
+                          PortfolioRepository portfolioRepository) {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.managerPropertyRepository = managerPropertyRepository;
+        this.portfolioClientRepository = portfolioClientRepository;
+        this.portfolioRepository = portfolioRepository;
     }
 
     @CacheEvict(value = "properties", allEntries = true)
@@ -62,6 +73,15 @@ public class PropertyService {
             e.printStackTrace();
             throw new RuntimeException("Erreur lors de la récupération de la propriété: " + e.getMessage(), e);
         }
+    }
+    
+    /**
+     * Récupère l'entité Property directement (pour les vérifications d'accès)
+     */
+    @Transactional(readOnly = true)
+    public Property getPropertyEntityById(Long id) {
+        return propertyRepository.findByIdWithOwner(id)
+            .orElseThrow(() -> new NotFoundException("Property not found with id: " + id));
     }
 
     @Transactional(readOnly = true)
@@ -191,6 +211,50 @@ public class PropertyService {
         }
         
         return dto;
+    }
+    
+    /**
+     * Vérifie si un utilisateur peut assigner une demande de service pour une propriété donnée.
+     * Un utilisateur peut assigner si :
+     * 1. Il est ADMIN ou MANAGER
+     * 2. OU il est le manager d'un portefeuille qui contient le client propriétaire de la propriété
+     * 3. OU il est directement assigné à la propriété via ManagerProperty
+     */
+    @Transactional(readOnly = true)
+    public boolean canUserAssignForProperty(Long userId, Long propertyId) {
+        // Récupérer la propriété avec son propriétaire
+        Property property = propertyRepository.findByIdWithOwner(propertyId)
+            .orElseThrow(() -> new NotFoundException("Property not found"));
+        
+        if (property.getOwner() == null) {
+            return false;
+        }
+        
+        Long ownerId = property.getOwner().getId();
+        
+        // Récupérer l'utilisateur
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("User not found"));
+        
+        // 1. Vérifier si l'utilisateur est ADMIN ou MANAGER
+        if (user.getRole() != null && (user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.MANAGER)) {
+            return true;
+        }
+        
+        // 2. Vérifier si l'utilisateur est directement assigné à la propriété via ManagerProperty
+        if (managerPropertyRepository.existsByManagerIdAndPropertyId(userId, propertyId)) {
+            return true;
+        }
+        
+        // 3. Vérifier si l'utilisateur est le manager d'un portefeuille qui contient le client propriétaire
+        List<Portfolio> portfolios = portfolioRepository.findByManagerId(userId);
+        for (Portfolio portfolio : portfolios) {
+            if (portfolioClientRepository.existsByPortfolioIdAndClientIdAndIsActiveTrue(portfolio.getId(), ownerId)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }
 

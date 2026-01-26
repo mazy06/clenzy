@@ -16,6 +16,8 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.TeamRepository;
+import com.clenzy.model.Team;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -28,6 +30,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.clenzy.dto.PropertyDto;
 import com.clenzy.dto.UserDto;
+import com.clenzy.dto.TeamDto;
 import org.springframework.data.domain.PageImpl;
 
 @Service
@@ -37,12 +40,14 @@ public class ServiceRequestService {
     private final UserRepository userRepository;
     private final PropertyRepository propertyRepository;
     private final InterventionRepository interventionRepository;
+    private final TeamRepository teamRepository;
 
-    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository) {
+    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository, TeamRepository teamRepository) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
         this.interventionRepository = interventionRepository;
+        this.teamRepository = teamRepository;
     }
 
     public ServiceRequestDto create(ServiceRequestDto dto) {
@@ -104,6 +109,83 @@ public class ServiceRequestService {
         return new PageImpl<>(pageContent.stream().map(this::toDto).collect(Collectors.toList()), pageable, filtered.size());
     }
 
+    @Transactional(readOnly = true)
+    public Page<ServiceRequestDto> searchWithRoleBasedAccess(Pageable pageable, Long userId, Long propertyId, 
+                                                             com.clenzy.model.RequestStatus status, 
+                                                             com.clenzy.model.ServiceType serviceType, 
+                                                             Jwt jwt) {
+        if (jwt == null) {
+            // Si pas de JWT, utiliser la méthode standard
+            return search(pageable, userId, propertyId, status, serviceType);
+        }
+
+        UserRole userRole = extractUserRole(jwt);
+        System.out.println("🔍 ServiceRequestService.searchWithRoleBasedAccess - Rôle: " + userRole);
+
+        // Utiliser la méthode avec relations et filtrer ensuite
+        List<ServiceRequest> allWithRelations = serviceRequestRepository.findAllWithRelations();
+
+        // Filtrer selon le rôle
+        List<ServiceRequest> filtered = allWithRelations.stream()
+            .filter(sr -> {
+                // Filtre par rôle
+                if (userRole == UserRole.HOST) {
+                    // HOST : seulement les demandes liées à ses propriétés
+                    if (sr.getProperty() != null && sr.getProperty().getOwner() != null) {
+                        String keycloakId = jwt.getSubject();
+                        User hostUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
+                        if (hostUser != null) {
+                            return sr.getProperty().getOwner().getId().equals(hostUser.getId());
+                        }
+                    }
+                    return false;
+                } else if (userRole == UserRole.HOUSEKEEPER || userRole == UserRole.TECHNICIAN) {
+                    // HOUSEKEEPER/TECHNICIAN : seulement les demandes assignées à eux ou leurs équipes
+                    String keycloakId = jwt.getSubject();
+                    User currentUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
+                    if (currentUser != null) {
+                        return (sr.getAssignedToType() != null && sr.getAssignedToType().equals("user") && 
+                                sr.getAssignedToId() != null && sr.getAssignedToId().equals(currentUser.getId())) ||
+                               (sr.getAssignedToType() != null && sr.getAssignedToType().equals("team") && 
+                                sr.getAssignedToId() != null && isUserInTeam(currentUser.getId(), sr.getAssignedToId()));
+                    }
+                    return false;
+                } else if (userRole == UserRole.MANAGER) {
+                    // MANAGER : demandes liées à ses portefeuilles ou créées par ses utilisateurs
+                    // Pour simplifier, on laisse passer toutes les demandes pour les managers
+                    // Le filtrage détaillé par portefeuille peut être ajouté plus tard si nécessaire
+                    return true;
+                }
+                // ADMIN : toutes les demandes
+                return true;
+            })
+            .filter(sr -> userId == null || (sr.getUser() != null && sr.getUser().getId().equals(userId)))
+            .filter(sr -> propertyId == null || (sr.getProperty() != null && sr.getProperty().getId().equals(propertyId)))
+            .filter(sr -> status == null || sr.getStatus().equals(status))
+            .filter(sr -> serviceType == null || sr.getServiceType().equals(serviceType))
+            .collect(Collectors.toList());
+
+        // Appliquer la pagination
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), filtered.size());
+        List<ServiceRequest> pageContent = filtered.subList(start, end);
+
+        return new PageImpl<>(pageContent.stream().map(this::toDto).collect(Collectors.toList()), pageable, filtered.size());
+    }
+
+    private boolean isUserInTeam(Long userId, Long teamId) {
+        try {
+            Team team = teamRepository.findById(teamId).orElse(null);
+            if (team != null) {
+                return team.getMembers().stream()
+                    .anyMatch(member -> member.getUser().getId().equals(userId));
+            }
+        } catch (Exception e) {
+            System.err.println("Erreur vérification membre équipe: " + e.getMessage());
+        }
+        return false;
+    }
+
     public void delete(Long id) {
         if (!serviceRequestRepository.existsById(id)) throw new NotFoundException("Service request not found");
         serviceRequestRepository.deleteById(id);
@@ -113,7 +195,7 @@ public class ServiceRequestService {
      * Valide une demande de service et crée automatiquement une intervention
      * Seuls les managers et admins peuvent valider les demandes
      */
-    public InterventionDto validateAndCreateIntervention(Long serviceRequestId, Jwt jwt) {
+    public InterventionDto validateAndCreateIntervention(Long serviceRequestId, Long teamId, Long userId, Jwt jwt) {
         try {
             System.out.println("🔍 DEBUG - Début de validateAndCreateIntervention pour l'ID: " + serviceRequestId);
             
@@ -181,6 +263,20 @@ public class ServiceRequestService {
         intervention.setStartTime(serviceRequest.getDesiredDate());
         intervention.setRequiresFollowUp(false);
 
+        // Assigner l'équipe ou l'utilisateur si fourni
+        if (teamId != null) {
+            Team team = teamRepository.findById(teamId)
+                    .orElseThrow(() -> new NotFoundException("Équipe non trouvée"));
+            intervention.setTeamId(team.getId());
+            System.out.println("🔍 DEBUG - Équipe assignée: " + team.getName());
+        } else if (userId != null) {
+            User assignedUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé"));
+            intervention.setAssignedUser(assignedUser);
+            intervention.setAssignedTechnicianId(userId);
+            System.out.println("🔍 DEBUG - Utilisateur assigné: " + assignedUser.getFullName());
+        }
+
         System.out.println("🔍 DEBUG - Sauvegarde de l'intervention...");
         intervention = interventionRepository.save(intervention);
         System.out.println("🔍 DEBUG - Intervention sauvegardée avec succès, ID: " + intervention.getId());
@@ -225,6 +321,7 @@ public class ServiceRequestService {
                     List<?> roleList = (List<?>) roles;
                     System.out.println("🔍 ServiceRequestService.extractUserRole - Liste des rôles: " + roleList);
                     
+                    // D'abord, chercher les rôles métier prioritaires (ADMIN, MANAGER)
                     for (Object role : roleList) {
                         if (role instanceof String) {
                             String roleStr = (String) role;
@@ -238,13 +335,46 @@ public class ServiceRequestService {
                                 continue;
                             }
 
-                            // Retourner le premier rôle métier trouvé (ADMIN, MANAGER, HOST, etc.)
-                            System.out.println("🔍 ServiceRequestService.extractUserRole - Rôle métier trouvé: " + roleStr);
+                            // Mapper "realm-admin" vers ADMIN
+                            if (roleStr.equalsIgnoreCase("realm-admin")) {
+                                System.out.println("🔍 ServiceRequestService.extractUserRole - Mapping realm-admin vers ADMIN");
+                                return UserRole.ADMIN;
+                            }
+
+                            // Chercher les rôles métier directs (ADMIN, MANAGER, etc.)
                             try {
-                                return UserRole.valueOf(roleStr.toUpperCase());
+                                UserRole userRole = UserRole.valueOf(roleStr.toUpperCase());
+                                System.out.println("🔍 ServiceRequestService.extractUserRole - Rôle métier trouvé: " + userRole);
+                                // Prioriser ADMIN et MANAGER
+                                if (userRole == UserRole.ADMIN || userRole == UserRole.MANAGER) {
+                                    return userRole;
+                                }
                             } catch (IllegalArgumentException e) {
-                                System.err.println("🔍 ServiceRequestService.extractUserRole - Rôle inconnu: " + roleStr + ", fallback vers HOST");
-                                return UserRole.HOST; // Fallback vers HOST pour les rôles non reconnus
+                                // Continuer à chercher
+                                System.out.println("🔍 ServiceRequestService.extractUserRole - Rôle non reconnu: " + roleStr);
+                            }
+                        }
+                    }
+                    
+                    // Si ADMIN ou MANAGER non trouvé, retourner le premier rôle métier valide
+                    for (Object role : roleList) {
+                        if (role instanceof String) {
+                            String roleStr = (String) role;
+                            
+                            // Ignorer les rôles techniques Keycloak
+                            if (roleStr.equals("offline_access") || 
+                                roleStr.equals("uma_authorization") || 
+                                roleStr.equals("default-roles-clenzy") ||
+                                roleStr.equalsIgnoreCase("realm-admin")) {
+                                continue;
+                            }
+
+                            try {
+                                UserRole userRole = UserRole.valueOf(roleStr.toUpperCase());
+                                System.out.println("🔍 ServiceRequestService.extractUserRole - Retour du rôle métier: " + userRole);
+                                return userRole;
+                            } catch (IllegalArgumentException e) {
+                                // Continuer à chercher
                             }
                         }
                     }
@@ -368,6 +498,9 @@ public class ServiceRequestService {
             Property property = propertyRepository.findById(dto.propertyId).orElseThrow(() -> new NotFoundException("Property not found"));
             e.setProperty(property);
         }
+        // Assignation
+        e.setAssignedToId(dto.assignedToId);
+        e.setAssignedToType(dto.assignedToType);
     }
 
     private ServiceRequestDto toDto(ServiceRequest e) {
@@ -393,6 +526,25 @@ public class ServiceRequestService {
         dto.approvedAt = e.getApprovedAt();
         dto.userId = e.getUser() != null ? e.getUser().getId() : null;
         dto.propertyId = e.getProperty() != null ? e.getProperty().getId() : null;
+        
+        // Assignation
+        dto.assignedToId = e.getAssignedToId();
+        dto.assignedToType = e.getAssignedToType();
+        
+        // Remplir les informations de l'assignation (utilisateur ou équipe)
+        if (e.getAssignedToId() != null && e.getAssignedToType() != null) {
+            if ("user".equalsIgnoreCase(e.getAssignedToType())) {
+                User assignedUser = userRepository.findById(e.getAssignedToId()).orElse(null);
+                if (assignedUser != null) {
+                    dto.assignedToUser = userToDto(assignedUser);
+                }
+            } else if ("team".equalsIgnoreCase(e.getAssignedToType())) {
+                Team assignedTeam = teamRepository.findById(e.getAssignedToId()).orElse(null);
+                if (assignedTeam != null) {
+                    dto.assignedToTeam = teamToDto(assignedTeam);
+                }
+            }
+        }
         
         // Inclure les objets complets pour éviter les "inconnu"
         if (e.getProperty() != null) {
@@ -447,6 +599,21 @@ public class ServiceRequestService {
         dto.phoneNumber = user.getPhoneNumber();
         dto.createdAt = user.getCreatedAt();
         dto.updatedAt = user.getUpdatedAt();
+        return dto;
+    }
+
+    /**
+     * Convertit une équipe en DTO
+     */
+    private TeamDto teamToDto(Team team) {
+        TeamDto dto = new TeamDto();
+        dto.id = team.getId();
+        dto.name = team.getName();
+        dto.description = team.getDescription();
+        dto.interventionType = team.getInterventionType();
+        dto.memberCount = team.getMemberCount();
+        dto.createdAt = team.getCreatedAt();
+        dto.updatedAt = team.getUpdatedAt();
         return dto;
     }
 }

@@ -2,6 +2,8 @@ package com.clenzy.model;
 
 public enum InterventionStatus {
     PENDING("En attente"),
+    AWAITING_VALIDATION("En attente de validation"),
+    AWAITING_PAYMENT("En attente de paiement"),
     IN_PROGRESS("En cours"),
     COMPLETED("Terminé"),
     CANCELLED("Annulé");

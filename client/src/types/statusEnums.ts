@@ -8,6 +8,8 @@
 // ============================================================================
 export enum InterventionStatus {
   PENDING = 'PENDING',
+  AWAITING_VALIDATION = 'AWAITING_VALIDATION',
+  AWAITING_PAYMENT = 'AWAITING_PAYMENT',
   IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED'
@@ -26,6 +28,18 @@ export const INTERVENTION_STATUS_OPTIONS: InterventionStatusOption[] = [
     label: 'En attente',
     color: 'warning',
     icon: 'pending'
+  },
+  {
+    value: InterventionStatus.AWAITING_VALIDATION,
+    label: 'En attente de validation',
+    color: 'warning',
+    icon: 'pending_actions'
+  },
+  {
+    value: InterventionStatus.AWAITING_PAYMENT,
+    label: 'En attente de paiement',
+    color: 'warning',
+    icon: 'payment'
   },
   {
     value: InterventionStatus.IN_PROGRESS,

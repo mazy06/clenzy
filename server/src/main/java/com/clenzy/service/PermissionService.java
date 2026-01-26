@@ -69,9 +69,21 @@ public class PermissionService {
     public RolePermissionsDto getRolePermissions(String role) {
         System.out.println("🔍 PermissionService.getRolePermissions() - Récupération pour le rôle: " + role + " depuis la base de données et mise en cache");
         List<String> permissions = getPermissionsFromDatabase(role);
+        
+        // Mettre aussi en cache dans Redis pour les autres méthodes
+        if (permissions != null && !permissions.isEmpty()) {
+            String key = ROLE_PERMISSIONS_KEY + role;
+            redisTemplate.opsForValue().set(key, permissions);
+            System.out.println("✅ PermissionService.getRolePermissions() - Permissions mises en cache Redis pour le rôle: " + role);
+        } else {
+            System.out.println("⚠️ PermissionService.getRolePermissions() - Aucune permission trouvée pour le rôle: " + role);
+            System.out.println("💡 Les permissions doivent être configurées via le menu 'Roles & Permissions'");
+        }
+        
         boolean isDefault = !hasCustomPermissions(role);
-        RolePermissionsDto dto = new RolePermissionsDto(role, permissions, isDefault);
-        System.out.println("📊 PermissionService.getRolePermissions() - DTO créé avec " + permissions.size() + " permissions pour le rôle: " + role);
+        List<String> finalPermissions = permissions != null ? permissions : new ArrayList<>();
+        RolePermissionsDto dto = new RolePermissionsDto(role, finalPermissions, isDefault);
+        System.out.println("📊 PermissionService.getRolePermissions() - DTO créé avec " + finalPermissions.size() + " permissions pour le rôle: " + role);
         return dto;
     }
     
@@ -394,6 +406,27 @@ public class PermissionService {
         // TODO: Implémenter la récupération depuis la base de données
         return new HashMap<>();
     }
+    
+    /**
+     * Récupère toutes les permissions disponibles depuis la base de données
+     */
+    public List<String> getAllAvailablePermissions() {
+        try {
+            System.out.println("📋 PermissionService.getAllAvailablePermissions() - Récupération de toutes les permissions depuis la base de données");
+            List<Permission> permissions = permissionRepository.findAll();
+            List<String> permissionNames = permissions.stream()
+                .map(Permission::getName)
+                .sorted()
+                .collect(Collectors.toList());
+            
+            System.out.println("✅ PermissionService.getAllAvailablePermissions() - " + permissionNames.size() + " permissions trouvées");
+            return permissionNames;
+        } catch (Exception e) {
+            System.out.println("❌ PermissionService.getAllAvailablePermissions() - Erreur lors de la récupération: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
 
     public boolean saveRolePermissions(String role) {
         System.out.println("💾 PermissionService.saveRolePermissions() - Sauvegarde des permissions pour le rôle: " + role);
@@ -433,38 +466,40 @@ public class PermissionService {
     public List<String> getUserPermissionsForSync(String userId) {
         System.out.println("🔄 PermissionService.getUserPermissionsForSync() - Synchronisation des permissions pour l'utilisateur: " + userId);
         
-        // 1. Essayer de récupérer les permissions spécifiques de l'utilisateur depuis Redis
-        List<String> permissions = getUserPermissionsFromRedis(userId);
+        // Toujours invalider le cache utilisateur pour forcer la relecture depuis le rôle
+        invalidateUserPermissionsCache(userId);
         
-        // 2. Si pas trouvé, récupérer les permissions du rôle depuis Redis
-        if (permissions == null || permissions.isEmpty()) {
-            System.out.println("🔍 PermissionService.getUserPermissionsForSync() - Aucune permission spécifique trouvée, récupération du rôle");
-            
-            // Récupérer l'utilisateur pour connaître son rôle
-            Optional<User> userOpt = userRepository.findByKeycloakId(userId);
-            if (userOpt.isPresent()) {
-                User user = userOpt.get();
-                UserRole userRole = user.getRole();
-                
-                // Récupérer les permissions du rôle depuis Redis
-                permissions = getRolePermissionsFromRedis(userRole.name());
-                
-                if (permissions != null && !permissions.isEmpty()) {
-                    System.out.println("✅ PermissionService.getUserPermissionsForSync() - Permissions du rôle " + userRole.name() + " récupérées depuis Redis: " + permissions.size() + " permissions");
-                    
-                    // Mettre les permissions du rôle dans Redis pour l'utilisateur
-                    updateUserPermissionsInRedis(userId, permissions);
-                } else {
-                    System.out.println("⚠️ PermissionService.getUserPermissionsForSync() - Aucune permission trouvée pour le rôle " + userRole.name() + " dans Redis");
-                }
-            } else {
-                System.out.println("⚠️ PermissionService.getUserPermissionsForSync() - Utilisateur non trouvé avec keycloakId: " + userId);
-            }
-        } else {
-            System.out.println("✅ PermissionService.getUserPermissionsForSync() - Permissions spécifiques trouvées dans Redis pour l'utilisateur: " + userId);
+        // Récupérer l'utilisateur pour connaître son rôle
+        Optional<User> userOpt = userRepository.findByKeycloakId(userId);
+        if (!userOpt.isPresent()) {
+            System.out.println("⚠️ PermissionService.getUserPermissionsForSync() - Utilisateur non trouvé avec keycloakId: " + userId);
+            return new ArrayList<>();
         }
         
-        return permissions != null ? permissions : new ArrayList<>();
+        User user = userOpt.get();
+        UserRole userRole = user.getRole();
+        System.out.println("🔍 PermissionService.getUserPermissionsForSync() - Utilisateur trouvé avec rôle: " + userRole.name());
+        
+        // Toujours charger depuis la base de données pour avoir les dernières permissions
+        // (ignorer le cache Redis pour être sûr d'avoir les données à jour)
+        List<String> permissions = getPermissionsFromDatabase(userRole.name());
+        
+        if (permissions != null && !permissions.isEmpty()) {
+            System.out.println("✅ PermissionService.getUserPermissionsForSync() - " + permissions.size() + " permissions récupérées pour le rôle " + userRole.name());
+            System.out.println("📋 Permissions: " + String.join(", ", permissions));
+            
+            // Mettre en cache dans Redis pour l'utilisateur ET pour le rôle
+            updateUserPermissionsInRedis(userId, permissions);
+            String roleKey = ROLE_PERMISSIONS_KEY + userRole.name();
+            redisTemplate.opsForValue().set(roleKey, permissions);
+            System.out.println("✅ PermissionService.getUserPermissionsForSync() - Permissions mises en cache Redis pour l'utilisateur et le rôle");
+            
+            return permissions;
+        } else {
+            System.out.println("⚠️ PermissionService.getUserPermissionsForSync() - Aucune permission trouvée pour le rôle " + userRole.name());
+            System.out.println("💡 Les permissions doivent être configurées via le menu 'Roles & Permissions'");
+            return new ArrayList<>();
+        }
     }
 
     /**
@@ -490,22 +525,50 @@ public class PermissionService {
 
     /**
      * Récupère les permissions d'un rôle depuis Redis
+     * Si Redis est vide, charge depuis la base de données et met en cache
      */
     public List<String> getRolePermissionsFromRedis(String role) {
         try {
             String key = ROLE_PERMISSIONS_KEY + role;
             List<String> permissions = (List<String>) redisTemplate.opsForValue().get(key);
             
-            if (permissions != null) {
-                System.out.println("✅ PermissionService.getRolePermissionsFromRedis() - Permissions trouvées dans Redis pour le rôle: " + role);
+            if (permissions != null && !permissions.isEmpty()) {
+                System.out.println("✅ PermissionService.getRolePermissionsFromRedis() - Permissions trouvées dans Redis pour le rôle: " + role + " (" + permissions.size() + " permissions)");
+                System.out.println("📋 Permissions Redis: " + String.join(", ", permissions));
                 return permissions;
             } else {
                 System.out.println("⚠️ PermissionService.getRolePermissionsFromRedis() - Aucune permission trouvée dans Redis pour le rôle: " + role);
-                return new ArrayList<>();
+                System.out.println("🔄 PermissionService.getRolePermissionsFromRedis() - Chargement depuis la base de données...");
+                
+                // Charger depuis la base de données (forcer la relecture)
+                List<String> dbPermissions = getPermissionsFromDatabase(role);
+                
+                if (dbPermissions != null && !dbPermissions.isEmpty()) {
+                    // Mettre en cache dans Redis
+                    redisTemplate.opsForValue().set(key, dbPermissions);
+                    System.out.println("✅ PermissionService.getRolePermissionsFromRedis() - " + dbPermissions.size() + " permissions chargées depuis la base et mises en cache pour le rôle: " + role);
+                    System.out.println("📋 Permissions chargées: " + String.join(", ", dbPermissions));
+                    return dbPermissions;
+                } else {
+                    System.out.println("⚠️ PermissionService.getRolePermissionsFromRedis() - Aucune permission trouvée en base pour le rôle: " + role);
+                    System.out.println("💡 Vérifiez que les permissions sont bien sauvegardées dans la table role_permissions avec isActive=true");
+                    return new ArrayList<>();
+                }
             }
         } catch (Exception e) {
             System.out.println("❌ PermissionService.getRolePermissionsFromRedis() - Erreur lors de la récupération depuis Redis: " + e.getMessage());
-            return new ArrayList<>();
+            e.printStackTrace();
+            // En cas d'erreur Redis, essayer de charger depuis la base
+            try {
+                System.out.println("🔄 PermissionService.getRolePermissionsFromRedis() - Tentative de chargement depuis la base de données...");
+                List<String> dbPermissions = getPermissionsFromDatabase(role);
+                System.out.println("📋 Permissions chargées depuis la base (après erreur Redis): " + (dbPermissions != null ? dbPermissions.size() : 0) + " permissions");
+                return dbPermissions;
+            } catch (Exception dbException) {
+                System.out.println("❌ PermissionService.getRolePermissionsFromRedis() - Erreur lors du chargement depuis la base: " + dbException.getMessage());
+                dbException.printStackTrace();
+                return new ArrayList<>();
+            }
         }
     }
 

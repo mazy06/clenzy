@@ -213,8 +213,14 @@ export const useAuth = () => {
 
   // Fonction unique pour la vérification des permissions (appelle Redis directement)
   const hasPermissionAsync = useCallback(async (permission: string): Promise<boolean> => {
+    // Attendre que l'utilisateur soit chargé
+    if (loading) {
+      console.log('🔍 useAuth.hasPermissionAsync - En attente du chargement de l\'utilisateur...');
+      return false;
+    }
+    
     if (!user) {
-      console.log('🔍 useAuth.hasPermissionAsync - Aucun utilisateur connecté');
+      console.log('🔍 useAuth.hasPermissionAsync - Pas d\'utilisateur après le chargement');
       return false;
     }
     
@@ -228,60 +234,73 @@ export const useAuth = () => {
     // Vérifier d'abord dans les permissions de l'utilisateur chargées depuis l'API
     if (user.permissions && user.permissions.length > 0) {
       const hasPermission = user.permissions.includes(permission);
-      console.log('✅ useAuth.hasPermissionAsync - Permission trouvée dans user.permissions:', hasPermission);
       if (hasPermission) {
+        console.log('✅ useAuth.hasPermissionAsync - Permission trouvée dans user.permissions: true');
         return true;
       }
+      console.log('⚠️ useAuth.hasPermissionAsync - Permission non trouvée dans user.permissions, vérification Redis...');
+    } else {
+      console.log('⚠️ useAuth.hasPermissionAsync - Aucune permission dans user.permissions, synchronisation nécessaire');
     }
     
     try {
-      // Appel direct à Redis (pas de cache local)
-      const redisCacheService = RedisCacheService.getInstance();
-      const redisPermissions = await redisCacheService.getPermissionsFromRedis(user.id);
+      // Toujours synchroniser depuis l'API pour avoir les dernières permissions
+      console.log('🔄 useAuth.hasPermissionAsync - Synchronisation depuis l\'API...');
+      const syncResponse = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/sync`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
       
-      if (redisPermissions && redisPermissions.length > 0) {
-        console.log('✅ useAuth.hasPermissionAsync - Permissions trouvées dans Redis:', redisPermissions.length);
-        const hasPermission = redisPermissions.includes(permission);
-        if (hasPermission) {
-          return true;
-        }
-      }
-      
-      // Si pas dans Redis, essayer de synchroniser depuis l'API
-      console.log('⚠️ useAuth.hasPermissionAsync - Aucune permission dans Redis, tentative de synchronisation');
-      try {
-        const syncResponse = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/sync`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId: user.id }),
+      if (syncResponse.ok) {
+        const syncData = await syncResponse.json();
+        console.log('🔄 useAuth.hasPermissionAsync - Données de synchronisation reçues:', {
+          permissionsCount: syncData.permissions?.length || 0,
+          permissions: syncData.permissions
         });
         
-        if (syncResponse.ok) {
-          const syncData = await syncResponse.json();
-          if (syncData.permissions && syncData.permissions.length > 0) {
-            console.log('✅ useAuth.hasPermissionAsync - Permissions synchronisées depuis l\'API:', syncData.permissions.length);
-            // Mettre à jour les permissions de l'utilisateur
-            setUser(prevUser => prevUser ? {
+        if (syncData.permissions && syncData.permissions.length > 0) {
+          // Mettre à jour les permissions de l'utilisateur seulement si elles ont changé
+          setUser(prevUser => {
+            if (!prevUser) return null;
+            // Éviter la mise à jour si les permissions sont identiques
+            const currentPerms = prevUser.permissions || [];
+            const newPerms = syncData.permissions || [];
+            if (currentPerms.length === newPerms.length && 
+                currentPerms.every((p: string) => newPerms.includes(p)) &&
+                newPerms.every((p: string) => currentPerms.includes(p))) {
+              console.log('🔄 useAuth.hasPermissionAsync - Permissions identiques, pas de mise à jour');
+              return prevUser; // Pas de changement, retourner la même référence
+            }
+            console.log('🔄 useAuth.hasPermissionAsync - Mise à jour des permissions utilisateur');
+            return {
               ...prevUser,
               permissions: syncData.permissions
-            } : null);
-            return syncData.permissions.includes(permission);
-          }
+            };
+          });
+          
+          const hasPermission = syncData.permissions.includes(permission);
+          console.log(hasPermission 
+            ? '✅ useAuth.hasPermissionAsync - Permission trouvée après synchronisation: true'
+            : '❌ useAuth.hasPermissionAsync - Permission non trouvée après synchronisation: false'
+          );
+          return hasPermission;
+        } else {
+          console.warn('⚠️ useAuth.hasPermissionAsync - Aucune permission dans la réponse de synchronisation');
         }
-      } catch (syncError) {
-        console.warn('⚠️ useAuth.hasPermissionAsync - Erreur lors de la synchronisation:', syncError);
+      } else {
+        console.error('❌ useAuth.hasPermissionAsync - Erreur lors de la synchronisation:', syncResponse.status, syncResponse.statusText);
       }
       
-      console.log('⚠️ useAuth.hasPermissionAsync - Permission non trouvée, accès refusé');
       return false;
     } catch (error) {
-      console.error('❌ useAuth.hasPermissionAsync - Erreur Redis:', error);
+      console.error('❌ useAuth.hasPermissionAsync - Erreur lors de la synchronisation:', error);
       return false;
     }
-  }, [user]);
+  }, [user, loading]);
 
   const hasRole = useCallback((role: string): boolean => {
     if (!user) return false;

@@ -244,10 +244,10 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
   }
 
   return (
-    <Box>
-      <Card>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Card sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
+        <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, p: 2, height: '100%' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexShrink: 0 }}>
             <Typography variant="h6">
               {type === 'sent' ? t('contact.messagesSent') : t('contact.messagesReceived')}
             </Typography>
@@ -262,13 +262,13 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
           </Box>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
+            <Alert severity="error" sx={{ mb: 2, flexShrink: 0 }}>
               {error}
             </Alert>
           )}
 
           {/* Filtres */}
-          <Grid container spacing={2} sx={{ mb: 3, alignItems: 'center' }}>
+          <Grid container spacing={2} sx={{ mb: 2, alignItems: 'center', flexShrink: 0 }}>
             <Grid item xs={12} sm={8}>
               <TextField
                 fullWidth
@@ -303,8 +303,17 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
             </Grid>
           </Grid>
 
-          <TableContainer component={Paper}>
-            <Table>
+          <TableContainer 
+            component={Paper} 
+            sx={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column',
+              minHeight: 0,
+              overflow: 'auto'
+            }}
+          >
+            <Table stickyHeader>
               <TableHead>
                 <TableRow>
                   <TableCell>{t('contact.subject')}</TableCell>
@@ -317,76 +326,86 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredMessages.map((message) => (
-                  <TableRow key={message.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="medium">
-                        {message.subject}
+                {filteredMessages.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        {t('contact.noMessagesFound')}
                       </Typography>
-                      {message.attachments.length > 0 && (
-                        <Typography variant="caption" color="text.secondary">
-                          📎 {message.attachments.length} {t('contact.attachmentCount')}
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="body2">
-                          {type === 'sent' 
-                            ? `${message.recipient.firstName} ${message.recipient.lastName}`
-                            : `${message.sender.firstName} ${message.sender.lastName}`
-                          }
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {type === 'sent' ? message.recipient.email : message.sender.email}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={message.priority}
-                        size="small"
-                        color={getPriorityColor(message.priority) as any}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={message.category}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={getStatusLabel(message.status)}
-                        size="small"
-                        color={getStatusColor(message.status) as any}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {new Date(message.createdAt).toLocaleDateString()}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(message.createdAt).toLocaleTimeString()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <IconButton
-                        onClick={(e) => handleMenuOpen(e, message)}
-                        size="small"
-                      >
-                        <MoreVertIcon />
-                      </IconButton>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredMessages.map((message) => (
+                    <TableRow key={message.id} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="medium">
+                          {message.subject}
+                        </Typography>
+                        {message.attachments.length > 0 && (
+                          <Typography variant="caption" color="text.secondary">
+                            📎 {message.attachments.length} {t('contact.attachmentCount')}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body2">
+                            {type === 'sent' 
+                              ? `${message.recipient.firstName} ${message.recipient.lastName}`
+                              : `${message.sender.firstName} ${message.sender.lastName}`
+                            }
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {type === 'sent' ? message.recipient.email : message.sender.email}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={message.priority}
+                          size="small"
+                          color={getPriorityColor(message.priority) as any}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={message.category}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getStatusLabel(message.status)}
+                          size="small"
+                          color={getStatusColor(message.status) as any}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {new Date(message.createdAt).toLocaleDateString()}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(message.createdAt).toLocaleTimeString()}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <IconButton
+                          onClick={(e) => handleMenuOpen(e, message)}
+                          size="small"
+                        >
+                          <MoreVertIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>
 
           {totalPages > 1 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, flexShrink: 0 }}>
               <Pagination
                 count={totalPages}
                 page={page}

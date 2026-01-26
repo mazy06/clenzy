@@ -46,7 +46,8 @@ public class SecurityConfig {
                     "/api/managers/*/users/*",
                     "/api/managers/*/properties/*",
                     "/api/properties/with-managers",
-                    "/api/sync/**"
+                    "/api/sync/**",
+                    "/api/webhooks/stripe"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

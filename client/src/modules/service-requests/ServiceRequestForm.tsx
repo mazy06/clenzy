@@ -108,6 +108,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   const [properties, setProperties] = useState<Property[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [canAssignForProperty, setCanAssignForProperty] = useState(false);
   
   // IMPORTANT: déclarer tous les hooks avant tout retour conditionnel
   const [formData, setFormData] = useState<ServiceRequestFormData>({
@@ -122,6 +123,57 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     assignedToId: undefined,
     assignedToType: undefined,
   });
+
+  // Vérifier si l'utilisateur peut assigner pour la propriété sélectionnée
+  useEffect(() => {
+    const checkCanAssign = async () => {
+      if (!formData.propertyId || formData.propertyId === 0) {
+        setCanAssignForProperty(false);
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/properties/${formData.propertyId}/can-assign`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setCanAssignForProperty(data.canAssign || false);
+          
+          // Si l'utilisateur ne peut pas assigner, réinitialiser les valeurs d'assignation
+          if (!data.canAssign) {
+            setFormData(prev => ({
+              ...prev,
+              assignedToType: undefined,
+              assignedToId: undefined
+            }));
+          }
+        } else {
+          setCanAssignForProperty(false);
+        }
+      } catch (err) {
+        console.error('Erreur lors de la vérification des permissions d\'assignation:', err);
+        setCanAssignForProperty(false);
+      }
+    };
+    
+    checkCanAssign();
+  }, [formData.propertyId]);
+  
+  // Réinitialiser les valeurs d'assignation pour les HOST
+  useEffect(() => {
+    if (isHost()) {
+      // Les HOST ne peuvent pas assigner, donc on réinitialise ces valeurs
+      setFormData(prev => ({
+        ...prev,
+        assignedToType: undefined,
+        assignedToId: undefined
+      }));
+    }
+  }, [isHost]);
 
   // Charger les propriétés depuis l'API
   useEffect(() => {
@@ -289,7 +341,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
       const desiredDate = formData.desiredDate ? new Date(formData.desiredDate).toISOString() : null;
       
       // Préparer les données pour le backend
-      const backendData = {
+      const backendData: any = {
         title: formData.title,
         description: formData.description,
         propertyId: formData.propertyId,
@@ -298,10 +350,18 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
         estimatedDurationHours: formData.estimatedDurationHours,
         desiredDate: desiredDate,
         userId: formData.userId,
-        assignedToId: formData.assignedToId || null,
-        assignedToType: formData.assignedToType || null,
         status: 'PENDING', // Statut par défaut - doit être en majuscule
       };
+      
+      // Seuls les utilisateurs autorisés peuvent définir l'assignation
+      if (canAssignForProperty) {
+        backendData.assignedToId = formData.assignedToId || null;
+        backendData.assignedToType = formData.assignedToType || null;
+      } else {
+        // Pour les utilisateurs non autorisés, ne pas envoyer d'assignation
+        backendData.assignedToId = null;
+        backendData.assignedToType = null;
+      }
 
       console.log('🔍 ServiceRequestForm - Données envoyées au backend:', backendData);
 
@@ -582,40 +642,43 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>{t('serviceRequests.fields.assignmentType')}</InputLabel>
-                  <Select
-                    value={formData.assignedToType || ''}
-                    onChange={(e) => {
-                      handleInputChange('assignedToType', e.target.value || undefined);
-                      handleInputChange('assignedToId', undefined);
-                    }}
-                    label={t('serviceRequests.fields.assignmentType')}
-                    size="small"
-                  >
-                    <MenuItem value="">
-                      <em>{t('serviceRequests.fields.noAssignment')}</em>
-                    </MenuItem>
-                    <MenuItem value="user">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                        <Person sx={{ fontSize: 18 }} />
-                        <Typography variant="body2">{t('serviceRequests.fields.individualUser')}</Typography>
-                      </Box>
-                    </MenuItem>
-                    <MenuItem value="team">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                        <Group sx={{ fontSize: 18 }} />
-                        <Typography variant="body2">{t('serviceRequests.fields.team')}</Typography>
-                      </Box>
-                    </MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
+              {/* Type d'assignation - seulement pour ADMIN, MANAGER ou utilisateur qui gère le portefeuille */}
+              {canAssignForProperty && (
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>{t('serviceRequests.fields.assignmentType')}</InputLabel>
+                    <Select
+                      value={formData.assignedToType || ''}
+                      onChange={(e) => {
+                        handleInputChange('assignedToType', e.target.value || undefined);
+                        handleInputChange('assignedToId', undefined);
+                      }}
+                      label={t('serviceRequests.fields.assignmentType')}
+                      size="small"
+                    >
+                      <MenuItem value="">
+                        <em>{t('serviceRequests.fields.noAssignment')}</em>
+                      </MenuItem>
+                      <MenuItem value="user">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <Person sx={{ fontSize: 18 }} />
+                          <Typography variant="body2">{t('serviceRequests.fields.individualUser')}</Typography>
+                        </Box>
+                      </MenuItem>
+                      <MenuItem value="team">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <Group sx={{ fontSize: 18 }} />
+                          <Typography variant="body2">{t('serviceRequests.fields.team')}</Typography>
+                        </Box>
+                      </MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              )}
             </Grid>
 
-            {/* Assignation spécifique */}
-            {formData.assignedToType && (
+            {/* Assignation spécifique - seulement pour ADMIN, MANAGER ou utilisateur qui gère le portefeuille */}
+            {canAssignForProperty && formData.assignedToType && (
               <Grid container spacing={2} sx={{ mb: 2 }}>
                 <Grid item xs={12}>
                   <FormControl fullWidth>

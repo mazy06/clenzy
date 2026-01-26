@@ -74,6 +74,7 @@ const TeamsList: React.FC = () => {
   
   // États pour les permissions
   const [permissions, setPermissions] = useState({
+    'teams:create': false,
     'teams:edit': false,
     'teams:delete': false
   });
@@ -82,13 +83,15 @@ const TeamsList: React.FC = () => {
   useEffect(() => {
     const checkAllPermissions = async () => {
       const perms = await Promise.all([
+        hasPermissionAsync('teams:create'),
         hasPermissionAsync('teams:edit'),
         hasPermissionAsync('teams:delete')
       ]);
       
       setPermissions({
-        'teams:edit': perms[0],
-        'teams:delete': perms[1]
+        'teams:create': perms[0],
+        'teams:edit': perms[1],
+        'teams:delete': perms[2]
       });
     };
     
@@ -254,15 +257,17 @@ const TeamsList: React.FC = () => {
         backPath="/dashboard"
         showBackButton={false}
         actions={
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<Add />}
-            onClick={() => navigate('/teams/new')}
-            size="small"
-          >
-            {t('teams.create')}
-          </Button>
+          permissions['teams:create'] && (
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Add />}
+              onClick={() => navigate('/teams/new')}
+              size="small"
+            >
+              {t('teams.create')}
+            </Button>
+          )
         }
       />
 
@@ -518,17 +523,19 @@ const TeamsList: React.FC = () => {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 500 }}>
             {t('teams.noTeamCreated')}
           </Typography>
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<Add />}
-              onClick={() => navigate('/teams/new')}
-              size="medium"
-            >
-              {t('teams.createFirst')}
-            </Button>
-          </Box>
+          {permissions['teams:create'] && (
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<Add />}
+                onClick={() => navigate('/teams/new')}
+                size="medium"
+              >
+                {t('teams.createFirst')}
+              </Button>
+            </Box>
+          )}
         </Box>
       ) : (
         <Grid container spacing={2}>

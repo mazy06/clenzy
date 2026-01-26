@@ -156,8 +156,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
         id="user-menu"
         open={open}
         onClose={handleMenuClose}
-        anchorReference="anchorPosition"
-        anchorPosition={{ top: 56, right: 0 }}
+        anchorEl={anchorEl}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
         transformOrigin={{
           vertical: 'top',
           horizontal: 'right',

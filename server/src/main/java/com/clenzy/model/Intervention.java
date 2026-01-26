@@ -3,10 +3,12 @@ package com.clenzy.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import com.clenzy.model.ServiceRequest;
+import java.util.Set;
+import java.util.HashSet;
 
 @Entity
 @Table(name = "interventions")
+@org.hibernate.annotations.DynamicUpdate
 public class Intervention {
     
     @Id
@@ -62,11 +64,29 @@ public class Intervention {
     @Column(name = "follow_up_notes")
     private String followUpNotes;
 
-    @Column(name = "after_photos_urls")
+    @Column(name = "after_photos_urls", columnDefinition = "TEXT")
     private String afterPhotosUrls;
 
-    @Column(name = "before_photos_urls")
+    @Column(name = "before_photos_urls", columnDefinition = "TEXT")
     private String beforePhotosUrls;
+    
+    @Column(name = "validated_rooms", columnDefinition = "TEXT")
+    private String validatedRooms; // JSON array des indices des pièces validées (ex: "[0,1,2]")
+    
+    @Column(name = "completed_steps", columnDefinition = "TEXT")
+    private String completedSteps; // JSON array des étapes complétées (ex: "[\"inspection\",\"rooms\",\"after_photos\"]")
+    
+    @Column(columnDefinition = "TEXT")
+    private String notes;
+    
+    // Ancien champ photos (déprécié, utiliser interventionPhotos à la place)
+    // Ne plus mettre à jour ce champ lors des sauvegardes
+    @Column(columnDefinition = "TEXT", updatable = false, insertable = false)
+    @Deprecated
+    private String photos;
+    
+    @OneToMany(mappedBy = "intervention", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private Set<InterventionPhoto> interventionPhotos = new HashSet<>();
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false)
@@ -103,12 +123,6 @@ public class Intervention {
     @Column(name = "actual_cost", precision = 10, scale = 2)
     private BigDecimal actualCost;
     
-    @Column(length = 1000)
-    private String notes;
-    
-    @Column(length = 1000)
-    private String photos;
-    
     @Column(name = "special_instructions", columnDefinition = "TEXT")
     private String specialInstructions;
     
@@ -136,6 +150,20 @@ public class Intervention {
     @Column(name = "guest_checkin_time")
     private LocalDateTime guestCheckinTime;
     
+    // Champs de paiement Stripe
+    @Column(name = "payment_status", length = 50)
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus paymentStatus;
+    
+    @Column(name = "stripe_payment_intent_id", length = 255)
+    private String stripePaymentIntentId;
+    
+    @Column(name = "stripe_session_id", length = 255)
+    private String stripeSessionId;
+    
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+    
 
     
     // Constructeurs
@@ -147,6 +175,7 @@ public class Intervention {
         this.progressPercentage = 0;
         this.isUrgent = false;
         this.requiresFollowUp = false;
+        this.paymentStatus = PaymentStatus.PENDING;
     }
     
     public Intervention(String title, String description, String type, Property property, User requestor, ServiceRequest serviceRequest) {
@@ -282,12 +311,32 @@ public class Intervention {
         this.notes = notes;
     }
     
+    @Deprecated
     public String getPhotos() {
         return photos;
     }
     
+    @Deprecated
     public void setPhotos(String photos) {
         this.photos = photos;
+    }
+    
+    public Set<InterventionPhoto> getInterventionPhotos() {
+        return interventionPhotos;
+    }
+    
+    public void setInterventionPhotos(Set<InterventionPhoto> interventionPhotos) {
+        this.interventionPhotos = interventionPhotos;
+    }
+    
+    public void addPhoto(InterventionPhoto photo) {
+        this.interventionPhotos.add(photo);
+        photo.setIntervention(this);
+    }
+    
+    public void removePhoto(InterventionPhoto photo) {
+        this.interventionPhotos.remove(photo);
+        photo.setIntervention(null);
     }
     
     public String getSpecialInstructions() {
@@ -475,6 +524,22 @@ public class Intervention {
         this.beforePhotosUrls = beforePhotosUrls;
     }
 
+    public String getValidatedRooms() {
+        return validatedRooms;
+    }
+
+    public void setValidatedRooms(String validatedRooms) {
+        this.validatedRooms = validatedRooms;
+    }
+
+    public String getCompletedSteps() {
+        return completedSteps;
+    }
+
+    public void setCompletedSteps(String completedSteps) {
+        this.completedSteps = completedSteps;
+    }
+
     // Méthodes utilitaires
     public String getAssignedToType() {
         if (assignedUser != null) return "user";
@@ -502,5 +567,38 @@ public class Intervention {
         if (InterventionStatus.COMPLETED.equals(this.status) && this.completedAt == null) {
             this.completedAt = LocalDateTime.now();
         }
+    }
+    
+    // Getters et Setters pour les champs de paiement
+    public PaymentStatus getPaymentStatus() {
+        return paymentStatus;
+    }
+    
+    public void setPaymentStatus(PaymentStatus paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+    
+    public String getStripePaymentIntentId() {
+        return stripePaymentIntentId;
+    }
+    
+    public void setStripePaymentIntentId(String stripePaymentIntentId) {
+        this.stripePaymentIntentId = stripePaymentIntentId;
+    }
+    
+    public String getStripeSessionId() {
+        return stripeSessionId;
+    }
+    
+    public void setStripeSessionId(String stripeSessionId) {
+        this.stripeSessionId = stripeSessionId;
+    }
+    
+    public LocalDateTime getPaidAt() {
+        return paidAt;
+    }
+    
+    public void setPaidAt(LocalDateTime paidAt) {
+        this.paidAt = paidAt;
     }
 }
