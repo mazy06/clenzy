@@ -43,9 +43,9 @@ public class InterventionService {
     
     public InterventionService(InterventionRepository interventionRepository,
                               InterventionPhotoRepository interventionPhotoRepository,
-                              PropertyRepository propertyRepository,
-                              UserRepository userRepository,
-                              TeamRepository teamRepository) {
+                             PropertyRepository propertyRepository,
+                             UserRepository userRepository,
+                             TeamRepository teamRepository) {
         this.interventionRepository = interventionRepository;
         this.interventionPhotoRepository = interventionPhotoRepository;
         this.propertyRepository = propertyRepository;
