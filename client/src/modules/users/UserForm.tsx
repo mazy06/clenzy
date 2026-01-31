@@ -415,13 +415,13 @@ const UserForm: React.FC = () => {
                   >
                     {userStatuses.map((status) => (
                       <MenuItem key={status.value} value={status.value}>
-                        <Chip
-                          label={status.label}
-                          size="small"
-                          color={status.color as any}
-                          variant="outlined"
+                          <Chip
+                            label={status.label}
+                            size="small"
+                            color={status.color as any}
+                            variant="outlined"
                           sx={{ height: 22, fontSize: '0.7rem' }}
-                        />
+                          />
                       </MenuItem>
                     ))}
                   </Select>
