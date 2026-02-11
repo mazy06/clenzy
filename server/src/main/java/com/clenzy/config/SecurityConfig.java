@@ -62,7 +62,9 @@ public class SecurityConfig {
                     "/api/managers/*/properties/*",
                     "/api/properties/with-managers",
                     "/api/sync/**",
-                    "/api/webhooks/stripe"
+                    "/api/webhooks/stripe",
+                    "/api/webhooks/airbnb",
+                    "/api/airbnb/callback"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
@@ -85,6 +87,11 @@ public class SecurityConfig {
         config.addAllowedHeader("Authorization");
         config.addAllowedHeader("Content-Type");
         config.addAllowedHeader("Accept");
+        config.addExposedHeader("X-RateLimit-Limit");
+        config.addExposedHeader("X-RateLimit-Remaining");
+        config.addExposedHeader("Retry-After");
+        config.addExposedHeader("X-Request-Id");
+        config.addExposedHeader("X-Response-Time");
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 

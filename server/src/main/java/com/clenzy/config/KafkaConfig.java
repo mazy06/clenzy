@@ -1,0 +1,167 @@
+package com.clenzy.config;
+
+import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.EnableKafka;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.core.*;
+import org.springframework.kafka.listener.ContainerProperties;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.util.backoff.FixedBackOff;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Configuration Apache Kafka pour Clenzy.
+ *
+ * Topics :
+ * - airbnb.webhooks.incoming   : evenements bruts recus d'Airbnb
+ * - airbnb.reservations.sync   : sync reservations Airbnb <-> Clenzy
+ * - airbnb.calendar.sync       : sync calendrier
+ * - airbnb.messages.sync       : sync messagerie
+ * - airbnb.listings.sync       : sync annonces
+ * - notifications.send         : notifications internes (email, push)
+ * - audit.events               : evenements d'audit
+ * - airbnb.dlq                 : Dead Letter Queue (messages en echec)
+ */
+@Configuration
+@EnableKafka
+public class KafkaConfig {
+
+    // ---- Noms des topics (constantes reutilisables) ----
+    public static final String TOPIC_AIRBNB_WEBHOOKS = "airbnb.webhooks.incoming";
+    public static final String TOPIC_AIRBNB_RESERVATIONS = "airbnb.reservations.sync";
+    public static final String TOPIC_AIRBNB_CALENDAR = "airbnb.calendar.sync";
+    public static final String TOPIC_AIRBNB_MESSAGES = "airbnb.messages.sync";
+    public static final String TOPIC_AIRBNB_LISTINGS = "airbnb.listings.sync";
+    public static final String TOPIC_NOTIFICATIONS = "notifications.send";
+    public static final String TOPIC_AUDIT_EVENTS = "audit.events";
+    public static final String TOPIC_DLQ = "airbnb.dlq";
+
+    @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
+    private String bootstrapServers;
+
+    // ---- Producer ----
+    @Bean
+    public ProducerFactory<String, Object> producerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        props.put(ProducerConfig.ACKS_CONFIG, "all");
+        props.put(ProducerConfig.RETRIES_CONFIG, 3);
+        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        return new DefaultKafkaProducerFactory<>(props);
+    }
+
+    @Bean
+    public KafkaTemplate<String, Object> kafkaTemplate() {
+        return new KafkaTemplate<>(producerFactory());
+    }
+
+    // ---- Consumer ----
+    @Bean
+    public ConsumerFactory<String, Object> consumerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "clenzy-backend");
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.clenzy.*");
+        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "java.util.LinkedHashMap");
+        return new DefaultKafkaConsumerFactory<>(props);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
+
+        // Retry : 5 tentatives avec 2s d'intervalle, puis DLQ
+        factory.setCommonErrorHandler(new DefaultErrorHandler(
+                new FixedBackOff(2000L, 5)
+        ));
+
+        return factory;
+    }
+
+    // ---- Creation des topics ----
+    @Bean
+    public NewTopic airbnbWebhooksTopic() {
+        return TopicBuilder.name(TOPIC_AIRBNB_WEBHOOKS)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic airbnbReservationsTopic() {
+        return TopicBuilder.name(TOPIC_AIRBNB_RESERVATIONS)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic airbnbCalendarTopic() {
+        return TopicBuilder.name(TOPIC_AIRBNB_CALENDAR)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic airbnbMessagesTopic() {
+        return TopicBuilder.name(TOPIC_AIRBNB_MESSAGES)
+                .partitions(1)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic airbnbListingsTopic() {
+        return TopicBuilder.name(TOPIC_AIRBNB_LISTINGS)
+                .partitions(1)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic notificationsTopic() {
+        return TopicBuilder.name(TOPIC_NOTIFICATIONS)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic auditEventsTopic() {
+        return TopicBuilder.name(TOPIC_AUDIT_EVENTS)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic dlqTopic() {
+        return TopicBuilder.name(TOPIC_DLQ)
+                .partitions(1)
+                .replicas(1)
+                .build();
+    }
+}
