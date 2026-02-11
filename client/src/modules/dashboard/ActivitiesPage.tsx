@@ -68,15 +68,8 @@ export default function ActivitiesPage() {
     checkPermissions();
   }, [hasPermissionAsync]);
 
-  console.log('🔍 ActivitiesPage - Rendu du composant avec hooks de base');
-  console.log('🔍 ActivitiesPage - user:', user);
-  console.log('🔍 ActivitiesPage - activities:', activities);
-  console.log('🔍 ActivitiesPage - loading:', loading);
-  console.log('🔍 ActivitiesPage - error:', error);
-  console.log('🔍 ActivitiesPage - canViewActivities:', canViewActivities);
-
   // Fonctions utilitaires pour l'affichage des activités
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
     switch (status) {
       case 'completed': return 'success';
       case 'urgent': return 'error';
@@ -260,7 +253,7 @@ export default function ActivitiesPage() {
                       </Box>
                       <Chip 
                         label={getStatusLabel(activity.status)} 
-                        color={getStatusColor(activity.status) as any}
+                        color={getStatusColor(activity.status)}
                         size="small"
                       />
                     </Box>

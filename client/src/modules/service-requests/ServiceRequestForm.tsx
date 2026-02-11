@@ -44,9 +44,15 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { serviceRequestsApi, propertiesApi, usersApi, teamsApi } from '../../services/api';
+import apiClient from '../../services/apiClient';
 import { InterventionType, INTERVENTION_TYPE_OPTIONS, InterventionTypeUtils } from '../../types/interventionTypes';
+import { REQUEST_STATUS_OPTIONS } from '../../types/statusEnums';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { serviceRequestSchema } from '../../schemas';
+import type { ServiceRequestFormValues } from '../../schemas';
 
 // Types pour les demandes de service
 export interface ServiceRequestFormData {
@@ -95,240 +101,274 @@ interface ServiceRequestFormProps {
   onSuccess?: () => void;
   setLoading?: (loading: boolean) => void;
   loading?: boolean;
+  // Edit mode props
+  serviceRequestId?: number;
+  mode?: 'create' | 'edit';
 }
 
-const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSuccess, setLoading, loading }) => {
+const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSuccess, setLoading, loading, serviceRequestId, mode = 'create' }) => {
   const navigate = useNavigate();
   const { user, hasPermissionAsync,  isAdmin, isManager, isHost } = useAuth();
   const { t } = useTranslation();
-  
+
+  const isEditMode = mode === 'edit' || !!serviceRequestId;
+
   const [isLoading, setIsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [loadingServiceRequest, setLoadingServiceRequest] = useState(false);
   const [canAssignForProperty, setCanAssignForProperty] = useState(false);
-  
-  // IMPORTANT: déclarer tous les hooks avant tout retour conditionnel
-  const [formData, setFormData] = useState<ServiceRequestFormData>({
-    title: '',
-    description: '',
-    propertyId: 0,
-    serviceType: 'CLEANING', // Updated to match backend enum
-    priority: 'NORMAL', // Updated to match backend enum
-    estimatedDurationHours: 1,
-    desiredDate: '',
-    userId: 0,
-    assignedToId: undefined,
-    assignedToType: undefined,
+  const [approvedStatus, setApprovedStatus] = useState(false);
+
+  // react-hook-form with Zod validation
+  const { control, handleSubmit: rhfHandleSubmit, watch, setValue, reset } = useForm<ServiceRequestFormValues>({
+    resolver: zodResolver(serviceRequestSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      propertyId: 0,
+      serviceType: 'CLEANING',
+      priority: 'NORMAL',
+      estimatedDurationHours: 1,
+      desiredDate: '',
+      userId: undefined,
+      assignedToId: undefined,
+      assignedToType: undefined,
+      status: undefined,
+    },
   });
+
+  // Watch fields that are needed for conditional logic
+  const watchedPropertyId = watch('propertyId');
+  const watchedAssignedToType = watch('assignedToType');
+  const watchedAssignedToId = watch('assignedToId');
+  const watchedStatus = watch('status');
+
+  // Charger les données de la demande de service en mode édition
+  useEffect(() => {
+    if (!isEditMode || !serviceRequestId) return;
+
+    const loadServiceRequest = async () => {
+      setLoadingServiceRequest(true);
+      try {
+        const serviceRequest = await serviceRequestsApi.getById(serviceRequestId);
+        const sr = serviceRequest as any;
+
+        // Check if APPROVED - prevent editing
+        if (sr.status === 'APPROVED') {
+          setApprovedStatus(true);
+          setLoadingServiceRequest(false);
+          return;
+        }
+
+        // Map API fields to form fields
+        const desiredDateFormatted = sr.desiredDate
+          ? new Date(sr.desiredDate).toISOString().slice(0, 16)
+          : '';
+
+        reset({
+          title: sr.title || '',
+          description: sr.description || '',
+          propertyId: sr.propertyId || 0,
+          serviceType: sr.serviceType || 'CLEANING',
+          priority: sr.priority || 'NORMAL',
+          estimatedDurationHours: sr.estimatedDurationHours || 1,
+          desiredDate: desiredDateFormatted,
+          userId: sr.userId || undefined,
+          assignedToId: sr.assignedToId || undefined,
+          assignedToType: sr.assignedToType || undefined,
+          status: sr.status || 'PENDING',
+        });
+
+        // Check canAssign for the loaded property
+        if (sr.propertyId) {
+          try {
+            const canAssignData = await apiClient.get<{ canAssign: boolean }>(`/properties/${sr.propertyId}/can-assign`);
+            setCanAssignForProperty(canAssignData.canAssign || false);
+          } catch (err) {
+            // Silently fail
+          }
+        }
+      } catch (err) {
+        setError(t('serviceRequests.loadError'));
+      } finally {
+        setLoadingServiceRequest(false);
+      }
+    };
+
+    loadServiceRequest();
+  }, [isEditMode, serviceRequestId, reset, t]);
 
   // Vérifier si l'utilisateur peut assigner pour la propriété sélectionnée
   useEffect(() => {
+    // Skip this effect during initial edit mode load (handled by loadServiceRequest)
+    if (isEditMode && loadingServiceRequest) return;
+
     const checkCanAssign = async () => {
-      if (!formData.propertyId || formData.propertyId === 0) {
+      if (!watchedPropertyId || watchedPropertyId === 0) {
         setCanAssignForProperty(false);
         return;
       }
-      
+
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/properties/${formData.propertyId}/can-assign`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setCanAssignForProperty(data.canAssign || false);
-          
-          // Si l'utilisateur ne peut pas assigner, réinitialiser les valeurs d'assignation
-          if (!data.canAssign) {
-            setFormData(prev => ({
-              ...prev,
-              assignedToType: undefined,
-              assignedToId: undefined
-            }));
-          }
-        } else {
-          setCanAssignForProperty(false);
+        const data = await apiClient.get<{ canAssign: boolean }>(`/properties/${watchedPropertyId}/can-assign`);
+        setCanAssignForProperty(data.canAssign || false);
+
+        // Si l'utilisateur ne peut pas assigner, réinitialiser les valeurs d'assignation
+        if (!data.canAssign) {
+          setValue('assignedToType', undefined);
+          setValue('assignedToId', undefined);
         }
       } catch (err) {
-        console.error('Erreur lors de la vérification des permissions d\'assignation:', err);
         setCanAssignForProperty(false);
       }
     };
-    
+
     checkCanAssign();
-  }, [formData.propertyId]);
-  
-  // Réinitialiser les valeurs d'assignation pour les HOST
+  }, [watchedPropertyId, setValue, isEditMode, loadingServiceRequest]);
+
+  // Réinitialiser les valeurs d'assignation pour les HOST (only in create mode)
   useEffect(() => {
+    if (isEditMode) return;
     if (isHost()) {
       // Les HOST ne peuvent pas assigner, donc on réinitialise ces valeurs
-      setFormData(prev => ({
-        ...prev,
-        assignedToType: undefined,
-        assignedToId: undefined
-      }));
+      setValue('assignedToType', undefined);
+      setValue('assignedToId', undefined);
     }
-  }, [isHost]);
+  }, [isHost, setValue, isEditMode]);
 
   // Charger les propriétés depuis l'API
   useEffect(() => {
     const loadProperties = async () => {
       setLoadingData(true);
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/properties`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
+        const data = await propertiesApi.getAll();
+        const propertiesList = ((data as unknown as { content?: Property[] }).content || data) as unknown as Property[];
+        setProperties(propertiesList);
 
-        if (response.ok) {
-          const data = await response.json();
-          const propertiesList = data.content || data;
-          console.log('🔍 ServiceRequestForm - Propriétés chargées:', propertiesList);
-          setProperties(propertiesList);
-          
-          // Si c'est un HOST, définir automatiquement sa première propriété
-          if (isHost() && propertiesList.length > 0) {
-            const hostProperty = propertiesList.find((prop: Property) => 
-              prop.ownerId?.toString() === user?.id?.toString()
-            );
-            if (hostProperty) {
-              console.log('🔍 ServiceRequestForm - Propriété HOST trouvée:', hostProperty);
-              setFormData(prev => ({ ...prev, propertyId: hostProperty.id }));
-            } else {
-              console.warn('🔍 ServiceRequestForm - Aucune propriété trouvée pour le HOST:', user?.id);
-            }
+        // Si c'est un HOST en mode création, définir automatiquement sa première propriété
+        if (!isEditMode && isHost() && propertiesList.length > 0) {
+          const hostProperty = propertiesList.find((prop: Property) =>
+            prop.ownerId?.toString() === user?.id?.toString()
+          );
+          if (hostProperty) {
+            setValue('propertyId', hostProperty.id);
           }
         }
       } catch (err) {
-        console.error('🔍 ServiceRequestForm - Erreur chargement propriétés:', err);
       } finally {
         setLoadingData(false);
       }
     };
 
     loadProperties();
-  }, [isHost, user?.id]);
+  }, [isHost, user?.id, setValue, isEditMode]);
 
   // Charger la liste des utilisateurs depuis l'API
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/users`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
+        const data = await usersApi.getAll();
+        const usersList = ((data as unknown as { content?: User[] }).content || data) as unknown as User[];
+        setUsers(usersList);
 
-        if (response.ok) {
-          const data = await response.json();
-          const usersList = data.content || data;
-          console.log('🔍 ServiceRequestForm - Utilisateurs chargés:', usersList);
-          setUsers(usersList);
-          
-          // Si c'est un HOST, définir automatiquement son ID comme demandeur
-          if (isHost() && user?.id) {
-            const hostUser = usersList.find((u: User) => u.id.toString() === user.id.toString());
-            if (hostUser) {
-              console.log('🔍 ServiceRequestForm - Utilisateur HOST trouvé:', hostUser);
-              setFormData(prev => ({ ...prev, userId: hostUser.id }));
-            } else {
-              console.warn('🔍 ServiceRequestForm - Utilisateur HOST non trouvé dans la liste:', user.id);
-            }
+        // Si c'est un HOST en mode création, définir automatiquement son ID comme demandeur
+        if (!isEditMode && isHost() && user?.id) {
+          const hostUser = usersList.find((u: User) => u.id.toString() === user.id.toString());
+          if (hostUser) {
+            setValue('userId', hostUser.id);
           }
         }
       } catch (err) {
-        console.error('🔍 ServiceRequestForm - Erreur chargement utilisateurs:', err);
       }
     };
 
     loadUsers();
-  }, [isHost, user?.id]);
+  }, [isHost, user?.id, setValue, isEditMode]);
 
   // Charger la liste des équipes depuis l'API
   const [teams, setTeams] = useState<Team[]>([]);
   useEffect(() => {
     const loadTeams = async () => {
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/teams`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const teamsList = data.content || data;
-          console.log('🔍 ServiceRequestForm - Équipes chargées:', teamsList);
-          setTeams(teamsList);
-        }
+        const data = await teamsApi.getAll();
+        const teamsList = ((data as unknown as { content?: Team[] }).content || data) as unknown as Team[];
+        setTeams(teamsList);
       } catch (err) {
-        console.error('🔍 ServiceRequestForm - Erreur chargement équipes:', err);
       }
     };
 
     loadTeams();
   }, []);
 
-  // Définir l'utilisateur par défaut selon le rôle
+  // Définir l'utilisateur par défaut selon le rôle (only in create mode)
   useEffect(() => {
+    if (isEditMode) return;
     if (isHost() && user?.id) {
       // Pour un HOST, essayer de trouver son ID dans la base
       const hostUser = users.find(u => u.email === user.email);
       if (hostUser) {
-        setFormData(prev => ({ ...prev, userId: hostUser.id }));
+        setValue('userId', hostUser.id);
       }
     } else if (!isAdmin() && !isManager()) {
       // Pour les autres rôles non-admin, sélectionner automatiquement l'utilisateur connecté
       const currentUser = users.find(u => u.email === user?.email);
       if (currentUser) {
-        setFormData(prev => ({ ...prev, userId: currentUser.id }));
+        setValue('userId', currentUser.id);
       }
     }
-  }, [users, user, isHost, isAdmin, isManager]);
+  }, [users, user, isHost, isAdmin, isManager, setValue, isEditMode]);
 
   // Vérifier les permissions silencieusement
-  const [canCreate, setCanCreate] = useState(false);
-  
+  const [hasPermission, setHasPermission] = useState(false);
+
   useEffect(() => {
     const checkPermissions = async () => {
-      const canCreatePermission = await hasPermissionAsync('service-requests:create');
-      setCanCreate(canCreatePermission);
+      const permission = isEditMode ? 'service-requests:edit' : 'service-requests:create';
+      const hasPerms = await hasPermissionAsync(permission);
+      setHasPermission(hasPerms);
     };
-    
+
     checkPermissions();
-  }, [hasPermissionAsync]);;
-  
+  }, [hasPermissionAsync, isEditMode]);
+
   // Si l'utilisateur n'a pas les permissions, ne rien afficher
-  if (!canCreate) {
+  if (!hasPermission) {
     return null;
   }
-  
-  if (loadingData) {
+
+  // En mode édition, si la demande est approuvée, empêcher l'édition
+  if (isEditMode && approvedStatus) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="info" sx={{ mb: 3 }}>
+          {t('serviceRequests.approvedCannotEdit')}
+        </Alert>
+        <Button
+          variant="contained"
+          onClick={() => navigate(`/service-requests/${serviceRequestId}`)}
+          startIcon={<ArrowBack />}
+        >
+          {t('common.back')}
+        </Button>
+      </Box>
+    );
+  }
+
+  if (loadingData || loadingServiceRequest) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
         <CircularProgress size={32} />
       </Box>
     );
   }
-  
-  const handleInputChange = (field: keyof ServiceRequestFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    console.log('🔍 ServiceRequestForm - Tentative de soumission, formData:', formData);
-    console.log('🔍 ServiceRequestForm - propertyId:', formData.propertyId, 'userId:', formData.userId);
-    
+  const onSubmit = async (formData: ServiceRequestFormValues) => {
     if (!formData.propertyId || !formData.userId) {
-      console.error('🔍 ServiceRequestForm - Erreur: propertyId ou userId manquant');
       setError(t('serviceRequests.errors.selectPropertyRequestor'));
       return;
     }
@@ -339,9 +379,9 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     try {
       // Transformer la date en format ISO pour le backend
       const desiredDate = formData.desiredDate ? new Date(formData.desiredDate).toISOString() : null;
-      
+
       // Préparer les données pour le backend
-      const backendData: any = {
+      const backendData: Record<string, string | number | boolean | null> = {
         title: formData.title,
         description: formData.description,
         propertyId: formData.propertyId,
@@ -349,46 +389,56 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
         priority: formData.priority,
         estimatedDurationHours: formData.estimatedDurationHours,
         desiredDate: desiredDate,
-        userId: formData.userId,
-        status: 'PENDING', // Statut par défaut - doit être en majuscule
+        userId: formData.userId ?? null,
       };
-      
+
+      if (isEditMode) {
+        // En mode édition, inclure le statut
+        backendData.status = formData.status || 'PENDING';
+      } else {
+        // En mode création, statut par défaut
+        backendData.status = 'PENDING';
+      }
+
       // Seuls les utilisateurs autorisés peuvent définir l'assignation
       if (canAssignForProperty) {
         backendData.assignedToId = formData.assignedToId || null;
         backendData.assignedToType = formData.assignedToType || null;
       } else {
-        // Pour les utilisateurs non autorisés, ne pas envoyer d'assignation
-        backendData.assignedToId = null;
-        backendData.assignedToType = null;
+        if (!isEditMode) {
+          // Pour les utilisateurs non autorisés en création, ne pas envoyer d'assignation
+          backendData.assignedToId = null;
+          backendData.assignedToType = null;
+        }
+        // En mode édition, ne pas modifier l'assignation si l'utilisateur n'y a pas droit
       }
 
-      console.log('🔍 ServiceRequestForm - Données envoyées au backend:', backendData);
+      if (isEditMode && serviceRequestId) {
+        await serviceRequestsApi.update(serviceRequestId, backendData);
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/service-requests`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-        body: JSON.stringify(backendData),
-      });
+        setSuccess(true);
+        // Utiliser onSuccess si fourni, sinon rediriger
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          setTimeout(() => {
+            navigate(`/service-requests/${serviceRequestId}`);
+          }, 1500);
+        }
+      } else {
+        await apiClient.post('/service-requests', backendData);
 
-      if (response.ok) {
         // Utiliser onSuccess si fourni, sinon rediriger
         if (onSuccess) {
           onSuccess();
         } else {
           navigate('/service-requests?success=true');
         }
-      } else {
-        const errorData = await response.json();
-        console.error('🔍 ServiceRequestForm - Erreur création:', errorData);
-        setError(t('serviceRequests.errors.createErrorDetails') + ': ' + (errorData.message || 'Erreur inconnue'));
       }
-    } catch (err) {
-      console.error('🔍 ServiceRequestForm - Erreur création:', err);
-      setError(t('serviceRequests.errors.createError'));
+    } catch (err: any) {
+      const message = err?.message || (isEditMode ? t('serviceRequests.updateError') : t('serviceRequests.errors.createError'));
+      const errorPrefix = isEditMode ? t('serviceRequests.updateErrorDetails') : t('serviceRequests.errors.createErrorDetails');
+      setError(errorPrefix + ': ' + message);
     } finally {
       setSaving(false);
     }
@@ -407,6 +457,11 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     { value: 'CRITICAL', label: t('serviceRequests.priorities.critical') },
   ];
 
+  const statuses = REQUEST_STATUS_OPTIONS.map(option => ({
+    value: option.value,
+    label: option.label
+  }));
+
   const durations = [
     { value: 0.5, label: t('serviceRequests.durations.30min') },
     { value: 1, label: t('serviceRequests.durations.1h') },
@@ -420,7 +475,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
   // Filtrer les utilisateurs par rôle approprié pour l'assignation
   const getAssignableUsers = () => {
-    return users.filter(user => 
+    return users.filter(user =>
       ['housekeeper', 'technician', 'supervisor', 'manager'].includes(user.role.toLowerCase())
     );
   };
@@ -446,53 +501,102 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
         </Alert>
       )}
 
+      {isEditMode && success && (
+        <Alert severity="success" sx={{ mb: 2, py: 1 }}>
+          {t('serviceRequests.updateRequestSuccess')}
+        </Alert>
+      )}
+
       {/* Formulaire */}
       <Card sx={{ mt: 2 }}>
         <CardContent sx={{ p: 2 }}>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={rhfHandleSubmit(onSubmit)}>
             {/* Informations de base */}
             <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
               {t('serviceRequests.sections.basicInfo')}
             </Typography>
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={8}>
-                <TextField
-                  fullWidth
-                  label={`${t('serviceRequests.fields.title')} *`}
-                  value={formData.title}
-                  onChange={(e) => handleInputChange('title', e.target.value)}
-                  required
-                  placeholder={t('serviceRequests.fields.titlePlaceholder')}
-                  size="small"
+              <Grid item xs={12} md={isEditMode ? 6 : 8}>
+                <Controller
+                  name="title"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label={`${t('serviceRequests.fields.title')} *`}
+                      required
+                      placeholder={t('serviceRequests.fields.titlePlaceholder')}
+                      size="small"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                    />
+                  )}
                 />
               </Grid>
 
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth required>
-                  <InputLabel>{t('serviceRequests.fields.serviceType')} *</InputLabel>
-                  <Select
-                    value={formData.serviceType}
-                    onChange={(e) => handleInputChange('serviceType', e.target.value)}
-                    label={`${t('serviceRequests.fields.serviceType')} *`}
-                    size="small"
-                  >
-                    {serviceTypes.map((type) => {
-                      const typeOption = INTERVENTION_TYPE_OPTIONS.find(option => option.value === type.value);
-                      const IconComponent = typeOption?.icon;
-                      
-                      return (
-                        <MenuItem key={type.value} value={type.value}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            {IconComponent && <IconComponent sx={{ fontSize: 18 }} />}
-                            <Typography variant="body2">{type.label}</Typography>
-                          </Box>
-                        </MenuItem>
-                      );
-                    })}
-                  </Select>
-                </FormControl>
+              <Grid item xs={12} md={isEditMode ? 3 : 4}>
+                <Controller
+                  name="serviceType"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <FormControl fullWidth required error={!!fieldState.error}>
+                      <InputLabel>{t('serviceRequests.fields.serviceType')} *</InputLabel>
+                      <Select
+                        {...field}
+                        label={`${t('serviceRequests.fields.serviceType')} *`}
+                        size="small"
+                      >
+                        {serviceTypes.map((type) => {
+                          const typeOption = INTERVENTION_TYPE_OPTIONS.find(option => option.value === type.value);
+                          const IconComponent = typeOption?.icon;
+
+                          return (
+                            <MenuItem key={type.value} value={type.value}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                {IconComponent && <IconComponent sx={{ fontSize: 18 }} />}
+                                <Typography variant="body2">{type.label}</Typography>
+                              </Box>
+                            </MenuItem>
+                          );
+                        })}
+                      </Select>
+                      {fieldState.error && (
+                        <FormHelperText>{fieldState.error.message}</FormHelperText>
+                      )}
+                    </FormControl>
+                  )}
+                />
               </Grid>
+
+              {/* Statut - seulement en mode édition */}
+              {isEditMode && (
+                <Grid item xs={12} md={3}>
+                  <Controller
+                    name="status"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth required>
+                        <InputLabel>{t('common.status')} *</InputLabel>
+                        <Select
+                          value={field.value || 'PENDING'}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          label={`${t('common.status')} *`}
+                          size="small"
+                        >
+                          {statuses.map((status) => (
+                            <MenuItem key={status.value} value={status.value}>
+                              {status.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    )}
+                  />
+                </Grid>
+              )}
             </Grid>
 
             {/* Description */}
@@ -502,16 +606,23 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
-                  label={`${t('serviceRequests.fields.detailedDescription')} *`}
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  required
-                  placeholder={t('serviceRequests.fields.descriptionPlaceholder')}
-                  size="small"
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      multiline
+                      rows={3}
+                      label={`${t('serviceRequests.fields.detailedDescription')} *`}
+                      required
+                      placeholder={t('serviceRequests.fields.descriptionPlaceholder')}
+                      size="small"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                    />
+                  )}
                 />
               </Grid>
             </Grid>
@@ -523,24 +634,34 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12}>
-                <FormControl fullWidth required>
-                  <InputLabel>{t('serviceRequests.fields.property')} *</InputLabel>
-                  <Select
-                    value={formData.propertyId}
-                    onChange={(e) => handleInputChange('propertyId', e.target.value)}
-                    label={`${t('serviceRequests.fields.property')} *`}
-                    size="small"
-                  >
-                    {properties.map((property) => (
-                      <MenuItem key={property.id} value={property.id}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Home sx={{ fontSize: 18 }} />
-                          <Typography variant="body2">{property.name} - {property.address}, {property.city}</Typography>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <Controller
+                  name="propertyId"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <FormControl fullWidth required error={!!fieldState.error}>
+                      <InputLabel>{t('serviceRequests.fields.property')} *</InputLabel>
+                      <Select
+                        value={field.value}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        onBlur={field.onBlur}
+                        label={`${t('serviceRequests.fields.property')} *`}
+                        size="small"
+                      >
+                        {properties.map((property) => (
+                          <MenuItem key={property.id} value={property.id}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                              <Home sx={{ fontSize: 18 }} />
+                              <Typography variant="body2">{property.name} - {property.address}, {property.city}</Typography>
+                            </Box>
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {fieldState.error && (
+                        <FormHelperText>{fieldState.error.message}</FormHelperText>
+                      )}
+                    </FormControl>
+                  )}
+                />
               </Grid>
             </Grid>
 
@@ -551,59 +672,84 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={4}>
-                <FormControl fullWidth required>
-                  <InputLabel>{t('serviceRequests.fields.priority')} *</InputLabel>
-                  <Select
-                    value={formData.priority}
-                    onChange={(e) => handleInputChange('priority', e.target.value)}
-                    label={`${t('serviceRequests.fields.priority')} *`}
-                    size="small"
-                  >
-                    {priorities.map((priority) => (
-                      <MenuItem key={priority.value} value={priority.value}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <PriorityHigh sx={{ fontSize: 18 }} />
-                          <Typography variant="body2">{priority.label}</Typography>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <Controller
+                  name="priority"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <FormControl fullWidth required error={!!fieldState.error}>
+                      <InputLabel>{t('serviceRequests.fields.priority')} *</InputLabel>
+                      <Select
+                        {...field}
+                        label={`${t('serviceRequests.fields.priority')} *`}
+                        size="small"
+                      >
+                        {priorities.map((priority) => (
+                          <MenuItem key={priority.value} value={priority.value}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                              <PriorityHigh sx={{ fontSize: 18 }} />
+                              <Typography variant="body2">{priority.label}</Typography>
+                            </Box>
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {fieldState.error && (
+                        <FormHelperText>{fieldState.error.message}</FormHelperText>
+                      )}
+                    </FormControl>
+                  )}
+                />
               </Grid>
 
               <Grid item xs={12} md={4}>
-                <FormControl fullWidth required>
-                  <InputLabel>{t('serviceRequests.fields.estimatedDuration')} *</InputLabel>
-                  <Select
-                    value={formData.estimatedDurationHours}
-                    onChange={(e) => handleInputChange('estimatedDurationHours', e.target.value)}
-                    label={`${t('serviceRequests.fields.estimatedDuration')} *`}
-                    size="small"
-                  >
-                    {durations.map((duration) => (
-                      <MenuItem key={duration.value} value={duration.value}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Schedule sx={{ fontSize: 18 }} />
-                          <Typography variant="body2">{duration.label}</Typography>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <Controller
+                  name="estimatedDurationHours"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <FormControl fullWidth required error={!!fieldState.error}>
+                      <InputLabel>{t('serviceRequests.fields.estimatedDuration')} *</InputLabel>
+                      <Select
+                        value={field.value}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        onBlur={field.onBlur}
+                        label={`${t('serviceRequests.fields.estimatedDuration')} *`}
+                        size="small"
+                      >
+                        {durations.map((duration) => (
+                          <MenuItem key={duration.value} value={duration.value}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                              <Schedule sx={{ fontSize: 18 }} />
+                              <Typography variant="body2">{duration.label}</Typography>
+                            </Box>
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {fieldState.error && (
+                        <FormHelperText>{fieldState.error.message}</FormHelperText>
+                      )}
+                    </FormControl>
+                  )}
+                />
               </Grid>
 
               <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  label={`${t('serviceRequests.fields.dueDate')} *`}
-                  type="datetime-local"
-                  value={formData.desiredDate}
-                  onChange={(e) => handleInputChange('desiredDate', e.target.value)}
-                  required
-                  size="small"
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
+                <Controller
+                  name="desiredDate"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label={`${t('serviceRequests.fields.dueDate')} *`}
+                      type="datetime-local"
+                      required
+                      size="small"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                      InputLabelProps={{
+                        shrink: true,
+                      }}
+                    />
+                  )}
                 />
               </Grid>
             </Grid>
@@ -616,118 +762,143 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
             <Grid container spacing={2} sx={{ mb: 2 }}>
               {/* Demandeur */}
               <Grid item xs={12} md={4}>
-                <FormControl fullWidth required>
-                  <InputLabel>{t('serviceRequests.fields.requestor')} *</InputLabel>
-                  <Select
-                    value={formData.userId}
-                    onChange={(e) => handleInputChange('userId', e.target.value)}
-                    label={`${t('serviceRequests.fields.requestor')} *`}
-                    disabled={!isAdmin() && !isManager()} // Seuls les admin/manager peuvent changer le demandeur
-                    size="small"
-                  >
-                    {users.map((user) => (
-                      <MenuItem key={user.id} value={user.id}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Person sx={{ fontSize: 18 }} />
-                          <Typography variant="body2">{user.firstName} {user.lastName} ({user.role}) - {user.email}</Typography>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {!isAdmin() && !isManager() && (
-                    <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                      {t('serviceRequests.fields.requestorHelper')}
-                    </FormHelperText>
-                  )}
-                </FormControl>
-              </Grid>
-
-              {/* Type d'assignation - seulement pour ADMIN, MANAGER ou utilisateur qui gère le portefeuille */}
-              {canAssignForProperty && (
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>{t('serviceRequests.fields.assignmentType')}</InputLabel>
-                    <Select
-                      value={formData.assignedToType || ''}
-                      onChange={(e) => {
-                        handleInputChange('assignedToType', e.target.value || undefined);
-                        handleInputChange('assignedToId', undefined);
-                      }}
-                      label={t('serviceRequests.fields.assignmentType')}
-                      size="small"
-                    >
-                      <MenuItem value="">
-                        <em>{t('serviceRequests.fields.noAssignment')}</em>
-                      </MenuItem>
-                      <MenuItem value="user">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Person sx={{ fontSize: 18 }} />
-                          <Typography variant="body2">{t('serviceRequests.fields.individualUser')}</Typography>
-                        </Box>
-                      </MenuItem>
-                      <MenuItem value="team">
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Group sx={{ fontSize: 18 }} />
-                          <Typography variant="body2">{t('serviceRequests.fields.team')}</Typography>
-                        </Box>
-                      </MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-              )}
-            </Grid>
-
-            {/* Assignation spécifique - seulement pour ADMIN, MANAGER ou utilisateur qui gère le portefeuille */}
-            {canAssignForProperty && formData.assignedToType && (
-              <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={12}>
-                  <FormControl fullWidth>
-                    <InputLabel>
-                      {formData.assignedToType === 'user' ? t('serviceRequests.fields.assignedToUser') : t('serviceRequests.fields.assignedToTeam')}
-                    </InputLabel>
-                    <Select
-                      value={formData.assignedToId || ''}
-                      onChange={(e) => handleInputChange('assignedToId', e.target.value || undefined)}
-                      label={formData.assignedToType === 'user' ? t('serviceRequests.fields.assignedToUser') : t('serviceRequests.fields.assignedToTeam')}
-                      size="small"
-                    >
-                      <MenuItem value="">
-                        <em>{t('serviceRequests.fields.select')}</em>
-                      </MenuItem>
-                      {formData.assignedToType === 'user' ? (
-                        getAssignableUsers().map((user) => (
+                <Controller
+                  name="userId"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <FormControl fullWidth required error={!!fieldState.error}>
+                      <InputLabel>{t('serviceRequests.fields.requestor')} *</InputLabel>
+                      <Select
+                        value={field.value ?? ''}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        onBlur={field.onBlur}
+                        label={`${t('serviceRequests.fields.requestor')} *`}
+                        disabled={!isAdmin() && !isManager()} // Seuls les admin/manager peuvent changer le demandeur
+                        size="small"
+                      >
+                        {users.map((user) => (
                           <MenuItem key={user.id} value={user.id}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                               <Person sx={{ fontSize: 18 }} />
                               <Typography variant="body2">{user.firstName} {user.lastName} ({user.role}) - {user.email}</Typography>
                             </Box>
                           </MenuItem>
-                        ))
-                      ) : (
-                        teams.map((team) => (
-                          <MenuItem key={team.id} value={team.id}>
+                        ))}
+                      </Select>
+                      {!isAdmin() && !isManager() && (
+                        <FormHelperText sx={{ fontSize: '0.7rem' }}>
+                          {t('serviceRequests.fields.requestorHelper')}
+                        </FormHelperText>
+                      )}
+                      {fieldState.error && (
+                        <FormHelperText>{fieldState.error.message}</FormHelperText>
+                      )}
+                    </FormControl>
+                  )}
+                />
+              </Grid>
+
+              {/* Type d'assignation - seulement pour ADMIN, MANAGER ou utilisateur qui gère le portefeuille */}
+              {canAssignForProperty && (
+                <Grid item xs={12} md={6}>
+                  <Controller
+                    name="assignedToType"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth>
+                        <InputLabel>{t('serviceRequests.fields.assignmentType')}</InputLabel>
+                        <Select
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const val = e.target.value as 'user' | 'team' | '';
+                            field.onChange(val || undefined);
+                            setValue('assignedToId', undefined);
+                          }}
+                          onBlur={field.onBlur}
+                          label={t('serviceRequests.fields.assignmentType')}
+                          size="small"
+                        >
+                          <MenuItem value="">
+                            <em>{t('serviceRequests.fields.noAssignment')}</em>
+                          </MenuItem>
+                          <MenuItem value="user">
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                              <Group sx={{ fontSize: 18 }} />
-                              <Box>
-                                <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.85rem' }}>
-                                  {team.name}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                                  {team.memberCount} {t('serviceRequests.members')} • {getInterventionTypeLabel(team.interventionType)}
-                                </Typography>
-                              </Box>
+                              <Person sx={{ fontSize: 18 }} />
+                              <Typography variant="body2">{t('serviceRequests.fields.individualUser')}</Typography>
                             </Box>
                           </MenuItem>
-                        ))
-                      )}
-                    </Select>
-                  </FormControl>
+                          <MenuItem value="team">
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                              <Group sx={{ fontSize: 18 }} />
+                              <Typography variant="body2">{t('serviceRequests.fields.team')}</Typography>
+                            </Box>
+                          </MenuItem>
+                        </Select>
+                      </FormControl>
+                    )}
+                  />
+                </Grid>
+              )}
+            </Grid>
+
+            {/* Assignation spécifique - seulement pour ADMIN, MANAGER ou utilisateur qui gère le portefeuille */}
+            {canAssignForProperty && watchedAssignedToType && (
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={12}>
+                  <Controller
+                    name="assignedToId"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth>
+                        <InputLabel>
+                          {watchedAssignedToType === 'user' ? t('serviceRequests.fields.assignedToUser') : t('serviceRequests.fields.assignedToTeam')}
+                        </InputLabel>
+                        <Select
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                          onBlur={field.onBlur}
+                          label={watchedAssignedToType === 'user' ? t('serviceRequests.fields.assignedToUser') : t('serviceRequests.fields.assignedToTeam')}
+                          size="small"
+                        >
+                          <MenuItem value="">
+                            <em>{t('serviceRequests.fields.select')}</em>
+                          </MenuItem>
+                          {watchedAssignedToType === 'user' ? (
+                            getAssignableUsers().map((user) => (
+                              <MenuItem key={user.id} value={user.id}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                  <Person sx={{ fontSize: 18 }} />
+                                  <Typography variant="body2">{user.firstName} {user.lastName} ({user.role}) - {user.email}</Typography>
+                                </Box>
+                              </MenuItem>
+                            ))
+                          ) : (
+                            teams.map((team) => (
+                              <MenuItem key={team.id} value={team.id}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                  <Group sx={{ fontSize: 18 }} />
+                                  <Box>
+                                    <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.85rem' }}>
+                                      {team.name}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                                      {team.memberCount} {t('serviceRequests.members')} • {getInterventionTypeLabel(team.interventionType)}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              </MenuItem>
+                            ))
+                          )}
+                        </Select>
+                      </FormControl>
+                    )}
+                  />
                 </Grid>
               </Grid>
             )}
 
           </form>
-          
+
           {/* Bouton de soumission caché pour le PageHeader */}
           <Button
             type="submit"

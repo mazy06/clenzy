@@ -37,7 +37,8 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { usePermissions } from '../../hooks/usePermissions';
 import PageHeader from '../../components/PageHeader';
-import { API_CONFIG } from '../../config/api';
+import { managersApi } from '../../services/api';
+import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface Portfolio {
@@ -101,7 +102,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [hostUsers, setHostUsers] = useState<Client[]>([]);
-  const [selectedManager, setSelectedManager] = useState<number | ''>('');
+  const [selectedManager, setSelectedManager] = useState<string | number | ''>('');
   const [selectedClients, setSelectedClients] = useState<number[]>([]);
   const [selectedProperties, setSelectedProperties] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
@@ -124,8 +125,6 @@ const ClientPropertyAssignmentForm: React.FC = () => {
 
   useEffect(() => {
     if (isAdmin !== undefined && isManager !== undefined && user?.id) {
-      console.log('🔄 ClientPropertyAssignmentForm - useEffect triggered:', { isAdmin, isManager, userId: user.id });
-      
       // Charger la liste des managers pour tous les utilisateurs
       loadManagers();
       // Charger la liste des utilisateurs HOST
@@ -133,8 +132,7 @@ const ClientPropertyAssignmentForm: React.FC = () => {
       
       if (isManager && !isAdmin) {
         // Si c'est un manager (mais pas admin), pré-sélectionner son ID
-        console.log('🔄 ClientPropertyAssignmentForm - Pré-sélection manager:', user.id);
-        setSelectedManager(Number(user.id));
+        setSelectedManager(user.id);
       }
     }
   }, [isAdmin, isManager, user?.id]);
@@ -156,59 +154,24 @@ const ClientPropertyAssignmentForm: React.FC = () => {
 
   const loadManagers = async () => {
     try {
-      console.log('🔄 ClientPropertyAssignmentForm - Chargement des managers...');
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/managers/all`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}` }
-      });
-
-      console.log('📡 ClientPropertyAssignmentForm - Réponse managers:', response.status, response.statusText);
-
-      if (response.ok) {
-        const managersArray = await response.json();
-        console.log('📊 ClientPropertyAssignmentForm - Managers reçus:', managersArray);
-        
-        setManagers(managersArray);
-      } else {
-        console.error('❌ ClientPropertyAssignmentForm - Erreur utilisateurs:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('❌ ClientPropertyAssignmentForm - Détails erreur:', errorText);
-        setManagers([]);
-      }
+      const managersArray = await managersApi.getAll();
+      setManagers(managersArray as Manager[]);
     } catch (err) {
-      console.error('Erreur chargement utilisateurs:', err);
       setManagers([]);
     }
   };
 
   const loadHostUsers = async () => {
     try {
-      console.log('🔄 ClientPropertyAssignmentForm - Chargement des utilisateurs HOST...');
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/managers/hosts`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}` }
-      });
-
-      console.log('📡 ClientPropertyAssignmentForm - Réponse HOST users:', response.status, response.statusText);
-
-      if (response.ok) {
-        const hostUsersArray = await response.json();
-        console.log('📊 ClientPropertyAssignmentForm - Utilisateurs HOST reçus:', hostUsersArray);
-        
-        setHostUsers(hostUsersArray);
-      } else {
-        console.error('❌ ClientPropertyAssignmentForm - Erreur utilisateurs HOST:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('❌ ClientPropertyAssignmentForm - Détails erreur:', errorText);
-        setHostUsers([]);
-      }
+      const hostUsersArray = await managersApi.getHosts();
+      setHostUsers(hostUsersArray as Client[]);
     } catch (err) {
-      console.error('Erreur chargement utilisateurs HOST:', err);
       setHostUsers([]);
     }
   };
 
   const loadPropertiesForSelectedClients = async () => {
     if (selectedClients.length === 0) {
-      console.log('⏳ ClientPropertyAssignmentForm - Aucun client sélectionné pour charger les propriétés');
       setProperties([]);
       return;
     }
@@ -217,37 +180,13 @@ const ClientPropertyAssignmentForm: React.FC = () => {
     setError(null);
 
     try {
-      console.log('🔄 ClientPropertyAssignmentForm - Chargement des propriétés pour clients:', selectedClients);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/managers/properties/by-clients`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`
-        },
-        body: JSON.stringify(selectedClients)
-      });
+      const propertiesArray = await apiClient.post<Property[]>('/managers/properties/by-clients', selectedClients);
+      setProperties(propertiesArray);
 
-      console.log('📡 ClientPropertyAssignmentForm - Réponse propriétés:', response.status, response.statusText);
-
-      if (response.ok) {
-        const propertiesArray = await response.json();
-        console.log('📊 ClientPropertyAssignmentForm - Propriétés reçues:', propertiesArray);
-        
-        setProperties(propertiesArray);
-        
-        // Cocher toutes les propriétés par défaut
-        const allPropertyIds = propertiesArray.map((prop: Property) => prop.id);
-        setSelectedProperties(allPropertyIds);
-        console.log('✅ ClientPropertyAssignmentForm - Toutes les propriétés cochées par défaut:', allPropertyIds);
-      } else {
-        console.error('❌ ClientPropertyAssignmentForm - Erreur propriétés:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('❌ ClientPropertyAssignmentForm - Détails erreur:', errorText);
-        setProperties([]);
-      }
+      // Cocher toutes les propriétés par défaut
+      const allPropertyIds = propertiesArray.map((prop: Property) => prop.id);
+      setSelectedProperties(allPropertyIds);
     } catch (err) {
-      console.error('Erreur chargement propriétés:', err);
       setProperties([]);
     } finally {
       setLoading(false);
@@ -256,7 +195,6 @@ const ClientPropertyAssignmentForm: React.FC = () => {
 
   const loadClientsAndProperties = async () => {
     if (!selectedManager) {
-      console.log('⏳ ClientPropertyAssignmentForm - En attente de la sélection du manager...');
       return;
     }
 
@@ -264,44 +202,24 @@ const ClientPropertyAssignmentForm: React.FC = () => {
     setError(null);
 
     try {
-      console.log('🔄 ClientPropertyAssignmentForm - Chargement des clients et propriétés pour manager:', selectedManager);
-      
-      const [clientsRes, propertiesRes] = await Promise.all([
-        fetch(`${API_CONFIG.BASE_URL}/api/managers/hosts`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}` }
-        }),
-        fetch(`${API_CONFIG.BASE_URL}/api/properties`, {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}` }
-        })
+      const [clientsData, propertiesData] = await Promise.all([
+        managersApi.getHosts(),
+        apiClient.get<any>('/properties')
       ]);
 
+      // S'assurer que c'est un tableau
+      const clientsArray = Array.isArray(clientsData) ? clientsData : ((clientsData as any).content || []);
+      setClients(clientsArray as Client[]);
 
-      if (clientsRes.ok) {
-        const clientsData = await clientsRes.json();
-        console.log('📊 ClientPropertyAssignmentForm - Clients reçus:', clientsData);
-        // S'assurer que c'est un tableau
-        const clientsArray = Array.isArray(clientsData) ? clientsData : (clientsData.content || []);
-        setClients(clientsArray);
-      } else {
-        console.error('❌ ClientPropertyAssignmentForm - Erreur clients:', clientsRes.status, clientsRes.statusText);
-      }
-
-      if (propertiesRes.ok) {
-        const propertiesData = await propertiesRes.json();
-        console.log('📊 ClientPropertyAssignmentForm - Propriétés reçues:', propertiesData);
-        // S'assurer que c'est un tableau
-        const propertiesArray = Array.isArray(propertiesData) ? propertiesData : (propertiesData.content || []);
-        // Filtrer les propriétés selon le rôle
-        const filteredProperties = isAdmin 
-          ? propertiesArray 
-          : propertiesArray.filter((p: Property) => p.ownerId === Number(user?.id));
-        setProperties(filteredProperties);
-      } else {
-        console.error('❌ ClientPropertyAssignmentForm - Erreur propriétés:', propertiesRes.status, propertiesRes.statusText);
-      }
+      // S'assurer que c'est un tableau
+      const propertiesArray = Array.isArray(propertiesData) ? propertiesData : (propertiesData.content || []);
+      // Filtrer les propriétés selon le rôle
+      const filteredProperties = isAdmin
+        ? propertiesArray
+        : propertiesArray.filter((p: Property) => p.ownerId === Number(user?.id));
+      setProperties(filteredProperties);
     } catch (err) {
       setError('Erreur lors du chargement des données');
-      console.error('Erreur chargement données:', err);
     } finally {
       setLoading(false);
     }
@@ -341,50 +259,23 @@ const ClientPropertyAssignmentForm: React.FC = () => {
     setError(null);
 
     try {
-      console.log('🔄 ClientPropertyAssignmentForm - Soumission assignation:', {
-        managerId: selectedManager,
-        clientIds: selectedClients,
-        propertyIds: selectedProperties
-      });
-
       // Utiliser le nouvel endpoint d'assignation avec validation d'unicité
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/managers/${selectedManager}/assign`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`
-        },
-        body: JSON.stringify({
-          clientIds: selectedClients,
-          propertyIds: selectedProperties,
-          notes: `Assignation effectuée le ${new Date().toLocaleString('fr-FR')}`
-        })
+      const result = await managersApi.assignClients(selectedManager as number, {
+        clientIds: selectedClients,
+        propertyIds: selectedProperties,
       });
+      setSuccessMessage(`Assignation réussie ! ${(result as any).clientsAssigned} clients et ${(result as any).propertiesAssigned} propriétés assignés.`);
 
-      console.log('📡 ClientPropertyAssignmentForm - Réponse assignation:', response.status, response.statusText);
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ ClientPropertyAssignmentForm - Assignation réussie:', result);
-        setSuccessMessage(`Assignation réussie ! ${result.clientsAssigned} clients et ${result.propertiesAssigned} propriétés assignés.`);
-        
-        // Rediriger vers la page des portefeuilles après 2 secondes
-        setTimeout(() => {
-          window.location.href = '/portfolios';
-        }, 2000);
+      // Rediriger vers la page des portefeuilles après 2 secondes
+      setTimeout(() => {
+        window.location.href = '/portfolios';
+      }, 2000);
+    } catch (err: any) {
+      if (err?.details?.conflicts && err.details.conflicts.length > 0) {
+        setError(`Conflits d'assignation détectés : ${err.details.conflicts.join(', ')}`);
       } else {
-        const errorData = await response.json();
-        console.error('❌ ClientPropertyAssignmentForm - Erreur assignation:', errorData);
-        
-        if (errorData.conflicts && errorData.conflicts.length > 0) {
-          setError(`Conflits d'assignation détectés : ${errorData.conflicts.join(', ')}`);
-        } else {
-          setError(errorData.error || 'Erreur lors de l\'assignation');
-        }
+        setError(err?.message || 'Erreur lors de l\'assignation');
       }
-    } catch (err) {
-      setError('Erreur lors de l\'assignation');
-      console.error('Erreur assignation:', err);
     } finally {
       setLoading(false);
     }
@@ -416,7 +307,6 @@ const ClientPropertyAssignmentForm: React.FC = () => {
               <Select
                 value={selectedManager}
                 onChange={(e) => {
-                  console.log('🔄 ClientPropertyAssignmentForm - Sélection manager:', e.target.value);
                   setSelectedManager(e.target.value as number);
                 }}
                 label="Manager"
@@ -518,7 +408,6 @@ const ClientPropertyAssignmentForm: React.FC = () => {
                 multiple
                 value={selectedClients}
                 onChange={(e) => {
-                  console.log('🔄 ClientPropertyAssignmentForm - Sélection clients:', e.target.value);
                   setSelectedClients(e.target.value as number[]);
                 }}
                 label="Clients (HOST)"
@@ -669,16 +558,6 @@ const ClientPropertyAssignmentForm: React.FC = () => {
         const selectedPropertiesData = properties.filter(p => selectedProperties.includes(p.id));
         const selectedManagerData = managers.find(m => m.id === selectedManager);
         
-        console.log('🔍 ClientPropertyAssignmentForm - Debug confirmation step:', {
-          selectedManager,
-          managers: managers.map(m => ({ id: m.id, name: `${m.firstName} ${m.lastName}` })),
-          selectedManagerData,
-          selectedClients,
-          selectedClientsData: selectedClientsData.map(c => ({ id: c.id, name: `${c.firstName} ${c.lastName}` })),
-          selectedProperties,
-          selectedPropertiesData: selectedPropertiesData.map(p => ({ id: p.id, name: p.name }))
-        });
-
         return (
           <Box>
             <Typography variant="h6" gutterBottom>

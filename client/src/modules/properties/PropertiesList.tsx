@@ -43,10 +43,30 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
-import { API_CONFIG } from '../../config/api';
+import { propertiesApi, usersApi } from '../../services/api';
 import { PropertyStatus, PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
 import { createSpacing } from '../../theme/spacing';
 import { useTranslation } from '../../hooks/useTranslation';
+import ExportButton from '../../components/ExportButton';
+import type { ExportColumn } from '../../utils/exportUtils';
+
+interface PropertyApiItem {
+  id: number;
+  name: string;
+  type?: string;
+  address: string;
+  city: string;
+  postalCode?: string;
+  country?: string;
+  status?: string;
+  nightlyPrice?: number;
+  maxGuests?: number;
+  bedroomCount?: number;
+  bathroomCount?: number;
+  squareMeters?: number;
+  description?: string;
+  ownerId?: number;
+}
 
 // Types pour les propriétés
 interface Property {
@@ -113,67 +133,41 @@ export default function PropertiesList() {
   const loadProperties = useCallback(async () => {
     setLoading(true);
     try {
-      let url = `${API_CONFIG.BASE_URL}/api/properties`;
-      
       // Si c'est un HOST, filtrer par ses propriétés
-      console.log('🔍 PropertiesList - Debug utilisateur:', {
-        isHost: isHost(),
-        isAdmin: isAdmin(),
-        isManager: isManager(),
-        userId: user?.id,
-        userRoles: user?.roles,
-        userEmail: user?.email
-      });
-      
-      if (isHost() && !isAdmin() && !isManager() && user?.id) {
-        url += `?ownerId=${user.id}`;
-        console.log('🔍 PropertiesList - Chargement des propriétés du HOST:', user.id);
-      } else {
-        console.log('🔍 PropertiesList - Chargement de toutes les propriétés (ADMIN/MANAGER)');
-      }
-      
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Convertir les données du backend vers le format frontend
-        const convertedProperties = data.content?.map((prop: any) => {
-          const converted = {
-            id: prop.id.toString(),
-            name: prop.name,
-            type: prop.type?.toLowerCase() || 'apartment',
-            address: prop.address,
-            city: prop.city,
-            postalCode: prop.postalCode,
-            country: prop.country,
-            status: prop.status?.toLowerCase() || 'active',
-            rating: 4.5, // Valeur par défaut
-            nightlyPrice: prop.nightlyPrice || 0,
-            guests: prop.maxGuests || 2,
-            bedrooms: prop.bedroomCount || 1,
-            bathrooms: prop.bathroomCount || 1,
-            squareMeters: prop.squareMeters,
-            description: prop.description,
-            imageUrl: undefined,
-            lastCleaning: undefined,
-            nextCleaning: undefined,
-            ownerId: prop.ownerId?.toString(),
-          };
-          return converted;
-        }) || [];
-        
-        console.log('🔍 PropertiesList - Propriétés chargées:', convertedProperties.length);
-        setProperties(convertedProperties);
-      } else {
-        console.error('🔍 PropertiesList - Erreur API:', response.status);
-      }
+      const params = (isHost() && !isAdmin() && !isManager() && user?.id)
+        ? { ownerId: user.id }
+        : undefined;
+
+      const data = await propertiesApi.getAll(params) as any;
+
+      // Convertir les données du backend vers le format frontend
+      const convertedProperties = (data.content ?? data)?.map((prop: PropertyApiItem) => {
+        const converted = {
+          id: prop.id.toString(),
+          name: prop.name,
+          type: prop.type?.toLowerCase() || 'apartment',
+          address: prop.address,
+          city: prop.city,
+          postalCode: prop.postalCode,
+          country: prop.country,
+          status: prop.status?.toLowerCase() || 'active',
+          rating: 4.5, // Valeur par défaut
+          nightlyPrice: prop.nightlyPrice || 0,
+          guests: prop.maxGuests || 2,
+          bedrooms: prop.bedroomCount || 1,
+          bathrooms: prop.bathroomCount || 1,
+          squareMeters: prop.squareMeters,
+          description: prop.description,
+          imageUrl: undefined,
+          lastCleaning: undefined,
+          nextCleaning: undefined,
+          ownerId: prop.ownerId?.toString(),
+        };
+        return converted;
+      }) || [];
+
+      setProperties(convertedProperties);
     } catch (err) {
-      console.error('🔍 PropertiesList - Erreur chargement propriétés:', err);
     } finally {
       setLoading(false);
     }
@@ -190,23 +184,9 @@ export default function PropertiesList() {
 
       try {
         setLoading(true);
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/users?role=HOST`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setHosts(data.content || data);
-        } else if (response.status === 403) {
-          setHosts([]);
-        } else {
-          console.error('🔍 PropertiesList - Erreur lors du chargement des hôtes:', response.status);
-          setHosts([]);
-        }
+        const data = await usersApi.getAll({ role: 'HOST' }) as any;
+        setHosts(data.content || data);
       } catch (err) {
-        console.error('🔍 PropertiesList - Erreur de connexion lors du chargement des hôtes:', err);
         setHosts([]);
       } finally {
         setLoading(false);
@@ -250,10 +230,18 @@ export default function PropertiesList() {
     handleMenuClose();
   };
 
-  const confirmDelete = () => {
-    // TODO: Implement delete logic
-    console.log('Deleting property:', selectedProperty?.id);
-    setDeleteDialogOpen(false);
+  const confirmDelete = async () => {
+    if (!selectedProperty) return;
+
+    try {
+      await propertiesApi.delete(Number(selectedProperty.id));
+      setProperties(prev => prev.filter(p => p.id !== selectedProperty.id));
+    } catch (err) {
+      setError('Erreur de connexion lors de la suppression');
+    } finally {
+      setDeleteDialogOpen(false);
+      setSelectedProperty(null);
+    }
   };
 
   // Filtrer les propriétés selon le rôle
@@ -262,7 +250,6 @@ export default function PropertiesList() {
 
     // Le filtrage par propriétaire est déjà fait côté serveur
     // Ici on applique seulement les filtres de recherche et de type/statut
-    console.log('🔍 PropertiesList - Filtrage des propriétés, total:', properties.length);
 
     // Appliquer les filtres de recherche
     const finalFiltered = filteredProperties.filter((property) => {
@@ -276,7 +263,6 @@ export default function PropertiesList() {
       return matchesSearch && matchesType && matchesStatus && matchesHost;
     });
 
-    console.log('🔍 PropertiesList - Propriétés après filtrage:', finalFiltered.length);
     return finalFiltered;
   };
 
@@ -313,6 +299,19 @@ export default function PropertiesList() {
     { value: 'studio', label: t('properties.types.studio') },
   ];
 
+  const exportColumns: ExportColumn[] = [
+    { key: 'id', label: 'ID' },
+    { key: 'name', label: 'Nom' },
+    { key: 'type', label: 'Type' },
+    { key: 'address', label: 'Adresse' },
+    { key: 'city', label: 'Ville' },
+    { key: 'status', label: 'Statut' },
+    { key: 'nightlyPrice', label: 'Prix/nuit (€)' },
+    { key: 'bedrooms', label: 'Chambres' },
+    { key: 'bathrooms', label: 'Salles de bain' },
+    { key: 'squareMeters', label: 'Surface (m²)' },
+  ];
+
   // Générer les statuts avec traductions
   const statusOptions = [
     { value: 'all', label: t('properties.allStatuses') },
@@ -330,15 +329,22 @@ export default function PropertiesList() {
         backPath="/dashboard"
         showBackButton={false}
         actions={
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<Add />}
-            onClick={() => navigate('/properties/new')}
-            size="small"
-          >
-            {t('properties.create')}
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <ExportButton
+              data={filteredProperties}
+              columns={exportColumns}
+              fileName="proprietes"
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Add />}
+              onClick={() => navigate('/properties/new')}
+              size="small"
+            >
+              {t('properties.create')}
+            </Button>
+          </Box>
         }
       />
 
@@ -393,19 +399,21 @@ export default function PropertiesList() {
                     ? t('properties.noPropertyCreated')
                     : t('properties.noPropertyAssigned')}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 3, display: 'block' }}>
                   {t('properties.propertiesDescription')}
                 </Typography>
                 {(false || isAdmin() || isManager() || isHost()) && (
-                  <Button
-                    variant="contained"
-                    startIcon={<Add />}
-                    onClick={() => navigate('/properties/new')}
-                    size="small"
-                    sx={{ borderRadius: 1.5 }}
-                  >
-                    {t('properties.createFirst')}
-                  </Button>
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={() => navigate('/properties/new')}
+                      size="small"
+                      sx={{ borderRadius: 1.5 }}
+                    >
+                      {t('properties.createFirst')}
+                    </Button>
+                  </Box>
                 )}
               </CardContent>
             </Card>

@@ -36,6 +36,8 @@ import {
   Memory,
 } from '@mui/icons-material';
 
+type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+
 interface HealthCheckResult {
   name: string;
   status: 'UP' | 'DOWN' | 'DEGRADED' | 'UNKNOWN';
@@ -161,7 +163,6 @@ const HealthChecks: React.FC = () => {
       
     } catch (err) {
       setError('Erreur lors de la récupération des vérifications de santé');
-      console.error('Erreur HealthChecks:', err);
     } finally {
       setLoading(false);
     }
@@ -202,7 +203,7 @@ const HealthChecks: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): ChipColor => {
     switch (status) {
       case 'UP':
         return 'success';
@@ -238,7 +239,7 @@ const HealthChecks: React.FC = () => {
     }
   };
 
-  const getResponseTimeColor = (responseTime: number) => {
+  const getResponseTimeColor = (responseTime: number): ChipColor => {
     if (responseTime <= 100) return 'success';
     if (responseTime <= 300) return 'warning';
     return 'error';
@@ -468,7 +469,7 @@ const HealthChecks: React.FC = () => {
                         </Typography>
                         <Chip 
                           label={check.status}
-                          color={getStatusColor(check.status) as any}
+                          color={getStatusColor(check.status)}
                           size="small"
                         />
                         <Chip 
@@ -494,7 +495,7 @@ const HealthChecks: React.FC = () => {
                             <strong>Temps de réponse:</strong> 
                             <Chip 
                               label={`${check.responseTime}ms`}
-                              color={getResponseTimeColor(check.responseTime) as any}
+                              color={getResponseTimeColor(check.responseTime)}
                               size="small"
                               sx={{ ml: 1 }}
                             />

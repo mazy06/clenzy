@@ -11,12 +11,20 @@ import {
   Typography,
   Chip
 } from '@mui/material';
+import { SxProps, Theme } from '@mui/material/styles';
 import { Search } from '@mui/icons-material';
 
 export interface FilterOption {
   value: string;
   label: string;
   icon?: React.ReactNode;
+}
+
+interface FilterConfig {
+  value: string;
+  options: FilterOption[];
+  onChange: (value: string) => void;
+  label?: string;
 }
 
 export interface FilterSearchBarProps {
@@ -73,7 +81,7 @@ export interface FilterSearchBarProps {
     singular?: string;
     plural?: string;
   };
-  sx?: any;
+  sx?: SxProps<Theme>;
 }
 
 export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
@@ -92,7 +100,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
   };
 
   // Fonction pour rendre un filtre
-  const renderFilter = (filterKey: string, filter: any) => {
+  const renderFilter = (filterKey: string, filter: FilterConfig) => {
     if (!filter) return null;
 
     return (

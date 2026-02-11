@@ -22,6 +22,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { createSpacing } from '../theme/spacing';
 
+type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+
 interface ServiceRequest {
   id: string;
   title: string;
@@ -132,13 +134,13 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
         <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
           <Chip
             label={statuses.find(s => s.value === request.status)?.label || request.status}
-            color={statusColors[request.status as keyof typeof statusColors] as any}
+            color={(statusColors[request.status as keyof typeof statusColors] as ChipColor) || 'default'}
             size="small"
             sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.7rem' }}
           />
           <Chip
             label={priorities.find(p => p.value === request.priority)?.label || request.priority}
-            color={priorityColors[request.priority as keyof typeof priorityColors] as any}
+            color={(priorityColors[request.priority as keyof typeof priorityColors] as ChipColor) || 'default'}
             size="small"
             sx={{ textTransform: 'capitalize', height: 20, fontSize: '0.7rem' }}
           />

@@ -11,7 +11,8 @@ import {
 } from '@mui/material';
 import keycloak from '../../keycloak';
 import clenzyLogo from '../../assets/Clenzy_logo.png';
-import { API_CONFIG } from '../../config/api';
+import apiClient, { ApiError } from '../../services/apiClient';
+import { saveTokens } from '../../services/storageService';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -25,25 +26,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      console.log('🔐 Login - Tentative de connexion...');
-      
-      const response = await fetch(API_CONFIG.ENDPOINTS.LOGIN, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: email, password: password }),
-      });
+      const data = await apiClient.post<any>('/auth/login', { username: email, password: password }, { skipAuth: true });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData.error || 'Erreur de connexion';
-        console.error('🔐 Login - Erreur de connexion:', errorMessage);
-        setError(errorMessage);
-        return;
-      }
-
-      const data = await response.json();
-      console.log('🔐 Login - Connexion réussie, données reçues:', data);
-      
       // Mettre à jour l'état de Keycloak
       keycloak.token = data.access_token;
       keycloak.refreshToken = data.refresh_token;
@@ -52,22 +36,25 @@ export default function Login() {
       keycloak.tokenParsed = JSON.parse(atob(data.access_token.split('.')[1]));
 
       // Sauvegarder les tokens dans localStorage
-      localStorage.setItem('kc_access_token', data.access_token);
-      localStorage.setItem('kc_refresh_token', data.refresh_token);
-      localStorage.setItem('kc_id_token', data.id_token);
-      localStorage.setItem('kc_expires_in', data.expires_in);
+      saveTokens({
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        idToken: data.id_token,
+        expiresIn: data.expires_in,
+      });
 
-      console.log('🔐 Login - Tokens sauvegardés, envoi de l\'événement d\'authentification...');
-      
       // Forcer la mise à jour de l'état global via l'événement personnalisé
       window.dispatchEvent(new CustomEvent('keycloak-auth-success'));
       
       // L'événement sera traité par App.tsx qui affichera automatiquement le dashboard
-      console.log('🔐 Login - Événement envoyé, App.tsx va gérer l\'affichage...');
-      
-    } catch (err: any) {
-      console.error('🔐 Login - Erreur de connexion:', err);
-      setError('Erreur de connexion au serveur. Vérifiez votre connexion internet.');
+
+    } catch (err) {
+      const apiErr = err as ApiError;
+      if (apiErr.status) {
+        setError(apiErr.message || 'Erreur de connexion');
+      } else {
+        setError('Erreur de connexion au serveur. Vérifiez votre connexion internet.');
+      }
     } finally {
       setLoading(false);
     }

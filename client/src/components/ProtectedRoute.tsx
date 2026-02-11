@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Chip, CircularProgress } from '@mui/material';
-import { 
+import React, { useMemo } from 'react';
+import { Box, Typography, Paper, Chip } from '@mui/material';
+import {
   Lock as LockIcon
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 interface ProtectedRouteProps {
@@ -19,66 +19,32 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   fallbackPath = '/',
   fallbackMessage
 }) => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const location = useLocation();
-  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
-  // Vérifier la permission de manière synchrone
-  useEffect(() => {
-    if (!requiredPermission) {
-      setHasAccess(true);
-      return;
-    }
+  // Vérification synchrone — pas de useEffect, pas de state intermédiaire
+  const hasAccess = useMemo(() => {
+    if (!requiredPermission) return true;
+    if (!user) return false;
+    return user.permissions?.includes(requiredPermission) || false;
+  }, [requiredPermission, user]);
 
-    if (!user) {
-      setHasAccess(false);
-      return;
-    }
-
-    console.log('🔍 ProtectedRoute - Vérification de permission:', {
-      requiredPermission,
-      user: user ? { id: user.id, roles: user.roles, permissions: user.permissions } : null,
-      currentPath: location.pathname
-    });
-
-    // Vérification synchrone des permissions
-    const hasPermission = user.permissions?.includes(requiredPermission) || false;
-    
-    console.log('🔍 ProtectedRoute - Résultat de la vérification:', {
-      permission: requiredPermission,
-      result: hasPermission,
-      userPermissions: user?.permissions || []
-    });
-    
-    setHasAccess(hasPermission);
-  }, [requiredPermission, user?.id, user?.permissions, location.pathname]);
-
-  // Si aucune permission n'est requise, afficher le composant
+  // Si aucune permission n'est requise, afficher directement
   if (!requiredPermission) {
     return <>{children}</>;
   }
 
-  // Pendant la vérification, afficher un loader
-  if (hasAccess === null) {
-    return (
-      <Box sx={{ 
-        p: 4, 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '60vh'
-      }}>
-        <CircularProgress size={60} sx={{ mb: 2 }} />
-        <Typography variant="h6" color="text.secondary">
-          Vérification des permissions...
-        </Typography>
-      </Box>
-    );
+  // Si l'auth est encore en cours de chargement, ne rien afficher (évite le flash)
+  if (loading) {
+    return null;
   }
 
-  // Vérifier la permission
+  // Permission accordée → afficher le composant immédiatement
+  if (hasAccess) {
+    return <>{children}</>;
+  }
+
+  // Accès refusé → afficher la page d'erreur
   if (!hasAccess) {
     // Générer un message personnalisé selon la permission
     const getPermissionMessage = () => {
@@ -215,8 +181,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // Permission accordée, afficher le composant
-  return <>{children}</>;
+  return null;
 };
 
 export default ProtectedRoute;

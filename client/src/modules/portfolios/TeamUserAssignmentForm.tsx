@@ -42,7 +42,8 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { usePermissions } from '../../hooks/usePermissions';
 import PageHeader from '../../components/PageHeader';
-import { API_CONFIG } from '../../config/api';
+import { managersApi } from '../../services/api';
+import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface Portfolio {
@@ -102,7 +103,7 @@ const TeamUserAssignmentForm: React.FC = () => {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [selectedManager, setSelectedManager] = useState<number | ''>('');
+  const [selectedManager, setSelectedManager] = useState<string | number | ''>('');
   const [selectedTeams, setSelectedTeams] = useState<number[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
@@ -125,15 +126,12 @@ const TeamUserAssignmentForm: React.FC = () => {
 
   useEffect(() => {
     if (isAdmin !== undefined && isManager !== undefined && user?.id) {
-      console.log('🔄 TeamUserAssignmentForm - useEffect triggered:', { isAdmin, isManager, userId: user.id });
-      
       // Charger la liste des managers pour tous les utilisateurs
       loadManagers();
       
       if (isManager && !isAdmin) {
         // Si c'est un manager (mais pas admin), pré-sélectionner son ID
-        console.log('🔄 TeamUserAssignmentForm - Pré-sélection manager:', user.id);
-        setSelectedManager(Number(user.id));
+        setSelectedManager(user.id);
       }
     }
   }, [isAdmin, isManager, user?.id]);
@@ -146,33 +144,15 @@ const TeamUserAssignmentForm: React.FC = () => {
 
   const loadManagers = async () => {
     try {
-      console.log('🔄 TeamUserAssignmentForm - Chargement des managers...');
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/managers/all`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}` }
-      });
-
-      console.log('📡 TeamUserAssignmentForm - Réponse managers:', response.status, response.statusText);
-
-      if (response.ok) {
-        const managersArray = await response.json();
-        console.log('📊 TeamUserAssignmentForm - Managers reçus:', managersArray);
-        
-        setManagers(managersArray);
-      } else {
-        console.error('❌ TeamUserAssignmentForm - Erreur utilisateurs:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('❌ TeamUserAssignmentForm - Détails erreur:', errorText);
-        setManagers([]);
-      }
+      const managersArray = await managersApi.getAll();
+      setManagers(managersArray as Manager[]);
     } catch (err) {
-      console.error('Erreur chargement utilisateurs:', err);
       setManagers([]);
     }
   };
 
   const loadTeamsAndUsers = async () => {
     if (!selectedManager) {
-      console.log('⏳ TeamUserAssignmentForm - En attente de la sélection du manager...');
       return;
     }
 
@@ -180,43 +160,26 @@ const TeamUserAssignmentForm: React.FC = () => {
     setError(null);
 
     try {
-      console.log('🔄 TeamUserAssignmentForm - Chargement des équipes et utilisateurs pour manager:', selectedManager);
-      
-      const [teamsRes, usersRes] = await Promise.all([
-        fetch(`${API_CONFIG.BASE_URL}/api/managers/teams`),
-        fetch(`${API_CONFIG.BASE_URL}/api/managers/operational-users`)
+      const [teamsData, usersData] = await Promise.all([
+        managersApi.getTeams(),
+        managersApi.getOperationalUsers()
       ]);
 
+      // S'assurer que c'est un tableau
+      const teamsArray = Array.isArray(teamsData) ? teamsData : ((teamsData as any).content || []);
+      setTeams(teamsArray as Team[]);
 
-      if (teamsRes.ok) {
-        const teamsData = await teamsRes.json();
-        console.log('📊 TeamUserAssignmentForm - Équipes reçues:', teamsData);
-        // S'assurer que c'est un tableau
-        const teamsArray = Array.isArray(teamsData) ? teamsData : (teamsData.content || []);
-        setTeams(teamsArray);
-      } else {
-        console.error('❌ TeamUserAssignmentForm - Erreur équipes:', teamsRes.status, teamsRes.statusText);
-        // Utiliser des données de test en cas d'erreur - correspondant aux vraies équipes de la base
-        const testTeams = [
-          { id: 1, name: "Équipe Maintenance Technique", description: "Techniciens qualifiés pour la maintenance préventive et corrective", interventionType: "MAINTENANCE", memberCount: 2, isActive: true },
-          { id: 2, name: "Équipe Nettoyage Premium", description: "Spécialisée dans le nettoyage approfondi des logements Airbnb", interventionType: "CLEANING", memberCount: 2, isActive: true }
-        ];
-        setTeams(testTeams);
-      }
-
-      if (usersRes.ok) {
-        const usersData = await usersRes.json();
-        console.log('📊 TeamUserAssignmentForm - Utilisateurs reçus:', usersData);
-        // S'assurer que c'est un tableau
-        const usersArray = Array.isArray(usersData) ? usersData : (usersData.content || []);
-        setUsers(usersArray);
-      } else {
-        console.error('❌ TeamUserAssignmentForm - Erreur utilisateurs:', usersRes.status, usersRes.statusText);
-        setUsers([]);
-      }
+      // S'assurer que c'est un tableau
+      const usersArray = Array.isArray(usersData) ? usersData : ((usersData as any).content || []);
+      setUsers(usersArray as User[]);
     } catch (err) {
+      // Utiliser des données de test en cas d'erreur - correspondant aux vraies équipes de la base
+      const testTeams = [
+        { id: 1, name: "Équipe Maintenance Technique", description: "Techniciens qualifiés pour la maintenance préventive et corrective", interventionType: "MAINTENANCE", memberCount: 2, isActive: true },
+        { id: 2, name: "Équipe Nettoyage Premium", description: "Spécialisée dans le nettoyage approfondi des logements Airbnb", interventionType: "CLEANING", memberCount: 2, isActive: true }
+      ];
+      setTeams(testTeams);
       setError('Erreur lors du chargement des données');
-      console.error('Erreur chargement données:', err);
     } finally {
       setLoading(false);
     }
@@ -269,32 +232,17 @@ const TeamUserAssignmentForm: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/managers/${selectedManager}/assign-teams-users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`
-        },
-        body: JSON.stringify({
-          managerId: selectedManager,
-          teamIds: selectedTeams,
-          userIds: selectedUsers
-        })
+      const result = await apiClient.post<any>(`/managers/${selectedManager}/assign-teams-users`, {
+        managerId: selectedManager,
+        teamIds: selectedTeams,
+        userIds: selectedUsers
       });
-
-      if (response.ok) {
-        const result = await response.json();
-        setSuccess(t('portfolios.errors.assignmentSuccess') + ` ${result.teamsAssigned} ${t('teams.title')} et ${result.usersAssigned} ${t('users.title')} assigné(s).`);
-        setTimeout(() => {
-          window.location.href = '/portfolios';
-        }, 2000);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Erreur lors de l\'assignation');
-      }
-    } catch (err) {
-      setError('Erreur lors de l\'assignation');
-      console.error('Erreur assignation:', err);
+      setSuccess(t('portfolios.errors.assignmentSuccess') + ` ${result.teamsAssigned} ${t('teams.title')} et ${result.usersAssigned} ${t('users.title')} assigné(s).`);
+      setTimeout(() => {
+        window.location.href = '/portfolios';
+      }, 2000);
+    } catch (err: any) {
+      setError(err?.message || 'Erreur lors de l\'assignation');
     } finally {
       setLoading(false);
     }
@@ -309,7 +257,7 @@ const TeamUserAssignmentForm: React.FC = () => {
     }
   };
 
-  const getRoleColor = (role: string) => {
+  const getRoleColor = (role: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
     switch (role) {
       case 'HOUSEKEEPER': return 'success';
       case 'TECHNICIAN': return 'warning';
@@ -353,7 +301,6 @@ const TeamUserAssignmentForm: React.FC = () => {
               <Select
                 value={selectedManager}
                 onChange={(e) => {
-                  console.log('🔄 TeamUserAssignmentForm - Sélection manager:', e.target.value);
                   setSelectedManager(e.target.value as number);
                 }}
                 label="Manager"
@@ -573,7 +520,7 @@ const TeamUserAssignmentForm: React.FC = () => {
                       <Chip 
                         label={getRoleLabel(user.role)} 
                         size="small" 
-                        color={getRoleColor(user.role) as any}
+                        color={getRoleColor(user.role)}
                         icon={getRoleIcon(user.role)}
                       />
                     </CardContent>

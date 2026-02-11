@@ -22,7 +22,7 @@ export default function ThemeSafetyWrapper({ children }: ThemeSafetyWrapperProps
         // Vérifier les couleurs principales
         const requiredColors = ['primary', 'secondary', 'success', 'warning', 'error', 'info'];
         for (const colorName of requiredColors) {
-          const color = (theme.palette as any)[colorName];
+          const color = (theme.palette as unknown as Record<string, { main?: string; contrastText?: string }>)[colorName];
           if (!color || !color.main || !color.contrastText) {
             throw new Error(`Couleur ${colorName} manquante ou incomplète`);
           }
@@ -38,10 +38,8 @@ export default function ThemeSafetyWrapper({ children }: ThemeSafetyWrapperProps
           throw new Error('ZIndex manquants');
         }
 
-        console.log('🔍 ThemeSafetyWrapper - Thème validé avec succès');
         setThemeReady(true);
       } catch (error) {
-        console.error('🔍 ThemeSafetyWrapper - Erreur de validation du thème:', error);
         setThemeError(error instanceof Error ? error.message : 'Erreur inconnue du thème');
       }
     };

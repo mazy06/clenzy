@@ -12,7 +12,6 @@ const ContactCreatePage: React.FC = () => {
     const subject = searchParams.get('subject');
     
     if (recipient || subject) {
-      console.log('📧 Paramètres de pré-remplissage:', { recipient, subject });
     }
   }, [searchParams]);
 

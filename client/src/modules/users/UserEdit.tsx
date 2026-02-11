@@ -35,8 +35,10 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { usersApi } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
+
+type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
 // Types pour les utilisateurs
 export interface UserEditData {
@@ -60,7 +62,7 @@ const userRoles = [
   { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
 ];
 
-const userStatuses = [
+const userStatuses: Array<{ value: string; label: string; color: ChipColor }> = [
   { value: 'ACTIVE', label: 'Actif', color: 'success' },
   { value: 'INACTIVE', label: 'Inactif', color: 'default' },
   { value: 'SUSPENDED', label: 'Suspendu', color: 'error' },
@@ -89,7 +91,7 @@ const UserEdit: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserEditData | null>(null);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
@@ -111,32 +113,19 @@ const UserEdit: React.FC = () => {
       
       setLoading(true);
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
+        const userData = await usersApi.getById(Number(id));
+        setUser(userData as any);
 
-        if (response.ok) {
-          const userData = await response.json();
-          console.log('🔍 UserEdit - Utilisateur chargé:', userData);
-          
-          setUser(userData);
-          
-          // Pré-remplir le formulaire avec les données existantes
-          setFormData({
-            firstName: userData.firstName || '',
-            lastName: userData.lastName || '',
-            email: userData.email || '',
-            phoneNumber: userData.phoneNumber || '',
-            role: userData.role?.toUpperCase() || 'HOUSEKEEPER',
-            status: userData.status?.toUpperCase() || 'ACTIVE',
-          });
-        } else {
-          setError('Erreur lors du chargement de l\'utilisateur');
-        }
+        // Pré-remplir le formulaire avec les données existantes
+        setFormData({
+          firstName: userData.firstName || '',
+          lastName: userData.lastName || '',
+          email: userData.email || '',
+          phoneNumber: (userData as any).phoneNumber || '',
+          role: userData.role?.toUpperCase() || 'HOUSEKEEPER',
+          status: (userData as any).status?.toUpperCase() || 'ACTIVE',
+        });
       } catch (err) {
-        console.error('🔍 UserEdit - Erreur chargement:', err);
         setError('Erreur lors du chargement de l\'utilisateur');
       } finally {
         setLoading(false);
@@ -164,7 +153,7 @@ const UserEdit: React.FC = () => {
     );
   }
 
-  const handleInputChange = (field: keyof UserEditData, value: any) => {
+  const handleInputChange = (field: keyof UserEditData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -221,7 +210,7 @@ const UserEdit: React.FC = () => {
 
     try {
       // Préparer les données pour le backend
-      const backendData: any = {
+      const backendData: Record<string, string | null> = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim().toLowerCase(),
@@ -229,49 +218,27 @@ const UserEdit: React.FC = () => {
         role: formData.role,
         status: formData.status,
       };
-      
+
       // Ajouter le mot de passe seulement s'il est fourni
       if (formData.newPassword && formData.confirmPassword) {
         backendData.newPassword = formData.newPassword;
       }
 
-      console.log('🔍 UserEdit - Données envoyées au backend:', backendData);
-      console.log('🔍 UserEdit - JSON stringifié:', JSON.stringify(backendData, null, 2));
+      await usersApi.update(Number(id), backendData as any);
+      setSuccess(true);
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-        body: JSON.stringify(backendData),
-      });
+      // Réinitialiser les champs de mot de passe
+      setFormData(prev => ({
+        ...prev,
+        newPassword: '',
+        confirmPassword: ''
+      }));
 
-      console.log('🔍 UserEdit - Réponse reçue:', response.status, response.statusText);
-      
-      if (response.ok) {
-        const responseData = await response.json();
-        console.log('🔍 UserEdit - Données de réponse:', responseData);
-        setSuccess(true);
-        
-        // Réinitialiser les champs de mot de passe
-        setFormData(prev => ({
-          ...prev,
-          newPassword: '',
-          confirmPassword: ''
-        }));
-        
-        setTimeout(() => {
-          navigate(`/users/${id}`);
-        }, 1500);
-      } else {
-        const errorData = await response.json();
-        console.error('🔍 UserEdit - Erreur mise à jour:', errorData);
-        setError('Erreur lors de la mise à jour: ' + (errorData.message || 'Erreur inconnue'));
-      }
-    } catch (err) {
-      console.error('🔍 UserEdit - Erreur mise à jour:', err);
-      setError('Erreur lors de la mise à jour de l\'utilisateur');
+      setTimeout(() => {
+        navigate(`/users/${id}`);
+      }, 1500);
+    } catch (err: any) {
+      setError('Erreur lors de la mise à jour: ' + (err?.message || 'Erreur inconnue'));
     } finally {
       setSaving(false);
     }
@@ -462,7 +429,7 @@ const UserEdit: React.FC = () => {
                           <Chip
                             label={status.label}
                             size="small"
-                            color={status.color as any}
+                            color={status.color}
                             variant="outlined"
                           />
                         </MuiBox>

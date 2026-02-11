@@ -29,7 +29,7 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { propertiesApi, interventionsApi } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -123,53 +123,40 @@ const PropertyDetails: React.FC = () => {
   useEffect(() => {
     const loadProperty = async () => {
       if (!id) return;
-      
+
       setLoading(true);
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/properties/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
+        const propertyData = await propertiesApi.getById(Number(id)) as any;
+        // Convertir les données du backend vers le format frontend
+        const convertedProperty: PropertyDetailsData = {
+          id: propertyData.id.toString(),
+          name: propertyData.name,
+          address: propertyData.address,
+          city: propertyData.city,
+          postalCode: propertyData.postalCode,
+          country: propertyData.country,
+          propertyType: propertyData.type?.toLowerCase() || 'apartment',
+          status: propertyData.status?.toLowerCase() || 'active',
+          nightlyPrice: propertyData.nightlyPrice || 0,
+          bedrooms: propertyData.bedroomCount || 1,
+          bathrooms: propertyData.bathroomCount || 1,
+          surfaceArea: propertyData.squareMeters || 0,
+          description: propertyData.description || '',
+          amenities: [],
+          cleaningFrequency: propertyData.cleaningFrequency?.toLowerCase() || 'after_each_stay',
+          maxGuests: propertyData.maxGuests || 2,
+          contactPhone: '',
+          contactEmail: '',
+          rating: 4.5,
+          lastCleaning: undefined,
+          nextCleaning: undefined,
+          ownerId: propertyData.ownerId?.toString(),
+          createdAt: propertyData.createdAt,
+          updatedAt: propertyData.updatedAt,
+        };
 
-        if (response.ok) {
-          const propertyData = await response.json();
-          console.log('🔍 PropertyDetails - Propriété chargée:', propertyData);
-          
-          // Convertir les données du backend vers le format frontend
-          const convertedProperty: PropertyDetailsData = {
-            id: propertyData.id.toString(),
-            name: propertyData.name,
-            address: propertyData.address,
-            city: propertyData.city,
-            postalCode: propertyData.postalCode,
-            country: propertyData.country,
-            propertyType: propertyData.type?.toLowerCase() || 'apartment',
-            status: propertyData.status?.toLowerCase() || 'active',
-            nightlyPrice: propertyData.nightlyPrice || 0,
-            bedrooms: propertyData.bedroomCount || 1,
-            bathrooms: propertyData.bathroomCount || 1,
-            surfaceArea: propertyData.squareMeters || 0,
-            description: propertyData.description || '',
-            amenities: [],
-            cleaningFrequency: propertyData.cleaningFrequency?.toLowerCase() || 'after_each_stay',
-            maxGuests: propertyData.maxGuests || 2,
-            contactPhone: '',
-            contactEmail: '',
-            rating: 4.5,
-            lastCleaning: undefined,
-            nextCleaning: undefined,
-            ownerId: propertyData.ownerId?.toString(),
-            createdAt: propertyData.createdAt,
-            updatedAt: propertyData.updatedAt,
-          };
-          
-          setProperty(convertedProperty);
-        } else {
-          setError(t('properties.loadError'));
-        }
+        setProperty(convertedProperty);
       } catch (err) {
-        console.error('🔍 PropertyDetails - Erreur chargement propriété:', err);
         setError(t('properties.loadError'));
       } finally {
         setLoading(false);
@@ -183,22 +170,12 @@ const PropertyDetails: React.FC = () => {
   useEffect(() => {
     const loadInterventions = async () => {
       if (!id) return;
-      
-      try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/interventions?propertyId=${id}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
 
-        if (response.ok) {
-          const data = await response.json();
-          const interventionsList = data.content || data || [];
-          console.log('🔍 PropertyDetails - Interventions chargées:', interventionsList);
-          setInterventions(interventionsList);
-        }
+      try {
+        const data = await interventionsApi.getAll({ propertyId: Number(id) }) as any;
+        const interventionsList = data.content || data || [];
+        setInterventions(interventionsList);
       } catch (err) {
-        console.error('🔍 PropertyDetails - Erreur chargement interventions:', err);
       }
     };
 
@@ -238,7 +215,7 @@ const PropertyDetails: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
     switch (status) {
       case 'active':
         return 'success';
@@ -418,7 +395,7 @@ const PropertyDetails: React.FC = () => {
                           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Statut</Typography>
                           <Chip 
                             label={property.status} 
-                            color={getStatusColor(property.status) as any}
+                            color={getStatusColor(property.status)}
                             size="small"
                             sx={{ height: 22, fontSize: '0.7rem', mt: 0.5 }}
                           />

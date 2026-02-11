@@ -9,6 +9,7 @@ import { CustomPermissionsProvider } from '../hooks/useCustomPermissions';
 import Login from './auth/Login';
 import MainLayoutFull from './layout/MainLayoutFull';
 import AuthenticatedApp from './AuthenticatedApp';
+import { clearTokens, setItem, STORAGE_KEYS } from '../services/storageService';
 
 const App: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -27,8 +28,6 @@ const App: React.FC = () => {
 
   // Gestion de la déconnexion globale
   const handleGlobalLogout = useCallback(() => {
-    console.log('🔍 App - Déconnexion globale demandée');
-    
     // Arrêter le monitoring des tokens
     if (stopTokenMonitoringRef.current) {
       stopTokenMonitoringRef.current();
@@ -48,36 +47,28 @@ const App: React.FC = () => {
     keycloak.refreshToken = undefined;
     
     // Nettoyer localStorage
-    localStorage.removeItem('kc_access_token');
-    localStorage.removeItem('kc_refresh_token');
-    localStorage.removeItem('kc_id_token');
-    localStorage.removeItem('kc_expires_in');
+    clearTokens();
     
     // Rediriger vers la page de connexion immédiatement
-    console.log('🔍 App - Redirection vers /login...');
     navigate('/login', { replace: true });
     
     // Fallback : si la navigation échoue, forcer le rechargement
     setTimeout(() => {
       if (window.location.pathname !== '/login') {
-        console.log('🔍 App - Fallback: rechargement forcé vers /login');
         window.location.href = '/login';
       }
     }, 100);
   }, [navigate]);
 
   // Callbacks pour la gestion des tokens
-  const handleTokenRefresh = useCallback((result: any) => {
-    console.log('🔍 App - Token rafraîchi avec succès:', result);
+  const handleTokenRefresh = useCallback((_result: unknown) => {
   }, []);
 
   const handleTokenExpired = useCallback(() => {
-    console.log('🔍 App - Token expiré, déconnexion...');
     handleGlobalLogout();
   }, [handleGlobalLogout]);
 
   const handleMaxRetriesExceeded = useCallback(() => {
-    console.log('🔍 App - Nombre maximum de tentatives atteint, déconnexion...');
     handleGlobalLogout();
   }, [handleGlobalLogout]);
 
@@ -97,26 +88,22 @@ const App: React.FC = () => {
   useEffect(() => {
     resetTokenServiceRef.current = () => {
       // Le service se réinitialise automatiquement maintenant
-      console.log('TokenService - Réinitialisation automatique');
     };
   }, []);
 
   // Gestion des événements Keycloak
   useEffect(() => {
     const handleAuthLogout = () => {
-      console.log('🔍 App - Déconnexion Keycloak détectée');
       handleGlobalLogout();
     };
 
     const handleCustomAuthSuccess = () => {
-      console.log('🔍 App - Événement d\'authentification personnalisé reçu');
       setAuthenticated(true);
       checkTokenHealth();
       
       // Forcer la mise à jour de l'état Keycloak
       if (keycloak) {
         keycloak.authenticated = true;
-        console.log('🔍 App - État Keycloak mis à jour:', keycloak.authenticated);
       }
       
       // Forcer le rechargement des informations utilisateur
@@ -125,7 +112,6 @@ const App: React.FC = () => {
     };
 
     const handleCustomAuthLogout = () => {
-      console.log('🔍 App - Événement de déconnexion personnalisé reçu');
       // Mettre à jour l'état immédiatement pour éviter l'écran blanc
       setAuthenticated(false);
       // Puis rediriger
@@ -149,10 +135,7 @@ const App: React.FC = () => {
     if (!initialized) {
       const initKeycloak = async () => {
         try {
-          console.log('🔍 App - Initialisation de Keycloak...');
-          
           if (keycloak.authenticated) {
-            console.log('🔍 App - Keycloak déjà initialisé, état:', keycloak.authenticated);
             setAuthenticated(true);
             setInitialized(true);
             
@@ -161,18 +144,16 @@ const App: React.FC = () => {
             
             // Sauvegarder les tokens en localStorage
             if (keycloak.token) {
-              localStorage.setItem('kc_access_token', keycloak.token);
+              setItem(STORAGE_KEYS.ACCESS_TOKEN, keycloak.token);
             }
             if (keycloak.refreshToken) {
-              localStorage.setItem('kc_refresh_token', keycloak.refreshToken);
+              setItem(STORAGE_KEYS.REFRESH_TOKEN, keycloak.refreshToken);
             }
           } else {
-            console.log('🔍 App - Keycloak non authentifié');
             setInitialized(true);
             setAuthenticated(false);
           }
         } catch (error) {
-          console.error('🔍 App - Erreur lors de l\'initialisation de Keycloak:', error);
           setInitialized(true);
           setAuthenticated(false);
         }
@@ -184,7 +165,6 @@ const App: React.FC = () => {
 
   // Affichage du composant de chargement
   if (!initialized || authLoading) {
-    console.log('🔍 App - Affichage du composant de chargement');
     return (
       <Box sx={{ 
         display: 'flex', 
@@ -202,11 +182,7 @@ const App: React.FC = () => {
     );
   }
 
-  console.log('🔍 App - Rendu de l\'application, état:', { initialized, authenticated, user: !!user });
-
   // Rendu de l'application avec routage
-  console.log('🔍 App - Rendu de l\'application avec routage');
-  
   return (
     <CustomPermissionsProvider>
         <Routes>

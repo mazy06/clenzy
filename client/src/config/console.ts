@@ -5,7 +5,7 @@ export const configureConsole = (): void => {
   const originalConsoleWarn = console.warn;
 
   // Filtrer les erreurs d'extensions
-  console.error = (...args: any[]): void => {
+  console.error = (...args: unknown[]): void => {
     const message = args.join(' ');
     
     // Ignorer les erreurs d'extensions
@@ -24,7 +24,7 @@ export const configureConsole = (): void => {
   };
 
   // Filtrer les warnings d'extensions
-  console.warn = (...args: any[]): void => {
+  console.warn = (...args: unknown[]): void => {
     const message = args.join(' ');
     
     // Ignorer les warnings d'extensions
@@ -40,16 +40,15 @@ export const configureConsole = (): void => {
     originalConsoleWarn.apply(console, args);
   };
 
-  console.log('🔧 Console configurée pour filtrer les erreurs d\'extensions');
 };
 
 // Fonction pour restaurer la console originale
 export const restoreConsole = (): void => {
-  if ((window as any).originalConsoleError) {
-    console.error = (window as any).originalConsoleError;
+  const win = window as Window & { originalConsoleError?: typeof console.error; originalConsoleWarn?: typeof console.warn };
+  if (win.originalConsoleError) {
+    console.error = win.originalConsoleError;
   }
-  if ((window as any).originalConsoleWarn) {
-    console.warn = (window as any).originalConsoleWarn;
+  if (win.originalConsoleWarn) {
+    console.warn = win.originalConsoleWarn;
   }
-  console.log('🔧 Console restaurée à son état original');
 };

@@ -33,7 +33,9 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { usersApi } from '../../services/api';
+
+type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
 interface UserDetailsData {
   id: number;
@@ -48,7 +50,7 @@ interface UserDetailsData {
   lastLoginAt?: string;
 }
 
-const userRoles = [
+const userRoles: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor }> = [
   { value: 'ADMIN', label: 'Administrateur', icon: <AdminPanelSettings />, color: 'error' },
   { value: 'MANAGER', label: 'Manager', icon: <SupervisorAccount />, color: 'warning' },
   { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info' },
@@ -57,7 +59,7 @@ const userRoles = [
   { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
 ];
 
-const userStatuses = [
+const userStatuses: Array<{ value: string; label: string; color: ChipColor }> = [
   { value: 'ACTIVE', label: 'Actif', color: 'success' },
   { value: 'INACTIVE', label: 'Inactif', color: 'default' },
   { value: 'SUSPENDED', label: 'Suspendu', color: 'error' },
@@ -93,36 +95,23 @@ const UserDetails: React.FC = () => {
       
       setLoading(true);
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
+        const userData = await usersApi.getById(Number(id));
+        // Convertir les données du backend vers le format frontend
+        const convertedUser: UserDetailsData = {
+          id: (userData as any).id,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email,
+          phoneNumber: (userData as any).phoneNumber,
+          role: userData.role?.toUpperCase() || 'HOST',
+          status: (userData as any).status?.toUpperCase() || 'ACTIVE',
+          createdAt: (userData as any).createdAt,
+          updatedAt: (userData as any).updatedAt,
+          lastLoginAt: (userData as any).lastLoginAt,
+        };
 
-        if (response.ok) {
-          const userData = await response.json();
-          console.log('🔍 UserDetails - Utilisateur chargé:', userData);
-          
-          // Convertir les données du backend vers le format frontend
-          const convertedUser: UserDetailsData = {
-            id: userData.id,
-            firstName: userData.firstName,
-            lastName: userData.lastName,
-            email: userData.email,
-            phoneNumber: userData.phoneNumber,
-            role: userData.role?.toUpperCase() || 'HOST',
-            status: userData.status?.toUpperCase() || 'ACTIVE',
-            createdAt: userData.createdAt,
-            updatedAt: userData.updatedAt,
-            lastLoginAt: userData.lastLoginAt,
-          };
-          
-          setUser(convertedUser);
-        } else {
-          setError('Erreur lors du chargement de l\'utilisateur');
-        }
+        setUser(convertedUser);
       } catch (err) {
-        console.error('🔍 UserDetails - Erreur chargement:', err);
         setError('Erreur lors du chargement de l\'utilisateur');
       } finally {
         setLoading(false);
@@ -252,13 +241,13 @@ const UserDetails: React.FC = () => {
               <Chip
                 icon={<Box sx={{ fontSize: 18 }}>{getRoleInfo(user.role).icon}</Box>}
                 label={getRoleInfo(user.role).label}
-                color={getRoleInfo(user.role).color as any}
+                color={getRoleInfo(user.role).color}
                 size="small"
                 sx={{ height: 22, fontSize: '0.7rem' }}
               />
               <Chip
                 label={getStatusInfo(user.status).label}
-                color={getStatusInfo(user.status).color as any}
+                color={getStatusInfo(user.status).color}
                 size="small"
                 variant="outlined"
                 sx={{ height: 22, fontSize: '0.7rem' }}
@@ -373,7 +362,7 @@ const UserDetails: React.FC = () => {
               <Chip
                 icon={getRoleInfo(user.role).icon}
                 label={getRoleInfo(user.role).label}
-                color={getRoleInfo(user.role).color as any}
+                color={getRoleInfo(user.role).color}
                 sx={{ mb: 2 }}
               />
               <Typography variant="body2" color="text.secondary">
@@ -392,7 +381,7 @@ const UserDetails: React.FC = () => {
               </Typography>
               <Chip
                 label={getStatusInfo(user.status).label}
-                color={getStatusInfo(user.status).color as any}
+                color={getStatusInfo(user.status).color}
                 sx={{ mb: 2 }}
               />
               <Typography variant="body2" color="text.secondary">

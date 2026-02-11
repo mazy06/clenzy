@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { API_CONFIG } from '../config/api';
+import { permissionsApi } from '../services/api';
 import PermissionSyncService from '../services/PermissionSyncService';
 
 export interface RolePermissions {
@@ -20,28 +20,16 @@ export const useRolePermissions = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/roles`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
 
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
+      const rolesData = await permissionsApi.getAllRoles();
+      setRoles(rolesData as any);
 
-      const rolesData = await response.json();
-      setRoles(rolesData);
-      
       // Ne pas sélectionner de rôle par défaut - l'utilisateur doit choisir
       // if (rolesData.length > 0 && !selectedRole) {
       //   setSelectedRole(rolesData[0]);
       // }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement des rôles');
-      console.error('🔍 useRolePermissions - Erreur lors du chargement des rôles:', err);
     } finally {
       setLoading(false);
     }
@@ -50,27 +38,15 @@ export const useRolePermissions = () => {
   // Charger les permissions d'un rôle spécifique
   const loadRolePermissions = useCallback(async (role: string) => {
     if (!role) return;
-    
+
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/roles/${role}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
 
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
-
-      const permissionsData = await response.json();
-      setRolePermissions(permissionsData);
+      const permissionsData = await permissionsApi.getRolePermissions(role);
+      setRolePermissions(permissionsData as any);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement des permissions');
-      console.error('🔍 useRolePermissions - Erreur lors du chargement des permissions:', err);
     } finally {
       setLoading(false);
     }
@@ -81,28 +57,13 @@ export const useRolePermissions = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/roles/${role}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(permissions),
-      });
 
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
+      const updatedRole = await permissionsApi.updateRole(role, permissions);
+      setRolePermissions(updatedRole as any);
 
-      const updatedRole = await response.json();
-      setRolePermissions(updatedRole);
-      
-      console.log('🔧 useRolePermissions - Permissions mises à jour pour le rôle', role, permissions);
       return updatedRole;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour des permissions');
-      console.error('🔍 useRolePermissions - Erreur lors de la mise à jour des permissions:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -114,27 +75,13 @@ export const useRolePermissions = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/roles/${role}/reset`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
 
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
+      const resetRole = await permissionsApi.resetRole(role);
+      setRolePermissions(resetRole as any);
 
-      const resetRole = await response.json();
-      setRolePermissions(resetRole);
-      
-      console.log('🔄 useRolePermissions - Permissions réinitialisées aux valeurs par défaut pour le rôle', role);
       return resetRole;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la réinitialisation des permissions');
-      console.error('🔍 useRolePermissions - Erreur lors de la réinitialisation des permissions:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -146,27 +93,13 @@ export const useRolePermissions = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/roles/${role}/reset-to-initial`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
 
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
+      const resetRole = await permissionsApi.resetRoleToInitial(role);
+      setRolePermissions(resetRole as any);
 
-      const resetRole = await response.json();
-      setRolePermissions(resetRole);
-      
-      console.log('🔄 useRolePermissions - Permissions réinitialisées aux valeurs initiales depuis la base pour le rôle', role);
       return resetRole;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la réinitialisation aux permissions initiales');
-      console.error('🔍 useRolePermissions - Erreur lors de la réinitialisation aux permissions initiales:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -176,10 +109,10 @@ export const useRolePermissions = () => {
   // Activer/désactiver une permission (modification locale uniquement)
   const togglePermission = useCallback((permission: string) => {
     if (!rolePermissions) return;
-    
+
     const currentPermissions = rolePermissions.permissions;
     let newPermissions: string[];
-    
+
     if (currentPermissions.includes(permission)) {
       // Désactiver la permission
       newPermissions = currentPermissions.filter(p => p !== permission);
@@ -187,46 +120,30 @@ export const useRolePermissions = () => {
       // Activer la permission
       newPermissions = [...currentPermissions, permission];
     }
-    
+
     // Mise à jour locale uniquement, pas d'appel API
     setRolePermissions({
       ...rolePermissions,
       permissions: newPermissions,
       isDefault: false // Marquer comme modifié
     });
-    
-    console.log('🔧 useRolePermissions - Permission modifiée localement:', permission, 'pour le rôle', rolePermissions.role);
+
   }, [rolePermissions]);
 
   // Appliquer les changements locaux (appelé lors de la sauvegarde)
   const applyLocalChanges = useCallback(async (role: string) => {
     if (!rolePermissions) return;
-    
+
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/roles/${role}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(rolePermissions.permissions),
-      });
 
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
+      const updatedRole = await permissionsApi.updateRole(role, rolePermissions.permissions);
+      setRolePermissions(updatedRole as any);
 
-      const updatedRole = await response.json();
-      setRolePermissions(updatedRole);
-      
-      console.log('🔧 useRolePermissions - Permissions appliquées pour le rôle', role, rolePermissions.permissions);
       return updatedRole;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'application des permissions');
-      console.error('🔍 useRolePermissions - Erreur lors de l\'application des permissions:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -238,60 +155,44 @@ export const useRolePermissions = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      // Appeler l'endpoint de sauvegarde (pour l'instant, on utilise update)
-      // En production, on pourrait avoir un endpoint spécifique /save
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/roles/${role}/save`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
 
-      if (!response.ok) {
+      let result: any;
+      try {
+        // Appeler l'endpoint de sauvegarde (pour l'instant, on utilise update)
+        // En production, on pourrait avoir un endpoint spécifique /save
+        result = await permissionsApi.saveRole(role, []);
+      } catch (saveErr: any) {
         // Si l'endpoint n'existe pas encore, on simule la sauvegarde
-        if (response.status === 404) {
-          console.log('🔧 useRolePermissions - Endpoint de sauvegarde non implémenté, simulation de la sauvegarde');
-          
+        if (saveErr.status === 404) {
           // Déclencher la synchronisation même en mode simulation
           try {
             const permissionSyncService = PermissionSyncService.getInstance();
             await permissionSyncService.syncAfterPermissionUpdate();
-            console.log('🔄 useRolePermissions - Synchronisation des permissions déclenchée après sauvegarde (simulation)');
           } catch (syncError) {
-            console.warn('⚠️ useRolePermissions - Erreur lors de la synchronisation après sauvegarde (simulation):', syncError);
           }
-          
+
           // Simuler une sauvegarde réussie
           return { success: true, message: 'Permissions sauvegardées (simulation)' };
         }
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+        throw saveErr;
       }
 
-      const result = await response.json();
-      console.log('💾 useRolePermissions - Permissions sauvegardées pour le rôle', role, result);
-      
       // Déclencher la synchronisation des permissions pour tous les utilisateurs
       try {
         const permissionSyncService = PermissionSyncService.getInstance();
         await permissionSyncService.syncAfterPermissionUpdate();
-        console.log('🔄 useRolePermissions - Synchronisation des permissions déclenchée après sauvegarde');
       } catch (syncError) {
-        console.warn('⚠️ useRolePermissions - Erreur lors de la synchronisation après sauvegarde:', syncError);
         // Ne pas faire échouer la sauvegarde à cause de la synchronisation
       }
-      
+
       return result;
     } catch (err) {
       if (err instanceof Error && err.message.includes('404')) {
         // Endpoint non implémenté, on simule la sauvegarde
-        console.log('🔧 useRolePermissions - Simulation de la sauvegarde pour le rôle', role);
         return { success: true, message: 'Permissions sauvegardées (simulation)' };
       }
-      
+
       setError(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde des permissions');
-      console.error('🔍 useRolePermissions - Erreur lors de la sauvegarde des permissions:', err);
       throw err;
     } finally {
       setLoading(false);

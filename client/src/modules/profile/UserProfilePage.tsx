@@ -43,6 +43,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useThemeMode } from '../../hooks/useThemeMode';
+import type { ThemeMode } from '../../hooks/useThemeMode';
 import PageHeader from '../../components/PageHeader';
 
 interface UserProfileData {
@@ -62,6 +64,7 @@ interface UserProfileData {
 const UserProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, clearUser } = useAuth();
+  const { mode: themeMode, setMode: setThemeMode } = useThemeMode();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -104,24 +107,29 @@ const UserProfilePage: React.FC = () => {
         email: user.email || '',
         username: user.username || '',
         language: 'fr',
-        theme: 'light',
+        theme: themeMode,
         notifications: {
           email: true,
           push: true,
           sms: false
         }
       };
-      
+
       setProfileData(userData);
       setOriginalData(userData);
     }
-  }, [user]);
+  }, [user, themeMode]);
 
-  const handleInputChange = (field: keyof UserProfileData, value: any) => {
+  const handleInputChange = (field: keyof UserProfileData, value: string | number | boolean) => {
     setProfileData(prev => ({
       ...prev,
       [field]: value
     }));
+
+    // Appliquer immédiatement le changement de thème
+    if (field === 'theme') {
+      setThemeMode(value as ThemeMode);
+    }
   };
 
   const handleNotificationChange = (type: keyof UserProfileData['notifications']) => {

@@ -1,10 +1,12 @@
-import Keycloak from 'keycloak-js'
+import Keycloak, { KeycloakTokenParsed } from 'keycloak-js'
+import { KEYCLOAK_CONFIG } from './config/api'
+import { setItem, removeItem, getItem, getAccessToken as storageGetAccessToken, STORAGE_KEYS } from './services/storageService'
 
 // Singleton Keycloak instance for the whole app
 const keycloak = new Keycloak({
-  url: 'http://localhost:8083',
-  realm: 'clenzy',
-  clientId: 'clenzy-web',
+  url: KEYCLOAK_CONFIG.URL,
+  realm: KEYCLOAK_CONFIG.REALM,
+  clientId: KEYCLOAK_CONFIG.CLIENT_ID,
 })
 
 // Configuration Keycloak
@@ -16,7 +18,7 @@ keycloak.init({
   pkceMethod: 'S256'
 })
 
-function decodeJwt(token?: string): any | undefined {
+function decodeJwt(token?: string): KeycloakTokenParsed | undefined {
   if (!token) return undefined
   const parts = token.split('.')
   if (parts.length !== 3) return undefined
@@ -29,40 +31,40 @@ function decodeJwt(token?: string): any | undefined {
 }
 
 export function saveTokens(accessToken: string, refreshToken?: string) {
-  localStorage.setItem('kc_access_token', accessToken)
-  if (refreshToken) localStorage.setItem('kc_refresh_token', refreshToken)
+  setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken)
+  if (refreshToken) setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
 }
 
 export function clearTokens() {
-  localStorage.removeItem('kc_access_token')
-  localStorage.removeItem('kc_refresh_token')
+  removeItem(STORAGE_KEYS.ACCESS_TOKEN)
+  removeItem(STORAGE_KEYS.REFRESH_TOKEN)
 }
 
 export function bootstrapFromStorage() {
-  const access = localStorage.getItem('kc_access_token') || ''
-  const refresh = localStorage.getItem('kc_refresh_token') || ''
+  const access = getItem(STORAGE_KEYS.ACCESS_TOKEN) || ''
+  const refresh = getItem(STORAGE_KEYS.REFRESH_TOKEN) || ''
   if (!access) {
-    ;(keycloak as any).authenticated = false
+    ;keycloak.authenticated = false
     return
   }
-  ;(keycloak as any).token = access
-  ;(keycloak as any).refreshToken = refresh
-  ;(keycloak as any).authenticated = true
+  ;keycloak.token = access
+  ;keycloak.refreshToken = refresh
+  ;keycloak.authenticated = true
   const parsed = decodeJwt(access)
   const parsedR = decodeJwt(refresh)
-  ;(keycloak as any).tokenParsed = parsed
-  ;(keycloak as any).refreshTokenParsed = parsedR
+  ;keycloak.tokenParsed = parsed
+  ;keycloak.refreshTokenParsed = parsedR
   if (parsed?.iat) {
     const now = Math.floor(Date.now() / 1000)
-    ;(keycloak as any).timeSkew = now - parsed.iat
+    ;keycloak.timeSkew = now - parsed.iat
   }
 }
 
 export function getAccessToken(): string | null {
-  return (keycloak as any).token || localStorage.getItem('kc_access_token')
+  return keycloak.token || storageGetAccessToken()
 }
 
-export function getParsedAccessToken(): any | undefined {
+export function getParsedAccessToken(): KeycloakTokenParsed | undefined {
   const token = getAccessToken() || undefined
   return decodeJwt(token)
 }

@@ -29,67 +29,74 @@ import {
   PriorityHigh as PriorityIcon,
   Category as CategoryIcon
 } from '@mui/icons-material';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod/v4';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { contactApi } from '../../services/api';
+import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
+import { contactSchema } from '../../schemas';
+import type { ContactFormValues } from '../../schemas';
+import ContactTemplates from './ContactTemplates';
 
-interface ContactFormData {
-  recipientId: string;
-  subject: string;
-  message: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  category: 'GENERAL' | 'TECHNICAL' | 'MAINTENANCE' | 'CLEANING' | 'EMERGENCY';
-  attachments: File[];
-}
+type ContactFormInput = z.input<typeof contactSchema>;
 
-interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
+type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+
+import type { Recipient } from '../../services/api';
+
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
 const ContactForm: React.FC = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const isRestrictedUser = user?.roles?.includes('HOST') || user?.roles?.includes('HOUSEKEEPER') || user?.roles?.includes('TECHNICIAN') || user?.roles?.includes('SUPERVISOR');
-  const [formData, setFormData] = useState<ContactFormData>({
-    recipientId: '',
-    subject: '',
-    message: '',
-    priority: 'MEDIUM',
-    category: 'GENERAL',
-    attachments: []
+
+  const {
+    control,
+    handleSubmit: rhfHandleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<ContactFormInput, unknown, ContactFormValues>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      recipientId: '',
+      subject: '',
+      message: '',
+      priority: 'MEDIUM',
+      category: 'GENERAL',
+    },
   });
 
-  const [usersList, setUsersList] = useState<User[]>([]);
+  const messageValue = watch('message');
+
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [usersList, setUsersList] = useState<Recipient[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Charger la liste des destinataires autorisés
+  // Charger la liste des destinataires autorises
   useEffect(() => {
     const loadRecipients = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/contact/recipients`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (response.ok) {
-          const users = await response.json();
-          setUsersList(users);
-          console.log('📊 ContactForm - Destinataires autorisés chargés:', users.length);
-        } else {
-          console.error('❌ Erreur lors du chargement des destinataires');
-        }
-      } catch (error) {
-        console.error('❌ Erreur lors du chargement des destinataires:', error);
+        const users = await contactApi.getRecipients();
+        setUsersList(users);
+      } catch (_err) {
       } finally {
         setLoading(false);
       }
@@ -98,88 +105,58 @@ const ContactForm: React.FC = () => {
     loadRecipients();
   }, []);
 
-  const handleInputChange = (field: keyof ContactFormData, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    setError(null);
-  };
-
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
       const fileArray = Array.from(files);
-      setFormData(prev => ({
-        ...prev,
-        attachments: [...prev.attachments, ...fileArray]
-      }));
+      // Filter files that exceed the max size
+      const validFiles = fileArray.filter(f => f.size <= MAX_FILE_SIZE_BYTES);
+      if (validFiles.length < fileArray.length) {
+        setError(t('contact.errors.fileTooLarge', { max: `${MAX_FILE_SIZE_MB} MB` }) || `Fichier trop volumineux (max ${MAX_FILE_SIZE_MB} MB)`);
+      }
+      setAttachments(prev => [...prev, ...validFiles]);
     }
   };
 
   const removeAttachment = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      attachments: prev.attachments.filter((_, i) => i !== index)
-    }));
+    setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    
-    if (!formData.recipientId || !formData.subject || !formData.message) {
-      setError('Veuillez remplir tous les champs obligatoires');
-      return;
-    }
+  const handleSelectTemplate = (text: string) => {
+    const current = messageValue || '';
+    setValue('message', current ? `${current}\n${text}` : text);
+  };
 
+  const onSubmit = async (data: ContactFormValues) => {
     try {
       setSubmitting(true);
       setError(null);
 
       const formDataToSend = new FormData();
-      formDataToSend.append('recipientId', formData.recipientId);
-      formDataToSend.append('subject', formData.subject);
-      formDataToSend.append('message', formData.message);
-      formDataToSend.append('priority', formData.priority);
-      formDataToSend.append('category', formData.category);
+      formDataToSend.append('recipientId', data.recipientId);
+      formDataToSend.append('subject', data.subject);
+      formDataToSend.append('message', data.message);
+      formDataToSend.append('priority', data.priority);
+      formDataToSend.append('category', data.category);
 
-      // Ajouter les pièces jointes
-      formData.attachments.forEach((file, index) => {
-        formDataToSend.append(`attachments`, file);
+      // Ajouter les pieces jointes
+      attachments.forEach((file) => {
+        formDataToSend.append('attachments', file);
       });
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/contact/messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`
-        },
-        body: formDataToSend
-      });
-
-      if (response.ok) {
-        setSuccess(t('contact.success.messageSent'));
-        setFormData({
-          recipientId: '',
-          subject: '',
-          message: '',
-          priority: 'MEDIUM',
-          category: 'GENERAL',
-          attachments: []
-        });
-      } else {
-        const errorData = await response.json();
-        setError(errorData.message || t('contact.errors.sendError'));
-      }
-    } catch (error) {
-      console.error('❌ Erreur lors de l\'envoi du message:', error);
+      await apiClient.upload('/contact/messages', formDataToSend);
+      setSuccess(t('contact.success.messageSent'));
+      reset();
+      setAttachments([]);
+    } catch (_err) {
       setError(t('contact.errors.connectionError'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Générer les options avec traductions
-  const priorityOptions = [
+  // Generer les options avec traductions
+  const priorityOptions: Array<{ value: string; label: string; color: ChipColor }> = [
     { value: 'LOW', label: t('contact.priorities.low'), color: 'success' },
     { value: 'MEDIUM', label: t('contact.priorities.medium'), color: 'info' },
     { value: 'HIGH', label: t('contact.priorities.high'), color: 'warning' },
@@ -221,114 +198,171 @@ const ContactForm: React.FC = () => {
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={rhfHandleSubmit(onSubmit)}>
             <Grid container spacing={3}>
-              {/* Destinataire */}
+              {/* Destinataire - Autocomplete */}
               <Grid item xs={12}>
-                <FormControl fullWidth required>
-                  <InputLabel>{t('contact.recipient')}</InputLabel>
-                  <Select
-                    value={formData.recipientId}
-                    onChange={(e) => handleInputChange('recipientId', e.target.value)}
-                    disabled={loading}
-                  >
-                    {usersList.map((user) => (
-                      <MenuItem key={user.id} value={user.id}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <PersonIcon fontSize="small" />
-                          <Box>
-                            <Typography variant="body2">
-                              {user.firstName} {user.lastName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {user.email} • {user.role}
-                            </Typography>
+                <Controller
+                  name="recipientId"
+                  control={control}
+                  render={({ field }) => (
+                    <Autocomplete
+                      options={usersList}
+                      getOptionLabel={(option) => `${option.firstName} ${option.lastName} (${option.email})`}
+                      value={usersList.find(u => u.id === field.value) || null}
+                      onChange={(_, newValue) => {
+                        field.onChange(newValue ? newValue.id : '');
+                      }}
+                      loading={loading}
+                      disabled={loading}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                      renderOption={(props, option) => (
+                        <li {...props} key={option.id}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <PersonIcon fontSize="small" />
+                            <Box>
+                              <Typography variant="body2">
+                                {option.firstName} {option.lastName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {option.email} - {option.role}
+                              </Typography>
+                            </Box>
                           </Box>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                        </li>
+                      )}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={t('contact.recipient')}
+                          error={!!errors.recipientId}
+                          helperText={errors.recipientId?.message}
+                          InputProps={{
+                            ...params.InputProps,
+                            startAdornment: (
+                              <>
+                                <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                                {params.InputProps.startAdornment}
+                              </>
+                            ),
+                          }}
+                        />
+                      )}
+                    />
+                  )}
+                />
               </Grid>
 
               {/* Sujet */}
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={t('contact.subject')}
-                  value={formData.subject}
-                  onChange={(e) => handleInputChange('subject', e.target.value)}
-                  required
-                  InputProps={{
-                    startAdornment: <SubjectIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                  }}
+                <Controller
+                  name="subject"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label={t('contact.subject')}
+                      error={!!errors.subject}
+                      helperText={errors.subject?.message}
+                      InputProps={{
+                        startAdornment: <SubjectIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                      }}
+                    />
+                  )}
                 />
               </Grid>
 
-              {/* Priorité et Catégorie */}
+              {/* Priorite et Categorie */}
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>{t('contact.priority')}</InputLabel>
-                  <Select
-                    value={formData.priority}
-                    onChange={(e) => handleInputChange('priority', e.target.value)}
-                  >
-                    {priorityOptions.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        <Chip
-                          label={option.label}
-                          size="small"
-                          color={option.color as any}
-                          sx={{ mr: 1 }}
-                        />
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <Controller
+                  name="priority"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth error={!!errors.priority}>
+                      <InputLabel>{t('contact.priority')}</InputLabel>
+                      <Select {...field}>
+                        {priorityOptions.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            <Chip
+                              label={option.label}
+                              size="small"
+                              color={option.color}
+                              sx={{ mr: 1 }}
+                            />
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {errors.priority && (
+                        <FormHelperText>{errors.priority.message}</FormHelperText>
+                      )}
+                    </FormControl>
+                  )}
+                />
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>{t('contact.category')}</InputLabel>
-                  <Select
-                    value={formData.category}
-                    onChange={(e) => handleInputChange('category', e.target.value)}
-                  >
-                    {categoryOptions.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        <CategoryIcon sx={{ mr: 1, fontSize: 16 }} />
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <Controller
+                  name="category"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth error={!!errors.category}>
+                      <InputLabel>{t('contact.category')}</InputLabel>
+                      <Select {...field}>
+                        {categoryOptions.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            <CategoryIcon sx={{ mr: 1, fontSize: 16 }} />
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {errors.category && (
+                        <FormHelperText>{errors.category.message}</FormHelperText>
+                      )}
+                    </FormControl>
+                  )}
+                />
               </Grid>
 
-              {/* Message */}
+              {/* Message with template button */}
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={t('contact.message')}
-                  multiline
-                  rows={6}
-                  value={formData.message}
-                  onChange={(e) => handleInputChange('message', e.target.value)}
-                  required
-                  InputProps={{
-                    startAdornment: <MessageIcon sx={{ mr: 1, color: 'text.secondary', alignSelf: 'flex-start', mt: 1 }} />
-                  }}
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+                  <ContactTemplates onSelectTemplate={handleSelectTemplate} />
+                </Box>
+                <Controller
+                  name="message"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label={t('contact.message')}
+                      multiline
+                      rows={6}
+                      error={!!errors.message}
+                      helperText={errors.message?.message}
+                      InputProps={{
+                        startAdornment: <MessageIcon sx={{ mr: 1, color: 'text.secondary', alignSelf: 'flex-start', mt: 1 }} />
+                      }}
+                    />
+                  )}
                 />
               </Grid>
 
-              {/* Pièces jointes */}
+              {/* Pieces jointes */}
               <Grid item xs={12}>
                 <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    <AttachFileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    {t('contact.attachments')}
-                  </Typography>
-                  
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="subtitle2">
+                      <AttachFileIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                      {t('contact.attachments')}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Max {MAX_FILE_SIZE_MB} MB / {t('contact.attachmentCount')}
+                    </Typography>
+                  </Box>
+
                   <input
                     type="file"
                     multiple
@@ -347,15 +381,15 @@ const ContactForm: React.FC = () => {
                     </Button>
                   </label>
 
-                  {formData.attachments.length > 0 && (
+                  {attachments.length > 0 && (
                     <Box sx={{ mt: 2 }}>
                       <Typography variant="body2" color="text.secondary" gutterBottom>
                         {t('contact.selectedFiles')}
                       </Typography>
-                      {formData.attachments.map((file, index) => (
+                      {attachments.map((file, index) => (
                         <Chip
                           key={index}
-                          label={file.name}
+                          label={`${file.name} (${formatFileSize(file.size)})`}
                           onDelete={() => removeAttachment(index)}
                           size="small"
                           sx={{ mr: 1, mb: 1 }}
@@ -371,14 +405,10 @@ const ContactForm: React.FC = () => {
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                   <Button
                     variant="outlined"
-                    onClick={() => setFormData({
-                      recipientId: '',
-                      subject: '',
-                      message: '',
-                      priority: 'MEDIUM',
-                      category: 'GENERAL',
-                      attachments: []
-                    })}
+                    onClick={() => {
+                      reset();
+                      setAttachments([]);
+                    }}
                     disabled={submitting}
                   >
                     {t('contact.cancel')}

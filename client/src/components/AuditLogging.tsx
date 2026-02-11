@@ -186,7 +186,6 @@ const AuditLogging: React.FC = () => {
       
     } catch (err) {
       setError('Erreur lors de la récupération des logs d\'audit');
-      console.error('Erreur AuditLogging:', err);
     } finally {
       setLoading(false);
     }
@@ -231,7 +230,7 @@ const AuditLogging: React.FC = () => {
     }
   };
 
-  const getLevelColor = (level: string) => {
+  const getLevelColor = (level: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
     switch (level) {
       case 'INFO':
         return 'info';
@@ -441,7 +440,7 @@ const AuditLogging: React.FC = () => {
                         </Typography>
                         <Chip 
                           label={log.level}
-                          color={getLevelColor(log.level) as any}
+                          color={getLevelColor(log.level)}
                           size="small"
                         />
                         <Chip 

@@ -26,8 +26,6 @@ export class PermissionSyncService {
       return; // Déjà initialisé pour cet utilisateur
     }
 
-    console.log('🔄 PermissionSyncService - Initialisation pour utilisateur:', user.id);
-    
     this.currentUser = user;
     this.isInitialized = true;
 
@@ -39,8 +37,6 @@ export class PermissionSyncService {
    * Arrête le service de synchronisation
    */
   public shutdown(): void {
-    console.log('🔄 PermissionSyncService - Arrêt du service');
-    
     this.currentUser = null;
     this.isInitialized = false;
   }
@@ -53,7 +49,6 @@ export class PermissionSyncService {
       throw new Error('Service non initialisé');
     }
 
-    console.log('🔄 PermissionSyncService - Synchronisation immédiate demandée');
     return this.adapter.forceSync(this.currentUser.id);
   }
 
@@ -69,21 +64,16 @@ export class PermissionSyncService {
    */
   public async syncAfterPermissionUpdate(): Promise<void> {
     if (!this.currentUser) {
-      console.warn('⚠️ PermissionSyncService - Aucun utilisateur connecté pour la synchronisation');
       return;
     }
 
-    console.log('🔄 PermissionSyncService - Synchronisation après modification des permissions');
-    
     try {
       const updatedPermissions = await this.adapter.forceSync(this.currentUser.id);
-      
+
       // Émettre l'événement de mise à jour
       this.handlePermissionUpdate(updatedPermissions);
-      
-      console.log('✅ PermissionSyncService - Synchronisation réussie après modification');
+
     } catch (error) {
-      console.error('❌ PermissionSyncService - Erreur lors de la synchronisation après modification:', error);
     }
   }
 
@@ -91,8 +81,6 @@ export class PermissionSyncService {
    * Gère les mises à jour de permissions reçues
    */
   private handlePermissionUpdate(permissions: string[]): void {
-    console.log('🔄 PermissionSyncService - Mise à jour des permissions reçue:', permissions);
-    
     // Émettre un événement personnalisé pour notifier l'application
     const event = new CustomEvent('permissions-updated', {
       detail: {
@@ -101,7 +89,7 @@ export class PermissionSyncService {
         timestamp: Date.now()
       }
     });
-    
+
     window.dispatchEvent(event);
   }
 

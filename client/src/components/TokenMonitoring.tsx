@@ -35,7 +35,7 @@ import {
   Visibility,
   VisibilityOff
 } from '@mui/icons-material';
-import TokenService from '../services/TokenService';
+import TokenService, { TokenStats, TokenMetrics } from '../services/TokenService';
 
 interface TokenInfo {
   tokenId: string;
@@ -48,8 +48,8 @@ interface TokenInfo {
 }
 
 const TokenMonitoring: React.FC = () => {
-  const [tokenStats, setTokenStats] = useState<any>(null);
-  const [tokenMetrics, setTokenMetrics] = useState<any>(null);
+  const [tokenStats, setTokenStats] = useState<TokenStats | null>(null);
+  const [tokenMetrics, setTokenMetrics] = useState<TokenMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showTokenDetails, setShowTokenDetails] = useState(false);
   const [selectedToken, setSelectedToken] = useState<TokenInfo | null>(null);
@@ -69,7 +69,6 @@ const TokenMonitoring: React.FC = () => {
       if (metrics) setTokenMetrics(metrics);
       
     } catch (error) {
-      console.error('Erreur lors du chargement des statistiques:', error);
       setError('Impossible de charger les statistiques des tokens');
     } finally {
       setIsLoading(false);
@@ -82,13 +81,11 @@ const TokenMonitoring: React.FC = () => {
       const result = await tokenService.cleanupExpiredTokens();
       
       if (result.success) {
-        console.log(`${result.cleanedCount} tokens nettoyés`);
         await loadTokenStats(); // Recharger les stats
       } else {
         setError(`Erreur lors du nettoyage: ${result.error}`);
       }
     } catch (error) {
-      console.error('Erreur lors du nettoyage:', error);
       setError('Erreur lors du nettoyage des tokens');
     } finally {
       setIsLoading(false);
@@ -99,11 +96,9 @@ const TokenMonitoring: React.FC = () => {
     try {
       const result = await tokenService.validateTokenBackend(token);
       if (result) {
-        console.log('Token validé:', result);
         return result;
       }
     } catch (error) {
-      console.error('Erreur lors de la validation:', error);
     }
     return null;
   };

@@ -80,8 +80,6 @@ const ServiceRequestCreate: React.FC = () => {
                 if (form) {
                   const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
                   form.dispatchEvent(submitEvent);
-                } else {
-                  console.error('🔍 ServiceRequestCreate - Formulaire non trouvé');
                 }
               }}
               startIcon={<Save />}

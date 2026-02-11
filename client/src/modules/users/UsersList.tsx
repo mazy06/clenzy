@@ -50,9 +50,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
-import { API_CONFIG } from '../../config/api';
+import { usersApi } from '../../services/api';
+import apiClient from '../../services/apiClient';
 import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
 import { createSpacing } from '../../theme/spacing';
+import ExportButton from '../../components/ExportButton';
+import type { ExportColumn } from '../../utils/exportUtils';
 
 interface User {
   id: number;
@@ -65,7 +68,9 @@ interface User {
   createdAt: string;
 }
 
-const userRoles = [
+type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+
+const userRoles: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor }> = [
   { value: 'ADMIN', label: 'Administrateur', icon: <AdminPanelSettings />, color: 'error' },
   { value: 'MANAGER', label: 'Manager', icon: <SupervisorAccount />, color: 'warning' },
   { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info' },
@@ -116,24 +121,10 @@ const UsersList: React.FC = () => {
     const loadUsers = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/users`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const usersList = data.content || data;
-          console.log('🔍 UsersList - Utilisateurs chargés:', usersList);
-          setUsers(usersList);
-        } else {
-          console.error('🔍 UsersList - Erreur API:', response.status);
-          // En cas d'erreur, tableau vide
-          setUsers([]);
-        }
+        const data = await usersApi.getAll();
+        const usersList = (data as any).content || data;
+        setUsers(usersList);
       } catch (err) {
-        console.error('🔍 UsersList - Erreur chargement:', err);
         // En cas d'erreur, tableau vide
         setUsers([]);
       } finally {
@@ -146,7 +137,6 @@ const UsersList: React.FC = () => {
 
   // Si pas de permission, afficher un message informatif
   if (!user || !canManageUsers) {
-    console.log('🔍 UsersList - Permission refusée ou utilisateur non chargé');
     return (
       <Box sx={{ p: 2 }}>
         <Alert severity="info" sx={{ p: 2, py: 1 }}>
@@ -203,43 +193,14 @@ const UsersList: React.FC = () => {
   const handleSyncUsers = async () => {
     setSyncing(true);
     try {
-      console.log('🔄 Début de la synchronisation des utilisateurs...');
-      
       // Appeler l'endpoint de synchronisation forcée pour recréer complètement les utilisateurs
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/sync/force-sync-all-to-keycloak`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-      });
+      await apiClient.post('/sync/force-sync-all-to-keycloak');
 
-      if (response.ok) {
-        const result = await response.text();
-        console.log('✅ Synchronisation réussie:', result);
-        
-        // Recharger la liste des utilisateurs pour voir les changements
-        const usersResponse = await fetch(`${API_CONFIG.BASE_URL}/api/users`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
-        
-        if (usersResponse.ok) {
-          const data = await usersResponse.json();
-          const usersList = data.content || data;
-          setUsers(usersList);
-        }
-        
-        // Message de succès dans la console (plus élégant que alert)
-        console.log('✅ Synchronisation réussie ! Les utilisateurs ont été synchronisés avec Keycloak.');
-      } else {
-        const errorText = await response.text();
-        console.error('❌ Erreur de synchronisation:', errorText);
-        console.error('❌ Erreur lors de la synchronisation: ' + errorText);
-      }
+      // Recharger la liste des utilisateurs pour voir les changements
+      const data = await usersApi.getAll();
+      const usersList = (data as any).content || data;
+      setUsers(usersList);
     } catch (err) {
-      console.error('❌ Erreur de synchronisation:', err);
-      console.error('❌ Erreur lors de la synchronisation: ' + err);
     } finally {
       setSyncing(false);
     }
@@ -252,25 +213,14 @@ const UsersList: React.FC = () => {
 
     setSaving(true);
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/${selectedUser.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-        body: JSON.stringify(editFormData),
-      });
-
-      if (response.ok) {
-        // Mettre à jour la liste locale
-        setUsers(prev => prev.map(u => 
-          u.id === selectedUser.id ? { ...u, ...editFormData } : u
-        ));
-        setEditDialogOpen(false);
-        setEditFormData({});
-      }
+      await usersApi.update(selectedUser.id, editFormData as any);
+      // Mettre à jour la liste locale
+      setUsers(prev => prev.map(u =>
+        u.id === selectedUser.id ? { ...u, ...editFormData } : u
+      ));
+      setEditDialogOpen(false);
+      setEditFormData({});
     } catch (err) {
-      console.error('🔍 UsersList - Erreur mise à jour:', err);
     } finally {
       setSaving(false);
     }
@@ -279,18 +229,9 @@ const UsersList: React.FC = () => {
   const confirmDelete = async () => {
     if (selectedUser) {
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/${selectedUser.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
-
-        if (response.ok) {
-          setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
-        }
+        await usersApi.delete(selectedUser.id);
+        setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
       } catch (err) {
-        console.error('🔍 UsersList - Erreur suppression:', err);
       }
     }
     setDeleteDialogOpen(false);
@@ -329,6 +270,17 @@ const UsersList: React.FC = () => {
     });
   };
 
+  const exportColumns: ExportColumn[] = [
+    { key: 'id', label: 'ID' },
+    { key: 'firstName', label: 'Prénom' },
+    { key: 'lastName', label: 'Nom' },
+    { key: 'email', label: 'Email' },
+    { key: 'phoneNumber', label: 'Téléphone' },
+    { key: 'role', label: 'Rôle', formatter: (v: string) => getRoleInfo(v).label },
+    { key: 'status', label: 'Statut', formatter: (v: string) => getStatusInfo(v).label },
+    { key: 'createdAt', label: 'Date de création', formatter: (v: string) => v ? new Date(v).toLocaleDateString('fr-FR') : '' },
+  ];
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
@@ -346,6 +298,11 @@ const UsersList: React.FC = () => {
         showBackButton={false}
         actions={
           <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <ExportButton
+              data={filteredUsers}
+              columns={exportColumns}
+              fileName="utilisateurs"
+            />
             <Button
               variant="outlined"
               color="secondary"
@@ -504,13 +461,13 @@ const UsersList: React.FC = () => {
                     <Chip
                       icon={getRoleInfo(user.role).icon}
                       label={getRoleInfo(user.role).label}
-                      color={getRoleInfo(user.role).color as any}
+                      color={getRoleInfo(user.role).color}
                       size="small"
                       sx={{ height: 20, fontSize: '0.7rem' }}
                     />
                     <Chip
                       label={getStatusInfo(user.status).label}
-                      color={getStatusInfo(user.status).color as any}
+                      color={getStatusInfo(user.status).color}
                       size="small"
                       variant="outlined"
                       sx={{ height: 20, fontSize: '0.7rem' }}

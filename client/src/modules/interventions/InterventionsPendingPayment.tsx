@@ -26,7 +26,8 @@ import {
   Euro as EuroIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { interventionsApi } from '../../services/api';
+import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
@@ -69,31 +70,19 @@ const InterventionsPendingPayment: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/interventions?status=AWAITING_PAYMENT`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
 
-      if (response.ok) {
-        const data = await response.json();
-        // Le backend devrait déjà filtrer, mais on s'assure que ce sont bien les interventions du propriétaire
-        const allInterventions = data.content || data;
-        // Filtrer pour ne garder que les interventions du propriétaire connecté
-        const userInterventions = allInterventions.filter((intervention: Intervention) => {
-          const userFullName = user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
-          return intervention.requestorName === userFullName ||
-                 intervention.requestorName === user?.username ||
-                 intervention.requestorName === user?.email;
-        });
-        setInterventions(userInterventions);
-      } else {
-        setError('Erreur lors du chargement des interventions');
-      }
+      const data = await interventionsApi.getAll({ status: 'AWAITING_PAYMENT' } as any);
+      // Le backend devrait déjà filtrer, mais on s'assure que ce sont bien les interventions du propriétaire
+      const allInterventions = (data as any).content || data;
+      // Filtrer pour ne garder que les interventions du propriétaire connecté
+      const userInterventions = allInterventions.filter((intervention: Intervention) => {
+        const userFullName = user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+        return intervention.requestorName === userFullName ||
+               intervention.requestorName === user?.username ||
+               intervention.requestorName === user?.email;
+      });
+      setInterventions(userInterventions);
     } catch (err) {
-      console.error('Erreur chargement interventions:', err);
       setError('Erreur de connexion');
     } finally {
       setLoading(false);
@@ -110,30 +99,15 @@ const InterventionsPendingPayment: React.FC = () => {
       setProcessingPayment(intervention.id);
       setError(null);
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/payments/create-session`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          interventionId: intervention.id,
-          amount: intervention.estimatedCost
-        })
+      const paymentData = await apiClient.post<{ url: string }>('/payments/create-session', {
+        interventionId: intervention.id,
+        amount: intervention.estimatedCost
       });
 
-      if (response.ok) {
-        const paymentData = await response.json();
-        // Rediriger vers Stripe Checkout
-        window.location.href = paymentData.url;
-      } else {
-        const errorData = await response.json();
-        setError(errorData.message || 'Erreur lors de la création de la session de paiement');
-        setProcessingPayment(null);
-      }
-    } catch (err) {
-      console.error('Erreur paiement:', err);
-      setError('Erreur de connexion');
+      // Rediriger vers Stripe Checkout
+      window.location.href = paymentData.url;
+    } catch (err: any) {
+      setError(err.message || 'Erreur de connexion');
       setProcessingPayment(null);
     }
   };

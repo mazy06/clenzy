@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuth } from './useAuth';
+import { useAuth, AuthUser } from './useAuth';
 import keycloak from '../keycloak';
 
 export interface LayoutState {
-  user: any;
+  user: AuthUser | null;
   isAuthenticated: boolean;
   isInitialized: boolean;
   loading: boolean;
@@ -19,7 +19,7 @@ interface UseLayoutStateReturn extends LayoutState {
 
 export const useLayoutState = (): UseLayoutStateReturn => {
   const { user, loading: authLoading, restoreKeycloakState } = useAuth();
-  
+
   const [state, setState] = useState<LayoutState>({
     user: null,
     isAuthenticated: false,
@@ -31,29 +31,27 @@ export const useLayoutState = (): UseLayoutStateReturn => {
   });
 
   // Vérifier si les fonctions de rôles sont définies
-  const checkRoleFunctions = useCallback((authUser: any) => {
+  const checkRoleFunctions = useCallback((authUser: AuthUser | null) => {
     if (!authUser) return false;
-    
+
     try {
       // Pour l'utilisateur de useAuth, on considère que les fonctions sont toujours définies
       // car elles sont gérées par le hook useAuth lui-même
       return true;
     } catch (error) {
-      console.error('Error checking role functions:', error);
       return false;
     }
   }, []);
 
   // Vérifier si le composant peut être rendu
-  const checkCanRender = useCallback((authUser: any, functionsDefined: boolean) => {
+  const checkCanRender = useCallback((authUser: AuthUser | null, functionsDefined: boolean) => {
     if (!authUser || !functionsDefined) return false;
-    
+
     try {
       // Test simple des fonctions de rôles
       // Note: On ne les appelle pas pour éviter les erreurs, on vérifie juste qu'elles existent
       return true;
     } catch (error) {
-      console.error('Error testing role functions:', error);
       return false;
     }
   }, []);
@@ -62,16 +60,16 @@ export const useLayoutState = (): UseLayoutStateReturn => {
   const refreshUser = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
-      
+
       // Tenter de restaurer l'état Keycloak si nécessaire
       if (!user && !keycloak.authenticated) {
         await restoreKeycloakState();
       }
-      
+
       // Mettre à jour l'état
       const functionsDefined = checkRoleFunctions(user);
       const canRender = checkCanRender(user, functionsDefined);
-      
+
       setState(prev => ({
         ...prev,
         user,
@@ -101,7 +99,7 @@ export const useLayoutState = (): UseLayoutStateReturn => {
     if (user?.id) {
       const functionsDefined = checkRoleFunctions(user);
       const canRender = checkCanRender(user, functionsDefined);
-      
+
       setState(prev => ({
         ...prev,
         user,
