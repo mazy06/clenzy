@@ -1,3 +1,12 @@
+# ===========================================
+# Clenzy PMS - Profil STAGING
+# ===========================================
+# Miroir de la production avec :
+# - Swagger activé (pour les tests API)
+# - Logs plus verbeux (debug pour Clenzy, info pour Spring)
+# - ddl-auto: update (migrations automatiques)
+# - Toutes les variables externalisées (pas de valeurs par défaut)
+
 server:
   port: 8080
 
@@ -8,7 +17,7 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     open-in-view: false
     properties:
       hibernate:
@@ -29,48 +38,18 @@ keycloak:
   credentials:
     secret: ${KEYCLOAK_CLIENT_SECRET}
 
-# Kafka
-  kafka:
-    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:clenzy-kafka:9092}
-    consumer:
-      group-id: clenzy-backend
-      auto-offset-reset: earliest
-    producer:
-      acks: all
-
-# Airbnb Integration
-airbnb:
-  api:
-    base-url: https://api.airbnb.com/v2
-  oauth:
-    client-id: ${AIRBNB_CLIENT_ID:}
-    client-secret: ${AIRBNB_CLIENT_SECRET:}
-    redirect-uri: ${AIRBNB_REDIRECT_URI:}
-    authorization-url: https://www.airbnb.com/oauth2/auth
-    token-url: https://api.airbnb.com/v2/oauth2/authorizations
-    scopes: listings_r,reservations_r,reservations_w,calendar_r,calendar_w,messages_r,messages_w
-  webhook:
-    secret: ${AIRBNB_WEBHOOK_SECRET:}
-  sync:
-    enabled: true
-    interval-minutes: 15
-
-# Jasypt (chiffrement des tokens en base)
-jasypt:
-  encryptor:
-    password: ${JASYPT_ENCRYPTOR_PASSWORD}
-
-# Swagger desactive en production
+# Swagger activé en staging (tests API)
 springdoc:
   api-docs:
-    enabled: false
+    enabled: true
   swagger-ui:
-    enabled: false
+    enabled: true
+    path: /swagger-ui.html
 
 cors:
   allowed-origins: ${ALLOWED_ORIGINS}
 
-# Stripe
+# Stripe (mode test)
 stripe:
   secret-key: ${STRIPE_SECRET_KEY}
   publishable-key: ${STRIPE_PUBLISHABLE_KEY}
@@ -93,10 +72,10 @@ management:
       prometheus:
         enabled: true
 
-# Logging
+# Logging (plus verbeux qu'en prod)
 logging:
   level:
-    org.hibernate.SQL: warn
-    org.springframework.web: warn
-    com.clenzy: info
-    org.springframework.security: warn
+    org.hibernate.SQL: info
+    org.springframework.web: info
+    com.clenzy: debug
+    org.springframework.security: info
