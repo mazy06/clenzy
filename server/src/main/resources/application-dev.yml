@@ -2,8 +2,8 @@ spring:
   datasource:
     url: jdbc:postgresql://postgres:5432/clenzy_dev
     driver-class-name: org.postgresql.Driver
-    username: clenzy
-    password: clenzy123
+    username: ${SPRING_DATASOURCE_USERNAME:clenzy}
+    password: ${SPRING_DATASOURCE_PASSWORD:clenzy123}
     # Configuration HikariCP optimisée pour faible charge
     hikari:
       maximum-pool-size: 10
@@ -58,11 +58,11 @@ keycloak:
   realm: clenzy
   resource: clenzy-web
   credentials:
-    secret: ""
+    secret: ${KEYCLOAK_CLIENT_SECRET:}
   # Configuration pour le client admin
   admin:
-    username: admin
-    password: admin
+    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
     client-id: admin-cli
 
 logging:

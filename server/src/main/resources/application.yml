@@ -10,10 +10,10 @@ keycloak:
   realm: clenzy
   resource: clenzy-web
   credentials:
-    secret: ""
+    secret: ${KEYCLOAK_CLIENT_SECRET:}
   admin:
-    username: admin
-    password: admin
+    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
     client-id: admin-cli
 
 server:

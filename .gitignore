@@ -10,8 +10,10 @@ build/
 dist/
 target/
 
-# Environment variables
+# Environment variables (secrets - ne jamais commiter)
 .env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local

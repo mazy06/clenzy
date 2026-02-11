@@ -1,8 +1,10 @@
 package com.clenzy.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -13,6 +15,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.filter.CorsFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.core.Ordered;
@@ -22,6 +25,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -33,20 +37,44 @@ import java.util.stream.Collectors;
 @Profile("prod")
 public class SecurityConfigProd {
 
+    @Value("${cors.allowed-origins:https://app.clenzy.fr}")
+    private String allowedOrigins;
+
+    private List<String> getAllowedOriginsList() {
+        return Arrays.asList(allowedOrigins.split(","));
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+                .headers(headers -> headers
+                    .frameOptions(frame -> frame.deny())                              // X-Frame-Options: DENY
+                    .contentTypeOptions(Customizer.withDefaults())                     // X-Content-Type-Options: nosniff
+                    .httpStrictTransportSecurity(hsts -> hsts
+                        .includeSubDomains(true)
+                        .maxAgeInSeconds(31536000)
+                        .preload(true)
+                    )
+                    .referrerPolicy(referrer -> referrer
+                        .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+                    )
+                    .permissionsPolicy(permissions -> permissions
+                        .policy("camera=(), microphone=(), geolocation=(), payment=()")
+                    )
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Endpoints publics
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui.html",
-                                "/swagger-ui/**"
-                        ).permitAll()
+                        .requestMatchers("/api/health").permitAll()
+                        .requestMatchers("/api/webhooks/stripe").permitAll()
+                        .requestMatchers("/api/contact/**").permitAll()
+                        // Actuator (seulement health et info sans auth)
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/**").hasRole("ADMIN")
+                        // Endpoints authentifies
                         .requestMatchers("/api/me").authenticated()
                         .requestMatchers("/api/**").hasAnyRole("ADMIN","MANAGER","HOST","TECHNICIAN","HOUSEKEEPER","SUPERVISOR")
                         .anyRequest().denyAll()
@@ -59,30 +87,27 @@ public class SecurityConfigProd {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Autoriser explicitement le frontend
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(java.util.List.of("http://localhost:3000"));
-        // Autoriser tous les headers pour éviter les 403 sur preflight (casse incluse)
-        config.setAllowedHeaders(java.util.List.of("*"));
-        // Méthodes courantes + preflight
-        config.setAllowedMethods(java.util.List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
-        // Exposer quelques headers utiles (optionnel)
-        config.setExposedHeaders(java.util.List.of("Authorization","Content-Type"));
+        config.setAllowedOrigins(getAllowedOriginsList());
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        config.setExposedHeaders(List.of("Authorization", "Content-Type", "X-RateLimit-Limit", "X-RateLimit-Remaining", "Retry-After"));
+        config.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
 
-    // En plus de la config sur HttpSecurity, on enregistre explicitement un CorsFilter de plus haute priorité
     @Bean
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration cfg = new CorsConfiguration();
         cfg.setAllowCredentials(true);
-        cfg.setAllowedOrigins(java.util.List.of("http://localhost:3000"));
-        cfg.addAllowedHeader("*");
-        cfg.addAllowedMethod("*");
-        cfg.setExposedHeaders(java.util.List.of("Authorization","Content-Type"));
+        cfg.setAllowedOrigins(getAllowedOriginsList());
+        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With"));
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        cfg.setExposedHeaders(List.of("Authorization", "Content-Type", "X-RateLimit-Limit", "X-RateLimit-Remaining", "Retry-After"));
+        cfg.setMaxAge(3600L);
         source.registerCorsConfiguration("/**", cfg);
         return new CorsFilter(source);
     }
@@ -94,17 +119,18 @@ public class SecurityConfigProd {
         return registration;
     }
 
-    // Backup: also register WebMvcConfigurer CORS in case security chain is bypassed for some errors
     @Bean
     public WebMvcConfigurer webMvcConfigurer() {
+        List<String> origins = getAllowedOriginsList();
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:3000")
-                        .allowedMethods("GET","POST","PUT","DELETE","PATCH","OPTIONS")
-                        .allowedHeaders("*")
-                        .allowCredentials(true);
+                        .allowedOrigins(origins.toArray(new String[0]))
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+                        .allowedHeaders("Authorization", "Content-Type", "Accept", "X-Requested-With")
+                        .allowCredentials(true)
+                        .maxAge(3600);
             }
         };
     }
@@ -139,7 +165,6 @@ public class SecurityConfigProd {
         return List.copyOf(new java.util.LinkedHashSet<>(java.util.stream.Stream.concat(a.stream(), b.stream()).collect(Collectors.toList())));
     }
 
-    // Optionnel: extraire aussi les rôles client (resource_access)
     @SuppressWarnings("unused")
     private Collection<? extends GrantedAuthority> extractClientRoles(Jwt jwt, String clientId) {
         Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
@@ -155,5 +180,3 @@ public class SecurityConfigProd {
                 .collect(Collectors.toList());
     }
 }
-
-
