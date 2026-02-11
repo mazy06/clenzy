@@ -15,8 +15,9 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { API_CONFIG } from '../config/api';
+import { authApi } from '../services/api';
 import keycloak from '../keycloak';
+import { clearTokens } from '../services/storageService';
 import { MenuItem as MenuItemType } from '../hooks/useNavigationMenu';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useTranslation } from '../hooks/useTranslation';
@@ -48,28 +49,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
   const handleLogout = async () => {
     try {
       // Appel au backend pour la déconnexion
-      const response = await fetch(API_CONFIG.ENDPOINTS.LOGOUT, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${keycloak.token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        console.error('Error during logout:', response.status);
-      }
+      await authApi.logout();
 
       // Nettoyage local
-      localStorage.removeItem('kc_access_token');
-      localStorage.removeItem('kc_refresh_token');
-      localStorage.removeItem('kc_id_token');
-      localStorage.removeItem('kc_expires_in');
+      clearTokens();
 
       // Réinitialiser l'état Keycloak
-      (keycloak as any).token = undefined;
-      (keycloak as any).refreshToken = undefined;
-      (keycloak as any).authenticated = false;
+      keycloak.token = undefined;
+      keycloak.refreshToken = undefined;
+      keycloak.authenticated = false;
 
       // Nettoyer l'état utilisateur React
       clearUser();
@@ -80,7 +68,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
       handleMenuClose();
       onLogout();
     } catch (error) {
-      console.error('Error during logout:', error);
     }
   };
 

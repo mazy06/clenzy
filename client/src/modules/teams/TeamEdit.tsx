@@ -27,7 +27,7 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { teamsApi, usersApi } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
 
 interface TeamMember {
@@ -73,41 +73,20 @@ const TeamEdit: React.FC = () => {
       
       setLoading(true);
       try {
-        const [teamResponse, usersResponse] = await Promise.all([
-          fetch(`${API_CONFIG.BASE_URL}/api/teams/${id}`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-            },
-          }),
-          fetch(`${API_CONFIG.BASE_URL}/api/users`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-            },
-          })
+        const [teamData, usersData] = await Promise.all([
+          teamsApi.getById(Number(id)),
+          usersApi.getAll()
         ]);
 
-        if (teamResponse.ok && usersResponse.ok) {
-          const [teamData, usersData] = await Promise.all([
-            teamResponse.json(),
-            usersResponse.json()
-          ]);
-          
-          console.log('🔍 TeamEdit - Équipe chargée:', teamData);
-          console.log('🔍 TeamEdit - Utilisateurs chargés:', usersData);
-          
-          setFormData({
-            name: teamData.name || '',
-            description: teamData.description || '',
-            interventionType: teamData.interventionType || 'CLEANING',
-            members: teamData.members || []
-          });
-          
-          setAvailableUsers(usersData);
-        } else {
-          setError('Erreur lors du chargement des données');
-        }
+        setFormData({
+          name: teamData.name || '',
+          description: teamData.description || '',
+          interventionType: teamData.interventionType || 'CLEANING',
+          members: (teamData as any).members || []
+        });
+
+        setAvailableUsers(usersData as any);
       } catch (err) {
-        console.error('🔍 TeamEdit - Erreur chargement données:', err);
         setError('Erreur lors du chargement des données');
       } finally {
         setLoading(false);
@@ -181,29 +160,15 @@ const TeamEdit: React.FC = () => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/teams/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
+      await teamsApi.update(Number(id), formData as any);
+      setSuccess(true);
 
-      if (response.ok) {
-        setSuccess(true);
-        
-        // Redirection après un délai
-        setTimeout(() => {
-          navigate(`/teams/${id}`);
-        }, 1500);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.message || 'Erreur lors de la mise à jour');
-      }
-    } catch (err) {
-      console.error('🔍 TeamEdit - Erreur mise à jour:', err);
-      setError('Erreur lors de la mise à jour');
+      // Redirection après un délai
+      setTimeout(() => {
+        navigate(`/teams/${id}`);
+      }, 1500);
+    } catch (err: any) {
+      setError(err?.message || 'Erreur lors de la mise à jour');
     } finally {
       setSaving(false);
     }

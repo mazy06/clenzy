@@ -2,13 +2,14 @@ import { Box, Button, Stack, Typography, Paper } from '@mui/material'
 import keycloak, { isAuthenticated, getParsedAccessToken, clearTokens, getAccessToken } from '../../keycloak'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { API_CONFIG } from '../../config/api'
+import apiClient from '../../services/apiClient'
+import { getRefreshToken } from '../../services/storageService'
 
 // keycloak instance is provided by src/keycloak.ts
 
 export default function Home() {
   const [initialized, setInitialized] = useState(false)
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<{ firstName?: string } | null>(null)
   const [apiResult, setApiResult] = useState<string>('')
   const navigate = useNavigate()
 
@@ -32,17 +33,13 @@ export default function Home() {
             <Typography>Bonjour {profile?.firstName ?? 'Utilisateur'}</Typography>
             <Button variant="outlined" color="secondary" onClick={async () => {
               try {
-                const refreshToken = (keycloak as any).refreshToken || localStorage.getItem('kc_refresh_token')
-                await fetch(API_CONFIG.ENDPOINTS.LOGOUT, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ refreshToken }),
-                })
+                const refreshToken = keycloak.refreshToken || getRefreshToken()
+                await apiClient.post('/logout', { refreshToken })
               } catch {}
               clearTokens()
-              ;(keycloak as any).token = undefined
-              ;(keycloak as any).refreshToken = undefined
-              ;(keycloak as any).authenticated = false
+              keycloak.token = undefined
+              keycloak.refreshToken = undefined
+              keycloak.authenticated = false
               window.location.assign('/login')
             }}>Se déconnecter</Button>
           </>
@@ -58,20 +55,14 @@ export default function Home() {
         alert('Token non disponible. Merci de vous reconnecter.')
         return
       }
-      console.info('Appel /api/me avec token (longueur):', token.length)
-              const resp = await fetch(API_CONFIG.ENDPOINTS.ME, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!resp.ok) {
-        const txt = await resp.text()
-        setApiResult(`Erreur HTTP ${resp.status}: ${txt}`)
-        return
-      }
-      const json = await resp.json()
+      const json = await apiClient.get<any>('/me')
       setApiResult(JSON.stringify(json, null, 2))
     } catch (e: any) {
-      console.error('Erreur appel /api/me:', e)
-      setApiResult(`Erreur appel API: ${e?.message || e}`)
+      if (e.status) {
+        setApiResult(`Erreur HTTP ${e.status}: ${e.message}`)
+      } else {
+        setApiResult(`Erreur appel API: ${e instanceof Error ? e.message : String(e)}`)
+      }
     }
   }
 

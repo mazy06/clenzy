@@ -27,7 +27,7 @@ import {
   Assignment,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface TeamMember {
@@ -76,24 +76,10 @@ const TeamManagementTab: React.FC = () => {
 
     try {
       // Pour les managers, récupérer les équipes assignées à leurs portefeuilles
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/api/teams/manager/${user.id}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setTeams(data);
-      } else {
-        setError(t('portfolios.teamManagement.loadError'));
-      }
-    } catch (err) {
-      setError(t('portfolios.teamManagement.connectionError'));
-      console.error('Erreur chargement équipes:', err);
+      const data = await apiClient.get<Team[]>(`/teams/manager/${user.id}`);
+      setTeams(data);
+    } catch (err: any) {
+      setError(err?.message || t('portfolios.teamManagement.connectionError'));
     } finally {
       setLoading(false);
     }
@@ -103,21 +89,9 @@ const TeamManagementTab: React.FC = () => {
     if (!user) return;
 
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/api/team-members/manager/${user.id}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setTeamMembers(data);
-      }
+      const data = await apiClient.get<TeamMember[]>(`/team-members/manager/${user.id}`);
+      setTeamMembers(data);
     } catch (err) {
-      console.error('Erreur chargement membres équipe:', err);
     }
   };
 

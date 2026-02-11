@@ -25,7 +25,7 @@ import {
   Schedule,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { portfoliosApi } from '../../services/api';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface PortfolioStats {
@@ -69,24 +69,10 @@ const PortfolioStatsTab: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/api/portfolios/manager/${user.id}/stats`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
-      } else {
-        setError('Erreur lors du chargement des statistiques');
-      }
-    } catch (err) {
-      setError('Erreur de connexion');
-      console.error('Erreur chargement stats:', err);
+      const data = await portfoliosApi.getStatsByManager(user.id);
+      setStats(data);
+    } catch (err: any) {
+      setError(err?.message || 'Erreur de connexion');
     } finally {
       setLoading(false);
     }

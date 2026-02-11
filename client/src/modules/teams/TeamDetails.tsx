@@ -7,37 +7,23 @@ import {
   Grid,
   Chip,
   Button,
-  Avatar,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Divider,
   Alert,
   CircularProgress,
-  IconButton,
 } from '@mui/material';
 import {
   Group,
-  Person,
   Edit,
-  ArrowBack,
-  LocationOn,
   Build,
   CleaningServices,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { teamsApi } from '../../services/api';
+import type { TeamMember } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
-
-interface TeamMember {
-  userId: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
-}
+import TeamWorkloadCard from './TeamWorkloadCard';
+import TeamPerformanceChart from './TeamPerformanceChart';
+import TeamMembersList from './TeamMembersList';
 
 interface Team {
   id: number;
@@ -54,7 +40,7 @@ const TeamDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
-  
+
   // TOUS les hooks doivent être déclarés AVANT les returns conditionnels
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,24 +51,12 @@ const TeamDetails: React.FC = () => {
   useEffect(() => {
     const loadTeam = async () => {
       if (!id) return;
-      
+
       setLoading(true);
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/teams/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
-
-        if (response.ok) {
-          const teamData = await response.json();
-          console.log('🔍 TeamDetails - Équipe chargée:', teamData);
-          setTeam(teamData);
-        } else {
-          setError('Erreur lors du chargement de l\'équipe');
-        }
+        const teamData = await teamsApi.getById(Number(id));
+        setTeam(teamData as any);
       } catch (err) {
-        console.error('🔍 TeamDetails - Erreur chargement équipe:', err);
         setError('Erreur lors du chargement de l\'équipe');
       } finally {
         setLoading(false);
@@ -98,7 +72,7 @@ const TeamDetails: React.FC = () => {
       const canEditPermission = await hasPermissionAsync('teams:edit');
       setCanEdit(canEditPermission);
     };
-    
+
     checkPermissions();
   }, [hasPermissionAsync]);
 
@@ -185,8 +159,8 @@ const TeamDetails: React.FC = () => {
         }
       />
 
-      {/* Carte principale avec résumé */}
-      <Card sx={{ mb: 4 }}>
+      {/* Row 1: Carte principale avec résumé */}
+      <Card sx={{ mb: 3 }}>
         <CardContent sx={{ p: 4 }}>
           {/* En-tête de l'équipe */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
@@ -206,7 +180,7 @@ const TeamDetails: React.FC = () => {
           {/* Description */}
           <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.200' }}>
             <Typography variant="subtitle2" color="primary.main" sx={{ mb: 1, fontWeight: 600 }}>
-              📝 Description de l'équipe
+              Description de l'équipe
             </Typography>
             <Typography variant="body1" color="text.secondary">
               {team.description || 'Aucune description disponible pour cette équipe.'}
@@ -242,7 +216,7 @@ const TeamDetails: React.FC = () => {
           {/* Informations complémentaires */}
           <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.200' }}>
             <Typography variant="subtitle2" color="primary.main" sx={{ mb: 1, fontWeight: 600 }}>
-              ℹ️ Informations de l'équipe
+              Informations de l'équipe
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
@@ -272,53 +246,23 @@ const TeamDetails: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Liste des membres */}
-      <Card>
-        <CardContent sx={{ p: 4 }}>
-          <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
-            Membres de l'équipe ({team.members.length})
-          </Typography>
+      {/* Row 2: Workload (6 cols) + Performance (6 cols) */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={6}>
+          <TeamWorkloadCard teamId={team.id} teamName={team.name} />
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <TeamPerformanceChart teamId={team.id} teamName={team.name} />
+        </Grid>
+      </Grid>
 
-          {team.members.length > 0 ? (
-            <List>
-              {team.members.map((member, index) => (
-                <React.Fragment key={member.userId}>
-                  <ListItem>
-                    <ListItemAvatar>
-                      <Avatar>
-                        <Person />
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={`${member.firstName} ${member.lastName}`}
-                      secondary={
-                        <Box>
-                          <Typography variant="body2" color="text.secondary">
-                            {member.email}
-                          </Typography>
-                          <Chip
-                            label={member.role}
-                            size="small"
-                            color="secondary"
-                            sx={{ mt: 0.5 }}
-                          />
-                        </Box>
-                      }
-                    />
-                  </ListItem>
-                  {index < team.members.length - 1 && <Divider />}
-                </React.Fragment>
-              ))}
-            </List>
-          ) : (
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Typography variant="body1" color="text.secondary">
-                Aucun membre dans cette équipe
-              </Typography>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
+      {/* Row 3: TeamMembersList (12 cols) */}
+      <TeamMembersList
+        members={team.members || []}
+        teamId={team.id}
+        teamName={team.name}
+        canEdit={canEdit}
+      />
     </Box>
   );
 };

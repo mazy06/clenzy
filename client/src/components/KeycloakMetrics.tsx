@@ -96,7 +96,6 @@ const KeycloakMetrics: React.FC = () => {
       
     } catch (err) {
       setError('Erreur lors de la récupération des métriques Keycloak');
-      console.error('Erreur KeycloakMetrics:', err);
     } finally {
       setLoading(false);
     }

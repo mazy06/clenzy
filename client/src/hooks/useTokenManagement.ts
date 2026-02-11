@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import TokenService from '../services/TokenService';
+import TokenService, { TokenEventData } from '../services/TokenService';
 
 export interface TokenManagementState {
   isRefreshing: boolean;
@@ -58,9 +58,9 @@ export const useTokenManagement = () => {
   const refreshToken = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, isRefreshing: true, error: null }));
-      
+
       const result = await tokenService.refreshTokenWithRetry();
-      
+
       if (result) {
         setState(prev => ({
           ...prev,
@@ -69,7 +69,7 @@ export const useTokenManagement = () => {
           refreshCount: prev.refreshCount + 1,
           error: null
         }));
-        
+
         // Vérifier la santé après le rafraîchissement
         await checkTokenHealth();
       } else {
@@ -103,9 +103,8 @@ export const useTokenManagement = () => {
     try {
       setState(prev => ({ ...prev, error: null }));
       const result = await tokenService.cleanupExpiredTokens();
-      
+
       if (result.success) {
-        console.log(`${result.cleanedCount} tokens nettoyés`);
         // Vérifier la santé après le nettoyage
         await checkTokenHealth();
       } else {
@@ -133,13 +132,13 @@ export const useTokenManagement = () => {
       }));
     };
 
-    const handleTokenExpiring = (data: any) => {
+    const handleTokenExpiring = (data?: TokenEventData) => {
       setState(prev => ({
         ...prev,
         tokenHealth: {
           ...prev.tokenHealth,
           status: 'expiring',
-          timeUntilExpiry: data.timeUntilExpiry || 0
+          timeUntilExpiry: data?.timeUntilExpiry || 0
         }
       }));
     };
@@ -155,10 +154,10 @@ export const useTokenManagement = () => {
       }));
     };
 
-    const handleAuthFailed = (data: any) => {
+    const handleAuthFailed = (data?: TokenEventData) => {
       setState(prev => ({
         ...prev,
-        error: data.error || 'Échec d\'authentification',
+        error: data?.error || 'Échec d\'authentification',
         tokenHealth: {
           isHealthy: false,
           timeUntilExpiry: 0,
@@ -207,7 +206,7 @@ export const useTokenManagement = () => {
     // Utilitaires
     isExpiringSoon: state.tokenHealth.status === 'expiring' && state.tokenHealth.timeUntilExpiry <= 60,
     isCritical: state.tokenHealth.status === 'expiring' && state.tokenHealth.timeUntilExpiry <= 10,
-    timeUntilExpiryFormatted: state.tokenHealth.timeUntilExpiry > 0 
+    timeUntilExpiryFormatted: state.tokenHealth.timeUntilExpiry > 0
       ? `${Math.floor(state.tokenHealth.timeUntilExpiry / 60)}m ${state.tokenHealth.timeUntilExpiry % 60}s`
       : 'Expiré'
   };

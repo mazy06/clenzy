@@ -36,8 +36,13 @@ import {
   Bathroom,
   SquareFoot
 } from '@mui/icons-material';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { propertiesApi, usersApi } from '../../services/api';
+import { propertySchema } from '../../schemas';
+import type { PropertyFormValues } from '../../schemas';
 import { PropertyStatus, PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -77,16 +82,21 @@ interface TemporaryOwner {
 }
 
 interface PropertyFormProps {
-  onClose: () => void;
-  onSuccess: () => void;
+  onClose?: () => void;
+  onSuccess?: () => void;
   setLoading?: (loading: boolean) => void;
   loading?: boolean;
+  propertyId?: number;
+  mode?: 'create' | 'edit';
 }
 
-const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
+const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propertyId, mode = 'create' }) => {
   const { user, hasPermissionAsync, isAdmin, isManager, isHost } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const isEditMode = mode === 'edit' || !!propertyId;
   const [loading, setLoading] = useState(false);
+  const [loadingProperty, setLoadingProperty] = useState(isEditMode);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
@@ -99,22 +109,25 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
   });
   
   // IMPORTANT: déclarer tous les hooks avant tout retour conditionnel
-  const [formData, setFormData] = useState<PropertyFormData>({
-    name: '',
-    address: '',
-    city: '',
-    postalCode: '',
-    country: 'France',
-    type: 'APARTMENT',
-    status: 'ACTIVE',
-    bedroomCount: 1,
-    bathroomCount: 1,
-    squareMeters: 0,
-    nightlyPrice: 0,
-    description: '',
-    maxGuests: 2,
-    cleaningFrequency: 'AFTER_EACH_STAY',
-    ownerId: 0,
+  const { control, handleSubmit: rhfHandleSubmit, setValue, reset, formState: { errors } } = useForm<PropertyFormValues>({
+    resolver: zodResolver(propertySchema),
+    defaultValues: {
+      name: '',
+      address: '',
+      city: '',
+      postalCode: '',
+      country: 'France',
+      type: 'APARTMENT',
+      status: 'ACTIVE',
+      bedroomCount: 1,
+      bathroomCount: 1,
+      squareMeters: 0,
+      nightlyPrice: 0,
+      description: '',
+      maxGuests: 2,
+      cleaningFrequency: 'AFTER_EACH_STAY',
+      ownerId: 0,
+    },
   });
 
   // Charger la liste des utilisateurs (nécessaire pour assigner le propriétaire)
@@ -122,22 +135,10 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
     // Charger les utilisateurs pour tous les rôles (nécessaire pour l'assignation du propriétaire)
     setLoadingUsers(true);
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const usersList = data.content || data || [];
-        console.log('🔍 PropertyForm - Utilisateurs chargés:', usersList);
-        setUsers(usersList);
-      } else {
-        console.error('Erreur lors du chargement des utilisateurs:', response.status);
-      }
+      const data = await usersApi.getAll() as any;
+      const usersList = data.content || data || [];
+      setUsers(usersList);
     } catch (error) {
-      console.error('Erreur lors du chargement des utilisateurs:', error);
     } finally {
       setLoadingUsers(false);
     }
@@ -148,49 +149,85 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
     loadUsers();
   }, [loadUsers]);
 
-  // Définir l'owner par défaut selon le rôle
+  // Définir l'owner par défaut selon le rôle (uniquement en mode création)
   useEffect(() => {
-    console.log('🔍 PropertyForm - Définition de l\'owner, user:', user, 'users:', users);
-    console.log('🔍 PropertyForm - isHost():', isHost(), 'isAdmin():', isAdmin(), 'isManager():', isManager());
-    console.log('🔍 PropertyForm - formData actuel:', formData);
-    
+    if (isEditMode) return; // En mode édition, l'owner est chargé depuis la propriété
     if (isHost() && user?.email) {
       // Pour un HOST, essayer de trouver son ID dans la base
       const hostUser = users.find(u => u.email === user.email);
-      console.log('🔍 PropertyForm - HOST trouvé dans users:', hostUser);
       if (hostUser) {
-        setFormData(prev => ({ ...prev, ownerId: hostUser.id }));
-        console.log('🔍 PropertyForm - ownerId défini pour HOST:', hostUser.id);
-      } else {
-        console.warn('🔍 PropertyForm - HOST non trouvé dans users, email:', user.email);
-        console.warn('🔍 PropertyForm - Liste des utilisateurs disponibles:', users.map(u => ({ id: u.id, email: u.email, name: `${u.firstName} ${u.lastName}` })));
+        setValue('ownerId', hostUser.id);
       }
     } else if (!isAdmin() && !isManager() && user?.email) {
       // Pour les autres rôles non-admin, sélectionner automatiquement l'utilisateur connecté
       const currentUser = users.find(u => u.email === user.email);
-      console.log('🔍 PropertyForm - Utilisateur courant trouvé:', currentUser);
       if (currentUser) {
-        setFormData(prev => ({ ...prev, ownerId: currentUser.id }));
-        console.log('🔍 PropertyForm - ownerId défini pour utilisateur courant:', currentUser.id);
+        setValue('ownerId', currentUser.id);
       }
     }
-  }, [users, user, isHost, isAdmin, isManager]);
+  }, [users, user, isHost, isAdmin, isManager, setValue, isEditMode]);
+
+  // Charger les données de la propriété en mode édition
+  useEffect(() => {
+    if (!isEditMode || !propertyId) return;
+
+    const loadProperty = async () => {
+      setLoadingProperty(true);
+      try {
+        const property = await propertiesApi.getById(propertyId) as any;
+        reset({
+          name: property.name || '',
+          address: property.address || '',
+          city: property.city || '',
+          postalCode: property.postalCode || '',
+          country: property.country || '',
+          type: property.type?.toUpperCase() || 'APARTMENT',
+          status: property.status?.toUpperCase() || 'ACTIVE',
+          bedroomCount: property.bedroomCount || 1,
+          bathroomCount: property.bathroomCount || 1,
+          squareMeters: property.squareMeters || 0,
+          nightlyPrice: property.nightlyPrice || 0,
+          description: property.description || '',
+          maxGuests: property.maxGuests || 2,
+          cleaningFrequency: property.cleaningFrequency?.toUpperCase() || 'AFTER_EACH_STAY',
+          ownerId: property.ownerId || 0,
+        });
+      } catch (err) {
+        setError(t('properties.loadError'));
+      } finally {
+        setLoadingProperty(false);
+      }
+    };
+
+    loadProperty();
+  }, [isEditMode, propertyId, reset, t]);
 
   // Vérifier les permissions au chargement
-  const [canCreate, setCanCreate] = useState(false);
-  
+  const [hasPermission, setHasPermission] = useState(false);
+
   useEffect(() => {
     const checkPermissions = async () => {
-      const createPermission = await hasPermissionAsync('properties:create');
-      setCanCreate(createPermission);
+      const permission = isEditMode
+        ? await hasPermissionAsync('properties:edit')
+        : await hasPermissionAsync('properties:create');
+      setHasPermission(permission);
     };
-    
+
     checkPermissions();
-  }, [hasPermissionAsync]);
+  }, [hasPermissionAsync, isEditMode]);
 
   // Si l'utilisateur n'a pas les permissions, ne rien afficher
-  if (!canCreate) {
+  if (!hasPermission) {
     return null;
+  }
+
+  // Afficher un loader pendant le chargement de la propriété en mode édition
+  if (loadingProperty) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   // Types de propriétés disponibles (correspondant au backend)
@@ -222,65 +259,29 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
     { value: 'ON_DEMAND', label: t('properties.cleaningFrequencies.onDemand') },
   ];
 
-  // Gestion des changements de formulaire
-  const handleInputChange = (field: keyof PropertyFormData, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
   // Gestion de la création d'owner temporaire
   const handleCreateTemporaryOwner = async () => {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-        body: JSON.stringify({
-          firstName: temporaryOwner.firstName,
-          lastName: temporaryOwner.lastName,
-          email: temporaryOwner.email,
-          password: 'TempPass123!', // Mot de passe temporaire respectant les contraintes
-          role: 'HOST',
-        }),
+      const newUser = await usersApi.create({
+        firstName: temporaryOwner.firstName,
+        lastName: temporaryOwner.lastName,
+        email: temporaryOwner.email,
+        password: 'TempPass123!', // Mot de passe temporaire respectant les contraintes
+        role: 'HOST',
       });
-
-      if (response.ok) {
-        const newUser = await response.json();
-        setFormData(prev => ({ ...prev, ownerId: newUser.id }));
-        setUsers(prev => [...prev, newUser]);
-        setShowOwnerDialog(false);
-        setTemporaryOwner({ firstName: '', lastName: '', email: '' });
-      } else {
-        const errorData = await response.json();
-        console.error('🔍 PropertyForm - Erreur création owner:', errorData);
-        setError('Erreur lors de la création de l\'owner: ' + (errorData.message || 'Erreur inconnue'));
-      }
-    } catch (err) {
-      console.error('🔍 PropertyForm - Erreur création owner:', err);
-      setError('Erreur lors de la création de l\'owner');
+      setValue('ownerId', newUser.id);
+      setUsers(prev => [...prev, newUser as any]);
+      setShowOwnerDialog(false);
+      setTemporaryOwner({ firstName: '', lastName: '', email: '' });
+    } catch (err: any) {
+      setError('Erreur lors de la création de l\'owner: ' + (err.message || 'Erreur inconnue'));
     }
   };
 
   // Soumission du formulaire
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (formData: PropertyFormValues) => {
     setLoading(true);
     setError(null);
-
-    console.log('🔍 PropertyForm - Tentative de soumission, formData:', formData);
-    console.log('🔍 PropertyForm - ownerId actuel:', formData.ownerId);
-
-    // Validation de l'owner
-    if (!formData.ownerId || formData.ownerId === 0) {
-      console.error('🔍 PropertyForm - Erreur: ownerId invalide:', formData.ownerId);
-      setError(t('properties.selectOwner'));
-      setLoading(false);
-      return;
-    }
 
     try {
       // Préparer les données pour le backend
@@ -302,31 +303,25 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
         ownerId: formData.ownerId,
       };
 
-      console.log('🔍 PropertyForm - Données envoyées au backend:', backendData);
-
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/properties`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-        body: JSON.stringify(backendData),
-      });
-
-      if (response.ok) {
+      if (isEditMode && propertyId) {
+        await propertiesApi.update(propertyId, backendData);
         setSuccess(true);
         setTimeout(() => {
-          onSuccess();
-          onClose();
+          navigate(`/properties/${propertyId}`);
         }, 1500);
       } else {
-        const errorData = await response.json();
-        console.error('🔍 PropertyForm - Erreur backend:', errorData);
-        setError(errorData.message || 'Erreur lors de la création de la propriété');
+        await propertiesApi.create(backendData);
+        setSuccess(true);
+        setTimeout(() => {
+          if (onSuccess) onSuccess();
+          if (onClose) onClose();
+        }, 1500);
       }
-    } catch (err) {
-      console.error('🔍 PropertyForm - Erreur de connexion:', err);
-      setError('Erreur de connexion au serveur');
+    } catch (err: any) {
+      const errorMsg = isEditMode
+        ? 'Erreur lors de la mise à jour: ' + (err.message || 'Erreur inconnue')
+        : err.message || 'Erreur lors de la création de la propriété';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -335,7 +330,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
   if (success) {
     return (
       <Alert severity="success" sx={{ mt: 2 }}>
-        {t('properties.create')} {t('common.success')} ! {t('common.loading')}
+        {isEditMode ? t('properties.updateSuccess') : `${t('properties.create')} ${t('common.success')} ! ${t('common.loading')}`}
       </Alert>
     );
   }
@@ -344,7 +339,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
     <Box>
       <Card>
         <CardContent sx={{ p: 2 }}>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={rhfHandleSubmit(onSubmit)}>
           <Grid container spacing={2}>
             {/* Informations de base */}
             <Grid item xs={12}>
@@ -354,33 +349,46 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             </Grid>
 
             <Grid item xs={12} md={8}>
-              <TextField
-                fullWidth
-                label={t('properties.propertyName')}
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                required
-                placeholder={t('properties.propertyNamePlaceholder')}
-                size="small"
+              <Controller
+                name="name"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label={t('properties.propertyName')}
+                    required
+                    placeholder={t('properties.propertyNamePlaceholder')}
+                    size="small"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                  />
+                )}
               />
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <FormControl fullWidth required>
-                <InputLabel>{t('properties.propertyType')}</InputLabel>
-                <Select
-                  value={formData.type}
-                  onChange={(e) => handleInputChange('type', e.target.value)}
-                  label={t('properties.propertyType')}
-                  size="small"
-                >
-                  {propertyTypes.map(type => (
-                    <MenuItem key={type.value} value={type.value}>
-                      {type.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Controller
+                name="type"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <FormControl fullWidth required error={!!fieldState.error}>
+                    <InputLabel>{t('properties.propertyType')}</InputLabel>
+                    <Select
+                      {...field}
+                      label={t('properties.propertyType')}
+                      size="small"
+                    >
+                      {propertyTypes.map(type => (
+                        <MenuItem key={type.value} value={type.value}>
+                          {type.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
+                  </FormControl>
+                )}
+              />
             </Grid>
 
             {/* Adresse */}
@@ -392,49 +400,77 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             </Grid>
 
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label={t('properties.fullAddress')}
-                value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                required
-                placeholder={t('properties.fullAddressPlaceholder')}
-                size="small"
+              <Controller
+                name="address"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label={t('properties.fullAddress')}
+                    required
+                    placeholder={t('properties.fullAddressPlaceholder')}
+                    size="small"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                  />
+                )}
               />
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label={t('properties.city')}
-                value={formData.city}
-                onChange={(e) => handleInputChange('city', e.target.value)}
-                required
-                placeholder={t('properties.cityPlaceholder')}
-                size="small"
+              <Controller
+                name="city"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label={t('properties.city')}
+                    required
+                    placeholder={t('properties.cityPlaceholder')}
+                    size="small"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                  />
+                )}
               />
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label={t('properties.postalCode')}
-                value={formData.postalCode}
-                onChange={(e) => handleInputChange('postalCode', e.target.value)}
-                required
-                placeholder={t('properties.postalCodePlaceholder')}
-                size="small"
+              <Controller
+                name="postalCode"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label={t('properties.postalCode')}
+                    required
+                    placeholder={t('properties.postalCodePlaceholder')}
+                    size="small"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                  />
+                )}
               />
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label={t('properties.country')}
-                value={formData.country}
-                onChange={(e) => handleInputChange('country', e.target.value)}
-                required
-                size="small"
+              <Controller
+                name="country"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label={t('properties.country')}
+                    required
+                    size="small"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                  />
+                )}
               />
             </Grid>
 
@@ -446,66 +482,98 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             </Grid>
 
             <Grid item xs={12} md={3}>
-              <TextField
-                fullWidth
-                type="number"
-                label={t('properties.bedroomCount')}
-                value={formData.bedroomCount}
-                onChange={(e) => handleInputChange('bedroomCount', parseInt(e.target.value))}
-                required
-                size="small"
-                InputProps={{
-                  startAdornment: <Bed sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />,
-                }}
+              <Controller
+                name="bedroomCount"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    type="number"
+                    label={t('properties.bedroomCount')}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    required
+                    size="small"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    InputProps={{
+                      startAdornment: <Bed sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />,
+                    }}
+                  />
+                )}
               />
             </Grid>
 
             <Grid item xs={12} md={3}>
-              <TextField
-                fullWidth
-                type="number"
-                label={t('properties.bathroomCount')}
-                value={formData.bathroomCount}
-                onChange={(e) => handleInputChange('bathroomCount', parseInt(e.target.value))}
-                required
-                size="small"
-                InputProps={{
-                  startAdornment: <Bathroom sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />,
-                }}
+              <Controller
+                name="bathroomCount"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    type="number"
+                    label={t('properties.bathroomCount')}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    required
+                    size="small"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    InputProps={{
+                      startAdornment: <Bathroom sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />,
+                    }}
+                  />
+                )}
               />
             </Grid>
 
             <Grid item xs={12} md={3}>
-              <TextField
-                fullWidth
-                type="number"
-                label={t('properties.surface')}
-                value={formData.squareMeters}
-                onChange={(e) => handleInputChange('squareMeters', parseFloat(e.target.value))}
-                required
-                size="small"
-                InputProps={{
-                  startAdornment: <SquareFoot sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />,
-                }}
+              <Controller
+                name="squareMeters"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    type="number"
+                    label={t('properties.surface')}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    required
+                    size="small"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    InputProps={{
+                      startAdornment: <SquareFoot sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />,
+                    }}
+                  />
+                )}
               />
             </Grid>
 
             <Grid item xs={12} md={3}>
-              <TextField
-                fullWidth
-                type="number"
-                label={t('properties.nightlyPriceField')}
-                value={formData.nightlyPrice}
-                onChange={(e) => handleInputChange('nightlyPrice', parseFloat(e.target.value))}
-                size="small"
-                InputProps={{
-                  startAdornment: <Euro sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />,
-                }}
-                placeholder={t('properties.nightlyPricePlaceholder')}
-                inputProps={{
-                  step: "0.01",
-                  min: "0"
-                }}
+              <Controller
+                name="nightlyPrice"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    type="number"
+                    label={t('properties.nightlyPriceField')}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    size="small"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    InputProps={{
+                      startAdornment: <Euro sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />,
+                    }}
+                    placeholder={t('properties.nightlyPricePlaceholder')}
+                    inputProps={{
+                      step: "0.01",
+                      min: "0"
+                    }}
+                  />
+                )}
               />
             </Grid>
 
@@ -518,72 +586,98 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
 
             {/* Champ Owner - comportement différent selon le rôle */}
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
-                <InputLabel>{t('properties.owner')} *</InputLabel>
-                <Select
-                  value={formData.ownerId}
-                  onChange={(e) => handleInputChange('ownerId', e.target.value)}
-                  label={`${t('properties.owner')} *`}
-                  disabled={!isAdmin() && !isManager()} // Seuls les admin/manager peuvent changer le propriétaire
-                  size="small"
-                >
-                  {users.map((user) => (
-                    <MenuItem key={user.id} value={user.id}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                        <Person sx={{ fontSize: 16 }} />
-                        <Typography variant="body2">{user.firstName} {user.lastName} ({user.role}) - {user.email}</Typography>
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Controller
+                name="ownerId"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <FormControl fullWidth required error={!!fieldState.error}>
+                    <InputLabel>{t('properties.owner')} *</InputLabel>
+                    <Select
+                      {...field}
+                      label={`${t('properties.owner')} *`}
+                      disabled={!isAdmin() && !isManager()} // Seuls les admin/manager peuvent changer le propriétaire
+                      size="small"
+                    >
+                      {users.map((user) => (
+                        <MenuItem key={user.id} value={user.id}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            <Person sx={{ fontSize: 16 }} />
+                            <Typography variant="body2">{user.firstName} {user.lastName} ({user.role}) - {user.email}</Typography>
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
+                  </FormControl>
+                )}
+              />
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
-                <InputLabel>{t('properties.status')}</InputLabel>
-                <Select
-                  value={formData.status}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
-                  label={t('properties.status')}
-                  size="small"
-                >
-                  {propertyStatuses.map(status => (
-                    <MenuItem key={status.value} value={status.value}>
-                      {status.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <FormControl fullWidth required error={!!fieldState.error}>
+                    <InputLabel>{t('properties.status')}</InputLabel>
+                    <Select
+                      {...field}
+                      label={t('properties.status')}
+                      size="small"
+                    >
+                      {propertyStatuses.map(status => (
+                        <MenuItem key={status.value} value={status.value}>
+                          {status.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
+                  </FormControl>
+                )}
+              />
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
-                <InputLabel>{t('properties.cleaningFrequency')}</InputLabel>
-                <Select
-                  value={formData.cleaningFrequency}
-                  onChange={(e) => handleInputChange('cleaningFrequency', e.target.value)}
-                  label={t('properties.cleaningFrequency')}
-                  size="small"
-                >
-                  {cleaningFrequencies.map(freq => (
-                    <MenuItem key={freq.value} value={freq.value}>
-                      {freq.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Controller
+                name="cleaningFrequency"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <FormControl fullWidth required error={!!fieldState.error}>
+                    <InputLabel>{t('properties.cleaningFrequency')}</InputLabel>
+                    <Select
+                      {...field}
+                      label={t('properties.cleaningFrequency')}
+                      size="small"
+                    >
+                      {cleaningFrequencies.map(freq => (
+                        <MenuItem key={freq.value} value={freq.value}>
+                          {freq.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
+                  </FormControl>
+                )}
+              />
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                type="number"
-                label={t('properties.maxGuests')}
-                value={formData.maxGuests}
-                onChange={(e) => handleInputChange('maxGuests', parseInt(e.target.value))}
-                required
-                size="small"
+              <Controller
+                name="maxGuests"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    type="number"
+                    label={t('properties.maxGuests')}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    required
+                    size="small"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                  />
+                )}
               />
             </Grid>
 
@@ -595,15 +689,22 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
             </Grid>
 
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label={t('properties.description')}
-                multiline
-                rows={3}
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder={t('properties.descriptionPlaceholder')}
-                size="small"
+              <Controller
+                name="description"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label={t('properties.description')}
+                    multiline
+                    rows={3}
+                    placeholder={t('properties.descriptionPlaceholder')}
+                    size="small"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                  />
+                )}
               />
             </Grid>
 
@@ -613,7 +714,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess }) => {
                 <Alert severity="error">{error}</Alert>
               </Grid>
             )}
-            
+
             {/* Bouton de soumission caché pour le PageHeader */}
             <Button
               type="submit"

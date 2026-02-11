@@ -36,11 +36,14 @@ import {
 } from '@mui/icons-material';
 import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
 import { useAuth } from '../../hooks/useAuth';
+import { useThemeMode } from '../../hooks/useThemeMode';
 import { useNavigate } from 'react-router-dom';
+import storageService, { STORAGE_KEYS } from '../../services/storageService';
 
 export default function Settings() {
   const { user, hasPermissionAsync } = useAuth();
   const { settings: workflowSettings, updateSettings: updateWorkflowSettings } = useWorkflowSettings();
+  const { mode: themeMode, setMode: setThemeMode, isDark } = useThemeMode();
   const navigate = useNavigate();
   
   // Vérifier les permissions pour les paramètres
@@ -72,6 +75,29 @@ export default function Settings() {
     },
   });
 
+  useEffect(() => {
+    const saved = storageService.getJSON<typeof settings>(STORAGE_KEYS.SETTINGS);
+    if (saved) {
+      // Synchroniser le thème affiché avec le mode réel du thème
+      setSettings({
+        ...saved,
+        display: {
+          ...saved.display,
+          theme: themeMode === 'auto' ? (isDark ? 'dark' : 'light') : themeMode,
+        },
+      });
+    } else {
+      // Synchroniser l'état par défaut avec le mode thème actuel
+      setSettings(prev => ({
+        ...prev,
+        display: {
+          ...prev.display,
+          theme: themeMode === 'auto' ? (isDark ? 'dark' : 'light') : themeMode,
+        },
+      }));
+    }
+  }, [themeMode, isDark]);
+
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
@@ -90,7 +116,6 @@ export default function Settings() {
 
   // Attendre que l'utilisateur soit complètement chargé APRÈS tous les hooks
   if (!user) {
-    console.log('🔍 Settings - Utilisateur en cours de chargement...');
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -100,7 +125,6 @@ export default function Settings() {
 
   // Si pas de permission, afficher un message informatif
   if (!canViewSettings) {
-    console.log('🔍 Settings - Permission refusée');
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="info">
@@ -117,7 +141,7 @@ export default function Settings() {
     );
   }
 
-  const handleSettingChange = (category: string, setting: string, value: any) => {
+  const handleSettingChange = (category: string, setting: string, value: string | number | boolean) => {
     setSettings(prev => ({
       ...prev,
       [category]: {
@@ -128,15 +152,25 @@ export default function Settings() {
   };
 
   const handleSave = () => {
-    // TODO: Implement save logic
-    console.log('Saving settings:', settings);
-    setSnackbarMessage('Paramètres sauvegardés avec succès');
-    setSnackbarOpen(true);
+    try {
+      storageService.setJSON(STORAGE_KEYS.SETTINGS, settings);
+      setSnackbarMessage('Paramètres sauvegardés avec succès');
+      setSnackbarOpen(true);
+    } catch {
+      setSnackbarMessage('Erreur lors de la sauvegarde des paramètres');
+      setSnackbarOpen(true);
+    }
   };
 
   const handleReset = () => {
-    // TODO: Implement reset logic
-    console.log('Resetting settings');
+    const defaultSettings = {
+      notifications: { email: true, push: false, sms: false },
+      security: { twoFactorAuth: false, sessionTimeout: 30, passwordExpiry: 90 },
+      business: { companyName: 'Clenzy', timezone: 'Europe/Paris', currency: 'EUR', language: 'fr' },
+      display: { theme: 'light', compactMode: false, showAvatars: true },
+    };
+    setSettings(defaultSettings);
+    storageService.setJSON(STORAGE_KEYS.SETTINGS, defaultSettings);
     setSnackbarMessage('Paramètres réinitialisés');
     setSnackbarOpen(true);
   };
@@ -439,8 +473,12 @@ export default function Settings() {
                 <ListItemSecondaryAction>
                   <Switch
                     edge="end"
-                    checked={settings.display.theme === 'dark'}
-                    onChange={(e) => handleSettingChange('display', 'theme', e.target.checked ? 'dark' : 'light')}
+                    checked={isDark}
+                    onChange={(e) => {
+                      const newTheme = e.target.checked ? 'dark' : 'light';
+                      handleSettingChange('display', 'theme', newTheme);
+                      setThemeMode(newTheme);
+                    }}
                   />
                 </ListItemSecondaryAction>
               </ListItem>

@@ -44,6 +44,8 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 
+type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+
 // Interface pour les propriétés détaillées
 export interface PropertyDetails {
   id: string;
@@ -123,7 +125,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete 
   };
 
   // Obtenir la couleur du statut
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): ChipColor => {
     switch (status.toUpperCase()) {
       case 'ACTIVE':
         return 'success';
@@ -186,7 +188,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete 
             </Box>
             <Chip
               label={property.status}
-              color={getStatusColor(property.status) as any}
+              color={getStatusColor(property.status)}
               size="small"
               sx={{ textTransform: 'capitalize', flexShrink: 0, height: 20, fontSize: '0.7rem' }}
             />
@@ -507,7 +509,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete 
               </Typography>
               <Chip
                 label={property.status}
-                color={getStatusColor(property.status) as any}
+                color={getStatusColor(property.status)}
                 size="small"
                 sx={{ mb: 1, height: 22 }}
               />

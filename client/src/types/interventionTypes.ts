@@ -11,6 +11,7 @@ import {
   Restore,
   MoreHoriz
 } from '@mui/icons-material';
+import { SvgIconProps } from '@mui/material/SvgIcon';
 
 /**
  * Types d'intervention partagés entre le frontend et le backend
@@ -53,7 +54,7 @@ export interface InterventionTypeOption {
   label: string;
   category: 'cleaning' | 'maintenance' | 'specialized' | 'other';
   color: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<SvgIconProps>;
 }
 
 /**

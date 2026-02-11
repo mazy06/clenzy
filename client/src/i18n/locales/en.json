@@ -137,7 +137,29 @@
     "interventionsAwaitingValidation": "interventions awaiting validation",
     "interventionsPendingPayment": "Interventions Pending Payment",
     "interventionsAwaitingPayment": "interventions awaiting payment",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "charts": {
+      "interventionTrend": "Intervention Trend",
+      "statusDistribution": "Status Distribution",
+      "revenueOverview": "Revenue Overview",
+      "total": "Total",
+      "completed": "Completed",
+      "pending": "Pending",
+      "revenue": "Revenue",
+      "expenses": "Expenses",
+      "noData": "No data available"
+    },
+    "dateFilter": {
+      "week": "7d",
+      "month": "30d",
+      "quarter": "90d",
+      "year": "1 yr"
+    },
+    "activityFeed": {
+      "title": "Recent Activity",
+      "viewAll": "View all",
+      "noActivity": "No recent activity"
+    }
   },
   "properties": {
     "title": "Properties",
@@ -546,6 +568,30 @@
       "supervisor": "Supervisor",
       "manager": "Manager"
     },
+    "workload": {
+      "title": "Workload",
+      "active": "Active interventions",
+      "completedThisMonth": "Completed this month",
+      "pending": "Pending",
+      "capacity": "Capacity",
+      "available": "Available",
+      "busy": "Busy",
+      "overloaded": "Overloaded"
+    },
+    "performance": {
+      "title": "Team performance",
+      "totalCompleted": "Total completed",
+      "averagePerMonth": "Average / month",
+      "completionRate": "Completion rate",
+      "monthlyTrend": "Monthly trend"
+    },
+    "members": {
+      "title": "Team members",
+      "interventionCount": "interventions",
+      "noMembers": "No members in this team",
+      "sortByName": "Sort by name",
+      "sortByRole": "Sort by role"
+    },
     "errors": {
       "nameRequired": "Team name is required",
       "interventionTypeRequired": "Intervention type is required",
@@ -762,7 +808,23 @@
     "ariaLabel": {
       "newMessage": "new message"
     },
-    "noMessagesFound": "No messages found"
+    "noMessagesFound": "No messages found",
+    "archived": "Archived Messages",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "bulkActions": "Bulk actions",
+    "selected": "selected",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "bulkMarkAsRead": "Mark as read",
+    "bulkDelete": "Delete selection",
+    "templates": "Templates",
+    "useTemplate": "Use this template",
+    "thread": "Conversation",
+    "replyPlaceholder": "Write a reply...",
+    "noMessages": "No messages",
+    "noMessagesDesc": "Your inbox is empty",
+    "message": "Message"
   },
   "users": {
     "title": "Users",
@@ -777,7 +839,16 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Application configuration"
+    "subtitle": "Application configuration",
+    "themeMode": {
+      "light": "Light",
+      "dark": "Dark",
+      "auto": "Automatic"
+    }
+  },
+  "offline": {
+    "banner": "You are offline. Some features may not be available.",
+    "backOnline": "Connection restored"
   },
   "permissions": {
     "title": "Permission management",
@@ -919,6 +990,67 @@
         "title": "Property Costs Report",
         "description": "Costs and expenses per property"
       }
+    },
+    "charts": {
+      "interventionsByStatus": "Interventions by status",
+      "interventionsByType": "Interventions by type",
+      "interventionsByMonth": "Interventions by month",
+      "interventionsByPriority": "Interventions by priority",
+      "teamPerformance": "Team performance",
+      "interventionsPerProperty": "Interventions per property (Top 10)",
+      "revenueByMonth": "Revenue by month",
+      "costBreakdown": "Cost breakdown",
+      "total": "Total",
+      "completed": "Completed",
+      "pending": "Pending",
+      "inProgress": "In progress",
+      "cancelled": "Cancelled",
+      "interventions": "Interventions",
+      "cost": "Cost",
+      "revenue": "Revenue",
+      "expenses": "Expenses",
+      "profit": "Profit",
+      "noData": "No data available",
+      "noDataDescription": "There is no data yet to generate this report.",
+      "loadingData": "Loading data...",
+      "errorLoading": "Error loading data"
+    }
+  },
+  "export": {
+    "button": "Export",
+    "csv": "Export to CSV",
+    "pdf": "Export to PDF",
+    "success": "Export successful",
+    "noData": "No data to export",
+    "fileName": "export"
+  },
+  "payments": {
+    "history": {
+      "title": "Payment History",
+      "subtitle": "View your transaction history",
+      "totalPaid": "Total Paid",
+      "totalPending": "Pending",
+      "totalRefunded": "Refunded",
+      "transactions": "Transactions",
+      "search": "Search...",
+      "allStatuses": "All statuses",
+      "paid": "Paid",
+      "pending": "Pending",
+      "failed": "Failed",
+      "refunded": "Refunded",
+      "date": "Date",
+      "intervention": "Intervention",
+      "property": "Property",
+      "amount": "Amount",
+      "status": "Status",
+      "actions": "Actions",
+      "noPayments": "No payments found",
+      "noPaymentsDesc": "You don't have any recorded payments yet",
+      "viewIntervention": "View intervention",
+      "downloadInvoice": "Download invoice",
+      "dateFrom": "Start date",
+      "dateTo": "End date",
+      "clearFilters": "Clear filters"
     }
   }
 }

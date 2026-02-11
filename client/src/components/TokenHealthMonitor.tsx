@@ -51,7 +51,7 @@ export const TokenHealthMonitor: React.FC = () => {
     }
   };
 
-  const getStatusColor = () => {
+  const getStatusColor = (): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
     switch (status) {
       case 'healthy':
         return 'success';
@@ -121,7 +121,7 @@ export const TokenHealthMonitor: React.FC = () => {
           </Typography>
           <Chip 
             label={status.toUpperCase()} 
-            color={getStatusColor() as any}
+            color={getStatusColor()}
             size="small"
             sx={{ ml: 'auto' }}
           />

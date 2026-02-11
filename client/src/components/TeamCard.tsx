@@ -17,37 +17,21 @@ import {
   MoreVert,
   Build,
   Support,
+  Assignment,
 } from '@mui/icons-material';
 import { InterventionType, INTERVENTION_TYPE_OPTIONS } from '../types/interventionTypes';
 import { createSpacing } from '../theme/spacing';
+import type { Team } from '../services/api';
 
-interface TeamMember {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
-}
-
-interface Team {
-  id: number;
-  name: string;
-  description: string;
-  interventionType: string;
-  memberCount: number;
-  members: TeamMember[];
-  status?: 'active' | 'inactive' | 'maintenance';
-  createdAt?: string;
-  lastIntervention?: string;
-  totalInterventions?: number;
-}
+type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
 interface TeamCardProps {
   team: Team;
   onMenuOpen: (event: React.MouseEvent<HTMLElement>, team: Team) => void;
+  activeInterventionsCount?: number;
 }
 
-const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
+const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen, activeInterventionsCount = 0 }) => {
   // Debug: vérifier les données des membres
 
 
@@ -92,7 +76,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
   };
 
   // Obtenir la couleur du statut
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): ChipColor => {
     switch (status) {
       case 'active': return 'success';
       case 'inactive': return 'error';
@@ -138,8 +122,8 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
   };
 
   // Obtenir la couleur du rôle
-  const getRoleColor = (role: string) => {
-    const roleColors: { [key: string]: string } = {
+  const getRoleColor = (role: string): ChipColor => {
+    const roleColors: { [key: string]: ChipColor } = {
       'housekeeper': 'success',
       'technician': 'primary',
       'supervisor': 'warning',
@@ -217,7 +201,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
           <Chip
             label={getStatusLabel(getTeamStatus(team))}
             size="small"
-            color={getStatusColor(getTeamStatus(team)) as any}
+            color={getStatusColor(getTeamStatus(team))}
             variant="outlined"
             sx={{
               fontSize: '0.7rem',
@@ -227,28 +211,40 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
         </Box>
 
         {/* Informations supplémentaires */}
-        <Box sx={{ mb: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <Box sx={{ mb: 1, display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
           {/* Nombre total d'interventions */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Build sx={{ fontSize: 14 }} color="action" />
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-              {displayData.totalInterventions === 0 
-                ? 'Aucune intervention' 
+              {displayData.totalInterventions === 0
+                ? 'Aucune intervention'
                 : `${displayData.totalInterventions} intervention${displayData.totalInterventions > 1 ? 's' : ''}`
               }
             </Typography>
           </Box>
-          
+
           {/* Dernière intervention */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Support sx={{ fontSize: 14 }} color="action" />
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-              {displayData.lastIntervention 
+              {displayData.lastIntervention
                 ? `Dernière: ${formatDate(displayData.lastIntervention)}`
                 : 'Aucune récente'
               }
             </Typography>
           </Box>
+
+          {/* Workload indicator */}
+          {activeInterventionsCount > 0 && (
+            <Chip
+              icon={<Assignment sx={{ fontSize: 14 }} />}
+              label={`${activeInterventionsCount} intervention${activeInterventionsCount > 1 ? 's' : ''} active${activeInterventionsCount > 1 ? 's' : ''}`}
+              size="small"
+              color={activeInterventionsCount > 5 ? 'error' : activeInterventionsCount > 2 ? 'warning' : 'info'}
+              variant="outlined"
+              sx={{ height: 20, fontSize: '0.65rem' }}
+            />
+          )}
         </Box>
 
         {/* Membres de l'équipe */}
@@ -258,7 +254,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
           overflow: 'hidden',
           maxHeight: '140px'
         }}>
-          {team.members.slice(0, 2).map((member, index) => (
+          {(team.members ?? []).slice(0, 2).map((member, index) => (
             <React.Fragment key={member.id}>
               <ListItem sx={{ px: 0, py: 0.5 }}>
                 <ListItemAvatar sx={{ minWidth: 28 }}>
@@ -273,18 +269,18 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
                 <Chip
                   label={getRoleLabel(member.role)}
                   size="small"
-                  color={getRoleColor(member.role) as any}
+                  color={getRoleColor(member.role)}
                   variant="outlined"
                   sx={{ height: 20, fontSize: '0.65rem' }}
                 />
               </ListItem>
-              {index < Math.min(team.members.length, 2) - 1 && <Divider variant="inset" component="li" />}
+              {index < Math.min((team.members ?? []).length, 2) - 1 && <Divider variant="inset" component="li" />}
             </React.Fragment>
           ))}
-          {team.members.length > 2 && (
+          {(team.members ?? []).length > 2 && (
             <ListItem sx={{ px: 0, py: 0.5 }}>
               <ListItemText
-                primary={<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{`... et ${team.members.length - 2} autre(s) membre(s)`}</Typography>}
+                primary={<Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{`... et ${(team.members ?? []).length - 2} autre(s) membre(s)`}</Typography>}
               />
             </ListItem>
           )}
@@ -297,7 +293,7 @@ const TeamCard: React.FC<TeamCardProps> = ({ team, onMenuOpen }) => {
           py: 0.5
         }}>
           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-            Total: {team.members.length} membre{team.members.length > 1 ? 's' : ''}
+            Total: {(team.members ?? []).length} membre{(team.members ?? []).length > 1 ? 's' : ''}
           </Typography>
         </Box>
       </CardContent>

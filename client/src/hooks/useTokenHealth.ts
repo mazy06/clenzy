@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import TokenService from '../services/TokenService';
+import TokenService, { TokenEventData } from '../services/TokenService';
 
 export interface TokenHealthStatus {
   isHealthy: boolean;
@@ -22,11 +22,11 @@ export const useTokenHealth = () => {
   const updateTokenStatus = useCallback(async () => {
     try {
       if (!isInitialized) return;
-      
+
       setIsLoading(true);
       const tokenService = TokenService.getInstance();
       const healthInfo = await tokenService.manualHealthCheck();
-      
+
       setTokenStatus({
         isHealthy: healthInfo.isHealthy,
         status: healthInfo.status,
@@ -34,7 +34,6 @@ export const useTokenHealth = () => {
         lastCheck: new Date()
       });
     } catch (error) {
-      console.error('useTokenHealth - Erreur lors de la vérification:', error);
       setTokenStatus({
         isHealthy: false,
         status: 'error',
@@ -58,7 +57,6 @@ export const useTokenHealth = () => {
         await tokenService.initialize();
         setIsInitialized(true);
       } catch (error) {
-        console.error('useTokenHealth - Erreur lors de l\'initialisation:', error);
         setIsInitialized(false);
       }
     };
@@ -71,23 +69,21 @@ export const useTokenHealth = () => {
     if (!isInitialized) return;
 
     const tokenService = TokenService.getInstance();
-    
+
     // Vérification initiale
     updateTokenStatus();
-    
+
     // Écouter les événements de token
-    const handleTokenExpiring = (data: any) => {
-      console.log('useTokenHealth - Token expirant dans', data.timeUntilExpiry, 'secondes');
+    const handleTokenExpiring = (data?: TokenEventData) => {
       setTokenStatus(prev => ({
         ...prev,
         status: 'expiring',
-        timeUntilExpiry: data.timeUntilExpiry,
+        timeUntilExpiry: data?.timeUntilExpiry,
         lastCheck: new Date()
       }));
     };
-    
+
     const handleTokenExpired = () => {
-      console.log('useTokenHealth - Token expiré');
       setTokenStatus(prev => ({
         ...prev,
         status: 'expired',
@@ -95,9 +91,8 @@ export const useTokenHealth = () => {
         lastCheck: new Date()
       }));
     };
-    
+
     const handleTokenRefreshed = () => {
-      console.log('useTokenHealth - Token rafraîchi');
       setTokenStatus(prev => ({
         ...prev,
         status: 'healthy',
@@ -105,9 +100,8 @@ export const useTokenHealth = () => {
         lastCheck: new Date()
       }));
     };
-    
-    const handleAuthFailed = (data: any) => {
-      console.error('useTokenHealth - Échec d\'authentification:', data.error);
+
+    const handleAuthFailed = (_data?: TokenEventData) => {
       setTokenStatus(prev => ({
         ...prev,
         status: 'error',
@@ -115,19 +109,18 @@ export const useTokenHealth = () => {
         lastCheck: new Date()
       }));
     };
-    
-    const handleAuthChanged = (data: any) => {
-      console.log('useTokenHealth - Changement d\'authentification:', data);
+
+    const handleAuthChanged = (_data?: TokenEventData) => {
       updateTokenStatus();
     };
-    
+
     // S'abonner aux événements
     tokenService.on('token-expiring', handleTokenExpiring);
     tokenService.on('token-expired', handleTokenExpired);
     tokenService.on('token-refreshed', handleTokenRefreshed);
     tokenService.on('auth-failed', handleAuthFailed);
     tokenService.on('auth-changed', handleAuthChanged);
-    
+
     // Cleanup des listeners
     return () => {
       tokenService.off('token-expiring', handleTokenExpiring);
@@ -141,7 +134,7 @@ export const useTokenHealth = () => {
   // Vérification périodique légère (seulement pour l'UI)
   useEffect(() => {
     if (!isInitialized) return;
-    
+
     const interval = setInterval(() => {
       // Mettre à jour seulement si le token est proche de l'expiration
       if (tokenStatus.status === 'expiring' && tokenStatus.timeUntilExpiry && tokenStatus.timeUntilExpiry <= 30) {
@@ -159,7 +152,7 @@ export const useTokenHealth = () => {
     // Utilitaires
     isExpiringSoon: tokenStatus.status === 'expiring' && tokenStatus.timeUntilExpiry && tokenStatus.timeUntilExpiry <= 30,
     isCritical: tokenStatus.status === 'expiring' && tokenStatus.timeUntilExpiry && tokenStatus.timeUntilExpiry <= 10,
-    timeUntilExpiryFormatted: tokenStatus.timeUntilExpiry 
+    timeUntilExpiryFormatted: tokenStatus.timeUntilExpiry
       ? `${Math.floor(tokenStatus.timeUntilExpiry / 60)}m ${tokenStatus.timeUntilExpiry % 60}s`
       : undefined
   };

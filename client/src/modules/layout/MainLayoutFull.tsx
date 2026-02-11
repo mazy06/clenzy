@@ -11,7 +11,10 @@ import { useNavigationMenu } from '../../hooks/useNavigationMenu';
 import { TopNavigation } from '../../components/TopNavigation';
 import { UserProfile } from '../../components/UserProfile';
 import { LoadingStates } from '../../components/LoadingStates';
+import NotificationBell from '../../components/NotificationBell';
+import OfflineBanner from '../../components/OfflineBanner';
 import clenzyLogo from '../../assets/Clenzy_logo.png';
+import PWAInstallBanner from '../../components/PWAInstallBanner';
 
 interface MainLayoutFullProps {
   children: React.ReactNode;
@@ -26,7 +29,6 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   // Gestionnaires d'événements mémorisés
   const handleLogout = useCallback(() => {
     // La logique de déconnexion est gérée dans UserProfile
-    console.log('Logout initiated');
     }, []);
 
   // Déterminer l'état de chargement
@@ -63,12 +65,15 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
   // Rendu principal de l'interface
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+      {/* Bannière hors ligne */}
+      <OfflineBanner />
+
       {/* AppBar avec logo et navigation */}
       <AppBar
         position="fixed"
         sx={{
           width: '100%',
-          backgroundColor: 'white',
+          backgroundColor: (theme) => theme.palette.background.paper,
           color: '#A6C0CE',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
           borderRadius: 0,
@@ -130,12 +135,16 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
           {/* Espace flexible pour équilibrer */}
           <Box sx={{ flexGrow: 1, minWidth: { xs: 0, sm: 16 } }} />
 
-          {/* Profil utilisateur et actions */}
-          <Box sx={{ 
+          {/* Notifications et profil utilisateur */}
+          <Box sx={{
             flexShrink: 0,
             position: 'absolute',
             right: { xs: 1, sm: 1.5, md: 2 },
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
           }}>
+            <NotificationBell />
             <UserProfile onLogout={handleLogout} menuItems={menuItems} />
           </Box>
         </Toolbar>
@@ -153,6 +162,9 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       >
         {children}
       </Box>
+
+      {/* PWA install prompt */}
+      <PWAInstallBanner />
     </Box>
   );
 }

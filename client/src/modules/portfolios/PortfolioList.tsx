@@ -37,7 +37,16 @@ import {
   TrendingUp,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { portfoliosApi } from '../../services/api';
+import apiClient from '../../services/apiClient';
+
+interface AvailableUser {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
 
 interface Portfolio {
   id: number;
@@ -83,8 +92,8 @@ const PortfolioList: React.FC = () => {
     roleInTeam: '', 
     notes: '' 
   });
-  const [availableClients, setAvailableClients] = useState<any[]>([]);
-  const [availableTeamMembers, setAvailableTeamMembers] = useState<any[]>([]);
+  const [availableClients, setAvailableClients] = useState<AvailableUser[]>([]);
+  const [availableTeamMembers, setAvailableTeamMembers] = useState<AvailableUser[]>([]);
 
   useEffect(() => {
     loadPortfolios();
@@ -98,24 +107,10 @@ const PortfolioList: React.FC = () => {
     setError(null);
 
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/api/portfolios/manager/${user.id}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setPortfolios(data);
-      } else {
-        setError('Erreur lors du chargement des portefeuilles');
-      }
-    } catch (err) {
-      setError('Erreur de connexion');
-      console.error('Erreur chargement portefeuilles:', err);
+      const data = await portfoliosApi.getByManager(user.id);
+      setPortfolios(data as Portfolio[]);
+    } catch (err: any) {
+      setError(err?.message || 'Erreur de connexion');
     } finally {
       setLoading(false);
     }
@@ -123,31 +118,19 @@ const PortfolioList: React.FC = () => {
 
   const loadAvailableUsers = async () => {
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/api/users`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        }
-      );
+      const data = await apiClient.get<any>('/users');
+      const usersList = data.content || data;
 
-      if (response.ok) {
-        const data = await response.json();
-        const usersList = data.content || data;
-        
-        // Filtrer les HOSTs pour les clients
-        const hosts = usersList.filter((u: any) => u.role === 'HOST');
-        setAvailableClients(hosts);
-        
-        // Filtrer les TECHNICIEN, HOUSEKEEPER, SUPERVISOR pour l'équipe
-        const teamMembers = usersList.filter((u: any) => 
-          ['TECHNICIAN', 'HOUSEKEEPER', 'SUPERVISOR'].includes(u.role)
-        );
-        setAvailableTeamMembers(teamMembers);
-      }
+      // Filtrer les HOSTs pour les clients
+      const hosts = usersList.filter((u: AvailableUser) => u.role === 'HOST');
+      setAvailableClients(hosts);
+
+      // Filtrer les TECHNICIEN, HOUSEKEEPER, SUPERVISOR pour l'équipe
+      const teamMembers = usersList.filter((u: AvailableUser) =>
+        ['TECHNICIAN', 'HOUSEKEEPER', 'SUPERVISOR'].includes(u.role)
+      );
+      setAvailableTeamMembers(teamMembers);
     } catch (err) {
-      console.error('Erreur chargement utilisateurs:', err);
     }
   };
 
@@ -173,28 +156,14 @@ const PortfolioList: React.FC = () => {
     if (!selectedPortfolio || !newClient.clientId) return;
 
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/api/portfolios/${selectedPortfolio.id}/clients`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            clientId: newClient.clientId,
-            notes: newClient.notes || '',
-          }),
-        }
-      );
-
-      if (response.ok) {
-        setIsClientDialogOpen(false);
-        setNewClient({ clientId: '', notes: '' });
-        loadPortfolios(); // Rafraîchir la liste
-      }
+      await portfoliosApi.assignClient(selectedPortfolio.id, {
+        clientId: newClient.clientId,
+        notes: newClient.notes || '',
+      });
+      setIsClientDialogOpen(false);
+      setNewClient({ clientId: '', notes: '' });
+      loadPortfolios(); // Rafraîchir la liste
     } catch (err) {
-      console.error('Erreur ajout client:', err);
     }
   };
 
@@ -202,29 +171,15 @@ const PortfolioList: React.FC = () => {
     if (!selectedPortfolio || !newTeamMember.teamMemberId || !newTeamMember.roleInTeam) return;
 
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/api/portfolios/${selectedPortfolio.id}/team`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            teamMemberId: newTeamMember.teamMemberId,
-            roleInTeam: newTeamMember.roleInTeam,
-            notes: newTeamMember.notes || '',
-          }),
-        }
-      );
-
-      if (response.ok) {
-        setIsTeamDialogOpen(false);
-        setNewTeamMember({ teamMemberId: '', roleInTeam: '', notes: '' });
-        loadPortfolios(); // Rafraîchir la liste
-      }
+      await portfoliosApi.assignTeam(selectedPortfolio.id, {
+        teamMemberId: newTeamMember.teamMemberId,
+        roleInTeam: newTeamMember.roleInTeam,
+        notes: newTeamMember.notes || '',
+      });
+      setIsTeamDialogOpen(false);
+      setNewTeamMember({ teamMemberId: '', roleInTeam: '', notes: '' });
+      loadPortfolios(); // Rafraîchir la liste
     } catch (err) {
-      console.error('Erreur ajout membre équipe:', err);
     }
   };
 

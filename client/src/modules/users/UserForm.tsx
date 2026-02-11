@@ -32,12 +32,15 @@ import {
   Home,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useForm, Controller, type Resolver } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { usersApi } from '../../services/api';
 import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
+import { userSchema } from '../../schemas';
 import PageHeader from '../../components/PageHeader';
 
-// Types pour les utilisateurs
+// Keep exported interface for backward compatibility
 export interface UserFormData {
   firstName: string;
   lastName: string;
@@ -68,33 +71,46 @@ const userStatuses = USER_STATUS_OPTIONS.map(option => ({
 const UserForm: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
-  
+
   // Vérifier la permission de gestion des utilisateurs
   const [canManageUsers, setCanManageUsers] = useState(false);
-  
+
   useEffect(() => {
     const checkPermissions = async () => {
       const canManageUsersPermission = await hasPermissionAsync('users:manage');
       setCanManageUsers(canManageUsersPermission);
     };
-    
+
     checkPermissions();
   }, [hasPermissionAsync]);
-  
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  
-  const [formData, setFormData] = useState<UserFormData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phoneNumber: '',
-    password: '',
-    confirmPassword: '',
-    role: 'HOUSEKEEPER',
-    status: 'ACTIVE',
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    formState: { errors },
+  } = useForm<UserFormData>({
+    resolver: zodResolver(userSchema) as unknown as Resolver<UserFormData>,
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phoneNumber: '',
+      password: '',
+      confirmPassword: '',
+      role: 'HOUSEKEEPER',
+      status: 'ACTIVE',
+    },
   });
+
+  const watchedRole = watch('role');
+  const watchedPassword = watch('password');
+  const watchedConfirmPassword = watch('confirmPassword');
 
   // Vérifier les permissions - accès uniquement aux utilisateurs avec la permission users:manage
   if (!canManageUsers) {
@@ -114,91 +130,29 @@ const UserForm: React.FC = () => {
     );
   }
 
-  const handleInputChange = (field: keyof UserFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const validateForm = (): string | null => {
-    if (!formData.firstName.trim()) {
-      return 'Le prénom est obligatoire';
-    }
-    if (!formData.lastName.trim()) {
-      return 'Le nom est obligatoire';
-    }
-    if (!formData.email.trim()) {
-      return 'L\'email est obligatoire';
-    }
-    if (!formData.email.includes('@')) {
-      return 'L\'email doit être valide';
-    }
-    if (formData.password.length < 8) {
-      return 'Le mot de passe doit contenir au moins 8 caractères';
-    }
-    if (formData.password !== formData.confirmPassword) {
-      return 'Les mots de passe ne correspondent pas';
-    }
-    if (!formData.role) {
-      return 'Le rôle est obligatoire';
-    }
-    if (!formData.status) {
-      return 'Le statut est obligatoire';
-    }
-    return null;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
+  const onSubmit = async (data: UserFormData) => {
     setSaving(true);
     setError(null);
 
     try {
       // Préparer les données pour le backend
       const backendData = {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        email: formData.email.trim().toLowerCase(),
-        phoneNumber: formData.phoneNumber?.trim() || null,
-        password: formData.password,
-        role: formData.role,
-        status: formData.status,
+        firstName: data.firstName.trim(),
+        lastName: data.lastName.trim(),
+        email: data.email.trim().toLowerCase(),
+        phoneNumber: data.phoneNumber?.trim() || null,
+        password: data.password,
+        role: data.role,
+        status: data.status,
       };
 
-      console.log('🔍 UserForm - Données envoyées au backend:', backendData);
-      console.log('🔍 UserForm - JSON stringifié:', JSON.stringify(backendData, null, 2));
-
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-        body: JSON.stringify(backendData),
-      });
-
-      console.log('🔍 UserForm - Réponse reçue:', response.status, response.statusText);
-      
-      if (response.ok) {
-        const responseData = await response.json();
-        console.log('🔍 UserForm - Données de réponse:', responseData);
-        setSuccess(true);
-        setTimeout(() => {
-          navigate('/users');
-        }, 1500);
-      } else {
-        const errorData = await response.json();
-        console.error('🔍 UserForm - Erreur création:', errorData);
-        setError('Erreur lors de la création: ' + (errorData.message || 'Erreur inconnue'));
-      }
-    } catch (err) {
-      console.error('🔍 UserForm - Erreur création:', err);
-      setError('Erreur lors de la création de l\'utilisateur');
+      await usersApi.create(backendData as any);
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/users');
+      }, 1500);
+    } catch (err: any) {
+      setError('Erreur lors de la création: ' + (err?.message || 'Erreur inconnue'));
     } finally {
       setSaving(false);
     }
@@ -226,7 +180,7 @@ const UserForm: React.FC = () => {
             <Button
               variant="contained"
               size="small"
-              onClick={handleSubmit}
+              onClick={handleSubmit(onSubmit)}
               startIcon={saving ? <CircularProgress size={16} /> : <Save sx={{ fontSize: 16 }} />}
               disabled={saving}
               sx={{ fontSize: '0.8125rem' }}
@@ -253,7 +207,7 @@ const UserForm: React.FC = () => {
       {/* Formulaire */}
       <Card>
         <CardContent sx={{ p: 2 }}>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit(onSubmit)}>
             {/* Informations personnelles */}
             <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
               Informations personnelles
@@ -265,9 +219,9 @@ const UserForm: React.FC = () => {
                   fullWidth
                   size="small"
                   label="Prénom *"
-                  value={formData.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
-                  required
+                  {...register('firstName')}
+                  error={!!errors.firstName}
+                  helperText={errors.firstName?.message}
                   placeholder="Ex: Jean"
                   InputProps={{
                     startAdornment: <Person sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
@@ -280,9 +234,9 @@ const UserForm: React.FC = () => {
                   fullWidth
                   size="small"
                   label="Nom *"
-                  value={formData.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
-                  required
+                  {...register('lastName')}
+                  error={!!errors.lastName}
+                  helperText={errors.lastName?.message}
                   placeholder="Ex: Dupont"
                   InputProps={{
                     startAdornment: <Person sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
@@ -303,9 +257,9 @@ const UserForm: React.FC = () => {
                   size="small"
                   label="Email *"
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  required
+                  {...register('email')}
+                  error={!!errors.email}
+                  helperText={errors.email?.message}
                   placeholder="Ex: jean.dupont@clenzy.fr"
                   InputProps={{
                     startAdornment: <Email sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
@@ -318,8 +272,9 @@ const UserForm: React.FC = () => {
                   fullWidth
                   size="small"
                   label="Téléphone"
-                  value={formData.phoneNumber}
-                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                  {...register('phoneNumber')}
+                  error={!!errors.phoneNumber}
+                  helperText={errors.phoneNumber?.message}
                   placeholder="Ex: +33 6 12 34 56 78"
                   InputProps={{
                     startAdornment: <Phone sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
@@ -340,15 +295,14 @@ const UserForm: React.FC = () => {
                   size="small"
                   label="Mot de passe *"
                   type="password"
-                  value={formData.password}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
-                  required
+                  {...register('password')}
+                  error={!!errors.password}
                   placeholder="Minimum 8 caractères"
                   InputProps={{
                     startAdornment: <Lock sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
                   }}
                   FormHelperTextProps={{ sx: { fontSize: '0.7rem' } }}
-                  helperText="Le mot de passe doit contenir au moins 8 caractères"
+                  helperText={errors.password?.message || 'Le mot de passe doit contenir au moins 8 caractères'}
                 />
               </Grid>
 
@@ -358,19 +312,19 @@ const UserForm: React.FC = () => {
                   size="small"
                   label="Confirmer le mot de passe *"
                   type="password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                  required
+                  {...register('confirmPassword')}
+                  error={!!errors.confirmPassword || (watchedPassword !== watchedConfirmPassword && watchedConfirmPassword !== '')}
                   placeholder="Retapez le mot de passe"
                   InputProps={{
                     startAdornment: <Lock sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
                   }}
-                  error={formData.password !== formData.confirmPassword && formData.confirmPassword !== ''}
                   FormHelperTextProps={{ sx: { fontSize: '0.7rem' } }}
                   helperText={
-                    formData.password !== formData.confirmPassword && formData.confirmPassword !== ''
-                      ? 'Les mots de passe ne correspondent pas'
-                      : ''
+                    errors.confirmPassword?.message
+                      ? errors.confirmPassword.message
+                      : watchedPassword !== watchedConfirmPassword && watchedConfirmPassword !== ''
+                        ? 'Les mots de passe ne correspondent pas'
+                        : ''
                   }
                 />
               </Grid>
@@ -383,68 +337,78 @@ const UserForm: React.FC = () => {
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth required size="small">
+                <FormControl fullWidth required size="small" error={!!errors.role}>
                   <InputLabel>Rôle *</InputLabel>
-                  <Select
-                    value={formData.role}
-                    onChange={(e) => handleInputChange('role', e.target.value)}
-                    label="Rôle *"
-                  >
-                    {userRoles.map((role) => (
-                      <MenuItem key={role.value} value={role.value}>
-                        <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Box sx={{ fontSize: 18 }}>{role.icon}</Box>
-                          <Typography variant="body2">{role.label}</Typography>
-                        </MuiBox>
-                      </MenuItem>
-                    ))}
-                  </Select>
+                  <Controller
+                    name="role"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        label="Rôle *"
+                      >
+                        {userRoles.map((role) => (
+                          <MenuItem key={role.value} value={role.value}>
+                            <MuiBox sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Box sx={{ fontSize: 18 }}>{role.icon}</Box>
+                              <Typography variant="body2">{role.label}</Typography>
+                            </MuiBox>
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                  />
                   <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                    Le rôle détermine les permissions de l'utilisateur
+                    {errors.role?.message || "Le rôle détermine les permissions de l'utilisateur"}
                   </FormHelperText>
                 </FormControl>
               </Grid>
 
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth required size="small">
+                <FormControl fullWidth required size="small" error={!!errors.status}>
                   <InputLabel>Statut *</InputLabel>
-                  <Select
-                    value={formData.status}
-                    onChange={(e) => handleInputChange('status', e.target.value)}
-                    label="Statut *"
-                  >
-                    {userStatuses.map((status) => (
-                      <MenuItem key={status.value} value={status.value}>
-                          <Chip
-                            label={status.label}
-                            size="small"
-                            color={status.color as any}
-                            variant="outlined"
-                          sx={{ height: 22, fontSize: '0.7rem' }}
-                          />
-                      </MenuItem>
-                    ))}
-                  </Select>
+                  <Controller
+                    name="status"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        label="Statut *"
+                      >
+                        {userStatuses.map((status) => (
+                          <MenuItem key={status.value} value={status.value}>
+                              <Chip
+                                label={status.label}
+                                size="small"
+                                color={status.color}
+                                variant="outlined"
+                              sx={{ height: 22, fontSize: '0.7rem' }}
+                              />
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                  />
                   <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                    Le statut détermine si l'utilisateur peut se connecter
+                    {errors.status?.message || "Le statut détermine si l'utilisateur peut se connecter"}
                   </FormHelperText>
                 </FormControl>
               </Grid>
             </Grid>
 
             {/* Aperçu du rôle sélectionné */}
-            {formData.role && (
+            {watchedRole && (
               <Box sx={{ mb: 2, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
                 <Typography variant="caption" color="primary" sx={{ mb: 0.75, fontWeight: 600, fontSize: '0.75rem' }}>
-                  📋 Rôle sélectionné : {userRoles.find(r => r.value === formData.role)?.label}
+                  📋 Rôle sélectionné : {userRoles.find(r => r.value === watchedRole)?.label}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  {formData.role === 'ADMIN' && 'Accès complet à toutes les fonctionnalités de la plateforme'}
-                  {formData.role === 'MANAGER' && 'Gestion des équipes et des demandes de service'}
-                  {formData.role === 'SUPERVISOR' && 'Supervision des interventions et du personnel'}
-                  {formData.role === 'TECHNICIAN' && 'Exécution des interventions techniques'}
-                  {formData.role === 'HOUSEKEEPER' && 'Exécution des interventions de nettoyage'}
-                  {formData.role === 'HOST' && 'Gestion de ses propres propriétés'}
+                  {watchedRole === 'ADMIN' && 'Accès complet à toutes les fonctionnalités de la plateforme'}
+                  {watchedRole === 'MANAGER' && 'Gestion des équipes et des demandes de service'}
+                  {watchedRole === 'SUPERVISOR' && 'Supervision des interventions et du personnel'}
+                  {watchedRole === 'TECHNICIAN' && 'Exécution des interventions techniques'}
+                  {watchedRole === 'HOUSEKEEPER' && 'Exécution des interventions de nettoyage'}
+                  {watchedRole === 'HOST' && 'Gestion de ses propres propriétés'}
                 </Typography>
               </Box>
             )}

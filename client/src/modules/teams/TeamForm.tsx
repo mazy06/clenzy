@@ -21,6 +21,7 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   Divider,
+  FormHelperText,
 } from '@mui/material';
 import {
   Save,
@@ -32,26 +33,13 @@ import {
   ArrowBack,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { teamsApi, usersApi } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
-
-// Types pour les équipes
-export interface TeamFormData {
-  name: string;
-  description: string;
-  interventionType: string;
-  members: TeamMember[];
-}
-
-interface TeamMember {
-  userId: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
-}
+import { teamSchema, type TeamFormValues, type TeamFormInput } from '../../schemas';
 
 // Type pour les utilisateurs
 interface User {
@@ -90,53 +78,61 @@ const TeamForm: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
-  
-  const [loading, setLoading] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
-  
+
   // État pour les permissions
   const [canCreate, setCanCreate] = useState(false);
-  
+
+  // react-hook-form setup
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<TeamFormInput, unknown, TeamFormValues>({
+    resolver: zodResolver(teamSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      interventionType: 'CLEANING',
+      members: [],
+    },
+  });
+
+  // useFieldArray for dynamic members
+  const { fields, append, remove, replace } = useFieldArray({
+    control,
+    name: 'members',
+  });
+
+  // Watch interventionType to react to changes
+  const watchedInterventionType = watch('interventionType');
+
   // Vérifier les permissions au chargement
   useEffect(() => {
     const checkPermissions = async () => {
       const canCreatePermission = await hasPermissionAsync('teams:create');
       setCanCreate(canCreatePermission);
     };
-    
+
     checkPermissions();
   }, [hasPermissionAsync]);
-  
-  const [formData, setFormData] = useState<TeamFormData>({
-    name: '',
-    description: '',
-    interventionType: 'CLEANING',
-    members: [],
-  });
 
   // Charger la liste des utilisateurs depuis l'API
   useEffect(() => {
     const loadUsers = async () => {
       setLoadingUsers(true);
       try {
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/users`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const usersList = data.content || data;
-          console.log('🔍 TeamForm - Utilisateurs chargés:', usersList);
-          setUsers(usersList);
-        }
+        const data = await usersApi.getAll();
+        const usersList = (data as any).content || data;
+        setUsers(usersList);
       } catch (err) {
-        console.error('🔍 TeamForm - Erreur chargement utilisateurs:', err);
       } finally {
         setLoadingUsers(false);
       }
@@ -144,6 +140,11 @@ const TeamForm: React.FC = () => {
 
     loadUsers();
   }, []);
+
+  // Si le type d'intervention change, vider la liste des membres
+  useEffect(() => {
+    replace([]);
+  }, [watchedInterventionType, replace]);
 
   // Vérifier les permissions APRÈS tous les hooks
   if (!canCreate) {
@@ -156,21 +157,12 @@ const TeamForm: React.FC = () => {
     );
   }
 
-  const handleInputChange = (field: keyof TeamFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Si le type d'intervention change, vider la liste des membres
-    if (field === 'interventionType') {
-      setFormData(prev => ({ ...prev, members: [] }));
-    }
-  };
-
   // Filtrer les utilisateurs selon le type d'intervention sélectionné
   const getFilteredUsers = () => {
-    const selectedType = interventionTypes.find(type => type.value === formData.interventionType);
+    const selectedType = interventionTypes.find(type => type.value === watchedInterventionType);
     if (!selectedType) return users;
-    
-    return users.filter(user => 
+
+    return users.filter(user =>
       selectedType.roles.includes(user.role.toLowerCase())
     );
   };
@@ -185,91 +177,36 @@ const TeamForm: React.FC = () => {
 
   // Obtenir les rôles disponibles pour le type d'intervention sélectionné
   const getAvailableRoles = () => {
-    const selectedType = interventionTypes.find(type => type.value === formData.interventionType);
+    const selectedType = interventionTypes.find(type => type.value === watchedInterventionType);
     if (!selectedType) return teamRoles;
-    
-    return teamRoles.filter(role => 
+
+    return teamRoles.filter(role =>
       selectedType.roles.includes(role.value)
     );
   };
 
   const handleAddMember = () => {
-    if (formData.members.length === 0) {
-      setFormData(prev => ({
-        ...prev,
-        members: [{
-          userId: 0,
-          firstName: '',
-          lastName: '',
-          email: '',
-          role: getAvailableRoles()[0]?.value || 'housekeeper',
-        }]
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        members: [...prev.members, {
-          userId: 0,
-          firstName: '',
-          lastName: '',
-          email: '',
-          role: getAvailableRoles()[0]?.value || 'housekeeper',
-        }]
-      }));
-    }
-  };
-
-  const handleMemberChange = (index: number, field: keyof TeamMember, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      members: prev.members.map((member, i) => 
-        i === index ? { ...member, [field]: value } : member
-      )
-    }));
+    const availableRoles = getAvailableRoles();
+    append({
+      userId: 0,
+      firstName: '',
+      lastName: '',
+      email: '',
+      role: availableRoles[0]?.value || 'housekeeper',
+    });
   };
 
   const handleUserSelection = (index: number, user: User | null) => {
     if (user) {
-      setFormData(prev => ({
-        ...prev,
-        members: prev.members.map((member, i) => 
-          i === index ? {
-            userId: user.id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            role: user.role,
-          } : member
-        )
-      }));
+      setValue(`members.${index}.userId`, user.id);
+      setValue(`members.${index}.firstName`, user.firstName);
+      setValue(`members.${index}.lastName`, user.lastName);
+      setValue(`members.${index}.email`, user.email);
+      setValue(`members.${index}.role`, user.role);
     }
   };
 
-  const handleRemoveMember = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      members: prev.members.filter((_, i) => i !== index)
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.name.trim()) {
-      setError(t('teams.errors.nameRequired'));
-      return;
-    }
-
-    if (!formData.interventionType) {
-      setError(t('teams.errors.interventionTypeRequired'));
-      return;
-    }
-
-    if (formData.members.length === 0) {
-      setError(t('teams.errors.atLeastOneMember'));
-      return;
-    }
-
+  const onSubmit = async (formData: TeamFormValues) => {
     setSaving(true);
     setError(null);
 
@@ -277,7 +214,7 @@ const TeamForm: React.FC = () => {
       // Préparer les données pour le backend
       const backendData = {
         name: formData.name.trim(),
-        description: formData.description.trim(),
+        description: (formData.description || '').trim(),
         interventionType: formData.interventionType,
         members: formData.members.map(member => ({
           userId: member.userId,
@@ -285,30 +222,13 @@ const TeamForm: React.FC = () => {
         })),
       };
 
-      console.log('🔍 TeamForm - Données envoyées au backend:', backendData);
-
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/teams`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-        body: JSON.stringify(backendData),
-      });
-
-      if (response.ok) {
-        setSuccess(true);
-        setTimeout(() => {
-          navigate('/teams');
-        }, 1500);
-      } else {
-        const errorData = await response.json();
-        console.error('🔍 TeamForm - Erreur création:', errorData);
-        setError(t('teams.errors.createErrorDetails') + ': ' + (errorData.message || 'Erreur inconnue'));
-      }
-    } catch (err) {
-      console.error('🔍 TeamForm - Erreur création:', err);
-      setError(t('teams.errors.createError'));
+      await teamsApi.create(backendData as any);
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/teams');
+      }, 1500);
+    } catch (err: any) {
+      setError(t('teams.errors.createErrorDetails') + ': ' + (err?.message || t('teams.errors.createError')));
     } finally {
       setSaving(false);
     }
@@ -324,14 +244,14 @@ const TeamForm: React.FC = () => {
 
   const filteredUsers = getFilteredUsers();
   const availableRoles = getAvailableRoles();
-  const selectedInterventionType = interventionTypes.find(type => type.value === formData.interventionType);
+  const selectedInterventionType = interventionTypes.find(type => type.value === watchedInterventionType);
 
   return (
     <Box sx={{ p: 2 }}>
       {/* Header avec bouton retour et titre */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <IconButton 
-          onClick={() => navigate('/teams')} 
+        <IconButton
+          onClick={() => navigate('/teams')}
           sx={{ mr: 1.5 }}
           size="small"
         >
@@ -391,10 +311,22 @@ const TeamForm: React.FC = () => {
         </Alert>
       )}
 
+      {/* Root-level members validation error */}
+      {errors.members?.root?.message && (
+        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
+          {errors.members.root.message}
+        </Alert>
+      )}
+      {errors.members?.message && (
+        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
+          {errors.members.message}
+        </Alert>
+      )}
+
       {/* Formulaire */}
       <Card>
         <CardContent sx={{ p: 2 }}>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit(onSubmit)}>
             {/* Informations de base */}
             <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
               {t('teams.sections.teamInfo')}
@@ -402,49 +334,71 @@ const TeamForm: React.FC = () => {
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label={`${t('teams.fields.teamName')} *`}
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  required
-                  placeholder={t('teams.fields.teamNamePlaceholder')}
-                  size="small"
+                <Controller
+                  name="name"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label={`${t('teams.fields.teamName')} *`}
+                      placeholder={t('teams.fields.teamNamePlaceholder')}
+                      size="small"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                    />
+                  )}
                 />
               </Grid>
 
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth required>
-                  <InputLabel>{t('teams.fields.interventionType')} *</InputLabel>
-                  <Select
-                    value={formData.interventionType}
-                    onChange={(e) => handleInputChange('interventionType', e.target.value)}
-                    label={`${t('teams.fields.interventionType')} *`}
-                    size="small"
-                  >
-                    {interventionTypes.map((type) => (
-                      <MenuItem key={type.value} value={type.value}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <span style={{ fontSize: '1em' }}>{type.icon}</span>
-                          <Typography variant="body2">{type.label}</Typography>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <Controller
+                  name="interventionType"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <FormControl fullWidth error={!!fieldState.error}>
+                      <InputLabel>{t('teams.fields.interventionType')} *</InputLabel>
+                      <Select
+                        {...field}
+                        label={`${t('teams.fields.interventionType')} *`}
+                        size="small"
+                      >
+                        {interventionTypes.map((type) => (
+                          <MenuItem key={type.value} value={type.value}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                              <span style={{ fontSize: '1em' }}>{type.icon}</span>
+                              <Typography variant="body2">{type.label}</Typography>
+                            </Box>
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {fieldState.error && (
+                        <FormHelperText>{fieldState.error.message}</FormHelperText>
+                      )}
+                    </FormControl>
+                  )}
+                />
               </Grid>
             </Grid>
 
             {/* Description */}
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={t('teams.fields.description')}
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder={t('teams.fields.descriptionPlaceholder')}
-                  size="small"
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      value={field.value ?? ''}
+                      fullWidth
+                      label={t('teams.fields.description')}
+                      placeholder={t('teams.fields.descriptionPlaceholder')}
+                      size="small"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                    />
+                  )}
                 />
               </Grid>
             </Grid>
@@ -456,7 +410,7 @@ const TeamForm: React.FC = () => {
                   📋 {t('teams.fields.interventionTypeInfo')} : {selectedInterventionType.icon} {selectedInterventionType.label}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', display: 'block' }}>
-                  {t('teams.fields.authorizedRoles')} : {selectedInterventionType.roles.map(role => 
+                  {t('teams.fields.authorizedRoles')} : {selectedInterventionType.roles.map(role =>
                     teamRoles.find(r => r.value === role)?.label
                   ).join(', ')}
                 </Typography>
@@ -471,7 +425,7 @@ const TeamForm: React.FC = () => {
               {t('teams.sections.teamMembers')}
             </Typography>
 
-            {formData.members.length === 0 ? (
+            {fields.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 2.5 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3, display: 'block', fontSize: '0.85rem' }}>
                   {t('teams.fields.noMemberAdded')}
@@ -495,63 +449,78 @@ const TeamForm: React.FC = () => {
               </Box>
             ) : (
               <List>
-                {formData.members.map((member, index) => (
-                  <React.Fragment key={index}>
+                {fields.map((field, index) => (
+                  <React.Fragment key={field.id}>
                     <ListItem sx={{ px: 0, py: 0.75 }}>
                       <Grid container spacing={1.5} alignItems="center">
                         <Grid item xs={12} md={4}>
-                          <Autocomplete
-                            options={filteredUsers}
-                            getOptionLabel={(user) => `${user.firstName} ${user.lastName} (${user.email})`}
-                            value={filteredUsers.find(u => u.id === member.userId) || null}
-                            onChange={(_, user) => handleUserSelection(index, user)}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label={`${t('teams.fields.selectUser')} *`}
-                                required
-                                size="small"
+                          <Controller
+                            name={`members.${index}.userId`}
+                            control={control}
+                            render={({ field: userIdField, fieldState }) => (
+                              <Autocomplete
+                                options={filteredUsers}
+                                getOptionLabel={(user) => `${user.firstName} ${user.lastName} (${user.email})`}
+                                value={filteredUsers.find(u => u.id === userIdField.value) || null}
+                                onChange={(_, user) => handleUserSelection(index, user)}
+                                renderInput={(params) => (
+                                  <TextField
+                                    {...params}
+                                    label={`${t('teams.fields.selectUser')} *`}
+                                    size="small"
+                                    error={!!fieldState.error}
+                                    helperText={fieldState.error?.message}
+                                  />
+                                )}
+                                renderOption={(props, user) => (
+                                  <li {...props}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                      <Person sx={{ fontSize: 18 }} />
+                                      <Typography variant="body2">{user.firstName} {user.lastName} ({user.email})</Typography>
+                                    </Box>
+                                  </li>
+                                )}
                               />
-                            )}
-                            renderOption={(props, user) => (
-                              <li {...props}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                  <Person sx={{ fontSize: 18 }} />
-                                  <Typography variant="body2">{user.firstName} {user.lastName} ({user.email})</Typography>
-                                </Box>
-                              </li>
                             )}
                           />
                         </Grid>
 
                         <Grid item xs={12} md={3}>
-                          <FormControl fullWidth size="small">
-                            <InputLabel>{t('teams.fields.roleInTeam')}</InputLabel>
-                            <Select
-                              value={member.role}
-                              onChange={(e) => handleMemberChange(index, 'role', e.target.value)}
-                              label={t('teams.fields.roleInTeam')}
-                            >
-                              {availableRoles.map((role) => (
-                                <MenuItem key={role.value} value={role.value}>
-                                  {role.label}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
+                          <Controller
+                            name={`members.${index}.role`}
+                            control={control}
+                            render={({ field: roleField, fieldState }) => (
+                              <FormControl fullWidth size="small" error={!!fieldState.error}>
+                                <InputLabel>{t('teams.fields.roleInTeam')}</InputLabel>
+                                <Select
+                                  {...roleField}
+                                  label={t('teams.fields.roleInTeam')}
+                                >
+                                  {availableRoles.map((role) => (
+                                    <MenuItem key={role.value} value={role.value}>
+                                      {role.label}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                                {fieldState.error && (
+                                  <FormHelperText>{fieldState.error.message}</FormHelperText>
+                                )}
+                              </FormControl>
+                            )}
+                          />
                         </Grid>
 
                         <Grid item xs={12} md={3}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
                             <Chip
-                              label={member.firstName && member.lastName ? `${member.firstName} ${member.lastName}` : t('teams.fields.notSelected')}
-                              color={member.userId ? 'primary' : 'default'}
+                              label={field.firstName && field.lastName ? `${field.firstName} ${field.lastName}` : t('teams.fields.notSelected')}
+                              color={field.userId ? 'primary' : 'default'}
                               size="small"
                               sx={{ height: 22, fontSize: '0.7rem' }}
                             />
-                            {member.role && (
+                            {field.role && (
                               <Chip
-                                label={availableRoles.find(r => r.value === member.role)?.label || member.role}
+                                label={availableRoles.find(r => r.value === field.role)?.label || field.role}
                                 variant="outlined"
                                 size="small"
                                 sx={{ height: 22, fontSize: '0.7rem' }}
@@ -562,7 +531,7 @@ const TeamForm: React.FC = () => {
 
                         <Grid item xs={12} md={2}>
                           <IconButton
-                            onClick={() => handleRemoveMember(index)}
+                            onClick={() => remove(index)}
                             color="error"
                             size="small"
                             sx={{ p: 0.5 }}
@@ -572,14 +541,14 @@ const TeamForm: React.FC = () => {
                         </Grid>
                       </Grid>
                     </ListItem>
-                    {index < formData.members.length - 1 && <Divider />}
+                    {index < fields.length - 1 && <Divider />}
                   </React.Fragment>
                 ))}
               </List>
             )}
 
             {/* Bouton ajouter membre */}
-            {formData.members.length > 0 && filteredUsers.length > formData.members.length && (
+            {fields.length > 0 && filteredUsers.length > fields.length && (
               <Box sx={{ textAlign: 'center', mt: 1.5 }}>
                 <Button
                   variant="outlined"
@@ -591,7 +560,7 @@ const TeamForm: React.FC = () => {
                 </Button>
               </Box>
             )}
-            
+
             {/* Bouton de soumission caché pour le PageHeader */}
             <Button
               type="submit"

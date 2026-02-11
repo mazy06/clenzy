@@ -29,34 +29,13 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { teamsApi, interventionsApi } from '../../services/api';
+import type { Team, Intervention } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
 import TeamCard from '../../components/TeamCard';
 import { InterventionType, INTERVENTION_TYPE_OPTIONS, InterventionTypeUtils } from '../../types/interventionTypes';
 import { createSpacing } from '../../theme/spacing';
 import { useTranslation } from '../../hooks/useTranslation';
-
-interface Team {
-  id: number;
-  name: string;
-  description: string;
-  interventionType: string;
-  memberCount: number;
-  members: TeamMember[];
-  status?: 'active' | 'inactive' | 'maintenance';
-  createdAt?: string;
-  lastIntervention?: string;
-  totalInterventions?: number;
-  averageRating?: number;
-}
-
-interface TeamMember {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
-}
 
 const TeamsList: React.FC = () => {
   const navigate = useNavigate();
@@ -78,6 +57,9 @@ const TeamsList: React.FC = () => {
     'teams:edit': false,
     'teams:delete': false
   });
+
+  // Workload: active interventions count per team name
+  const [teamWorkloadCounts, setTeamWorkloadCounts] = useState<Record<string, number>>({});
 
   // Vérifier toutes les permissions au chargement
   useEffect(() => {
@@ -124,48 +106,26 @@ const TeamsList: React.FC = () => {
         setLoading(true);
         setError(null);
         
-        console.log('🔍 TeamsList - Tentative de chargement des équipes...');
-        
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/teams`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
+        const data = await teamsApi.getAll();
 
-        console.log('🔍 TeamsList - Réponse API:', response.status, response.statusText);
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log('🔍 TeamsList - Données reçues:', data);
-          
-          // Si c'est une page Spring Data, extraire le contenu
-          if (data.content && Array.isArray(data.content)) {
-            setTeams(data.content);
-          } else if (Array.isArray(data)) {
-            setTeams(data);
-          } else {
-            console.warn('🔍 TeamsList - Format de données inattendu, tableau vide');
-            setTeams([]);
-          }
-        } else if (response.status === 401) {
-          console.error('🔍 TeamsList - Erreur d\'authentification (401)');
-          setError(t('teams.errors.authError'));
-          setTeams([]);
-        } else if (response.status === 403) {
-          console.error('🔍 TeamsList - Accès interdit (403) - Permissions insuffisantes');
-          setError(t('teams.errors.forbiddenError'));
-          setTeams([]);
-        } else if (response.status === 404) {
-          console.log('🔍 TeamsList - Endpoint non trouvé, tableau vide');
-          setTeams([]);
+        // Si c'est une page Spring Data, extraire le contenu
+        if (data && (data as any).content && Array.isArray((data as any).content)) {
+          setTeams((data as any).content);
+        } else if (Array.isArray(data)) {
+          setTeams(data);
         } else {
-          console.error('🔍 TeamsList - Erreur API:', response.status);
-          setError(`${t('teams.errors.loadError')}: ${response.status} ${response.statusText}`);
           setTeams([]);
         }
-      } catch (err) {
-        console.error('🔍 TeamsList - Erreur lors du chargement:', err);
-        setError(t('teams.errors.connectionError'));
+      } catch (err: any) {
+        if (err?.status === 401) {
+          setError(t('teams.errors.authError'));
+        } else if (err?.status === 403) {
+          setError(t('teams.errors.forbiddenError'));
+        } else if (err?.status === 404) {
+          // No error message for 404
+        } else {
+          setError(t('teams.errors.connectionError'));
+        }
         setTeams([]);
       } finally {
         setLoading(false);
@@ -173,6 +133,31 @@ const TeamsList: React.FC = () => {
     };
 
     loadTeams();
+  }, []);
+
+  // Charger les interventions pour les indicateurs de charge
+  useEffect(() => {
+    const loadWorkloadData = async () => {
+      try {
+        const data = await interventionsApi.getAll();
+        const list = Array.isArray(data) ? data : (data as any).content || [];
+        const counts: Record<string, number> = {};
+        (list as Intervention[]).forEach((intervention) => {
+          if (
+            intervention.assignedToType === 'team' &&
+            intervention.assignedToName &&
+            (intervention.status === 'IN_PROGRESS' || intervention.status === 'PENDING' || intervention.status === 'AWAITING_VALIDATION')
+          ) {
+            counts[intervention.assignedToName] = (counts[intervention.assignedToName] || 0) + 1;
+          }
+        });
+        setTeamWorkloadCounts(counts);
+      } catch {
+        // Silently fail - workload indicators are optional
+      }
+    };
+
+    loadWorkloadData();
   }, []);
 
   // Filtrer les équipes selon le type sélectionné
@@ -219,19 +204,9 @@ const TeamsList: React.FC = () => {
     if (!selectedTeam) return;
 
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/teams/${selectedTeam.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-      });
-
-      if (response.ok) {
-        setTeams(teams.filter(team => team.id !== selectedTeam.id));
-        handleCloseDeleteDialog();
-      } else {
-        setError('Erreur lors de la suppression');
-      }
+      await teamsApi.delete(selectedTeam.id);
+      setTeams(teams.filter(team => team.id !== selectedTeam.id));
+      handleCloseDeleteDialog();
     } catch (err) {
       setError('Erreur de connexion');
     }
@@ -541,9 +516,10 @@ const TeamsList: React.FC = () => {
         <Grid container spacing={2}>
           {filteredTeams.map((team) => (
             <Grid item xs={12} md={6} lg={4} key={team.id}>
-              <TeamCard 
-                team={team} 
+              <TeamCard
+                team={team}
                 onMenuOpen={handleMenuOpen}
+                activeInterventionsCount={teamWorkloadCounts[team.name] || 0}
               />
             </Grid>
           ))}

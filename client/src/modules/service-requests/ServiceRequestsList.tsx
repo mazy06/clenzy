@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
@@ -8,674 +8,139 @@ import {
   CardContent,
   Menu,
   MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Avatar,
-  Badge,
-  Tooltip,
-  Fab,
   ListItemIcon,
   ListItemText,
-  Select,
-  FormControl,
-  InputLabel,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
-  FormLabel,
-  CircularProgress,
 } from '@mui/material';
 import {
   Add,
-  MoreVert,
   Edit,
   Delete,
   Visibility,
-  Schedule,
-  Person,
-  Category,
-  PriorityHigh,
-  CleaningServices,
-  Build,
   CheckCircle,
   Cancel,
   Description,
   Assignment,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
-import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import ServiceRequestCard from '../../components/ServiceRequestCard';
-import { API_CONFIG } from '../../config/api';
-import { RequestStatus, REQUEST_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } from '../../types/statusEnums';
+import ExportButton from '../../components/ExportButton';
+import type { ExportColumn } from '../../utils/exportUtils';
 import { createSpacing } from '../../theme/spacing';
-import { useTranslation } from '../../hooks/useTranslation';
-
-interface ServiceRequest {
-  id: string;
-  title: string;
-  description: string;
-  type: string;
-  status: string;
-  priority: string;
-  propertyId: number;
-  propertyName: string;
-  propertyAddress: string;
-  propertyCity: string;
-  requestorId: number;
-  requestorName: string;
-  assignedToId?: number;
-  assignedToName?: string;
-  assignedToType?: 'user' | 'team';
-  estimatedDuration: number;
-  dueDate: string;
-  createdAt: string;
-  approvedAt?: string; // Date d'approbation pour calculer le délai d'annulation
-}
-
-// Données mockées supprimées - utilisation de l'API uniquement
-// serviceTypes, statuses et priorities seront générés dynamiquement avec les traductions dans le composant
-
-// Utilisation des enums partagés pour les couleurs
-const statusColors = Object.fromEntries(
-  REQUEST_STATUS_OPTIONS.map(option => [option.value, option.color])
-) as Record<RequestStatus, string>;
-
-const priorityColors = Object.fromEntries(
-  PRIORITY_OPTIONS.map(option => [option.value, option.color])
-) as Record<Priority, string>;
-
-const typeIcons = {
-  CLEANING: <CleaningServices />,
-  EXPRESS_CLEANING: <CleaningServices />,
-  DEEP_CLEANING: <CleaningServices />,
-  WINDOW_CLEANING: <CleaningServices />,
-  FLOOR_CLEANING: <CleaningServices />,
-  KITCHEN_CLEANING: <CleaningServices />,
-  BATHROOM_CLEANING: <CleaningServices />,
-  PREVENTIVE_MAINTENANCE: <Build />,
-  EMERGENCY_REPAIR: <Build />,
-  ELECTRICAL_REPAIR: <Build />,
-  PLUMBING_REPAIR: <Build />,
-  HVAC_REPAIR: <Build />,
-  APPLIANCE_REPAIR: <Build />,
-  GARDENING: <Build />,
-  EXTERIOR_CLEANING: <CleaningServices />,
-  PEST_CONTROL: <Build />,
-  DISINFECTION: <CleaningServices />,
-  RESTORATION: <Build />,
-  OTHER: <Category />,
-};
+import { useServiceRequestsList } from './useServiceRequestsList';
+import { statusColors, priorityColors, typeIcons } from './serviceRequestsUtils';
+import {
+  DeleteConfirmDialog,
+  StatusChangeDialog,
+  AssignDialog,
+  ValidateConfirmDialog,
+  ErrorDialog,
+  SuccessDialog,
+} from './ServiceRequestsDialogs';
 
 export default function ServiceRequestsList() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedType, setSelectedType] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedPriority, setSelectedPriority] = useState('all');
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedServiceRequest, setSelectedServiceRequest] = useState<ServiceRequest | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const {
+    // Filter state
+    searchTerm,
+    setSearchTerm,
+    selectedType,
+    setSelectedType,
+    selectedStatus,
+    setSelectedStatus,
+    selectedPriority,
+    setSelectedPriority,
 
-  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  const { user, isAdmin, isManager, isHost, hasPermissionAsync } = useAuth();
-  const { t } = useTranslation();
-  // Temporairement désactivé pour déboguer
-  // const { canCancelServiceRequest: canCancelByWorkflow, getRemainingCancellationTime } = useWorkflowSettings();
-  
-  // Fonctions temporaires simplifiées
-  const canCancelByWorkflow = (date: string | null | undefined): boolean => {
-    console.log('🔍 Fonction temporaire canCancelByWorkflow appelée avec:', date);
-    return true; // Temporairement toujours true
-  };
-  
-  const getRemainingCancellationTime = (date: string | null | undefined): number => {
-    console.log('🔍 Fonction temporaire getRemainingCancellationTime appelée avec:', date);
-    return 24; // Temporairement toujours 24h
-  };
+    // Menu state
+    anchorEl,
+    selectedServiceRequest,
 
-  // États pour le changement de statut rapide
-  const [statusChangeDialogOpen, setStatusChangeDialogOpen] = useState(false);
-  const [selectedRequestForStatusChange, setSelectedRequestForStatusChange] = useState<ServiceRequest | null>(null);
-  const [newStatus, setNewStatus] = useState<string>('');
-  
-  
-  // États pour l'assignation de la demande de service
-  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [selectedRequestForAssignment, setSelectedRequestForAssignment] = useState<ServiceRequest | null>(null);
-  const [assignAssignmentType, setAssignAssignmentType] = useState<'team' | 'user' | 'none'>('none');
-  const [assignSelectedTeamId, setAssignSelectedTeamId] = useState<number | null>(null);
-  const [assignSelectedUserId, setAssignSelectedUserId] = useState<number | null>(null);
-  const [assignTeams, setAssignTeams] = useState<any[]>([]);
-  const [assignUsers, setAssignUsers] = useState<any[]>([]);
-  const [loadingAssignData, setLoadingAssignData] = useState(false);
+    // Data
+    filteredServiceRequests,
 
-  // États pour le dialogue de confirmation de validation
-  const [validateDialogOpen, setValidateDialogOpen] = useState(false);
-  const [selectedRequestForValidation, setSelectedRequestForValidation] = useState<ServiceRequest | null>(null);
-  const [validating, setValidating] = useState(false);
-  
-  // États pour les notifications d'erreur/succès
-  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string>('');
+    // Delete dialog
+    deleteDialogOpen,
+    setDeleteDialogOpen,
 
-  // Charger les demandes de service depuis l'API
-  const loadServiceRequests = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/service-requests`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-      });
+    // Status change dialog
+    statusChangeDialogOpen,
+    setStatusChangeDialogOpen,
+    selectedRequestForStatusChange,
+    setSelectedRequestForStatusChange,
+    newStatus,
+    setNewStatus,
 
-      if (response.ok) {
-        const data = await response.json();
-        const requestsList = data.content || data;
-        
-        // Convertir les données du backend vers le format frontend
-        const convertedRequests = requestsList.map((req: any) => ({
-          id: req.id.toString(),
-          title: req.title,
-          description: req.description,
-          type: req.type?.toLowerCase() || req.serviceType?.toLowerCase() || 'other',
-          status: req.status || 'PENDING',
-          priority: req.priority?.toLowerCase() || 'medium',
-          propertyId: req.propertyId,
-          propertyName: req.property?.name || 'Propriété inconnue',
-          propertyAddress: req.property?.address || '',
-          propertyCity: req.property?.city || '',
-          requestorId: req.userId || req.requestorId,
-          requestorName: req.user ? `${req.user.firstName} ${req.user.lastName}` : (req.requestor ? `${req.requestor.firstName} ${req.requestor.lastName}` : t('serviceRequests.unknownRequestor')),
-          assignedToId: req.assignedToId || undefined,
-          assignedToName: req.assignedTo ? `${req.assignedTo.firstName} ${req.assignedTo.lastName}` : undefined,
-          assignedToType: req.assignedToType || (req.assignedTo ? 'user' : undefined),
-          estimatedDuration: req.estimatedDurationHours || req.estimatedDuration || 1,
-          dueDate: req.desiredDate || req.dueDate,
-          createdAt: req.createdAt,
-        }));
+    // Assign dialog
+    assignDialogOpen,
+    selectedRequestForAssignment,
+    assignAssignmentType,
+    setAssignAssignmentType,
+    assignSelectedTeamId,
+    setAssignSelectedTeamId,
+    assignSelectedUserId,
+    setAssignSelectedUserId,
+    assignTeams,
+    assignUsers,
+    loadingAssignData,
 
-        setServiceRequests(convertedRequests);
-      } else {
-        // En cas d'erreur, tableau vide
-        setServiceRequests([]);
-      }
-    } catch (err) {
-      // En cas d'erreur, tableau vide
-      setServiceRequests([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    // Validate dialog
+    validateDialogOpen,
+    setValidateDialogOpen,
+    selectedRequestForValidation,
+    setSelectedRequestForValidation,
+    validating,
 
-  // Charger les données au montage du composant
-  useEffect(() => {
-    loadServiceRequests();
-  }, [loadServiceRequests]);
+    // Error/success dialogs
+    errorDialogOpen,
+    setErrorDialogOpen,
+    errorMessage,
+    successDialogOpen,
+    setSuccessDialogOpen,
+    successMessage,
 
+    // Handlers
+    handleMenuOpen,
+    handleMenuClose,
+    handleEdit,
+    handleViewDetails,
+    handleDelete,
+    confirmDelete,
+    confirmStatusChange,
+    handleAssignServiceRequest,
+    confirmAssignment,
+    closeAssignDialog,
+    handleValidateAndCreateIntervention,
+    confirmValidation,
 
+    // Permission checks
+    canModifyServiceRequest,
+    canDeleteServiceRequest,
+    canCancelServiceRequest,
+    getRemainingCancellationTime,
 
+    // Filter options
+    serviceTypes,
+    statuses,
+    priorities,
 
+    // Auth
+    isAdmin,
+    isManager,
+    isHost,
+    navigate,
+    t,
+  } = useServiceRequestsList();
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, serviceRequest: ServiceRequest) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedServiceRequest(serviceRequest);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedServiceRequest(null);
-  };
-
-  const handleEdit = () => {
-    if (selectedServiceRequest) {
-      navigate(`/service-requests/${selectedServiceRequest.id}/edit`);
-      handleMenuClose();
-    }
-  };
-
-  const handleViewDetails = () => {
-    if (selectedServiceRequest) {
-      navigate(`/service-requests/${selectedServiceRequest.id}`);
-      handleMenuClose();
-    }
-  };
-
-  const handleDelete = () => {
-    console.log('🔍 handleDelete appelé pour:', selectedServiceRequest);
-    console.log('🔍 Utilisateur actuel:', user);
-    console.log('🔍 isAdmin():', isAdmin());
-    console.log('🔍 isManager():', isManager());
-    console.log('🔍 canModifyServiceRequest:', canModifyServiceRequest(selectedServiceRequest!));
-    setDeleteDialogOpen(true);
-    // Ne pas fermer le menu ici, sinon selectedServiceRequest devient null
-  };
-
-  const confirmDelete = async () => {
-    console.log('🔍 confirmDelete appelé pour:', selectedServiceRequest);
-    if (selectedServiceRequest) {
-      try {
-        console.log('🔍 Tentative de suppression via API...');
-        const response = await fetch(`${API_CONFIG.BASE_URL}/api/service-requests/${selectedServiceRequest.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        });
-
-        console.log('🔍 Réponse API:', response.status, response.statusText);
-        
-        if (response.ok) {
-          console.log('🔍 Suppression réussie, mise à jour de la liste...');
-          loadServiceRequests();
-        } else {
-          console.error('🔍 Erreur API lors de la suppression:', response.status, response.statusText);
-          // Essayer de lire le message d'erreur
-          try {
-            const errorData = await response.text();
-            console.error('🔍 Détails de l\'erreur:', errorData);
-          } catch (e) {
-            console.error('🔍 Impossible de lire les détails de l\'erreur');
-          }
-        }
-      } catch (err) {
-        console.error('🔍 Erreur lors de la suppression:', err);
-      }
-    }
-    setDeleteDialogOpen(false);
-    // Fermer le menu après la suppression
-    handleMenuClose();
-  };
-
-  // Fonction pour ouvrir le dialogue de changement de statut
-  const handleStatusChange = (request: ServiceRequest) => {
-    setSelectedRequestForStatusChange(request);
-    setNewStatus(request.status);
-    setStatusChangeDialogOpen(true);
-  };
-
-  // Fonction pour confirmer le changement de statut
-  const confirmStatusChange = async () => {
-    if (!selectedRequestForStatusChange || !newStatus) return;
-
-    try {
-      // Préparer seulement les champs nécessaires pour le backend
-      const updateData = {
-        id: parseInt(selectedRequestForStatusChange.id),
-        title: selectedRequestForStatusChange.title,
-        description: selectedRequestForStatusChange.description,
-        serviceType: selectedRequestForStatusChange.type.toUpperCase(),
-        priority: selectedRequestForStatusChange.priority.toUpperCase(),
-        status: newStatus.toUpperCase(),
-        desiredDate: selectedRequestForStatusChange.dueDate,
-        estimatedDurationHours: selectedRequestForStatusChange.estimatedDuration,
-        userId: selectedRequestForStatusChange.requestorId,
-        propertyId: selectedRequestForStatusChange.propertyId,
-      };
-
-      console.log('🔍 Données envoyées pour mise à jour:', updateData);
-
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/service-requests/${selectedRequestForStatusChange.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-        body: JSON.stringify(updateData),
-      });
-
-      if (response.ok) {
-        // Si le statut passe à APPROVED, ouvrir le dialogue de validation avec assignation
-        if (newStatus.toUpperCase() === 'APPROVED') {
-          setStatusChangeDialogOpen(false);
-          handleValidateAndCreateIntervention(selectedRequestForStatusChange);
-          setSelectedRequestForStatusChange(null);
-          setNewStatus('');
-          return; // Sortir de la fonction car on va ouvrir le dialogue de validation
-        }
-
-        // Si le statut passe à CANCELLED, annuler aussi l'intervention associée
-        if (newStatus.toUpperCase() === 'CANCELLED') {
-          try {
-            console.log('🔍 Statut passé à CANCELLED, annulation de l\'intervention...');
-            // TODO: Appeler l'endpoint pour annuler l'intervention
-            // Pour l'instant, on se contente de changer le statut de la demande
-            console.log('🔍 Demande annulée, intervention à annuler manuellement pour l\'instant');
-          } catch (cancellationError) {
-            console.error('🔍 Erreur lors de l\'annulation:', cancellationError);
-          }
-        }
-
-        // Mettre à jour la liste locale
-        setServiceRequests(prev => 
-          prev.map(req => 
-            req.id === selectedRequestForStatusChange.id 
-              ? { ...req, status: newStatus }
-              : req
-          )
-        );
-        setStatusChangeDialogOpen(false);
-        setSelectedRequestForStatusChange(null);
-        setNewStatus('');
-      } else {
-        console.error('Erreur lors de la mise à jour du statut:', response.status, response.statusText);
-        // Essayer de lire le message d'erreur
-        try {
-          const errorData = await response.text();
-          console.error('🔍 Détails de l\'erreur:', errorData);
-        } catch (e) {
-          console.error('🔍 Impossible de lire les détails de l\'erreur');
-        }
-      }
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour du statut:', error);
-    }
-  };
-
-  // Fonction pour valider et créer une intervention (seuls managers et admins)
-
-  // Charger les équipes et utilisateurs pour l'assignation de la demande de service
-  useEffect(() => {
-    const loadAssignData = async () => {
-      if (!assignDialogOpen) return;
-      
-      setLoadingAssignData(true);
-      try {
-        const [teamsRes, usersRes] = await Promise.all([
-          fetch(`${API_CONFIG.BASE_URL}/api/teams`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-            },
-          }),
-          fetch(`${API_CONFIG.BASE_URL}/api/users`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-            },
-          })
-        ]);
-
-        if (teamsRes.ok) {
-          const teamsData = await teamsRes.json();
-          setAssignTeams(teamsData.content || teamsData || []);
-        }
-
-        if (usersRes.ok) {
-          const usersData = await usersRes.json();
-          const usersList = usersData.content || usersData || [];
-          // Filtrer pour ne garder que les utilisateurs opérationnels
-          const operationalUsers = usersList.filter((u: any) => 
-            ['TECHNICIAN', 'HOUSEKEEPER', 'SUPERVISOR'].includes(u.role)
-          );
-          setAssignUsers(operationalUsers);
-        }
-      } catch (err) {
-        console.error('Erreur chargement équipes/utilisateurs pour assignation:', err);
-      } finally {
-        setLoadingAssignData(false);
-      }
-    };
-
-    loadAssignData();
-  }, [assignDialogOpen]);
-
-  const handleAssignServiceRequest = (request: ServiceRequest) => {
-    setSelectedRequestForAssignment(request);
-    setAssignAssignmentType(request.assignedToType || 'none');
-    setAssignSelectedTeamId(request.assignedToType === 'team' ? request.assignedToId || null : null);
-    setAssignSelectedUserId(request.assignedToType === 'user' ? request.assignedToId || null : null);
-    setAssignDialogOpen(true);
-  };
-
-  const confirmAssignment = async () => {
-    if (!selectedRequestForAssignment) return;
-
-    try {
-      const updateData: any = {
-        id: parseInt(selectedRequestForAssignment.id),
-        title: selectedRequestForAssignment.title,
-        description: selectedRequestForAssignment.description,
-        serviceType: selectedRequestForAssignment.type.toUpperCase(),
-        priority: selectedRequestForAssignment.priority.toUpperCase(),
-        status: selectedRequestForAssignment.status,
-        desiredDate: selectedRequestForAssignment.dueDate,
-        estimatedDurationHours: selectedRequestForAssignment.estimatedDuration,
-        userId: selectedRequestForAssignment.requestorId,
-        propertyId: selectedRequestForAssignment.propertyId,
-      };
-
-      if (assignSelectedTeamId) {
-        updateData.assignedToId = assignSelectedTeamId;
-        updateData.assignedToType = 'team';
-      } else if (assignSelectedUserId) {
-        updateData.assignedToId = assignSelectedUserId;
-        updateData.assignedToType = 'user';
-      } else {
-        updateData.assignedToId = null;
-        updateData.assignedToType = null;
-      }
-
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/service-requests/${selectedRequestForAssignment.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-        body: JSON.stringify(updateData),
-      });
-
-      if (response.ok) {
-        // Recharger la liste pour avoir les données à jour
-        await loadServiceRequests();
-        
-        setAssignDialogOpen(false);
-        setSelectedRequestForAssignment(null);
-        setAssignAssignmentType('none');
-        setAssignSelectedTeamId(null);
-        setAssignSelectedUserId(null);
-        
-        console.log('Demande assignée avec succès');
-      } else {
-        const errorData = await response.text();
-        console.error('Erreur lors de l\'assignation:', response.status, errorData);
-        alert('Erreur lors de l\'assignation: ' + errorData);
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'assignation:', error);
-      alert('Erreur lors de l\'assignation');
-    }
-  };
-
-  const handleValidateAndCreateIntervention = (request: ServiceRequest) => {
-    // Vérifier que la demande est assignée
-    if (!request.assignedToId) {
-      setErrorMessage(t('serviceRequests.mustAssignBeforeValidation'));
-      setErrorDialogOpen(true);
-      return;
-    }
-    
-    // Ouvrir le dialogue de confirmation
-    setSelectedRequestForValidation(request);
-    setValidateDialogOpen(true);
-  };
-
-  const confirmValidation = async () => {
-    if (!selectedRequestForValidation) return;
-    
-    setValidating(true);
-    
-    try {
-      const requestBody: any = {};
-      // Utiliser l'assignation de la demande
-      if (selectedRequestForValidation.assignedToType === 'team') {
-        requestBody.teamId = selectedRequestForValidation.assignedToId;
-      } else if (selectedRequestForValidation.assignedToType === 'user') {
-        requestBody.userId = selectedRequestForValidation.assignedToId;
-      }
-
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/service-requests/${selectedRequestForValidation.id}/validate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (response.ok) {
-        const intervention = await response.json();
-        console.log('🔍 Intervention créée avec succès:', intervention);
-        
-        // Sauvegarder le titre avant de réinitialiser l'état
-        const requestTitle = selectedRequestForValidation.title;
-        
-        // Recharger la liste pour avoir les données à jour
-        await loadServiceRequests();
-        
-        // Fermer le dialogue de confirmation
-        setValidateDialogOpen(false);
-        setSelectedRequestForValidation(null);
-        
-        // Afficher le message de succès
-        setSuccessMessage(t('serviceRequests.validateSuccess', { title: requestTitle }));
-        setSuccessDialogOpen(true);
-      } else {
-        const errorData = await response.text();
-        console.error('Erreur lors de la validation:', response.status, errorData);
-        setErrorMessage(t('serviceRequests.validateError') + ': ' + errorData);
-        setErrorDialogOpen(true);
-      }
-    } catch (error) {
-      console.error('Erreur lors de la validation:', error);
-      setErrorMessage(t('serviceRequests.validateError'));
-      setErrorDialogOpen(true);
-    } finally {
-      setValidating(false);
-    }
-  };
-
-
-  // Filtrer les demandes de service
-  const getFilteredServiceRequests = () => {
-    return serviceRequests.filter((request) => {
-      const matchesSearch = request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           request.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           request.propertyName.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesType = selectedType === 'all' || request.type === selectedType;
-      const matchesStatus = selectedStatus === 'all' || request.status === selectedStatus;
-      const matchesPriority = selectedPriority === 'all' || request.priority === selectedPriority;
-      
-      return matchesSearch && matchesType && matchesStatus && matchesPriority;
-    });
-  };
-
-  const filteredServiceRequests = getFilteredServiceRequests();
-
-  // Vérifier si l'utilisateur peut modifier/supprimer cette demande
-  const canModifyServiceRequest = (request: ServiceRequest): boolean => {
-    if (isAdmin() || isManager()) return true;
-    if (isHost() && request.requestorId.toString() === user?.id) return true;
-    return false;
-  };
-
-  // Vérifier si l'utilisateur peut supprimer cette demande
-  const canDeleteServiceRequest = (request: ServiceRequest): boolean => {
-    // Ne pas permettre la suppression si la demande est approuvée (car intervention créée)
-    if (request.status === 'APPROVED') return false;
-    
-    // Vérifier les permissions utilisateur
-    return canModifyServiceRequest(request);
-  };
-
-  // Vérifier si l'utilisateur peut annuler cette demande
-  const canCancelServiceRequest = (request: ServiceRequest): boolean => {
-    // Seules les demandes approuvées peuvent être annulées
-    if (request.status !== 'APPROVED') return false;
-    
-    // Vérifier le délai d'annulation configuré
-    // Utiliser la date d'approbation si disponible, sinon la date de création
-    const referenceDate = request.approvedAt || request.createdAt;
-    if (!canCancelByWorkflow(referenceDate)) return false;
-    
-    // Vérifier les permissions utilisateur
-    return canModifyServiceRequest(request);
-  };
-
-  const formatDuration = (duration: number): string => {
-    if (duration === 0.5) return '30 min';
-    if (duration === 1) return '1h';
-    if (duration === 1.5) return '1h30';
-    return `${duration}h`;
-  };
-
-  const formatDate = (dateString: string | null | undefined): string => {
-    if (!dateString) return 'Non définie';
-    
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Date invalide';
-      
-      return date.toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch (error) {
-      console.error('Erreur de formatage de date:', error, 'pour la date:', dateString);
-      return 'Date invalide';
-    }
-  };
-
-
-
-  // Générer les types de service avec traductions
-  const serviceTypes = [
-    { value: 'all', label: t('serviceRequests.allTypes') },
-    { value: 'CLEANING', label: 'Nettoyage' },
-    { value: 'EXPRESS_CLEANING', label: 'Nettoyage Express' },
-    { value: 'DEEP_CLEANING', label: 'Nettoyage en Profondeur' },
-    { value: 'WINDOW_CLEANING', label: 'Nettoyage des Vitres' },
-    { value: 'FLOOR_CLEANING', label: 'Nettoyage des Sols' },
-    { value: 'KITCHEN_CLEANING', label: 'Nettoyage de la Cuisine' },
-    { value: 'BATHROOM_CLEANING', label: 'Nettoyage des Sanitaires' },
-    { value: 'PREVENTIVE_MAINTENANCE', label: 'Maintenance Préventive' },
-    { value: 'EMERGENCY_REPAIR', label: 'Réparation d\'Urgence' },
-    { value: 'ELECTRICAL_REPAIR', label: 'Réparation Électrique' },
-    { value: 'PLUMBING_REPAIR', label: 'Réparation Plomberie' },
-    { value: 'HVAC_REPAIR', label: 'Réparation Climatisation' },
-    { value: 'APPLIANCE_REPAIR', label: 'Réparation Électroménager' },
-    { value: 'GARDENING', label: 'Jardinage' },
-    { value: 'EXTERIOR_CLEANING', label: 'Nettoyage Extérieur' },
-    { value: 'PEST_CONTROL', label: 'Désinsectisation' },
-    { value: 'DISINFECTION', label: 'Désinfection' },
-    { value: 'RESTORATION', label: 'Remise en État' },
-    { value: 'OTHER', label: 'Autre' },
-  ];
-
-  // Générer les statuts avec traductions
-  const statuses = [
-    { value: 'all', label: t('serviceRequests.allStatuses') },
-    ...REQUEST_STATUS_OPTIONS.map(option => ({
-      value: option.value,
-      label: option.label
-    }))
-  ];
-
-  // Générer les priorités avec traductions
-  const priorities = [
-    { value: 'all', label: t('serviceRequests.allPriorities') },
-    ...PRIORITY_OPTIONS.map(option => ({
-      value: option.value,
-      label: option.label
-    }))
+  const exportColumns: ExportColumn[] = [
+    { key: 'id', label: 'ID' },
+    { key: 'title', label: 'Titre' },
+    { key: 'type', label: 'Type' },
+    { key: 'status', label: 'Statut' },
+    { key: 'priority', label: 'Priorité' },
+    { key: 'propertyName', label: 'Propriété' },
+    { key: 'requestorName', label: 'Demandeur' },
+    { key: 'assignedToName', label: 'Assigné à' },
+    { key: 'dueDate', label: "Date d'échéance", formatter: (v: string) => v ? new Date(v).toLocaleDateString('fr-FR') : '' },
+    { key: 'createdAt', label: 'Date de création', formatter: (v: string) => v ? new Date(v).toLocaleDateString('fr-FR') : '' },
   ];
 
   return (
@@ -686,15 +151,22 @@ export default function ServiceRequestsList() {
         backPath="/dashboard"
         showBackButton={false}
         actions={
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<Add />}
-            onClick={() => navigate('/service-requests/new')}
-            size="small"
-          >
-            {t('serviceRequests.create')}
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <ExportButton
+              data={filteredServiceRequests}
+              columns={exportColumns}
+              fileName="demandes-service"
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Add />}
+              onClick={() => navigate('/service-requests/new')}
+              size="small"
+            >
+              {t('serviceRequests.create')}
+            </Button>
+          </Box>
         }
       />
 
@@ -744,7 +216,7 @@ export default function ServiceRequestsList() {
                   {t('serviceRequests.noRequestFound')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                  {isAdmin() || isManager() 
+                  {isAdmin() || isManager()
                     ? t('serviceRequests.noRequestCreated')
                     : t('serviceRequests.noRequestAssigned')}
                 </Typography>
@@ -804,8 +276,8 @@ export default function ServiceRequestsList() {
           </ListItemIcon>
           {t('serviceRequests.viewDetails')}
         </MenuItem>
-        
-        {/* Action d'assignation - visible pour managers et admins si la demande n'est pas assignée */}
+
+        {/* Action d'assignation - visible pour managers et admins si la demande n'est pas assignee */}
         {(isAdmin() || isManager()) && selectedServiceRequest?.status === 'PENDING' && !selectedServiceRequest.assignedToId && (
           <MenuItem onClick={() => {
             handleAssignServiceRequest(selectedServiceRequest);
@@ -817,8 +289,8 @@ export default function ServiceRequestsList() {
             {t('serviceRequests.assign')}
           </MenuItem>
         )}
-        
-        {/* Action de validation et création d'intervention - visible pour managers et admins seulement si assignée */}
+
+        {/* Action de validation et creation d'intervention - visible pour managers et admins seulement si assignee */}
         {(isAdmin() || isManager()) && selectedServiceRequest?.status === 'PENDING' && selectedServiceRequest.assignedToId && (
           <MenuItem onClick={() => {
             handleValidateAndCreateIntervention(selectedServiceRequest);
@@ -830,7 +302,7 @@ export default function ServiceRequestsList() {
             {t('serviceRequests.validateAndCreateIntervention')}
           </MenuItem>
         )}
-        
+
         {/* Option de modification - toujours visible si permissions */}
         {selectedServiceRequest && canModifyServiceRequest(selectedServiceRequest) && (
           <MenuItem onClick={handleEdit}>
@@ -840,8 +312,8 @@ export default function ServiceRequestsList() {
             {t('serviceRequests.modify')}
           </MenuItem>
         )}
-        
-        {/* Option de suppression - seulement si pas approuvée */}
+
+        {/* Option de suppression - seulement si pas approuvee */}
         {selectedServiceRequest && canDeleteServiceRequest(selectedServiceRequest) && (
           <MenuItem onClick={handleDelete}>
             <ListItemIcon>
@@ -850,8 +322,8 @@ export default function ServiceRequestsList() {
             {t('serviceRequests.delete')}
           </MenuItem>
         )}
-        
-        {/* Option d'annulation - seulement si approuvée */}
+
+        {/* Option d'annulation - seulement si approuvee */}
         {selectedServiceRequest && canCancelServiceRequest(selectedServiceRequest) && (
           <MenuItem onClick={() => {
             setSelectedRequestForStatusChange(selectedServiceRequest);
@@ -870,293 +342,68 @@ export default function ServiceRequestsList() {
         )}
       </Menu>
 
-      {/* Dialog de confirmation de suppression */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle sx={{ pb: 1 }}>{t('serviceRequests.confirmDelete')}</DialogTitle>
-        <DialogContent sx={{ pt: 1.5 }}>
-          <Typography variant="body2">
-            {t('serviceRequests.confirmDeleteMessage', { title: selectedServiceRequest?.title })}
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} size="small">{t('common.cancel')}</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained" size="small">
-            {t('serviceRequests.delete')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Dialogs */}
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={confirmDelete}
+        requestTitle={selectedServiceRequest?.title}
+        t={t}
+      />
 
-      {/* Dialog de changement de statut */}
-      <Dialog open={statusChangeDialogOpen} onClose={() => setStatusChangeDialogOpen(false)}>
-        <DialogTitle sx={{ pb: 1 }}>{t('serviceRequests.changeStatus')}</DialogTitle>
-        <DialogContent sx={{ pt: 1.5 }}>
-          <Typography variant="caption" sx={{ mb: 1.5, fontSize: '0.75rem' }}>
-            {t('serviceRequests.changeStatusMessage', { title: selectedRequestForStatusChange?.title })}
-          </Typography>
-          <FormControl fullWidth>
-            <InputLabel>{t('serviceRequests.newStatus')}</InputLabel>
-            <Select
-              value={newStatus}
-              onChange={(e) => setNewStatus(e.target.value)}
-              label="Nouveau statut"
-              size="small"
-            >
-              {statuses
-                .filter(status => status.value !== 'all')
-                .map((status) => (
-                  <MenuItem key={status.value} value={status.value}>
-                    {status.label}
-                  </MenuItem>
-                ))}
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => setStatusChangeDialogOpen(false)} size="small">{t('common.cancel')}</Button>
-          <Button onClick={confirmStatusChange} variant="contained" size="small">
-            {t('common.confirm')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <StatusChangeDialog
+        open={statusChangeDialogOpen}
+        onClose={() => setStatusChangeDialogOpen(false)}
+        onConfirm={confirmStatusChange}
+        requestTitle={selectedRequestForStatusChange?.title}
+        newStatus={newStatus}
+        onStatusChange={setNewStatus}
+        statuses={statuses}
+        t={t}
+      />
 
+      <AssignDialog
+        open={assignDialogOpen}
+        onClose={closeAssignDialog}
+        onConfirm={confirmAssignment}
+        selectedRequest={selectedRequestForAssignment}
+        assignmentType={assignAssignmentType}
+        onAssignmentTypeChange={setAssignAssignmentType}
+        selectedTeamId={assignSelectedTeamId}
+        onTeamChange={setAssignSelectedTeamId}
+        selectedUserId={assignSelectedUserId}
+        onUserChange={setAssignSelectedUserId}
+        teams={assignTeams}
+        users={assignUsers}
+        loadingData={loadingAssignData}
+        t={t}
+      />
 
-      {/* Dialogue d'assignation de la demande de service */}
-      <Dialog 
-        open={assignDialogOpen} 
+      <ValidateConfirmDialog
+        open={validateDialogOpen}
         onClose={() => {
-          setAssignDialogOpen(false);
-          setSelectedRequestForAssignment(null);
-          setAssignAssignmentType('none');
-          setAssignSelectedTeamId(null);
-          setAssignSelectedUserId(null);
+          setValidateDialogOpen(false);
+          setSelectedRequestForValidation(null);
         }}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {t('serviceRequests.assign')}
-        </DialogTitle>
-        <DialogContent>
-          {selectedRequestForAssignment && (
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t('serviceRequests.assign')}: <strong>{selectedRequestForAssignment.title}</strong>
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {t('serviceRequests.assignDescription')}
-              </Typography>
-            </Box>
-          )}
-          
-          <FormControl component="fieldset" sx={{ width: '100%', mt: 2 }}>
-            <FormLabel component="legend">{t('serviceRequests.assignmentType')}</FormLabel>
-            <RadioGroup
-              value={assignAssignmentType}
-              onChange={(e) => {
-                const newType = e.target.value as 'team' | 'user' | 'none';
-                setAssignAssignmentType(newType);
-                if (newType === 'team') {
-                  setAssignSelectedUserId(null);
-                } else if (newType === 'user') {
-                  setAssignSelectedTeamId(null);
-                } else {
-                  setAssignSelectedTeamId(null);
-                  setAssignSelectedUserId(null);
-                }
-              }}
-            >
-              <FormControlLabel value="team" control={<Radio />} label={t('serviceRequests.fields.team')} />
-              {assignAssignmentType === 'team' && (
-                <FormControl fullWidth sx={{ ml: 4, mt: 1, mb: 2 }}>
-                  <InputLabel>{t('serviceRequests.fields.team')}</InputLabel>
-                  <Select
-                    value={assignSelectedTeamId || ''}
-                    onChange={(e) => setAssignSelectedTeamId(e.target.value as number)}
-                    label={t('serviceRequests.fields.team')}
-                    disabled={loadingAssignData}
-                  >
-                    {assignTeams.length === 0 && !loadingAssignData && (
-                      <MenuItem disabled>{t('serviceRequests.noTeamsAvailable')}</MenuItem>
-                    )}
-                    {assignTeams.map((team) => (
-                      <MenuItem key={team.id} value={team.id}>
-                        {team.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-              
-              <FormControlLabel value="user" control={<Radio />} label={t('serviceRequests.fields.assignedToUser')} />
-              {assignAssignmentType === 'user' && (
-                <FormControl fullWidth sx={{ ml: 4, mt: 1, mb: 2 }}>
-                  <InputLabel>{t('serviceRequests.fields.assignedToUser')}</InputLabel>
-                  <Select
-                    value={assignSelectedUserId || ''}
-                    onChange={(e) => setAssignSelectedUserId(e.target.value as number)}
-                    label={t('serviceRequests.fields.assignedToUser')}
-                    disabled={loadingAssignData}
-                  >
-                    {assignUsers.length === 0 && !loadingAssignData && (
-                      <MenuItem disabled>{t('serviceRequests.noUsersAvailable')}</MenuItem>
-                    )}
-                    {assignUsers.map((user) => (
-                      <MenuItem key={user.id} value={user.id}>
-                        {user.firstName} {user.lastName} ({user.role})
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-              
-              <FormControlLabel value="none" control={<Radio />} label={t('serviceRequests.fields.noAssignment')} />
-            </RadioGroup>
-          </FormControl>
-          
-          {loadingAssignData && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-              <CircularProgress size={24} />
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setAssignDialogOpen(false);
-            setSelectedRequestForAssignment(null);
-            setAssignAssignmentType('none');
-            setAssignSelectedTeamId(null);
-            setAssignSelectedUserId(null);
-          }}>
-            {t('common.cancel')}
-          </Button>
-          <Button 
-            onClick={confirmAssignment} 
-            variant="contained" 
-            color="primary"
-            disabled={loadingAssignData || (assignAssignmentType === 'team' && !assignSelectedTeamId) || (assignAssignmentType === 'user' && !assignSelectedUserId)}
-          >
-            {t('serviceRequests.assign')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onConfirm={confirmValidation}
+        selectedRequest={selectedRequestForValidation}
+        validating={validating}
+        t={t}
+      />
 
-      {/* Dialogue de confirmation de validation */}
-      <Dialog 
-        open={validateDialogOpen} 
-        onClose={() => {
-          if (!validating) {
-            setValidateDialogOpen(false);
-            setSelectedRequestForValidation(null);
-          }
-        }}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CheckCircle color="success" />
-          {t('serviceRequests.validateAndCreateIntervention')}
-        </DialogTitle>
-        <DialogContent>
-          {selectedRequestForValidation && (
-            <Box>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                {t('serviceRequests.confirmValidation', { title: selectedRequestForValidation.title })}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                {t('serviceRequests.validateAndCreateInterventionDescription')}
-              </Typography>
-              {selectedRequestForValidation.assignedToName && (
-                <Box sx={{ mt: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                    {selectedRequestForValidation.assignedToType === 'team' ? t('serviceRequests.fields.team') : t('serviceRequests.fields.assignedToUser')}
-                  </Typography>
-                  <Typography variant="body2" fontWeight={600}>
-                    {selectedRequestForValidation.assignedToName}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button 
-            onClick={() => {
-              setValidateDialogOpen(false);
-              setSelectedRequestForValidation(null);
-            }}
-            disabled={validating}
-            size="small"
-          >
-            {t('common.cancel')}
-          </Button>
-          <Button 
-            onClick={confirmValidation} 
-            variant="contained" 
-            color="success"
-            disabled={validating}
-            size="small"
-            startIcon={validating ? <CircularProgress size={16} /> : <CheckCircle />}
-          >
-            {validating ? t('common.processing') : t('common.confirm')}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Dialogue d'erreur */}
-      <Dialog 
-        open={errorDialogOpen} 
+      <ErrorDialog
+        open={errorDialogOpen}
         onClose={() => setErrorDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main' }}>
-          <Cancel color="error" />
-          {t('common.error')}
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2">
-            {errorMessage}
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button 
-            onClick={() => setErrorDialogOpen(false)} 
-            variant="contained" 
-            color="error"
-            size="small"
-          >
-            {t('common.close')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        message={errorMessage}
+        t={t}
+      />
 
-      {/* Dialogue de succès */}
-      <Dialog 
-        open={successDialogOpen} 
+      <SuccessDialog
+        open={successDialogOpen}
         onClose={() => setSuccessDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'success.main' }}>
-          <CheckCircle color="success" />
-          {t('common.success')}
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2">
-            {successMessage}
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button 
-            onClick={() => setSuccessDialogOpen(false)} 
-            variant="contained" 
-            color="success"
-            size="small"
-          >
-            {t('common.close')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        message={successMessage}
+        t={t}
+      />
     </Box>
   );
 }

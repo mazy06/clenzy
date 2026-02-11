@@ -147,7 +147,6 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
 
       return true;
     } catch (err) {
-      console.error('Error checking menu access:', err);
       return false;
     }
   }, [user?.permissions, isAdmin, isManager]);
@@ -181,8 +180,7 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la construction du menu';
       setError(errorMessage);
-      console.error('Error building menu items:', err);
-      
+
       // Retourner un menu de base en cas d'erreur
       return [{
         id: '/dashboard',

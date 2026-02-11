@@ -41,7 +41,18 @@ import {
   LocationOn,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { portfoliosApi } from '../../services/api';
+import apiClient from '../../services/apiClient';
+
+type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+
+interface AvailableUser {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
 
 interface PortfolioCardProps {
   portfolio: {
@@ -89,8 +100,8 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio, onRefresh }) =
     roleInTeam: '', 
     notes: '' 
   });
-  const [availableClients, setAvailableClients] = useState<any[]>([]);
-  const [availableTeamMembers, setAvailableTeamMembers] = useState<any[]>([]);
+  const [availableClients, setAvailableClients] = useState<AvailableUser[]>([]);
+  const [availableTeamMembers, setAvailableTeamMembers] = useState<AvailableUser[]>([]);
 
   useEffect(() => {
     if (expanded) {
@@ -103,34 +114,13 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio, onRefresh }) =
     setLoading(true);
     try {
       // Charger les clients
-      const clientsResponse = await fetch(
-        `${API_CONFIG.BASE_URL}/api/portfolios/${portfolio.id}/clients`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        }
-      );
-      if (clientsResponse.ok) {
-        const clientsData = await clientsResponse.json();
-        setClients(clientsData);
-      }
+      const clientsData = await apiClient.get<PortfolioClient[]>(`/portfolios/${portfolio.id}/clients`);
+      setClients(clientsData);
 
       // Charger les membres d'équipe
-      const teamResponse = await fetch(
-        `${API_CONFIG.BASE_URL}/api/portfolios/${portfolio.id}/team`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        }
-      );
-      if (teamResponse.ok) {
-        const teamData = await teamResponse.json();
-        setTeamMembers(teamData);
-      }
+      const teamData = await apiClient.get<PortfolioTeam[]>(`/portfolios/${portfolio.id}/team`);
+      setTeamMembers(teamData);
     } catch (err) {
-      console.error('Erreur chargement détails portefeuille:', err);
     } finally {
       setLoading(false);
     }
@@ -138,31 +128,19 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio, onRefresh }) =
 
   const loadAvailableUsers = async () => {
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/api/users`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        }
-      );
+      const data = await apiClient.get<any>('/users');
+      const usersList = data.content || data;
 
-      if (response.ok) {
-        const data = await response.json();
-        const usersList = data.content || data;
-        
-        // Filtrer les HOSTs pour les clients
-        const hosts = usersList.filter((u: any) => u.role === 'HOST');
-        setAvailableClients(hosts);
-        
-        // Filtrer les TECHNICIEN, HOUSEKEEPER, SUPERVISOR pour l'équipe
-        const teamMembers = usersList.filter((u: any) => 
-          ['TECHNICIAN', 'HOUSEKEEPER', 'SUPERVISOR'].includes(u.role)
-        );
-        setAvailableTeamMembers(teamMembers);
-      }
+      // Filtrer les HOSTs pour les clients
+      const hosts = usersList.filter((u: AvailableUser) => u.role === 'HOST');
+      setAvailableClients(hosts);
+
+      // Filtrer les TECHNICIEN, HOUSEKEEPER, SUPERVISOR pour l'équipe
+      const teamMembers = usersList.filter((u: AvailableUser) =>
+        ['TECHNICIAN', 'HOUSEKEEPER', 'SUPERVISOR'].includes(u.role)
+      );
+      setAvailableTeamMembers(teamMembers);
     } catch (err) {
-      console.error('Erreur chargement utilisateurs:', err);
     }
   };
 
@@ -170,29 +148,15 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio, onRefresh }) =
     if (!newClient.clientId) return;
 
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/api/portfolios/${portfolio.id}/clients`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            clientId: newClient.clientId,
-            notes: newClient.notes || '',
-          }),
-        }
-      );
-
-      if (response.ok) {
-        setIsClientDialogOpen(false);
-        setNewClient({ clientId: '', notes: '' });
-        loadPortfolioDetails();
-        onRefresh();
-      }
+      await portfoliosApi.assignClient(portfolio.id, {
+        clientId: newClient.clientId,
+        notes: newClient.notes || '',
+      });
+      setIsClientDialogOpen(false);
+      setNewClient({ clientId: '', notes: '' });
+      loadPortfolioDetails();
+      onRefresh();
     } catch (err) {
-      console.error('Erreur ajout client:', err);
     }
   };
 
@@ -200,72 +164,34 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio, onRefresh }) =
     if (!newTeamMember.teamMemberId || !newTeamMember.roleInTeam) return;
 
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/api/portfolios/${portfolio.id}/team`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            teamMemberId: newTeamMember.teamMemberId,
-            roleInTeam: newTeamMember.roleInTeam,
-            notes: newTeamMember.notes || '',
-          }),
-        }
-      );
-
-      if (response.ok) {
-        setIsTeamDialogOpen(false);
-        setNewTeamMember({ teamMemberId: '', roleInTeam: '', notes: '' });
-        loadPortfolioDetails();
-        onRefresh();
-      }
+      await portfoliosApi.assignTeam(portfolio.id, {
+        teamMemberId: newTeamMember.teamMemberId,
+        roleInTeam: newTeamMember.roleInTeam,
+        notes: newTeamMember.notes || '',
+      });
+      setIsTeamDialogOpen(false);
+      setNewTeamMember({ teamMemberId: '', roleInTeam: '', notes: '' });
+      loadPortfolioDetails();
+      onRefresh();
     } catch (err) {
-      console.error('Erreur ajout membre équipe:', err);
     }
   };
 
   const handleRemoveClient = async (clientId: number) => {
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/api/portfolios/${portfolio.id}/clients/${clientId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        loadPortfolioDetails();
-        onRefresh();
-      }
+      await apiClient.delete(`/portfolios/${portfolio.id}/clients/${clientId}`);
+      loadPortfolioDetails();
+      onRefresh();
     } catch (err) {
-      console.error('Erreur suppression client:', err);
     }
   };
 
   const handleRemoveTeamMember = async (teamMemberId: number) => {
     try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/api/portfolios/${portfolio.id}/team/${teamMemberId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        loadPortfolioDetails();
-        onRefresh();
-      }
+      await apiClient.delete(`/portfolios/${portfolio.id}/team/${teamMemberId}`);
+      loadPortfolioDetails();
+      onRefresh();
     } catch (err) {
-      console.error('Erreur suppression membre équipe:', err);
     }
   };
 
@@ -277,7 +203,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio, onRefresh }) =
     });
   };
 
-  const getRoleColor = (role: string) => {
+  const getRoleColor = (role: string): ChipColor => {
     switch (role) {
       case 'TECHNICIAN': return 'primary';
       case 'HOUSEKEEPER': return 'secondary';
@@ -457,7 +383,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ portfolio, onRefresh }) =
                           <Chip
                             label={member.roleInTeam}
                             size="small"
-                            color={getRoleColor(member.roleInTeam) as any}
+                            color={getRoleColor(member.roleInTeam)}
                             variant="outlined"
                           />
                           <Typography variant="caption" color="text.secondary">

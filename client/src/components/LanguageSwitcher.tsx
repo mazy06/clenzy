@@ -5,6 +5,7 @@ import {
   ListItemText,
   Box,
   Select,
+  SelectChangeEvent,
   FormControl,
 } from '@mui/material';
 import {
@@ -23,7 +24,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
 }) => {
   const { changeLanguage, currentLanguage, t } = useTranslation();
 
-  const handleLanguageChange = (event: any) => {
+  const handleLanguageChange = (event: SelectChangeEvent) => {
     const newLang = event.target.value as 'fr' | 'en';
     changeLanguage(newLang);
     if (onClose) {

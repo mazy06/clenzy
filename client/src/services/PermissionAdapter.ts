@@ -1,4 +1,4 @@
-import { API_CONFIG } from '../config/api';
+import { permissionsApi } from './api';
 
 export interface PermissionUpdate {
   userId: string;
@@ -32,33 +32,14 @@ export class PermissionAdapter {
    */
   public async syncPermissions(userId: string): Promise<string[]> {
     try {
-      console.log('🔄 PermissionAdapter - Synchronisation des permissions pour:', userId);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/sync`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId }),
-      });
+      const result = await permissionsApi.sync(userId) as any as SyncResponse;
+      this.lastSync = Date.now();
 
-      if (response.ok) {
-        const result: SyncResponse = await response.json();
-        this.lastSync = Date.now();
-        
-        console.log('🔄 PermissionAdapter - Synchronisation réussie:', result);
-        
-        // Notifier tous les listeners
-        this.notifyListeners(result.permissions);
-        
-        return result.permissions;
-      } else {
-        console.error('❌ PermissionAdapter - Erreur lors de la synchronisation:', response.status);
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
+      // Notifier tous les listeners
+      this.notifyListeners(result.permissions);
+
+      return result.permissions;
     } catch (error) {
-      console.error('❌ PermissionAdapter - Erreur de synchronisation:', error);
       throw error;
     }
   }
@@ -96,7 +77,6 @@ export class PermissionAdapter {
       try {
         listener(permissions);
       } catch (error) {
-        console.error('❌ PermissionAdapter - Erreur dans un listener:', error);
       }
     });
   }
@@ -105,7 +85,6 @@ export class PermissionAdapter {
    * Force une synchronisation immédiate
    */
   public async forceSync(userId: string): Promise<string[]> {
-    console.log('🔄 PermissionAdapter - Synchronisation forcée');
     this.lastSync = 0; // Force la synchronisation
     return this.syncPermissions(userId);
   }

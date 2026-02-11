@@ -1,4 +1,4 @@
-import { API_CONFIG } from '../config/api';
+import { permissionsApi } from './api';
 
 export class RedisCacheService {
   private static instance: RedisCacheService;
@@ -17,22 +17,9 @@ export class RedisCacheService {
    */
   public async getPermissionsFromRedis(userId: string): Promise<string[]> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/redis/${userId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        return result.permissions || [];
-      }
-      
-      return [];
+      const result = await permissionsApi.getRedisCache(userId);
+      return (result as any).permissions || [];
     } catch (error) {
-      console.error('RedisCacheService - Erreur lors de la recuperation depuis Redis:', error);
       return [];
     }
   }
@@ -42,18 +29,9 @@ export class RedisCacheService {
    */
   public async updatePermissionsInRedis(userId: string, permissions: string[]): Promise<boolean> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/redis/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ permissions }),
-      });
-
-      return response.ok;
+      await permissionsApi.updateRedisCache(userId, permissions);
+      return true;
     } catch (error) {
-      console.error('RedisCacheService - Erreur lors de la mise a jour dans Redis:', error);
       return false;
     }
   }
@@ -63,17 +41,9 @@ export class RedisCacheService {
    */
   public async invalidateUserCache(userId: string): Promise<boolean> {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/redis/${userId}/invalidate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      return response.ok;
+      await permissionsApi.invalidateRedisCache(userId);
+      return true;
     } catch (error) {
-      console.error('RedisCacheService - Erreur lors de l invalidation du cache Redis:', error);
       return false;
     }
   }
