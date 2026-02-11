@@ -64,7 +64,8 @@ public class SecurityConfig {
                     "/api/sync/**",
                     "/api/webhooks/stripe",
                     "/api/webhooks/airbnb",
-                    "/api/airbnb/callback"
+                    "/api/airbnb/callback",
+                    "/api/public/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
@@ -79,6 +80,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.addAllowedOrigin("http://localhost:3000");
         config.addAllowedOrigin("http://localhost:3001");
+        config.addAllowedOrigin("http://localhost:8080"); // Landing page (Vite dev)
         config.addAllowedMethod("GET");
         config.addAllowedMethod("POST");
         config.addAllowedMethod("PUT");

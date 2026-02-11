@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 @Profile("prod")
 public class SecurityConfigProd {
 
-    @Value("${cors.allowed-origins:https://app.clenzy.fr}")
+    @Value("${cors.allowed-origins:https://app.clenzy.fr,https://clenzy.fr,https://www.clenzy.fr}")
     private String allowedOrigins;
 
     private List<String> getAllowedOriginsList() {
@@ -71,6 +71,7 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/api/webhooks/stripe").permitAll()
                         .requestMatchers("/api/contact/**").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
                         // Actuator (seulement health et info sans auth)
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")

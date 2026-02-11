@@ -34,6 +34,7 @@
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/controller/ReportController.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/PropertyType.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/ApiError.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/QuoteRequestDto.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/RolePermissionsDto.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/TeamAssociationDto.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/ManagerUser.java
@@ -84,6 +85,7 @@
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/UpdateUserDto.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/ServiceRequestDto.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/CleaningFrequency.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/QuoteResponseDto.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/service/PdfTemplateHelper.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/InterventionType.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/config/OpenApiConfig.java
@@ -105,6 +107,7 @@
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/ManagerProperty.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/PortfolioDto.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/integration/airbnb/repository/AirbnbListingMappingRepository.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/service/EmailService.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/ClenzyApplication.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/service/AuditLogService.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/config/RateLimitInterceptor.java
@@ -115,6 +118,7 @@
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/exception/GlobalExceptionHandler.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/integration/airbnb/service/AirbnbCalendarService.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/AuditSource.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/controller/QuoteController.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/repository/RoleRepository.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/exception/KeycloakOperationException.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/service/ServiceRequestService.java
