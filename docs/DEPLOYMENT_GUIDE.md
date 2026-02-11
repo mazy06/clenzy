@@ -194,7 +194,7 @@ chmod +x backup-cron.sh
 # Ajouter au crontab
 crontab -e
 # Ajouter cette ligne :
-0 2 * * * /chemin/vers/clenzy/infrastructure/backup-cron.sh
+0 2 * * * /chemin/vers/clenzy-infra/backup/backup.sh
 ```
 
 ### **3. Rotation des logs**

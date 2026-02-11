@@ -29,9 +29,8 @@ target/
 .DS_Store
 Thumbs.db
 
-# Docker
-infrastructure/postgres-data/
-infrastructure/keycloak-data/
+# Docker (ancien dossier infrastructure migre vers clenzy-infra)
+infrastructure/
 
 # Logs
 *.log

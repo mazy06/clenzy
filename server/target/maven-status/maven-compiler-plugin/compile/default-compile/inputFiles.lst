@@ -15,6 +15,7 @@
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/integration/airbnb/dto/AirbnbWebhookPayload.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/exception/UserNotFoundException.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/exception/NotFoundException.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/GdprConsentUpdateDto.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/service/PermissionService.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/integration/airbnb/service/AirbnbSyncScheduler.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/InterventionPhoto.java
@@ -28,6 +29,7 @@
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/RequestComment.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/UserRole.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/config/SecurityConfig.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/repository/GdprConsentRepository.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/AssignmentRequest.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/controller/ReportController.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/PropertyType.java
@@ -52,9 +54,11 @@
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/PropertyAssociationDto.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/controller/TokenAdminController.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/Intervention.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/config/EncryptedFieldConverter.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/integration/airbnb/repository/AirbnbConnectionRepository.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/controller/ContactController.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/RequestPhoto.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/GdprExportDto.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/service/PortfolioService.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/RequestStatus.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/ClientAssociationDto.java
@@ -114,6 +118,7 @@
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/repository/RoleRepository.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/exception/KeycloakOperationException.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/service/ServiceRequestService.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/service/GdprService.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/Role.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/integration/airbnb/model/AirbnbConnection.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/integration/airbnb/dto/AirbnbCalendarEventDto.java
@@ -126,6 +131,7 @@
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/integration/airbnb/config/AirbnbConfig.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/ManagerTeam.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/config/MetricsConfig.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/GdprConsent.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/repository/PortfolioRepository.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/User.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/controller/NewUserController.java
@@ -133,12 +139,14 @@
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/repository/ManagerTeamRepository.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/UserDto.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/PropertyPhoto.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/controller/GdprController.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/config/ApiGatewayFilter.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/service/StripeService.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/integration/airbnb/model/AirbnbWebhookEvent.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/model/UserStatus.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/CreateUserDto.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/integration/airbnb/model/AirbnbListingMapping.java
+/Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/service/DataRetentionService.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/repository/InterventionPhotoRepository.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/service/KeycloakEventListenerService.java
 /Users/toufik/Desktop/env/projets/clenzy/server/src/main/java/com/clenzy/dto/PropertyDto.java

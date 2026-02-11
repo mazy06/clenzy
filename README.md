@@ -111,7 +111,7 @@ docker compose up -d
 
 1. Accéder à Keycloak: http://localhost:8083
 2. Se connecter avec `admin/admin`
-3. Importer le realm depuis `infrastructure/keycloak/realm-clenzy.json`
+3. Importer le realm depuis `clenzy-infra/keycloak/realm-clenzy.json`
 4. Récupérer le client secret de `clenzy-web`
 5. Mettre à jour `docker-compose.yml` avec le secret
 
@@ -155,8 +155,10 @@ clenzy/
 │   │   ├── theme/        # Thème Material-UI
 │   │   └── keycloak.ts   # Configuration Keycloak
 │   └── public/
-└── infrastructure/        # Docker et configuration
-    ├── docker-compose.yml
+clenzy-infra/              # Infrastructure (projet séparé)
+    ├── docker-compose.dev.yml
+    ├── docker-compose.prod.yml
+    ├── docker-compose.staging.yml
     └── keycloak/
 ```
 
