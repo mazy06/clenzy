@@ -5,8 +5,6 @@ import {
   Paper,
   IconButton,
   Button,
-  ToggleButtonGroup,
-  ToggleButton,
   FormControl,
   InputLabel,
   Select,
@@ -14,21 +12,24 @@ import {
   CircularProgress,
   Alert,
   Tooltip,
-  Chip,
   Switch,
   FormControlLabel,
   useTheme,
   useMediaQuery,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import {
   ChevronLeft,
   ChevronRight,
   Today as TodayIcon,
-  CalendarViewWeek,
-  CalendarMonth,
   Home,
   CleaningServices,
   Build,
+  ViewDay,
+  ViewWeek,
+  CalendarMonth,
+  AllInclusive,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useDashboardPlanning } from '../../hooks/useDashboardPlanning';
@@ -45,10 +46,19 @@ import {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const PROPERTY_COL_WIDTH = 160;
-const MIN_DAY_COL_WIDTH = 32;  // Minimum pour garder la lisibilité
+const DAY_COL_WIDTH = 38; // Largeur fixe par jour en mode continu
+const MIN_DAY_COL_WIDTH = 32;
 const RESERVATION_ROW_HEIGHT = 36;
 const INTERVENTION_ROW_HEIGHT = 28;
 const ROW_PADDING = 4;
+const PROPERTIES_PER_PAGE = 8;
+
+// Day view constants
+const DAY_HOUR_START = 6;   // Afficher à partir de 6h
+const DAY_HOUR_END = 23;    // Jusqu'à 23h
+const DAY_HOUR_WIDTH = 80;  // Largeur par heure en pixels
+const DAY_TOTAL_HOURS = DAY_HOUR_END - DAY_HOUR_START;
+const DAY_ROW_HEIGHT = 70;  // Hauteur par propriété en vue jour
 
 const STATUS_FILTER_OPTIONS: { value: ReservationStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'Tous' },
@@ -80,16 +90,6 @@ function toDateOnly(dateStr: string): Date {
   return new Date(y, m - 1, d);
 }
 
-function formatDateRange(start: Date, end: Date): string {
-  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
-  const startStr = start.toLocaleDateString('fr-FR', opts);
-  const endStr = end.toLocaleDateString('fr-FR', {
-    ...opts,
-    year: 'numeric',
-  });
-  return `${startStr} - ${endStr}`;
-}
-
 function formatMonth(date: Date): string {
   return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 }
@@ -99,7 +99,13 @@ function daysBetween(d1: Date, d2: Date): number {
   return Math.round(ms / 86400000);
 }
 
+function parseTime(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h + m / 60;
+}
+
 const WEEKDAY_SHORT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+const MONTH_SHORT = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 
 // ─── Hook: mesure dynamique de la largeur du conteneur ──────────────────────
 
@@ -109,7 +115,6 @@ function useContainerWidth(): [React.RefCallback<HTMLDivElement>, number] {
   const elementRef = useRef<HTMLDivElement | null>(null);
 
   const refCallback = useCallback((node: HTMLDivElement | null) => {
-    // Cleanup previous observer
     if (observerRef.current) {
       observerRef.current.disconnect();
       observerRef.current = null;
@@ -129,7 +134,6 @@ function useContainerWidth(): [React.RefCallback<HTMLDivElement>, number] {
     }
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (observerRef.current) {
@@ -139,6 +143,42 @@ function useContainerWidth(): [React.RefCallback<HTMLDivElement>, number] {
   }, []);
 
   return [refCallback, width];
+}
+
+// ─── Compute month separators for header ────────────────────────────────────
+
+interface MonthSeparator {
+  month: number;
+  year: number;
+  label: string;
+  startIndex: number;
+  count: number;
+}
+
+function computeMonthSeparators(days: Date[]): MonthSeparator[] {
+  if (days.length === 0) return [];
+  const seps: MonthSeparator[] = [];
+  let currentMonth = -1;
+  let currentYear = -1;
+
+  for (let i = 0; i < days.length; i++) {
+    const m = days[i].getMonth();
+    const y = days[i].getFullYear();
+    if (m !== currentMonth || y !== currentYear) {
+      seps.push({
+        month: m,
+        year: y,
+        label: `${MONTH_SHORT[m]} ${y}`,
+        startIndex: i,
+        count: 1,
+      });
+      currentMonth = m;
+      currentYear = y;
+    } else {
+      seps[seps.length - 1].count++;
+    }
+  }
+  return seps;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -151,6 +191,7 @@ export default function DashboardPlanning() {
   const {
     properties,
     loading,
+    loadingMore,
     error,
     currentDate,
     viewMode,
@@ -158,6 +199,7 @@ export default function DashboardPlanning() {
     goToday,
     goPrev,
     goNext,
+    extendRange,
     statusFilter,
     setStatusFilter,
     interventionTypeFilter,
@@ -172,20 +214,127 @@ export default function DashboardPlanning() {
 
   const today = useMemo(() => new Date(), []);
 
+  // ─── Pagination des propriétés ─────────────────────────────────────────
+  const [propertyPage, setPropertyPage] = useState(0);
+  const totalPropertyPages = Math.max(1, Math.ceil(properties.length / PROPERTIES_PER_PAGE));
+
+  // Reset page si le nombre de propriétés change
+  useEffect(() => {
+    setPropertyPage(0);
+  }, [properties.length]);
+
+  const paginatedProperties = useMemo(() => {
+    const start = propertyPage * PROPERTIES_PER_PAGE;
+    return properties.slice(start, start + PROPERTIES_PER_PAGE);
+  }, [properties, propertyPage]);
+
+  // ─── Mois visible dynamique (mode continu) ──────────────────────────────
+  const [visibleMonth, setVisibleMonth] = useState<Date | null>(null);
+
+  // ─── Scroll horizontal vers aujourd'hui au montage ─────────────────────
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToToday = useCallback(() => {
+    if (!scrollContainerRef.current || days.length === 0) return;
+    const todayIndex = days.findIndex((d) => isSameDay(d, today));
+    if (todayIndex >= 0) {
+      const scrollLeft = todayIndex * DAY_COL_WIDTH - 100; // 100px de marge à gauche
+      scrollContainerRef.current.scrollLeft = Math.max(0, scrollLeft);
+    }
+  }, [days, today]);
+
+  useEffect(() => {
+    // Petit délai pour laisser le temps au DOM de se rendre
+    const timer = setTimeout(scrollToToday, 100);
+    return () => clearTimeout(timer);
+  }, [scrollToToday]);
+
+  // ─── Infinite scroll + détection du mois visible ────────────────────────
+  const [visibleMonthKey, setVisibleMonthKey] = useState(''); // "YYYY-MM" string pour comparaison fiable
+
+  const computeVisibleMonth = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el || viewMode !== 'continuous' || days.length === 0) return;
+
+    // Trouver le jour au ~1/3 de la zone visible
+    const visibleX = el.scrollLeft + el.clientWidth * 0.33 - PROPERTY_COL_WIDTH;
+    const dayIndex = Math.floor(Math.max(0, visibleX) / DAY_COL_WIDTH);
+    const clampedIndex = Math.min(dayIndex, days.length - 1);
+    const visibleDay = days[clampedIndex];
+    if (visibleDay) {
+      const key = `${visibleDay.getFullYear()}-${String(visibleDay.getMonth() + 1).padStart(2, '0')}`;
+      setVisibleMonthKey(key);
+      setVisibleMonth(new Date(visibleDay.getFullYear(), visibleDay.getMonth(), 1));
+    }
+  }, [viewMode, days]);
+
+  const handleGridScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    // 1. Infinite scroll : charger plus quand on approche de la fin
+    if (viewMode === 'continuous' && !loadingMore) {
+      const threshold = el.scrollWidth * 0.8;
+      if (el.scrollLeft + el.clientWidth >= threshold) {
+        extendRange();
+      }
+    }
+
+    // 2. Mois visible
+    computeVisibleMonth();
+  }, [viewMode, loadingMore, extendRange, computeVisibleMonth]);
+
+  // Après un chargement, re-vérifier
+  useEffect(() => {
+    if (!loadingMore && viewMode === 'continuous') {
+      const timer = setTimeout(() => {
+        const el = scrollContainerRef.current;
+        if (!el) return;
+        if (el.scrollLeft + el.clientWidth >= el.scrollWidth * 0.8) {
+          extendRange();
+        }
+        computeVisibleMonth();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [loadingMore, viewMode, extendRange, computeVisibleMonth]);
+
+  // Initialiser le mois visible au montage/changement de jours
+  useEffect(() => {
+    if (days.length > 0 && viewMode === 'continuous') {
+      const timer = setTimeout(computeVisibleMonth, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [days.length, viewMode, computeVisibleMonth]);
+
+  // ─── Convertir le scroll vertical (molette) en scroll horizontal ────────
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    if (el.scrollWidth > el.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+      // Mettre à jour mois visible et vérifier infinite scroll
+      handleGridScroll();
+    }
+  }, [handleGridScroll]);
+
   // ─── Mesure dynamique de la largeur ────────────────────────────────────
   const [containerRef, containerWidth] = useContainerWidth();
 
-  // Calcul de la largeur de chaque colonne jour
+  // En mode continu, forcer DAY_COL_WIDTH fixe pour permettre le scroll
   const dayColWidth = useMemo(() => {
+    if (viewMode === 'continuous') return DAY_COL_WIDTH;
     if (containerWidth <= 0 || days.length === 0) return MIN_DAY_COL_WIDTH;
-    const availableWidth = containerWidth - PROPERTY_COL_WIDTH - 2; // -2 pour les bordures
+    const availableWidth = containerWidth - PROPERTY_COL_WIDTH - 2;
     const computed = Math.floor(availableWidth / days.length);
     return Math.max(computed, MIN_DAY_COL_WIDTH);
-  }, [containerWidth, days.length]);
+  }, [containerWidth, days.length, viewMode]);
 
-  // La grille a-t-elle besoin de scroller ?
   const gridWidth = PROPERTY_COL_WIDTH + days.length * dayColWidth;
-  const needsScroll = gridWidth > containerWidth;
+
+  // Month separators pour l'en-tête en mode continu
+  const monthSeparators = useMemo(() => computeMonthSeparators(days), [days]);
 
   // Group reservations by propertyId
   const reservationsByProperty = useMemo(() => {
@@ -209,11 +358,37 @@ export default function DashboardPlanning() {
     return map;
   }, [filteredInterventions]);
 
-  // Compute row height per property (reservation row + optional intervention row)
+  // Compute row height per property
   const totalRowHeight = RESERVATION_ROW_HEIGHT + ROW_PADDING * 2
     + (showInterventions ? INTERVENTION_ROW_HEIGHT + ROW_PADDING : 0);
 
-  // ─── Loading / Error ─────────────────────────────────────────────────────
+  // ─── Stats filtrées par mois visible (mode continu) ────────────────────
+  // IMPORTANT: ces useMemo doivent être AVANT les early returns (règle des hooks)
+  const visibleReservationCount = useMemo(() => {
+    if (viewMode !== 'continuous' || !visibleMonthKey) return filteredReservations.length;
+    const [y, m] = visibleMonthKey.split('-').map(Number);
+    const monthStart = `${y}-${String(m).padStart(2, '0')}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const monthEnd = `${y}-${String(m).padStart(2, '0')}-${lastDay}`;
+    return filteredReservations.filter(r => r.checkOut >= monthStart && r.checkIn <= monthEnd).length;
+  }, [viewMode, visibleMonthKey, filteredReservations]);
+
+  const visibleInterventionCount = useMemo(() => {
+    if (viewMode !== 'continuous' || !visibleMonthKey) return filteredInterventions.length;
+    const [y, m] = visibleMonthKey.split('-').map(Number);
+    const monthStart = `${y}-${String(m).padStart(2, '0')}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const monthEnd = `${y}-${String(m).padStart(2, '0')}-${lastDay}`;
+    return filteredInterventions.filter(i => i.endDate >= monthStart && i.startDate <= monthEnd).length;
+  }, [viewMode, visibleMonthKey, filteredInterventions]);
+
+  // ─── Title ───────────────────────────────────────────────────────────────
+  const titleDate = viewMode === 'continuous' && visibleMonth ? visibleMonth : currentDate;
+  const titleText = viewMode === 'day'
+    ? currentDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : formatMonth(titleDate);
+
+  // ─── Loading / Error / Render ────────────────────────────────────────────
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -230,67 +405,130 @@ export default function DashboardPlanning() {
     );
   }
 
-  // ─── Title ───────────────────────────────────────────────────────────────
-  const titleText =
-    viewMode === 'week'
-      ? formatDateRange(dateRange.start, dateRange.end)
-      : formatMonth(currentDate);
-
   return (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* ─── Toolbar ─────────────────────────────────────────────────────── */}
-      <Paper sx={{ p: 1.5, mb: 2 }}>
+      <Paper sx={{ p: 1, mb: 1, flexShrink: 0 }}>
+        {/* Ligne 1 : Navigation + Stats + Légende + Filtres + Interventions */}
         <Box
           sx={{
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'center',
-            gap: 1.5,
+            gap: 1,
           }}
         >
+          {/* View mode toggle */}
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={(_, v) => v && setViewMode(v as PlanningViewMode)}
+            size="small"
+            sx={{
+              '& .MuiToggleButton-root': {
+                py: 0.25,
+                px: 0.75,
+                fontSize: '0.6875rem',
+                textTransform: 'none',
+              },
+            }}
+          >
+            <ToggleButton value="day">
+              <Tooltip title="Jour"><ViewDay sx={{ fontSize: 16 }} /></Tooltip>
+            </ToggleButton>
+            <ToggleButton value="week">
+              <Tooltip title="Semaine"><ViewWeek sx={{ fontSize: 16 }} /></Tooltip>
+            </ToggleButton>
+            <ToggleButton value="month">
+              <Tooltip title="Mois"><CalendarMonth sx={{ fontSize: 16 }} /></Tooltip>
+            </ToggleButton>
+            <ToggleButton value="continuous">
+              <Tooltip title="Continu"><AllInclusive sx={{ fontSize: 16 }} /></Tooltip>
+            </ToggleButton>
+          </ToggleButtonGroup>
+
           {/* Navigation */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
             <IconButton size="small" onClick={goPrev}>
-              <ChevronLeft />
+              <ChevronLeft sx={{ fontSize: 20 }} />
             </IconButton>
             <Button
               size="small"
               variant="outlined"
-              startIcon={<TodayIcon sx={{ fontSize: 16 }} />}
-              onClick={goToday}
-              sx={{ textTransform: 'none', fontSize: '0.8125rem', px: 1.5 }}
+              startIcon={<TodayIcon sx={{ fontSize: 14 }} />}
+              onClick={() => { goToday(); setTimeout(scrollToToday, 150); }}
+              sx={{ textTransform: 'none', fontSize: '0.75rem', px: 1, py: 0.25, minWidth: 'auto' }}
             >
               {t('dashboard.planning.today') || "Aujourd'hui"}
             </Button>
             <IconButton size="small" onClick={goNext}>
-              <ChevronRight />
+              <ChevronRight sx={{ fontSize: 20 }} />
             </IconButton>
           </Box>
 
           {/* Title */}
           <Typography
-            variant="subtitle1"
+            variant="subtitle2"
             fontWeight={600}
-            sx={{ fontSize: '0.9375rem', textTransform: 'capitalize', minWidth: 160 }}
+            sx={{ fontSize: '0.8125rem', textTransform: 'capitalize' }}
           >
             {titleText}
           </Typography>
 
-          {/* Stats summary */}
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-            {filteredReservations.length} {t('dashboard.planning.reservations') || 'réservation(s)'}
-            {showInterventions && (
-              <>
-                {' · '}
-                {filteredInterventions.length} {t('dashboard.planning.interventionCount') || 'intervention(s)'}
-              </>
-            )}
-            {' · '}
-            {properties.length} {t('dashboard.planning.properties') || 'logement(s)'}
-          </Typography>
-
           {/* Spacer */}
           <Box sx={{ flex: 1 }} />
+
+          {/* Stats summary */}
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+            {visibleReservationCount} résa
+            {showInterventions && <> · {visibleInterventionCount} inter.</>}
+            {' · '}
+            {properties.length} logement{properties.length > 1 ? 's' : ''}
+          </Typography>
+
+          {/* ─── Legend (inline) ─── */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+            <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
+              Résa :
+            </Typography>
+            {STATUS_FILTER_OPTIONS.filter((s) => s.value !== 'all').map((opt) => (
+              <Box key={opt.value} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                <Box
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    backgroundColor: RESERVATION_STATUS_COLORS[opt.value as ReservationStatus],
+                    flexShrink: 0,
+                  }}
+                />
+                <Typography variant="caption" sx={{ fontSize: '0.5625rem', color: RESERVATION_STATUS_COLORS[opt.value as ReservationStatus], fontWeight: 600 }}>
+                  {opt.label}
+                </Typography>
+              </Box>
+            ))}
+
+            {showInterventions && (
+              <>
+                <Box sx={{ width: '1px', height: 12, backgroundColor: 'divider', mx: 0.25 }} />
+                <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
+                  Inter. :
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                  <CleaningServices sx={{ fontSize: 10, color: INTERVENTION_TYPE_COLORS.cleaning }} />
+                  <Typography variant="caption" sx={{ fontSize: '0.5625rem', color: INTERVENTION_TYPE_COLORS.cleaning, fontWeight: 600 }}>
+                    {INTERVENTION_TYPE_LABELS.cleaning}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                  <Build sx={{ fontSize: 10, color: INTERVENTION_TYPE_COLORS.maintenance }} />
+                  <Typography variant="caption" sx={{ fontSize: '0.5625rem', color: INTERVENTION_TYPE_COLORS.maintenance, fontWeight: 600 }}>
+                    {INTERVENTION_TYPE_LABELS.maintenance}
+                  </Typography>
+                </Box>
+              </>
+            )}
+          </Box>
 
           {/* Intervention toggle */}
           <FormControlLabel
@@ -302,27 +540,25 @@ export default function DashboardPlanning() {
               />
             }
             label={
-              <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-                {t('dashboard.planning.interventions') || 'Interventions'}
+              <Typography variant="caption" sx={{ fontSize: '0.6875rem' }}>
+                Interventions
               </Typography>
             }
-            sx={{ mr: 0.5 }}
+            sx={{ mr: 0, ml: 0 }}
           />
 
           {/* Intervention type filter */}
           {showInterventions && (
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel sx={{ fontSize: '0.8125rem' }}>
-                {t('dashboard.planning.interventionType') || 'Type'}
-              </InputLabel>
+            <FormControl size="small" sx={{ minWidth: 100 }}>
+              <InputLabel sx={{ fontSize: '0.75rem' }}>Type</InputLabel>
               <Select
                 value={interventionTypeFilter}
-                label={t('dashboard.planning.interventionType') || 'Type'}
+                label="Type"
                 onChange={(e) => setInterventionTypeFilter(e.target.value as PlanningInterventionType | 'all')}
-                sx={{ fontSize: '0.8125rem' }}
+                sx={{ fontSize: '0.75rem', '& .MuiSelect-select': { py: 0.5 } }}
               >
                 {INTERVENTION_FILTER_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.8125rem' }}>
+                  <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.75rem' }}>
                     {opt.label}
                   </MenuItem>
                 ))}
@@ -331,50 +567,25 @@ export default function DashboardPlanning() {
           )}
 
           {/* Status filter */}
-          <FormControl size="small" sx={{ minWidth: 130 }}>
-            <InputLabel sx={{ fontSize: '0.8125rem' }}>
-              {t('dashboard.planning.status') || 'Statut'}
-            </InputLabel>
+          <FormControl size="small" sx={{ minWidth: 110 }}>
+            <InputLabel sx={{ fontSize: '0.75rem' }}>Statut</InputLabel>
             <Select
               value={statusFilter}
-              label={t('dashboard.planning.status') || 'Statut'}
+              label="Statut"
               onChange={(e) => setStatusFilter(e.target.value as ReservationStatus | 'all')}
-              sx={{ fontSize: '0.8125rem' }}
+              sx={{ fontSize: '0.75rem', '& .MuiSelect-select': { py: 0.5 } }}
             >
               {STATUS_FILTER_OPTIONS.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.8125rem' }}>
+                <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.75rem' }}>
                   {opt.label}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
-
-          {/* View toggle */}
-          {!isMobile && (
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={viewMode}
-              onChange={(_, val) => val && setViewMode(val as PlanningViewMode)}
-            >
-              <ToggleButton value="week" sx={{ px: 1.5, py: 0.5 }}>
-                <CalendarViewWeek sx={{ fontSize: 18, mr: 0.5 }} />
-                <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-                  {t('dashboard.planning.week') || 'Semaine'}
-                </Typography>
-              </ToggleButton>
-              <ToggleButton value="month" sx={{ px: 1.5, py: 0.5 }}>
-                <CalendarMonth sx={{ fontSize: 18, mr: 0.5 }} />
-                <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-                  {t('dashboard.planning.month') || 'Mois'}
-                </Typography>
-              </ToggleButton>
-            </ToggleButtonGroup>
-          )}
         </Box>
       </Paper>
 
-      {/* ─── Gantt Grid ──────────────────────────────────────────────────── */}
+      {/* ─── Grid content ─────────────────────────────────────────────── */}
       {properties.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <Home sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
@@ -386,295 +597,718 @@ export default function DashboardPlanning() {
               "Les logements apparaîtront ici une fois qu'ils seront créés et assignés."}
           </Typography>
         </Paper>
-      ) : (
+      ) : viewMode === 'day' ? (
+        /* ─── Day View (timeline horaire) ─────────────────────────────── */
         <Paper
-          ref={containerRef}
           sx={{
-            overflow: needsScroll ? 'auto' : 'hidden',
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
             border: '1px solid',
             borderColor: 'divider',
             borderRadius: 1,
+            overflow: 'hidden',
           }}
         >
-          <Box sx={{ width: needsScroll ? gridWidth : '100%', position: 'relative' }}>
-            {/* ─── Header row (days) ──────────────────────────────────── */}
-            <Box
-              sx={{
-                display: 'flex',
-                position: 'sticky',
-                top: 0,
-                zIndex: 3,
-                backgroundColor: 'background.paper',
-                borderBottom: '2px solid',
-                borderColor: 'divider',
-              }}
-            >
-              {/* Property column header */}
+          <Box sx={{ flex: 1, overflowX: 'auto', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <Box sx={{ width: PROPERTY_COL_WIDTH + DAY_TOTAL_HOURS * DAY_HOUR_WIDTH, position: 'relative' }}>
+              {/* Hours header */}
               <Box
                 sx={{
-                  width: PROPERTY_COL_WIDTH,
-                  minWidth: PROPERTY_COL_WIDTH,
-                  flexShrink: 0,
-                  px: 1.5,
-                  py: 1,
-                  position: 'sticky',
-                  left: 0,
-                  zIndex: 4,
-                  backgroundColor: 'background.paper',
-                  borderRight: '1px solid',
-                  borderColor: 'divider',
                   display: 'flex',
-                  alignItems: 'center',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 3,
+                  backgroundColor: 'background.paper',
+                  borderBottom: '2px solid',
+                  borderColor: 'divider',
                 }}
               >
-                <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.75rem' }}>
-                  {t('dashboard.planning.property') || 'Logement'}
-                </Typography>
+                <Box
+                  sx={{
+                    width: PROPERTY_COL_WIDTH,
+                    minWidth: PROPERTY_COL_WIDTH,
+                    flexShrink: 0,
+                    px: 1.5,
+                    py: 0.75,
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 4,
+                    backgroundColor: 'background.paper',
+                    borderRight: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.75rem' }}>
+                    {t('dashboard.planning.property') || 'Logement'}
+                  </Typography>
+                </Box>
+                {Array.from({ length: DAY_TOTAL_HOURS }, (_, i) => {
+                  const hour = DAY_HOUR_START + i;
+                  return (
+                    <Box
+                      key={hour}
+                      sx={{
+                        width: DAY_HOUR_WIDTH,
+                        minWidth: DAY_HOUR_WIDTH,
+                        textAlign: 'center',
+                        py: 0.5,
+                        borderRight: '1px solid',
+                        borderColor: hour === 12 ? 'primary.light' : 'divider',
+                        borderRightWidth: hour === 12 ? 2 : 1,
+                        backgroundColor: 'background.paper',
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                        {`${hour}h`}
+                      </Typography>
+                    </Box>
+                  );
+                })}
               </Box>
 
-              {/* Day columns */}
-              {days.map((day) => {
-                const isToday = isSameDay(day, today);
-                const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+              {/* Property rows (day view) */}
+              {paginatedProperties.map((property, rowIndex) => {
+                const dayStr = dateRange.start.toISOString().split('T')[0];
+                // Réservations qui touchent ce jour
+                const propRes = (reservationsByProperty.get(property.id) || []).filter(
+                  (r) => r.checkIn <= dayStr && r.checkOut >= dayStr
+                );
+                // Interventions qui touchent ce jour
+                const propInt = showInterventions
+                  ? (interventionsByProperty.get(property.id) || []).filter(
+                      (i) => i.startDate <= dayStr && i.endDate >= dayStr
+                    )
+                  : [];
+                const dayRowBg = rowIndex % 2 === 0 ? '#ffffff' : '#f5f5f5';
 
                 return (
                   <Box
-                    key={day.toISOString()}
+                    key={property.id}
                     sx={{
-                      flex: needsScroll ? `0 0 ${dayColWidth}px` : 1,
-                      minWidth: MIN_DAY_COL_WIDTH,
-                      textAlign: 'center',
-                      py: 0.5,
-                      borderRight: '1px solid',
+                      display: 'flex',
+                      position: 'relative',
+                      minHeight: DAY_ROW_HEIGHT,
+                      borderBottom: '1px solid',
                       borderColor: 'divider',
-                      backgroundColor: isToday
-                        ? 'primary.main'
-                        : isWeekend
-                          ? 'action.hover'
-                          : 'background.paper',
+                      backgroundColor: dayRowBg,
+                      '&:hover': { backgroundColor: '#ebebeb' },
+                      '&:hover > .sticky-property-cell': { backgroundColor: '#ebebeb' },
                     }}
                   >
-                    <Typography
-                      variant="caption"
+                    {/* Property name */}
+                    <Box
+                      className="sticky-property-cell"
                       sx={{
-                        fontSize: '0.625rem',
-                        fontWeight: isToday ? 700 : 400,
-                        color: isToday ? 'primary.contrastText' : 'text.secondary',
-                        display: 'block',
-                        lineHeight: 1.2,
+                        width: PROPERTY_COL_WIDTH,
+                        minWidth: PROPERTY_COL_WIDTH,
+                        flexShrink: 0,
+                        px: 1.5,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        position: 'sticky',
+                        left: 0,
+                        zIndex: 2,
+                        backgroundColor: dayRowBg,
+                        borderRight: '1px solid',
+                        borderColor: 'divider',
+                        boxShadow: '2px 0 4px rgba(0,0,0,0.08)',
                       }}
                     >
-                      {WEEKDAY_SHORT[day.getDay()]}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontSize: '0.75rem',
-                        fontWeight: isToday ? 700 : 500,
-                        color: isToday ? 'primary.contrastText' : 'text.primary',
-                        display: 'block',
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      {day.getDate()}
-                    </Typography>
+                      <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {property.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {property.city || property.address}
+                      </Typography>
+                    </Box>
+
+                    {/* Timeline area */}
+                    <Box sx={{ position: 'relative', flex: 1, display: 'flex' }}>
+                      {/* Hour grid lines */}
+                      {Array.from({ length: DAY_TOTAL_HOURS }, (_, i) => {
+                        const hour = DAY_HOUR_START + i;
+                        return (
+                          <Box
+                            key={hour}
+                            sx={{
+                              width: DAY_HOUR_WIDTH,
+                              minWidth: DAY_HOUR_WIDTH,
+                              height: '100%',
+                              borderRight: '1px solid',
+                              borderColor: hour === 12 ? 'primary.light' : 'divider',
+                              borderRightWidth: hour === 12 ? 2 : 1,
+                            }}
+                          />
+                        );
+                      })}
+
+                      {/* Check-in markers */}
+                      {propRes.filter((r) => r.checkIn === dayStr && r.checkInTime).map((r) => {
+                        const hour = parseTime(r.checkInTime!);
+                        const leftPx = (hour - DAY_HOUR_START) * DAY_HOUR_WIDTH;
+                        const color = RESERVATION_STATUS_COLORS[r.status];
+                        return (
+                          <Tooltip
+                            key={`ci-${r.id}`}
+                            title={
+                              <Box sx={{ whiteSpace: 'pre-line', fontSize: '0.75rem' }}>
+                                {`Check-in ${r.checkInTime}\n${r.guestName} (${r.guestCount} pers.)\n${RESERVATION_STATUS_LABELS[r.status]}`}
+                              </Box>
+                            }
+                            arrow
+                          >
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                top: 4,
+                                left: leftPx,
+                                width: Math.max(DAY_HOUR_WIDTH * 2, 120),
+                                height: 26,
+                                backgroundColor: color,
+                                borderRadius: '4px 12px 12px 4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                px: 0.75,
+                                cursor: 'pointer',
+                                opacity: 0.9,
+                                overflow: 'hidden',
+                                '&:hover': { opacity: 1, boxShadow: `0 2px 8px ${color}60`, zIndex: 1 },
+                              }}
+                            >
+                              <Typography variant="caption" sx={{ color: '#fff', fontWeight: 700, fontSize: '0.625rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {`\u2794 ${r.checkInTime} ${r.guestName}`}
+                              </Typography>
+                            </Box>
+                          </Tooltip>
+                        );
+                      })}
+
+                      {/* Check-out markers */}
+                      {propRes.filter((r) => r.checkOut === dayStr && r.checkOutTime).map((r) => {
+                        const hour = parseTime(r.checkOutTime!);
+                        const leftPx = Math.max(0, (hour - DAY_HOUR_START) * DAY_HOUR_WIDTH - DAY_HOUR_WIDTH * 2);
+                        const color = RESERVATION_STATUS_COLORS[r.status];
+                        return (
+                          <Tooltip
+                            key={`co-${r.id}`}
+                            title={
+                              <Box sx={{ whiteSpace: 'pre-line', fontSize: '0.75rem' }}>
+                                {`Check-out ${r.checkOutTime}\n${r.guestName} (${r.guestCount} pers.)\n${RESERVATION_STATUS_LABELS[r.status]}`}
+                              </Box>
+                            }
+                            arrow
+                          >
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                top: 4,
+                                left: leftPx,
+                                width: Math.max(DAY_HOUR_WIDTH * 2, 120),
+                                height: 26,
+                                backgroundColor: color,
+                                borderRadius: '12px 4px 4px 12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                px: 0.75,
+                                cursor: 'pointer',
+                                opacity: 0.7,
+                                overflow: 'hidden',
+                                '&:hover': { opacity: 1, boxShadow: `0 2px 8px ${color}60`, zIndex: 1 },
+                              }}
+                            >
+                              <Typography variant="caption" sx={{ color: '#fff', fontWeight: 700, fontSize: '0.625rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {`${r.guestName} ${r.checkOutTime} \u2794`}
+                              </Typography>
+                            </Box>
+                          </Tooltip>
+                        );
+                      })}
+
+                      {/* Séjour en cours (pas de check-in/out ce jour) */}
+                      {propRes.filter((r) => r.checkIn < dayStr && r.checkOut > dayStr).map((r) => {
+                        const color = RESERVATION_STATUS_COLORS[r.status];
+                        return (
+                          <Tooltip
+                            key={`stay-${r.id}`}
+                            title={
+                              <Box sx={{ whiteSpace: 'pre-line', fontSize: '0.75rem' }}>
+                                {`Séjour en cours\n${r.guestName} (${r.guestCount} pers.)\n${RESERVATION_STATUS_LABELS[r.status]}`}
+                              </Box>
+                            }
+                            arrow
+                          >
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                top: 4,
+                                left: 0,
+                                right: 0,
+                                height: 26,
+                                backgroundColor: color,
+                                opacity: 0.25,
+                                borderRadius: 0,
+                              }}
+                            />
+                          </Tooltip>
+                        );
+                      })}
+
+                      {/* Intervention bars */}
+                      {propInt.map((inter) => {
+                        const startHour = inter.startDate === dayStr && inter.startTime
+                          ? parseTime(inter.startTime)
+                          : DAY_HOUR_START;
+                        const endHour = inter.endDate === dayStr && inter.endTime
+                          ? parseTime(inter.endTime)
+                          : DAY_HOUR_END;
+                        const leftPx = (startHour - DAY_HOUR_START) * DAY_HOUR_WIDTH;
+                        const widthPx = Math.max((endHour - startHour) * DAY_HOUR_WIDTH, 40);
+                        const color = INTERVENTION_TYPE_COLORS[inter.type];
+                        const typeLabel = INTERVENTION_TYPE_LABELS[inter.type];
+                        const statusLabel = INTERVENTION_STATUS_LABELS[inter.status];
+
+                        return (
+                          <Tooltip
+                            key={`int-${inter.id}`}
+                            title={
+                              <Box sx={{ whiteSpace: 'pre-line', fontSize: '0.75rem' }}>
+                                {[
+                                  `${typeLabel} · ${statusLabel}`,
+                                  inter.title,
+                                  inter.assigneeName,
+                                  `${inter.startTime || ''} → ${inter.endTime || ''}`,
+                                  `~${inter.estimatedDurationHours}h`,
+                                  inter.notes || '',
+                                ].filter(Boolean).join('\n')}
+                              </Box>
+                            }
+                            arrow
+                            placement="bottom"
+                          >
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                top: 36,
+                                left: leftPx,
+                                width: widthPx,
+                                height: 24,
+                                backgroundColor: inter.status === 'cancelled' ? '#9e9e9e' : color,
+                                borderRadius: '3px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                px: 0.5,
+                                overflow: 'hidden',
+                                opacity: inter.status === 'completed' ? 0.55 : inter.status === 'cancelled' ? 0.4 : 0.85,
+                                '&:hover': { opacity: 1, boxShadow: `0 2px 6px ${color}50`, zIndex: 1 },
+                              }}
+                            >
+                              {inter.type === 'cleaning'
+                                ? <CleaningServices sx={{ fontSize: 12, color: '#fff', mr: 0.25, flexShrink: 0 }} />
+                                : <Build sx={{ fontSize: 12, color: '#fff', mr: 0.25, flexShrink: 0 }} />
+                              }
+                              <Typography variant="caption" sx={{ color: '#fff', fontWeight: 600, fontSize: '0.5625rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {inter.startTime && inter.endTime ? `${inter.startTime}-${inter.endTime} ` : ''}{inter.title}
+                              </Typography>
+                            </Box>
+                          </Tooltip>
+                        );
+                      })}
+                    </Box>
                   </Box>
                 );
               })}
             </Box>
+          </Box>
 
-            {/* ─── Property rows ──────────────────────────────────────── */}
-            {properties.map((property, rowIndex) => {
-              const propertyReservations = reservationsByProperty.get(property.id) || [];
-              const propertyInterventions = interventionsByProperty.get(property.id) || [];
-
-              return (
+          {/* Pagination (day view) */}
+          {totalPropertyPages > 1 && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+                py: 0.5,
+                borderTop: '1px solid',
+                borderColor: 'divider',
+                backgroundColor: 'background.paper',
+                flexShrink: 0,
+              }}
+            >
+              <IconButton size="small" onClick={() => setPropertyPage((p) => Math.max(0, p - 1))} disabled={propertyPage === 0}>
+                <ChevronLeft sx={{ fontSize: 18 }} />
+              </IconButton>
+              <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                {propertyPage * PROPERTIES_PER_PAGE + 1} - {Math.min((propertyPage + 1) * PROPERTIES_PER_PAGE, properties.length)} / {properties.length} logements
+              </Typography>
+              <IconButton size="small" onClick={() => setPropertyPage((p) => Math.min(totalPropertyPages - 1, p + 1))} disabled={propertyPage >= totalPropertyPages - 1}>
+                <ChevronRight sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Box>
+          )}
+        </Paper>
+      ) : (
+        <Paper
+          ref={containerRef}
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1,
+            overflow: 'hidden',
+          }}
+        >
+          {/* Scrollable grid area */}
+          <Box
+            ref={scrollContainerRef}
+            onScroll={handleGridScroll}
+            onWheel={handleWheel}
+            sx={{
+              flex: 1,
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            <Box sx={{ width: gridWidth, position: 'relative' }}>
+              {/* ─── Month header row (visible en mode continu) ──────── */}
+              {viewMode === 'continuous' && monthSeparators.length > 1 && (
                 <Box
-                  key={property.id}
                   sx={{
                     display: 'flex',
-                    position: 'relative',
-                    height: totalRowHeight,
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 5,
+                    backgroundColor: 'background.paper',
                     borderBottom: '1px solid',
                     borderColor: 'divider',
-                    backgroundColor: rowIndex % 2 === 0 ? 'background.paper' : 'action.hover',
-                    '&:hover': { backgroundColor: 'action.selected' },
                   }}
                 >
-                  {/* Property name cell */}
+                  {/* Empty cell for property column */}
                   <Box
                     sx={{
                       width: PROPERTY_COL_WIDTH,
                       minWidth: PROPERTY_COL_WIDTH,
                       flexShrink: 0,
-                      px: 1.5,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
                       position: 'sticky',
                       left: 0,
-                      zIndex: 2,
-                      backgroundColor: 'inherit',
+                      zIndex: 6,
+                      backgroundColor: 'background.paper',
                       borderRight: '1px solid',
                       borderColor: 'divider',
                     }}
+                  />
+                  {monthSeparators.map((sep) => (
+                    <Box
+                      key={`${sep.year}-${sep.month}`}
+                      sx={{
+                        width: sep.count * dayColWidth,
+                        textAlign: 'center',
+                        py: 0.25,
+                        borderRight: '2px solid',
+                        borderColor: 'primary.light',
+                        backgroundColor: 'background.paper',
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        fontWeight={700}
+                        sx={{
+                          fontSize: '0.6875rem',
+                          textTransform: 'capitalize',
+                          color: 'primary.main',
+                        }}
+                      >
+                        {sep.label}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+
+              {/* ─── Header row (days) ──────────────────────────────────── */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  position: 'sticky',
+                  top: viewMode === 'continuous' && monthSeparators.length > 1 ? 24 : 0,
+                  zIndex: 3,
+                  backgroundColor: 'background.paper',
+                  borderBottom: '2px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                {/* Property column header */}
+                <Box
+                  sx={{
+                    width: PROPERTY_COL_WIDTH,
+                    minWidth: PROPERTY_COL_WIDTH,
+                    flexShrink: 0,
+                    px: 1.5,
+                    py: 0.5,
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 4,
+                    backgroundColor: 'background.paper',
+                    borderRight: '1px solid',
+                    borderColor: 'divider',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.75rem' }}>
+                    {t('dashboard.planning.property') || 'Logement'}
+                  </Typography>
+                </Box>
+
+                {/* Day columns */}
+                {days.map((day, idx) => {
+                  const isToday = isSameDay(day, today);
+                  const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                  const isFirstOfMonth = day.getDate() === 1 && idx > 0;
+
+                  return (
+                    <Box
+                      key={day.toISOString()}
+                      sx={{
+                        width: dayColWidth,
+                        minWidth: dayColWidth,
+                        textAlign: 'center',
+                        py: 0.25,
+                        borderRight: '1px solid',
+                        borderColor: isFirstOfMonth ? 'primary.light' : 'divider',
+                        borderRightWidth: isFirstOfMonth ? 2 : 1,
+                        backgroundColor: isToday
+                          ? 'primary.main'
+                          : isWeekend
+                            ? 'action.hover'
+                            : 'background.paper',
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: '0.5625rem',
+                          fontWeight: isToday ? 700 : 400,
+                          color: isToday ? 'primary.contrastText' : 'text.secondary',
+                          display: 'block',
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {WEEKDAY_SHORT[day.getDay()]}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: '0.6875rem',
+                          fontWeight: isToday ? 700 : 500,
+                          color: isToday ? 'primary.contrastText' : 'text.primary',
+                          display: 'block',
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {day.getDate()}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+
+              {/* ─── Property rows (paginated) ──────────────────────── */}
+              {paginatedProperties.map((property, rowIndex) => {
+                const propertyReservations = reservationsByProperty.get(property.id) || [];
+                const propertyInterventions = interventionsByProperty.get(property.id) || [];
+                const rowBg = rowIndex % 2 === 0 ? '#ffffff' : '#f5f5f5';
+
+                return (
+                  <Box
+                    key={property.id}
+                    sx={{
+                      display: 'flex',
+                      position: 'relative',
+                      height: totalRowHeight,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                      backgroundColor: rowBg,
+                      '&:hover': { backgroundColor: '#ebebeb' },
+                      '&:hover > .sticky-property-cell': { backgroundColor: '#ebebeb' },
+                    }}
                   >
-                    <Typography
-                      variant="body2"
-                      fontWeight={600}
+                    {/* Property name cell */}
+                    <Box
+                      className="sticky-property-cell"
                       sx={{
-                        fontSize: '0.8125rem',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        width: PROPERTY_COL_WIDTH,
+                        minWidth: PROPERTY_COL_WIDTH,
+                        flexShrink: 0,
+                        px: 1.5,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        position: 'sticky',
+                        left: 0,
+                        zIndex: 2,
+                        backgroundColor: rowBg,
+                        borderRight: '1px solid',
+                        borderColor: 'divider',
+                        boxShadow: '2px 0 4px rgba(0,0,0,0.08)',
                       }}
                     >
-                      {property.name}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{
-                        fontSize: '0.6875rem',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {property.city || property.address}
-                    </Typography>
-                  </Box>
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        sx={{
+                          fontSize: '0.8125rem',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {property.name}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          fontSize: '0.6875rem',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {property.city || property.address}
+                      </Typography>
+                    </Box>
 
-                  {/* Day cells background + bars */}
-                  <Box sx={{ display: 'flex', position: 'relative', flex: 1 }}>
-                    {days.map((day) => {
-                      const isToday = isSameDay(day, today);
-                      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                    {/* Day cells background + bars */}
+                    <Box sx={{ display: 'flex', position: 'relative', flex: 1 }}>
+                      {days.map((day, idx) => {
+                        const isToday = isSameDay(day, today);
+                        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                        const isFirstOfMonth = day.getDate() === 1 && idx > 0;
 
-                      return (
-                        <Box
-                          key={day.toISOString()}
-                          sx={{
-                            flex: needsScroll ? `0 0 ${dayColWidth}px` : 1,
-                            minWidth: MIN_DAY_COL_WIDTH,
-                            height: '100%',
-                            borderRight: '1px solid',
-                            borderColor: 'divider',
-                            backgroundColor: isToday
-                              ? 'rgba(25, 118, 210, 0.06)'
-                              : isWeekend
-                                ? 'rgba(0,0,0,0.02)'
-                                : 'transparent',
-                          }}
-                        />
-                      );
-                    })}
+                        return (
+                          <Box
+                            key={day.toISOString()}
+                            sx={{
+                              width: dayColWidth,
+                              minWidth: dayColWidth,
+                              height: '100%',
+                              borderRight: '1px solid',
+                              borderColor: isFirstOfMonth ? 'primary.light' : 'divider',
+                              borderRightWidth: isFirstOfMonth ? 2 : 1,
+                              backgroundColor: isToday
+                                ? 'rgba(25, 118, 210, 0.06)'
+                                : isWeekend
+                                  ? 'rgba(0,0,0,0.02)'
+                                  : 'transparent',
+                            }}
+                          />
+                        );
+                      })}
 
-                    {/* Reservation bars (top sub-row) */}
-                    {propertyReservations.map((reservation) => (
-                      <ReservationBar
-                        key={`res-${reservation.id}`}
-                        reservation={reservation}
-                        days={days}
-                        rangeStart={dateRange.start}
-                        topOffset={ROW_PADDING}
-                        barHeight={RESERVATION_ROW_HEIGHT}
-                        dayColWidth={dayColWidth}
-                      />
-                    ))}
-
-                    {/* Intervention bars (bottom sub-row) */}
-                    {showInterventions &&
-                      propertyInterventions.map((intervention) => (
-                        <InterventionBar
-                          key={`int-${intervention.id}`}
-                          intervention={intervention}
+                      {/* Reservation bars (top sub-row) */}
+                      {propertyReservations.map((reservation) => (
+                        <ReservationBar
+                          key={`res-${reservation.id}`}
+                          reservation={reservation}
                           days={days}
                           rangeStart={dateRange.start}
-                          topOffset={ROW_PADDING + RESERVATION_ROW_HEIGHT + ROW_PADDING}
-                          barHeight={INTERVENTION_ROW_HEIGHT}
+                          topOffset={ROW_PADDING}
+                          barHeight={RESERVATION_ROW_HEIGHT}
                           dayColWidth={dayColWidth}
                         />
                       ))}
+
+                      {/* Intervention bars (bottom sub-row) */}
+                      {showInterventions &&
+                        propertyInterventions.map((intervention) => (
+                          <InterventionBar
+                            key={`int-${intervention.id}`}
+                            intervention={intervention}
+                            days={days}
+                            rangeStart={dateRange.start}
+                            topOffset={ROW_PADDING + RESERVATION_ROW_HEIGHT + ROW_PADDING}
+                            barHeight={INTERVENTION_ROW_HEIGHT}
+                            dayColWidth={dayColWidth}
+                          />
+                        ))}
+                    </Box>
                   </Box>
-                </Box>
-              );
-            })}
+                );
+              })}
+            </Box>
           </Box>
+
+          {/* ─── Loading indicator (infinite scroll) ─────────────────────── */}
+          {loadingMore && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+                py: 0.5,
+                borderTop: '1px solid',
+                borderColor: 'divider',
+                backgroundColor: 'action.hover',
+                flexShrink: 0,
+              }}
+            >
+              <CircularProgress size={14} />
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+                Chargement des mois suivants…
+              </Typography>
+            </Box>
+          )}
+
+          {/* ─── Pagination bar (propriétés) ────────────────────────────── */}
+          {totalPropertyPages > 1 && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+                py: 0.5,
+                borderTop: '1px solid',
+                borderColor: 'divider',
+                backgroundColor: 'background.paper',
+                flexShrink: 0,
+              }}
+            >
+              <IconButton
+                size="small"
+                onClick={() => setPropertyPage((p) => Math.max(0, p - 1))}
+                disabled={propertyPage === 0}
+              >
+                <ChevronLeft sx={{ fontSize: 18 }} />
+              </IconButton>
+              <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                {propertyPage * PROPERTIES_PER_PAGE + 1}
+                {' - '}
+                {Math.min((propertyPage + 1) * PROPERTIES_PER_PAGE, properties.length)}
+                {' / '}
+                {properties.length} logements
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={() => setPropertyPage((p) => Math.min(totalPropertyPages - 1, p + 1))}
+                disabled={propertyPage >= totalPropertyPages - 1}
+              >
+                <ChevronRight sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Box>
+          )}
         </Paper>
       )}
-
-      {/* ─── Legend ───────────────────────────────────────────────────────── */}
-      <Box sx={{ mt: 1.5, px: 0.5 }}>
-        {/* Reservation legend */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 0.75, alignItems: 'center' }}>
-          <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6875rem', mr: 0.5 }}>
-            {t('dashboard.planning.legendReservations') || 'Réservations :'}
-          </Typography>
-          {STATUS_FILTER_OPTIONS.filter((s) => s.value !== 'all').map((opt) => (
-            <Chip
-              key={opt.value}
-              label={opt.label}
-              size="small"
-              sx={{
-                fontSize: '0.625rem',
-                height: 20,
-                backgroundColor: `${RESERVATION_STATUS_COLORS[opt.value as ReservationStatus]}18`,
-                color: RESERVATION_STATUS_COLORS[opt.value as ReservationStatus],
-                fontWeight: 600,
-                '& .MuiChip-label': { px: 0.75 },
-              }}
-              icon={
-                <Box
-                  sx={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    backgroundColor: RESERVATION_STATUS_COLORS[opt.value as ReservationStatus],
-                    ml: 0.5,
-                  }}
-                />
-              }
-            />
-          ))}
-        </Box>
-
-        {/* Intervention legend */}
-        {showInterventions && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 0.75, alignItems: 'center' }}>
-            <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6875rem', mr: 0.5 }}>
-              {t('dashboard.planning.legendInterventions') || 'Interventions :'}
-            </Typography>
-            <Chip
-              label={INTERVENTION_TYPE_LABELS.cleaning}
-              size="small"
-              sx={{
-                fontSize: '0.625rem',
-                height: 20,
-                backgroundColor: `${INTERVENTION_TYPE_COLORS.cleaning}18`,
-                color: INTERVENTION_TYPE_COLORS.cleaning,
-                fontWeight: 600,
-                '& .MuiChip-label': { px: 0.75 },
-              }}
-              icon={<CleaningServices sx={{ fontSize: 12, color: INTERVENTION_TYPE_COLORS.cleaning, ml: 0.5 }} />}
-            />
-            <Chip
-              label={INTERVENTION_TYPE_LABELS.maintenance}
-              size="small"
-              sx={{
-                fontSize: '0.625rem',
-                height: 20,
-                backgroundColor: `${INTERVENTION_TYPE_COLORS.maintenance}18`,
-                color: INTERVENTION_TYPE_COLORS.maintenance,
-                fontWeight: 600,
-                '& .MuiChip-label': { px: 0.75 },
-              }}
-              icon={<Build sx={{ fontSize: 12, color: INTERVENTION_TYPE_COLORS.maintenance, ml: 0.5 }} />}
-            />
-          </Box>
-        )}
-
-      </Box>
     </Box>
   );
 }
@@ -694,15 +1328,12 @@ function ReservationBar({ reservation, days, rangeStart, topOffset, barHeight, d
   const checkIn = toDateOnly(reservation.checkIn);
   const checkOut = toDateOnly(reservation.checkOut);
 
-  // Calculate position relative to the visible range
   const startOffset = daysBetween(rangeStart, checkIn);
   const endOffset = daysBetween(rangeStart, checkOut);
 
-  // Clamp to visible range
   const visibleStart = Math.max(0, startOffset);
   const visibleEnd = Math.min(days.length, endOffset);
 
-  // Not visible in current range
   if (visibleStart >= days.length || visibleEnd <= 0) return null;
 
   const left = visibleStart * dayColWidth;
@@ -790,16 +1421,12 @@ function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight,
   const startDate = toDateOnly(intervention.startDate);
   const endDate = toDateOnly(intervention.endDate);
 
-  // Calculate position relative to the visible range
   const startOffset = daysBetween(rangeStart, startDate);
-  // Add 1 because an intervention that starts and ends on the same day should still occupy 1 column
   const endOffset = daysBetween(rangeStart, endDate) + 1;
 
-  // Clamp to visible range
   const visibleStart = Math.max(0, startOffset);
   const visibleEnd = Math.min(days.length, endOffset);
 
-  // Not visible in current range
   if (visibleStart >= days.length || visibleEnd <= 0) return null;
 
   const left = visibleStart * dayColWidth;
@@ -823,7 +1450,6 @@ function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight,
     .filter(Boolean)
     .join('\n');
 
-  // Use stripes pattern for completed interventions
   const isCompleted = intervention.status === 'completed';
   const isCancelled = intervention.status === 'cancelled';
 
@@ -863,7 +1489,6 @@ function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight,
           },
         }}
       >
-        {/* Type icon */}
         {width > 40 && (
           intervention.type === 'cleaning'
             ? <CleaningServices sx={{ fontSize: 11, color: '#fff', mr: 0.25, flexShrink: 0 }} />

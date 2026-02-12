@@ -60,3 +60,6 @@ export type {
   TeamReportData,
   FinancialReportData,
 } from './reportsApi';
+
+export { pricingConfigApi } from './pricingConfigApi';
+export type { PricingConfig, PricingConfigUpdate, SurfaceTier } from './pricingConfigApi';

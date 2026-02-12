@@ -1,21 +1,29 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import keycloak from '../keycloak';
 import { useAuth } from '../hooks/useAuth';
 import { useTokenManagement } from '../hooks/useTokenManagement';
 import { configureConsole } from '../config/console';
 import { CustomPermissionsProvider } from '../hooks/useCustomPermissions';
 import Login from './auth/Login';
+import Inscription from './auth/Inscription';
 import MainLayoutFull from './layout/MainLayoutFull';
 import AuthenticatedApp from './AuthenticatedApp';
 import { clearTokens, setItem, STORAGE_KEYS } from '../services/storageService';
+
+// Routes publiques accessibles sans authentification
+const PUBLIC_ROUTES = ['/login', '/inscription'];
 
 const App: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const [authenticated, setAuthenticated] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Déterminer si on est sur une route publique
+  const isPublicRoute = PUBLIC_ROUTES.includes(location.pathname);
 
   // Refs pour les fonctions de token management
   const stopTokenMonitoringRef = useRef<(() => void) | null>(null);
@@ -163,16 +171,17 @@ const App: React.FC = () => {
     }
   }, [initialized, checkTokenHealth]);
 
-  // Affichage du composant de chargement
-  if (!initialized || authLoading) {
+  // Affichage du composant de chargement (uniquement pour les routes protégées)
+  // Les routes publiques (/login, /inscription) ne doivent pas être bloquées par le loading
+  if ((!initialized || authLoading) && !isPublicRoute) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        height: '100vh', 
-        gap: 2 
+      <Box sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        gap: 2
       }}>
         <CircularProgress size={60} />
         <Typography variant="h6" color="text.secondary">
@@ -187,15 +196,27 @@ const App: React.FC = () => {
     <CustomPermissionsProvider>
         <Routes>
           {/* Route publique pour le login */}
-          <Route 
-            path="/login" 
+          <Route
+            path="/login"
             element={
               !authenticated || !keycloak.authenticated ? (
                 <Login />
               ) : (
                 <Navigate to="/dashboard" replace />
               )
-            } 
+            }
+          />
+
+          {/* Route publique pour l'inscription */}
+          <Route
+            path="/inscription"
+            element={
+              !authenticated || !keycloak.authenticated ? (
+                <Inscription />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
           />
         
         {/* Routes protégées */}

@@ -39,6 +39,7 @@ export const CustomPermissionsProvider: React.FC<CustomPermissionsProviderProps>
       'settings:view', 'settings:edit',
       'users:manage',
       'reports:view',
+      'tarification:view', 'tarification:edit',
     ],
     MANAGER: [
       'dashboard:view',
@@ -50,6 +51,7 @@ export const CustomPermissionsProvider: React.FC<CustomPermissionsProviderProps>
       'settings:view',
       'users:view',
       'reports:view',
+      'tarification:view', 'tarification:edit',
     ],
     HOST: [
       'dashboard:view',

@@ -1,5 +1,6 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.MaintenanceRequestDto;
 import com.clenzy.dto.QuoteRequestDto;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -62,25 +63,27 @@ public class EmailService {
     private static final Map<String, String> SERVICE_LABELS = Map.ofEntries(
             Map.entry("menage-complet", "Ménage complet"),
             Map.entry("linge", "Gestion du linge"),
-            Map.entry("repassage", "Repassage"),
-            Map.entry("vitres", "Nettoyage des vitres"),
             Map.entry("desinfection", "Désinfection"),
             Map.entry("reassort", "Réassort consommables"),
             Map.entry("poubelles", "Gestion des poubelles")
     );
 
-    private static final Map<String, String> MAINTENANCE_LABELS = Map.of(
-            "plomberie", "Plomberie",
-            "electricite", "Électricité",
-            "serrurerie", "Serrurerie",
-            "bricolage", "Bricolage",
-            "autre", "Autre"
+    private static final Map<String, String> SERVICE_DEVIS_LABELS = Map.ofEntries(
+            Map.entry("repassage", "Repassage du linge"),
+            Map.entry("vitres", "Nettoyage des vitres"),
+            Map.entry("blanchisserie", "Service de blanchisserie"),
+            Map.entry("pressing", "Service de pressing"),
+            Map.entry("plomberie", "Plomberie"),
+            Map.entry("electricite", "Électricité"),
+            Map.entry("serrurerie", "Serrurerie / clés"),
+            Map.entry("bricolage", "Petit bricolage"),
+            Map.entry("autre-maintenance", "Autre intervention technique")
     );
 
     private static final Map<String, String> CALENDAR_LABELS = Map.of(
-            "sync", "Synchronisation automatique",
-            "manuel", "Gestion manuelle",
-            "non", "Pas de synchronisation"
+            "sync", "Gestion automatique",
+            "manuel", "Gestion en ligne",
+            "non", "Me faire recontacter"
     );
 
     public EmailService(JavaMailSender mailSender) {
@@ -155,8 +158,8 @@ public class EmailService {
         addRow(sb, "Synchronisation calendrier", getLabel(CALENDAR_LABELS, dto.getCalendarSync()));
         sb.append("</table></div>");
 
-        // Section: Services souhaités
-        sb.append(sectionStart("white", "🧹 Services souhaités"));
+        // Section: Services forfait
+        sb.append(sectionStart("white", "🧹 Services forfait"));
         if (dto.getServices() != null && !dto.getServices().isEmpty()) {
             sb.append("<ul style='margin: 0; padding-left: 20px;'>");
             for (String service : dto.getServices()) {
@@ -168,18 +171,16 @@ public class EmailService {
         }
         sb.append("</div>");
 
-        // Section: Maintenance
-        sb.append(sectionStart("#f8fafc", "🔧 Maintenance"));
-        sb.append("<table style='width: 100%; border-collapse: collapse;'>");
-        addRow(sb, "Besoin de maintenance", Boolean.TRUE.equals(dto.getNeedsMaintenance()) ? "Oui" : "Non");
-        sb.append("</table>");
-        if (Boolean.TRUE.equals(dto.getNeedsMaintenance()) && dto.getMaintenanceTypes() != null && !dto.getMaintenanceTypes().isEmpty()) {
-            sb.append("<p style='margin: 10px 0 5px; font-weight: bold; color: #475569;'>Types de maintenance :</p>");
+        // Section: Services sur devis
+        sb.append(sectionStart("#f8fafc", "📋 Services sur devis"));
+        if (dto.getServicesDevis() != null && !dto.getServicesDevis().isEmpty()) {
             sb.append("<ul style='margin: 0; padding-left: 20px;'>");
-            for (String mt : dto.getMaintenanceTypes()) {
-                sb.append("<li style='padding: 4px 0;'>").append(getLabel(MAINTENANCE_LABELS, mt)).append("</li>");
+            for (String service : dto.getServicesDevis()) {
+                sb.append("<li style='padding: 4px 0;'>").append(getLabel(SERVICE_DEVIS_LABELS, service)).append("</li>");
             }
             sb.append("</ul>");
+        } else {
+            sb.append("<p style='color: #94a3b8; margin: 0;'>Aucun service complémentaire demandé</p>");
         }
         sb.append("</div>");
 
@@ -216,5 +217,151 @@ public class EmailService {
             case "essentiel" -> "Forfait Essentiel";
             default -> packageId;
         };
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Email de notification maintenance / travaux
+    // ═══════════════════════════════════════════════════════════════
+
+    private static final Map<String, String> WORK_LABELS = Map.ofEntries(
+            // Plomberie
+            Map.entry("fuite-eau", "Réparation fuite d'eau"),
+            Map.entry("debouchage", "Débouchage canalisation"),
+            Map.entry("robinetterie", "Remplacement robinetterie"),
+            Map.entry("chasse-eau", "Réparation chasse d'eau / WC"),
+            Map.entry("chauffe-eau", "Installation / réparation chauffe-eau"),
+            Map.entry("raccordement", "Raccordement machine à laver / lave-vaisselle"),
+            // Électricité
+            Map.entry("prise-elec", "Installation / remplacement prise"),
+            Map.entry("interrupteur", "Remplacement interrupteur"),
+            Map.entry("eclairage", "Installation luminaire / plafonnier"),
+            Map.entry("tableau-elec", "Vérification tableau électrique"),
+            Map.entry("panne-elec", "Diagnostic panne électrique"),
+            Map.entry("domotique", "Installation domotique / objets connectés"),
+            // Serrurerie
+            Map.entry("changement-serrure", "Changement de serrure"),
+            Map.entry("double-cle", "Reproduction de clés"),
+            Map.entry("boite-cles", "Installation boîte à clés sécurisée"),
+            Map.entry("serrure-connectee", "Installation serrure connectée"),
+            Map.entry("digicode", "Installation digicode / interphone"),
+            // Bricolage
+            Map.entry("montage-meuble", "Montage de meubles"),
+            Map.entry("fixation-murale", "Fixations murales (étagères, TV, rideaux)"),
+            Map.entry("porte-ajustement", "Ajustement / réparation porte"),
+            Map.entry("joint-silicone", "Refaire des joints (silicone, carrelage)"),
+            Map.entry("store-volet", "Réparation store / volet roulant"),
+            // Travaux & rénovation
+            Map.entry("peinture", "Peinture murs / plafonds"),
+            Map.entry("carrelage", "Pose / réparation carrelage"),
+            Map.entry("parquet", "Pose / réparation parquet"),
+            Map.entry("salle-bain", "Rénovation salle de bain"),
+            Map.entry("cuisine", "Aménagement cuisine"),
+            Map.entry("cloison", "Création / suppression cloison"),
+            // Extérieur & divers
+            Map.entry("climatisation", "Installation / entretien climatisation"),
+            Map.entry("desinsectisation", "Désinsectisation / dératisation"),
+            Map.entry("balcon-terrasse", "Aménagement balcon / terrasse"),
+            Map.entry("demenagement", "Aide au déménagement / livraison")
+    );
+
+    private static final Map<String, String> URGENCY_LABELS = Map.of(
+            "urgent", "🔴 Urgent (sous 24-48h)",
+            "normal", "🟠 Normal (sous 1 semaine)",
+            "planifie", "🔵 Planifié (à programmer)"
+    );
+
+    /**
+     * Envoie un email de notification pour une demande de devis maintenance.
+     */
+    public void sendMaintenanceNotification(MaintenanceRequestDto dto) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromAddress);
+            helper.setTo(NOTIFICATION_TO);
+            helper.setReplyTo(dto.getEmail());
+
+            String urgencyTag = "urgent".equals(dto.getUrgency()) ? "🔴 URGENT — " : "";
+            helper.setSubject(urgencyTag + "🔧 Demande de devis maintenance — " + dto.getFullName()
+                    + (dto.getCity() != null && !dto.getCity().isBlank() ? " — " + dto.getCity() : ""));
+
+            helper.setText(buildMaintenanceHtmlBody(dto), true);
+
+            mailSender.send(message);
+            log.info("Email de notification maintenance envoyé pour : {} ({})", dto.getFullName(), dto.getEmail());
+
+        } catch (MessagingException e) {
+            log.error("Erreur d'envoi email maintenance pour {} : {}", dto.getFullName(), e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi de l'email de notification maintenance", e);
+        }
+    }
+
+    private String buildMaintenanceHtmlBody(MaintenanceRequestDto dto) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>");
+        sb.append("<div style='font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto;'>");
+
+        // Header
+        sb.append("<div style='background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 30px; border-radius: 10px 10px 0 0;'>");
+        sb.append("<h1 style='color: white; margin: 0; font-size: 22px;'>🔧 Demande de devis maintenance</h1>");
+        sb.append("<p style='color: rgba(255,255,255,0.9); margin: 5px 0 0;'>Clenzy — Formulaire Landing Page</p>");
+        sb.append("</div>");
+
+        // Urgency banner
+        String urgencyLabel = URGENCY_LABELS.getOrDefault(dto.getUrgency(), "Normal");
+        String urgencyBg = "urgent".equals(dto.getUrgency()) ? "#fef2f2" : "normal".equals(dto.getUrgency()) ? "#fff7ed" : "#eff6ff";
+        String urgencyBorder = "urgent".equals(dto.getUrgency()) ? "#ef4444" : "normal".equals(dto.getUrgency()) ? "#f97316" : "#3b82f6";
+        sb.append("<div style='background: ").append(urgencyBg).append("; border-left: 4px solid ").append(urgencyBorder).append("; padding: 15px 20px;'>");
+        sb.append("<strong>Niveau d'urgence :</strong> ").append(urgencyLabel);
+        sb.append("</div>");
+
+        // Section: Coordonnées
+        sb.append(sectionStart("#f8fafc", "👤 Coordonnées"));
+        sb.append("<table style='width: 100%; border-collapse: collapse;'>");
+        addRow(sb, "Nom complet", dto.getFullName());
+        addRow(sb, "Email", dto.getEmail());
+        addRow(sb, "Téléphone", dto.getPhone() != null && !dto.getPhone().isBlank() ? dto.getPhone() : "Non renseigné");
+        addRow(sb, "Ville", dto.getCity() != null && !dto.getCity().isBlank() ? dto.getCity() : "Non renseigné");
+        if (dto.getPostalCode() != null && !dto.getPostalCode().isBlank()) {
+            addRow(sb, "Code postal", dto.getPostalCode());
+        }
+        sb.append("</table></div>");
+
+        // Section: Travaux sélectionnés
+        sb.append(sectionStart("white", "🔧 Travaux demandés"));
+        if (dto.getSelectedWorks() != null && !dto.getSelectedWorks().isEmpty()) {
+            sb.append("<ul style='margin: 0; padding-left: 20px;'>");
+            for (String work : dto.getSelectedWorks()) {
+                sb.append("<li style='padding: 4px 0;'>").append(WORK_LABELS.getOrDefault(work, work)).append("</li>");
+            }
+            sb.append("</ul>");
+        } else {
+            sb.append("<p style='color: #94a3b8; margin: 0;'>Aucun travail prédéfini sélectionné</p>");
+        }
+
+        // Besoin personnalisé
+        if (dto.getCustomNeed() != null && !dto.getCustomNeed().isBlank()) {
+            sb.append("<div style='margin-top: 15px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 12px;'>");
+            sb.append("<strong style='color: #92400e;'>Besoin spécifique :</strong><br>");
+            sb.append("<span style='color: #78350f;'>").append(dto.getCustomNeed()).append("</span>");
+            sb.append("</div>");
+        }
+        sb.append("</div>");
+
+        // Section: Description complémentaire
+        if (dto.getDescription() != null && !dto.getDescription().isBlank()) {
+            sb.append(sectionStart("#f8fafc", "📝 Description complémentaire"));
+            sb.append("<p style='margin: 0; color: #1e293b; white-space: pre-wrap;'>").append(dto.getDescription()).append("</p>");
+            sb.append("</div>");
+        }
+
+        // Footer
+        sb.append("<div style='text-align: center; padding: 20px; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0;'>");
+        sb.append("<p>Cet email a été généré automatiquement par le formulaire de devis maintenance Clenzy.</p>");
+        sb.append("</div>");
+
+        sb.append("</div></body></html>");
+        return sb.toString();
     }
 }

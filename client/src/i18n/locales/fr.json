@@ -41,6 +41,7 @@
     "users": "Utilisateurs",
     "settings": "Paramètres",
     "rolesPermissions": "Roles & Permissions",
+    "tarification": "Tarification",
     "monitoring": "Monitoring",
     "myProfile": "Mon profil",
     "logout": "Déconnexion",
@@ -1087,6 +1088,80 @@
       "dateFrom": "Date début",
       "dateTo": "Date fin",
       "clearFilters": "Effacer les filtres"
+    }
+  },
+  "tarification": {
+    "title": "Configuration tarifaire",
+    "subtitle": "Gérez les coefficients de pondération, les prix de base et les abonnements",
+    "save": "Sauvegarder",
+    "reset": "Réinitialiser les défauts",
+    "saveSuccess": "Configuration tarifaire sauvegardée avec succès",
+    "saveError": "Erreur lors de la sauvegarde de la configuration",
+    "loadError": "Erreur lors du chargement de la configuration tarifaire",
+    "resetConfirm": "Rétablir toutes les valeurs par défaut ?",
+    "readOnly": "Vous avez un accès en lecture seule",
+    "basePrices": {
+      "title": "Prix de base des forfaits",
+      "subtitle": "Tarif de départ par intervention pour chaque forfait",
+      "essentiel": "Essentiel",
+      "confort": "Confort",
+      "premium": "Premium",
+      "minPrice": "Prix plancher",
+      "minPriceHelp": "Aucune intervention ne descendra en dessous de ce montant"
+    },
+    "propertyType": {
+      "title": "Coefficients type de logement",
+      "subtitle": "Pondération selon le type de bien (villa, appartement, etc.)",
+      "studio": "Studio",
+      "appartement": "Appartement",
+      "maison": "Maison",
+      "duplex": "Duplex",
+      "villa": "Villa",
+      "autre": "Autre"
+    },
+    "propertyCount": {
+      "title": "Coefficients nombre de logements",
+      "subtitle": "Remise volume pour les propriétaires multi-logements",
+      "1": "1 logement",
+      "2": "2 logements",
+      "3-5": "3 à 5 logements",
+      "6+": "6+ logements"
+    },
+    "guestCapacity": {
+      "title": "Coefficients capacité voyageurs",
+      "subtitle": "Pondération selon le nombre de voyageurs accueillis",
+      "1-2": "1-2 voyageurs",
+      "3-4": "3-4 voyageurs",
+      "5-6": "5-6 voyageurs",
+      "7+": "7+ voyageurs"
+    },
+    "frequency": {
+      "title": "Coefficients fréquence",
+      "subtitle": "Remise selon la fréquence de réservation",
+      "tres-frequent": "Très fréquent",
+      "regulier": "Régulier",
+      "nouvelle-annonce": "Nouvelle annonce",
+      "occasionnel": "Occasionnel"
+    },
+    "surface": {
+      "title": "Paliers surface",
+      "subtitle": "Pondération selon la superficie du logement"
+    },
+    "pms": {
+      "title": "Abonnement PMS",
+      "subtitle": "Tarifs mensuels de l'abonnement à la plateforme",
+      "monthly": "Abonnement mensuel",
+      "sync": "Abonnement avec synchro auto",
+      "monthlyHelp": "Prix en euros par mois",
+      "syncHelp": "Inclut la synchronisation automatique des calendriers"
+    },
+    "automation": {
+      "title": "Surcharges automatisation",
+      "subtitle": "Coûts supplémentaires pour les options d'automatisation",
+      "basic": "Automatisation basique",
+      "full": "Automatisation complète",
+      "basicHelp": "Notifications et rappels automatiques",
+      "fullHelp": "Gestion complète automatisée (check-in/out, facturation, etc.)"
     }
   }
 }

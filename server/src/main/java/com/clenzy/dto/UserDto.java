@@ -42,6 +42,23 @@ public class UserDto {
     public LocalDateTime lastLogin;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
+
+    // Donnees du profil host (remplies lors de l'inscription via le formulaire de devis)
+    public String companyName;
+    public String forfait;
+    public String city;
+    public String postalCode;
+    public String propertyType;
+    public Integer propertyCount;
+    public Integer surface;
+    public Integer guestCapacity;
+
+    // Donnees supplementaires du formulaire de devis
+    public String bookingFrequency;
+    public String cleaningSchedule;
+    public String calendarSync;
+    public String services;       // Stocké séparé par virgule
+    public String servicesDevis;   // Stocké séparé par virgule
 }
 
 

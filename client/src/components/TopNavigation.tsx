@@ -33,9 +33,9 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ menuItems }) => {
   const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Menus à afficher directement dans la barre : Tableau de bord, Propriétés, Demandes de service, Interventions, Équipes, Portefeuilles, Contact
-  const directMenus = menuItems.filter(item => 
-    ['/dashboard', '/properties', '/service-requests', '/interventions', '/teams', '/portfolios', '/contact'].includes(item.path)
+  // Menus à afficher directement dans la barre de navigation
+  const directMenus = menuItems.filter(item =>
+    ['/dashboard', '/properties', '/service-requests', '/interventions', '/teams', '/portfolios', '/contact', '/tarification'].includes(item.path)
   );
 
   const handleNavigation = (path: string) => {

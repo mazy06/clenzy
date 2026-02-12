@@ -11,8 +11,10 @@ export interface Reservation {
   propertyName: string;
   guestName: string;
   guestCount: number;
-  checkIn: string;   // ISO date string
-  checkOut: string;   // ISO date string
+  checkIn: string;      // ISO date string (YYYY-MM-DD)
+  checkOut: string;     // ISO date string (YYYY-MM-DD)
+  checkInTime?: string;  // Heure check-in (HH:mm)
+  checkOutTime?: string; // Heure check-out (HH:mm)
   status: ReservationStatus;
   source: ReservationSource;
   totalPrice: number;
@@ -41,8 +43,10 @@ export interface PlanningIntervention {
   type: PlanningInterventionType;
   title: string;
   assigneeName: string;
-  startDate: string;  // ISO date string
-  endDate: string;    // ISO date string
+  startDate: string;   // ISO date string (YYYY-MM-DD)
+  endDate: string;     // ISO date string (YYYY-MM-DD)
+  startTime?: string;  // Heure début (HH:mm)
+  endTime?: string;    // Heure fin (HH:mm)
   status: PlanningInterventionStatus;
   linkedReservationId?: number;  // Si lié à un check-out
   estimatedDurationHours: number;
@@ -52,11 +56,11 @@ export interface PlanningIntervention {
 // ─── Status helpers ──────────────────────────────────────────────────────────
 
 export const RESERVATION_STATUS_COLORS: Record<ReservationStatus, string> = {
-  confirmed: '#2e7d32',   // green
-  pending: '#ed6c02',     // orange
-  cancelled: '#d32f2f',   // red
-  checked_in: '#1976d2',  // blue
-  checked_out: '#757575', // grey
+  confirmed: '#4A9B8E',   // teal (thème success)
+  pending: '#D4A574',     // ambre chaud (thème warning)
+  cancelled: '#d32f2f',   // red (conservé)
+  checked_in: '#6B8A9A',  // bleu-gris (thème primary)
+  checked_out: '#757575', // grey (conservé)
 };
 
 export const RESERVATION_STATUS_LABELS: Record<ReservationStatus, string> = {
@@ -75,8 +79,8 @@ export const RESERVATION_SOURCE_LABELS: Record<ReservationSource, string> = {
 };
 
 export const INTERVENTION_TYPE_COLORS: Record<PlanningInterventionType, string> = {
-  cleaning: '#7b1fa2',    // purple
-  maintenance: '#f57c00', // deep orange
+  cleaning: '#7BA3C2',    // bleu harmonieux (thème info)
+  maintenance: '#C97A7A', // rose doux (thème error)
 };
 
 export const INTERVENTION_TYPE_LABELS: Record<PlanningInterventionType, string> = {
@@ -85,10 +89,10 @@ export const INTERVENTION_TYPE_LABELS: Record<PlanningInterventionType, string> 
 };
 
 export const INTERVENTION_STATUS_COLORS: Record<PlanningInterventionStatus, string> = {
-  scheduled: '#7b1fa2',
-  in_progress: '#1976d2',
-  completed: '#2e7d32',
-  cancelled: '#9e9e9e',
+  scheduled: '#7BA3C2',   // bleu harmonieux (thème info)
+  in_progress: '#6B8A9A', // bleu-gris (thème primary)
+  completed: '#4A9B8E',   // teal (thème success)
+  cancelled: '#9e9e9e',   // grey (conservé)
 };
 
 export const INTERVENTION_STATUS_LABELS: Record<PlanningInterventionStatus, string> = {
@@ -115,7 +119,11 @@ function generateMockReservations(): Reservation[] {
   const m = today.getMonth();
   const d = today.getDate();
 
-  return [
+  // Heures typiques : check-in entre 14h-16h, check-out entre 10h-11h
+  const checkInTimes = ['14:00', '15:00', '16:00', '14:30', '15:30'];
+  const checkOutTimes = ['10:00', '11:00', '10:30', '11:00', '10:00'];
+
+  const res: Reservation[] = [
     // ─── Property 1 : Studio Montmartre ─────────────────────────────
     { id: 1, propertyId: 1, propertyName: 'Studio Montmartre', guestName: 'Jean Dupont', guestCount: 2, checkIn: isoDate(y, m, d - 8), checkOut: isoDate(y, m, d - 4), status: 'checked_out', source: 'airbnb', totalPrice: 360 },
     { id: 2, propertyId: 1, propertyName: 'Studio Montmartre', guestName: 'Marie Leroy', guestCount: 1, checkIn: isoDate(y, m, d - 3), checkOut: isoDate(y, m, d + 2), status: 'checked_in', source: 'booking', totalPrice: 450 },
@@ -177,6 +185,13 @@ function generateMockReservations(): Reservation[] {
     { id: 40, propertyId: 10, propertyName: 'Penthouse Trocadéro', guestName: 'Priya Sharma', guestCount: 2, checkIn: isoDate(y, m, d + 4), checkOut: isoDate(y, m, d + 10), status: 'confirmed', source: 'booking', totalPrice: 3100 },
     { id: 41, propertyId: 10, propertyName: 'Penthouse Trocadéro', guestName: 'Victoria Lane', guestCount: 6, checkIn: isoDate(y, m, d + 14), checkOut: isoDate(y, m, d + 21), status: 'confirmed', source: 'direct', totalPrice: 4200 },
   ];
+
+  // Ajouter les heures de check-in/check-out à chaque réservation
+  return res.map((r, i) => ({
+    ...r,
+    checkInTime: checkInTimes[i % checkInTimes.length],
+    checkOutTime: checkOutTimes[i % checkOutTimes.length],
+  }));
 }
 
 /**
@@ -222,6 +237,14 @@ function generateMockPlanningInterventions(): PlanningIntervention[] {
       interventionStatus = 'completed';
     }
 
+    // Heure de début : après le check-out du voyageur (11h ou 12h)
+    // Durée : 3h pour petit logement, 6h pour grand
+    const estHours = r.guestCount >= 5 ? 6 : 3;
+    const cleanStartHour = r.guestCount >= 5 ? 11 : 12;
+    const cleanEndHour = cleanStartHour + estHours;
+    const cleanStartTime = `${cleanStartHour.toString().padStart(2, '0')}:00`;
+    const cleanEndTime = `${Math.min(cleanEndHour, 23).toString().padStart(2, '0')}:00`;
+
     interventions.push({
       id: idCounter++,
       propertyId: r.propertyId,
@@ -231,9 +254,11 @@ function generateMockPlanningInterventions(): PlanningIntervention[] {
       assigneeName: cleaningStaff[idx % cleaningStaff.length],
       startDate: checkOutDate,
       endDate: endDateStr,
+      startTime: cleanStartTime,
+      endTime: cleanEndTime,
       status: interventionStatus,
       linkedReservationId: r.id,
-      estimatedDurationHours: r.guestCount >= 5 ? 6 : 3,
+      estimatedDurationHours: estHours,
       notes: r.guestCount >= 5 ? 'Grand ménage complet — linge + deep clean' : undefined,
     });
   });
@@ -254,6 +279,8 @@ function generateMockPlanningInterventions(): PlanningIntervention[] {
       assigneeName: 'Marc Dupuis',
       startDate: isoDate(y, m, d - 4),
       endDate: isoDate(y, m, d - 3),
+      startTime: '09:00',
+      endTime: '11:00',
       status: 'completed',
       estimatedDurationHours: 2,
       notes: 'Joint à remplacer',
@@ -267,6 +294,8 @@ function generateMockPlanningInterventions(): PlanningIntervention[] {
       assigneeName: 'Sté Chauffage Pro',
       startDate: isoDate(y, m, d + 2),
       endDate: isoDate(y, m, d + 2),
+      startTime: '08:00',
+      endTime: '12:00',
       status: 'scheduled',
       estimatedDurationHours: 4,
       notes: 'Contrat annuel — vérification complète',
@@ -280,6 +309,8 @@ function generateMockPlanningInterventions(): PlanningIntervention[] {
       assigneeName: 'Serrurier Express',
       startDate: isoDate(y, m, d + 10),
       endDate: isoDate(y, m, d + 10),
+      startTime: '14:00',
+      endTime: '16:00',
       status: 'scheduled',
       estimatedDurationHours: 2,
     },
@@ -292,6 +323,8 @@ function generateMockPlanningInterventions(): PlanningIntervention[] {
       assigneeName: 'Jardins & Co',
       startDate: isoDate(y, m, d + 6),
       endDate: isoDate(y, m, d + 7),
+      startTime: '08:00',
+      endTime: '16:00',
       status: 'scheduled',
       estimatedDurationHours: 8,
       notes: 'Tonte + taille haies + traitement piscine',
@@ -305,6 +338,8 @@ function generateMockPlanningInterventions(): PlanningIntervention[] {
       assigneeName: 'Marc Dupuis',
       startDate: isoDate(y, m, d - 1),
       endDate: isoDate(y, m, d),
+      startTime: '10:00',
+      endTime: '13:00',
       status: 'in_progress',
       estimatedDurationHours: 3,
     },
@@ -317,6 +352,8 @@ function generateMockPlanningInterventions(): PlanningIntervention[] {
       assigneeName: 'Plomberie Parisienne',
       startDate: isoDate(y, m, d + 10),
       endDate: isoDate(y, m, d + 11),
+      startTime: '09:00',
+      endTime: '14:00',
       status: 'scheduled',
       estimatedDurationHours: 5,
       notes: 'Coordonner avec propriétaire pour accès',
@@ -330,6 +367,8 @@ function generateMockPlanningInterventions(): PlanningIntervention[] {
       assigneeName: 'Déco & Peinture SARL',
       startDate: isoDate(y, m, d + 8),
       endDate: isoDate(y, m, d + 9),
+      startTime: '08:00',
+      endTime: '18:00',
       status: 'scheduled',
       estimatedDurationHours: 12,
       notes: 'Couleur : Blanc Cassé RAL 9010',
@@ -343,6 +382,8 @@ function generateMockPlanningInterventions(): PlanningIntervention[] {
       assigneeName: 'Elec Service',
       startDate: isoDate(y, m, d + 10),
       endDate: isoDate(y, m, d + 10),
+      startTime: '09:00',
+      endTime: '12:00',
       status: 'scheduled',
       estimatedDurationHours: 3,
     },
@@ -355,6 +396,8 @@ function generateMockPlanningInterventions(): PlanningIntervention[] {
       assigneeName: 'Clim Confort',
       startDate: isoDate(y, m, d + 2),
       endDate: isoDate(y, m, d + 3),
+      startTime: '08:30',
+      endTime: '14:30',
       status: 'scheduled',
       estimatedDurationHours: 6,
       notes: 'Vérification 3 unités + recharge fluide',
@@ -368,6 +411,8 @@ function generateMockPlanningInterventions(): PlanningIntervention[] {
       assigneeName: 'SAV Electroménager',
       startDate: isoDate(y, m, d + 5),
       endDate: isoDate(y, m, d + 5),
+      startTime: '15:00',
+      endTime: '16:00',
       status: 'scheduled',
       estimatedDurationHours: 1,
     },
