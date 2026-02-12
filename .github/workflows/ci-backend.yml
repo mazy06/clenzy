@@ -1,13 +1,16 @@
 # ===========================================
 # Clenzy — CI/CD Backend (Spring Boot + Java 17)
 # ===========================================
-# Pipeline CI automatise avec tests, scan securite et push GHCR
+# Flux :
+#   - push main/develop  → CI (tests + build) + push image GHCR
+#   - push production    → CI + push image GHCR (:latest) + déploiement VPS
+#   - PR main/develop    → CI uniquement (pas de push)
 
 name: CI Backend
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, production]
     paths:
       - 'server/**'
       - 'pom.xml'
@@ -133,7 +136,7 @@ jobs:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/production')
 
     steps:
       - name: Checkout code
@@ -157,7 +160,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha,prefix=
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/production' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -174,7 +177,7 @@ jobs:
     name: Deploy to VPS
     runs-on: ubuntu-latest
     needs: docker-push
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/production'
     environment: production
 
     steps:
