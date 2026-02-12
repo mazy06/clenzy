@@ -30,6 +30,17 @@ import {
   Home,
   CalendarToday,
   Security,
+  Business,
+  LocationOn,
+  Apartment,
+  SquareFoot,
+  Groups,
+  Star,
+  EventRepeat,
+  Schedule,
+  Sync,
+  Checklist,
+  RequestQuote,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -48,6 +59,21 @@ interface UserDetailsData {
   createdAt: string;
   updatedAt?: string;
   lastLoginAt?: string;
+  // Profil host
+  companyName?: string;
+  forfait?: string;
+  city?: string;
+  postalCode?: string;
+  propertyType?: string;
+  propertyCount?: number;
+  surface?: number;
+  guestCapacity?: number;
+  // Donnees supplementaires du formulaire de devis
+  bookingFrequency?: string;
+  cleaningSchedule?: string;
+  calendarSync?: string;
+  services?: string;
+  servicesDevis?: string;
 }
 
 const userRoles: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor }> = [
@@ -108,6 +134,20 @@ const UserDetails: React.FC = () => {
           createdAt: (userData as any).createdAt,
           updatedAt: (userData as any).updatedAt,
           lastLoginAt: (userData as any).lastLoginAt,
+          // Profil host
+          companyName: (userData as any).companyName,
+          forfait: (userData as any).forfait,
+          city: (userData as any).city,
+          postalCode: (userData as any).postalCode,
+          propertyType: (userData as any).propertyType,
+          propertyCount: (userData as any).propertyCount,
+          surface: (userData as any).surface,
+          guestCapacity: (userData as any).guestCapacity,
+          bookingFrequency: (userData as any).bookingFrequency,
+          cleaningSchedule: (userData as any).cleaningSchedule,
+          calendarSync: (userData as any).calendarSync,
+          services: (userData as any).services,
+          servicesDevis: (userData as any).servicesDevis,
         };
 
         setUser(convertedUser);
@@ -347,6 +387,204 @@ const UserDetails: React.FC = () => {
                 {user.phoneNumber || 'Non renseigné'}
               </Typography>
             </Grid>
+
+            {/* Profil propriétaire — affiché uniquement si des données de profil host existent */}
+            {user.role === 'HOST' && (user.forfait || user.city || user.propertyType || user.surface || user.companyName || user.bookingFrequency || user.calendarSync || user.services) && (
+              <>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
+                    Profil propriétaire
+                  </Typography>
+                </Grid>
+
+                {user.companyName && (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Entreprise
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      {user.companyName}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {user.forfait && (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Forfait souscrit
+                    </Typography>
+                    <Chip
+                      icon={<Star />}
+                      label={user.forfait.charAt(0).toUpperCase() + user.forfait.slice(1)}
+                      color="primary"
+                      variant="outlined"
+                      size="small"
+                      sx={{ mt: 0.5, mb: 2 }}
+                    />
+                  </Grid>
+                )}
+
+                {(user.city || user.postalCode) && (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Localisation
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      {[user.city, user.postalCode].filter(Boolean).join(' - ')}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {user.propertyType && (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Type de propriété
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      {user.propertyType === 'studio' ? 'Studio' :
+                       user.propertyType === 'appartement' ? 'Appartement' :
+                       user.propertyType === 'maison' ? 'Maison' :
+                       user.propertyType === 'duplex' ? 'Duplex' :
+                       user.propertyType === 'villa' ? 'Villa' :
+                       user.propertyType === 'autre' ? 'Autre' :
+                       user.propertyType}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {user.propertyCount != null && (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Nombre de propriétés
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      {user.propertyCount}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {user.surface != null && (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Surface
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      {user.surface} m²
+                    </Typography>
+                  </Grid>
+                )}
+
+                {user.guestCapacity != null && (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Capacité d'accueil
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      {user.guestCapacity} {user.guestCapacity > 1 ? 'personnes' : 'personne'}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {user.bookingFrequency && (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Fréquence de réservation
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      {user.bookingFrequency === 'tres-frequent' ? 'Très fréquent (3+ / semaine)' :
+                       user.bookingFrequency === 'regulier' ? 'Régulier (1-2 / semaine)' :
+                       user.bookingFrequency === 'occasionnel' ? 'Occasionnel (quelques / mois)' :
+                       user.bookingFrequency === 'nouvelle-annonce' ? 'Nouvelle annonce' :
+                       user.bookingFrequency}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {user.cleaningSchedule && (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Planning ménage
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      {user.cleaningSchedule === 'entre-voyageurs' ? 'Entre chaque voyageur' :
+                       user.cleaningSchedule === 'hebdomadaire' ? 'Hebdomadaire' :
+                       user.cleaningSchedule === 'bi-mensuel' ? 'Bi-mensuel' :
+                       user.cleaningSchedule === 'mensuel' ? 'Mensuel' :
+                       user.cleaningSchedule === 'ponctuel' ? 'Ponctuel' :
+                       user.cleaningSchedule}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {user.calendarSync && (
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Synchronisation calendrier
+                    </Typography>
+                    <Chip
+                      label={
+                        user.calendarSync === 'sync' ? 'Synchronisation automatique' :
+                        user.calendarSync === 'manuel' ? 'Gestion manuelle' :
+                        user.calendarSync === 'non' ? 'Pas de calendrier' :
+                        user.calendarSync
+                      }
+                      color={user.calendarSync === 'sync' ? 'primary' : user.calendarSync === 'manuel' ? 'info' : 'default'}
+                      variant="outlined"
+                      size="small"
+                      sx={{ mt: 0.5, mb: 2 }}
+                    />
+                  </Grid>
+                )}
+
+                {user.services && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Services forfait
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5, mb: 2 }}>
+                      {user.services.split(',').map((s) => {
+                        const label: Record<string, string> = {
+                          'menage-complet': 'Ménage complet',
+                          'linge': 'Changement du linge',
+                          'poubelles': 'Gestion des poubelles',
+                          'desinfection': 'Désinfection',
+                          'reassort': 'Réassort consommables',
+                        };
+                        return (
+                          <Chip key={s} label={label[s.trim()] || s.trim()} size="small" color="primary" variant="outlined" />
+                        );
+                      })}
+                    </Box>
+                  </Grid>
+                )}
+
+                {user.servicesDevis && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Services sur devis
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5, mb: 2 }}>
+                      {user.servicesDevis.split(',').map((s) => {
+                        const label: Record<string, string> = {
+                          'repassage': 'Repassage',
+                          'vitres': 'Nettoyage des vitres',
+                          'blanchisserie': 'Blanchisserie',
+                          'pressing': 'Pressing',
+                          'plomberie': 'Plomberie',
+                          'electricite': 'Électricité',
+                          'serrurerie': 'Serrurerie',
+                          'bricolage': 'Petit bricolage',
+                          'autre-maintenance': 'Autre intervention',
+                        };
+                        return (
+                          <Chip key={s} label={label[s.trim()] || s.trim()} size="small" color="warning" variant="outlined" />
+                        );
+                      })}
+                    </Box>
+                  </Grid>
+                )}
+              </>
+            )}
 
             {/* Rôle et statut */}
             <Grid item xs={12}>

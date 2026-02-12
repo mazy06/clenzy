@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
-import { 
-  Box, 
-  Paper, 
-  TextField, 
-  Button, 
-  Typography, 
-  Stack, 
-  Alert, 
-  CircularProgress 
+import React, { useState, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Paper,
+  TextField,
+  Button,
+  Typography,
+  Stack,
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import keycloak from '../../keycloak';
 import clenzyLogo from '../../assets/Clenzy_logo.png';
@@ -15,6 +16,12 @@ import apiClient, { ApiError } from '../../services/apiClient';
 import { saveTokens } from '../../services/storageService';
 
 export default function Login() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Detecter si l'utilisateur vient de finaliser son inscription (retour Stripe)
+  const inscriptionSuccess = searchParams.get('inscription') === 'success';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -99,6 +106,15 @@ export default function Login() {
           </Typography>
         </Box>
         
+        {/* Message de succes apres inscription */}
+        {inscriptionSuccess && (
+          <Alert severity="success" sx={{ mb: 2, py: 0.75 }}>
+            <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 500 }}>
+              Votre compte a ete cree avec succes ! Connectez-vous pour acceder a votre espace.
+            </Typography>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
             <TextField 

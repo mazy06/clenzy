@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.QuoteRequestDto;
 import com.clenzy.dto.QuoteResponseDto;
 import com.clenzy.service.EmailService;
+import com.clenzy.service.PricingConfigService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * POST /api/public/quote-request
  * - Valide les données du formulaire
  * - Calcule le forfait recommandé (Essentiel / Confort / Premium)
+ * - Calcule le tarif par intervention via un moteur de pondération
+ *   (type logement × nbre logements × voyageurs × surface × fréquence)
  * - Envoie un email de notification à info@clenzy.fr
  * - Retourne le forfait recommandé au frontend
  */
@@ -32,13 +35,15 @@ public class QuoteController {
     private static final Logger log = LoggerFactory.getLogger(QuoteController.class);
 
     private final EmailService emailService;
+    private final PricingConfigService pricingConfigService;
 
     // Rate limiter simple en mémoire : IP -> liste de timestamps
     private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
     private static final int MAX_REQUESTS_PER_HOUR = 5;
 
-    public QuoteController(EmailService emailService) {
+    public QuoteController(EmailService emailService, PricingConfigService pricingConfigService) {
         this.emailService = emailService;
+        this.pricingConfigService = pricingConfigService;
     }
 
     @PostMapping("/quote-request")
@@ -67,7 +72,7 @@ public class QuoteController {
 
         // 3. Calcul du forfait recommandé (essentiel / confort / premium)
         String recommendedPackage = computeRecommendedPackage(dto);
-        int recommendedRate = getStartingPrice(recommendedPackage);
+        int recommendedRate = computePrice(dto, recommendedPackage);
 
         // 4. Envoi de l'email de notification (non-bloquant en cas d'erreur)
         try {
@@ -77,7 +82,7 @@ public class QuoteController {
             log.error("Erreur d'envoi email mais réponse OK pour : {} — {}", dto.getFullName(), e.getMessage());
         }
 
-        log.info("Demande de devis traitée : {} ({}) — Forfait : {} (à partir de {}€)",
+        log.info("Demande de devis traitée : {} ({}) — Forfait : {} ({}€/intervention)",
                 dto.getFullName(), dto.getEmail(), recommendedPackage, recommendedRate);
 
         // 5. Réponse avec le package recommandé
@@ -99,26 +104,26 @@ public class QuoteController {
      * Calcule le forfait recommandé en fonction des réponses du formulaire.
      * Identique à la logique frontend dans computeRecommendedPackage().
      *
-     * - Premium (à partir de 80€) : check-in/out, synchro calendrier,
-     *   fréquence très élevée, grand bien (100m²+ & 7+ voyageurs), 5+ services,
-     *   3+ logements
-     * - Confort (à partir de 55€) : 2 logements, 3+ services, maintenance,
-     *   surface ≥ 60m², fréquence régulière, 5-6 ou 7+ voyageurs
-     * - Essentiel (à partir de 35€) : par défaut
+     * Note : la fréquence de réservation, le type de logement, la surface, etc.
+     * n'influencent pas le tier du package recommandé — ils influencent
+     * uniquement le tarif par intervention (voir computePrice).
+     *
+     * - Premium : synchro calendrier auto, grand bien (100m²+ & 7+ voyageurs),
+     *   5+ services forfait, 3+ logements
+     * - Confort : 2 logements, 3+ services forfait, surface ≥ 60m²,
+     *   capacité 5-6 ou 7+ voyageurs
+     * - Essentiel : par défaut
      */
     private String computeRecommendedPackage(QuoteRequestDto dto) {
-        // Premium si besoins avancés (accueil, synchro, gros volume, multi-logements)
+        // Premium si besoins avancés (synchro, gros volume, multi-logements)
         if ("sync".equals(dto.getCalendarSync())) return "premium";
-        if ("tres-frequent".equals(dto.getBookingFrequency())) return "premium";
         if (dto.getServices() != null && dto.getServices().size() >= 5) return "premium";
         if (dto.getSurface() >= 100 && "7+".equals(dto.getGuestCapacity())) return "premium";
         if ("3-5".equals(dto.getPropertyCount()) || "6+".equals(dto.getPropertyCount())) return "premium";
 
         // Confort si besoins intermédiaires
         if ("2".equals(dto.getPropertyCount())) return "confort";
-        if ("regulier".equals(dto.getBookingFrequency())) return "confort";
         if (dto.getServices() != null && dto.getServices().size() >= 3) return "confort";
-        if (Boolean.TRUE.equals(dto.getNeedsMaintenance())) return "confort";
         if (dto.getSurface() >= 60) return "confort";
         if ("5-6".equals(dto.getGuestCapacity()) || "7+".equals(dto.getGuestCapacity())) return "confort";
 
@@ -127,14 +132,26 @@ public class QuoteController {
     }
 
     /**
-     * Retourne le tarif de départ (en €) pour un forfait donné.
+     * Calcule le tarif par intervention en fonction de tous les critères du formulaire.
+     * Formule : base × typeLogement × nbreLogements × voyageurs × surface × fréquence
+     * Arrondi à la tranche de 5€ la plus proche, avec un plancher configurable.
+     *
+     * Les coefficients et prix de base sont chargés dynamiquement depuis la DB
+     * via PricingConfigService (configurable depuis le menu Tarification).
      */
-    private int getStartingPrice(String packageId) {
-        return switch (packageId) {
-            case "premium" -> 80;
-            case "confort" -> 55;
-            default -> 35; // essentiel
-        };
+    private int computePrice(QuoteRequestDto dto, String packageId) {
+        Map<String, Integer> basePrices = pricingConfigService.getBasePrices();
+        int base = basePrices.getOrDefault(packageId, 40);
+
+        double typeCoeff = pricingConfigService.getPropertyTypeCoeffs().getOrDefault(dto.getPropertyType(), 1.0);
+        double countCoeff = pricingConfigService.getPropertyCountCoeffs().getOrDefault(dto.getPropertyCount(), 1.0);
+        double guestCoeff = pricingConfigService.getGuestCapacityCoeffs().getOrDefault(dto.getGuestCapacity(), 1.0);
+        double surfaceCoeff = pricingConfigService.getSurfaceCoeff(dto.getSurface());
+        double freqCoeff = pricingConfigService.getFrequencyCoeffs().getOrDefault(dto.getBookingFrequency(), 1.0);
+
+        double raw = base * typeCoeff * countCoeff * guestCoeff * surfaceCoeff * freqCoeff;
+        int minPrice = pricingConfigService.getMinPrice();
+        return Math.max(minPrice, (int) (Math.round(raw / 5.0) * 5));
     }
 
     // ═══════════════════════════════════════════════════════════════

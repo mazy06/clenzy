@@ -152,6 +152,20 @@ public class UserService {
         dto.lastLogin = user.getLastLogin();
         dto.createdAt = user.getCreatedAt();
         dto.updatedAt = user.getUpdatedAt();
+        // Donnees du profil host
+        dto.companyName = user.getCompanyName();
+        dto.forfait = user.getForfait();
+        dto.city = user.getCity();
+        dto.postalCode = user.getPostalCode();
+        dto.propertyType = user.getPropertyType();
+        dto.propertyCount = user.getPropertyCount();
+        dto.surface = user.getSurface();
+        dto.guestCapacity = user.getGuestCapacity();
+        dto.bookingFrequency = user.getBookingFrequency();
+        dto.cleaningSchedule = user.getCleaningSchedule();
+        dto.calendarSync = user.getCalendarSync();
+        dto.services = user.getServices();
+        dto.servicesDevis = user.getServicesDevis();
         return dto;
     }
 }

@@ -42,6 +42,7 @@
     "users": "Users",
     "settings": "Settings",
     "rolesPermissions": "Roles & Permissions",
+    "tarification": "Pricing",
     "monitoring": "Monitoring",
     "myProfile": "My Profile",
     "logout": "Logout",
@@ -1051,6 +1052,80 @@
       "dateFrom": "Start date",
       "dateTo": "End date",
       "clearFilters": "Clear filters"
+    }
+  },
+  "tarification": {
+    "title": "Pricing Configuration",
+    "subtitle": "Manage coefficient weights, base prices and subscriptions",
+    "save": "Save",
+    "reset": "Reset to defaults",
+    "saveSuccess": "Pricing configuration saved successfully",
+    "saveError": "Error saving pricing configuration",
+    "loadError": "Error loading pricing configuration",
+    "resetConfirm": "Reset all values to defaults?",
+    "readOnly": "You have read-only access",
+    "basePrices": {
+      "title": "Base Package Prices",
+      "subtitle": "Starting rate per intervention for each package",
+      "essentiel": "Essential",
+      "confort": "Comfort",
+      "premium": "Premium",
+      "minPrice": "Floor Price",
+      "minPriceHelp": "No intervention will go below this amount"
+    },
+    "propertyType": {
+      "title": "Property Type Coefficients",
+      "subtitle": "Weighting based on property type (villa, apartment, etc.)",
+      "studio": "Studio",
+      "appartement": "Apartment",
+      "maison": "House",
+      "duplex": "Duplex",
+      "villa": "Villa",
+      "autre": "Other"
+    },
+    "propertyCount": {
+      "title": "Property Count Coefficients",
+      "subtitle": "Volume discount for multi-property owners",
+      "1": "1 property",
+      "2": "2 properties",
+      "3-5": "3 to 5 properties",
+      "6+": "6+ properties"
+    },
+    "guestCapacity": {
+      "title": "Guest Capacity Coefficients",
+      "subtitle": "Weighting based on guest capacity",
+      "1-2": "1-2 guests",
+      "3-4": "3-4 guests",
+      "5-6": "5-6 guests",
+      "7+": "7+ guests"
+    },
+    "frequency": {
+      "title": "Frequency Coefficients",
+      "subtitle": "Discount based on booking frequency",
+      "tres-frequent": "Very frequent",
+      "regulier": "Regular",
+      "nouvelle-annonce": "New listing",
+      "occasionnel": "Occasional"
+    },
+    "surface": {
+      "title": "Surface Tiers",
+      "subtitle": "Weighting based on property area"
+    },
+    "pms": {
+      "title": "PMS Subscription",
+      "subtitle": "Monthly platform subscription rates",
+      "monthly": "Monthly subscription",
+      "sync": "Subscription with auto-sync",
+      "monthlyHelp": "Price in euros per month",
+      "syncHelp": "Includes automatic calendar synchronization"
+    },
+    "automation": {
+      "title": "Automation Surcharges",
+      "subtitle": "Additional costs for automation options",
+      "basic": "Basic automation",
+      "full": "Full automation",
+      "basicHelp": "Automatic notifications and reminders",
+      "fullHelp": "Fully automated management (check-in/out, billing, etc.)"
     }
   }
 }

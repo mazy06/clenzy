@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { propertiesApi, managersApi, reservationsApi } from '../services/api';
 import type { Property, Reservation, ReservationStatus, PlanningIntervention, PlanningInterventionType } from '../services/api';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type PlanningViewMode = 'week' | 'month';
+export type PlanningViewMode = 'day' | 'week' | 'month' | 'continuous';
 export type PlanningFilterType = 'all' | 'reservations' | 'interventions';
 
 export interface PlanningProperty {
@@ -20,6 +20,7 @@ export interface UseDashboardPlanningReturn {
   reservations: Reservation[];
   interventions: PlanningIntervention[];
   loading: boolean;
+  loadingMore: boolean;
   error: string | null;
   // Navigation
   currentDate: Date;
@@ -28,6 +29,8 @@ export interface UseDashboardPlanningReturn {
   goToday: () => void;
   goPrev: () => void;
   goNext: () => void;
+  // Infinite scroll
+  extendRange: () => void;
   // Filters
   statusFilter: ReservationStatus | 'all';
   setStatusFilter: (status: ReservationStatus | 'all') => void;
@@ -92,9 +95,12 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [interventions, setInterventions] = useState<PlanningIntervention[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<PlanningViewMode>('month');
+  const [viewMode, setViewMode] = useState<PlanningViewMode>('continuous');
+  // En mode continu, on gère la fin de la plage via un état dédié pour l'infinite scroll
+  const [continuousEndMonth, setContinuousEndMonth] = useState(3); // nombre de mois après le mois courant
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('all');
   const [interventionTypeFilter, setInterventionTypeFilter] = useState<PlanningInterventionType | 'all'>('all');
   const [showInterventions, setShowInterventions] = useState(true);
@@ -110,36 +116,108 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
 
   // Compute date range
   const dateRange = useMemo(() => {
+    if (viewMode === 'day') {
+      const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+      return { start, end: start };
+    }
     if (viewMode === 'week') {
       const start = startOfWeek(currentDate);
       const end = addDays(start, 6);
       return { start, end };
     }
+    if (viewMode === 'continuous') {
+      // Mode continu : mois courant + N mois suivants (extensible via infinite scroll)
+      const start = startOfMonth(currentDate);
+      const endMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + continuousEndMonth, 0);
+      return { start, end: endMonth };
+    }
     // month view
     const start = startOfMonth(currentDate);
     const end = endOfMonth(currentDate);
     return { start, end };
-  }, [currentDate, viewMode]);
+  }, [currentDate, viewMode, continuousEndMonth]);
 
   // Generate array of days
   const days = useMemo(() => generateDays(dateRange.start, dateRange.end), [dateRange]);
 
   // Navigation
-  const goToday = useCallback(() => setCurrentDate(new Date()), []);
+  const goToday = useCallback(() => {
+    setCurrentDate(new Date());
+    setContinuousEndMonth(3);
+  }, []);
 
   const goPrev = useCallback(() => {
+    setContinuousEndMonth(3);
     setCurrentDate((prev) => {
+      if (viewMode === 'day') return addDays(prev, -1);
       if (viewMode === 'week') return addDays(prev, -7);
       return new Date(prev.getFullYear(), prev.getMonth() - 1, 1);
     });
   }, [viewMode]);
 
   const goNext = useCallback(() => {
+    setContinuousEndMonth(3);
     setCurrentDate((prev) => {
+      if (viewMode === 'day') return addDays(prev, 1);
       if (viewMode === 'week') return addDays(prev, 7);
       return new Date(prev.getFullYear(), prev.getMonth() + 1, 1);
     });
   }, [viewMode]);
+
+  // Réf pour les propriétés chargées (nécessaire pour extendRange)
+  const propertiesRef = useRef<PlanningProperty[]>([]);
+
+  // Infinite scroll : étendre la plage de 3 mois supplémentaires
+  const extendRange = useCallback(async () => {
+    if (viewMode !== 'continuous' || loadingMore) return;
+
+    setLoadingMore(true);
+    try {
+      const newEndMonth = continuousEndMonth + 3;
+      // Calculer la plage de données à charger (uniquement les nouveaux mois)
+      const oldEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + continuousEndMonth, 0);
+      const newEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + newEndMonth, 0);
+      const extFrom = toISODateString(oldEnd);
+      const extTo = toISODateString(addDays(newEnd, 7));
+
+      const propertyIds = propertiesRef.current.map((p) => p.id);
+
+      if (propertyIds.length > 0) {
+        const [newReservations, newInterventions] = await Promise.all([
+          reservationsApi.getAll({ propertyIds, from: extFrom, to: extTo }),
+          reservationsApi.getPlanningInterventions({ propertyIds, from: extFrom, to: extTo }),
+        ]);
+
+        // Ajouter les données mock si admin en mode mock
+        let mockRes: Reservation[] = [];
+        let mockInt: PlanningIntervention[] = [];
+        if (isAdmin && reservationsApi.isMockMode()) {
+          [mockRes, mockInt] = await Promise.all([
+            reservationsApi.getAll({ from: extFrom, to: extTo }),
+            reservationsApi.getPlanningInterventions({ from: extFrom, to: extTo }),
+          ]);
+        }
+
+        // Dédupliquer par ID avant d'ajouter
+        setReservations((prev) => {
+          const existingIds = new Set(prev.map((r) => r.id));
+          const toAdd = [...newReservations, ...mockRes].filter((r) => !existingIds.has(r.id));
+          return [...prev, ...toAdd];
+        });
+        setInterventions((prev) => {
+          const existingIds = new Set(prev.map((i) => i.id));
+          const toAdd = [...newInterventions, ...mockInt].filter((i) => !existingIds.has(i.id));
+          return [...prev, ...toAdd];
+        });
+      }
+
+      setContinuousEndMonth(newEndMonth);
+    } catch {
+      // Silencieux — on ne bloque pas le planning pour un échec de chargement incrémental
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [viewMode, loadingMore, continuousEndMonth, currentDate, isAdmin]);
 
   // Load data
   const loadData = useCallback(async () => {
@@ -149,41 +227,27 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
       setLoading(true);
       setError(null);
 
-      // ── Mode Mock : utiliser les propriétés mock directement ──────────
-      // En mode mock, les réservations utilisent des propertyId (1-10) qui
-      // ne correspondent pas aux vrais IDs backend. On charge donc les
-      // propriétés mock au lieu d'appeler l'API properties.
-      // TODO: Supprimer ce bloc quand l'API Airbnb sera connectée.
-      if (reservationsApi.isMockMode()) {
-        const mockProperties = reservationsApi.getMockProperties();
-        setProperties(mockProperties);
-
-        const extendedFrom = toISODateString(addDays(dateRange.start, -7));
-        const extendedTo = toISODateString(addDays(dateRange.end, 7));
-
-        const [reservationData, interventionData] = await Promise.all([
-          reservationsApi.getAll({ from: extendedFrom, to: extendedTo }),
-          reservationsApi.getPlanningInterventions({ from: extendedFrom, to: extendedTo }),
-        ]);
-
-        setReservations(reservationData);
-        setInterventions(interventionData);
-        return;
-      }
-
-      // ── Mode API réelle ───────────────────────────────────────────────
+      // ── Étape 1 : Charger les propriétés réelles via API selon le rôle ──
       let propertyList: Property[] = [];
 
       if (isAdmin || isManager) {
-        // Admin/Manager: all properties
-        const data = await propertiesApi.getAll();
-        propertyList = Array.isArray(data) ? data : (data as any)?.content ?? [];
+        // Admin/Manager: toutes les propriétés réelles
+        try {
+          const data = await propertiesApi.getAll();
+          propertyList = Array.isArray(data) ? data : (data as any)?.content ?? [];
+        } catch {
+          propertyList = [];
+        }
       } else if (isHost) {
-        // Host: only their own properties
-        const data = await propertiesApi.getAll({ ownerId: user.id });
-        propertyList = Array.isArray(data) ? data : (data as any)?.content ?? [];
+        // Host: uniquement ses propres propriétés
+        try {
+          const data = await propertiesApi.getAll({ ownerId: user.id });
+          propertyList = Array.isArray(data) ? data : (data as any)?.content ?? [];
+        } catch {
+          propertyList = [];
+        }
       } else if (isOperational) {
-        // Housekeeping/Supervisor/Technician: properties assigned via manager associations
+        // Supervisor/Housekeeper/Technician: propriétés assignées via portefeuille client
         try {
           const associations = await managersApi.getAssociations(user.id);
           if (associations?.properties && Array.isArray(associations.properties)) {
@@ -207,12 +271,12 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
             }));
           }
         } catch {
-          // If associations API fails, show empty list
+          // Si l'API associations échoue, liste vide
           propertyList = [];
         }
       }
 
-      // Map to PlanningProperty (lightweight)
+      // Map vers PlanningProperty (léger)
       const mappedProperties: PlanningProperty[] = propertyList.map((p) => ({
         id: p.id,
         name: p.name,
@@ -220,15 +284,16 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
         city: p.city,
       }));
 
-      setProperties(mappedProperties);
+      // ── Étape 2 : Charger les réservations/interventions réelles ──
+      let reservationData: Reservation[] = [];
+      let interventionData: PlanningIntervention[] = [];
 
-      // Load reservations and interventions for these properties within the date range (extended by 7 days each side for visibility)
       const propertyIds = mappedProperties.map((p) => p.id);
-      if (propertyIds.length > 0) {
-        const extendedFrom = toISODateString(addDays(dateRange.start, -7));
-        const extendedTo = toISODateString(addDays(dateRange.end, 7));
+      const extendedFrom = toISODateString(addDays(dateRange.start, -7));
+      const extendedTo = toISODateString(addDays(dateRange.end, 7));
 
-        const [reservationData, interventionData] = await Promise.all([
+      if (propertyIds.length > 0) {
+        [reservationData, interventionData] = await Promise.all([
           reservationsApi.getAll({
             propertyIds,
             from: extendedFrom,
@@ -240,13 +305,29 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
             to: extendedTo,
           }),
         ]);
-
-        setReservations(reservationData);
-        setInterventions(interventionData);
-      } else {
-        setReservations([]);
-        setInterventions([]);
       }
+
+      // ── Étape 3 : ADMIN uniquement — ajouter les données mock de test ──
+      // Les données mock (10 propriétés fictives) ne sont visibles que par
+      // l'admin à des fins de test du planning. Les autres rôles ne voient
+      // que les données réelles issues de l'API.
+      if (isAdmin && reservationsApi.isMockMode()) {
+        const mockProperties = reservationsApi.getMockProperties();
+        mappedProperties.push(...mockProperties);
+
+        const [mockReservations, mockInterventions] = await Promise.all([
+          reservationsApi.getAll({ from: extendedFrom, to: extendedTo }),
+          reservationsApi.getPlanningInterventions({ from: extendedFrom, to: extendedTo }),
+        ]);
+
+        reservationData = [...reservationData, ...mockReservations];
+        interventionData = [...interventionData, ...mockInterventions];
+      }
+
+      propertiesRef.current = mappedProperties;
+      setProperties(mappedProperties);
+      setReservations(reservationData);
+      setInterventions(interventionData);
     } catch (err: any) {
       setError(err.message || 'Erreur lors du chargement du planning');
     } finally {
@@ -276,6 +357,7 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
     reservations,
     interventions,
     loading,
+    loadingMore,
     error,
     currentDate,
     viewMode,
@@ -283,6 +365,7 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
     goToday,
     goPrev,
     goNext,
+    extendRange,
     statusFilter,
     setStatusFilter,
     interventionTypeFilter,

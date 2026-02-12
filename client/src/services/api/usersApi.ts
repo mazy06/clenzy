@@ -8,6 +8,21 @@ export interface User {
   role: string;
   status?: string;
   createdAt?: string;
+  // Profil host (donnees du formulaire de devis)
+  companyName?: string;
+  forfait?: string;
+  city?: string;
+  postalCode?: string;
+  propertyType?: string;
+  propertyCount?: number;
+  surface?: number;
+  guestCapacity?: number;
+  // Donnees supplementaires du formulaire de devis
+  bookingFrequency?: string;
+  cleaningSchedule?: string;
+  calendarSync?: string;
+  services?: string;       // Séparé par virgule
+  servicesDevis?: string;  // Séparé par virgule
 }
 
 export interface UserFormData {

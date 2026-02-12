@@ -60,7 +60,52 @@ public class User {
     
     @Column(name = "keycloak_id", unique = true)
     private String keycloakId;
-    
+
+    @Column(name = "stripe_customer_id", unique = true)
+    private String stripeCustomerId;
+
+    @Column(name = "stripe_subscription_id", unique = true)
+    private String stripeSubscriptionId;
+
+    // Donnees du profil host (remplies lors de l'inscription via le formulaire de devis)
+    @Column(name = "company_name")
+    private String companyName;
+
+    private String forfait;
+
+    private String city;
+
+    @Column(name = "postal_code")
+    private String postalCode;
+
+    @Column(name = "property_type")
+    private String propertyType;
+
+    @Column(name = "property_count")
+    private Integer propertyCount;
+
+    private Integer surface;
+
+    @Column(name = "guest_capacity")
+    private Integer guestCapacity;
+
+    @Column(name = "booking_frequency")
+    private String bookingFrequency;
+
+    @Column(name = "cleaning_schedule")
+    private String cleaningSchedule;
+
+    @Column(name = "calendar_sync")
+    private String calendarSync;
+
+    /** Services forfait sélectionnés (stockés séparés par virgule, ex: "menage-complet,linge,poubelles") */
+    @Column(name = "services", length = 500)
+    private String services;
+
+    /** Services sur devis sélectionnés (stockés séparés par virgule, ex: "repassage,vitres") */
+    @Column(name = "services_devis", length = 500)
+    private String servicesDevis;
+
     @Column(name = "email_verified")
     private Boolean emailVerified = false;
     
@@ -185,7 +230,127 @@ public class User {
     public void setKeycloakId(String keycloakId) {
         this.keycloakId = keycloakId;
     }
-    
+
+    public String getStripeCustomerId() {
+        return stripeCustomerId;
+    }
+
+    public void setStripeCustomerId(String stripeCustomerId) {
+        this.stripeCustomerId = stripeCustomerId;
+    }
+
+    public String getStripeSubscriptionId() {
+        return stripeSubscriptionId;
+    }
+
+    public void setStripeSubscriptionId(String stripeSubscriptionId) {
+        this.stripeSubscriptionId = stripeSubscriptionId;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
+    }
+
+    public String getForfait() {
+        return forfait;
+    }
+
+    public void setForfait(String forfait) {
+        this.forfait = forfait;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getPostalCode() {
+        return postalCode;
+    }
+
+    public void setPostalCode(String postalCode) {
+        this.postalCode = postalCode;
+    }
+
+    public String getPropertyType() {
+        return propertyType;
+    }
+
+    public void setPropertyType(String propertyType) {
+        this.propertyType = propertyType;
+    }
+
+    public Integer getPropertyCount() {
+        return propertyCount;
+    }
+
+    public void setPropertyCount(Integer propertyCount) {
+        this.propertyCount = propertyCount;
+    }
+
+    public Integer getSurface() {
+        return surface;
+    }
+
+    public void setSurface(Integer surface) {
+        this.surface = surface;
+    }
+
+    public Integer getGuestCapacity() {
+        return guestCapacity;
+    }
+
+    public void setGuestCapacity(Integer guestCapacity) {
+        this.guestCapacity = guestCapacity;
+    }
+
+    public String getBookingFrequency() {
+        return bookingFrequency;
+    }
+
+    public void setBookingFrequency(String bookingFrequency) {
+        this.bookingFrequency = bookingFrequency;
+    }
+
+    public String getCleaningSchedule() {
+        return cleaningSchedule;
+    }
+
+    public void setCleaningSchedule(String cleaningSchedule) {
+        this.cleaningSchedule = cleaningSchedule;
+    }
+
+    public String getCalendarSync() {
+        return calendarSync;
+    }
+
+    public void setCalendarSync(String calendarSync) {
+        this.calendarSync = calendarSync;
+    }
+
+    public String getServices() {
+        return services;
+    }
+
+    public void setServices(String services) {
+        this.services = services;
+    }
+
+    public String getServicesDevis() {
+        return servicesDevis;
+    }
+
+    public void setServicesDevis(String servicesDevis) {
+        this.servicesDevis = servicesDevis;
+    }
+
     public Boolean isEmailVerified() {
         return emailVerified;
     }

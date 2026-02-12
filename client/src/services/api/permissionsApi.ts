@@ -22,7 +22,7 @@ export const permissionsApi = {
     return apiClient.post<{ permissions: string[] }>('/permissions/sync', { userId });
   },
   updateRole(role: string, permissions: string[]) {
-    return apiClient.put(`/permissions/roles/${role}`, { permissions });
+    return apiClient.put(`/permissions/roles/${role}`, permissions);
   },
   saveRole(role: string, permissions: string[]) {
     return apiClient.post(`/permissions/roles/${role}/save`, { permissions });

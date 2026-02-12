@@ -8,6 +8,8 @@ import {
   Tabs,
   Tab,
   Paper,
+  Button,
+  Tooltip,
 } from '@mui/material';
 import {
   Home,
@@ -20,6 +22,8 @@ import {
   CalendarMonth,
   Dashboard as DashboardIcon,
   Timeline as TimelineIcon,
+  Sync as SyncIcon,
+  CalendarToday as CalendarTodayIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -282,7 +286,49 @@ const Dashboard: React.FC = () => {
         subtitle={getDashboardDescription()}
         backPath="/"
         showBackButton={false}
-        actions={<DashboardDateFilter period={period} onPeriodChange={setPeriod} />}
+        actions={
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Tooltip title="Importer les réservations via un Channel Manager (Airbnb, Booking, etc.)" arrow>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<SyncIcon sx={{ fontSize: 16 }} />}
+                onClick={() => {/* TODO: ouvrir modal channel manager */}}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '0.75rem',
+                  py: 0.5,
+                  px: 1.5,
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': { borderColor: 'primary.dark', backgroundColor: 'primary.50' },
+                }}
+              >
+                Channel Manager
+              </Button>
+            </Tooltip>
+            <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<CalendarTodayIcon sx={{ fontSize: 16 }} />}
+                onClick={() => {/* TODO: ouvrir modal import iCal */}}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '0.75rem',
+                  py: 0.5,
+                  px: 1.5,
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': { borderColor: 'primary.dark', backgroundColor: 'primary.50' },
+                }}
+              >
+                Import iCal
+              </Button>
+            </Tooltip>
+            <DashboardDateFilter period={period} onPeriodChange={setPeriod} />
+          </Box>
+        }
       />
 
       {/* ─── Tabs ──────────────────────────────────────────────────────── */}
@@ -330,9 +376,23 @@ const Dashboard: React.FC = () => {
       </Paper>
 
       {/* ─── Tab 0: Planning ───────────────────────────────────────────── */}
-      <TabPanel value={tabValue} index={0}>
-        <DashboardPlanning />
-      </TabPanel>
+      {tabValue === 0 && (
+        <Box
+          role="tabpanel"
+          id="dashboard-tabpanel-0"
+          aria-labelledby="dashboard-tab-0"
+          sx={{
+            py: 1,
+            // Le planning occupe toute la hauteur restante de l'écran
+            height: 'calc(100vh - 220px)',
+            minHeight: 400,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <DashboardPlanning />
+        </Box>
+      )}
 
       {/* ─── Tab 1: Vue d'ensemble ─────────────────────────────────────── */}
       <TabPanel value={tabValue} index={1}>

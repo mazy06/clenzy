@@ -46,6 +46,9 @@ import UserEdit from './users/UserEdit';
 // Settings
 import Settings from './settings/Settings';
 
+// Tarification
+import Tarification from './tarification/Tarification';
+
 // Permissions
 import PermissionConfig from '../components/PermissionConfig';
 
@@ -233,7 +236,13 @@ const AuthenticatedApp: React.FC = () => {
             <Settings />
           </ProtectedRoute>
         } />
-        
+
+        <Route path="/tarification" element={
+          <ProtectedRoute requiredPermission="tarification:view">
+            <Tarification />
+          </ProtectedRoute>
+        } />
+
         <Route path="/permissions-test" element={
           <ProtectedRoute requiredPermission="users:manage">
             <PermissionConfig />

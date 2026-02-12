@@ -15,8 +15,7 @@ public class QuoteRequestDto {
     private String bookingFrequency;
     private String cleaningSchedule;
     private List<String> services;
-    private Boolean needsMaintenance;
-    private List<String> maintenanceTypes;
+    private List<String> servicesDevis;
     private String calendarSync;
     private String city;
     private String postalCode;
@@ -49,11 +48,8 @@ public class QuoteRequestDto {
     public List<String> getServices() { return services; }
     public void setServices(List<String> services) { this.services = services; }
 
-    public Boolean getNeedsMaintenance() { return needsMaintenance; }
-    public void setNeedsMaintenance(Boolean needsMaintenance) { this.needsMaintenance = needsMaintenance; }
-
-    public List<String> getMaintenanceTypes() { return maintenanceTypes; }
-    public void setMaintenanceTypes(List<String> maintenanceTypes) { this.maintenanceTypes = maintenanceTypes; }
+    public List<String> getServicesDevis() { return servicesDevis; }
+    public void setServicesDevis(List<String> servicesDevis) { this.servicesDevis = servicesDevis; }
 
     public String getCalendarSync() { return calendarSync; }
     public void setCalendarSync(String calendarSync) { this.calendarSync = calendarSync; }

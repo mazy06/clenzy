@@ -12,6 +12,7 @@ import {
   Business,
   Assessment,
   Security,
+  Euro,
 } from '@mui/icons-material';
 
 export interface MenuItem {
@@ -95,6 +96,13 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     roles: ['ADMIN'],
     permission: 'users:manage',
     translationKey: 'navigation.users'
+  },
+  {
+    icon: <Euro />,
+    path: '/tarification',
+    roles: ['ADMIN', 'MANAGER'],
+    permission: 'tarification:view',
+    translationKey: 'navigation.tarification'
   },
   {
     icon: <Settings />,
