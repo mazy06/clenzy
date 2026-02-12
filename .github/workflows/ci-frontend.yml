@@ -1,13 +1,16 @@
 # ===========================================
 # Clenzy — CI/CD Frontend (React + TypeScript + Vite)
 # ===========================================
-# Pipeline CI automatise avec verification types, build et push GHCR
+# Flux :
+#   - push main/develop  → CI (typecheck + build) + push image GHCR
+#   - push production    → CI + push image GHCR (:latest) + déploiement VPS
+#   - PR main/develop    → CI uniquement (pas de push)
 
 name: CI Frontend
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, production]
     paths:
       - 'client/**'
       - '.github/workflows/ci-frontend.yml'
@@ -104,7 +107,7 @@ jobs:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
     needs: typecheck-and-build
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/production')
 
     steps:
       - name: Checkout code
@@ -128,7 +131,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha,prefix=
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/production' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -153,7 +156,7 @@ jobs:
     name: Deploy to VPS
     runs-on: ubuntu-latest
     needs: docker-push
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/production'
     environment: production
 
     steps:
