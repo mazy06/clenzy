@@ -54,6 +54,9 @@ public class PermissionInitializer {
         anyCreated |= ensurePermission("tarification:edit", "Modifier la configuration tarifaire", "tarification",
                 List.of("ADMIN", "MANAGER"));
 
+        anyCreated |= ensurePermission("payments:view", "Voir l'historique des paiements", "payments",
+                List.of("ADMIN", "MANAGER", "HOST"));
+
         if (anyCreated) {
             log.info("Nouvelles permissions creees, invalidation du cache Redis...");
             permissionService.invalidateAllCache();

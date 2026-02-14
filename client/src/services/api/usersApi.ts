@@ -23,6 +23,7 @@ export interface User {
   calendarSync?: string;
   services?: string;       // Séparé par virgule
   servicesDevis?: string;  // Séparé par virgule
+  deferredPayment?: boolean;
 }
 
 export interface UserFormData {

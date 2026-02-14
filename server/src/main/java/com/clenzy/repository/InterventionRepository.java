@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import com.clenzy.model.PaymentStatus;
 import jakarta.persistence.QueryHint;
 import java.util.List;
 
@@ -146,6 +147,54 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     @Query("SELECT i FROM Intervention i WHERE i.stripeSessionId = :sessionId")
     java.util.Optional<Intervention> findByStripeSessionId(@Param("sessionId") String sessionId);
     
+    /**
+     * Interventions impayees d'un host (paymentStatus != PAID et estimatedCost > 0)
+     */
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property WHERE i.requestor.id = :hostId " +
+           "AND i.paymentStatus != com.clenzy.model.PaymentStatus.PAID " +
+           "AND i.estimatedCost IS NOT NULL AND i.estimatedCost > 0 " +
+           "ORDER BY i.property.id, i.scheduledDate")
+    List<Intervention> findUnpaidByHostId(@Param("hostId") Long hostId);
+
+    /**
+     * Somme des impayes d'un host
+     */
+    @Query("SELECT COALESCE(SUM(i.estimatedCost), 0) FROM Intervention i " +
+           "WHERE i.requestor.id = :hostId " +
+           "AND i.paymentStatus != com.clenzy.model.PaymentStatus.PAID " +
+           "AND i.estimatedCost IS NOT NULL AND i.estimatedCost > 0")
+    java.math.BigDecimal sumUnpaidByHostId(@Param("hostId") Long hostId);
+
+    /**
+     * Historique des paiements — toutes interventions payantes (ADMIN/MANAGER, optionnellement par host)
+     */
+    @EntityGraph(attributePaths = {"property", "requestor"})
+    @Query("SELECT i FROM Intervention i WHERE i.estimatedCost IS NOT NULL AND i.estimatedCost > 0 " +
+           "AND (:paymentStatus IS NULL OR i.paymentStatus = :paymentStatus) " +
+           "AND (:hostId IS NULL OR i.requestor.id = :hostId)")
+    Page<Intervention> findPaymentHistory(@Param("paymentStatus") PaymentStatus paymentStatus,
+                                           @Param("hostId") Long hostId,
+                                           Pageable pageable);
+
+    /**
+     * Historique des paiements — interventions d'un requestor specifique (HOST)
+     */
+    @EntityGraph(attributePaths = {"property"})
+    @Query("SELECT i FROM Intervention i WHERE i.requestor.id = :requestorId " +
+           "AND i.estimatedCost IS NOT NULL AND i.estimatedCost > 0 " +
+           "AND (:paymentStatus IS NULL OR i.paymentStatus = :paymentStatus)")
+    Page<Intervention> findPaymentHistoryByRequestor(@Param("requestorId") Long requestorId,
+                                                      @Param("paymentStatus") PaymentStatus paymentStatus,
+                                                      Pageable pageable);
+
+    /**
+     * Liste des hosts distincts ayant des interventions payantes (pour filtre admin)
+     */
+    @Query("SELECT DISTINCT i.requestor.id, i.requestor.firstName, i.requestor.lastName " +
+           "FROM Intervention i WHERE i.estimatedCost IS NOT NULL AND i.estimatedCost > 0 " +
+           "AND i.requestor IS NOT NULL ORDER BY i.requestor.lastName")
+    List<Object[]> findDistinctHostsWithPayments();
+
     /**
      * Méthode de compatibilité pour les services existants
      */

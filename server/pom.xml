@@ -198,6 +198,13 @@
             <version>24.16.0</version>
         </dependency>
         
+        <!-- iCal4j - Parser iCalendar (.ics) pour import calendrier externe -->
+        <dependency>
+            <groupId>org.mnode.ical4j</groupId>
+            <artifactId>ical4j</artifactId>
+            <version>3.2.14</version>
+        </dependency>
+
         <!-- iText pour la génération de PDF -->
         <dependency>
             <groupId>com.itextpdf</groupId>

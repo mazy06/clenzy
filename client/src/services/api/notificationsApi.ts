@@ -9,6 +9,7 @@ export interface Notification {
   message: string;
   type: 'info' | 'success' | 'warning' | 'error';
   category: 'intervention' | 'service_request' | 'payment' | 'system' | 'team';
+  notificationKey?: string;
   read: boolean;
   actionUrl?: string;
   createdAt: string;

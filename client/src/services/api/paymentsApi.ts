@@ -21,11 +21,13 @@ export interface PaymentRecord {
   propertyName: string;
   amount: number;
   currency: string;
-  status: 'PAID' | 'PENDING' | 'FAILED' | 'REFUNDED';
+  status: 'PAID' | 'PENDING' | 'PROCESSING' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
   paymentMethod?: string;
   stripeSessionId?: string;
   transactionDate: string;
   createdAt: string;
+  hostName?: string;
+  hostId?: number;
 }
 
 export interface PaymentSummary {
@@ -47,6 +49,12 @@ export interface PaymentHistoryParams {
   status?: string;
   dateFrom?: string;
   dateTo?: string;
+  hostId?: number;
+}
+
+export interface HostOption {
+  id: number;
+  fullName: string;
 }
 
 // ─── API ────────────────────────────────────────────────────────────────────
@@ -82,6 +90,8 @@ export const paymentsApi = {
                     i.status === 'CANCELLED' ? 'REFUNDED' as const : 'PAID' as const,
             transactionDate: i.completedDate || i.scheduledDate || i.createdAt || new Date().toISOString(),
             createdAt: i.createdAt || new Date().toISOString(),
+            hostName: i.requestorName || undefined,
+            hostId: i.requestorId || undefined,
           }));
 
         // Apply filters if provided
@@ -142,6 +152,14 @@ export const paymentsApi = {
       const record = history.content.find(r => r.id === id);
       if (record) return record;
       throw new Error(`Payment record #${id} not found`);
+    }
+  },
+
+  async getHosts(): Promise<HostOption[]> {
+    try {
+      return await apiClient.get<HostOption[]>('/payments/hosts');
+    } catch {
+      return [];
     }
   },
 

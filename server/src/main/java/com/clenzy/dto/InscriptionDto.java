@@ -1,5 +1,6 @@
 package com.clenzy.dto;
 
+import com.clenzy.model.BillingPeriod;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -45,6 +46,8 @@ public class InscriptionDto {
     private String calendarSync;
     private List<String> services;
     private List<String> servicesDevis;
+
+    private String billingPeriod = "MONTHLY";
 
     // Constructeurs
     public InscriptionDto() {}
@@ -101,6 +104,13 @@ public class InscriptionDto {
     public List<String> getServicesDevis() { return servicesDevis; }
     public void setServicesDevis(List<String> servicesDevis) { this.servicesDevis = servicesDevis; }
 
+    public String getBillingPeriod() { return billingPeriod; }
+    public void setBillingPeriod(String billingPeriod) { this.billingPeriod = billingPeriod; }
+
+    public BillingPeriod getBillingPeriodEnum() {
+        return BillingPeriod.fromString(billingPeriod);
+    }
+
     /**
      * Extrait le prenom depuis le nom complet
      */
@@ -134,9 +144,11 @@ public class InscriptionDto {
 
     /**
      * Retourne le prix a facturer a l'inscription (abonnement PMS, pas le forfait intervention).
+     * Le montant total depend de la periode de facturation choisie.
      */
     public int getInscriptionPriceInCents() {
-        return PMS_SUBSCRIPTION_PRICE_CENTS;
+        BillingPeriod period = BillingPeriod.fromString(billingPeriod);
+        return period.computeTotalPriceCents(PMS_SUBSCRIPTION_PRICE_CENTS);
     }
 
     /**
