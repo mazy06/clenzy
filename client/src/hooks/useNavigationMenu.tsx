@@ -13,6 +13,7 @@ import {
   Assessment,
   Security,
   Euro,
+  Payment,
 } from '@mui/icons-material';
 
 export interface MenuItem {
@@ -103,6 +104,13 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     roles: ['ADMIN', 'MANAGER'],
     permission: 'tarification:view',
     translationKey: 'navigation.tarification'
+  },
+  {
+    icon: <Payment />,
+    path: '/payments/history',
+    roles: ['ADMIN', 'MANAGER', 'HOST'],
+    permission: 'payments:view',
+    translationKey: 'navigation.payments'
   },
   {
     icon: <Settings />,

@@ -45,7 +45,7 @@ export interface PropertyFormData {
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 export const propertiesApi = {
-  getAll(params?: { ownerId?: string | number }) {
+  getAll(params?: { ownerId?: string | number; size?: number; sort?: string }) {
     return apiClient.get<Property[]>('/properties', { params });
   },
 

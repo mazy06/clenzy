@@ -43,6 +43,7 @@
     "settings": "Settings",
     "rolesPermissions": "Roles & Permissions",
     "tarification": "Pricing",
+    "payments": "Payments",
     "monitoring": "Monitoring",
     "myProfile": "My Profile",
     "logout": "Logout",
@@ -1051,7 +1052,13 @@
       "downloadInvoice": "Download invoice",
       "dateFrom": "Start date",
       "dateTo": "End date",
-      "clearFilters": "Clear filters"
+      "clearFilters": "Clear filters",
+      "hostColumn": "Client",
+      "filterByHost": "Filter by client",
+      "allHosts": "All clients",
+      "totalDue": "Total Due",
+      "processing": "Processing",
+      "cancelled": "Cancelled"
     }
   },
   "tarification": {

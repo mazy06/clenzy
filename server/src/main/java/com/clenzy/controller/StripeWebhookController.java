@@ -182,6 +182,11 @@ public class StripeWebhookController {
             } catch (Exception e) {
                 logger.error("Erreur lors de la finalisation de l'inscription pour session: {}", sessionId, e);
             }
+        } else if ("grouped_deferred".equals(type)) {
+            // Paiement groupe differe : confirmer toutes les interventions incluses
+            String interventionIds = session.getMetadata().get("intervention_ids");
+            logger.info("Paiement groupe differe reussi pour session: {}, interventions: {}", sessionId, interventionIds);
+            stripeService.confirmGroupedPayment(sessionId, interventionIds);
         } else {
             // Paiement d'intervention — paiement unique (flux existant)
             logger.info("Paiement d'intervention reussi pour session: {}", sessionId);
@@ -210,6 +215,10 @@ public class StripeWebhookController {
             } catch (Exception e) {
                 logger.error("Erreur lors de la finalisation asynchrone de l'inscription: {}", sessionId, e);
             }
+        } else if ("grouped_deferred".equals(type)) {
+            String interventionIds = session.getMetadata() != null ? session.getMetadata().get("intervention_ids") : null;
+            logger.info("Paiement groupe differe asynchrone reussi pour session: {}", sessionId);
+            stripeService.confirmGroupedPayment(sessionId, interventionIds);
         } else {
             stripeService.confirmPayment(sessionId);
         }
@@ -230,6 +239,10 @@ public class StripeWebhookController {
 
         if ("inscription".equals(type)) {
             inscriptionService.markInscriptionFailed(sessionId);
+        } else if ("grouped_deferred".equals(type)) {
+            String interventionIds = session.getMetadata() != null ? session.getMetadata().get("intervention_ids") : null;
+            logger.warn("Paiement groupe differe echoue pour session: {}", sessionId);
+            stripeService.markGroupedPaymentAsFailed(interventionIds);
         } else {
             stripeService.markPaymentAsFailed(sessionId);
         }

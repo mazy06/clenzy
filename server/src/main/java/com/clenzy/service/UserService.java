@@ -7,6 +7,7 @@ import com.clenzy.dto.UserProfileDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.exception.KeycloakOperationException;
 import com.clenzy.model.User;
+import com.clenzy.model.NotificationKey;
 import com.clenzy.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,11 +24,13 @@ public class UserService {
     private final UserRepository userRepository;
     private final PermissionService permissionService;
     private final NewUserService newUserService;
+    private final NotificationService notificationService;
 
-    public UserService(UserRepository userRepository, PermissionService permissionService, NewUserService newUserService) {
+    public UserService(UserRepository userRepository, PermissionService permissionService, NewUserService newUserService, NotificationService notificationService) {
         this.userRepository = userRepository;
         this.permissionService = permissionService;
         this.newUserService = newUserService;
+        this.notificationService = notificationService;
     }
 
     public UserDto create(UserDto dto) {
@@ -56,7 +59,18 @@ public class UserService {
             user = userRepository.save(user);
             
             System.out.println("✅ Utilisateur créé dans Keycloak et base métier: " + user.getEmail() + " (Keycloak ID: " + userProfile.getId() + ")");
-            
+
+            try {
+                notificationService.notifyAdminsAndManagers(
+                    NotificationKey.USER_CREATED,
+                    "Nouvel utilisateur",
+                    "Utilisateur " + user.getFirstName() + " " + user.getLastName() + " cree (" + user.getRole() + ")",
+                    "/users/" + user.getId()
+                );
+            } catch (Exception notifEx) {
+                System.err.println("Erreur notification USER_CREATED: " + notifEx.getMessage());
+            }
+
             return toDto(user);
             
         } catch (Exception e) {
@@ -73,10 +87,25 @@ public class UserService {
         if (dto.role != null) user.setRole(dto.role);
         if (dto.status != null) user.setStatus(dto.status);
         if (dto.profilePictureUrl != null) user.setProfilePictureUrl(dto.profilePictureUrl);
+        if (dto.deferredPayment != null) user.setDeferredPayment(dto.deferredPayment);
         
         // Sauvegarder d'abord dans la base métier
         user = userRepository.save(user);
         
+        try {
+            if (user.getKeycloakId() != null) {
+                notificationService.notify(
+                    user.getKeycloakId(),
+                    NotificationKey.USER_UPDATED,
+                    "Profil mis a jour",
+                    "Votre profil a ete modifie",
+                    "/users/" + user.getId()
+                );
+            }
+        } catch (Exception notifEx) {
+            System.err.println("Erreur notification USER_UPDATED: " + notifEx.getMessage());
+        }
+
         // Mise à jour du mot de passe dans Keycloak si fourni
         if (dto.newPassword != null && !dto.newPassword.trim().isEmpty()) {
             try {
@@ -131,6 +160,17 @@ public class UserService {
         // Supprimer de la base métier
         userRepository.deleteById(id);
         System.out.println("✅ Utilisateur supprimé de la base métier: " + user.getEmail());
+
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.USER_DELETED,
+                "Utilisateur supprime",
+                "Utilisateur " + user.getFirstName() + " " + user.getLastName() + " (" + user.getEmail() + ") supprime",
+                "/users"
+            );
+        } catch (Exception notifEx) {
+            System.err.println("Erreur notification USER_DELETED: " + notifEx.getMessage());
+        }
     }
     
 
@@ -166,6 +206,7 @@ public class UserService {
         dto.calendarSync = user.getCalendarSync();
         dto.services = user.getServices();
         dto.servicesDevis = user.getServicesDevis();
+        dto.deferredPayment = user.isDeferredPayment();
         return dto;
     }
 }

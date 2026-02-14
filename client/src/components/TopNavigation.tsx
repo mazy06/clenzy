@@ -35,7 +35,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ menuItems }) => {
 
   // Menus à afficher directement dans la barre de navigation
   const directMenus = menuItems.filter(item =>
-    ['/dashboard', '/properties', '/service-requests', '/interventions', '/teams', '/portfolios', '/contact', '/tarification'].includes(item.path)
+    ['/dashboard', '/properties', '/service-requests', '/interventions', '/teams', '/portfolios', '/contact', '/tarification', '/payments/history'].includes(item.path)
   );
 
   const handleNavigation = (path: string) => {

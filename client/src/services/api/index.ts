@@ -14,7 +14,7 @@ export type {
 } from './interventionsApi';
 
 export { paymentsApi } from './paymentsApi';
-export type { PaymentSession, PaymentSessionStatus, PaymentRecord, PaymentSummary } from './paymentsApi';
+export type { PaymentSession, PaymentSessionStatus, PaymentRecord, PaymentSummary, HostOption } from './paymentsApi';
 
 export { permissionsApi } from './permissionsApi';
 export type { RolePermissions } from './permissionsApi';
@@ -63,3 +63,25 @@ export type {
 
 export { pricingConfigApi } from './pricingConfigApi';
 export type { PricingConfig, PricingConfigUpdate, SurfaceTier } from './pricingConfigApi';
+
+export { iCalApi } from './iCalApi';
+export type {
+  ICalEventPreview,
+  ICalPreviewRequest,
+  ICalImportRequest,
+  ICalPreviewResponse,
+  ICalImportResponse,
+  ICalFeed,
+  ICalAccessCheck,
+} from './iCalApi';
+
+export { notificationPreferencesApi } from './notificationPreferencesApi';
+export type { NotificationPreferencesMap } from './notificationPreferencesApi';
+
+export { deferredPaymentsApi } from './deferredPaymentsApi';
+export type {
+  HostBalanceSummary,
+  PropertyBalance,
+  UnpaidIntervention,
+  PaymentLinkResponse,
+} from './deferredPaymentsApi';

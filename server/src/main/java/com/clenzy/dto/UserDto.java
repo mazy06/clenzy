@@ -59,6 +59,9 @@ public class UserDto {
     public String calendarSync;
     public String services;       // Stocké séparé par virgule
     public String servicesDevis;   // Stocké séparé par virgule
+
+    // Paiement differe (admin/manager toggle)
+    public Boolean deferredPayment;
 }
 
 

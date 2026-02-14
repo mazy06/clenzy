@@ -73,6 +73,9 @@ public class PendingInscription {
     @Column(name = "services_devis", length = 500)
     private String servicesDevis;
 
+    @Column(name = "billing_period", length = 20)
+    private String billingPeriod = "MONTHLY";
+
     // Stripe
     @Column(name = "stripe_session_id", unique = true)
     private String stripeSessionId;
@@ -148,6 +151,9 @@ public class PendingInscription {
 
     public String getServicesDevis() { return servicesDevis; }
     public void setServicesDevis(String servicesDevis) { this.servicesDevis = servicesDevis; }
+
+    public String getBillingPeriod() { return billingPeriod; }
+    public void setBillingPeriod(String billingPeriod) { this.billingPeriod = billingPeriod; }
 
     public String getStripeSessionId() { return stripeSessionId; }
     public void setStripeSessionId(String stripeSessionId) { this.stripeSessionId = stripeSessionId; }

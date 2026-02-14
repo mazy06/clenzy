@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.GdprConsentUpdateDto;
 import com.clenzy.dto.GdprExportDto;
 import com.clenzy.model.*;
+import com.clenzy.model.NotificationKey;
 import com.clenzy.repository.AuditLogRepository;
 import com.clenzy.repository.GdprConsentRepository;
 import com.clenzy.repository.UserRepository;
@@ -38,15 +39,18 @@ public class GdprService {
     private final GdprConsentRepository gdprConsentRepository;
     private final AuditLogRepository auditLogRepository;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     public GdprService(UserRepository userRepository,
                        GdprConsentRepository gdprConsentRepository,
                        AuditLogRepository auditLogRepository,
-                       AuditLogService auditLogService) {
+                       AuditLogService auditLogService,
+                       NotificationService notificationService) {
         this.userRepository = userRepository;
         this.gdprConsentRepository = gdprConsentRepository;
         this.auditLogRepository = auditLogRepository;
         this.auditLogService = auditLogService;
+        this.notificationService = notificationService;
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -82,6 +86,18 @@ public class GdprService {
                 null, null, "Export RGPD des donnees personnelles", AuditSource.WEB);
 
         log.info("Export RGPD genere pour l'utilisateur {}", userId);
+
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.GDPR_DATA_EXPORTED,
+                "Export RGPD",
+                "Export des donnees personnelles genere pour l'utilisateur #" + userId,
+                "/gdpr"
+            );
+        } catch (Exception e) {
+            log.warn("Erreur notification GDPR_DATA_EXPORTED: {}", e.getMessage());
+        }
+
         return export;
     }
 
@@ -200,6 +216,17 @@ public class GdprService {
                 "Anonymisation RGPD irreversible (Article 17)", AuditSource.SYSTEM);
 
         log.info("Utilisateur {} anonymise avec succes (RGPD Article 17)", userId);
+
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.GDPR_USER_ANONYMIZED,
+                "Anonymisation RGPD",
+                "Utilisateur #" + userId + " anonymise (Article 17)",
+                "/gdpr"
+            );
+        } catch (Exception e) {
+            log.warn("Erreur notification GDPR_USER_ANONYMIZED: {}", e.getMessage());
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════

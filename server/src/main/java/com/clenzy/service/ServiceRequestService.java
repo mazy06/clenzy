@@ -18,6 +18,7 @@ import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.TeamRepository;
 import com.clenzy.model.Team;
+import com.clenzy.model.NotificationKey;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -41,27 +42,59 @@ public class ServiceRequestService {
     private final PropertyRepository propertyRepository;
     private final InterventionRepository interventionRepository;
     private final TeamRepository teamRepository;
+    private final NotificationService notificationService;
 
-    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository, TeamRepository teamRepository) {
+    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository, TeamRepository teamRepository, NotificationService notificationService) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
         this.interventionRepository = interventionRepository;
         this.teamRepository = teamRepository;
+        this.notificationService = notificationService;
     }
 
     public ServiceRequestDto create(ServiceRequestDto dto) {
         ServiceRequest entity = new ServiceRequest();
         apply(dto, entity);
         entity = serviceRequestRepository.save(entity);
-        return toDto(entity);
+        ServiceRequestDto result = toDto(entity);
+
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.SERVICE_REQUEST_CREATED,
+                "Nouvelle demande de service",
+                "Demande \"" + entity.getTitle() + "\" creee",
+                "/service-requests/" + entity.getId()
+            );
+        } catch (Exception e) {
+            System.err.println("Erreur notification SERVICE_REQUEST_CREATED: " + e.getMessage());
+        }
+
+        return result;
     }
 
     public ServiceRequestDto update(Long id, ServiceRequestDto dto) {
         ServiceRequest entity = serviceRequestRepository.findById(id).orElseThrow(() -> new NotFoundException("Service request not found"));
         apply(dto, entity);
         entity = serviceRequestRepository.save(entity);
-        return toDto(entity);
+        ServiceRequestDto result = toDto(entity);
+
+        // Notify requester if the status changed to REJECTED
+        try {
+            if (RequestStatus.REJECTED.equals(entity.getStatus()) && entity.getUser() != null && entity.getUser().getKeycloakId() != null) {
+                notificationService.notify(
+                    entity.getUser().getKeycloakId(),
+                    NotificationKey.SERVICE_REQUEST_REJECTED,
+                    "Demande de service refusee",
+                    "Votre demande \"" + entity.getTitle() + "\" a ete refusee",
+                    "/service-requests/" + entity.getId()
+                );
+            }
+        } catch (Exception e) {
+            System.err.println("Erreur notification SERVICE_REQUEST_REJECTED: " + e.getMessage());
+        }
+
+        return result;
     }
 
     @Transactional(readOnly = true)
@@ -285,6 +318,22 @@ public class ServiceRequestService {
         System.out.println("🔍 DEBUG - Conversion en DTO...");
         InterventionDto dto = convertToInterventionDto(intervention);
         System.out.println("🔍 DEBUG - DTO créé avec succès, retour...");
+
+        // Notify requester of approval
+        try {
+            if (serviceRequest.getUser() != null && serviceRequest.getUser().getKeycloakId() != null) {
+                notificationService.notify(
+                    serviceRequest.getUser().getKeycloakId(),
+                    NotificationKey.SERVICE_REQUEST_APPROVED,
+                    "Demande de service approuvee",
+                    "Votre demande \"" + serviceRequest.getTitle() + "\" a ete approuvee et une intervention a ete creee",
+                    "/service-requests/" + serviceRequest.getId()
+                );
+            }
+        } catch (Exception e) {
+            System.err.println("Erreur notification SERVICE_REQUEST_APPROVED: " + e.getMessage());
+        }
+
         return dto;
         } catch (Exception e) {
             System.err.println("🔍 DEBUG - Erreur dans validateAndCreateIntervention: " + e.getMessage());

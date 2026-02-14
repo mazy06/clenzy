@@ -4,6 +4,7 @@ import com.clenzy.dto.PortfolioDto;
 import com.clenzy.dto.PortfolioClientDto;
 import com.clenzy.dto.PortfolioTeamDto;
 import com.clenzy.model.*;
+import com.clenzy.model.NotificationKey;
 import com.clenzy.repository.PortfolioRepository;
 import com.clenzy.repository.PortfolioClientRepository;
 import com.clenzy.repository.PortfolioTeamRepository;
@@ -31,6 +32,9 @@ public class PortfolioService {
     
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private NotificationService notificationService;
     
     /**
      * Créer un nouveau portefeuille
@@ -41,10 +45,21 @@ public class PortfolioService {
         
         Portfolio portfolio = new Portfolio(manager, portfolioDto.getName(), portfolioDto.getDescription());
         Portfolio savedPortfolio = portfolioRepository.save(portfolio);
-        
+
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.PORTFOLIO_CREATED,
+                "Nouveau portefeuille",
+                "Portefeuille \"" + savedPortfolio.getName() + "\" cree pour " + manager.getFirstName() + " " + manager.getLastName(),
+                "/portfolios/" + savedPortfolio.getId()
+            );
+        } catch (Exception e) {
+            System.err.println("Erreur notification PORTFOLIO_CREATED: " + e.getMessage());
+        }
+
         return convertToDto(savedPortfolio);
     }
-    
+
     /**
      * Mettre à jour un portefeuille
      */
@@ -109,6 +124,18 @@ public class PortfolioService {
         portfolioClient.setNotes(notes);
         
         PortfolioClient savedClient = portfolioClientRepository.save(portfolioClient);
+
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.PORTFOLIO_CLIENT_ADDED,
+                "Client ajoute au portefeuille",
+                "Client " + client.getFirstName() + " " + client.getLastName() + " ajoute au portefeuille \"" + portfolio.getName() + "\"",
+                "/portfolios/" + portfolioId
+            );
+        } catch (Exception e) {
+            System.err.println("Erreur notification PORTFOLIO_CLIENT_ADDED: " + e.getMessage());
+        }
+
         return convertClientToDto(savedClient);
     }
     
@@ -119,8 +146,19 @@ public class PortfolioService {
         PortfolioClient portfolioClient = portfolioClientRepository
             .findByPortfolioIdAndClientId(portfolioId, clientId)
             .orElseThrow(() -> new RuntimeException("Client non trouvé dans ce portefeuille"));
-        
+
         portfolioClientRepository.delete(portfolioClient);
+
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.PORTFOLIO_CLIENT_REMOVED,
+                "Client retire du portefeuille",
+                "Client #" + clientId + " retire du portefeuille #" + portfolioId,
+                "/portfolios/" + portfolioId
+            );
+        } catch (Exception e) {
+            System.err.println("Erreur notification PORTFOLIO_CLIENT_REMOVED: " + e.getMessage());
+        }
     }
     
     /**
