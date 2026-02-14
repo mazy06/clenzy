@@ -72,8 +72,8 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/webhooks/stripe").permitAll()
                         .requestMatchers("/api/contact/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
-                        // Actuator (seulement health et info sans auth)
-                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        // Actuator (health, info, prometheus et metrics sans auth — accès réseau Docker interne uniquement)
+                        .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus", "/actuator/metrics").permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
                         // Endpoints authentifies
                         .requestMatchers("/api/me").authenticated()
