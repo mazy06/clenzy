@@ -79,8 +79,32 @@ public class InscriptionService {
                     pendingInscriptionRepository.delete(existing);
                 });
 
-        // Prix de l'abonnement PMS (5 EUR/mois) — c'est ce montant qui est facture a l'inscription
-        int priceInCents = dto.getInscriptionPriceInCents();
+        // Prix de base de l'abonnement PMS mensuel en centimes
+        int priceInCents = InscriptionDto.PMS_SUBSCRIPTION_PRICE_CENTS;
+
+        // Determiner l'intervalle Stripe et le montant selon la periode de facturation
+        BillingPeriod period = dto.getBillingPeriodEnum();
+        SessionCreateParams.LineItem.PriceData.Recurring.Interval stripeInterval;
+        long stripePriceAmount;
+        String billingDescription;
+
+        switch (period) {
+            case ANNUAL:
+                stripeInterval = SessionCreateParams.LineItem.PriceData.Recurring.Interval.YEAR;
+                stripePriceAmount = period.computeMonthlyPriceCents(priceInCents) * 12L;
+                billingDescription = "Abonnement annuel (-20%)";
+                break;
+            case BIENNIAL:
+                stripeInterval = SessionCreateParams.LineItem.PriceData.Recurring.Interval.YEAR;
+                stripePriceAmount = period.computeMonthlyPriceCents(priceInCents) * 12L;
+                billingDescription = "Abonnement bisannuel (-35%), facture annuellement";
+                break;
+            default: // MONTHLY
+                stripeInterval = SessionCreateParams.LineItem.PriceData.Recurring.Interval.MONTH;
+                stripePriceAmount = priceInCents;
+                billingDescription = "Abonnement mensuel";
+                break;
+        }
 
         // Creer la session Stripe Checkout
         Stripe.apiKey = stripeSecretKey;
@@ -95,16 +119,16 @@ public class InscriptionService {
                                 .setPriceData(
                                         SessionCreateParams.LineItem.PriceData.builder()
                                                 .setCurrency(currency.toLowerCase())
-                                                .setUnitAmount((long) priceInCents)
+                                                .setUnitAmount(stripePriceAmount)
                                                 .setRecurring(
                                                         SessionCreateParams.LineItem.PriceData.Recurring.builder()
-                                                                .setInterval(SessionCreateParams.LineItem.PriceData.Recurring.Interval.MONTH)
+                                                                .setInterval(stripeInterval)
                                                                 .build()
                                                 )
                                                 .setProductData(
                                                         SessionCreateParams.LineItem.PriceData.ProductData.builder()
                                                                 .setName("Clenzy - Abonnement plateforme")
-                                                                .setDescription("Abonnement mensuel a la plateforme de gestion Clenzy - Forfait " + dto.getForfaitDisplayName())
+                                                                .setDescription(billingDescription + " a la plateforme de gestion Clenzy - Forfait " + dto.getForfaitDisplayName())
                                                                 .build()
                                                 )
                                                 .build()
@@ -116,12 +140,14 @@ public class InscriptionService {
                 .putMetadata("type", "inscription")
                 .putMetadata("email", dto.getEmail())
                 .putMetadata("forfait", dto.getForfait())
+                .putMetadata("billingPeriod", period.name())
                 // Metadata sur la subscription pour les evenements futurs (invoice.paid, customer.subscription.deleted, etc.)
                 .setSubscriptionData(
                         SessionCreateParams.SubscriptionData.builder()
                                 .putMetadata("type", "inscription")
                                 .putMetadata("email", dto.getEmail())
                                 .putMetadata("forfait", dto.getForfait())
+                                .putMetadata("billingPeriod", period.name())
                                 .build()
                 )
                 .build();
@@ -153,6 +179,7 @@ public class InscriptionService {
         if (dto.getServicesDevis() != null && !dto.getServicesDevis().isEmpty()) {
             pending.setServicesDevis(String.join(",", dto.getServicesDevis()));
         }
+        pending.setBillingPeriod(period.name());
         pending.setStripeSessionId(session.getId());
         pending.setStatus(PendingInscriptionStatus.PENDING_PAYMENT);
         // Expiration apres 24h si non paye
@@ -231,6 +258,7 @@ public class InscriptionService {
             user.setCalendarSync(pending.getCalendarSync());
             user.setServices(pending.getServices());
             user.setServicesDevis(pending.getServicesDevis());
+            user.setBillingPeriod(pending.getBillingPeriod());
 
             userRepository.save(user);
             logger.info("Utilisateur DB cree avec ID: {} pour email: {}, subscription: {}", user.getId(), user.getEmail(), stripeSubscriptionId);

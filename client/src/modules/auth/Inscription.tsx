@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -14,6 +14,8 @@ import {
   StepLabel,
   Chip,
   Divider,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import clenzyLogo from '../../assets/Clenzy_logo.png';
 import apiClient, { ApiError } from '../../services/apiClient';
@@ -40,7 +42,40 @@ const FORFAIT_PRICES: Record<string, string> = {
   premium: 'Interventions a partir de 80\u20AC',
 };
 
-const PMS_SUBSCRIPTION_PRICE = '5\u20AC / mois';
+type BillingPeriod = 'MONTHLY' | 'ANNUAL' | 'BIENNIAL';
+
+const BILLING_PERIOD_LABELS: Record<BillingPeriod, string> = {
+  MONTHLY: 'Mensuel',
+  ANNUAL: 'Annuel',
+  BIENNIAL: '2 ans',
+};
+
+const BILLING_PERIOD_DISCOUNT: Record<BillingPeriod, number> = {
+  MONTHLY: 1.0,
+  ANNUAL: 0.80,
+  BIENNIAL: 0.65,
+};
+
+const BILLING_PERIOD_MONTHS: Record<BillingPeriod, number> = {
+  MONTHLY: 1,
+  ANNUAL: 12,
+  BIENNIAL: 24,
+};
+
+const DEFAULT_PMS_MONTHLY_CENTS = 500; // 5€/mois fallback
+
+function getPmsDisplayPrice(period: BillingPeriod, baseCents: number): string {
+  const monthlyCents = Math.round(baseCents * BILLING_PERIOD_DISCOUNT[period]);
+  const monthly = (monthlyCents / 100).toFixed(0);
+  return `${monthly}\u20AC / mois`;
+}
+
+function getPmsFirstPayment(period: BillingPeriod, baseCents: number): string {
+  const monthlyCents = Math.round(baseCents * BILLING_PERIOD_DISCOUNT[period]);
+  if (period === 'MONTHLY') return `${(monthlyCents / 100).toFixed(0)}\u20AC`;
+  const total = (monthlyCents * 12 / 100).toFixed(0);
+  return `${total}\u20AC / an`;
+}
 
 const FORFAIT_COLORS: Record<string, string> = {
   essentiel: '#6B8A9A',
@@ -62,6 +97,7 @@ export default function Inscription() {
   // Recuperer les donnees de la landing page (query params)
   const prefill = useMemo(() => ({
     forfait: searchParams.get('forfait') || '',
+    billingPeriod: (searchParams.get('billingPeriod') || 'MONTHLY').toUpperCase() as BillingPeriod,
     email: searchParams.get('email') || '',
     fullName: searchParams.get('fullName') || '',
     phone: searchParams.get('phone') || '',
@@ -92,8 +128,25 @@ export default function Inscription() {
   const [phone, setPhone] = useState(prefill.phone);
   const [companyName, setCompanyName] = useState('');
   const [forfait, setForfait] = useState(prefill.forfait || 'essentiel');
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>(
+    (['MONTHLY', 'ANNUAL', 'BIENNIAL'].includes(prefill.billingPeriod) ? prefill.billingPeriod : 'MONTHLY') as BillingPeriod
+  );
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Prix PMS charge depuis l'API
+  const [pmsBaseCents, setPmsBaseCents] = useState(DEFAULT_PMS_MONTHLY_CENTS);
+
+  useEffect(() => {
+    fetch('/api/public/pricing-info')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.pmsMonthlyPriceCents) {
+          setPmsBaseCents(data.pmsMonthlyPriceCents);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Etats
   const [loading, setLoading] = useState(false);
@@ -154,6 +207,7 @@ export default function Inscription() {
         companyName,
         password,
         forfait,
+        billingPeriod,
         city: prefill.city,
         postalCode: prefill.postalCode,
         propertyType: prefill.propertyType,
@@ -238,7 +292,7 @@ export default function Inscription() {
               }}
             />
             <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
-              {FORFAIT_PRICES[prefill.forfait] || ''} | Plateforme : {PMS_SUBSCRIPTION_PRICE}
+              {FORFAIT_PRICES[prefill.forfait] || ''} | Plateforme : {getPmsDisplayPrice(billingPeriod, pmsBaseCents)}
             </Typography>
           </Box>
         )}
@@ -334,6 +388,45 @@ export default function Inscription() {
               </>
             )}
 
+            {/* Selection de la periode de facturation */}
+            <Divider sx={{ my: 1 }} />
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+              Periode de facturation
+            </Typography>
+            <ToggleButtonGroup
+              value={billingPeriod}
+              exclusive
+              onChange={(_, val) => val && setBillingPeriod(val as BillingPeriod)}
+              size="small"
+              fullWidth
+              sx={{ mb: 0.5 }}
+            >
+              <ToggleButton value="MONTHLY" sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}>
+                Mensuel
+              </ToggleButton>
+              <ToggleButton value="ANNUAL" sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}>
+                Annuel
+                <Chip label="-20%" size="small" color="success" sx={{ ml: 0.5, height: 18, fontSize: '0.65rem', fontWeight: 700 }} />
+              </ToggleButton>
+              <ToggleButton value="BIENNIAL" sx={{ textTransform: 'none', fontSize: '0.78rem', fontWeight: 600 }}>
+                2 ans
+                <Chip label="-35%" size="small" color="success" sx={{ ml: 0.5, height: 18, fontSize: '0.65rem', fontWeight: 700 }} />
+              </ToggleButton>
+            </ToggleButtonGroup>
+            <Typography variant="caption" color="text.secondary">
+              Plateforme : {getPmsDisplayPrice(billingPeriod, pmsBaseCents)}
+              {billingPeriod !== 'MONTHLY' && (
+                <Typography component="span" variant="caption" sx={{ ml: 0.5, textDecoration: 'line-through', color: 'text.disabled' }}>
+                  {(pmsBaseCents / 100).toFixed(0)}{'\u20AC'}/mois
+                </Typography>
+              )}
+              {billingPeriod !== 'MONTHLY' && (
+                <Typography component="span" variant="caption" sx={{ ml: 0.5, color: 'success.main', fontWeight: 600 }}>
+                  {' '}Facture {getPmsFirstPayment(billingPeriod, pmsBaseCents)}
+                </Typography>
+              )}
+            </Typography>
+
             {/* Resume des donnees de la landing page */}
             {hasLandingData && (
               <>
@@ -416,13 +509,23 @@ export default function Inscription() {
               </Typography>
               <Divider sx={{ my: 1 }} />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                <strong>Abonnement plateforme :</strong> {PMS_SUBSCRIPTION_PRICE}
+                <strong>Abonnement plateforme :</strong> {getPmsDisplayPrice(billingPeriod, pmsBaseCents)}
+                {billingPeriod !== 'MONTHLY' && (
+                  <Typography component="span" variant="body2" sx={{ ml: 0.5, color: 'success.main' }}>
+                    ({BILLING_PERIOD_LABELS[billingPeriod]})
+                  </Typography>
+                )}
               </Typography>
+              {billingPeriod !== 'MONTHLY' && (
+                <Typography variant="caption" color="text.secondary">
+                  Facture : {getPmsFirstPayment(billingPeriod, pmsBaseCents)}
+                </Typography>
+              )}
             </Box>
 
             <Alert severity="info" sx={{ mt: 1 }}>
               <Typography variant="caption">
-                Pour activer votre compte, un paiement de <strong>{PMS_SUBSCRIPTION_PRICE}</strong> (abonnement plateforme) vous sera demande via Stripe. Les interventions seront facturees separement a l'utilisation.
+                Pour activer votre compte, un paiement de <strong>{getPmsFirstPayment(billingPeriod, pmsBaseCents)}</strong> (abonnement plateforme {BILLING_PERIOD_LABELS[billingPeriod].toLowerCase()}) vous sera demande via Stripe. Les interventions seront facturees separement a l'utilisation.
               </Typography>
             </Alert>
           </Stack>
@@ -457,7 +560,7 @@ export default function Inscription() {
                 borderRadius: 1.5,
               }}
             >
-              {loading ? <CircularProgress size={20} color="inherit" /> : `Payer ${PMS_SUBSCRIPTION_PRICE} et activer mon compte`}
+              {loading ? <CircularProgress size={20} color="inherit" /> : `Payer ${getPmsFirstPayment(billingPeriod, pmsBaseCents)} et activer mon compte`}
             </Button>
           ) : (
             <Button

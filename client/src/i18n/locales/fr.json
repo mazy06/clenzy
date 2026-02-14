@@ -42,6 +42,7 @@
     "settings": "Paramètres",
     "rolesPermissions": "Roles & Permissions",
     "tarification": "Tarification",
+    "payments": "Paiements",
     "monitoring": "Monitoring",
     "myProfile": "Mon profil",
     "logout": "Déconnexion",
@@ -1087,7 +1088,13 @@
       "downloadInvoice": "Télécharger la facture",
       "dateFrom": "Date début",
       "dateTo": "Date fin",
-      "clearFilters": "Effacer les filtres"
+      "clearFilters": "Effacer les filtres",
+      "hostColumn": "Client",
+      "filterByHost": "Filtrer par client",
+      "allHosts": "Tous les clients",
+      "totalDue": "Total dû",
+      "processing": "En traitement",
+      "cancelled": "Annulé"
     }
   },
   "tarification": {

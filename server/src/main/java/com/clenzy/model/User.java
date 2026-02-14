@@ -106,6 +106,13 @@ public class User {
     @Column(name = "services_devis", length = 500)
     private String servicesDevis;
 
+    @Column(name = "billing_period", length = 20)
+    private String billingPeriod;
+
+    /** Paiement differe : les interventions auto (iCal) passent directement en PENDING sans attente de paiement */
+    @Column(name = "deferred_payment", nullable = false)
+    private boolean deferredPayment = false;
+
     @Column(name = "email_verified")
     private Boolean emailVerified = false;
     
@@ -349,6 +356,22 @@ public class User {
 
     public void setServicesDevis(String servicesDevis) {
         this.servicesDevis = servicesDevis;
+    }
+
+    public String getBillingPeriod() {
+        return billingPeriod;
+    }
+
+    public void setBillingPeriod(String billingPeriod) {
+        this.billingPeriod = billingPeriod;
+    }
+
+    public boolean isDeferredPayment() {
+        return deferredPayment;
+    }
+
+    public void setDeferredPayment(boolean deferredPayment) {
+        this.deferredPayment = deferredPayment;
     }
 
     public Boolean isEmailVerified() {

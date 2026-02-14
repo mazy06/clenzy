@@ -39,6 +39,7 @@ import DashboardQuickActions from './DashboardQuickActions';
 import DashboardCharts from './DashboardCharts';
 import DashboardActivityFeed from './DashboardActivityFeed';
 import DashboardDateFilter from './DashboardDateFilter';
+import ICalImportModal from './ICalImportModal';
 import type { DashboardPeriod } from './DashboardDateFilter';
 import type { StatItem } from './DashboardStatsCards';
 
@@ -80,6 +81,7 @@ const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const [period, setPeriod] = useState<DashboardPeriod>('month');
   const [tabValue, setTabValue] = useState(0);
+  const [icalModalOpen, setIcalModalOpen] = useState(false);
 
   // Permissions
   const canViewProperties = user?.permissions?.includes('properties:view') || false;
@@ -288,31 +290,30 @@ const Dashboard: React.FC = () => {
         showBackButton={false}
         actions={
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Tooltip title="Importer les réservations via un Channel Manager (Airbnb, Booking, etc.)" arrow>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<SyncIcon sx={{ fontSize: 16 }} />}
-                onClick={() => {/* TODO: ouvrir modal channel manager */}}
-                sx={{
-                  textTransform: 'none',
-                  fontSize: '0.75rem',
-                  py: 0.5,
-                  px: 1.5,
-                  borderColor: 'primary.main',
-                  color: 'primary.main',
-                  '&:hover': { borderColor: 'primary.dark', backgroundColor: 'primary.50' },
-                }}
-              >
-                Channel Manager
-              </Button>
+            <Tooltip title="Channel Manager — Ce service sera bientot disponible. Restez connecte !" arrow>
+              <span>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  disabled
+                  startIcon={<SyncIcon sx={{ fontSize: 16 }} />}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    py: 0.5,
+                    px: 1.5,
+                  }}
+                >
+                  Channel Manager
+                </Button>
+              </span>
             </Tooltip>
             <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
               <Button
                 variant="outlined"
                 size="small"
                 startIcon={<CalendarTodayIcon sx={{ fontSize: 16 }} />}
-                onClick={() => {/* TODO: ouvrir modal import iCal */}}
+                onClick={() => setIcalModalOpen(true)}
                 sx={{
                   textTransform: 'none',
                   fontSize: '0.75rem',
@@ -486,6 +487,12 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* ─── iCal Import Modal ──────────────────────────────────────────── */}
+      <ICalImportModal
+        open={icalModalOpen}
+        onClose={() => setIcalModalOpen(false)}
+      />
     </Box>
   );
 };

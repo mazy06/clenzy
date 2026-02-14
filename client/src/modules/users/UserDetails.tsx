@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -16,6 +16,17 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
+  Switch,
+  FormControlLabel,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Snackbar,
+  Collapse,
+  Tooltip,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -41,10 +52,16 @@ import {
   Sync,
   Checklist,
   RequestQuote,
+  Payment,
+  ExpandMore,
+  ExpandLess,
+  ContentCopy,
+  Warning,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { usersApi } from '../../services/api';
+import { usersApi, deferredPaymentsApi } from '../../services/api';
+import type { HostBalanceSummary } from '../../services/api';
 
 type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
@@ -74,6 +91,7 @@ interface UserDetailsData {
   calendarSync?: string;
   services?: string;
   servicesDevis?: string;
+  deferredPayment?: boolean;
 }
 
 const userRoles: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor }> = [
@@ -148,6 +166,7 @@ const UserDetails: React.FC = () => {
           calendarSync: (userData as any).calendarSync,
           services: (userData as any).services,
           servicesDevis: (userData as any).servicesDevis,
+          deferredPayment: (userData as any).deferredPayment,
         };
 
         setUser(convertedUser);
@@ -160,6 +179,67 @@ const UserDetails: React.FC = () => {
 
     loadUser();
   }, [id]);
+
+  // ─── Paiement differe : etat + handlers ──────────────────────────────────────
+  const [balance, setBalance] = useState<HostBalanceSummary | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [deferredToggling, setDeferredToggling] = useState(false);
+  const [paymentLinkLoading, setPaymentLinkLoading] = useState(false);
+  const [snackMessage, setSnackMessage] = useState('');
+  const [expandedProperty, setExpandedProperty] = useState<number | null>(null);
+
+  const isAdminOrManager = canManageUsers; // users:manage = ADMIN ou MANAGER
+
+  // Charger le solde impaye quand l'utilisateur est un HOST
+  const loadBalance = useCallback(async () => {
+    if (!user || user.role !== 'HOST') return;
+    setBalanceLoading(true);
+    try {
+      const data = await deferredPaymentsApi.getHostBalance(user.id);
+      setBalance(data);
+    } catch {
+      // Ignorer — le host n'a peut-etre aucune intervention
+      setBalance(null);
+    } finally {
+      setBalanceLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user && user.role === 'HOST' && isAdminOrManager) {
+      loadBalance();
+    }
+  }, [user, isAdminOrManager, loadBalance]);
+
+  const handleToggleDeferredPayment = async () => {
+    if (!user) return;
+    setDeferredToggling(true);
+    try {
+      const newValue = !user.deferredPayment;
+      await usersApi.update(user.id, { deferredPayment: newValue } as any);
+      setUser(prev => prev ? { ...prev, deferredPayment: newValue } : prev);
+      setSnackMessage(newValue ? 'Paiement differe active' : 'Paiement differe desactive');
+    } catch {
+      setSnackMessage('Erreur lors de la mise a jour');
+    } finally {
+      setDeferredToggling(false);
+    }
+  };
+
+  const handleSendPaymentLink = async () => {
+    if (!user) return;
+    setPaymentLinkLoading(true);
+    try {
+      const res = await deferredPaymentsApi.sendPaymentLink(user.id);
+      // Copier l'URL dans le presse-papier
+      await navigator.clipboard.writeText(res.sessionUrl);
+      setSnackMessage('Lien de paiement copie dans le presse-papier !');
+    } catch {
+      setSnackMessage('Erreur lors de la creation du lien de paiement');
+    } finally {
+      setPaymentLinkLoading(false);
+    }
+  };
 
   // Vérifier les permissions - accès uniquement aux utilisateurs avec la permission users:manage
   if (!canManageUsers) {
@@ -583,6 +663,149 @@ const UserDetails: React.FC = () => {
                     </Box>
                   </Grid>
                 )}
+
+                {/* ─── Toggle paiement differe (ADMIN/MANAGER uniquement) ─── */}
+                {isAdminOrManager && (
+                  <Grid item xs={12}>
+                    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 2, mb: 1 }}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={user.deferredPayment || false}
+                            onChange={handleToggleDeferredPayment}
+                            disabled={deferredToggling}
+                          />
+                        }
+                        label={
+                          <Box>
+                            <Typography variant="body2" fontWeight={500}>
+                              Paiement differe
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Les interventions auto (iCal / Channel Manager) demarrent sans attente de paiement.
+                              Le cumul impaye sera visible ci-dessous.
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                    </Box>
+                  </Grid>
+                )}
+
+                {/* ─── Carte cumul impayes ─── */}
+                {isAdminOrManager && (
+                  <Grid item xs={12}>
+                    <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Payment sx={{ fontSize: 20, color: 'text.secondary' }} />
+                          <Typography variant="body1" fontWeight={600}>
+                            Solde impaye
+                          </Typography>
+                        </Box>
+                        {balance && balance.totalUnpaid > 0 && (
+                          <Chip
+                            icon={<Warning sx={{ fontSize: 14 }} />}
+                            label={`${balance.totalUnpaid.toFixed(2)} EUR`}
+                            color="error"
+                            size="small"
+                            sx={{ fontWeight: 700 }}
+                          />
+                        )}
+                        {balance && balance.totalUnpaid === 0 && (
+                          <Chip label="Aucun impaye" color="success" size="small" variant="outlined" />
+                        )}
+                      </Box>
+
+                      {balanceLoading && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                          <CircularProgress size={24} />
+                        </Box>
+                      )}
+
+                      {!balanceLoading && balance && balance.properties.length > 0 && (
+                        <>
+                          <TableContainer>
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Propriete</TableCell>
+                                  <TableCell align="center" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Interventions</TableCell>
+                                  <TableCell align="right" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Montant</TableCell>
+                                  <TableCell align="center" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>Details</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {balance.properties.map((prop) => (
+                                  <React.Fragment key={prop.propertyId}>
+                                    <TableRow>
+                                      <TableCell sx={{ fontSize: '0.8rem' }}>{prop.propertyName}</TableCell>
+                                      <TableCell align="center" sx={{ fontSize: '0.8rem' }}>{prop.interventionCount}</TableCell>
+                                      <TableCell align="right" sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                                        {prop.unpaidAmount.toFixed(2)} EUR
+                                      </TableCell>
+                                      <TableCell align="center">
+                                        <IconButton
+                                          size="small"
+                                          onClick={() => setExpandedProperty(
+                                            expandedProperty === prop.propertyId ? null : prop.propertyId
+                                          )}
+                                        >
+                                          {expandedProperty === prop.propertyId ? <ExpandLess sx={{ fontSize: 18 }} /> : <ExpandMore sx={{ fontSize: 18 }} />}
+                                        </IconButton>
+                                      </TableCell>
+                                    </TableRow>
+                                    {expandedProperty === prop.propertyId && prop.interventions.map((iv) => (
+                                      <TableRow key={iv.id} sx={{ bgcolor: 'action.hover' }}>
+                                        <TableCell sx={{ fontSize: '0.75rem', pl: 4 }}>{iv.title}</TableCell>
+                                        <TableCell align="center" sx={{ fontSize: '0.75rem' }}>
+                                          {iv.scheduledDate ? new Date(iv.scheduledDate).toLocaleDateString('fr-FR') : '-'}
+                                        </TableCell>
+                                        <TableCell align="right" sx={{ fontSize: '0.75rem' }}>
+                                          {iv.estimatedCost.toFixed(2)} EUR
+                                        </TableCell>
+                                        <TableCell align="center">
+                                          <Chip
+                                            label={iv.paymentStatus || 'N/A'}
+                                            size="small"
+                                            color={iv.paymentStatus === 'PAID' ? 'success' : iv.paymentStatus === 'PROCESSING' ? 'info' : 'default'}
+                                            variant="outlined"
+                                            sx={{ height: 20, fontSize: '0.65rem' }}
+                                          />
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </React.Fragment>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.5 }}>
+                            <Tooltip title="Cree un lien Stripe et le copie dans le presse-papier">
+                              <Button
+                                variant="contained"
+                                size="small"
+                                startIcon={<ContentCopy sx={{ fontSize: 16 }} />}
+                                onClick={handleSendPaymentLink}
+                                disabled={paymentLinkLoading || balance.totalUnpaid === 0}
+                                sx={{ fontSize: '0.8rem' }}
+                              >
+                                {paymentLinkLoading ? 'Creation...' : 'Envoyer lien de paiement'}
+                              </Button>
+                            </Tooltip>
+                          </Box>
+                        </>
+                      )}
+
+                      {!balanceLoading && (!balance || balance.properties.length === 0) && (
+                        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 1 }}>
+                          Aucune intervention impayee pour ce proprietaire.
+                        </Typography>
+                      )}
+                    </Box>
+                  </Grid>
+                )}
               </>
             )}
 
@@ -671,6 +894,15 @@ const UserDetails: React.FC = () => {
           </Grid>
         </CardContent>
       </Card>
+
+      {/* Snackbar notifications */}
+      <Snackbar
+        open={!!snackMessage}
+        autoHideDuration={4000}
+        onClose={() => setSnackMessage('')}
+        message={snackMessage}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 };
