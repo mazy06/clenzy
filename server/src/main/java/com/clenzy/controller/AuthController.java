@@ -59,13 +59,18 @@ public class AuthController {
     @Operation(summary = "Authentification utilisateur via Keycloak")
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> credentials) {
         String username = credentials.get("username");
+        if (username == null || username.isBlank()) {
+            // Backward/forward compat: some clients send email instead of username
+            username = credentials.get("email");
+        }
+
         try {
             String password = credentials.get("password");
 
-            if (username == null || password == null) {
+            if (username == null || username.isBlank() || password == null || password.isBlank()) {
                 Map<String, Object> error = new HashMap<>();
                 error.put("error", "missing_credentials");
-                error.put("error_description", "Username and password are required");
+                error.put("error_description", "Username (or email) and password are required");
                 return ResponseEntity.badRequest().body(error);
             }
 
