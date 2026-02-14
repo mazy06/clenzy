@@ -46,21 +46,21 @@ public class PermissionInitializer {
     @Transactional
     public void initPermissions() {
         log.info("Verification des permissions requises au demarrage...");
-        boolean anyCreated = false;
+
+        // Toujours invalider le cache Redis au demarrage.
+        // Redis peut contenir des donnees obsoletes (ex: liste vide apres un crash DB)
+        // alors que le cache permissions a un TTL permanent (Duration.ZERO).
+        log.info("Invalidation du cache Redis des permissions au demarrage...");
+        permissionService.invalidateAllCache();
 
         // Permissions a creer automatiquement
-        anyCreated |= ensurePermission("tarification:view", "Voir la configuration tarifaire", "tarification",
+        ensurePermission("tarification:view", "Voir la configuration tarifaire", "tarification",
                 List.of("ADMIN", "MANAGER"));
-        anyCreated |= ensurePermission("tarification:edit", "Modifier la configuration tarifaire", "tarification",
+        ensurePermission("tarification:edit", "Modifier la configuration tarifaire", "tarification",
                 List.of("ADMIN", "MANAGER"));
 
-        anyCreated |= ensurePermission("payments:view", "Voir l'historique des paiements", "payments",
+        ensurePermission("payments:view", "Voir l'historique des paiements", "payments",
                 List.of("ADMIN", "MANAGER", "HOST"));
-
-        if (anyCreated) {
-            log.info("Nouvelles permissions creees, invalidation du cache Redis...");
-            permissionService.invalidateAllCache();
-        }
 
         log.info("Verification des permissions terminee.");
     }
