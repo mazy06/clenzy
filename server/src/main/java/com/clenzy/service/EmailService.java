@@ -6,6 +6,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -86,8 +87,18 @@ public class EmailService {
             "non", "Me faire recontacter"
     );
 
-    public EmailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
+    public EmailService(ObjectProvider<JavaMailSender> mailSenderProvider) {
+        this.mailSender = mailSenderProvider.getIfAvailable();
+        if (this.mailSender == null) {
+            log.warn("JavaMailSender non configure: l'envoi d'emails est desactive. Configurez spring.mail.host (ou spring.mail.jndi-name) pour l'activer.");
+        }
+    }
+
+    private JavaMailSender requireMailSender() {
+        if (mailSender == null) {
+            throw new IllegalStateException("Envoi d'email non configure (JavaMailSender absent). Definissez spring.mail.host (ou spring.mail.jndi-name). ");
+        }
+        return mailSender;
     }
 
     /**
@@ -95,7 +106,9 @@ public class EmailService {
      */
     public void sendQuoteRequestNotification(QuoteRequestDto dto, String recommendedPackage, int recommendedRate) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
+            JavaMailSender ms = requireMailSender();
+
+            MimeMessage message = ms.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setFrom(fromAddress);
@@ -103,11 +116,13 @@ public class EmailService {
             helper.setReplyTo(dto.getEmail());
             helper.setSubject("📋 Nouvelle demande de devis — " + dto.getFullName() + " — " + dto.getCity());
             helper.setText(buildHtmlBody(dto, recommendedPackage, recommendedRate), true);
-
-            mailSender.send(message);
+            ms.send(message);
             log.info("Email de notification devis envoyé pour : {} ({})", dto.getFullName(), dto.getEmail());
 
         } catch (MessagingException e) {
+            log.error("Erreur d'envoi email devis pour {} : {}", dto.getFullName(), e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi de l'email de notification", e);
+        } catch (Exception e) {
             log.error("Erreur d'envoi email devis pour {} : {}", dto.getFullName(), e.getMessage(), e);
             throw new RuntimeException("Erreur d'envoi de l'email de notification", e);
         }
@@ -275,7 +290,9 @@ public class EmailService {
      */
     public void sendMaintenanceNotification(MaintenanceRequestDto dto) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
+            JavaMailSender ms = requireMailSender();
+
+            MimeMessage message = ms.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setFrom(fromAddress);
@@ -287,11 +304,13 @@ public class EmailService {
                     + (dto.getCity() != null && !dto.getCity().isBlank() ? " — " + dto.getCity() : ""));
 
             helper.setText(buildMaintenanceHtmlBody(dto), true);
-
-            mailSender.send(message);
+            ms.send(message);
             log.info("Email de notification maintenance envoyé pour : {} ({})", dto.getFullName(), dto.getEmail());
 
         } catch (MessagingException e) {
+            log.error("Erreur d'envoi email maintenance pour {} : {}", dto.getFullName(), e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi de l'email de notification maintenance", e);
+        } catch (Exception e) {
             log.error("Erreur d'envoi email maintenance pour {} : {}", dto.getFullName(), e.getMessage(), e);
             throw new RuntimeException("Erreur d'envoi de l'email de notification maintenance", e);
         }
