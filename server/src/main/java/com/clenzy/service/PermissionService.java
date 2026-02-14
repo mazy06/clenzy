@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.Arrays;
 import com.clenzy.model.UserRole;
+import com.clenzy.model.NotificationKey;
 
 @Service
 public class PermissionService {
@@ -32,6 +33,9 @@ public class PermissionService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired(required = false)
+    private NotificationService notificationService;
     
     @Autowired
     private RolePermissionRepository rolePermissionRepository;
@@ -130,7 +134,20 @@ public class PermissionService {
         System.out.println("💾 PermissionService.updateRolePermissions() - Mise à jour des permissions pour le rôle: " + role);
         System.out.println("✅ PermissionService.updateRolePermissions() - Permissions sauvegardées et rechargées: " + savedRolePermissions.getPermissions().size() + " permissions");
         System.out.println("📋 Permissions retournées: " + String.join(", ", savedRolePermissions.getPermissions()));
-        
+
+        try {
+            if (notificationService != null) {
+                notificationService.notifyAdminsAndManagers(
+                    NotificationKey.PERMISSION_ROLE_UPDATED,
+                    "Permissions modifiees",
+                    "Les permissions du role " + role + " ont ete mises a jour (" + savedRolePermissions.getPermissions().size() + " permissions)",
+                    "/permissions"
+                );
+            }
+        } catch (Exception e) {
+            System.err.println("Erreur notification PERMISSION_ROLE_UPDATED: " + e.getMessage());
+        }
+
         return savedRolePermissions;
     }
 

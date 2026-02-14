@@ -46,6 +46,35 @@ public class QuoteController {
         this.pricingConfigService = pricingConfigService;
     }
 
+    /**
+     * Endpoint public pour exposer les prix configurables vers la landing page.
+     * Retourne les prix de base des forfaits, les coefficients et les prix PMS.
+     */
+    @GetMapping("/pricing-info")
+    public ResponseEntity<Map<String, Object>> getPricingInfo() {
+        var config = pricingConfigService.getCurrentConfig();
+        Map<String, Object> info = new java.util.LinkedHashMap<>();
+
+        // Prix de base par forfait (EUR)
+        info.put("basePriceEssentiel", config.getBasePriceEssentiel());
+        info.put("basePriceConfort", config.getBasePriceConfort());
+        info.put("basePricePremium", config.getBasePricePremium());
+        info.put("minPrice", config.getMinPrice());
+
+        // Prix PMS plateforme (centimes -> EUR pour la landing)
+        info.put("pmsMonthlyPriceCents", config.getPmsMonthlyPriceCents());
+        info.put("pmsSyncPriceCents", config.getPmsSyncPriceCents());
+
+        // Coefficients
+        info.put("propertyTypeCoeffs", config.getPropertyTypeCoeffs());
+        info.put("propertyCountCoeffs", config.getPropertyCountCoeffs());
+        info.put("guestCapacityCoeffs", config.getGuestCapacityCoeffs());
+        info.put("frequencyCoeffs", config.getFrequencyCoeffs());
+        info.put("surfaceTiers", config.getSurfaceTiers());
+
+        return ResponseEntity.ok(info);
+    }
+
     @PostMapping("/quote-request")
     public ResponseEntity<?> submitQuoteRequest(@RequestBody QuoteRequestDto dto, HttpServletRequest request) {
 

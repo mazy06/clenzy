@@ -8,6 +8,7 @@ import com.clenzy.model.UserRole;
 import com.clenzy.repository.TeamRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.ManagerTeamRepository;
+import com.clenzy.model.NotificationKey;
 import com.clenzy.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,11 +29,13 @@ public class TeamService {
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
     private final ManagerTeamRepository managerTeamRepository;
+    private final NotificationService notificationService;
 
-    public TeamService(TeamRepository teamRepository, UserRepository userRepository, ManagerTeamRepository managerTeamRepository) {
+    public TeamService(TeamRepository teamRepository, UserRepository userRepository, ManagerTeamRepository managerTeamRepository, NotificationService notificationService) {
         this.teamRepository = teamRepository;
         this.userRepository = userRepository;
         this.managerTeamRepository = managerTeamRepository;
+        this.notificationService = notificationService;
     }
 
     public TeamDto create(TeamDto dto, Jwt jwt) {
@@ -73,7 +76,20 @@ public class TeamService {
         }
 
         Team savedTeam = teamRepository.save(team);
-        return convertToDto(savedTeam);
+        TeamDto result = convertToDto(savedTeam);
+
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.TEAM_CREATED,
+                "Nouvelle equipe",
+                "Equipe \"" + savedTeam.getName() + "\" creee",
+                "/teams/" + savedTeam.getId()
+            );
+        } catch (Exception e) {
+            System.err.println("Erreur notification TEAM_CREATED: " + e.getMessage());
+        }
+
+        return result;
     }
 
     public TeamDto update(Long id, TeamDto dto) {
@@ -109,7 +125,20 @@ public class TeamService {
         }
 
         Team updatedTeam = teamRepository.save(team);
-        return convertToDto(updatedTeam);
+        TeamDto result = convertToDto(updatedTeam);
+
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.TEAM_UPDATED,
+                "Equipe mise a jour",
+                "Equipe \"" + updatedTeam.getName() + "\" modifiee",
+                "/teams/" + updatedTeam.getId()
+            );
+        } catch (Exception e) {
+            System.err.println("Erreur notification TEAM_UPDATED: " + e.getMessage());
+        }
+
+        return result;
     }
 
     @Transactional(readOnly = true)
@@ -236,6 +265,17 @@ public class TeamService {
             throw new NotFoundException("Équipe non trouvée avec l'ID: " + id);
         }
         teamRepository.deleteById(id);
+
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.TEAM_DELETED,
+                "Equipe supprimee",
+                "L'equipe #" + id + " a ete supprimee",
+                "/teams"
+            );
+        } catch (Exception e) {
+            System.err.println("Erreur notification TEAM_DELETED: " + e.getMessage());
+        }
     }
 
     private TeamDto convertToDto(Team team) {

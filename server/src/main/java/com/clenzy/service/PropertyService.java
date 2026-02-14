@@ -11,6 +11,7 @@ import com.clenzy.repository.PortfolioClientRepository;
 import com.clenzy.repository.PortfolioRepository;
 import com.clenzy.model.Portfolio;
 import com.clenzy.model.UserRole;
+import com.clenzy.model.NotificationKey;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
@@ -29,16 +30,19 @@ public class PropertyService {
     private final ManagerPropertyRepository managerPropertyRepository;
     private final PortfolioClientRepository portfolioClientRepository;
     private final PortfolioRepository portfolioRepository;
+    private final NotificationService notificationService;
 
-    public PropertyService(PropertyRepository propertyRepository, UserRepository userRepository, 
+    public PropertyService(PropertyRepository propertyRepository, UserRepository userRepository,
                           ManagerPropertyRepository managerPropertyRepository,
                           PortfolioClientRepository portfolioClientRepository,
-                          PortfolioRepository portfolioRepository) {
+                          PortfolioRepository portfolioRepository,
+                          NotificationService notificationService) {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.managerPropertyRepository = managerPropertyRepository;
         this.portfolioClientRepository = portfolioClientRepository;
         this.portfolioRepository = portfolioRepository;
+        this.notificationService = notificationService;
     }
 
     @CacheEvict(value = "properties", allEntries = true)
@@ -46,7 +50,20 @@ public class PropertyService {
         Property property = new Property();
         apply(dto, property);
         property = propertyRepository.save(property);
-        return toDto(property);
+        PropertyDto result = toDto(property);
+
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.PROPERTY_CREATED,
+                "Nouvelle propriete",
+                "Propriete \"" + property.getName() + "\" creee",
+                "/properties/" + property.getId()
+            );
+        } catch (Exception e) {
+            System.err.println("Erreur notification PROPERTY_CREATED: " + e.getMessage());
+        }
+
+        return result;
     }
 
     @CacheEvict(value = "properties", allEntries = true)
@@ -54,7 +71,23 @@ public class PropertyService {
         Property property = propertyRepository.findById(id).orElseThrow(() -> new NotFoundException("Property not found"));
         apply(dto, property);
         property = propertyRepository.save(property);
-        return toDto(property);
+        PropertyDto result = toDto(property);
+
+        try {
+            if (property.getOwner() != null && property.getOwner().getKeycloakId() != null) {
+                notificationService.notify(
+                    property.getOwner().getKeycloakId(),
+                    NotificationKey.PROPERTY_UPDATED,
+                    "Propriete mise a jour",
+                    "La propriete \"" + property.getName() + "\" a ete modifiee",
+                    "/properties/" + property.getId()
+                );
+            }
+        } catch (Exception e) {
+            System.err.println("Erreur notification PROPERTY_UPDATED: " + e.getMessage());
+        }
+
+        return result;
     }
 
     @Transactional(readOnly = true)
@@ -114,6 +147,17 @@ public class PropertyService {
     public void delete(Long id) {
         if (!propertyRepository.existsById(id)) throw new NotFoundException("Property not found");
         propertyRepository.deleteById(id);
+
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.PROPERTY_DELETED,
+                "Propriete supprimee",
+                "La propriete #" + id + " a ete supprimee",
+                "/properties"
+            );
+        } catch (Exception e) {
+            System.err.println("Erreur notification PROPERTY_DELETED: " + e.getMessage());
+        }
     }
 
     private void apply(PropertyDto dto, Property property) {

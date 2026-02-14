@@ -147,7 +147,10 @@ stripe:
   publishable-key: ${STRIPE_PUBLISHABLE_KEY:pk_test_your_publishable_key_here}
   webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_your_webhook_secret_here}
   currency: eur
-  success-url: ${FRONTEND_URL:http://localhost:3001}/interventions/payment/success?session_id={CHECKOUT_SESSION_ID}
-  cancel-url: ${FRONTEND_URL:http://localhost:3001}/interventions/payment/cancel
+  success-url: ${FRONTEND_URL:http://localhost:3000}/interventions/payment/success?session_id={CHECKOUT_SESSION_ID}
+  cancel-url: ${FRONTEND_URL:http://localhost:3000}/interventions/payment/cancel
+  inscription:
+    success-url: ${FRONTEND_URL:http://localhost:3000}/login?inscription=success
+    cancel-url: ${FRONTEND_URL:http://localhost:3000}/inscription?payment=cancelled
 
 
