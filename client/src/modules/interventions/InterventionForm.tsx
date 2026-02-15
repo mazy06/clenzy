@@ -92,11 +92,9 @@ interface InterventionFormProps {
   onSuccess?: () => void;
   setLoading?: (loading: boolean) => void;
   loading?: boolean;
-  interventionId?: number;
-  mode?: 'create' | 'edit';
 }
 
-const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess, setLoading, loading, interventionId, mode = 'create' }) => {
+const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess, setLoading, loading }) => {
   const { user, hasPermissionAsync, isAdmin, isManager, isHost } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
