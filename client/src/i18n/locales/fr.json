@@ -41,8 +41,6 @@
     "users": "Utilisateurs",
     "settings": "Paramètres",
     "rolesPermissions": "Roles & Permissions",
-    "tarification": "Tarification",
-    "payments": "Paiements",
     "monitoring": "Monitoring",
     "myProfile": "Mon profil",
     "logout": "Déconnexion",
@@ -138,66 +136,7 @@
     "interventionsAwaitingValidation": "interventions en attente de validation",
     "interventionsPendingPayment": "Interventions en attente de paiement",
     "interventionsAwaitingPayment": "interventions en attente de paiement",
-    "viewAll": "Voir tout",
-    "charts": {
-      "interventionTrend": "Tendance des interventions",
-      "statusDistribution": "Répartition par statut",
-      "revenueOverview": "Aperçu des revenus",
-      "total": "Total",
-      "completed": "Terminées",
-      "pending": "En attente",
-      "revenue": "Revenus",
-      "expenses": "Dépenses",
-      "noData": "Aucune donnée disponible"
-    },
-    "dateFilter": {
-      "week": "7j",
-      "month": "30j",
-      "quarter": "90j",
-      "year": "1 an"
-    },
-    "activityFeed": {
-      "title": "Activité récente",
-      "viewAll": "Voir tout",
-      "noActivity": "Aucune activité récente"
-    },
-    "tabs": {
-      "planning": "Planning",
-      "overview": "Vue d'ensemble",
-      "activity": "Activité",
-      "operations": "Opérations"
-    },
-    "planning": {
-      "today": "Aujourd'hui",
-      "week": "Semaine",
-      "month": "Mois",
-      "status": "Statut",
-      "property": "Logement",
-      "noProperties": "Aucun logement à afficher",
-      "noPropertiesHint": "Les logements apparaîtront ici une fois qu'ils seront créés et assignés.",
-      "reservations": "réservation(s)",
-      "properties": "logement(s)",
-      "guest": "Voyageur",
-      "nights": "nuit(s)",
-      "checkIn": "Arrivée",
-      "checkOut": "Départ",
-      "confirmed": "Confirmée",
-      "pending": "En attente",
-      "cancelled": "Annulée",
-      "checkedIn": "Check-in",
-      "checkedOut": "Check-out",
-      "interventions": "Interventions",
-      "interventionType": "Type",
-      "interventionCount": "intervention(s)",
-      "legendReservations": "Réservations :",
-      "legendInterventions": "Interventions :",
-      "cleaning": "Ménage",
-      "maintenance": "Maintenance",
-      "scheduled": "Planifiée",
-      "inProgress": "En cours",
-      "completed": "Terminée"
-    },
-    "noOperationsPermissions": "Vous n'avez pas les permissions nécessaires pour voir les opérations."
+    "viewAll": "Voir tout"
   },
   "properties": {
     "title": "Propriétés",
@@ -606,30 +545,6 @@
       "supervisor": "Superviseur",
       "manager": "Manager"
     },
-    "workload": {
-      "title": "Charge de travail",
-      "active": "Interventions actives",
-      "completedThisMonth": "Terminées ce mois",
-      "pending": "En attente",
-      "capacity": "Capacité",
-      "available": "Disponible",
-      "busy": "Occupé",
-      "overloaded": "Surchargé"
-    },
-    "performance": {
-      "title": "Performance de l'équipe",
-      "totalCompleted": "Total terminées",
-      "averagePerMonth": "Moyenne / mois",
-      "completionRate": "Taux de complétion",
-      "monthlyTrend": "Tendance mensuelle"
-    },
-    "members": {
-      "title": "Membres de l'équipe",
-      "interventionCount": "interventions",
-      "noMembers": "Aucun membre dans cette équipe",
-      "sortByName": "Trier par nom",
-      "sortByRole": "Trier par rôle"
-    },
     "errors": {
       "nameRequired": "Le nom de l'équipe est obligatoire",
       "interventionTypeRequired": "Le type d'intervention est obligatoire",
@@ -846,23 +761,7 @@
     "ariaLabel": {
       "newMessage": "nouveau message"
     },
-    "noMessagesFound": "Aucun message trouvé",
-    "archived": "Messages archivés",
-    "archive": "Archiver",
-    "unarchive": "Désarchiver",
-    "bulkActions": "Actions groupées",
-    "selected": "sélectionné(s)",
-    "selectAll": "Tout sélectionner",
-    "deselectAll": "Tout désélectionner",
-    "bulkMarkAsRead": "Marquer comme lu",
-    "bulkDelete": "Supprimer la sélection",
-    "templates": "Modèles",
-    "useTemplate": "Utiliser ce modèle",
-    "thread": "Conversation",
-    "replyPlaceholder": "Écrire une réponse...",
-    "noMessages": "Aucun message",
-    "noMessagesDesc": "Votre boîte de réception est vide",
-    "message": "Message"
+    "noMessagesFound": "Aucun message trouvé"
   },
   "users": {
     "title": "Utilisateurs",
@@ -877,16 +776,7 @@
   },
   "settings": {
     "title": "Paramètres",
-    "subtitle": "Configuration de l'application",
-    "themeMode": {
-      "light": "Clair",
-      "dark": "Sombre",
-      "auto": "Automatique"
-    }
-  },
-  "offline": {
-    "banner": "Vous êtes hors ligne. Certaines fonctionnalités peuvent ne pas être disponibles.",
-    "backOnline": "Connexion rétablie"
+    "subtitle": "Configuration de l'application"
   },
   "permissions": {
     "title": "Gestion des permissions",
@@ -1028,147 +918,6 @@
         "title": "Rapport des Coûts par Propriété",
         "description": "Coûts et dépenses par propriété"
       }
-    },
-    "charts": {
-      "interventionsByStatus": "Interventions par statut",
-      "interventionsByType": "Interventions par type",
-      "interventionsByMonth": "Interventions par mois",
-      "interventionsByPriority": "Interventions par priorité",
-      "teamPerformance": "Performance des équipes",
-      "interventionsPerProperty": "Interventions par propriété (Top 10)",
-      "revenueByMonth": "Revenus par mois",
-      "costBreakdown": "Répartition des coûts",
-      "total": "Total",
-      "completed": "Terminées",
-      "pending": "En attente",
-      "inProgress": "En cours",
-      "cancelled": "Annulées",
-      "interventions": "Interventions",
-      "cost": "Coût",
-      "revenue": "Revenus",
-      "expenses": "Dépenses",
-      "profit": "Bénéfice",
-      "noData": "Aucune donnée disponible",
-      "noDataDescription": "Il n'y a pas encore de données pour générer ce rapport.",
-      "loadingData": "Chargement des données...",
-      "errorLoading": "Erreur lors du chargement des données"
-    }
-  },
-  "export": {
-    "button": "Exporter",
-    "csv": "Exporter en CSV",
-    "pdf": "Exporter en PDF",
-    "success": "Export réussi",
-    "noData": "Aucune donnée à exporter",
-    "fileName": "export"
-  },
-  "payments": {
-    "history": {
-      "title": "Historique des paiements",
-      "subtitle": "Consultez l'historique de vos transactions",
-      "totalPaid": "Total payé",
-      "totalPending": "En attente",
-      "totalRefunded": "Remboursé",
-      "transactions": "Transactions",
-      "search": "Rechercher...",
-      "allStatuses": "Tous les statuts",
-      "paid": "Payé",
-      "pending": "En attente",
-      "failed": "Échoué",
-      "refunded": "Remboursé",
-      "date": "Date",
-      "intervention": "Intervention",
-      "property": "Propriété",
-      "amount": "Montant",
-      "status": "Statut",
-      "actions": "Actions",
-      "noPayments": "Aucun paiement trouvé",
-      "noPaymentsDesc": "Vous n'avez pas encore de paiements enregistrés",
-      "viewIntervention": "Voir l'intervention",
-      "downloadInvoice": "Télécharger la facture",
-      "dateFrom": "Date début",
-      "dateTo": "Date fin",
-      "clearFilters": "Effacer les filtres",
-      "hostColumn": "Client",
-      "filterByHost": "Filtrer par client",
-      "allHosts": "Tous les clients",
-      "totalDue": "Total dû",
-      "processing": "En traitement",
-      "cancelled": "Annulé"
-    }
-  },
-  "tarification": {
-    "title": "Configuration tarifaire",
-    "subtitle": "Gérez les coefficients de pondération, les prix de base et les abonnements",
-    "save": "Sauvegarder",
-    "reset": "Réinitialiser les défauts",
-    "saveSuccess": "Configuration tarifaire sauvegardée avec succès",
-    "saveError": "Erreur lors de la sauvegarde de la configuration",
-    "loadError": "Erreur lors du chargement de la configuration tarifaire",
-    "resetConfirm": "Rétablir toutes les valeurs par défaut ?",
-    "readOnly": "Vous avez un accès en lecture seule",
-    "basePrices": {
-      "title": "Prix de base des forfaits",
-      "subtitle": "Tarif de départ par intervention pour chaque forfait",
-      "essentiel": "Essentiel",
-      "confort": "Confort",
-      "premium": "Premium",
-      "minPrice": "Prix plancher",
-      "minPriceHelp": "Aucune intervention ne descendra en dessous de ce montant"
-    },
-    "propertyType": {
-      "title": "Coefficients type de logement",
-      "subtitle": "Pondération selon le type de bien (villa, appartement, etc.)",
-      "studio": "Studio",
-      "appartement": "Appartement",
-      "maison": "Maison",
-      "duplex": "Duplex",
-      "villa": "Villa",
-      "autre": "Autre"
-    },
-    "propertyCount": {
-      "title": "Coefficients nombre de logements",
-      "subtitle": "Remise volume pour les propriétaires multi-logements",
-      "1": "1 logement",
-      "2": "2 logements",
-      "3-5": "3 à 5 logements",
-      "6+": "6+ logements"
-    },
-    "guestCapacity": {
-      "title": "Coefficients capacité voyageurs",
-      "subtitle": "Pondération selon le nombre de voyageurs accueillis",
-      "1-2": "1-2 voyageurs",
-      "3-4": "3-4 voyageurs",
-      "5-6": "5-6 voyageurs",
-      "7+": "7+ voyageurs"
-    },
-    "frequency": {
-      "title": "Coefficients fréquence",
-      "subtitle": "Remise selon la fréquence de réservation",
-      "tres-frequent": "Très fréquent",
-      "regulier": "Régulier",
-      "nouvelle-annonce": "Nouvelle annonce",
-      "occasionnel": "Occasionnel"
-    },
-    "surface": {
-      "title": "Paliers surface",
-      "subtitle": "Pondération selon la superficie du logement"
-    },
-    "pms": {
-      "title": "Abonnement PMS",
-      "subtitle": "Tarifs mensuels de l'abonnement à la plateforme",
-      "monthly": "Abonnement mensuel",
-      "sync": "Abonnement avec synchro auto",
-      "monthlyHelp": "Prix en euros par mois",
-      "syncHelp": "Inclut la synchronisation automatique des calendriers"
-    },
-    "automation": {
-      "title": "Surcharges automatisation",
-      "subtitle": "Coûts supplémentaires pour les options d'automatisation",
-      "basic": "Automatisation basique",
-      "full": "Automatisation complète",
-      "basicHelp": "Notifications et rappels automatiques",
-      "fullHelp": "Gestion complète automatisée (check-in/out, facturation, etc.)"
     }
   }
 }

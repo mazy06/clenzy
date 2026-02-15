@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -20,218 +20,185 @@ import {
   Alert,
   Button,
   Dialog,
+  DialogTitle,
   DialogContent,
+  DialogActions,
   TextField,
   FormControl,
+  InputLabel,
   Select,
   Grid,
-  Checkbox,
-  Toolbar,
-  Tooltip
+  Divider
 } from '@mui/material';
 import {
   MoreVert as MoreVertIcon,
   Visibility as VisibilityIcon,
   Reply as ReplyIcon,
   Delete as DeleteIcon,
+  MarkAsUnread as MarkAsUnreadIcon,
   MarkAsUnread as MarkAsReadIcon,
+  FilterList as FilterIcon,
   Search as SearchIcon,
-  Refresh as RefreshIcon,
-  Archive as ArchiveIcon,
-  Unarchive as UnarchiveIcon
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
-import { contactApi } from '../../services/api';
+import { API_CONFIG } from '../../config/api';
 import { useTranslation } from '../../hooks/useTranslation';
-import ContactMessageThread from './ContactMessageThread';
-import type { ContactMessageItem } from './ContactMessageThread';
 
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
-
-interface ContactMessagesProps {
-  type: 'sent' | 'received' | 'archived';
-  onUnreadCountChange?: (count: number) => void;
+interface ContactMessage {
+  id: string;
+  subject: string;
+  message: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  category: 'GENERAL' | 'TECHNICAL' | 'MAINTENANCE' | 'CLEANING' | 'EMERGENCY';
+  status: 'SENT' | 'DELIVERED' | 'READ' | 'REPLIED';
+  sender: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  recipient: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  createdAt: string;
+  readAt?: string;
+  repliedAt?: string;
+  attachments: Array<{
+    id: string;
+    filename: string;
+    originalName: string;
+    size: number;
+    contentType: string;
+  }>;
 }
 
-const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountChange }) => {
+interface ContactMessagesProps {
+  type: 'sent' | 'received';
+}
+
+const ContactMessages: React.FC<ContactMessagesProps> = ({ type }) => {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const [messages, setMessages] = useState<ContactMessageItem[]>([]);
+  const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [pageSize] = useState(10);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedMessage, setSelectedMessage] = useState<ContactMessageItem | null>(null);
-  const [threadDialogOpen, setThreadDialogOpen] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
-  const [replyLoading, setReplyLoading] = useState(false);
 
-  // Bulk selection state
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  const loadMessages = useCallback(async () => {
+  const loadMessages = async () => {
     try {
       setLoading(true);
       setError(null);
+      
+      const endpoint = type === 'sent' ? 'sent' : 'received';
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/api/contact/messages/${endpoint}?page=${page - 1}&size=${pageSize}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
-      let endpoint: 'inbox' | 'sent' | 'archived';
-      if (type === 'archived') {
-        endpoint = 'archived';
-      } else if (type === 'sent') {
-        endpoint = 'sent';
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(data.content || []);
+        setTotalPages(data.totalPages || 0);
       } else {
-        endpoint = 'inbox';
+        setError('Erreur lors du chargement des messages');
       }
-
-      const data = await contactApi.getMessages(endpoint, { page: page - 1, size: pageSize });
-      const paginatedData = data as any;
-      const content: ContactMessageItem[] = paginatedData.content || [];
-      setMessages(content);
-      setTotalPages(paginatedData.totalPages || 0);
-
-      // Compute unread count for received messages
-      if (type === 'received' && onUnreadCountChange) {
-        const unreadCount = content.filter((m: ContactMessageItem) => m.status !== 'READ' && m.status !== 'REPLIED').length;
-        onUnreadCountChange(unreadCount);
-      }
-    } catch (_err) {
-      setError(t('contact.errors.connectionError'));
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement des messages:', error);
+      setError('Erreur de connexion');
     } finally {
       setLoading(false);
     }
-  }, [page, type, pageSize, onUnreadCountChange, t]);
+  };
 
   useEffect(() => {
     loadMessages();
-    setSelectedIds(new Set());
-  }, [loadMessages]);
+  }, [page, type]);
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, message: ContactMessageItem) => {
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, message: ContactMessage) => {
     setAnchorEl(event.currentTarget);
     setSelectedMessage(message);
   };
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+    setSelectedMessage(null);
   };
 
   const handleViewMessage = () => {
-    setThreadDialogOpen(true);
-    setAnchorEl(null);
+    setViewDialogOpen(true);
+    handleMenuClose();
   };
 
   const handleMarkAsRead = async () => {
     if (!selectedMessage) return;
+
     try {
-      await contactApi.updateStatus(Number(selectedMessage.id), 'READ');
-      loadMessages();
-    } catch (_err) {
-      // silent
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/api/contact/messages/${selectedMessage.id}/status?status=READ`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        loadMessages();
+        setViewDialogOpen(false);
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors de la mise à jour du statut:', error);
     }
-    setAnchorEl(null);
   };
 
   const handleReply = () => {
-    // Open thread view for inline reply
-    setThreadDialogOpen(true);
-    setAnchorEl(null);
-  };
-
-  const handleThreadReply = async (messageText: string, attachments?: File[]) => {
-    if (!selectedMessage) return;
-    try {
-      setReplyLoading(true);
-      await contactApi.reply(Number(selectedMessage.id), { message: messageText, attachments });
-      loadMessages();
-      setThreadDialogOpen(false);
-      setSelectedMessage(null);
-    } catch (_err) {
-      // silent
-    } finally {
-      setReplyLoading(false);
-    }
+    // Rediriger vers le formulaire de contact avec le destinataire pré-rempli
+    const recipientId = type === 'sent' ? selectedMessage?.recipient.id : selectedMessage?.sender.id;
+    window.location.href = `/contact/create?recipient=${recipientId}&subject=Re: ${selectedMessage?.subject}`;
   };
 
   const handleDelete = async () => {
     if (!selectedMessage) return;
-    try {
-      await contactApi.delete(Number(selectedMessage.id));
-      loadMessages();
-    } catch (_err) {
-      // silent
-    }
-    setAnchorEl(null);
-  };
 
-  const handleArchive = async () => {
-    if (!selectedMessage) return;
     try {
-      await contactApi.archive(Number(selectedMessage.id));
-      loadMessages();
-    } catch (_err) {
-      // silent
-    }
-    setAnchorEl(null);
-  };
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/api/contact/messages/${selectedMessage.id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`
+          }
+        }
+      );
 
-  const handleUnarchive = async () => {
-    if (!selectedMessage) return;
-    try {
-      await contactApi.unarchive(Number(selectedMessage.id));
-      loadMessages();
-    } catch (_err) {
-      // silent
-    }
-    setAnchorEl(null);
-  };
-
-  // Bulk actions
-  const handleToggleSelect = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
+      if (response.ok) {
+        loadMessages();
+        setViewDialogOpen(false);
       }
-      return next;
-    });
-  };
-
-  const handleSelectAll = () => {
-    if (selectedIds.size === filteredMessages.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredMessages.map(m => m.id)));
+    } catch (error) {
+      console.error('❌ Erreur lors de la suppression:', error);
     }
   };
 
-  const handleBulkMarkAsRead = async () => {
-    if (selectedIds.size === 0) return;
-    try {
-      await contactApi.bulkUpdateStatus(Array.from(selectedIds).map(Number), 'READ');
-      setSelectedIds(new Set());
-      loadMessages();
-    } catch (_err) {
-      // silent
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedIds.size === 0) return;
-    try {
-      await contactApi.bulkDelete(Array.from(selectedIds).map(Number));
-      setSelectedIds(new Set());
-      loadMessages();
-    } catch (_err) {
-      // silent
-    }
-  };
-
-  const getPriorityColor = (priority: string): ChipColor => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'LOW': return 'success';
       case 'MEDIUM': return 'info';
@@ -241,7 +208,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
     }
   };
 
-  const getStatusColor = (status: string): ChipColor => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'SENT': return 'info';
       case 'DELIVERED': return 'primary';
@@ -258,14 +225,6 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
       case 'READ': return t('contact.statuses.read');
       case 'REPLIED': return t('contact.statuses.replied');
       default: return status;
-    }
-  };
-
-  const getTitle = () => {
-    switch (type) {
-      case 'sent': return t('contact.messagesSent');
-      case 'archived': return t('contact.archived');
-      default: return t('contact.messagesReceived');
     }
   };
 
@@ -290,7 +249,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
         <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, p: 2, height: '100%' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexShrink: 0 }}>
             <Typography variant="h6">
-              {getTitle()}
+              {type === 'sent' ? t('contact.messagesSent') : t('contact.messagesReceived')}
             </Typography>
             <Button
               variant="outlined"
@@ -308,46 +267,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
             </Alert>
           )}
 
-          {/* Bulk actions toolbar */}
-          {selectedIds.size > 0 && (
-            <Toolbar
-              variant="dense"
-              sx={{
-                mb: 1,
-                flexShrink: 0,
-                bgcolor: 'primary.light',
-                borderRadius: 1,
-                color: 'primary.contrastText',
-                minHeight: 40,
-                gap: 1
-              }}
-            >
-              <Typography variant="body2" sx={{ flex: 1, fontWeight: 'medium' }}>
-                {selectedIds.size} {t('contact.selected')}
-              </Typography>
-              {type === 'received' && (
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="inherit"
-                  onClick={handleBulkMarkAsRead}
-                  sx={{ color: 'primary.main', bgcolor: 'white', '&:hover': { bgcolor: 'grey.100' } }}
-                >
-                  {t('contact.bulkMarkAsRead')}
-                </Button>
-              )}
-              <Button
-                size="small"
-                variant="contained"
-                color="error"
-                onClick={handleBulkDelete}
-              >
-                {t('contact.bulkDelete')}
-              </Button>
-            </Toolbar>
-          )}
-
-          {/* Filters */}
+          {/* Filtres */}
           <Grid container spacing={2} sx={{ mb: 2, alignItems: 'center', flexShrink: 0 }}>
             <Grid item xs={12} sm={8}>
               <TextField
@@ -366,100 +286,71 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                 <Typography variant="body2" sx={{ minWidth: '60px', color: 'text.secondary' }}>
                   {t('contact.statusLabel')}
                 </Typography>
-                <FormControl fullWidth size="small">
-                  <Select
-                    fullWidth
-                    size="small"
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    sx={{ flexGrow: 1 }}
-                  >
-                    <MenuItem value="ALL">{t('contact.allStatuses')}</MenuItem>
-                    <MenuItem value="SENT">{t('contact.statuses.sent')}</MenuItem>
-                    <MenuItem value="DELIVERED">{t('contact.statuses.delivered')}</MenuItem>
-                    <MenuItem value="READ">{t('contact.statuses.read')}</MenuItem>
-                    <MenuItem value="REPLIED">{t('contact.statuses.replied')}</MenuItem>
-                  </Select>
-                </FormControl>
+                <Select
+                  fullWidth
+                  size="small"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  sx={{ flexGrow: 1 }}
+                >
+                  <MenuItem value="ALL">{t('contact.allStatuses')}</MenuItem>
+                  <MenuItem value="SENT">{t('contact.statuses.sent')}</MenuItem>
+                  <MenuItem value="DELIVERED">{t('contact.statuses.delivered')}</MenuItem>
+                  <MenuItem value="READ">{t('contact.statuses.read')}</MenuItem>
+                  <MenuItem value="REPLIED">{t('contact.statuses.replied')}</MenuItem>
+                </Select>
               </Box>
             </Grid>
           </Grid>
 
-          {filteredMessages.length === 0 ? (
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 6 }}>
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                {t('contact.noMessages')}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {t('contact.noMessagesDesc')}
-              </Typography>
-            </Box>
-          ) : (
-            <TableContainer
-              component={Paper}
-              sx={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: 0,
-                overflow: 'auto'
-              }}
-            >
-              <Table stickyHeader>
-                <TableHead>
+          <TableContainer 
+            component={Paper} 
+            sx={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column',
+              minHeight: 0,
+              overflow: 'auto'
+            }}
+          >
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell>{t('contact.subject')}</TableCell>
+                  <TableCell>{type === 'sent' ? t('contact.recipient') : t('contact.sender')}</TableCell>
+                  <TableCell>{t('contact.priority')}</TableCell>
+                  <TableCell>{t('contact.category')}</TableCell>
+                  <TableCell>{t('contact.status')}</TableCell>
+                  <TableCell>{t('contact.date')}</TableCell>
+                  <TableCell>{t('contact.actions')}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredMessages.length === 0 ? (
                   <TableRow>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        indeterminate={selectedIds.size > 0 && selectedIds.size < filteredMessages.length}
-                        checked={filteredMessages.length > 0 && selectedIds.size === filteredMessages.length}
-                        onChange={handleSelectAll}
-                        size="small"
-                      />
+                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        {t('contact.noMessagesFound')}
+                      </Typography>
                     </TableCell>
-                    <TableCell>{t('contact.subject')}</TableCell>
-                    <TableCell>{type === 'sent' ? t('contact.recipient') : t('contact.sender')}</TableCell>
-                    <TableCell>{t('contact.priority')}</TableCell>
-                    <TableCell>{t('contact.category')}</TableCell>
-                    <TableCell>{t('contact.status')}</TableCell>
-                    <TableCell>{t('contact.date')}</TableCell>
-                    <TableCell>{t('contact.actions')}</TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredMessages.map((message) => (
-                    <TableRow
-                      key={message.id}
-                      hover
-                      selected={selectedIds.has(message.id)}
-                      sx={{
-                        fontWeight: type === 'received' && message.status !== 'READ' && message.status !== 'REPLIED' ? 'bold' : 'normal',
-                        bgcolor: type === 'received' && message.status !== 'READ' && message.status !== 'REPLIED' ? 'action.hover' : 'inherit'
-                      }}
-                    >
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={selectedIds.has(message.id)}
-                          onChange={() => handleToggleSelect(message.id)}
-                          size="small"
-                        />
-                      </TableCell>
+                ) : (
+                  filteredMessages.map((message) => (
+                    <TableRow key={message.id} hover>
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          fontWeight={type === 'received' && message.status !== 'READ' && message.status !== 'REPLIED' ? 'bold' : 'medium'}
-                        >
+                        <Typography variant="body2" fontWeight="medium">
                           {message.subject}
                         </Typography>
-                        {message.attachments && message.attachments.length > 0 && (
+                        {message.attachments.length > 0 && (
                           <Typography variant="caption" color="text.secondary">
-                            {message.attachments.length} {t('contact.attachmentCount')}
+                            📎 {message.attachments.length} {t('contact.attachmentCount')}
                           </Typography>
                         )}
                       </TableCell>
                       <TableCell>
                         <Box>
                           <Typography variant="body2">
-                            {type === 'sent'
+                            {type === 'sent' 
                               ? `${message.recipient.firstName} ${message.recipient.lastName}`
                               : `${message.sender.firstName} ${message.sender.lastName}`
                             }
@@ -473,7 +364,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                         <Chip
                           label={message.priority}
                           size="small"
-                          color={getPriorityColor(message.priority)}
+                          color={getPriorityColor(message.priority) as any}
                         />
                       </TableCell>
                       <TableCell>
@@ -487,7 +378,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                         <Chip
                           label={getStatusLabel(message.status)}
                           size="small"
-                          color={getStatusColor(message.status)}
+                          color={getStatusColor(message.status) as any}
                         />
                       </TableCell>
                       <TableCell>
@@ -507,11 +398,11 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                         </IconButton>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
           {totalPages > 1 && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, flexShrink: 0 }}>
@@ -526,7 +417,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
         </CardContent>
       </Card>
 
-      {/* Context menu */}
+      {/* Menu contextuel */}
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
@@ -546,50 +437,100 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
             {t('contact.markAsRead')}
           </MenuItem>
         )}
-        {type !== 'archived' && (
-          <MenuItem onClick={handleArchive}>
-            <ArchiveIcon sx={{ mr: 1 }} />
-            {t('contact.archive')}
-          </MenuItem>
-        )}
-        {type === 'archived' && (
-          <MenuItem onClick={handleUnarchive}>
-            <UnarchiveIcon sx={{ mr: 1 }} />
-            {t('contact.unarchive')}
-          </MenuItem>
-        )}
         <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
           <DeleteIcon sx={{ mr: 1 }} />
           {t('contact.delete')}
         </MenuItem>
       </Menu>
 
-      {/* Thread dialog - replaces the old view dialog */}
+      {/* Dialog de visualisation */}
       <Dialog
-        open={threadDialogOpen}
-        onClose={() => {
-          setThreadDialogOpen(false);
-          setSelectedMessage(null);
-        }}
+        open={viewDialogOpen}
+        onClose={() => setViewDialogOpen(false)}
         maxWidth="md"
         fullWidth
-        PaperProps={{
-          sx: { height: '70vh', display: 'flex', flexDirection: 'column' }
-        }}
       >
-        <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <DialogTitle>
+          {selectedMessage?.subject}
+        </DialogTitle>
+        <DialogContent>
           {selectedMessage && (
-            <ContactMessageThread
-              message={selectedMessage}
-              onReply={handleThreadReply}
-              onClose={() => {
-                setThreadDialogOpen(false);
-                setSelectedMessage(null);
-              }}
-              loading={replyLoading}
-            />
+            <Box>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    {type === 'sent' ? t('contact.recipient') : t('contact.sender')}
+                  </Typography>
+                  <Typography variant="body2">
+                    {type === 'sent' 
+                      ? `${selectedMessage.recipient.firstName} ${selectedMessage.recipient.lastName}`
+                      : `${selectedMessage.sender.firstName} ${selectedMessage.sender.lastName}`
+                    }
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {type === 'sent' ? selectedMessage.recipient.email : selectedMessage.sender.email}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    {t('contact.sendDate')}
+                  </Typography>
+                  <Typography variant="body2">
+                    {new Date(selectedMessage.createdAt).toLocaleString()}
+                  </Typography>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <Chip
+                  label={selectedMessage.priority}
+                  size="small"
+                  color={getPriorityColor(selectedMessage.priority) as any}
+                />
+                <Chip
+                  label={selectedMessage.category}
+                  size="small"
+                  variant="outlined"
+                />
+                <Chip
+                  label={getStatusLabel(selectedMessage.status)}
+                  size="small"
+                  color={getStatusColor(selectedMessage.status) as any}
+                />
+              </Box>
+
+              <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                {selectedMessage.message}
+              </Typography>
+
+              {selectedMessage.attachments.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    {t('contact.attachmentsLabel')}
+                  </Typography>
+                  {selectedMessage.attachments.map((attachment, index) => (
+                    <Chip
+                      key={index}
+                      label={attachment.originalName}
+                      size="small"
+                      sx={{ mr: 1, mb: 1 }}
+                    />
+                  ))}
+                </Box>
+              )}
+            </Box>
           )}
         </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewDialogOpen(false)}>
+            {t('contact.close')}
+          </Button>
+          <Button onClick={handleReply} variant="contained">
+            {t('contact.reply')}
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

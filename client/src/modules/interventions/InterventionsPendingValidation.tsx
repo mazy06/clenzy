@@ -31,8 +31,7 @@ import {
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
-import { interventionsApi } from '../../services/api';
-import apiClient from '../../services/apiClient';
+import { API_CONFIG } from '../../config/api';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
@@ -78,10 +77,22 @@ const InterventionsPendingValidation: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
+      
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/interventions?status=AWAITING_VALIDATION`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-      const data = await interventionsApi.getAll({ status: 'AWAITING_VALIDATION' } as any);
-      setInterventions((data as any).content || data);
+      if (response.ok) {
+        const data = await response.json();
+        setInterventions(data.content || data);
+      } else {
+        setError('Erreur lors du chargement des interventions');
+      }
     } catch (err) {
+      console.error('Erreur chargement interventions:', err);
       setError('Erreur de connexion');
     } finally {
       setLoading(false);
@@ -115,14 +126,27 @@ const InterventionsPendingValidation: React.FC = () => {
       setValidating(true);
       setValidationError(null);
 
-      await apiClient.post(`/interventions/${selectedIntervention.id}/validate`, {
-        estimatedCost: cost
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/interventions/${selectedIntervention.id}/validate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          estimatedCost: cost
+        })
       });
 
-      handleCloseValidationDialog();
-      loadInterventions(); // Recharger la liste
-    } catch (err: any) {
-      setValidationError(err.message || 'Erreur de connexion');
+      if (response.ok) {
+        handleCloseValidationDialog();
+        loadInterventions(); // Recharger la liste
+      } else {
+        const errorData = await response.json();
+        setValidationError(errorData.message || 'Erreur lors de la validation');
+      }
+    } catch (err) {
+      console.error('Erreur validation:', err);
+      setValidationError('Erreur de connexion');
     } finally {
       setValidating(false);
     }

@@ -64,17 +64,11 @@ public class Intervention {
     @Column(name = "follow_up_notes")
     private String followUpNotes;
 
-    @Column(name = "after_photos_urls", columnDefinition = "TEXT")
+    @Column(name = "after_photos_urls")
     private String afterPhotosUrls;
 
-    @Column(name = "before_photos_urls", columnDefinition = "TEXT")
+    @Column(name = "before_photos_urls")
     private String beforePhotosUrls;
-    
-    @Column(name = "validated_rooms", columnDefinition = "TEXT")
-    private String validatedRooms; // JSON array des indices des pièces validées (ex: "[0,1,2]")
-    
-    @Column(name = "completed_steps", columnDefinition = "TEXT")
-    private String completedSteps; // JSON array des étapes complétées (ex: "[\"inspection\",\"rooms\",\"after_photos\"]")
     
     @Column(columnDefinition = "TEXT")
     private String notes;
@@ -522,22 +516,6 @@ public class Intervention {
 
     public void setBeforePhotosUrls(String beforePhotosUrls) {
         this.beforePhotosUrls = beforePhotosUrls;
-    }
-
-    public String getValidatedRooms() {
-        return validatedRooms;
-    }
-
-    public void setValidatedRooms(String validatedRooms) {
-        this.validatedRooms = validatedRooms;
-    }
-
-    public String getCompletedSteps() {
-        return completedSteps;
-    }
-
-    public void setCompletedSteps(String completedSteps) {
-        this.completedSteps = completedSteps;
     }
 
     // Méthodes utilitaires

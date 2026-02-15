@@ -35,12 +35,10 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { interventionsApi } from '../../services/api';
+import { API_CONFIG } from '../../config/api';
 import { InterventionStatus, INTERVENTION_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } from '../../types/statusEnums';
 import { createSpacing } from '../../theme/spacing';
 import { useTranslation } from '../../hooks/useTranslation';
-import ExportButton from '../../components/ExportButton';
-import type { ExportColumn } from '../../utils/exportUtils';
 
 interface Intervention {
   id: number;
@@ -59,8 +57,6 @@ interface Intervention {
   progressPercentage: number;
   createdAt: string;
 }
-
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
 // Les interventions sont maintenant chargées depuis la base de données
 // et représentent les service requests validés par les managers/admins
@@ -91,7 +87,7 @@ const interventionTypes = [
 
 // statuses et priorities seront générés dynamiquement avec les traductions
 
-const getStatusColor = (status: string): ChipColor => {
+const getStatusColor = (status: string) => {
   switch (status) {
     case 'PENDING': return 'warning';
     case 'AWAITING_VALIDATION': return 'warning';
@@ -117,7 +113,7 @@ const getStatusLabel = (status: string, t: (key: string) => string) => {
   }
 };
 
-const getPriorityColor = (priority: string): ChipColor => {
+const getPriorityColor = (priority: string) => {
   switch (priority) {
     case 'LOW': return 'success';
     case 'NORMAL': return 'info';
@@ -223,16 +219,29 @@ export default function InterventionsList() {
 
   // Chargement automatique des interventions avec useEffect
   React.useEffect(() => {
+    console.log('🔍 InterventionsList - Chargement automatique des interventions');
     // Ne pas recharger si on a déjà une erreur 403 ou si pas de permission
     if (canViewInterventions && location.pathname === '/interventions') {
       loadInterventions();
     }
   }, [canViewInterventions, location.pathname]); // Recharger quand les permissions changent ou quand on navigue vers cette page
 
+  // Debug des permissions APRÈS tous les hooks
+  console.log('🔍 InterventionsList - Debug des permissions:', {
+    user: user?.email,
+    roles: user?.roles,
+    permissions: user?.permissions,
+    canViewInterventions,
+    canCreateInterventions,
+    canEditInterventions,
+    canDeleteInterventions
+  });
+
   // Fonction de chargement des interventions
   const loadInterventions = async () => {
     // Vérifier les permissions avant de faire l'appel API
     if (!canViewInterventions) {
+      console.log('🔍 InterventionsList - Permission refusée, pas d\'appel API');
       setInterventions([]);
       setError('Vous n\'avez pas les permissions nécessaires pour voir les interventions.');
       return;
@@ -242,25 +251,46 @@ export default function InterventionsList() {
       setLoading(true);
       setError(null);
 
-      const data = await interventionsApi.getAll();
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/interventions`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-      // Si c'est une page Spring Data, extraire le contenu
-      if ((data as any).content && Array.isArray((data as any).content)) {
-        setInterventions((data as any).content);
-      } else if (Array.isArray(data)) {
-        setInterventions(data);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🔍 InterventionsList - Interventions chargées:', data);
+        
+        // Si c'est une page Spring Data, extraire le contenu
+        if (data.content && Array.isArray(data.content)) {
+          setInterventions(data.content);
+        } else if (Array.isArray(data)) {
+          setInterventions(data);
+        } else {
+          console.warn('🔍 InterventionsList - Format de données inattendu, tableau vide');
+          setInterventions([]);
+        }
+      } else if (response.status === 401) {
+        console.error('🔍 InterventionsList - Erreur d\'authentification (401)');
+        setError('Erreur d\'authentification. Veuillez vous reconnecter.');
+        // En cas d'erreur 401, tableau vide
+        setInterventions([]);
+      } else if (response.status === 403) {
+        console.error('🔍 InterventionsList - Accès interdit (403) - Permissions insuffisantes');
+        setError('Accès interdit. Vous n\'avez pas les permissions nécessaires pour voir les interventions.');
+        setInterventions([]);
+      } else if (response.status === 404) {
+        console.log('🔍 InterventionsList - Endpoint non trouvé, tableau vide');
+        setInterventions([]);
       } else {
+        console.error('🔍 InterventionsList - Erreur API:', response.status);
+        setError(`Erreur ${response.status}: ${response.statusText}`);
         setInterventions([]);
       }
-    } catch (err: any) {
+    } catch (err) {
+      console.error('🔍 InterventionsList - Erreur lors du chargement:', err);
       setInterventions([]);
-      if (err.status === 401) {
-        setError('Erreur d\'authentification. Veuillez vous reconnecter.');
-      } else if (err.status === 403) {
-        setError('Accès interdit. Vous n\'avez pas les permissions nécessaires pour voir les interventions.');
-      } else if (err.status !== 404) {
-        setError(err.message || 'Erreur lors du chargement des interventions');
-      }
     } finally {
       setLoading(false);
     }
@@ -299,9 +329,21 @@ export default function InterventionsList() {
     if (!selectedIntervention) return;
 
     try {
-      await interventionsApi.delete(selectedIntervention.id);
-      loadInterventions();
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/interventions/${selectedIntervention.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        loadInterventions();
+      } else {
+        console.error('🔍 InterventionsList - Erreur suppression:', response.status);
+      }
     } catch (err) {
+      console.error('🔍 InterventionsList - Erreur suppression:', err);
     }
 
     handleMenuClose();
@@ -317,13 +359,13 @@ export default function InterventionsList() {
     
     // Les équipes peuvent modifier les interventions assignées
     if (intervention.assignedToType === 'team') {
-      // La vérification d'appartenance à l'équipe est gérée côté serveur
+      // TODO: Vérifier si l'utilisateur fait partie de l'équipe
       return true;
     }
     
     // Les utilisateurs peuvent modifier les interventions assignées
     if (intervention.assignedToType === 'user') {
-      // La vérification d'assignation utilisateur est gérée côté serveur
+      // TODO: Vérifier si l'utilisateur est assigné
       return true;
     }
     
@@ -333,18 +375,23 @@ export default function InterventionsList() {
   const getFilteredInterventions = () => {
     // Vérifier que interventions est un tableau valide
     if (!Array.isArray(interventions) || interventions.length === 0) {
+      console.log('🔍 InterventionsList - Aucune intervention disponible');
       return [];
     }
+    
+    console.log('🔍 InterventionsList - Vérification de', interventions.length, 'interventions');
     
     const filtered = interventions.filter((intervention) => {
       // Vérifier que l'intervention n'est pas null et a les propriétés requises
       if (!intervention || typeof intervention !== 'object') {
+        console.warn('🔍 InterventionsList - Intervention null ou non-objet:', intervention);
         return false;
       }
       
       // Vérification plus stricte des propriétés requises
       if (!intervention.id || !intervention.title || !intervention.description || 
           !intervention.type || !intervention.status || !intervention.priority) {
+        console.warn('🔍 InterventionsList - Intervention manque des propriétés requises:', intervention);
         return false;
       }
       
@@ -353,7 +400,7 @@ export default function InterventionsList() {
       if (canEditInterventions) {
         roleFilter = true; // Voir toutes les interventions
       } else if (user?.roles?.includes('HOST')) {
-        // Le filtrage par propriétés du HOST est effectué côté serveur via l'endpoint API
+        // TODO: Filtrer par propriétés du host
         roleFilter = true;
       } else {
         // Autres utilisateurs: voir seulement les interventions assignées
@@ -391,26 +438,15 @@ export default function InterventionsList() {
       return true;
     });
     
+    console.log('🔍 InterventionsList - Interventions filtrées:', filtered.length);
     return filtered;
   };
 
   const filteredInterventions = getFilteredInterventions();
 
-  const exportColumns: ExportColumn[] = [
-    { key: 'id', label: 'ID' },
-    { key: 'title', label: 'Titre' },
-    { key: 'type', label: 'Type', formatter: (v: string) => getTypeLabel(v) },
-    { key: 'status', label: 'Statut', formatter: (v: string) => getStatusLabel(v, t) },
-    { key: 'priority', label: 'Priorité', formatter: (v: string) => getPriorityLabel(v) },
-    { key: 'propertyName', label: 'Propriété' },
-    { key: 'assignedToName', label: 'Assigné à' },
-    { key: 'scheduledDate', label: 'Date planifiée', formatter: (v: string) => v ? new Date(v).toLocaleDateString('fr-FR') : '' },
-    { key: 'estimatedDurationHours', label: 'Durée estimée (h)' },
-    { key: 'progressPercentage', label: 'Progression (%)' },
-  ];
-
   // Protection contre les données invalides
   if (!Array.isArray(interventions)) {
+    console.error('🔍 InterventionsList - Interventions n\'est pas un tableau:', interventions);
     return (
       <Box sx={createSpacing.page()}>
         <Alert severity="error">
@@ -422,6 +458,7 @@ export default function InterventionsList() {
 
   // Vérifications conditionnelles dans le rendu
   if (!user) {
+    console.log('🔍 InterventionsList - Utilisateur en cours de chargement...');
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress size={32} />
@@ -431,6 +468,7 @@ export default function InterventionsList() {
 
   // Si pas de permission, afficher un message informatif
   if (!canViewInterventions) {
+    console.log('🔍 InterventionsList - Permission refusée');
     return (
       <Box sx={createSpacing.page()}>
         <Alert severity="info">
@@ -502,11 +540,6 @@ export default function InterventionsList() {
         showBackButton={false}
         actions={
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <ExportButton
-              data={filteredInterventions}
-              columns={exportColumns}
-              fileName="interventions"
-            />
             <Button
               variant="outlined"
               startIcon={<Refresh />}
@@ -623,6 +656,7 @@ export default function InterventionsList() {
               if (!intervention || typeof intervention !== 'object' || !intervention.id || 
                   !intervention.title || !intervention.description || !intervention.type || 
                   !intervention.status || !intervention.priority) {
+                console.warn('🔍 InterventionsList - Intervention invalide dans le rendu:', intervention);
                 return null;
               }
             
@@ -658,13 +692,13 @@ export default function InterventionsList() {
                     <Chip
                       label={getStatusLabel(intervention.status, t)}
                       size="small"
-                      color={getStatusColor(intervention.status)}
+                      color={getStatusColor(intervention.status) as any}
                       sx={{ height: 20, fontSize: '0.7rem' }}
                     />
                     <Chip
                       label={getPriorityLabel(intervention.priority)}
                       size="small"
-                      color={getPriorityColor(intervention.priority)}
+                      color={getPriorityColor(intervention.priority) as any}
                       sx={{ height: 20, fontSize: '0.7rem' }}
                     />
                   </Box>

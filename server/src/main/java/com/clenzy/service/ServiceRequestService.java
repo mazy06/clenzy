@@ -18,7 +18,6 @@ import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.TeamRepository;
 import com.clenzy.model.Team;
-import com.clenzy.model.NotificationKey;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -42,59 +41,27 @@ public class ServiceRequestService {
     private final PropertyRepository propertyRepository;
     private final InterventionRepository interventionRepository;
     private final TeamRepository teamRepository;
-    private final NotificationService notificationService;
 
-    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository, TeamRepository teamRepository, NotificationService notificationService) {
+    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository, TeamRepository teamRepository) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
         this.interventionRepository = interventionRepository;
         this.teamRepository = teamRepository;
-        this.notificationService = notificationService;
     }
 
     public ServiceRequestDto create(ServiceRequestDto dto) {
         ServiceRequest entity = new ServiceRequest();
         apply(dto, entity);
         entity = serviceRequestRepository.save(entity);
-        ServiceRequestDto result = toDto(entity);
-
-        try {
-            notificationService.notifyAdminsAndManagers(
-                NotificationKey.SERVICE_REQUEST_CREATED,
-                "Nouvelle demande de service",
-                "Demande \"" + entity.getTitle() + "\" creee",
-                "/service-requests/" + entity.getId()
-            );
-        } catch (Exception e) {
-            System.err.println("Erreur notification SERVICE_REQUEST_CREATED: " + e.getMessage());
-        }
-
-        return result;
+        return toDto(entity);
     }
 
     public ServiceRequestDto update(Long id, ServiceRequestDto dto) {
         ServiceRequest entity = serviceRequestRepository.findById(id).orElseThrow(() -> new NotFoundException("Service request not found"));
         apply(dto, entity);
         entity = serviceRequestRepository.save(entity);
-        ServiceRequestDto result = toDto(entity);
-
-        // Notify requester if the status changed to REJECTED
-        try {
-            if (RequestStatus.REJECTED.equals(entity.getStatus()) && entity.getUser() != null && entity.getUser().getKeycloakId() != null) {
-                notificationService.notify(
-                    entity.getUser().getKeycloakId(),
-                    NotificationKey.SERVICE_REQUEST_REJECTED,
-                    "Demande de service refusee",
-                    "Votre demande \"" + entity.getTitle() + "\" a ete refusee",
-                    "/service-requests/" + entity.getId()
-                );
-            }
-        } catch (Exception e) {
-            System.err.println("Erreur notification SERVICE_REQUEST_REJECTED: " + e.getMessage());
-        }
-
-        return result;
+        return toDto(entity);
     }
 
     @Transactional(readOnly = true)
@@ -140,83 +107,6 @@ public class ServiceRequestService {
         List<ServiceRequest> pageContent = filtered.subList(start, end);
         
         return new PageImpl<>(pageContent.stream().map(this::toDto).collect(Collectors.toList()), pageable, filtered.size());
-    }
-
-    @Transactional(readOnly = true)
-    public Page<ServiceRequestDto> searchWithRoleBasedAccess(Pageable pageable, Long userId, Long propertyId, 
-                                                             com.clenzy.model.RequestStatus status, 
-                                                             com.clenzy.model.ServiceType serviceType, 
-                                                             Jwt jwt) {
-        if (jwt == null) {
-            // Si pas de JWT, utiliser la méthode standard
-            return search(pageable, userId, propertyId, status, serviceType);
-        }
-
-        UserRole userRole = extractUserRole(jwt);
-        System.out.println("🔍 ServiceRequestService.searchWithRoleBasedAccess - Rôle: " + userRole);
-
-        // Utiliser la méthode avec relations et filtrer ensuite
-        List<ServiceRequest> allWithRelations = serviceRequestRepository.findAllWithRelations();
-
-        // Filtrer selon le rôle
-        List<ServiceRequest> filtered = allWithRelations.stream()
-            .filter(sr -> {
-                // Filtre par rôle
-                if (userRole == UserRole.HOST) {
-                    // HOST : seulement les demandes liées à ses propriétés
-                    if (sr.getProperty() != null && sr.getProperty().getOwner() != null) {
-                        String keycloakId = jwt.getSubject();
-                        User hostUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
-                        if (hostUser != null) {
-                            return sr.getProperty().getOwner().getId().equals(hostUser.getId());
-                        }
-                    }
-                    return false;
-                } else if (userRole == UserRole.HOUSEKEEPER || userRole == UserRole.TECHNICIAN) {
-                    // HOUSEKEEPER/TECHNICIAN : seulement les demandes assignées à eux ou leurs équipes
-                    String keycloakId = jwt.getSubject();
-                    User currentUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
-                    if (currentUser != null) {
-                        return (sr.getAssignedToType() != null && sr.getAssignedToType().equals("user") && 
-                                sr.getAssignedToId() != null && sr.getAssignedToId().equals(currentUser.getId())) ||
-                               (sr.getAssignedToType() != null && sr.getAssignedToType().equals("team") && 
-                                sr.getAssignedToId() != null && isUserInTeam(currentUser.getId(), sr.getAssignedToId()));
-                    }
-                    return false;
-                } else if (userRole == UserRole.MANAGER) {
-                    // MANAGER : demandes liées à ses portefeuilles ou créées par ses utilisateurs
-                    // Pour simplifier, on laisse passer toutes les demandes pour les managers
-                    // Le filtrage détaillé par portefeuille peut être ajouté plus tard si nécessaire
-                    return true;
-                }
-                // ADMIN : toutes les demandes
-                return true;
-            })
-            .filter(sr -> userId == null || (sr.getUser() != null && sr.getUser().getId().equals(userId)))
-            .filter(sr -> propertyId == null || (sr.getProperty() != null && sr.getProperty().getId().equals(propertyId)))
-            .filter(sr -> status == null || sr.getStatus().equals(status))
-            .filter(sr -> serviceType == null || sr.getServiceType().equals(serviceType))
-            .collect(Collectors.toList());
-
-        // Appliquer la pagination
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), filtered.size());
-        List<ServiceRequest> pageContent = filtered.subList(start, end);
-
-        return new PageImpl<>(pageContent.stream().map(this::toDto).collect(Collectors.toList()), pageable, filtered.size());
-    }
-
-    private boolean isUserInTeam(Long userId, Long teamId) {
-        try {
-            Team team = teamRepository.findById(teamId).orElse(null);
-            if (team != null) {
-                return team.getMembers().stream()
-                    .anyMatch(member -> member.getUser().getId().equals(userId));
-            }
-        } catch (Exception e) {
-            System.err.println("Erreur vérification membre équipe: " + e.getMessage());
-        }
-        return false;
     }
 
     public void delete(Long id) {
@@ -318,22 +208,6 @@ public class ServiceRequestService {
         System.out.println("🔍 DEBUG - Conversion en DTO...");
         InterventionDto dto = convertToInterventionDto(intervention);
         System.out.println("🔍 DEBUG - DTO créé avec succès, retour...");
-
-        // Notify requester of approval
-        try {
-            if (serviceRequest.getUser() != null && serviceRequest.getUser().getKeycloakId() != null) {
-                notificationService.notify(
-                    serviceRequest.getUser().getKeycloakId(),
-                    NotificationKey.SERVICE_REQUEST_APPROVED,
-                    "Demande de service approuvee",
-                    "Votre demande \"" + serviceRequest.getTitle() + "\" a ete approuvee et une intervention a ete creee",
-                    "/service-requests/" + serviceRequest.getId()
-                );
-            }
-        } catch (Exception e) {
-            System.err.println("Erreur notification SERVICE_REQUEST_APPROVED: " + e.getMessage());
-        }
-
         return dto;
         } catch (Exception e) {
             System.err.println("🔍 DEBUG - Erreur dans validateAndCreateIntervention: " + e.getMessage());

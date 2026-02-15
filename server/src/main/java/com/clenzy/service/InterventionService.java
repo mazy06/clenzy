@@ -18,7 +18,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.ArrayList;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -26,35 +25,32 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import com.clenzy.model.InterventionStatus;
-import com.clenzy.model.NotificationKey;
 import com.clenzy.model.UserRole;
 import java.util.Arrays;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.ArrayList;
 import java.util.Base64;
 
 @Service
 @Transactional
 public class InterventionService {
-
+    
     private final InterventionRepository interventionRepository;
     private final InterventionPhotoRepository interventionPhotoRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
-    private final NotificationService notificationService;
-
+    
     public InterventionService(InterventionRepository interventionRepository,
                               InterventionPhotoRepository interventionPhotoRepository,
-                             PropertyRepository propertyRepository,
-                             UserRepository userRepository,
-                             TeamRepository teamRepository,
-                             NotificationService notificationService) {
+                              PropertyRepository propertyRepository,
+                              UserRepository userRepository,
+                              TeamRepository teamRepository) {
         this.interventionRepository = interventionRepository;
         this.interventionPhotoRepository = interventionPhotoRepository;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.teamRepository = teamRepository;
-        this.notificationService = notificationService;
     }
     
     public InterventionDto create(InterventionDto dto, Jwt jwt) {
@@ -78,32 +74,9 @@ public class InterventionService {
         }
         
         intervention = interventionRepository.save(intervention);
-
-        // ─── Notifications ──────────────────────────────────────────────────
-        try {
-            String actionUrl = "/interventions/" + intervention.getId();
-            String propertyName = intervention.getProperty() != null ? intervention.getProperty().getName() : "";
-
-            if (userRole == UserRole.HOST) {
-                notificationService.notifyAdminsAndManagers(
-                        NotificationKey.INTERVENTION_AWAITING_VALIDATION,
-                        "Intervention en attente de validation",
-                        "L'intervention '" + intervention.getTitle() + "' sur " + propertyName + " est en attente de validation.",
-                        actionUrl);
-            } else {
-                notificationService.notifyAdminsAndManagers(
-                        NotificationKey.INTERVENTION_CREATED,
-                        "Nouvelle intervention creee",
-                        "L'intervention '" + intervention.getTitle() + "' a ete creee sur " + propertyName + ".",
-                        actionUrl);
-            }
-        } catch (Exception e) {
-            System.err.println("Erreur notification create intervention: " + e.getMessage());
-        }
-
         return convertToDto(intervention);
     }
-
+    
     public InterventionDto update(Long id, InterventionDto dto, Jwt jwt) {
         System.out.println("🔍 InterventionService.update - Début de la méthode");
         System.out.println("🔍 InterventionService.update - ID: " + id);
@@ -128,23 +101,10 @@ public class InterventionService {
         
         intervention = interventionRepository.save(intervention);
         System.out.println("🔍 InterventionService.update - Intervention sauvegardée");
-
-        // ─── Notifications ──────────────────────────────────────────────────
-        try {
-            String actionUrl = "/interventions/" + intervention.getId();
-            String ownerKeycloakId = intervention.getProperty() != null && intervention.getProperty().getOwner() != null
-                    ? intervention.getProperty().getOwner().getKeycloakId() : null;
-            notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_UPDATED,
-                    "Intervention mise a jour",
-                    "L'intervention '" + intervention.getTitle() + "' a ete modifiee.",
-                    actionUrl);
-        } catch (Exception e) {
-            System.err.println("Erreur notification update intervention: " + e.getMessage());
-        }
-
+        
         return convertToDto(intervention);
     }
-
+    
     public InterventionDto getById(Long id, Jwt jwt) {
         System.out.println("🔍 InterventionService.getById - Début de la méthode");
         System.out.println("🔍 InterventionService.getById - ID demandé: " + id);
@@ -253,64 +213,25 @@ public class InterventionService {
     public void delete(Long id, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-
+        
         // Seuls les admins peuvent supprimer
         UserRole userRole = extractUserRole(jwt);
         if (userRole != UserRole.ADMIN) {
             throw new UnauthorizedException("Seuls les administrateurs peuvent supprimer des interventions");
         }
-
-        // ─── Notifications (avant suppression) ─────────────────────────────
-        try {
-            String ownerKeycloakId = intervention.getProperty() != null && intervention.getProperty().getOwner() != null
-                    ? intervention.getProperty().getOwner().getKeycloakId() : null;
-            notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_DELETED,
-                    "Intervention supprimee",
-                    "L'intervention '" + intervention.getTitle() + "' a ete supprimee.",
-                    "/interventions");
-        } catch (Exception e) {
-            System.err.println("Erreur notification delete intervention: " + e.getMessage());
-        }
-
+        
         interventionRepository.deleteById(id);
     }
     
     public InterventionDto updateStatus(Long id, String status, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-
+        
         // Vérifier les droits d'accès
         checkAccessRights(intervention, jwt);
-
-        InterventionStatus newStatus = InterventionStatus.fromString(status);
-        intervention.setStatus(newStatus);
+        
+        intervention.setStatus(InterventionStatus.fromString(status));
         intervention = interventionRepository.save(intervention);
-
-        // ─── Notifications ──────────────────────────────────────────────────
-        try {
-            String actionUrl = "/interventions/" + intervention.getId();
-            String ownerKeycloakId = intervention.getProperty() != null && intervention.getProperty().getOwner() != null
-                    ? intervention.getProperty().getOwner().getKeycloakId() : null;
-
-            if (newStatus == InterventionStatus.CANCELLED) {
-                notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_CANCELLED,
-                        "Intervention annulee",
-                        "L'intervention '" + intervention.getTitle() + "' a ete annulee.",
-                        actionUrl);
-                notificationService.notifyAdminsAndManagers(NotificationKey.INTERVENTION_CANCELLED,
-                        "Intervention annulee",
-                        "L'intervention '" + intervention.getTitle() + "' a ete annulee.",
-                        actionUrl);
-            } else {
-                notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_STATUS_CHANGED,
-                        "Statut intervention modifie",
-                        "L'intervention '" + intervention.getTitle() + "' est passee au statut " + newStatus.name() + ".",
-                        actionUrl);
-            }
-        } catch (Exception e) {
-            System.err.println("Erreur notification updateStatus intervention: " + e.getMessage());
-        }
-
         return convertToDto(intervention);
     }
     
@@ -327,7 +248,7 @@ public class InterventionService {
         
         // Vérifier que l'intervention peut être démarrée
         if (intervention.getStatus() == InterventionStatus.COMPLETED) {
-            throw new IllegalStateException("Une intervention terminée ne peut pas être démarrée. Utilisez reopenIntervention pour la rouvrir.");
+            throw new IllegalStateException("Une intervention terminée ne peut pas être démarrée");
         }
         if (intervention.getStatus() == InterventionStatus.CANCELLED) {
             throw new IllegalStateException("Une intervention annulée ne peut pas être démarrée");
@@ -344,105 +265,10 @@ public class InterventionService {
         
         intervention = interventionRepository.save(intervention);
         System.out.println("🔍 Intervention démarrée: " + intervention.getId() + " - Statut: " + intervention.getStatus());
-
-        // ─── Notifications ──────────────────────────────────────────────────
-        try {
-            String actionUrl = "/interventions/" + intervention.getId();
-            String ownerKeycloakId = intervention.getProperty() != null && intervention.getProperty().getOwner() != null
-                    ? intervention.getProperty().getOwner().getKeycloakId() : null;
-            notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_STARTED,
-                    "Intervention demarree",
-                    "L'intervention '" + intervention.getTitle() + "' a ete demarree.",
-                    actionUrl);
-            notificationService.notifyAdminsAndManagers(NotificationKey.INTERVENTION_STARTED,
-                    "Intervention demarree",
-                    "L'intervention '" + intervention.getTitle() + "' a ete demarree.",
-                    actionUrl);
-        } catch (Exception e) {
-            System.err.println("Erreur notification startIntervention: " + e.getMessage());
-        }
-
+        
         return convertToDto(intervention);
     }
-
-    /**
-     * Rouvrir une intervention terminée pour permettre des modifications
-     * Accessible aux TECHNICIAN, HOUSEKEEPER, SUPERVISOR, MANAGER et ADMIN
-     */
-    public InterventionDto reopenIntervention(Long id, Jwt jwt) {
-        Intervention intervention = interventionRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-        
-        // Vérifier les droits d'accès
-        checkAccessRights(intervention, jwt);
-        
-        // Vérifier que l'intervention est terminée
-        if (intervention.getStatus() != InterventionStatus.COMPLETED) {
-            throw new IllegalStateException("Seules les interventions terminées peuvent être rouvertes");
-        }
-        
-        // Changer le statut en IN_PROGRESS pour permettre les modifications
-        intervention.setStatus(InterventionStatus.IN_PROGRESS);
-        // Ne pas réinitialiser completedAt pour garder l'historique
-        
-        // Recalculer la progression en fonction des étapes complétées
-        // Si l'étape "after_photos" n'est pas dans completedSteps, la progression ne devrait pas être à 100%
-        try {
-            String completedStepsJson = intervention.getCompletedSteps();
-            if (completedStepsJson != null && !completedStepsJson.isEmpty()) {
-                // Vérifier simplement si "after_photos" est dans la chaîne JSON
-                // (plus simple que de parser complètement le JSON)
-                boolean hasAfterPhotos = completedStepsJson.contains("\"after_photos\"") || 
-                                         completedStepsJson.contains("'after_photos'");
-                
-                // Si "after_photos" n'est pas dans les étapes complétées, recalculer la progression
-                if (!hasAfterPhotos) {
-                    // La progression ne peut pas être à 100% si l'étape finale n'est pas complétée
-                    // On va la mettre à environ 89% (étape 1 + étape 2 complétées, étape 3 manquante)
-                    // Le frontend recalculera plus précisément
-                    if (intervention.getProgressPercentage() != null && intervention.getProgressPercentage() >= 100) {
-                        intervention.setProgressPercentage(89); // Approximation, le frontend recalculera
-                        System.out.println("🔍 Progression recalculée lors de la réouverture: 89% (étape finale non complétée)");
-                    }
-                }
-            } else {
-                // Si aucune étape complétée n'est définie, réinitialiser la progression
-                if (intervention.getProgressPercentage() != null && intervention.getProgressPercentage() >= 100) {
-                    intervention.setProgressPercentage(0);
-                    System.out.println("🔍 Progression réinitialisée lors de la réouverture: 0%");
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("🔍 Erreur lors du recalcul de la progression: " + e.getMessage());
-            // En cas d'erreur, garder la progression actuelle mais la forcer à moins de 100%
-            if (intervention.getProgressPercentage() != null && intervention.getProgressPercentage() >= 100) {
-                intervention.setProgressPercentage(89);
-            }
-        }
-        
-        intervention = interventionRepository.save(intervention);
-        System.out.println("🔍 Intervention rouverte: " + intervention.getId() + " - Statut: " + intervention.getStatus() + " - Progression: " + intervention.getProgressPercentage() + "%");
-
-        // ─── Notifications ──────────────────────────────────────────────────
-        try {
-            String actionUrl = "/interventions/" + intervention.getId();
-            String ownerKeycloakId = intervention.getProperty() != null && intervention.getProperty().getOwner() != null
-                    ? intervention.getProperty().getOwner().getKeycloakId() : null;
-            notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_REOPENED,
-                    "Intervention rouverte",
-                    "L'intervention '" + intervention.getTitle() + "' a ete rouverte pour modifications.",
-                    actionUrl);
-            notificationService.notifyAdminsAndManagers(NotificationKey.INTERVENTION_REOPENED,
-                    "Intervention rouverte",
-                    "L'intervention '" + intervention.getTitle() + "' a ete rouverte.",
-                    actionUrl);
-        } catch (Exception e) {
-            System.err.println("Erreur notification reopenIntervention: " + e.getMessage());
-        }
-
-        return convertToDto(intervention);
-    }
-
+    
     /**
      * Mettre à jour la progression d'une intervention
      * Accessible aux TECHNICIAN, HOUSEKEEPER et SUPERVISOR pour leurs interventions assignées
@@ -468,9 +294,6 @@ public class InterventionService {
             if (intervention.getEndTime() == null) {
                 intervention.setEndTime(LocalDateTime.now());
             }
-            
-            // Notifier les parties concernées (managers, admins, hosts)
-            notifyInterventionCompleted(intervention);
         }
         
         intervention = interventionRepository.save(intervention);
@@ -479,7 +302,7 @@ public class InterventionService {
         return convertToDto(intervention);
     }
     
-    public InterventionDto addPhotos(Long id, List<MultipartFile> photos, String photoType, Jwt jwt) {
+    public InterventionDto addPhotos(Long id, List<MultipartFile> photos, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
         
@@ -491,16 +314,8 @@ public class InterventionService {
             throw new IllegalArgumentException("Seules les interventions en cours peuvent recevoir des photos");
         }
         
-        // Valider le photoType
-        if (!"before".equals(photoType) && !"after".equals(photoType)) {
-            throw new IllegalArgumentException("photoType doit être 'before' ou 'after'");
-        }
-        
         try {
-            // Convertir le photoType en majuscules pour la base de données
-            String photoTypeUpper = "before".equals(photoType) ? "BEFORE" : "AFTER";
-            
-            // Stocker les photos directement en BYTEA dans la table intervention_photos avec le type
+            // Stocker les photos directement en BYTEA dans la table intervention_photos
             for (MultipartFile photo : photos) {
                 if (!photo.isEmpty()) {
                     byte[] photoData = photo.getBytes();
@@ -514,16 +329,15 @@ public class InterventionService {
                     interventionPhoto.setPhotoData(photoData);
                     interventionPhoto.setContentType(contentType);
                     interventionPhoto.setFileName(photo.getOriginalFilename());
-                    interventionPhoto.setPhotoType(photoTypeUpper); // Stocker le type de photo
                     
                     interventionPhotoRepository.save(interventionPhoto);
                 }
             }
             
-            // Ne plus stocker les URLs base64 dans before_photos_urls/after_photos_urls
-            // Les photos sont maintenant uniquement dans intervention_photos avec le type
+            // Ne pas sauvegarder l'intervention pour éviter de mettre à jour le champ photos obsolète
+            // Les photos sont déjà sauvegardées dans intervention_photos
             
-            System.out.println("🔍 Photos " + photoType + " ajoutées à l'intervention: " + intervention.getId() + " (" + photos.size() + " photos)");
+            System.out.println("🔍 Photos ajoutées à l'intervention: " + intervention.getId() + " (" + photos.size() + " photos)");
             
             // Recharger l'intervention pour avoir les photos dans le DTO
             intervention = interventionRepository.findById(id)
@@ -537,7 +351,6 @@ public class InterventionService {
     
     /**
      * Convertit les photos BYTEA en base64 data URLs pour le DTO (compatibilité frontend)
-     * Récupère toutes les photos (avant et après)
      */
     private String convertPhotosToBase64Urls(Intervention intervention) {
         List<InterventionPhoto> photos = interventionPhotoRepository.findByInterventionIdOrderByCreatedAtAsc(intervention.getId());
@@ -545,39 +358,6 @@ public class InterventionService {
         if (photos.isEmpty()) {
             // Si pas de photos dans la nouvelle table, vérifier l'ancien champ (compatibilité)
             return intervention.getPhotos();
-        }
-        
-        List<String> base64Urls = new ArrayList<>();
-        for (InterventionPhoto photo : photos) {
-            byte[] photoData = photo.getPhotoData();
-            String contentType = photo.getContentType() != null ? photo.getContentType() : "image/jpeg";
-            String base64 = Base64.getEncoder().encodeToString(photoData);
-            String dataUrl = "data:" + contentType + ";base64," + base64;
-            base64Urls.add(dataUrl);
-        }
-        
-        // Retourner comme JSON array pour compatibilité avec le frontend
-        return "[" + base64Urls.stream()
-                .map(url -> "\"" + url.replace("\"", "\\\"") + "\"")
-                .collect(Collectors.joining(",")) + "]";
-    }
-    
-    /**
-     * Convertit les photos BYTEA en base64 data URLs pour un type spécifique (BEFORE ou AFTER)
-     */
-    private String convertPhotosToBase64UrlsByType(Intervention intervention, String photoType) {
-        String photoTypeUpper = "before".equals(photoType) ? "BEFORE" : "AFTER";
-        List<InterventionPhoto> photos = interventionPhotoRepository.findByInterventionIdAndPhotoTypeOrderByCreatedAtAsc(
-            intervention.getId(), 
-            photoTypeUpper
-        );
-        
-        if (photos.isEmpty()) {
-            // Si pas de photos dans la nouvelle table, vérifier l'ancien champ (compatibilité)
-            String legacyUrls = "before".equals(photoType) 
-                ? intervention.getBeforePhotosUrls() 
-                : intervention.getAfterPhotosUrls();
-            return legacyUrls;
         }
         
         List<String> base64Urls = new ArrayList<>();
@@ -615,46 +395,6 @@ public class InterventionService {
         return convertToDto(intervention);
     }
     
-    public InterventionDto updateValidatedRooms(Long id, String validatedRooms, Jwt jwt) {
-        Intervention intervention = interventionRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-        
-        // Vérifier les droits d'accès (doit être assigné à l'utilisateur)
-        checkAccessRights(intervention, jwt);
-        
-        // Vérifier que l'intervention est en cours
-        if (intervention.getStatus() != InterventionStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException("Seules les interventions en cours peuvent avoir leurs pièces validées");
-        }
-        
-        intervention.setValidatedRooms(validatedRooms);
-        intervention = interventionRepository.save(intervention);
-        
-        System.out.println("🔍 Pièces validées mises à jour pour l'intervention: " + intervention.getId());
-        
-        return convertToDto(intervention);
-    }
-    
-    public InterventionDto updateCompletedSteps(Long id, String completedSteps, Jwt jwt) {
-        Intervention intervention = interventionRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-        
-        // Vérifier les droits d'accès (doit être assigné à l'utilisateur)
-        checkAccessRights(intervention, jwt);
-        
-        // Vérifier que l'intervention est en cours
-        if (intervention.getStatus() != InterventionStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException("Seules les interventions en cours peuvent avoir leurs étapes complétées mises à jour");
-        }
-        
-        intervention.setCompletedSteps(completedSteps);
-        intervention = interventionRepository.save(intervention);
-        
-        System.out.println("🔍 Étapes complétées mises à jour pour l'intervention: " + intervention.getId());
-        
-        return convertToDto(intervention);
-    }
-    
     public InterventionDto assign(Long id, Long userId, Long teamId, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
@@ -676,38 +416,11 @@ public class InterventionService {
             intervention.setTeamId(team.getId());
             intervention.setAssignedUser(null);
         }
-
+        
         intervention = interventionRepository.save(intervention);
-
-        // ─── Notifications ──────────────────────────────────────────────────
-        try {
-            String actionUrl = "/interventions/" + intervention.getId();
-            if (userId != null && intervention.getAssignedUser() != null) {
-                String assignedKeycloakId = intervention.getAssignedUser().getKeycloakId();
-                notificationService.notify(assignedKeycloakId, NotificationKey.INTERVENTION_ASSIGNED_TO_USER,
-                        "Intervention assignee",
-                        "Vous etes assigne a l'intervention '" + intervention.getTitle() + "'.",
-                        actionUrl);
-            } else if (teamId != null) {
-                Team team = teamRepository.findById(teamId).orElse(null);
-                if (team != null && team.getMembers() != null) {
-                    List<String> memberIds = team.getMembers().stream()
-                            .map(m -> m.getUser() != null ? m.getUser().getKeycloakId() : null)
-                            .filter(java.util.Objects::nonNull)
-                            .toList();
-                    notificationService.notifyUsers(memberIds, NotificationKey.INTERVENTION_ASSIGNED_TO_TEAM,
-                            "Intervention assignee a votre equipe",
-                            "Votre equipe est assignee a l'intervention '" + intervention.getTitle() + "'.",
-                            actionUrl);
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Erreur notification assign intervention: " + e.getMessage());
-        }
-
         return convertToDto(intervention);
     }
-
+    
     /**
      * Valider une intervention et définir le coût estimé (Manager uniquement)
      * Change le statut de AWAITING_VALIDATION à AWAITING_PAYMENT
@@ -731,27 +444,10 @@ public class InterventionService {
         intervention.setEstimatedCost(estimatedCost);
         intervention.setStatus(InterventionStatus.AWAITING_PAYMENT);
         intervention = interventionRepository.save(intervention);
-
-        // ─── Notifications ──────────────────────────────────────────────────
-        try {
-            String actionUrl = "/interventions/" + intervention.getId();
-            String ownerKeycloakId = intervention.getProperty() != null && intervention.getProperty().getOwner() != null
-                    ? intervention.getProperty().getOwner().getKeycloakId() : null;
-            notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_VALIDATED,
-                    "Intervention validee",
-                    "L'intervention '" + intervention.getTitle() + "' a ete validee. Cout estime: " + estimatedCost + " EUR.",
-                    actionUrl);
-            notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_AWAITING_PAYMENT,
-                    "Paiement requis",
-                    "Un paiement est requis pour l'intervention '" + intervention.getTitle() + "'. Montant: " + estimatedCost + " EUR.",
-                    actionUrl);
-        } catch (Exception e) {
-            System.err.println("Erreur notification validateIntervention: " + e.getMessage());
-        }
-
+        
         return convertToDto(intervention);
     }
-
+    
     private void checkAccessRights(Intervention intervention, Jwt jwt) {
         System.out.println("🔍 InterventionService.checkAccessRights - Début de la vérification");
         
@@ -915,11 +611,6 @@ public class InterventionService {
             dto.notes = intervention.getNotes();
             // Pour compatibilité avec l'ancien système, convertir les photos BYTEA en base64 data URLs
             dto.photos = convertPhotosToBase64Urls(intervention);
-            // Récupérer les photos par type depuis intervention_photos
-            dto.beforePhotosUrls = convertPhotosToBase64UrlsByType(intervention, "before");
-            dto.afterPhotosUrls = convertPhotosToBase64UrlsByType(intervention, "after");
-            dto.validatedRooms = intervention.getValidatedRooms();
-            dto.completedSteps = intervention.getCompletedSteps();
             dto.progressPercentage = intervention.getProgressPercentage();
             
             // Dates
@@ -934,8 +625,6 @@ public class InterventionService {
             dto.createdAt = intervention.getCreatedAt();
             dto.updatedAt = intervention.getUpdatedAt();
             dto.completedAt = intervention.getCompletedAt();
-            dto.startTime = intervention.getStartTime();
-            dto.endTime = intervention.getEndTime();
             
             // Relations
             if (intervention.getProperty() != null) {
@@ -1102,34 +791,6 @@ public class InterventionService {
             System.err.println("🔍 InterventionService.extractUserRole - Erreur lors de l'extraction: " + e.getMessage());
             e.printStackTrace();
             return UserRole.HOST; // Fallback en cas d'erreur
-        }
-    }
-    
-    /**
-     * Notifier les parties concernees qu'une intervention est terminee.
-     */
-    private void notifyInterventionCompleted(Intervention intervention) {
-        try {
-            String actionUrl = "/interventions/" + intervention.getId();
-            String propertyName = intervention.getProperty() != null ? intervention.getProperty().getName() : "";
-
-            // Notifier les admins/managers
-            notificationService.notifyAdminsAndManagers(
-                    NotificationKey.INTERVENTION_COMPLETED,
-                    "Intervention terminee",
-                    "L'intervention '" + intervention.getTitle() + "' sur " + propertyName + " est terminee.",
-                    actionUrl);
-
-            // Notifier le proprietaire (HOST)
-            if (intervention.getProperty() != null && intervention.getProperty().getOwner() != null) {
-                String ownerKeycloakId = intervention.getProperty().getOwner().getKeycloakId();
-                notificationService.notify(ownerKeycloakId, NotificationKey.INTERVENTION_COMPLETED,
-                        "Intervention terminee",
-                        "L'intervention '" + intervention.getTitle() + "' sur votre propriete " + propertyName + " est terminee.",
-                        actionUrl);
-            }
-        } catch (Exception e) {
-            System.err.println("Erreur notification interventionCompleted: " + e.getMessage());
         }
     }
 }
