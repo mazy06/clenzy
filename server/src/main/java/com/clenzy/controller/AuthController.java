@@ -169,12 +169,11 @@ public class AuthController {
                 RolePermissionsDto rolePermissions = permissionService.getRolePermissions(user.getRole().name());
                 List<String> permissions = rolePermissions.getPermissions();
 
-                // Fallback : si le cache retourne une liste vide (donnees obsoletes apres crash),
-                // forcer le rechargement depuis la base de donnees
-                if (permissions.isEmpty()) {
+                // Fallback : si le cache retourne une liste vide, recharger depuis la base
+                if (permissions == null || permissions.isEmpty()) {
                     log.warn("/me - Cache permissions vide pour le role {}, rechargement depuis la base...",
                             user.getRole().name());
-                    permissions = permissionService.getUserPermissionsForSync(jwt.getSubject());
+                    permissions = permissionService.getUserPermissionsForSync(keycloakId);
                 }
 
                 claims.put("permissions", permissions);

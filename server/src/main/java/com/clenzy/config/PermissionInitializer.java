@@ -47,9 +47,8 @@ public class PermissionInitializer {
     public void initPermissions() {
         log.info("Verification des permissions requises au demarrage...");
 
-        // Toujours invalider le cache Redis au demarrage.
-        // Redis peut contenir des donnees obsoletes (ex: liste vide apres un crash DB)
-        // alors que le cache permissions a un TTL permanent (Duration.ZERO).
+        // Toujours invalider le cache Redis au demarrage pour eviter les listes vides
+        // persistees apres un crash ou un redemarrage force (TTL permanent = Duration.ZERO)
         log.info("Invalidation du cache Redis des permissions au demarrage...");
         permissionService.invalidateAllCache();
 
