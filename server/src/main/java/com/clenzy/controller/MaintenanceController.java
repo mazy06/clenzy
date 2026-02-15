@@ -1,7 +1,10 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.MaintenanceRequestDto;
+import com.clenzy.model.ReceivedForm;
+import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.EmailService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,13 +33,18 @@ public class MaintenanceController {
     private static final Logger log = LoggerFactory.getLogger(MaintenanceController.class);
 
     private final EmailService emailService;
+    private final ReceivedFormRepository receivedFormRepository;
+    private final ObjectMapper objectMapper;
 
     // Rate limiter simple en mémoire : IP -> liste de timestamps
     private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
     private static final int MAX_REQUESTS_PER_HOUR = 5;
 
-    public MaintenanceController(EmailService emailService) {
+    public MaintenanceController(EmailService emailService, ReceivedFormRepository receivedFormRepository,
+                                 ObjectMapper objectMapper) {
         this.emailService = emailService;
+        this.receivedFormRepository = receivedFormRepository;
+        this.objectMapper = objectMapper;
     }
 
     @PostMapping("/maintenance-request")
@@ -68,6 +76,23 @@ public class MaintenanceController {
             emailService.sendMaintenanceNotification(dto);
         } catch (Exception e) {
             log.error("Erreur d'envoi email maintenance mais réponse OK pour : {} — {}", dto.getFullName(), e.getMessage());
+        }
+
+        // 3b. Sauvegarde en BDD (double écriture)
+        try {
+            ReceivedForm form = new ReceivedForm();
+            form.setFormType("MAINTENANCE");
+            form.setFullName(dto.getFullName());
+            form.setEmail(dto.getEmail());
+            form.setPhone(dto.getPhone());
+            form.setCity(dto.getCity());
+            form.setPostalCode(dto.getPostalCode());
+            form.setSubject("Maintenance — " + dto.getFullName() + (dto.getCity() != null ? " — " + dto.getCity() : ""));
+            form.setPayload(objectMapper.writeValueAsString(dto));
+            form.setIpAddress(clientIp);
+            receivedFormRepository.save(form);
+        } catch (Exception e) {
+            log.error("Erreur sauvegarde formulaire maintenance : {}", e.getMessage());
         }
 
         int totalWorks = (dto.getSelectedWorks() != null ? dto.getSelectedWorks().size() : 0)

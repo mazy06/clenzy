@@ -16,6 +16,19 @@ spring:
           time_zone: Europe/Paris
   jackson:
     time-zone: Europe/Paris
+  mail:
+    host: ${MAIL_HOST:mail.clenzy.fr}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:info@clenzy.fr}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          starttls:
+            enable: false
   security:
     oauth2:
       resourceserver:

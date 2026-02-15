@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Tabs,
@@ -13,11 +13,15 @@ import {
   Add as AddIcon,
   Send as SendIcon,
   Inbox as InboxIcon,
-  Archive as ArchiveIcon
+  Archive as ArchiveIcon,
+  Description as FormsIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ContactMessages from './ContactMessages';
+import ReceivedFormsTab from './ReceivedFormsTab';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useAuth } from '../../hooks/useAuth';
+import { receivedFormsApi } from '../../services/api/receivedFormsApi';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -55,8 +59,19 @@ function TabPanel(props: TabPanelProps) {
 const ContactPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [newFormsCount, setNewFormsCount] = useState(0);
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const isAdminOrManager = user?.roles?.some((r) => ['ADMIN', 'MANAGER'].includes(r)) ?? false;
+
+  // Charger le compteur de formulaires NEW pour le badge
+  useEffect(() => {
+    if (!isAdminOrManager) return;
+    receivedFormsApi.getStats().then((stats) => {
+      setNewFormsCount(stats.totalNew);
+    });
+  }, [isAdminOrManager]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -97,6 +112,18 @@ const ContactPage: React.FC = () => {
               id="contact-tab-2"
               aria-controls="contact-tabpanel-2"
             />
+            {isAdminOrManager && (
+              <Tab
+                icon={
+                  <Badge badgeContent={newFormsCount} color="warning" max={99}>
+                    <FormsIcon />
+                  </Badge>
+                }
+                label="Formulaires reçus"
+                id="contact-tab-3"
+                aria-controls="contact-tabpanel-3"
+              />
+            )}
           </Tabs>
         </Box>
 
@@ -112,6 +139,12 @@ const ContactPage: React.FC = () => {
           <TabPanel value={tabValue} index={2}>
             <ContactMessages type="archived" />
           </TabPanel>
+
+          {isAdminOrManager && (
+            <TabPanel value={tabValue} index={3}>
+              <ReceivedFormsTab />
+            </TabPanel>
+          )}
         </Box>
       </Paper>
 
