@@ -22,7 +22,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { interventionsApi } from '../../services/api';
 
 interface UpcomingIntervention {
   id: number;
@@ -32,6 +32,18 @@ interface UpcomingIntervention {
   status: string;
   priority: string;
 }
+
+interface InterventionApiItem {
+  id: number;
+  title: string;
+  property?: { name?: string };
+  propertyName?: string;
+  scheduledDate?: string;
+  status: string;
+  priority?: string;
+}
+
+type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
 export default function UpcomingInterventions() {
   const navigate = useNavigate();
@@ -52,53 +64,31 @@ export default function UpcomingInterventions() {
 
     const loadUpcomingInterventions = async () => {
       try {
-        const token = localStorage.getItem('kc_access_token');
-        if (!token) {
-          setError('Non authentifié');
-          setLoading(false);
-          return;
-        }
-
         // Récupérer les interventions à venir (statut IN_PROGRESS ou PENDING avec date planifiée)
-        const response = await fetch(
-          `${API_CONFIG.BASE_URL}/api/interventions?size=20&sort=scheduledDate,asc`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
+        const data = await interventionsApi.getAll({ size: 20, sort: 'scheduledDate,asc' });
+        const items = (data as any).content || data || [];
 
-        if (response.ok) {
-          const data = await response.json();
-          const items = data.content || data || [];
-          
-          // Filtrer et formater les interventions à venir
-          const upcoming = items
-            .filter((item: any) => {
-              if (!item.scheduledDate) return false;
-              const scheduledDate = new Date(item.scheduledDate);
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              return scheduledDate >= today;
-            })
-            .slice(0, 5)
-            .map((item: any) => ({
-              id: item.id,
-              title: item.title,
-              property: item.property?.name || item.propertyName || 'N/A',
-              scheduledDate: item.scheduledDate,
-              status: item.status,
-              priority: item.priority || 'NORMAL'
-            }));
-          
-          setInterventions(upcoming);
-        } else {
-          setError('Erreur lors du chargement');
-        }
+        // Filtrer et formater les interventions à venir
+        const upcoming = items
+          .filter((item: InterventionApiItem) => {
+            if (!item.scheduledDate) return false;
+            const scheduledDate = new Date(item.scheduledDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return scheduledDate >= today;
+          })
+          .slice(0, 5)
+          .map((item: InterventionApiItem) => ({
+            id: item.id,
+            title: item.title,
+            property: item.property?.name || item.propertyName || 'N/A',
+            scheduledDate: item.scheduledDate,
+            status: item.status,
+            priority: item.priority || 'NORMAL'
+          }));
+
+        setInterventions(upcoming);
       } catch (err) {
-        console.error('Erreur chargement interventions à venir:', err);
         setError('Erreur de connexion');
       } finally {
         setLoading(false);
@@ -127,7 +117,7 @@ export default function UpcomingInterventions() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): ChipColor => {
     switch (status) {
       case 'IN_PROGRESS': return 'info';
       case 'PENDING': return 'warning';
@@ -229,7 +219,7 @@ export default function UpcomingInterventions() {
                         label={intervention.status}
                         size="small"
                         sx={{ fontSize: '0.6875rem', height: 20 }}
-                        color={getStatusColor(intervention.status) as any}
+                        color={getStatusColor(intervention.status)}
                       />
                       {intervention.priority === 'URGENT' && (
                         <Chip

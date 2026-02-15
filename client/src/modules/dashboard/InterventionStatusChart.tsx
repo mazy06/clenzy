@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
-import { API_CONFIG } from '../../config/api';
+import { interventionsApi } from '../../services/api';
 
 interface StatusCount {
   status: string;
@@ -45,47 +45,25 @@ export default function InterventionStatusChart() {
 
     const loadStatusData = async () => {
       try {
-        const token = localStorage.getItem('kc_access_token');
-        if (!token) {
-          setError('Non authentifié');
-          setLoading(false);
-          return;
-        }
+        const data = await interventionsApi.getAll({ size: 1000 });
+        const items = (data as any).content || data || [];
 
-        const response = await fetch(
-          `${API_CONFIG.BASE_URL}/api/interventions?size=1000`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
+        // Compter les interventions par statut
+        const statusCounts: { [key: string]: number } = {};
+        items.forEach((item: { status?: string }) => {
+          const status = item.status || 'PENDING';
+          statusCounts[status] = (statusCounts[status] || 0) + 1;
+        });
 
-        if (response.ok) {
-          const data = await response.json();
-          const items = data.content || data || [];
-          
-          // Compter les interventions par statut
-          const statusCounts: { [key: string]: number } = {};
-          items.forEach((item: any) => {
-            const status = item.status || 'PENDING';
-            statusCounts[status] = (statusCounts[status] || 0) + 1;
-          });
+        // Créer les données pour le graphique
+        const chartData: StatusCount[] = Object.entries(statusCounts).map(([status, count]) => ({
+          status,
+          count: count as number,
+          color: COLORS[status as keyof typeof COLORS] || '#9E9E9E'
+        }));
 
-          // Créer les données pour le graphique
-          const chartData: StatusCount[] = Object.entries(statusCounts).map(([status, count]) => ({
-            status,
-            count: count as number,
-            color: COLORS[status as keyof typeof COLORS] || '#9E9E9E'
-          }));
-
-          setStatusData(chartData);
-        } else {
-          setError('Erreur lors du chargement');
-        }
+        setStatusData(chartData);
       } catch (err) {
-        console.error('Erreur chargement données statuts:', err);
         setError('Erreur de connexion');
       } finally {
         setLoading(false);
