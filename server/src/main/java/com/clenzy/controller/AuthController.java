@@ -178,8 +178,9 @@ public class AuthController {
 
                 claims.put("permissions", permissions);
 
-                log.debug("/me - Utilisateur: {} role: {} ({} permissions)",
-                        user.getEmail(), user.getRole(), permissions.size());
+                log.info("/me - Utilisateur: {} role: {} permissions: {} ({})",
+                        user.getEmail(), user.getRole().name(), permissions.size(),
+                        permissions.isEmpty() ? "VIDE" : String.join(",", permissions));
             } else {
                 log.warn("/me - Utilisateur non trouve pour keycloakId: {}", keycloakId);
             }
