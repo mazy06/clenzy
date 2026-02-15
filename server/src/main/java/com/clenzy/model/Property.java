@@ -99,7 +99,13 @@ public class Property {
     
     @Column(name = "special_requirements", columnDefinition = "TEXT")
     private String specialRequirements;
-    
+
+    @Column(name = "default_check_in_time", length = 5)
+    private String defaultCheckInTime = "15:00";
+
+    @Column(name = "default_check_out_time", length = 5)
+    private String defaultCheckOutTime = "11:00";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -324,7 +330,23 @@ public class Property {
     public void setSpecialRequirements(String specialRequirements) {
         this.specialRequirements = specialRequirements;
     }
-    
+
+    public String getDefaultCheckInTime() {
+        return defaultCheckInTime;
+    }
+
+    public void setDefaultCheckInTime(String defaultCheckInTime) {
+        this.defaultCheckInTime = defaultCheckInTime;
+    }
+
+    public String getDefaultCheckOutTime() {
+        return defaultCheckOutTime;
+    }
+
+    public void setDefaultCheckOutTime(String defaultCheckOutTime) {
+        this.defaultCheckOutTime = defaultCheckOutTime;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }

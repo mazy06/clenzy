@@ -68,6 +68,8 @@ public class InterventionDto {
     public LocalDateTime startTime;
     public LocalDateTime endTime;
     
+    public String preferredTimeSlot;
+
     // Champs de paiement
     public String paymentStatus;
     public String stripePaymentIntentId;

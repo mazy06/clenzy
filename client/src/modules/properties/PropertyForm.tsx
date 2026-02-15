@@ -34,7 +34,8 @@ import {
   Euro,
   Bed,
   Bathroom,
-  SquareFoot
+  SquareFoot,
+  Schedule
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -110,7 +111,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
   
   // IMPORTANT: déclarer tous les hooks avant tout retour conditionnel
   const { control, handleSubmit: rhfHandleSubmit, setValue, reset, formState: { errors } } = useForm<PropertyFormValues>({
-    resolver: zodResolver(propertySchema),
+    resolver: zodResolver(propertySchema) as any,
     defaultValues: {
       name: '',
       address: '',
@@ -127,6 +128,8 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
       maxGuests: 2,
       cleaningFrequency: 'AFTER_EACH_STAY',
       ownerId: 0,
+      defaultCheckInTime: '15:00',
+      defaultCheckOutTime: '11:00',
     },
   });
 
@@ -191,6 +194,8 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
           maxGuests: property.maxGuests || 2,
           cleaningFrequency: property.cleaningFrequency?.toUpperCase() || 'AFTER_EACH_STAY',
           ownerId: property.ownerId || 0,
+          defaultCheckInTime: property.defaultCheckInTime || '15:00',
+          defaultCheckOutTime: property.defaultCheckOutTime || '11:00',
         });
       } catch (err) {
         setError(t('properties.loadError'));
@@ -301,6 +306,8 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
         maxGuests: formData.maxGuests,
         cleaningFrequency: formData.cleaningFrequency,
         ownerId: formData.ownerId,
+        defaultCheckInTime: formData.defaultCheckInTime,
+        defaultCheckOutTime: formData.defaultCheckOutTime,
       };
 
       if (isEditMode && propertyId) {
@@ -676,6 +683,54 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
                     size="small"
                     error={!!fieldState.error}
                     helperText={fieldState.error?.message}
+                  />
+                )}
+              />
+            </Grid>
+
+            {/* Heures par défaut */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Schedule sx={{ fontSize: 18 }} />
+                Heures par défaut
+              </Typography>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Controller
+                name="defaultCheckInTime"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    type="time"
+                    label="Heure d'arrivée par défaut"
+                    size="small"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message || 'Check-in (défaut : 15:00)'}
+                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ step: 900 }}
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Controller
+                name="defaultCheckOutTime"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    type="time"
+                    label="Heure de départ par défaut"
+                    size="small"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message || 'Check-out (défaut : 11:00)'}
+                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ step: 900 }}
                   />
                 )}
               />

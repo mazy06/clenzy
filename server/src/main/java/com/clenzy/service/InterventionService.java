@@ -995,7 +995,8 @@ public class InterventionService {
             dto.stripePaymentIntentId = intervention.getStripePaymentIntentId();
             dto.stripeSessionId = intervention.getStripeSessionId();
             dto.paidAt = intervention.getPaidAt();
-            
+            dto.preferredTimeSlot = intervention.getPreferredTimeSlot();
+
             System.out.println("🔍 InterventionService.convertToDto - Conversion terminée avec succès");
             return dto;
         } catch (Exception e) {

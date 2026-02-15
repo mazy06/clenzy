@@ -53,13 +53,17 @@ export interface InterventionFormData {
   progressPercentage: number;
 }
 
-interface Property {
+interface PropertyWithDefaults {
   id: number;
   name: string;
   address: string;
   city: string;
   postalCode: string;
+  defaultCheckOutTime?: string;
+  defaultCheckInTime?: string;
 }
+
+interface Property extends PropertyWithDefaults {}
 
 interface User {
   id: number;
@@ -133,6 +137,9 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   const [properties, setProperties] = useState<Property[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  // Separate date/time state for scheduled date
+  const [scheduledDatePart, setScheduledDatePart] = useState('');
+  const [scheduledTimePart, setScheduledTimePart] = useState('11:00');
 
   const { control, handleSubmit: rhfHandleSubmit, watch, setValue, reset } = useForm<InterventionFormValues>({
     resolver: zodResolver(interventionSchema) as any,
@@ -156,6 +163,25 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   });
 
   const watchedAssignedToType = watch('assignedToType');
+  const watchedPropertyId = watch('propertyId');
+
+  // Sync separate date/time → scheduledDate hidden field
+  useEffect(() => {
+    if (scheduledDatePart && scheduledTimePart) {
+      setValue('scheduledDate', `${scheduledDatePart}T${scheduledTimePart}`);
+    } else if (scheduledDatePart) {
+      setValue('scheduledDate', `${scheduledDatePart}T11:00`);
+    }
+  }, [scheduledDatePart, scheduledTimePart, setValue]);
+
+  // When property changes, set default time to property's checkout time
+  useEffect(() => {
+    if (!watchedPropertyId || watchedPropertyId === 0) return;
+    const selectedProperty = properties.find(p => p.id === watchedPropertyId);
+    if (selectedProperty?.defaultCheckOutTime && !isEditMode) {
+      setScheduledTimePart(selectedProperty.defaultCheckOutTime);
+    }
+  }, [watchedPropertyId, properties, isEditMode]);
 
   // Definir l'utilisateur par defaut selon le role
   useEffect(() => {
@@ -205,6 +231,15 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
 
         // In edit mode, populate the form with existing intervention data
         if (isEditMode && interventionData) {
+          const isoDate = interventionData.scheduledDate
+            ? new Date(interventionData.scheduledDate).toISOString().slice(0, 16)
+            : '';
+          // Split scheduledDate into date and time parts
+          if (isoDate) {
+            const [datePart, timePart] = isoDate.split('T');
+            setScheduledDatePart(datePart);
+            setScheduledTimePart(timePart || '11:00');
+          }
           reset({
             title: interventionData.title || '',
             description: interventionData.description || '',
@@ -215,9 +250,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
             requestorId: interventionData.requestorId || 0,
             assignedToId: interventionData.assignedToId || undefined,
             assignedToType: interventionData.assignedToType || undefined,
-            scheduledDate: interventionData.scheduledDate
-              ? new Date(interventionData.scheduledDate).toISOString().slice(0, 16)
-              : '',
+            scheduledDate: isoDate,
             estimatedDurationHours: interventionData.estimatedDurationHours || 1,
             estimatedCost: interventionData.estimatedCost ?? undefined,
             notes: interventionData.notes || '',
@@ -488,29 +521,43 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                     />
                   </Grid>
 
-                  <Grid item xs={12} sm={6}>
-                    <Controller
-                      name="scheduledDate"
-                      control={control}
-                      render={({ field, fieldState }) => (
-                        <TextField
-                          {...field}
-                          fullWidth
-                          label={t('interventions.fields.scheduledDate')}
-                          type="datetime-local"
-                          required
-                          error={!!fieldState.error}
-                          helperText={fieldState.error?.message}
-                          size="small"
-                          InputLabelProps={{
-                            shrink: true,
-                          }}
-                        />
-                      )}
+                  {/* Date planifiée (date seule) */}
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      label={t('interventions.fields.scheduledDate')}
+                      type="date"
+                      required
+                      value={scheduledDatePart}
+                      onChange={(e) => setScheduledDatePart(e.target.value)}
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
                     />
                   </Grid>
 
-                  <Grid item xs={12} sm={6}>
+                  {/* Heure de début */}
+                  <Grid item xs={6} sm={4}>
+                    <TextField
+                      fullWidth
+                      label="Heure"
+                      type="time"
+                      required
+                      value={scheduledTimePart}
+                      onChange={(e) => setScheduledTimePart(e.target.value)}
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ step: 900 }}
+                      helperText={
+                        (() => {
+                          const sel = properties.find(p => p.id === watchedPropertyId);
+                          return sel?.defaultCheckOutTime ? `Défaut : ${sel.defaultCheckOutTime}` : undefined;
+                        })()
+                      }
+                    />
+                  </Grid>
+
+                  {/* Durée estimée (fractionnaire) */}
+                  <Grid item xs={6} sm={4}>
                     <Controller
                       name="estimatedDurationHours"
                       control={control}
@@ -522,14 +569,23 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
                           type="number"
                           required
                           error={!!fieldState.error}
-                          helperText={fieldState.error?.message}
-                          inputProps={{ min: 1, max: 24 }}
+                          helperText={fieldState.error?.message || 'En heures (ex: 1.5 = 1h30)'}
+                          inputProps={{ min: 0.5, max: 24, step: 0.5 }}
                           size="small"
                           onChange={(e) => field.onChange(Number(e.target.value))}
                         />
                       )}
                     />
                   </Grid>
+
+                  {/* Hidden field for react-hook-form scheduledDate */}
+                  <Controller
+                    name="scheduledDate"
+                    control={control}
+                    render={({ field }) => (
+                      <input type="hidden" {...field} />
+                    )}
+                  />
 
                   <Grid item xs={12} sm={6}>
                     <Controller

@@ -16,6 +16,8 @@ export const propertySchema = z.object({
   maxGuests: z.number().int().min(1, 'Au moins 1 invité'),
   cleaningFrequency: z.string(),
   ownerId: z.number().min(1, 'Le propriétaire est requis'),
+  defaultCheckInTime: z.string().default('15:00'),
+  defaultCheckOutTime: z.string().default('11:00'),
 });
 
 export type PropertyFormValues = z.infer<typeof propertySchema>;
