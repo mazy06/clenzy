@@ -27,9 +27,6 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
     List<RolePermission> findByRole(@Param("role") Role role);
     
     @Query("SELECT rp.permission.name FROM RolePermission rp WHERE rp.role.name = :roleName AND rp.isActive = true")
-    @QueryHints({
-        @QueryHint(name = "org.hibernate.cacheable", value = "true")
-    })
     List<String> findActivePermissionsByRoleName(@Param("roleName") String roleName);
     
     @Query("SELECT rp FROM RolePermission rp WHERE rp.role.name IN :roleNames AND rp.isActive = true")
