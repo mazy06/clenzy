@@ -10,6 +10,8 @@ import com.clenzy.repository.RolePermissionRepository;
 import com.clenzy.repository.RoleRepository;
 import com.clenzy.repository.PermissionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -30,6 +32,9 @@ public class PermissionService {
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private CacheManager cacheManager;
 
     @Autowired
     private UserRepository userRepository;
@@ -223,6 +228,22 @@ public class PermissionService {
     }
 
     public void invalidateAllCache() {
+        // 1. Invalider les caches Spring @Cacheable (prefixe clenzy:permissions::, clenzy:roles::)
+        try {
+            Cache permissionsCache = cacheManager.getCache("permissions");
+            if (permissionsCache != null) {
+                permissionsCache.clear();
+                System.out.println("🔄 invalidateAllCache() - Cache Spring 'permissions' vide");
+            }
+            Cache rolesCache = cacheManager.getCache("roles");
+            if (rolesCache != null) {
+                rolesCache.clear();
+                System.out.println("🔄 invalidateAllCache() - Cache Spring 'roles' vide");
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ invalidateAllCache() - Erreur vidage cache Spring: " + e.getMessage());
+        }
+        // 2. Invalider les cles Redis manuelles (role:permissions:*, user:permissions:*, roles:all)
         Set<String> keys = redisTemplate.keys(ROLE_PERMISSIONS_KEY + "*");
         if (keys != null && !keys.isEmpty()) {
             redisTemplate.delete(keys);
@@ -232,7 +253,7 @@ public class PermissionService {
             redisTemplate.delete(userKeys);
         }
         redisTemplate.delete(ROLES_KEY);
-        System.out.println("🔄 PermissionService.invalidateAllCache() - Invalidation de tout le cache Redis");
+        System.out.println("🔄 PermissionService.invalidateAllCache() - Invalidation complete (Spring + Redis manuel)");
     }
 
     // Méthodes pour récupérer les permissions depuis la base de données
