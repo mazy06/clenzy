@@ -50,7 +50,11 @@ public class InterventionDto {
     public BigDecimal estimatedCost;
     public BigDecimal actualCost;
     public String notes;
-    public String photos;
+    public String photos; // Ancien champ pour compatibilité
+    public String beforePhotosUrls; // URLs des photos avant intervention
+    public String afterPhotosUrls; // URLs des photos après intervention
+    public String validatedRooms; // JSON array des indices des pièces validées (ex: "[0,1,2]")
+    public String completedSteps; // JSON array des étapes complétées (ex: "[\"inspection\",\"rooms\",\"after_photos\"]")
     public Integer progressPercentage;
 
     // Champs de lecture (non modifiables)
@@ -60,6 +64,8 @@ public class InterventionDto {
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
     public LocalDateTime completedAt;
+    public LocalDateTime startTime;
+    public LocalDateTime endTime;
     
     // Champs de paiement
     public String paymentStatus;
