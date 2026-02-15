@@ -17,7 +17,6 @@ public class InterventionPhoto {
     @JoinColumn(name = "intervention_id", nullable = false)
     private Intervention intervention;
     
-    @Lob
     @Column(name = "photo_data", nullable = false, columnDefinition = "BYTEA")
     private byte[] photoData;
     
@@ -29,6 +28,9 @@ public class InterventionPhoto {
     
     @Column(length = 500)
     private String caption;
+    
+    @Column(name = "photo_type", length = 10)
+    private String photoType; // 'BEFORE' ou 'AFTER'
     
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -89,6 +91,14 @@ public class InterventionPhoto {
     
     public void setCaption(String caption) {
         this.caption = caption;
+    }
+    
+    public String getPhotoType() {
+        return photoType;
+    }
+    
+    public void setPhotoType(String photoType) {
+        this.photoType = photoType;
     }
     
     public LocalDateTime getCreatedAt() {

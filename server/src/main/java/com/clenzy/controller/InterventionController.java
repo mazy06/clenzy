@@ -132,6 +132,12 @@ public class InterventionController {
         return interventionService.startIntervention(id, jwt);
     }
     
+    @PutMapping("/{id}/reopen")
+    @Operation(summary = "Rouvrir une intervention terminée pour permettre des modifications")
+    public InterventionDto reopenIntervention(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        return interventionService.reopenIntervention(id, jwt);
+    }
+    
     @PutMapping("/{id}/progress")
     @Operation(summary = "Mettre à jour la progression d'une intervention")
     public InterventionDto updateProgress(@PathVariable Long id, 
@@ -144,8 +150,9 @@ public class InterventionController {
     @Operation(summary = "Ajouter des photos à une intervention")
     public InterventionDto addPhotos(@PathVariable Long id,
                                    @RequestParam("photos") java.util.List<org.springframework.web.multipart.MultipartFile> photos,
+                                   @RequestParam(value = "photoType", defaultValue = "before") String photoType,
                                    @AuthenticationPrincipal Jwt jwt) {
-        return interventionService.addPhotos(id, photos, jwt);
+        return interventionService.addPhotos(id, photos, photoType, jwt);
     }
     
     @PutMapping(value = "/{id}/notes", consumes = "application/x-www-form-urlencoded")
@@ -154,5 +161,21 @@ public class InterventionController {
                                        @RequestParam String notes,
                                        @AuthenticationPrincipal Jwt jwt) {
         return interventionService.updateNotes(id, notes, jwt);
+    }
+    
+    @PutMapping(value = "/{id}/validated-rooms", consumes = "application/x-www-form-urlencoded")
+    @Operation(summary = "Mettre à jour les pièces validées d'une intervention")
+    public InterventionDto updateValidatedRooms(@PathVariable Long id,
+                                               @RequestParam String validatedRooms,
+                                               @AuthenticationPrincipal Jwt jwt) {
+        return interventionService.updateValidatedRooms(id, validatedRooms, jwt);
+    }
+    
+    @PutMapping(value = "/{id}/completed-steps", consumes = "application/x-www-form-urlencoded")
+    @Operation(summary = "Mettre à jour les étapes complétées d'une intervention")
+    public InterventionDto updateCompletedSteps(@PathVariable Long id,
+                                               @RequestParam String completedSteps,
+                                               @AuthenticationPrincipal Jwt jwt) {
+        return interventionService.updateCompletedSteps(id, completedSteps, jwt);
     }
 }
