@@ -60,11 +60,8 @@ import UserProfilePage from './profile/UserProfilePage';
 
 // Portfolios
 import PortfoliosPage from './portfolios/PortfoliosPage';
-import ClientAssignmentPageNoAuth from './portfolios/ClientAssignmentPageNoAuth';
-import ClientAssignmentPage from './portfolios/ClientAssignmentPage';
 import ClientPropertyAssignmentForm from './portfolios/ClientPropertyAssignmentForm';
 import TeamUserAssignmentForm from './portfolios/TeamUserAssignmentForm';
-import TeamAssignmentPage from './portfolios/TeamAssignmentPage';
 
 // Admin pages
 import TokenMonitoringPage from './admin/TokenMonitoringPage';
@@ -245,10 +242,7 @@ const AuthenticatedApp: React.FC = () => {
             <ClientPropertyAssignmentForm />
           </ProtectedRoute>
         } />
-        <Route path="/test-no-auth" element={
-          <ClientAssignmentPageNoAuth />
-        } />
-        <Route path="/portfolios/team-assignment" element={
+<Route path="/portfolios/team-assignment" element={
           <ProtectedRoute requiredPermission="portfolios:manage">
             <TeamUserAssignmentForm />
           </ProtectedRoute>
