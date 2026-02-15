@@ -3,6 +3,7 @@ package com.clenzy.config;
 import com.clenzy.model.Permission;
 import com.clenzy.model.Role;
 import com.clenzy.model.RolePermission;
+import com.clenzy.model.UserRole;
 import com.clenzy.repository.PermissionRepository;
 import com.clenzy.repository.RolePermissionRepository;
 import com.clenzy.repository.RoleRepository;
@@ -56,7 +57,21 @@ public class PermissionInitializer {
         permissionService.invalidateAllCache();
 
         // ====================================================================
-        // Toutes les permissions requises par le frontend
+        // 1. Creer les roles manquants dans la table 'roles'
+        //    La table est utilisee pour les jointures avec role_permissions
+        //    mais n'est initialisee par aucune migration.
+        // ====================================================================
+        for (UserRole userRole : UserRole.values()) {
+            Optional<Role> existing = roleRepository.findByName(userRole.name());
+            if (existing.isEmpty()) {
+                Role role = new Role(userRole.name(), userRole.getDisplayName(), userRole.getDescription());
+                roleRepository.save(role);
+                log.info("Role cree dans la table roles: {} ({})", userRole.name(), userRole.getDisplayName());
+            }
+        }
+
+        // ====================================================================
+        // 2. Toutes les permissions requises par le frontend
         // Source : useCustomPermissions.ts (defaultRolePermissions)
         //          useNavigationMenu.tsx (MENU_CONFIG_BASE)
         //          AuthenticatedApp.tsx (ProtectedRoute)
