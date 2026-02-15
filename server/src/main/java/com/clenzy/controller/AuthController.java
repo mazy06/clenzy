@@ -165,6 +165,7 @@ public class AuthController {
                 claims.put("lastLogin", user.getLastLogin());
                 claims.put("createdAt", user.getCreatedAt());
                 claims.put("updatedAt", user.getUpdatedAt());
+                claims.put("forfait", user.getForfait());
 
                 RolePermissionsDto rolePermissions = permissionService.getRolePermissions(user.getRole().name());
                 List<String> permissions = rolePermissions.getPermissions();

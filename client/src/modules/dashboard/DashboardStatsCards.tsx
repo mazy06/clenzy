@@ -33,19 +33,17 @@ interface DashboardStatsCardsProps {
 
 const DashboardStatsCards: React.FC<DashboardStatsCardsProps> = ({ stats, loading, error, navigate }) => {
   return (
-    <Grid container spacing={2} sx={{ mb: 2 }}>
+    <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
       {loading ? (
-        // Skeleton loading
         Array.from({ length: 4 }).map((_, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
+          <Grid item xs={6} sm={6} md={3} key={index}>
             <Card sx={{ height: '100%' }}>
-              <CardContent sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Skeleton variant="rectangular" width={40} height={40} sx={{ borderRadius: 1 }} />
+              <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Skeleton variant="rectangular" width={36} height={36} sx={{ borderRadius: 1 }} />
                   <Box sx={{ flex: 1 }}>
-                    <Skeleton variant="text" width="60%" height={24} sx={{ mb: 0.25 }} />
-                    <Skeleton variant="text" width="80%" height={14} sx={{ mb: 0.25 }} />
-                    <Skeleton variant="text" width="40%" height={12} />
+                    <Skeleton variant="text" width="60%" height={22} sx={{ mb: 0.25 }} />
+                    <Skeleton variant="text" width="80%" height={14} />
                   </Box>
                 </Box>
               </CardContent>
@@ -54,13 +52,13 @@ const DashboardStatsCards: React.FC<DashboardStatsCardsProps> = ({ stats, loadin
         ))
       ) : error ? (
         <Grid item xs={12}>
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ mb: 1 }}>
             {error}
           </Alert>
         </Grid>
       ) : (
         stats.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
+          <Grid item xs={6} sm={6} md={3} key={index}>
             <Card
               sx={{
                 height: '100%',
@@ -72,20 +70,20 @@ const DashboardStatsCards: React.FC<DashboardStatsCardsProps> = ({ stats, loadin
               }}
             >
               <CardActionArea onClick={() => navigate(stat.route)}>
-                <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {/* Icone */}
                     <Box
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        minWidth: 40,
-                        height: 40,
+                        minWidth: 36,
+                        height: 36,
                         borderRadius: 1,
                         bgcolor: 'rgba(166, 192, 206, 0.1)',
                         '& .MuiSvgIcon-root': {
-                          fontSize: 24,
+                          fontSize: 20,
                         }
                       }}
                     >
@@ -100,8 +98,8 @@ const DashboardStatsCards: React.FC<DashboardStatsCardsProps> = ({ stats, loadin
                         sx={{
                           fontWeight: 700,
                           lineHeight: 1.2,
-                          mb: 0.25,
-                          fontSize: { xs: '1rem', sm: '1.125rem' }
+                          mb: 0.125,
+                          fontSize: { xs: '0.9375rem', sm: '1rem' }
                         }}
                       >
                         {stat.value}
@@ -110,9 +108,9 @@ const DashboardStatsCards: React.FC<DashboardStatsCardsProps> = ({ stats, loadin
                         variant="body2"
                         color="text.secondary"
                         sx={{
-                          fontSize: '0.75rem',
+                          fontSize: '0.6875rem',
                           lineHeight: 1.2,
-                          mb: 0.25,
+                          mb: 0.125,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap'
@@ -122,16 +120,16 @@ const DashboardStatsCards: React.FC<DashboardStatsCardsProps> = ({ stats, loadin
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         {stat.growth.type === 'up' ? (
-                          <TrendingUp color="success" sx={{ fontSize: 14 }} />
+                          <TrendingUp color="success" sx={{ fontSize: 12 }} />
                         ) : stat.growth.type === 'down' ? (
-                          <TrendingDown color="error" sx={{ fontSize: 14 }} />
+                          <TrendingDown color="error" sx={{ fontSize: 12 }} />
                         ) : (
-                          <Star color="info" sx={{ fontSize: 14 }} />
+                          <Star color="info" sx={{ fontSize: 12 }} />
                         )}
                         <Typography
                           variant="caption"
                           sx={{
-                            fontSize: '0.6875rem',
+                            fontSize: '0.625rem',
                             fontWeight: 600,
                             color: stat.growth.type === 'up'
                               ? 'success.main'

@@ -60,6 +60,7 @@ public class InterventionDto {
     // Champs de lecture (non modifiables)
     public String propertyName;
     public String propertyAddress;
+    public String propertyType;
     public String requestorName;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;

@@ -21,7 +21,6 @@ import {
   CheckCircle,
   CalendarMonth,
   Dashboard as DashboardIcon,
-  Timeline as TimelineIcon,
   Sync as SyncIcon,
   CalendarToday as CalendarTodayIcon,
 } from '@mui/icons-material';
@@ -33,6 +32,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import DashboardPlanning from './DashboardPlanning';
 import UpcomingInterventions from './UpcomingInterventions';
 import AlertsWidget from './AlertsWidget';
+import PendingPaymentsWidget from './PendingPaymentsWidget';
 import ServiceRequestsWidget from './ServiceRequestsWidget';
 import DashboardStatsCards from './DashboardStatsCards';
 import DashboardQuickActions from './DashboardQuickActions';
@@ -40,31 +40,11 @@ import DashboardCharts from './DashboardCharts';
 import DashboardActivityFeed from './DashboardActivityFeed';
 import DashboardDateFilter from './DashboardDateFilter';
 import ICalImportModal from './ICalImportModal';
+import UpgradeBanner from './UpgradeBanner';
 import type { DashboardPeriod } from './DashboardDateFilter';
 import type { StatItem } from './DashboardStatsCards';
 
-// ─── Tab helpers (same pattern as PortfoliosPage) ────────────────────────────
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`dashboard-tabpanel-${index}`}
-      aria-labelledby={`dashboard-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ py: 2 }}>{children}</Box>}
-    </div>
-  );
-}
+// ─── Tab helpers ────────────────────────────────────────────────────────────
 
 function a11yProps(index: number) {
   return {
@@ -115,7 +95,7 @@ const Dashboard: React.FC = () => {
 
   const { stats, activities, loading, error, formatGrowth } = useDashboardStats(userRole, user, t, 10);
 
-  // ─── Dynamic stats (same logic as before) ──────────────────────────────
+  // ─── Dynamic stats ──────────────────────────────────────────────────────
 
   const getDynamicStats = (): StatItem[] => {
     if (!stats) return [];
@@ -280,6 +260,11 @@ const Dashboard: React.FC = () => {
     canViewSettings ||
     canViewReports;
 
+  // Determine if the operations section has visible content
+  const hasOperationsContent = canViewInterventions || canViewServiceRequests;
+  const hasActivityContent =
+    canViewProperties || canViewServiceRequests || canViewInterventions || canViewTeams;
+
   return (
     <Box>
       {/* ─── Header ────────────────────────────────────────────────────── */}
@@ -308,7 +293,7 @@ const Dashboard: React.FC = () => {
                 </Button>
               </span>
             </Tooltip>
-            <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
+            <Tooltip title="Importer les reservations via un lien iCal (.ics)" arrow>
               <Button
                 variant="outlined"
                 size="small"
@@ -332,17 +317,15 @@ const Dashboard: React.FC = () => {
         }
       />
 
-      {/* ─── Tabs ──────────────────────────────────────────────────────── */}
+      {/* ─── Tabs (2 onglets seulement : Planning / Vue d'ensemble) ──── */}
       <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0 }}>
         <Tabs
           value={tabValue}
           onChange={(_, v) => setTabValue(v)}
-          variant="scrollable"
-          scrollButtons="auto"
           sx={{
-            minHeight: 42,
+            minHeight: 38,
             '& .MuiTab-root': {
-              minHeight: 42,
+              minHeight: 38,
               py: 0.5,
               fontSize: '0.8125rem',
               textTransform: 'none',
@@ -361,18 +344,6 @@ const Dashboard: React.FC = () => {
             label={t('dashboard.tabs.overview') || "Vue d'ensemble"}
             {...a11yProps(1)}
           />
-          <Tab
-            icon={<TimelineIcon sx={{ fontSize: 18 }} />}
-            iconPosition="start"
-            label={t('dashboard.tabs.activity') || 'Activité'}
-            {...a11yProps(2)}
-          />
-          <Tab
-            icon={<Build sx={{ fontSize: 18 }} />}
-            iconPosition="start"
-            label={t('dashboard.tabs.operations') || 'Opérations'}
-            {...a11yProps(3)}
-          />
         </Tabs>
       </Paper>
 
@@ -384,108 +355,108 @@ const Dashboard: React.FC = () => {
           aria-labelledby="dashboard-tab-0"
           sx={{
             py: 1,
-            // Le planning occupe toute la hauteur restante de l'écran
             height: 'calc(100vh - 220px)',
             minHeight: 400,
             display: 'flex',
             flexDirection: 'column',
           }}
         >
-          <DashboardPlanning />
+          {isHost && user?.forfait?.toLowerCase() === 'essentiel' && (
+            <UpgradeBanner currentForfait={user.forfait} />
+          )}
+          <DashboardPlanning forfait={user?.forfait} />
         </Box>
       )}
 
-      {/* ─── Tab 1: Vue d'ensemble ─────────────────────────────────────── */}
-      <TabPanel value={tabValue} index={1}>
-        <DashboardStatsCards
-          stats={dynamicStats}
-          loading={loading}
-          error={error}
-          navigate={navigate}
-        />
+      {/* ─── Tab 1: Vue d'ensemble (fusionné) ─────────────────────────── */}
+      {tabValue === 1 && (
+        <Box
+          role="tabpanel"
+          id="dashboard-tabpanel-1"
+          aria-labelledby="dashboard-tab-1"
+          sx={{ pt: 1.5, pb: 2 }}
+        >
+          {/* ── Stats KPI ──────────────────────────────────────────────── */}
+          <DashboardStatsCards
+            stats={dynamicStats}
+            loading={loading}
+            error={error}
+            navigate={navigate}
+          />
 
-        {canViewCharts && <DashboardCharts />}
-      </TabPanel>
+          {/* ── Charts (admin/manager/supervisor only) ─────────────────── */}
+          {canViewCharts && <DashboardCharts />}
 
-      {/* ─── Tab 2: Activité ───────────────────────────────────────────── */}
-      <TabPanel value={tabValue} index={2}>
-        {(canViewProperties ||
-          canViewServiceRequests ||
-          canViewInterventions ||
-          canViewTeams) && (
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={8}>
-              <DashboardActivityFeed
-                activities={feedActivities}
-                loading={loading}
-                navigate={navigate}
-                t={t}
-              />
+          {/* ── Activite + Operations : grille unifiee ─────────────────── */}
+          {(hasActivityContent || hasOperationsContent) && (
+            <Grid container spacing={1.5}>
+              {/* ─ Colonne gauche : Activite + Alertes ─────────────────── */}
+              <Grid item xs={12} md={5}>
+                {hasActivityContent && (
+                  <DashboardActivityFeed
+                    activities={feedActivities}
+                    loading={loading}
+                    navigate={navigate}
+                    t={t}
+                  />
+                )}
+                {canViewInterventions && (
+                  <Box sx={{ mt: 1.5 }}>
+                    <AlertsWidget />
+                  </Box>
+                )}
+                {canViewInterventions && (
+                  <Box sx={{ mt: 1.5 }}>
+                    <PendingPaymentsWidget />
+                  </Box>
+                )}
+              </Grid>
 
-              {canViewInterventions && (
-                <Box sx={{ mt: 2 }}>
-                  <AlertsWidget />
-                </Box>
-              )}
+              {/* ─ Colonne centre : Operations ─────────────────────────── */}
+              <Grid item xs={12} md={4}>
+                {canViewInterventions && (
+                  <UpcomingInterventions />
+                )}
+                {canViewServiceRequests && (
+                  <Box sx={{ mt: canViewInterventions ? 1.5 : 0 }}>
+                    <ServiceRequestsWidget />
+                  </Box>
+                )}
+              </Grid>
+
+              {/* ─ Colonne droite : Actions rapides ────────────────────── */}
+              <Grid item xs={12} md={3}>
+                <DashboardQuickActions
+                  canViewProperties={canViewProperties}
+                  canViewServiceRequests={canViewServiceRequests}
+                  canViewInterventions={canViewInterventions}
+                  canViewTeams={canViewTeams}
+                  canViewUsers={canViewUsers}
+                  canViewSettings={canViewSettings}
+                  isAdmin={isAdmin}
+                  isManager={isManager}
+                  isHost={isHost}
+                  navigate={navigate}
+                  t={t}
+                />
+              </Grid>
             </Grid>
-            <DashboardQuickActions
-              canViewProperties={canViewProperties}
-              canViewServiceRequests={canViewServiceRequests}
-              canViewInterventions={canViewInterventions}
-              canViewTeams={canViewTeams}
-              canViewUsers={canViewUsers}
-              canViewSettings={canViewSettings}
-              isAdmin={isAdmin}
-              isManager={isManager}
-              isHost={isHost}
-              navigate={navigate}
-              t={t}
-            />
-          </Grid>
-        )}
-      </TabPanel>
+          )}
 
-      {/* ─── Tab 3: Opérations ─────────────────────────────────────────── */}
-      <TabPanel value={tabValue} index={3}>
-        {(canViewInterventions || canViewServiceRequests) && (
-          <Grid container spacing={2}>
-            {canViewInterventions && (
-              <Grid item xs={12} md={6}>
-                <UpcomingInterventions />
-              </Grid>
-            )}
-            {canViewServiceRequests && (
-              <Grid item xs={12} md={6}>
-                <ServiceRequestsWidget />
-              </Grid>
-            )}
-          </Grid>
-        )}
-
-        {!canViewInterventions && !canViewServiceRequests && (
-          <Card>
-            <CardContent sx={{ p: 4, textAlign: 'center' }}>
-              <Typography variant="body1" color="text.secondary">
-                {t('dashboard.noOperationsPermissions') ||
-                  "Vous n'avez pas les permissions nécessaires pour voir les opérations."}
-              </Typography>
-            </CardContent>
-          </Card>
-        )}
-      </TabPanel>
-
-      {/* ─── No permissions fallback ───────────────────────────────────── */}
-      {!hasAnyPermission && (
-        <Card sx={{ mt: 2 }}>
-          <CardContent sx={{ p: 4, textAlign: 'center' }}>
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-              {t('dashboard.noPermissions')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t('dashboard.noPermissionsMessage')}
-            </Typography>
-          </CardContent>
-        </Card>
+          {/* ── Aucune permission ──────────────────────────────────────── */}
+          {!hasAnyPermission && (
+            <Card>
+              <CardContent sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                  {t('dashboard.noPermissions')}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontSize: '0.8125rem' }}>
+                  {t('dashboard.noPermissionsMessage')}
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
+        </Box>
       )}
 
       {/* ─── iCal Import Modal ──────────────────────────────────────────── */}

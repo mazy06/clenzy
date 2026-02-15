@@ -9,9 +9,7 @@ import {
   ListItemIcon,
   Chip,
   Box,
-  Button,
   CircularProgress,
-  Alert,
   Divider
 } from '@mui/material';
 import {
@@ -45,7 +43,6 @@ export default function AlertsWidget() {
   const canViewInterventions = user?.permissions?.includes('interventions:view') || false;
 
   useEffect(() => {
-    // Ne pas charger les données si l'utilisateur n'a pas la permission
     if (!canViewInterventions) {
       setLoading(false);
       return;
@@ -55,7 +52,6 @@ export default function AlertsWidget() {
       try {
         const alertItems: AlertItem[] = [];
 
-        // Récupérer les interventions urgentes (IN_PROGRESS et PENDING)
         let urgentItems: Array<{ id: number; status?: string; priority?: string }> = [];
 
         try {
@@ -63,6 +59,7 @@ export default function AlertsWidget() {
           const items = (urgentInProgressData as any).content || urgentInProgressData || [];
           urgentItems = [...urgentItems, ...items];
         } catch (err) {
+          // ignore
         }
 
         try {
@@ -70,9 +67,9 @@ export default function AlertsWidget() {
           const items = (urgentPendingData as any).content || urgentPendingData || [];
           urgentItems = [...urgentItems, ...items];
         } catch (err) {
+          // ignore
         }
 
-        // Dédupliquer par ID
         const uniqueUrgentItems = urgentItems.filter((item, index, self) =>
           index === self.findIndex((t) => t.id === item.id)
         );
@@ -88,7 +85,6 @@ export default function AlertsWidget() {
           });
         }
 
-        // Pour les managers/admins : interventions en attente de validation
         if (isManager() || isAdmin()) {
           try {
             const validationData = await interventionsApi.getAll({ status: 'AWAITING_VALIDATION', size: 10 } as any);
@@ -104,10 +100,10 @@ export default function AlertsWidget() {
               });
             }
           } catch (err) {
+            // ignore
           }
         }
 
-        // Pour les hosts : interventions en attente de paiement
         if (isHost()) {
           try {
             const paymentData = await interventionsApi.getAll({ status: 'AWAITING_PAYMENT', size: 10 } as any);
@@ -123,11 +119,13 @@ export default function AlertsWidget() {
               });
             }
           } catch (err) {
+            // ignore
           }
         }
 
         setAlerts(alertItems);
       } catch (err) {
+        // ignore
       } finally {
         setLoading(false);
       }
@@ -138,50 +136,41 @@ export default function AlertsWidget() {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'urgent':
-        return <Warning color="error" sx={{ fontSize: '20px' }} />;
-      case 'payment':
-        return <Payment color="warning" sx={{ fontSize: '20px' }} />;
-      case 'validation':
-        return <CheckCircle color="info" sx={{ fontSize: '20px' }} />;
-      default:
-        return <Assignment color="primary" sx={{ fontSize: '20px' }} />;
+      case 'urgent': return <Warning color="error" sx={{ fontSize: 16 }} />;
+      case 'payment': return <Payment color="warning" sx={{ fontSize: 16 }} />;
+      case 'validation': return <CheckCircle color="info" sx={{ fontSize: 16 }} />;
+      default: return <Assignment color="primary" sx={{ fontSize: 16 }} />;
     }
   };
 
   const getColor = (type: string): 'error' | 'warning' | 'info' | 'default' => {
     switch (type) {
-      case 'urgent':
-        return 'error';
-      case 'payment':
-        return 'warning';
-      case 'validation':
-        return 'info';
-      default:
-        return 'default';
+      case 'urgent': return 'error';
+      case 'payment': return 'warning';
+      case 'validation': return 'info';
+      default: return 'default';
     }
   };
 
-  // Ne pas afficher le widget si l'utilisateur n'a pas la permission
   if (!canViewInterventions) {
     return null;
   }
 
   return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 1.5 }}>
+    <Card>
+      <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+        <Typography variant="subtitle2" sx={{ fontSize: '0.8125rem', fontWeight: 600, mb: 1 }}>
           {t('dashboard.alerts')}
         </Typography>
 
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-            <CircularProgress size={24} />
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+            <CircularProgress size={20} />
           </Box>
         ) : alerts.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 2 }}>
-            <CheckCircle color="success" sx={{ fontSize: '40px', mb: 1, opacity: 0.5 }} />
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+          <Box sx={{ textAlign: 'center', py: 1.5 }}>
+            <CheckCircle color="success" sx={{ fontSize: 28, mb: 0.5, opacity: 0.5 }} />
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
               {t('dashboard.noAlerts')}
             </Typography>
           </Box>
@@ -192,7 +181,7 @@ export default function AlertsWidget() {
                 <ListItem
                   sx={{
                     px: 0,
-                    py: 1.5,
+                    py: 1,
                     cursor: 'pointer',
                     '&:hover': {
                       bgcolor: 'action.hover'
@@ -200,32 +189,32 @@ export default function AlertsWidget() {
                   }}
                   onClick={() => navigate(alert.route)}
                 >
-                  <ListItemIcon sx={{ minWidth: 36 }}>
+                  <ListItemIcon sx={{ minWidth: 30 }}>
                     {getIcon(alert.type)}
                   </ListItemIcon>
                   <ListItemText
                     primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body2" sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
                           {alert.title}
                         </Typography>
                         {alert.count !== undefined && (
                           <Chip
                             label={alert.count}
                             size="small"
-                            sx={{ fontSize: '0.6875rem', height: 20 }}
+                            sx={{ fontSize: '0.5625rem', height: 16, '& .MuiChip-label': { px: 0.5 } }}
                             color={getColor(alert.type)}
                           />
                         )}
                       </Box>
                     }
                     secondary={
-                      <Typography variant="caption" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.625rem' }}>
                         {alert.description}
                       </Typography>
                     }
                   />
-                  <ArrowForward sx={{ fontSize: '16px', color: 'text.secondary' }} />
+                  <ArrowForward sx={{ fontSize: 14, color: 'text.secondary' }} />
                 </ListItem>
                 {index < alerts.length - 1 && <Divider />}
               </React.Fragment>

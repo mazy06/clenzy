@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import com.clenzy.model.PaymentStatus;
 import jakarta.persistence.QueryHint;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -194,6 +195,40 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
            "FROM Intervention i WHERE i.estimatedCost IS NOT NULL AND i.estimatedCost > 0 " +
            "AND i.requestor IS NOT NULL ORDER BY i.requestor.lastName")
     List<Object[]> findDistinctHostsWithPayments();
+
+    /**
+     * Interventions pour le planning : filtrees par proprietes et plage de dates
+     */
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner " +
+           "WHERE i.property.id IN :propertyIds " +
+           "AND i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
+           "ORDER BY i.scheduledDate ASC")
+    List<Intervention> findByPropertyIdsAndDateRange(
+            @Param("propertyIds") List<Long> propertyIds,
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate);
+
+    /**
+     * Toutes les interventions pour le planning dans une plage de dates (admin/manager)
+     */
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner " +
+           "WHERE i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
+           "ORDER BY i.scheduledDate ASC")
+    List<Intervention> findAllByDateRange(
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate);
+
+    /**
+     * Interventions pour le planning d'un owner specifique
+     */
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner " +
+           "WHERE p.owner.keycloakId = :keycloakId " +
+           "AND i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
+           "ORDER BY i.scheduledDate ASC")
+    List<Intervention> findByOwnerKeycloakIdAndDateRange(
+            @Param("keycloakId") String keycloakId,
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate);
 
     /**
      * Méthode de compatibilité pour les services existants

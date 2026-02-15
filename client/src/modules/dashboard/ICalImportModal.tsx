@@ -29,6 +29,7 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Grid,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -39,12 +40,13 @@ import {
   Info as InfoIcon,
   Sync as SyncIcon,
   EventAvailable as EventIcon,
-  Block as BlockIcon,
 } from '@mui/icons-material';
 import { iCalApi } from '../../services/api/iCalApi';
 import { propertiesApi } from '../../services/api/propertiesApi';
+import { usersApi } from '../../services/api/usersApi';
 import type { Property } from '../../services/api/propertiesApi';
 import type { ICalPreviewResponse, ICalImportResponse, ICalEventPreview } from '../../services/api/iCalApi';
+import { useAuth } from '../../hooks/useAuth';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -52,6 +54,13 @@ interface ICalImportModalProps {
   open: boolean;
   onClose: () => void;
   onImportSuccess?: () => void;
+}
+
+interface Owner {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
 }
 
 const SOURCES = [
@@ -67,15 +76,19 @@ const STEPS = ['Configuration', 'Apercu', 'Resultat'];
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImportSuccess }) => {
+  const { user, isAdmin, isManager, isHost } = useAuth();
+
   // Stepper
   const [activeStep, setActiveStep] = useState(0);
 
   // Step 1: Config
   const [url, setUrl] = useState('');
+  const [ownerId, setOwnerId] = useState<number | ''>('');
   const [propertyId, setPropertyId] = useState<number | ''>('');
   const [sourceName, setSourceName] = useState('Airbnb');
   const [autoCreateInterventions, setAutoCreateInterventions] = useState(false);
-  const [properties, setProperties] = useState<Property[]>([]);
+  const [allProperties, setAllProperties] = useState<Property[]>([]);
+  const [owners, setOwners] = useState<Owner[]>([]);
   const [hasAccess, setHasAccess] = useState(true);
 
   // Step 2: Preview
@@ -88,7 +101,10 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ─── Load properties + check access on open ───────────────────────────
+  // Determine si l'utilisateur peut changer le proprietaire
+  const canChangeOwner = isAdmin() || isManager();
+
+  // ─── Load properties + owners + check access on open ────────────────
 
   useEffect(() => {
     if (open) {
@@ -98,17 +114,69 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
 
   const loadInitialData = async () => {
     try {
-      const [propertiesPage, accessCheck] = await Promise.all([
+      const promises: Promise<any>[] = [
         propertiesApi.getAll({ size: 500, sort: 'name,asc' }),
         iCalApi.checkAccess(),
-      ]);
-      // getAll() returns a Spring Page object — extract the content array
+      ];
+
+      // Charger les proprietaires si admin/manager
+      if (canChangeOwner) {
+        promises.push(usersApi.getAll({ role: 'HOST' }));
+      }
+
+      const results = await Promise.all(promises);
+
+      const propertiesPage = results[0];
+      const accessCheck = results[1];
+
       const list = Array.isArray(propertiesPage) ? propertiesPage : (propertiesPage as any).content ?? [];
-      setProperties(list);
+      setAllProperties(list);
       setHasAccess(accessCheck.allowed);
+
+      if (canChangeOwner && results[2]) {
+        const hostsData = Array.isArray(results[2]) ? results[2] : (results[2] as any).content ?? [];
+        setOwners(hostsData);
+      }
+
+      // Pour un HOST, pre-selectionner son propre ID
+      if (isHost() && !canChangeOwner && user?.id) {
+        setOwnerId(Number(user.id));
+      }
     } catch (err) {
       console.error('Erreur chargement donnees initiales:', err);
     }
+  };
+
+  // ─── Proprietes filtrees par proprietaire ────────────────────────────
+
+  const filteredProperties = ownerId
+    ? allProperties.filter(p => p.ownerId === Number(ownerId))
+    : allProperties;
+
+  // Quand le proprietaire change, reset la propriete si elle n'est plus dans la liste filtree
+  useEffect(() => {
+    if (propertyId && ownerId) {
+      const stillValid = filteredProperties.some(p => p.id === propertyId);
+      if (!stillValid) {
+        setPropertyId('');
+      }
+    }
+  }, [ownerId]);
+
+  // ─── Nom du proprietaire pour affichage ──────────────────────────────
+
+  const getOwnerDisplayName = (): string => {
+    if (!user) return '';
+    // Pour un HOST, afficher son propre nom
+    if (isHost() && !canChangeOwner) {
+      return `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || '';
+    }
+    // Pour admin/manager avec un owner selectionne
+    if (ownerId) {
+      const owner = owners.find(o => o.id === Number(ownerId));
+      return owner ? `${owner.firstName} ${owner.lastName}` : '';
+    }
+    return '';
   };
 
   // ─── Reset on close ────────────────────────────────────────────────────
@@ -116,6 +184,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   const handleClose = () => {
     setActiveStep(0);
     setUrl('');
+    setOwnerId(isHost() && !canChangeOwner && user?.id ? Number(user.id) : '');
     setPropertyId('');
     setSourceName('Airbnb');
     setAutoCreateInterventions(false);
@@ -210,6 +279,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         </Typography>
       </Alert>
 
+      {/* URL du calendrier */}
       <TextField
         label="Lien iCal (.ics)"
         placeholder="https://www.airbnb.fr/calendar/ical/12345.ics?s=..."
@@ -224,77 +294,135 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         }}
       />
 
-      <FormControl fullWidth required disabled={!hasAccess}>
-        <InputLabel>Propriete</InputLabel>
-        <Select
-          value={propertyId}
-          label="Propriete"
-          onChange={(e) => setPropertyId(e.target.value as number)}
-        >
-          {properties.map((p) => (
-            <MenuItem key={p.id} value={p.id}>
-              {p.name} — {p.city}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      {/* Proprietaire + Propriete + Source + Menage auto — Layout 2 colonnes */}
+      <Grid container spacing={2}>
+        {/* Colonne gauche : Proprietaire + Propriete */}
+        <Grid item xs={12} md={6}>
+          {/* Champ Proprietaire */}
+          {canChangeOwner ? (
+            <FormControl fullWidth disabled={!hasAccess} sx={{ mb: 2 }}>
+              <InputLabel>Proprietaire</InputLabel>
+              <Select
+                value={ownerId}
+                label="Proprietaire"
+                onChange={(e) => {
+                  setOwnerId(e.target.value as number);
+                  setPropertyId(''); // reset propriete quand on change de proprietaire
+                }}
+              >
+                {owners.map((owner) => (
+                  <MenuItem key={owner.id} value={owner.id}>
+                    {owner.firstName} {owner.lastName} — {owner.email}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : (
+            <TextField
+              label="Proprietaire"
+              value={getOwnerDisplayName()}
+              fullWidth
+              disabled
+              sx={{
+                mb: 2,
+                '& .MuiInputBase-input.Mui-disabled': {
+                  WebkitTextFillColor: 'rgba(0,0,0,0.6)',
+                },
+              }}
+            />
+          )}
 
-      <FormControl fullWidth disabled={!hasAccess}>
-        <InputLabel>Source</InputLabel>
-        <Select
-          value={sourceName}
-          label="Source"
-          onChange={(e) => setSourceName(e.target.value)}
-        >
-          {SOURCES.map((s) => (
-            <MenuItem key={s.value} value={s.value}>
-              {s.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-
-      <Box sx={{
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1,
-        p: 2,
-        bgcolor: autoCreateInterventions ? 'primary.50' : 'transparent',
-        transition: 'background-color 0.2s',
-      }}>
-        <FormControlLabel
-          control={
-            <Tooltip
-              title={
-                !hasAccess
-                  ? 'Disponible avec le forfait Confort ou Premium'
-                  : ''
-              }
-              arrow
+          {/* Champ Propriete */}
+          <FormControl fullWidth required disabled={!hasAccess || (canChangeOwner && !ownerId)}>
+            <InputLabel>Propriete</InputLabel>
+            <Select
+              value={propertyId}
+              label="Propriete"
+              onChange={(e) => setPropertyId(e.target.value as number)}
             >
-              <span>
-                <Switch
-                  checked={autoCreateInterventions}
-                  onChange={(e) => setAutoCreateInterventions(e.target.checked)}
-                  disabled={!hasAccess}
-                  color="primary"
-                />
-              </span>
-            </Tooltip>
-          }
-          label={
-            <Box>
-              <Typography variant="body2" fontWeight={500}>
-                Menage automatique fin de sejour
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Planifie automatiquement un menage le jour du checkout a 11h00 pour chaque reservation importee
-              </Typography>
-            </Box>
-          }
-          sx={{ alignItems: 'flex-start', ml: 0 }}
-        />
-      </Box>
+              {filteredProperties.map((p) => (
+                <MenuItem key={p.id} value={p.id}>
+                  {p.name} — {p.city}
+                </MenuItem>
+              ))}
+              {filteredProperties.length === 0 && (
+                <MenuItem disabled value="">
+                  <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                    {canChangeOwner && !ownerId
+                      ? 'Selectionnez d\'abord un proprietaire'
+                      : 'Aucune propriete disponible'}
+                  </Typography>
+                </MenuItem>
+              )}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        {/* Colonne droite : Source + Menage automatique */}
+        <Grid item xs={12} md={6}>
+          {/* Champ Source */}
+          <FormControl fullWidth disabled={!hasAccess} sx={{ mb: 2 }}>
+            <InputLabel>Source</InputLabel>
+            <Select
+              value={sourceName}
+              label="Source"
+              onChange={(e) => setSourceName(e.target.value)}
+            >
+              {SOURCES.map((s) => (
+                <MenuItem key={s.value} value={s.value}>
+                  {s.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Menage automatique */}
+          <Box sx={{
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1,
+            p: 1.5,
+            bgcolor: autoCreateInterventions ? 'rgba(107, 138, 154, 0.04)' : 'transparent',
+            transition: 'background-color 0.2s',
+            height: 'calc(100% - 68px)', // aligner avec le champ source + gap
+            display: 'flex',
+            alignItems: 'flex-start',
+          }}>
+            <FormControlLabel
+              control={
+                <Tooltip
+                  title={
+                    !hasAccess
+                      ? 'Disponible avec le forfait Confort ou Premium'
+                      : ''
+                  }
+                  arrow
+                >
+                  <span>
+                    <Switch
+                      checked={autoCreateInterventions}
+                      onChange={(e) => setAutoCreateInterventions(e.target.checked)}
+                      disabled={!hasAccess}
+                      color="primary"
+                    />
+                  </span>
+                </Tooltip>
+              }
+              label={
+                <Box>
+                  <Typography variant="body2" fontWeight={500}>
+                    Menage automatique
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Planifie un menage le jour du checkout a 11h00
+                  </Typography>
+                </Box>
+              }
+              sx={{ alignItems: 'flex-start', ml: 0, mr: 0 }}
+            />
+          </Box>
+        </Grid>
+      </Grid>
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)}>
@@ -309,8 +437,9 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   const renderPreviewStep = () => {
     if (!preview) return null;
 
-    const reservations = preview.events.filter((e: ICalEventPreview) => e.type === 'reservation');
-    const blocked = preview.events.filter((e: ICalEventPreview) => e.type === 'blocked');
+    // Toutes les entrees sont des reservations — plus de distinction bloquee/reservation
+    const allEvents = preview.events;
+    const totalCount = allEvents.length;
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -320,23 +449,16 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           </Typography>
           <Chip
             icon={<EventIcon sx={{ fontSize: 16 }} />}
-            label={`${preview.totalReservations} reservation${preview.totalReservations > 1 ? 's' : ''}`}
+            label={`${totalCount} reservation${totalCount > 1 ? 's' : ''}`}
             color="primary"
-            size="small"
-            variant="outlined"
-          />
-          <Chip
-            icon={<BlockIcon sx={{ fontSize: 16 }} />}
-            label={`${preview.totalBlocked} date${preview.totalBlocked > 1 ? 's' : ''} bloquee${preview.totalBlocked > 1 ? 's' : ''}`}
-            color="default"
             size="small"
             variant="outlined"
           />
         </Box>
 
-        {preview.totalReservations === 0 && (
+        {totalCount === 0 && (
           <Alert severity="info">
-            Aucune reservation trouvee dans ce calendrier. Seules des dates bloquees ont ete detectees.
+            Aucune reservation trouvee dans ce calendrier.
           </Alert>
         )}
 
@@ -347,41 +469,22 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
                 <TableCell sx={{ fontWeight: 600 }}>Arrivee</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Depart</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">Nuits</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Guest</TableCell>
-                <TableCell sx={{ fontWeight: 600 }} align="center">Type</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Guest / Details</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {reservations.map((event: ICalEventPreview, index: number) => (
-                <TableRow key={`res-${index}`} hover>
+              {allEvents.map((event: ICalEventPreview, index: number) => (
+                <TableRow key={`evt-${index}`} hover>
                   <TableCell>{formatDate(event.dtStart)}</TableCell>
                   <TableCell>{formatDate(event.dtEnd)}</TableCell>
                   <TableCell align="center">{event.nights || '-'}</TableCell>
                   <TableCell>
-                    {event.guestName || '-'}
+                    {event.guestName || event.summary || 'Reservation'}
                     {event.confirmationCode && (
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                         {event.confirmationCode}
                       </Typography>
                     )}
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip label="Reservation" color="success" size="small" variant="outlined" />
-                  </TableCell>
-                </TableRow>
-              ))}
-              {blocked.map((event: ICalEventPreview, index: number) => (
-                <TableRow key={`blk-${index}`} hover sx={{ opacity: 0.6 }}>
-                  <TableCell>{formatDate(event.dtStart)}</TableCell>
-                  <TableCell>{formatDate(event.dtEnd)}</TableCell>
-                  <TableCell align="center">{event.nights || '-'}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary" fontStyle="italic">
-                      {event.summary || 'Date bloquee'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip label="Bloquee" color="default" size="small" variant="outlined" />
                   </TableCell>
                 </TableRow>
               ))}
@@ -389,10 +492,10 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           </Table>
         </TableContainer>
 
-        {autoCreateInterventions && preview.totalReservations > 0 && (
+        {autoCreateInterventions && totalCount > 0 && (
           <Alert severity="info" icon={<SyncIcon />}>
-            {preview.totalReservations} intervention{preview.totalReservations > 1 ? 's' : ''} de menage
-            {preview.totalReservations > 1 ? ' seront' : ' sera'} automatiquement planifiee{preview.totalReservations > 1 ? 's' : ''} a 11h00 chaque jour de checkout.
+            {totalCount} intervention{totalCount > 1 ? 's' : ''} de menage
+            {totalCount > 1 ? ' seront' : ' sera'} automatiquement planifiee{totalCount > 1 ? 's' : ''} a 11h00 chaque jour de checkout.
           </Alert>
         )}
 
@@ -470,6 +573,8 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   };
 
   // ─── Render ────────────────────────────────────────────────────────────
+
+  const totalPreviewEvents = preview?.events.length || 0;
 
   return (
     <Dialog
@@ -558,13 +663,13 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               onClick={handleImport}
               variant="contained"
               color="primary"
-              disabled={loading || !preview || preview.totalReservations === 0}
+              disabled={loading || !preview || totalPreviewEvents === 0}
               startIcon={loading ? <CircularProgress size={18} /> : <ImportIcon />}
               sx={{ minWidth: 180 }}
             >
               {loading
                 ? 'Import en cours...'
-                : `Importer ${preview?.totalReservations || 0} reservation${(preview?.totalReservations || 0) > 1 ? 's' : ''}`}
+                : `Importer ${totalPreviewEvents} reservation${totalPreviewEvents > 1 ? 's' : ''}`}
             </Button>
           </>
         )}

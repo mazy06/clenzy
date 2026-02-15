@@ -942,6 +942,10 @@ public class InterventionService {
                 dto.propertyId = intervention.getProperty().getId();
                 dto.propertyName = intervention.getProperty().getName();
                 dto.propertyAddress = intervention.getProperty().getAddress();
+                if (intervention.getProperty().getType() != null) {
+                    // Expose a stable machine value for the frontend (ex: apartment, guest_room, cottage)
+                    dto.propertyType = intervention.getProperty().getType().name().toLowerCase();
+                }
                 System.out.println("🔍 InterventionService.convertToDto - Propriété: " + dto.propertyName + " (ID: " + dto.propertyId + ")");
             } else {
                 System.out.println("🔍 InterventionService.convertToDto - Aucune propriété associée");

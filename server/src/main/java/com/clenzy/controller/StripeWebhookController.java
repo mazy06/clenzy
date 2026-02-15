@@ -2,6 +2,7 @@ package com.clenzy.controller;
 
 import com.clenzy.service.InscriptionService;
 import com.clenzy.service.StripeService;
+import com.clenzy.service.SubscriptionService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stripe.Stripe;
@@ -27,6 +28,7 @@ public class StripeWebhookController {
 
     private final StripeService stripeService;
     private final InscriptionService inscriptionService;
+    private final SubscriptionService subscriptionService;
 
     @Value("${stripe.webhook-secret}")
     private String webhookSecret;
@@ -34,9 +36,12 @@ public class StripeWebhookController {
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
 
-    public StripeWebhookController(StripeService stripeService, InscriptionService inscriptionService) {
+    public StripeWebhookController(StripeService stripeService,
+                                   InscriptionService inscriptionService,
+                                   SubscriptionService subscriptionService) {
         this.stripeService = stripeService;
         this.inscriptionService = inscriptionService;
+        this.subscriptionService = subscriptionService;
     }
 
     /**
@@ -181,6 +186,14 @@ public class StripeWebhookController {
                 inscriptionService.completeInscription(sessionId, customerId, subscriptionId);
             } catch (Exception e) {
                 logger.error("Erreur lors de la finalisation de l'inscription pour session: {}", sessionId, e);
+            }
+        } else if ("upgrade".equals(type)) {
+            // Upgrade de forfait (subscription) : mettre a jour le forfait utilisateur
+            logger.info("Upgrade de forfait reussi pour session: {}", sessionId);
+            try {
+                subscriptionService.completeUpgrade(sessionId);
+            } catch (Exception e) {
+                logger.error("Erreur lors de la finalisation de l'upgrade pour session: {}", sessionId, e);
             }
         } else if ("grouped_deferred".equals(type)) {
             // Paiement groupe differe : confirmer toutes les interventions incluses

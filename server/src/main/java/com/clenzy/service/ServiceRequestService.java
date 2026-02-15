@@ -499,6 +499,9 @@ public class ServiceRequestService {
         dto.status = intervention.getStatus().name();
         dto.priority = intervention.getPriority();
         dto.propertyId = intervention.getProperty().getId();
+        if (intervention.getProperty() != null && intervention.getProperty().getType() != null) {
+            dto.propertyType = intervention.getProperty().getType().name().toLowerCase();
+        }
         dto.requestorId = intervention.getRequestor().getId();
         
         // Conversion de LocalDateTime en String pour scheduledDate
@@ -666,5 +669,4 @@ public class ServiceRequestService {
         return dto;
     }
 }
-
 

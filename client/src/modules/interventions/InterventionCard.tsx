@@ -1,68 +1,66 @@
 import React from 'react';
 import {
-  Box,
   Card,
   CardContent,
   Typography,
   Button,
+  Box,
   Chip,
   IconButton,
   LinearProgress,
+  Tooltip,
 } from '@mui/material';
 import {
   Visibility,
-  MoreVert,
+  Edit,
   LocationOn,
-  CalendarToday,
+  CleaningServices,
+  Build,
+  Schedule,
   AccessTime,
   Person as PersonIcon,
   Group as GroupIcon,
-  CleaningServices,
-  Build,
+  MoreVert,
+  TrendingUp,
   Category,
-  Schedule,
+  Warning,
+  Bolt,
   Yard,
   BugReport,
   AutoFixHigh,
-  Edit,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { getPropertyTypeBannerUrl } from '../../utils/propertyTypeBanner';
 
 type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
-interface ServiceRequest {
-  id: string;
+interface Intervention {
+  id: number;
   title: string;
   description: string;
   type: string;
   status: string;
   priority: string;
-  propertyId: number;
+  propertyType?: string;
   propertyName: string;
   propertyAddress: string;
-  propertyCity: string;
-  requestorId: number;
   requestorName: string;
-  assignedToId?: number;
-  assignedToName?: string;
-  assignedToType?: 'user' | 'team';
-  estimatedDuration: number;
-  dueDate: string;
+  assignedToName: string;
+  assignedToType: 'user' | 'team';
+  scheduledDate: string;
+  estimatedDurationHours: number;
+  progressPercentage: number;
   createdAt: string;
-  approvedAt?: string;
 }
 
-interface ServiceRequestCardProps {
-  request: ServiceRequest;
-  onMenuOpen: (event: React.MouseEvent<HTMLElement>, request: ServiceRequest) => void;
-  typeIcons: { [key: string]: React.ReactElement };
-  statuses: Array<{ value: string; label: string }>;
-  priorities: Array<{ value: string; label: string }>;
-  statusColors: { [key: string]: string };
-  priorityColors: { [key: string]: string };
+interface InterventionCardProps {
+  intervention: Intervention;
+  onMenuOpen: (event: React.MouseEvent<HTMLElement>, intervention: Intervention) => void;
+  canEdit?: boolean;
+  t: (key: string) => string;
 }
 
-// Gradient par catégorie de type de demande de service
+// Gradient par catégorie de type d'intervention
 const getTypeGradient = (type: string): string => {
   const cleaningTypes = [
     'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
@@ -77,16 +75,16 @@ const getTypeGradient = (type: string): string => {
   const outdoorTypes = ['GARDENING', 'PEST_CONTROL'];
 
   if (cleaningTypes.includes(type)) {
-    return 'linear-gradient(135deg, #7BA3C2 0%, #9BB8D1 100%)';
+    return 'linear-gradient(135deg, #5B9BD5 0%, #7CB4E2 100%)';
   }
   if (repairTypes.includes(type)) {
-    return 'linear-gradient(135deg, #C07A7A 0%, #D4A0A0 100%)';
+    return 'linear-gradient(135deg, #C0504D 0%, #D4726F 100%)';
   }
   if (maintenanceTypes.includes(type)) {
-    return 'linear-gradient(135deg, #D4A574 0%, #E8C19A 100%)';
+    return 'linear-gradient(135deg, #E8A838 0%, #F0C060 100%)';
   }
   if (outdoorTypes.includes(type)) {
-    return 'linear-gradient(135deg, #6B9B8E 0%, #8BB5A8 100%)';
+    return 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)';
   }
   return 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)';
 };
@@ -138,7 +136,7 @@ const getTypeSmallIcon = (type: string) => {
 const getTypeLabel = (type: string): string => {
   switch (type) {
     case 'CLEANING': return 'Nettoyage';
-    case 'EXPRESS_CLEANING': return 'Express';
+    case 'EXPRESS_CLEANING': return 'Nettoyage Express';
     case 'DEEP_CLEANING': return 'Nettoyage Profond';
     case 'WINDOW_CLEANING': return 'Vitres';
     case 'FLOOR_CLEANING': return 'Sols';
@@ -160,7 +158,56 @@ const getTypeLabel = (type: string): string => {
   }
 };
 
-// Formater la date
+const getStatusColor = (status: string): ChipColor => {
+  switch (status) {
+    case 'PENDING': return 'warning';
+    case 'AWAITING_VALIDATION': return 'warning';
+    case 'AWAITING_PAYMENT': return 'warning';
+    case 'SCHEDULED': return 'info';
+    case 'IN_PROGRESS': return 'primary';
+    case 'ON_HOLD': return 'warning';
+    case 'COMPLETED': return 'success';
+    case 'CANCELLED': return 'error';
+    default: return 'default';
+  }
+};
+
+const getStatusLabel = (status: string): string => {
+  switch (status) {
+    case 'PENDING': return 'En attente';
+    case 'AWAITING_VALIDATION': return 'Validation';
+    case 'AWAITING_PAYMENT': return 'Paiement';
+    case 'SCHEDULED': return 'Planifié';
+    case 'IN_PROGRESS': return 'En cours';
+    case 'ON_HOLD': return 'Suspendu';
+    case 'COMPLETED': return 'Terminé';
+    case 'CANCELLED': return 'Annulé';
+    default: return status;
+  }
+};
+
+const getPriorityColor = (priority: string): ChipColor => {
+  switch (priority) {
+    case 'LOW': return 'success';
+    case 'NORMAL': return 'info';
+    case 'HIGH': return 'warning';
+    case 'URGENT': return 'error';
+    case 'CRITICAL': return 'error';
+    default: return 'default';
+  }
+};
+
+const getPriorityLabel = (priority: string): string => {
+  switch (priority) {
+    case 'LOW': return 'Basse';
+    case 'NORMAL': return 'Normale';
+    case 'HIGH': return 'Haute';
+    case 'URGENT': return 'Urgente';
+    case 'CRITICAL': return 'Critique';
+    default: return priority;
+  }
+};
+
 const formatDate = (dateString: string): string => {
   try {
     const date = new Date(dateString);
@@ -174,37 +221,31 @@ const formatDate = (dateString: string): string => {
   }
 };
 
-// Formater la durée estimée
 const formatDuration = (hours: number): string => {
-  if (hours < 1) {
-    const minutes = Math.round(hours * 60);
-    return `${minutes} min`;
-  }
+  if (hours < 1) return `${Math.round(hours * 60)} min`;
   if (hours === 1) return '1h';
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
-  if (m === 0) return `${h}h`;
-  return `${h}h${m}min`;
+  return `${hours}h`;
 };
 
-const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
-  request,
+const InterventionCard: React.FC<InterventionCardProps> = ({
+  intervention,
   onMenuOpen,
-  typeIcons,
-  statuses,
-  priorities,
-  statusColors,
-  priorityColors,
+  canEdit = false,
+  t,
 }) => {
   const navigate = useNavigate();
-
-  const statusLabel = statuses.find(s => s.value === request.status)?.label || request.status;
-  const priorityLabel = priorities.find(p => p.value === request.priority)?.label || request.priority;
-  const statusChipColor = (statusColors[request.status] as ChipColor) || 'default';
-  const priorityChipColor = (priorityColors[request.priority] as ChipColor) || 'default';
+  const propertyBannerUrl = intervention.propertyType ? getPropertyTypeBannerUrl(intervention.propertyType) : null;
 
   const handleViewDetails = () => {
-    navigate(`/service-requests/${request.id}`);
+    navigate(`/interventions/${intervention.id}`);
+  };
+
+  // Couleur de la barre de progression
+  const getProgressColor = (pct: number): 'inherit' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+    if (pct >= 100) return 'success';
+    if (pct >= 50) return 'primary';
+    if (pct >= 25) return 'info';
+    return 'warning';
   };
 
   return (
@@ -227,7 +268,14 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
       <Box
         sx={{
           position: 'relative',
-          background: getTypeGradient(request.type),
+          background: propertyBannerUrl ? 'transparent' : getTypeGradient(intervention.type),
+          ...(propertyBannerUrl
+            ? {
+                backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.40)), url(${propertyBannerUrl})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }
+            : null),
           height: 110,
           display: 'flex',
           alignItems: 'center',
@@ -244,7 +292,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
             opacity: 0.8,
           }}
         >
-          {getTypeIcon(request.type, 80)}
+          {getTypeIcon(intervention.type, 80)}
         </Box>
 
         {/* Type en haut à gauche */}
@@ -259,7 +307,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {getTypeSmallIcon(request.type)}
+            {getTypeSmallIcon(intervention.type)}
           </Box>
           <Typography
             variant="caption"
@@ -271,14 +319,14 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
               textTransform: 'uppercase',
             }}
           >
-            {getTypeLabel(request.type)}
+            {getTypeLabel(intervention.type)}
           </Typography>
         </Box>
 
         {/* Badge statut — coin supérieur droit */}
         <Chip
-          label={statusLabel}
-          color={statusChipColor}
+          label={getStatusLabel(intervention.status)}
+          color={getStatusColor(intervention.status)}
           size="small"
           sx={{
             position: 'absolute',
@@ -291,7 +339,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
           }}
         />
 
-        {/* Date d'échéance — coin inférieur gauche */}
+        {/* Date planifiée — coin inférieur gauche */}
         <Box
           sx={{
             position: 'absolute',
@@ -307,7 +355,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
             py: 0.5,
           }}
         >
-          <CalendarToday sx={{ fontSize: 14, color: 'rgba(255,255,255,0.8)' }} />
+          <Schedule sx={{ fontSize: 14, color: 'rgba(255,255,255,0.8)' }} />
           <Typography
             variant="caption"
             sx={{
@@ -317,14 +365,14 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
               lineHeight: 1,
             }}
           >
-            {formatDate(request.dueDate)}
+            {formatDate(intervention.scheduledDate)}
           </Typography>
         </Box>
 
         {/* Badge priorité — coin inférieur droit */}
         <Chip
-          label={priorityLabel}
-          color={priorityChipColor}
+          label={getPriorityLabel(intervention.priority)}
+          color={getPriorityColor(intervention.priority)}
           size="small"
           variant="filled"
           sx={{
@@ -341,7 +389,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
         {/* Menu contextuel */}
         <IconButton
           size="small"
-          onClick={(e) => { e.stopPropagation(); onMenuOpen(e, request); }}
+          onClick={(e) => { e.stopPropagation(); onMenuOpen(e, intervention); }}
           sx={{
             position: 'absolute',
             top: 8,
@@ -371,9 +419,9 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
             mb: 0.25,
             color: 'text.primary',
           }}
-          title={request.title}
+          title={intervention.title}
         >
-          {request.title}
+          {intervention.title}
         </Typography>
 
         {/* Description */}
@@ -388,9 +436,9 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
             fontSize: '0.7rem',
             mb: 1,
           }}
-          title={request.description}
+          title={intervention.description}
         >
-          {request.description}
+          {intervention.description}
         </Typography>
 
         {/* Propriété */}
@@ -406,9 +454,9 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
               flex: 1,
               fontSize: '0.7rem',
             }}
-            title={request.propertyName}
+            title={`${intervention.propertyName} - ${intervention.propertyAddress}`}
           >
-            {request.propertyName}
+            {intervention.propertyName}
           </Typography>
         </Box>
 
@@ -421,64 +469,76 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
             flexWrap: 'wrap',
           }}
         >
-          <Box
+          {[
+            { icon: <AccessTime sx={{ fontSize: 14 }} />, value: formatDuration(intervention.estimatedDurationHours), label: '' },
+            { icon: <TrendingUp sx={{ fontSize: 14 }} />, value: `${intervention.progressPercentage}%`, label: '' },
+          ].map((metric, idx) => (
+            <Box
+              key={idx}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.4,
+                bgcolor: 'grey.100',
+                borderRadius: 1,
+                px: 0.75,
+                py: 0.35,
+              }}
+            >
+              <Box sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center' }}>
+                {metric.icon}
+              </Box>
+              <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.72rem', color: 'text.primary' }}>
+                {metric.value}
+              </Typography>
+              {metric.label && (
+                <Typography variant="caption" sx={{ fontSize: '0.62rem', color: 'text.secondary' }}>
+                  {metric.label}
+                </Typography>
+              )}
+            </Box>
+          ))}
+        </Box>
+
+        {/* Barre de progression */}
+        <Box sx={{ mb: 1.25 }}>
+          <LinearProgress
+            variant="determinate"
+            value={intervention.progressPercentage}
+            color={getProgressColor(intervention.progressPercentage)}
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.4,
-              bgcolor: 'grey.100',
-              borderRadius: 1,
-              px: 0.75,
-              py: 0.35,
+              height: 5,
+              borderRadius: 3,
+              bgcolor: 'grey.200',
+              '& .MuiLinearProgress-bar': {
+                borderRadius: 3,
+              },
             }}
-          >
-            <AccessTime sx={{ fontSize: 14, color: 'text.secondary' }} />
-            <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.72rem', color: 'text.primary' }}>
-              {formatDuration(request.estimatedDuration)}
-            </Typography>
-          </Box>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.4,
-              bgcolor: 'grey.100',
-              borderRadius: 1,
-              px: 0.75,
-              py: 0.35,
-            }}
-          >
-            <Schedule sx={{ fontSize: 14, color: 'text.secondary' }} />
-            <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.72rem', color: 'text.primary' }}>
-              {formatDate(request.createdAt)}
-            </Typography>
-          </Box>
+          />
         </Box>
 
         {/* Assignation */}
-        {request.assignedToName && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-            {request.assignedToType === 'team' ? (
-              <GroupIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
-            ) : (
-              <PersonIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+          {intervention.assignedToType === 'team' ? (
+            <GroupIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+          ) : (
+            <PersonIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+          )}
+          <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
+            {intervention.assignedToName || 'Non assigné'}
+            {intervention.assignedToType === 'team' && (
+              <Box component="span" sx={{ ml: 0.5, color: 'info.main', fontSize: '0.6rem' }}>
+                (Équipe)
+              </Box>
             )}
-            <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
-              {request.assignedToName}
-              {request.assignedToType === 'team' && (
-                <Box component="span" sx={{ ml: 0.5, color: 'info.main', fontSize: '0.6rem' }}>
-                  (Équipe)
-                </Box>
-              )}
-            </Typography>
-          </Box>
-        )}
+          </Typography>
+        </Box>
 
         {/* Demandeur */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <PersonIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
           <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
-            {request.requestorName}
+            {intervention.requestorName}
           </Typography>
         </Box>
       </CardContent>
@@ -505,9 +565,22 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
         >
           Détails
         </Button>
+        {canEdit && (
+          <Button
+            fullWidth
+            size="small"
+            startIcon={<Edit sx={{ fontSize: 15 }} />}
+            onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}/edit`); }}
+            variant="outlined"
+            color="primary"
+            sx={{ fontSize: '0.72rem', py: 0.5 }}
+          >
+            Modifier
+          </Button>
+        )}
       </Box>
     </Card>
   );
 };
 
-export default ServiceRequestCard;
+export default InterventionCard;
