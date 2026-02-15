@@ -2,8 +2,11 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.QuoteRequestDto;
 import com.clenzy.dto.QuoteResponseDto;
+import com.clenzy.model.ReceivedForm;
+import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.EmailService;
 import com.clenzy.service.PricingConfigService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,14 +39,19 @@ public class QuoteController {
 
     private final EmailService emailService;
     private final PricingConfigService pricingConfigService;
+    private final ReceivedFormRepository receivedFormRepository;
+    private final ObjectMapper objectMapper;
 
     // Rate limiter simple en mémoire : IP -> liste de timestamps
     private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
     private static final int MAX_REQUESTS_PER_HOUR = 5;
 
-    public QuoteController(EmailService emailService, PricingConfigService pricingConfigService) {
+    public QuoteController(EmailService emailService, PricingConfigService pricingConfigService,
+                           ReceivedFormRepository receivedFormRepository, ObjectMapper objectMapper) {
         this.emailService = emailService;
         this.pricingConfigService = pricingConfigService;
+        this.receivedFormRepository = receivedFormRepository;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -109,6 +117,23 @@ public class QuoteController {
         } catch (Exception e) {
             // On ne bloque pas la réponse au prospect même si l'email échoue
             log.error("Erreur d'envoi email mais réponse OK pour : {} — {}", dto.getFullName(), e.getMessage());
+        }
+
+        // 4b. Sauvegarde en BDD (double écriture)
+        try {
+            ReceivedForm form = new ReceivedForm();
+            form.setFormType("DEVIS");
+            form.setFullName(dto.getFullName());
+            form.setEmail(dto.getEmail());
+            form.setPhone(dto.getPhone());
+            form.setCity(dto.getCity());
+            form.setPostalCode(dto.getPostalCode());
+            form.setSubject("Demande de devis — " + dto.getFullName() + " — " + dto.getCity());
+            form.setPayload(objectMapper.writeValueAsString(dto));
+            form.setIpAddress(clientIp);
+            receivedFormRepository.save(form);
+        } catch (Exception e) {
+            log.error("Erreur sauvegarde formulaire devis : {}", e.getMessage());
         }
 
         log.info("Demande de devis traitée : {} ({}) — Forfait : {} ({}€/intervention)",
