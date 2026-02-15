@@ -29,7 +29,7 @@ export interface ActivityItem {
   type: string;
   property: string;
   time: string;
-  status: 'completed' | 'urgent' | 'scheduled' | 'pending' | 'approved' | 'created' | 'started' | 'finished' | 'in_progress';
+  status: 'completed' | 'urgent' | 'scheduled' | 'pending' | 'approved' | 'created' | 'started' | 'finished';
   timestamp: string;
   category: 'property' | 'service-request' | 'intervention' | 'user' | 'team';
   details?: {
