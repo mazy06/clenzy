@@ -27,6 +27,7 @@ import {
   Edit,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { getServiceTypeBannerUrl } from '../utils/serviceTypeBanner';
 
 type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
@@ -223,11 +224,14 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
       }}
       onClick={handleViewDetails}
     >
-      {/* ─── Zone visuelle : Bandeau gradient ─── */}
+      {/* ─── Zone visuelle : Bandeau image + gradient ─── */}
       <Box
         sx={{
           position: 'relative',
           background: getTypeGradient(request.type),
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.35)), url(${getServiceTypeBannerUrl(request.type)})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
           height: 110,
           display: 'flex',
           alignItems: 'center',
