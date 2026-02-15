@@ -23,7 +23,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_CONFIG } from '../../config/api';
+import { interventionsApi } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 
 interface AlertItem {
@@ -53,59 +53,23 @@ export default function AlertsWidget() {
 
     const loadAlerts = async () => {
       try {
-        const token = localStorage.getItem('kc_access_token');
-        if (!token) {
-          setLoading(false);
-          return;
-        }
-
         const alertItems: AlertItem[] = [];
 
         // Récupérer les interventions urgentes (IN_PROGRESS et PENDING)
-        let urgentItems: any[] = [];
-        
-        try {
-          const urgentInProgressResponse = await fetch(
-            `${API_CONFIG.BASE_URL}/api/interventions?priority=URGENT&status=IN_PROGRESS&size=10`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
+        let urgentItems: Array<{ id: number; status?: string; priority?: string }> = [];
 
-          if (urgentInProgressResponse.ok) {
-            const urgentInProgressData = await urgentInProgressResponse.json();
-            const items = urgentInProgressData.content || urgentInProgressData || [];
-            urgentItems = [...urgentItems, ...items];
-          } else {
-            console.warn('AlertsWidget - Erreur lors de la récupération des interventions urgentes IN_PROGRESS:', urgentInProgressResponse.status);
-          }
+        try {
+          const urgentInProgressData = await interventionsApi.getAll({ priority: 'URGENT', status: 'IN_PROGRESS', size: 10 } as any);
+          const items = (urgentInProgressData as any).content || urgentInProgressData || [];
+          urgentItems = [...urgentItems, ...items];
         } catch (err) {
-          console.error('AlertsWidget - Erreur lors de la récupération des interventions urgentes IN_PROGRESS:', err);
         }
 
         try {
-          const urgentPendingResponse = await fetch(
-            `${API_CONFIG.BASE_URL}/api/interventions?priority=URGENT&status=PENDING&size=10`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
-
-          if (urgentPendingResponse.ok) {
-            const urgentPendingData = await urgentPendingResponse.json();
-            const items = urgentPendingData.content || urgentPendingData || [];
-            urgentItems = [...urgentItems, ...items];
-          } else {
-            console.warn('AlertsWidget - Erreur lors de la récupération des interventions urgentes PENDING:', urgentPendingResponse.status);
-          }
+          const urgentPendingData = await interventionsApi.getAll({ priority: 'URGENT', status: 'PENDING', size: 10 } as any);
+          const items = (urgentPendingData as any).content || urgentPendingData || [];
+          urgentItems = [...urgentItems, ...items];
         } catch (err) {
-          console.error('AlertsWidget - Erreur lors de la récupération des interventions urgentes PENDING:', err);
         }
 
         // Dédupliquer par ID
@@ -127,74 +91,43 @@ export default function AlertsWidget() {
         // Pour les managers/admins : interventions en attente de validation
         if (isManager() || isAdmin()) {
           try {
-            const validationResponse = await fetch(
-              `${API_CONFIG.BASE_URL}/api/interventions?status=AWAITING_VALIDATION&size=10`,
-              {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-                }
-              }
-            );
-
-            if (validationResponse.ok) {
-              const validationData = await validationResponse.json();
-              const validationItems = validationData.content || validationData || [];
-              if (validationItems.length > 0) {
-                alertItems.push({
-                  id: 2,
-                  type: 'validation',
-                  title: t('dashboard.interventionsPendingValidation'),
-                  description: `${validationItems.length} ${t('dashboard.interventionsAwaitingValidation')}`,
-                  count: validationItems.length,
-                  route: '/interventions/pending-validation'
-                });
-              }
-            } else {
-              console.warn('AlertsWidget - Erreur lors de la récupération des interventions en attente de validation:', validationResponse.status);
+            const validationData = await interventionsApi.getAll({ status: 'AWAITING_VALIDATION', size: 10 } as any);
+            const validationItems = (validationData as any).content || validationData || [];
+            if (validationItems.length > 0) {
+              alertItems.push({
+                id: 2,
+                type: 'validation',
+                title: t('dashboard.interventionsPendingValidation'),
+                description: `${validationItems.length} ${t('dashboard.interventionsAwaitingValidation')}`,
+                count: validationItems.length,
+                route: '/interventions/pending-validation'
+              });
             }
           } catch (err) {
-            console.error('AlertsWidget - Erreur lors de la récupération des interventions en attente de validation:', err);
           }
         }
 
         // Pour les hosts : interventions en attente de paiement
         if (isHost()) {
           try {
-            const paymentResponse = await fetch(
-              `${API_CONFIG.BASE_URL}/api/interventions?status=AWAITING_PAYMENT&size=10`,
-              {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-                }
-              }
-            );
-
-            if (paymentResponse.ok) {
-              const paymentData = await paymentResponse.json();
-              const paymentItems = paymentData.content || paymentData || [];
-              if (paymentItems.length > 0) {
-                alertItems.push({
-                  id: 3,
-                  type: 'payment',
-                  title: t('dashboard.interventionsPendingPayment'),
-                  description: `${paymentItems.length} ${t('dashboard.interventionsAwaitingPayment')}`,
-                  count: paymentItems.length,
-                  route: '/interventions/pending-payment'
-                });
-              }
-            } else {
-              console.warn('AlertsWidget - Erreur lors de la récupération des interventions en attente de paiement:', paymentResponse.status);
+            const paymentData = await interventionsApi.getAll({ status: 'AWAITING_PAYMENT', size: 10 } as any);
+            const paymentItems = (paymentData as any).content || paymentData || [];
+            if (paymentItems.length > 0) {
+              alertItems.push({
+                id: 3,
+                type: 'payment',
+                title: t('dashboard.interventionsPendingPayment'),
+                description: `${paymentItems.length} ${t('dashboard.interventionsAwaitingPayment')}`,
+                count: paymentItems.length,
+                route: '/interventions/pending-payment'
+              });
             }
           } catch (err) {
-            console.error('AlertsWidget - Erreur lors de la récupération des interventions en attente de paiement:', err);
           }
         }
 
         setAlerts(alertItems);
       } catch (err) {
-        console.error('Erreur chargement alertes:', err);
       } finally {
         setLoading(false);
       }

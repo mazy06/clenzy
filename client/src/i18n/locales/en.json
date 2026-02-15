@@ -42,6 +42,8 @@
     "users": "Users",
     "settings": "Settings",
     "rolesPermissions": "Roles & Permissions",
+    "tarification": "Pricing",
+    "payments": "Payments",
     "monitoring": "Monitoring",
     "myProfile": "My Profile",
     "logout": "Logout",
@@ -137,7 +139,29 @@
     "interventionsAwaitingValidation": "interventions awaiting validation",
     "interventionsPendingPayment": "Interventions Pending Payment",
     "interventionsAwaitingPayment": "interventions awaiting payment",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "charts": {
+      "interventionTrend": "Intervention Trend",
+      "statusDistribution": "Status Distribution",
+      "revenueOverview": "Revenue Overview",
+      "total": "Total",
+      "completed": "Completed",
+      "pending": "Pending",
+      "revenue": "Revenue",
+      "expenses": "Expenses",
+      "noData": "No data available"
+    },
+    "dateFilter": {
+      "week": "7d",
+      "month": "30d",
+      "quarter": "90d",
+      "year": "1 yr"
+    },
+    "activityFeed": {
+      "title": "Recent Activity",
+      "viewAll": "View all",
+      "noActivity": "No recent activity"
+    }
   },
   "properties": {
     "title": "Properties",
@@ -546,6 +570,30 @@
       "supervisor": "Supervisor",
       "manager": "Manager"
     },
+    "workload": {
+      "title": "Workload",
+      "active": "Active interventions",
+      "completedThisMonth": "Completed this month",
+      "pending": "Pending",
+      "capacity": "Capacity",
+      "available": "Available",
+      "busy": "Busy",
+      "overloaded": "Overloaded"
+    },
+    "performance": {
+      "title": "Team performance",
+      "totalCompleted": "Total completed",
+      "averagePerMonth": "Average / month",
+      "completionRate": "Completion rate",
+      "monthlyTrend": "Monthly trend"
+    },
+    "members": {
+      "title": "Team members",
+      "interventionCount": "interventions",
+      "noMembers": "No members in this team",
+      "sortByName": "Sort by name",
+      "sortByRole": "Sort by role"
+    },
     "errors": {
       "nameRequired": "Team name is required",
       "interventionTypeRequired": "Intervention type is required",
@@ -762,7 +810,23 @@
     "ariaLabel": {
       "newMessage": "new message"
     },
-    "noMessagesFound": "No messages found"
+    "noMessagesFound": "No messages found",
+    "archived": "Archived Messages",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "bulkActions": "Bulk actions",
+    "selected": "selected",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "bulkMarkAsRead": "Mark as read",
+    "bulkDelete": "Delete selection",
+    "templates": "Templates",
+    "useTemplate": "Use this template",
+    "thread": "Conversation",
+    "replyPlaceholder": "Write a reply...",
+    "noMessages": "No messages",
+    "noMessagesDesc": "Your inbox is empty",
+    "message": "Message"
   },
   "users": {
     "title": "Users",
@@ -777,7 +841,16 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Application configuration"
+    "subtitle": "Application configuration",
+    "themeMode": {
+      "light": "Light",
+      "dark": "Dark",
+      "auto": "Automatic"
+    }
+  },
+  "offline": {
+    "banner": "You are offline. Some features may not be available.",
+    "backOnline": "Connection restored"
   },
   "permissions": {
     "title": "Permission management",
@@ -919,6 +992,147 @@
         "title": "Property Costs Report",
         "description": "Costs and expenses per property"
       }
+    },
+    "charts": {
+      "interventionsByStatus": "Interventions by status",
+      "interventionsByType": "Interventions by type",
+      "interventionsByMonth": "Interventions by month",
+      "interventionsByPriority": "Interventions by priority",
+      "teamPerformance": "Team performance",
+      "interventionsPerProperty": "Interventions per property (Top 10)",
+      "revenueByMonth": "Revenue by month",
+      "costBreakdown": "Cost breakdown",
+      "total": "Total",
+      "completed": "Completed",
+      "pending": "Pending",
+      "inProgress": "In progress",
+      "cancelled": "Cancelled",
+      "interventions": "Interventions",
+      "cost": "Cost",
+      "revenue": "Revenue",
+      "expenses": "Expenses",
+      "profit": "Profit",
+      "noData": "No data available",
+      "noDataDescription": "There is no data yet to generate this report.",
+      "loadingData": "Loading data...",
+      "errorLoading": "Error loading data"
+    }
+  },
+  "export": {
+    "button": "Export",
+    "csv": "Export to CSV",
+    "pdf": "Export to PDF",
+    "success": "Export successful",
+    "noData": "No data to export",
+    "fileName": "export"
+  },
+  "payments": {
+    "history": {
+      "title": "Payment History",
+      "subtitle": "View your transaction history",
+      "totalPaid": "Total Paid",
+      "totalPending": "Pending",
+      "totalRefunded": "Refunded",
+      "transactions": "Transactions",
+      "search": "Search...",
+      "allStatuses": "All statuses",
+      "paid": "Paid",
+      "pending": "Pending",
+      "failed": "Failed",
+      "refunded": "Refunded",
+      "date": "Date",
+      "intervention": "Intervention",
+      "property": "Property",
+      "amount": "Amount",
+      "status": "Status",
+      "actions": "Actions",
+      "noPayments": "No payments found",
+      "noPaymentsDesc": "You don't have any recorded payments yet",
+      "viewIntervention": "View intervention",
+      "downloadInvoice": "Download invoice",
+      "dateFrom": "Start date",
+      "dateTo": "End date",
+      "clearFilters": "Clear filters",
+      "hostColumn": "Client",
+      "filterByHost": "Filter by client",
+      "allHosts": "All clients",
+      "totalDue": "Total Due",
+      "processing": "Processing",
+      "cancelled": "Cancelled"
+    }
+  },
+  "tarification": {
+    "title": "Pricing Configuration",
+    "subtitle": "Manage coefficient weights, base prices and subscriptions",
+    "save": "Save",
+    "reset": "Reset to defaults",
+    "saveSuccess": "Pricing configuration saved successfully",
+    "saveError": "Error saving pricing configuration",
+    "loadError": "Error loading pricing configuration",
+    "resetConfirm": "Reset all values to defaults?",
+    "readOnly": "You have read-only access",
+    "basePrices": {
+      "title": "Base Package Prices",
+      "subtitle": "Starting rate per intervention for each package",
+      "essentiel": "Essential",
+      "confort": "Comfort",
+      "premium": "Premium",
+      "minPrice": "Floor Price",
+      "minPriceHelp": "No intervention will go below this amount"
+    },
+    "propertyType": {
+      "title": "Property Type Coefficients",
+      "subtitle": "Weighting based on property type (villa, apartment, etc.)",
+      "studio": "Studio",
+      "appartement": "Apartment",
+      "maison": "House",
+      "duplex": "Duplex",
+      "villa": "Villa",
+      "autre": "Other"
+    },
+    "propertyCount": {
+      "title": "Property Count Coefficients",
+      "subtitle": "Volume discount for multi-property owners",
+      "1": "1 property",
+      "2": "2 properties",
+      "3-5": "3 to 5 properties",
+      "6+": "6+ properties"
+    },
+    "guestCapacity": {
+      "title": "Guest Capacity Coefficients",
+      "subtitle": "Weighting based on guest capacity",
+      "1-2": "1-2 guests",
+      "3-4": "3-4 guests",
+      "5-6": "5-6 guests",
+      "7+": "7+ guests"
+    },
+    "frequency": {
+      "title": "Frequency Coefficients",
+      "subtitle": "Discount based on booking frequency",
+      "tres-frequent": "Very frequent",
+      "regulier": "Regular",
+      "nouvelle-annonce": "New listing",
+      "occasionnel": "Occasional"
+    },
+    "surface": {
+      "title": "Surface Tiers",
+      "subtitle": "Weighting based on property area"
+    },
+    "pms": {
+      "title": "PMS Subscription",
+      "subtitle": "Monthly platform subscription rates",
+      "monthly": "Monthly subscription",
+      "sync": "Subscription with auto-sync",
+      "monthlyHelp": "Price in euros per month",
+      "syncHelp": "Includes automatic calendar synchronization"
+    },
+    "automation": {
+      "title": "Automation Surcharges",
+      "subtitle": "Additional costs for automation options",
+      "basic": "Basic automation",
+      "full": "Full automation",
+      "basicHelp": "Automatic notifications and reminders",
+      "fullHelp": "Fully automated management (check-in/out, billing, etc.)"
     }
   }
 }

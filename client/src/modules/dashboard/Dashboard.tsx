@@ -1,59 +1,89 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
-  Paper,
   Grid,
   Card,
   CardContent,
+  Tabs,
+  Tab,
+  Paper,
   Button,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  LinearProgress,
-  Chip,
-  Alert,
-  CardActionArea,
-  Skeleton,
-  CircularProgress
+  Tooltip,
 } from '@mui/material';
 import {
-  Dashboard as DashboardIcon,
   Home,
   Build,
   Assignment,
   People,
-  Settings,
-  Add,
-  TrendingUp,
-  TrendingDown,
   Euro,
-  Star,
   Notifications,
   CheckCircle,
-  Warning,
-  Security as SecurityIcon,
-  Group as GroupIcon,
-  AccountCircle as AccountIcon
+  CalendarMonth,
+  Dashboard as DashboardIcon,
+  Timeline as TimelineIcon,
+  Sync as SyncIcon,
+  CalendarToday as CalendarTodayIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
 import PageHeader from '../../components/PageHeader';
-import { createSpacing } from '../../theme/spacing';
 import { useTranslation } from '../../hooks/useTranslation';
+import DashboardPlanning from './DashboardPlanning';
 import UpcomingInterventions from './UpcomingInterventions';
-import InterventionStatusChart from './InterventionStatusChart';
 import AlertsWidget from './AlertsWidget';
 import ServiceRequestsWidget from './ServiceRequestsWidget';
+import DashboardStatsCards from './DashboardStatsCards';
+import DashboardQuickActions from './DashboardQuickActions';
+import DashboardCharts from './DashboardCharts';
+import DashboardActivityFeed from './DashboardActivityFeed';
+import DashboardDateFilter from './DashboardDateFilter';
+import ICalImportModal from './ICalImportModal';
+import type { DashboardPeriod } from './DashboardDateFilter';
+import type { StatItem } from './DashboardStatsCards';
+
+// ─── Tab helpers (same pattern as PortfoliosPage) ────────────────────────────
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`dashboard-tabpanel-${index}`}
+      aria-labelledby={`dashboard-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ py: 2 }}>{children}</Box>}
+    </div>
+  );
+}
+
+function a11yProps(index: number) {
+  return {
+    id: `dashboard-tab-${index}`,
+    'aria-controls': `dashboard-tabpanel-${index}`,
+  };
+}
+
+// ─── Main component ──────────────────────────────────────────────────────────
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user, hasPermissionAsync } = useAuth();
+  const { user } = useAuth();
   const { t } = useTranslation();
-  
-  // Utiliser directement les permissions de l'utilisateur (plus simple et plus rapide)
+  const [period, setPeriod] = useState<DashboardPeriod>('month');
+  const [tabValue, setTabValue] = useState(0);
+  const [icalModalOpen, setIcalModalOpen] = useState(false);
+
+  // Permissions
   const canViewProperties = user?.permissions?.includes('properties:view') || false;
   const canViewServiceRequests = user?.permissions?.includes('service-requests:view') || false;
   const canViewInterventions = user?.permissions?.includes('interventions:view') || false;
@@ -62,7 +92,7 @@ const Dashboard: React.FC = () => {
   const canViewSettings = user?.permissions?.includes('settings:view') || false;
   const canViewReports = user?.permissions?.includes('reports:view') || false;
 
-  // Déterminer le type d'utilisateur pour personnaliser le contenu
+  // Roles
   const isAdmin = user?.roles?.includes('ADMIN');
   const isManager = user?.roles?.includes('MANAGER');
   const isHost = user?.roles?.includes('HOST');
@@ -70,8 +100,10 @@ const Dashboard: React.FC = () => {
   const isHousekeeper = user?.roles?.includes('HOUSEKEEPER');
   const isSupervisor = user?.roles?.includes('SUPERVISOR');
 
-  // Récupérer le rôle principal de l'utilisateur
-  const getUserRole = () => {
+  const canViewCharts = isAdmin || isManager || isSupervisor;
+
+  // User role for stats hook
+  const userRole = (() => {
     if (isAdmin) return 'ADMIN';
     if (isManager) return 'MANAGER';
     if (isSupervisor) return 'SUPERVISOR';
@@ -79,160 +111,144 @@ const Dashboard: React.FC = () => {
     if (isHousekeeper) return 'HOUSEKEEPER';
     if (isHost) return 'HOST';
     return 'USER';
-  };
+  })();
 
-  const { stats, activities, loading, error, formatGrowth } = useDashboardStats(getUserRole(), t);
-  
-  // Générer les statistiques dynamiques selon le rôle et les permissions
-  const getDynamicStats = () => {
+  const { stats, activities, loading, error, formatGrowth } = useDashboardStats(userRole, user, t, 10);
+
+  // ─── Dynamic stats (same logic as before) ──────────────────────────────
+
+  const getDynamicStats = (): StatItem[] => {
     if (!stats) return [];
 
     if (isAdmin || isManager || isSupervisor) {
-      // Statistiques globales (ADMIN, MANAGER, SUPERVISOR) - nécessitent les permissions correspondantes
-      const adminStats = [];
-      
+      const adminStats: StatItem[] = [];
       if (canViewProperties) {
         adminStats.push({
           title: t('dashboard.stats.activeProperties'),
           value: stats.properties.active.toString(),
           icon: <Home color="primary" />,
           growth: formatGrowth(stats.properties.growth),
-          route: '/properties'
+          route: '/properties',
         });
       }
-      
       if (canViewServiceRequests) {
         adminStats.push({
           title: t('dashboard.stats.pendingRequests'),
           value: stats.serviceRequests.pending.toString(),
           icon: <Assignment color="secondary" />,
           growth: formatGrowth(stats.serviceRequests.growth),
-          route: '/service-requests'
+          route: '/service-requests',
         });
       }
-      
       if (canViewInterventions) {
         adminStats.push({
           title: t('dashboard.stats.todayInterventions'),
           value: stats.interventions.today.toString(),
           icon: <Build color="success" />,
           growth: formatGrowth(stats.interventions.growth),
-          route: '/interventions'
+          route: '/interventions',
         });
       }
-      
       if (canViewReports) {
+        const revenueValue =
+          stats.revenue.current > 0
+            ? `\u20AC${stats.revenue.current.toLocaleString('fr-FR')}`
+            : '\u20AC0';
         adminStats.push({
           title: t('dashboard.stats.monthlyRevenue'),
-          value: '€0', // À implémenter plus tard
+          value: revenueValue,
           icon: <Euro color="warning" />,
-          growth: { value: '0%', type: 'neutral' },
-          route: '/reports'
+          growth: formatGrowth(stats.revenue.growth),
+          route: '/reports',
         });
       }
-      
       return adminStats;
     } else if (isHost) {
-      // Statistiques pour les HOST (propriétaires) - nécessitent les permissions correspondantes
-      const hostStats = [];
-      
+      const hostStats: StatItem[] = [];
       if (canViewProperties) {
         hostStats.push({
           title: t('dashboard.stats.myProperties'),
           value: stats.properties.active.toString(),
           icon: <Home color="primary" />,
           growth: formatGrowth(stats.properties.growth),
-          route: '/properties'
+          route: '/properties',
         });
       }
-      
       if (canViewServiceRequests) {
         hostStats.push({
           title: t('dashboard.stats.myPendingRequests'),
           value: stats.serviceRequests.pending.toString(),
           icon: <Assignment color="secondary" />,
           growth: formatGrowth(stats.serviceRequests.growth),
-          route: '/service-requests'
+          route: '/service-requests',
         });
       }
-      
       if (canViewInterventions) {
         hostStats.push({
           title: t('dashboard.stats.myScheduledInterventions'),
           value: stats.interventions.today.toString(),
           icon: <Build color="success" />,
           growth: formatGrowth(stats.interventions.growth),
-          route: '/interventions'
+          route: '/interventions',
         });
       }
-      
-      // Les notifications peuvent être affichées sans permission spécifique pour les HOST
       hostStats.push({
         title: t('dashboard.stats.myNotifications'),
-        value: '0', // À implémenter plus tard
+        value: '0',
         icon: <Notifications color="info" />,
         growth: { value: '0%', type: 'neutral' },
-        route: '/notifications'
+        route: '/notifications',
       });
-      
       return hostStats;
     } else if (isTechnician || isHousekeeper) {
-      // Statistiques pour les TECHNICIAN/HOUSEKEEPER - nécessitent les permissions correspondantes
-      const workerStats = [];
-      
+      const workerStats: StatItem[] = [];
       if (canViewInterventions) {
         workerStats.push({
           title: t('dashboard.stats.assignedInterventions'),
           value: stats.interventions.total.toString(),
           icon: <Build color="primary" />,
           growth: formatGrowth(stats.interventions.growth),
-          route: '/interventions'
+          route: '/interventions',
         });
-        
         workerStats.push({
           title: t('dashboard.stats.completedInterventions'),
-          value: '0', // À calculer plus tard
+          value: '0',
           icon: <CheckCircle color="success" />,
           growth: { value: '0%', type: 'neutral' },
-          route: '/interventions'
+          route: '/interventions',
         });
       }
-      
       if (canViewReports) {
         workerStats.push({
           title: t('dashboard.stats.workTime'),
-          value: '0h', // À calculer plus tard
+          value: '0h',
           icon: <Assignment color="info" />,
           growth: { value: '0%', type: 'neutral' },
-          route: '/reports'
+          route: '/reports',
         });
       }
-      
       if (canViewTeams) {
         workerStats.push({
           title: t('dashboard.stats.team'),
-          value: t('dashboard.stats.team'), // À récupérer plus tard
+          value: t('dashboard.stats.team'),
           icon: <People color="secondary" />,
           growth: { value: 'Active', type: 'neutral' },
-          route: '/teams'
+          route: '/teams',
         });
       }
-      
       return workerStats;
     }
-    
+
     return [];
   };
 
-  // Utiliser les activités dynamiques du hook
-  const getRecentActivities = () => {
-    return activities || [];
-  };
+  const getFeedActivities = () => (activities || []).slice(0, 10);
 
   const dynamicStats = getDynamicStats();
-  const recentActivities = getRecentActivities();
+  const feedActivities = getFeedActivities();
 
-  // Titre et description personnalisés selon le rôle
+  // ─── Titles ─────────────────────────────────────────────────────────────
+
   const getDashboardTitle = () => {
     if (isAdmin) return t('dashboard.titleAdmin');
     if (isManager) return t('dashboard.titleManager');
@@ -253,654 +269,213 @@ const Dashboard: React.FC = () => {
     return t('dashboard.subtitle');
   };
 
+  // ─── Check if user has any permission at all ────────────────────────────
 
+  const hasAnyPermission =
+    canViewProperties ||
+    canViewServiceRequests ||
+    canViewInterventions ||
+    canViewTeams ||
+    canViewUsers ||
+    canViewSettings ||
+    canViewReports;
 
   return (
     <Box>
+      {/* ─── Header ────────────────────────────────────────────────────── */}
       <PageHeader
         title={getDashboardTitle()}
         subtitle={getDashboardDescription()}
         backPath="/"
         showBackButton={false}
-      />
-      
-      {/* Statistiques principales */}
-      <Grid container spacing={2} sx={{ mb: 2 }}> {/* spacing: 3 → 2, mb réduit */}
-        {loading ? (
-          // Skeleton loading
-          Array.from({ length: 4 }).map((_, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Skeleton variant="rectangular" width={40} height={40} sx={{ borderRadius: 1 }} />
-                    <Box sx={{ flex: 1 }}>
-                      <Skeleton variant="text" width="60%" height={24} sx={{ mb: 0.25 }} />
-                      <Skeleton variant="text" width="80%" height={14} sx={{ mb: 0.25 }} />
-                      <Skeleton variant="text" width="40%" height={12} />
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))
-        ) : error ? (
-          <Grid item xs={12}>
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          </Grid>
-        ) : (
-          dynamicStats.map((stat, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
-              <Card 
-                sx={{ 
-                  height: '100%',
-                  transition: 'all 0.2s ease-in-out',
-                  '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: 4,
-                  }
+        actions={
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Tooltip title="Channel Manager — Ce service sera bientot disponible. Restez connecte !" arrow>
+              <span>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  disabled
+                  startIcon={<SyncIcon sx={{ fontSize: 16 }} />}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    py: 0.5,
+                    px: 1.5,
+                  }}
+                >
+                  Channel Manager
+                </Button>
+              </span>
+            </Tooltip>
+            <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<CalendarTodayIcon sx={{ fontSize: 16 }} />}
+                onClick={() => setIcalModalOpen(true)}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '0.75rem',
+                  py: 0.5,
+                  px: 1.5,
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': { borderColor: 'primary.dark', backgroundColor: 'primary.50' },
                 }}
               >
-                <CardActionArea onClick={() => navigate(stat.route)}>
-                  <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}> {/* p: 2 → 1.5 */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}> {/* gap: 2 → 1.5 */}
-                      {/* Icône */}
-                      <Box 
-                        sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center',
-                          minWidth: 40, // 48 → 40
-                          height: 40, // 48 → 40
-                          borderRadius: 1,
-                          bgcolor: 'rgba(166, 192, 206, 0.1)',
-                          '& .MuiSvgIcon-root': {
-                            fontSize: 24, // 28 → 24
-                          }
-                        }}
-                      >
-                        {stat.icon}
-                      </Box>
-                      
-                      {/* Contenu principal */}
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography 
-                          variant="h6" // h5 → h6
-                          component="div" 
-                          sx={{ 
-                            fontWeight: 700,
-                            lineHeight: 1.2,
-                            mb: 0.25, // 0.5 → 0.25
-                            fontSize: { xs: '1rem', sm: '1.125rem' } // Réduit
-                          }}
-                        >
-                          {stat.value}
-                        </Typography>
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary" 
-                          sx={{ 
-                            fontSize: '0.75rem',
-                            lineHeight: 1.2,
-                            mb: 0.25, // 0.5 → 0.25
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {stat.title}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          {stat.growth.type === 'up' ? (
-                            <TrendingUp color="success" sx={{ fontSize: 14 }} />
-                          ) : stat.growth.type === 'down' ? (
-                            <TrendingDown color="error" sx={{ fontSize: 14 }} />
-                          ) : (
-                            <Star color="info" sx={{ fontSize: 14 }} />
-                          )}
-                          <Typography 
-                            variant="caption" 
-                            sx={{
-                              fontSize: '0.6875rem',
-                              fontWeight: 600,
-                              color: stat.growth.type === 'up' 
-                                ? 'success.main' 
-                                : stat.growth.type === 'down' 
-                                ? 'error.main' 
-                                : 'text.secondary'
-                            }}
-                          >
-                            {stat.growth.value}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </CardActionArea>
-              </Card>
-            </Grid>
-          ))
-        )}
-      </Grid>
+                Import iCal
+              </Button>
+            </Tooltip>
+            <DashboardDateFilter period={period} onPeriodChange={setPeriod} />
+          </Box>
+        }
+      />
 
-      {/* Activités récentes - affichées seulement si l'utilisateur a au moins une permission */}
-      {(canViewProperties || canViewServiceRequests || canViewInterventions || canViewTeams) && (
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={8}>
-            <Card>
-              <CardContent sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                  <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
-                    {t('dashboard.recentActivities')}
-                  </Typography>
-                  <Button
-                    variant="text"
-                    size="small"
-                    onClick={() => navigate('/dashboard/activities')}
-                    sx={{ 
-                      textTransform: 'none',
-                      fontSize: '0.8125rem',
-                      py: 0.5,
-                      px: 1
-                    }}
-                  >
-                    {t('dashboard.viewAllActivities')}
-                  </Button>
+      {/* ─── Tabs ──────────────────────────────────────────────────────── */}
+      <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0 }}>
+        <Tabs
+          value={tabValue}
+          onChange={(_, v) => setTabValue(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{
+            minHeight: 42,
+            '& .MuiTab-root': {
+              minHeight: 42,
+              py: 0.5,
+              fontSize: '0.8125rem',
+              textTransform: 'none',
+            },
+          }}
+        >
+          <Tab
+            icon={<CalendarMonth sx={{ fontSize: 18 }} />}
+            iconPosition="start"
+            label={t('dashboard.tabs.planning') || 'Planning'}
+            {...a11yProps(0)}
+          />
+          <Tab
+            icon={<DashboardIcon sx={{ fontSize: 18 }} />}
+            iconPosition="start"
+            label={t('dashboard.tabs.overview') || "Vue d'ensemble"}
+            {...a11yProps(1)}
+          />
+          <Tab
+            icon={<TimelineIcon sx={{ fontSize: 18 }} />}
+            iconPosition="start"
+            label={t('dashboard.tabs.activity') || 'Activité'}
+            {...a11yProps(2)}
+          />
+          <Tab
+            icon={<Build sx={{ fontSize: 18 }} />}
+            iconPosition="start"
+            label={t('dashboard.tabs.operations') || 'Opérations'}
+            {...a11yProps(3)}
+          />
+        </Tabs>
+      </Paper>
+
+      {/* ─── Tab 0: Planning ───────────────────────────────────────────── */}
+      {tabValue === 0 && (
+        <Box
+          role="tabpanel"
+          id="dashboard-tabpanel-0"
+          aria-labelledby="dashboard-tab-0"
+          sx={{
+            py: 1,
+            // Le planning occupe toute la hauteur restante de l'écran
+            height: 'calc(100vh - 220px)',
+            minHeight: 400,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <DashboardPlanning />
+        </Box>
+      )}
+
+      {/* ─── Tab 1: Vue d'ensemble ─────────────────────────────────────── */}
+      <TabPanel value={tabValue} index={1}>
+        <DashboardStatsCards
+          stats={dynamicStats}
+          loading={loading}
+          error={error}
+          navigate={navigate}
+        />
+
+        {canViewCharts && <DashboardCharts />}
+      </TabPanel>
+
+      {/* ─── Tab 2: Activité ───────────────────────────────────────────── */}
+      <TabPanel value={tabValue} index={2}>
+        {(canViewProperties ||
+          canViewServiceRequests ||
+          canViewInterventions ||
+          canViewTeams) && (
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={8}>
+              <DashboardActivityFeed
+                activities={feedActivities}
+                loading={loading}
+                navigate={navigate}
+                t={t}
+              />
+
+              {canViewInterventions && (
+                <Box sx={{ mt: 2 }}>
+                  <AlertsWidget />
                 </Box>
-              {loading ? (
-                // Skeleton loading pour les activités
-                Array.from({ length: 3 }).map((_, index) => (
-                  <Box key={index} sx={{ mb: 1.5 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Skeleton variant="circular" width={20} height={20} />
-                      <Box sx={{ flex: 1 }}>
-                        <Skeleton variant="text" width="60%" height={16} />
-                        <Skeleton variant="text" width="40%" height={14} />
-                      </Box>
-                      <Skeleton variant="rectangular" width={50} height={20} />
-                    </Box>
-                  </Box>
-                ))
-              ) : recentActivities.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 1.5, fontSize: '0.8125rem' }}>
-                  {t('dashboard.noRecentActivities')}
-                </Typography>
-              ) : (
-                <List sx={{ py: 0 }}>
-                  {recentActivities.map((activity, index) => (
-                    <ListItem 
-                      key={index} 
-                      sx={{ 
-                        px: 0,
-                        py: 1, // Padding vertical réduit
-                        '&:not(:last-child)': {
-                          borderBottom: '1px solid',
-                          borderColor: 'divider',
-                        }
-                      }}
-                    >
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        {activity.status === 'completed' ? (
-                          <CheckCircle color="success" sx={{ fontSize: '20px' }} />
-                        ) : activity.status === 'urgent' ? (
-                          <Warning color="error" sx={{ fontSize: '20px' }} />
-                        ) : activity.status === 'scheduled' ? (
-                          <Assignment color="info" sx={{ fontSize: '20px' }} />
-                        ) : (
-                          <Notifications color="primary" sx={{ fontSize: '20px' }} />
-                        )}
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          activity.category === 'service-request' && activity.details?.urgent ? (
-                            <Box component="span">
-                              {/* Construire le texte avec la partie urgente colorée */}
-                              {(() => {
-                                const urgentPattern = ` - ${activity.details.urgentLabel}`;
-                                const parts = activity.type.split(urgentPattern);
-                                if (parts.length === 2) {
-                                  return (
-                                    <>
-                                      <Box component="span">{parts[0]} - </Box>
-                                      <Box
-                                        component="span"
-                                        sx={{
-                                          color: 'error.main',
-                                          fontWeight: 600
-                                        }}
-                                      >
-                                        {activity.details.urgentLabel}
-                                      </Box>
-                                      <Box component="span">{parts[1]}</Box>
-                                    </>
-                                  );
-                                }
-                                return activity.type;
-                              })()}
-                            </Box>
-                          ) : (
-                            activity.type
-                          )
-                        }
-                        secondary={`${activity.property} • ${activity.time}`}
-                        primaryTypographyProps={{
-                          sx: { fontSize: '0.875rem', fontWeight: 500 }
-                        }}
-                        secondaryTypographyProps={{
-                          sx: { fontSize: '0.75rem' }
-                        }}
-                      />
-                      <Chip
-                        label={activity.status}
-                        size="small"
-                        sx={{ fontSize: '0.6875rem', height: 20 }}
-                        color={
-                          activity.status === 'completed' ? 'success' :
-                          activity.status === 'urgent' ? 'error' :
-                          activity.status === 'scheduled' ? 'info' : 'default'
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
               )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Actions rapides selon le rôle - affichées seulement si l'utilisateur a au moins une permission */}
-        {(canViewProperties || canViewServiceRequests || canViewInterventions || canViewTeams || canViewUsers || canViewSettings) && (
-          <Grid item xs={12} md={4}>
-            <Card>
-            <CardContent sx={{ p: 2 }}>
-              <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 1.5 }}>
-                {t('dashboard.quickActions')}
-              </Typography>
-              
-              {/* Tous les boutons sur deux colonnes */}
-              <Grid container spacing={1.5}>
-                {canViewProperties && (
-                  <Grid item xs={6}>
-                    <Button
-                      variant="outlined"
-                      startIcon={<Add sx={{ fontSize: '18px' }} />}
-                      fullWidth
-                      onClick={() => navigate('/properties/new')}
-                      sx={{
-                        justifyContent: 'flex-start',
-                        textAlign: 'left',
-                        py: 0.75,
-                        px: 1.25,
-                        borderRadius: 1,
-                        borderWidth: 1.5,
-                        fontSize: '0.8125rem',
-                        minHeight: 36,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        '& .MuiButton-startIcon': {
-                          marginRight: 0.75,
-                          flexShrink: 0
-                        },
-                        '&:hover': {
-                          borderWidth: 1.5,
-                          transform: 'translateY(-1px)',
-                          boxShadow: 1,
-                          transition: 'all 0.2s ease-in-out'
-                        }
-                      }}
-                    >
-                      {t('dashboard.createProperty')}
-                    </Button>
-                  </Grid>
-                )}
-
-                {canViewServiceRequests && (
-                  <Grid item xs={6}>
-                    <Button
-                      variant="outlined"
-                      startIcon={<Add sx={{ fontSize: '18px' }} />}
-                      fullWidth
-                      onClick={() => navigate('/service-requests/new')}
-                      sx={{
-                        justifyContent: 'flex-start',
-                        textAlign: 'left',
-                        py: 0.75,
-                        px: 1.25,
-                        borderRadius: 1,
-                        borderWidth: 1.5,
-                        fontSize: '0.8125rem',
-                        minHeight: 36,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        '& .MuiButton-startIcon': {
-                          marginRight: 0.75,
-                          flexShrink: 0
-                        },
-                        '&:hover': {
-                          borderWidth: 1.5,
-                          transform: 'translateY(-1px)',
-                          boxShadow: 1,
-                          transition: 'all 0.2s ease-in-out'
-                        }
-                      }}
-                    >
-                      {t('dashboard.createRequest')}
-                    </Button>
-                  </Grid>
-                )}
-
-                {canViewTeams && !isHost && (
-                  <Grid item xs={6}>
-                    <Button
-                      variant="outlined"
-                      startIcon={<Add sx={{ fontSize: '18px' }} />}
-                      fullWidth
-                      onClick={() => navigate('/teams/new')}
-                      sx={{
-                        justifyContent: 'flex-start',
-                        textAlign: 'left',
-                        py: 0.75,
-                        px: 1.25,
-                        borderRadius: 1,
-                        borderWidth: 1.5,
-                        fontSize: '0.8125rem',
-                        minHeight: 36,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        '& .MuiButton-startIcon': {
-                          marginRight: 0.75,
-                          flexShrink: 0
-                        },
-                        '&:hover': {
-                          borderWidth: 1.5,
-                          transform: 'translateY(-1px)',
-                          boxShadow: 1,
-                          transition: 'all 0.2s ease-in-out'
-                        }
-                      }}
-                    >
-                      {t('dashboard.createTeam')}
-                    </Button>
-                  </Grid>
-                )}
-
-                {canViewUsers && !isHost && (
-                  <Grid item xs={6}>
-                    <Button
-                      variant="outlined"
-                      startIcon={<Add sx={{ fontSize: '18px' }} />}
-                      fullWidth
-                      onClick={() => navigate('/users/new')}
-                      sx={{
-                        justifyContent: 'flex-start',
-                        textAlign: 'left',
-                        py: 0.75,
-                        px: 1.25,
-                        borderRadius: 1,
-                        borderWidth: 1.5,
-                        fontSize: '0.8125rem',
-                        minHeight: 36,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        '& .MuiButton-startIcon': {
-                          marginRight: 0.75,
-                          flexShrink: 0
-                        },
-                        '&:hover': {
-                          borderWidth: 1.5,
-                          transform: 'translateY(-1px)',
-                          boxShadow: 1,
-                          transition: 'all 0.2s ease-in-out'
-                        }
-                      }}
-                    >
-                      {t('dashboard.createUser')}
-                    </Button>
-                  </Grid>
-                )}
-
-                {canViewTeams && (
-                  <Grid item xs={6}>
-                    <Button
-                      variant="outlined"
-                      startIcon={<GroupIcon sx={{ fontSize: '18px' }} />}
-                      fullWidth
-                      onClick={() => navigate('/teams')}
-                      sx={{
-                        justifyContent: 'flex-start',
-                        textAlign: 'left',
-                        py: 0.75,
-                        px: 1.25,
-                        borderRadius: 1,
-                        borderWidth: 1.5,
-                        fontSize: '0.8125rem',
-                        minHeight: 36,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        '& .MuiButton-startIcon': {
-                          marginRight: 0.75,
-                          flexShrink: 0
-                        },
-                        '&:hover': {
-                          borderWidth: 1.5,
-                          transform: 'translateY(-1px)',
-                          boxShadow: 1,
-                          transition: 'all 0.2s ease-in-out'
-                        }
-                      }}
-                    >
-                      {t('dashboard.manageTeams')}
-                    </Button>
-                  </Grid>
-                )}
-
-                {canViewSettings && (
-                  <Grid item xs={6}>
-                    <Button
-                      variant="outlined"
-                      startIcon={<Settings sx={{ fontSize: '18px' }} />}
-                      fullWidth
-                      onClick={() => navigate('/settings')}
-                      sx={{
-                        justifyContent: 'flex-start',
-                        textAlign: 'left',
-                        py: 0.75,
-                        px: 1.25,
-                        borderRadius: 1,
-                        borderWidth: 1.5,
-                        fontSize: '0.8125rem',
-                        minHeight: 36,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        '& .MuiButton-startIcon': {
-                          marginRight: 0.75,
-                          flexShrink: 0
-                        },
-                        '&:hover': {
-                          borderWidth: 1.5,
-                          transform: 'translateY(-1px)',
-                          boxShadow: 1,
-                          transition: 'all 0.2s ease-in-out'
-                        }
-                      }}
-                    >
-                      {t('dashboard.systemSettings')}
-                    </Button>
-                  </Grid>
-                )}
-
-                {isAdmin && (
-                  <Grid item xs={6}>
-                    <Button
-                      variant="outlined"
-                      startIcon={<SecurityIcon sx={{ fontSize: '18px' }} />}
-                      fullWidth
-                      onClick={() => navigate('/admin/monitoring')}
-                      sx={{
-                        justifyContent: 'flex-start',
-                        textAlign: 'left',
-                        py: 0.75,
-                        px: 1.25,
-                        borderRadius: 1,
-                        borderWidth: 1.5,
-                        fontSize: '0.8125rem',
-                        minHeight: 36,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        '& .MuiButton-startIcon': {
-                          marginRight: 0.75,
-                          flexShrink: 0
-                        },
-                        '&:hover': {
-                          borderWidth: 1.5,
-                          transform: 'translateY(-1px)',
-                          boxShadow: 1,
-                          transition: 'all 0.2s ease-in-out'
-                        }
-                      }}
-                    >
-                      {t('dashboard.tokenMonitoring')}
-                    </Button>
-                  </Grid>
-                )}
-
-                {canViewUsers && (
-                  <Grid item xs={6}>
-                    <Button
-                      variant="outlined"
-                      startIcon={<AccountIcon sx={{ fontSize: '18px' }} />}
-                      fullWidth
-                      onClick={() => navigate('/users')}
-                      sx={{
-                        justifyContent: 'flex-start',
-                        textAlign: 'left',
-                        py: 0.75,
-                        px: 1.25,
-                        borderRadius: 1,
-                        borderWidth: 1.5,
-                        fontSize: '0.8125rem',
-                        minHeight: 36,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        '& .MuiButton-startIcon': {
-                          marginRight: 0.75,
-                          flexShrink: 0
-                        },
-                        '&:hover': {
-                          borderWidth: 1.5,
-                          transform: 'translateY(-1px)',
-                          boxShadow: 1,
-                          transition: 'all 0.2s ease-in-out'
-                        }
-                      }}
-                    >
-                      {t('dashboard.userManagement')}
-                    </Button>
-                  </Grid>
-                )}
-              </Grid>
-
-              {/* Boutons Create Intervention et Manage Permissions en une seule colonne à la fin */}
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 1.5 }}>
-                {/* Seuls les ADMIN et MANAGER peuvent créer des interventions manuellement */}
-                {canViewInterventions && (isAdmin || isManager) && (
-                  <Button
-                    variant="outlined"
-                    startIcon={<Build sx={{ fontSize: '18px' }} />}
-                    fullWidth
-                    onClick={() => navigate('/interventions/new')}
-                    sx={{
-                      justifyContent: 'flex-start',
-                      textAlign: 'left',
-                      py: 0.75,
-                      px: 1.25,
-                      borderRadius: 1,
-                      borderWidth: 1.5,
-                      fontSize: '0.8125rem',
-                      minHeight: 36,
-                      '&:hover': {
-                        borderWidth: 1.5,
-                        transform: 'translateY(-1px)',
-                        boxShadow: 1,
-                        transition: 'all 0.2s ease-in-out'
-                      }
-                    }}
-                  >
-                    {t('dashboard.createIntervention')}
-                  </Button>
-                )}
-
-                {isAdmin && (
-                  <Button
-                    variant="outlined"
-                    startIcon={<SecurityIcon sx={{ fontSize: '18px' }} />}
-                    fullWidth
-                    onClick={() => navigate('/permissions-test')}
-                    sx={{
-                      justifyContent: 'flex-start',
-                      textAlign: 'left',
-                      py: 0.75,
-                      px: 1.25,
-                      borderRadius: 1,
-                      borderWidth: 1.5,
-                      fontSize: '0.8125rem',
-                      minHeight: 36,
-                      '&:hover': {
-                        borderWidth: 1.5,
-                        transform: 'translateY(-1px)',
-                        boxShadow: 1,
-                        transition: 'all 0.2s ease-in-out'
-                      }
-                    }}
-                  >
-                    {t('dashboard.managePermissions')}
-                  </Button>
-                )}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+            </Grid>
+            <DashboardQuickActions
+              canViewProperties={canViewProperties}
+              canViewServiceRequests={canViewServiceRequests}
+              canViewInterventions={canViewInterventions}
+              canViewTeams={canViewTeams}
+              canViewUsers={canViewUsers}
+              canViewSettings={canViewSettings}
+              isAdmin={isAdmin}
+              isManager={isManager}
+              isHost={isHost}
+              navigate={navigate}
+              t={t}
+            />
+          </Grid>
         )}
-        </Grid>
-      )}
+      </TabPanel>
 
-      {(canViewInterventions || canViewServiceRequests || isAdmin || isManager) && (
-        <Grid container spacing={2} sx={{ mt: 2 }}>
-          {/* Interventions à venir - nécessite interventions:view */}
-          {canViewInterventions && (
-            <Grid item xs={12} md={6}>
-              <UpcomingInterventions />
-            </Grid>
-          )}
+      {/* ─── Tab 3: Opérations ─────────────────────────────────────────── */}
+      <TabPanel value={tabValue} index={3}>
+        {(canViewInterventions || canViewServiceRequests) && (
+          <Grid container spacing={2}>
+            {canViewInterventions && (
+              <Grid item xs={12} md={6}>
+                <UpcomingInterventions />
+              </Grid>
+            )}
+            {canViewServiceRequests && (
+              <Grid item xs={12} md={6}>
+                <ServiceRequestsWidget />
+              </Grid>
+            )}
+          </Grid>
+        )}
 
-          {/* Demandes de service - nécessite service-requests:view */}
-          {canViewServiceRequests && (
-            <Grid item xs={12} md={6}>
-              <ServiceRequestsWidget />
-            </Grid>
-          )}
+        {!canViewInterventions && !canViewServiceRequests && (
+          <Card>
+            <CardContent sx={{ p: 4, textAlign: 'center' }}>
+              <Typography variant="body1" color="text.secondary">
+                {t('dashboard.noOperationsPermissions') ||
+                  "Vous n'avez pas les permissions nécessaires pour voir les opérations."}
+              </Typography>
+            </CardContent>
+          </Card>
+        )}
+      </TabPanel>
 
-          {/* Alertes - nécessite interventions:view pour les alertes d'interventions */}
-          {canViewInterventions && (
-            <Grid item xs={12} md={12}>
-              <AlertsWidget />
-            </Grid>
-          )}
-        </Grid>
-      )}
-
-      {/* Message si l'utilisateur n'a aucune permission */}
-      {!canViewProperties && !canViewServiceRequests && !canViewInterventions && !canViewTeams && !canViewUsers && !canViewSettings && !canViewReports && (
+      {/* ─── No permissions fallback ───────────────────────────────────── */}
+      {!hasAnyPermission && (
         <Card sx={{ mt: 2 }}>
           <CardContent sx={{ p: 4, textAlign: 'center' }}>
             <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
@@ -912,6 +487,12 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* ─── iCal Import Modal ──────────────────────────────────────────── */}
+      <ICalImportModal
+        open={icalModalOpen}
+        onClose={() => setIcalModalOpen(false)}
+      />
     </Box>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Box,
   Tabs,
@@ -6,12 +6,14 @@ import {
   Paper,
   Typography,
   Button,
-  Fab
+  Fab,
+  Badge
 } from '@mui/material';
 import {
   Add as AddIcon,
   Send as SendIcon,
-  Inbox as InboxIcon
+  Inbox as InboxIcon,
+  Archive as ArchiveIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ContactMessages from './ContactMessages';
@@ -32,7 +34,7 @@ function TabPanel(props: TabPanelProps) {
       hidden={value !== index}
       id={`contact-tabpanel-${index}`}
       aria-labelledby={`contact-tab-${index}`}
-      style={{ 
+      style={{
         display: value === index ? 'flex' : 'none',
         flex: 1,
         flexDirection: 'column',
@@ -52,10 +54,11 @@ function TabPanel(props: TabPanelProps) {
 
 const ContactPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
@@ -63,33 +66,51 @@ const ContactPage: React.FC = () => {
     navigate('/contact/create');
   };
 
+  const handleUnreadCountChange = useCallback((count: number) => {
+    setUnreadCount(count);
+  }, []);
+
   return (
     <Box sx={{ width: '100%', height: 'calc(100vh - 56px - 32px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', height: '100%' }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
           <Tabs value={tabValue} onChange={handleTabChange} aria-label="contact tabs">
-            <Tab 
-              icon={<InboxIcon />} 
-              label={t('contact.messagesReceived')} 
+            <Tab
+              icon={
+                <Badge badgeContent={unreadCount} color="error" max={99}>
+                  <InboxIcon />
+                </Badge>
+              }
+              label={t('contact.messagesReceived')}
               id="contact-tab-0"
               aria-controls="contact-tabpanel-0"
             />
-            <Tab 
-              icon={<SendIcon />} 
-              label={t('contact.messagesSent')} 
+            <Tab
+              icon={<SendIcon />}
+              label={t('contact.messagesSent')}
               id="contact-tab-1"
               aria-controls="contact-tabpanel-1"
             />
+            <Tab
+              icon={<ArchiveIcon />}
+              label={t('contact.archived')}
+              id="contact-tab-2"
+              aria-controls="contact-tabpanel-2"
+            />
           </Tabs>
         </Box>
-        
+
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
           <TabPanel value={tabValue} index={0}>
-            <ContactMessages type="received" />
+            <ContactMessages type="received" onUnreadCountChange={handleUnreadCountChange} />
           </TabPanel>
-          
+
           <TabPanel value={tabValue} index={1}>
             <ContactMessages type="sent" />
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={2}>
+            <ContactMessages type="archived" />
           </TabPanel>
         </Box>
       </Paper>

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useContext, useRef } from 'react';
 import keycloak from '../keycloak';
-import { API_CONFIG } from '../config/api';
+import apiClient from '../services/apiClient';
 import { CustomPermissionsContext } from './useCustomPermissions';
 import PermissionSyncService from '../services/PermissionSyncService';
 import RedisCacheService from '../services/RedisCacheService';
+import { getItem, clearTokens, STORAGE_KEYS } from '../services/storageService';
 
 export interface UserRole {
   name: string;
@@ -30,12 +31,12 @@ export const useAuth = () => {
   useEffect(() => {
     if (isInitializedRef.current) return;
     isInitializedRef.current = true;
-    
+
     const loadUserInfo = async () => {
       // Vérifier d'abord si on a des tokens en localStorage
-      const storedToken = localStorage.getItem('kc_access_token');
-      const storedRefreshToken = localStorage.getItem('kc_refresh_token');
-      
+      const storedToken = getItem(STORAGE_KEYS.ACCESS_TOKEN);
+      const storedRefreshToken = getItem(STORAGE_KEYS.REFRESH_TOKEN);
+
       // Vérifier d'abord l'état de Keycloak
       if (keycloak.authenticated && keycloak.token) {
         await loadUserFromKeycloak();
@@ -57,64 +58,48 @@ export const useAuth = () => {
     const loadUserFromKeycloak = async () => {
       try {
         // Récupérer les informations utilisateur depuis l'API
-        const response = await fetch(API_CONFIG.ENDPOINTS.ME, {
-          headers: {
-            'Authorization': `Bearer ${keycloak.token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+        const userData = await apiClient.get<any>('/me');
 
-        if (response.ok) {
-          const userData = await response.json();
-          console.log('🔍 useAuth - Données utilisateur complètes reçues:', userData);
-          console.log('🔍 useAuth - userData.role:', userData.role);
-          console.log('🔍 useAuth - userData.realm_access:', userData.realm_access);
-          console.log('🔍 useAuth - userData.resource_access:', userData.resource_access);
-          
-          // Utiliser directement les permissions depuis l'API
-          const permissions = userData.permissions || [];
-          
-          // Extraire les rôles depuis realm_access (Keycloak) si le backend ne les retourne pas
-          let roles: string[] = [];
-          if (userData.role) {
-            // Le backend retourne 'role' (singulier)
-            roles = [userData.role];
-          } else if (userData.realm_access && userData.realm_access.roles) {
-            // Extraire depuis realm_access (Keycloak)
-            roles = userData.realm_access.roles.filter((role: string) => role !== 'default-roles-clenzy' && role !== 'offline_access');
-          }
-          
-          console.log('🔍 useAuth - Rôles extraits:', roles);
-          console.log('🔍 useAuth - Permissions extraites:', permissions);
-          
-          // Créer l'objet utilisateur avec les permissions directes ET les données métier
-          const user: AuthUser = {
-            id: userData.subject || userData.id || 'unknown',
-            email: userData.email || '',
-            username: userData.preferred_username || userData.username || 'Utilisateur',
-            firstName: userData.firstName || '',
-            lastName: userData.lastName || '',
-            fullName: userData.fullName || 
-                     `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 
-                     userData.preferred_username || userData.username || 'Utilisateur',
-            roles: Array.isArray(roles) ? roles : [roles].filter(Boolean),
-            permissions: Array.isArray(permissions) ? permissions : [permissions].filter(Boolean),
-          };
-          
-          setUser(user);
-          setLoading(false);
-          
-          // Initialiser le service de synchronisation des permissions
-          permissionSyncService.initialize(user);
-          
-          // Forcer une synchronisation immédiate pour résoudre le problème d'accès
-          try {
-            console.log('🔄 useAuth - Synchronisation forcée immédiate au chargement');
-            await permissionSyncService.syncNow();
-          } catch (error) {
-            console.warn('⚠️ useAuth - Erreur lors de la synchronisation forcée:', error);
-          }
-        } else if (response.status === 400 || response.status === 401) {
+        // Utiliser directement les permissions depuis l'API
+        const permissions = userData.permissions || [];
+
+        // Extraire les rôles depuis realm_access (Keycloak) si le backend ne les retourne pas
+        let roles: string[] = [];
+        if (userData.role) {
+          // Le backend retourne 'role' (singulier)
+          roles = [userData.role];
+        } else if (userData.realm_access && userData.realm_access.roles) {
+          // Extraire depuis realm_access (Keycloak)
+          roles = userData.realm_access.roles.filter((role: string) => role !== 'default-roles-clenzy' && role !== 'offline_access');
+        }
+
+        // Créer l'objet utilisateur avec les permissions directes ET les données métier
+        const user: AuthUser = {
+          id: userData.subject || userData.id || 'unknown',
+          email: userData.email || '',
+          username: userData.preferred_username || userData.username || 'Utilisateur',
+          firstName: userData.firstName || '',
+          lastName: userData.lastName || '',
+          fullName: userData.fullName ||
+                   `${userData.firstName || ''} ${userData.lastName || ''}`.trim() ||
+                   userData.preferred_username || userData.username || 'Utilisateur',
+          roles: Array.isArray(roles) ? roles : [roles].filter(Boolean),
+          permissions: Array.isArray(permissions) ? permissions : [permissions].filter(Boolean),
+        };
+
+        setUser(user);
+        setLoading(false);
+
+        // Initialiser le service de synchronisation des permissions
+        permissionSyncService.initialize(user);
+
+        // Forcer une synchronisation immédiate pour résoudre le problème d'accès
+        try {
+          await permissionSyncService.syncNow();
+        } catch (error) {
+        }
+      } catch (error: any) {
+        if (error.status === 400 || error.status === 401) {
           // Erreur 400/401, essayer de rafraîchir le token
           try {
             // Vérifier si on a un refresh token
@@ -127,55 +112,46 @@ export const useAuth = () => {
               }
             }
           } catch (refreshError) {
-            console.error('🔍 useAuth - Erreur lors du rafraîchissement du token:', refreshError);
           }
-          
+
           // Si le rafraîchissement échoue, déconnecter l'utilisateur
           setUser(null);
           setLoading(false);
         } else {
-          console.error('🔍 useAuth - Erreur lors du chargement des données utilisateur:', response.status);
           setUser(null);
           setLoading(false);
         }
-      } catch (error) {
-        console.error('🔍 useAuth - Erreur lors du chargement des données utilisateur:', error);
-        setUser(null);
-        setLoading(false);
       }
     };
 
     // Charger les informations utilisateur immédiatement
     loadUserInfo();
-    
+
     // Écouter les changements d'état de Keycloak
     const handleAuthSuccess = () => {
-      console.log('🔍 useAuth - handleAuthSuccess appelé');
       loadUserInfo();
     };
-    
+
     const handleAuthLogout = () => {
-      console.log('🔍 useAuth - handleAuthLogout appelé');
       setUser(null);
       setLoading(false);
     };
-    
+
     // Écouter l'événement personnalisé de rechargement forcé
     const handleForceUserReload = () => {
-      console.log('🔍 useAuth - handleForceUserReload appelé');
       // Ajouter un délai pour éviter les appels trop fréquents
       setTimeout(() => {
         loadUserInfo();
       }, 100);
     };
-    
+
     // Ajouter les écouteurs d'événements Keycloak
     keycloak.onAuthSuccess = handleAuthSuccess;
     keycloak.onAuthLogout = handleAuthLogout;
-    
+
     // Ajouter l'écouteur d'événement personnalisé
     window.addEventListener('force-user-reload', handleForceUserReload);
-    
+
         // Écouter les changements de permissions
     const handlePermissionsRefresh = () => {
       // Recharger les informations utilisateur pour obtenir les nouvelles permissions
@@ -185,7 +161,6 @@ export const useAuth = () => {
     // Écouter les mises à jour automatiques des permissions
     const handlePermissionsUpdated = (event: Event) => {
       const customEvent = event as CustomEvent;
-      console.log('🔍 useAuth - Mise à jour automatique des permissions reçue:', customEvent.detail);
       if (user && customEvent.detail.userId === user.id) {
         // Mettre à jour les permissions de l'utilisateur
         setUser(prevUser => prevUser ? {
@@ -197,7 +172,7 @@ export const useAuth = () => {
 
     window.addEventListener('permissions-refreshed', handlePermissionsRefresh);
     window.addEventListener('permissions-updated', handlePermissionsUpdated);
-    
+
     return () => {
       // Nettoyer les écouteurs
       keycloak.onAuthSuccess = undefined;
@@ -205,7 +180,7 @@ export const useAuth = () => {
       window.removeEventListener('force-user-reload', handleForceUserReload);
       window.removeEventListener('permissions-refreshed', handlePermissionsRefresh);
       window.removeEventListener('permissions-updated', handlePermissionsUpdated);
-      
+
       // Arrêter le service de synchronisation
       permissionSyncService.shutdown();
     };
@@ -215,96 +190,56 @@ export const useAuth = () => {
   const hasPermissionAsync = useCallback(async (permission: string): Promise<boolean> => {
     // Attendre que l'utilisateur soit chargé
     if (loading) {
-      console.log('🔍 useAuth.hasPermissionAsync - En attente du chargement de l\'utilisateur...');
       return false;
     }
-    
+
     if (!user) {
-      console.log('🔍 useAuth.hasPermissionAsync - Pas d\'utilisateur après le chargement');
       return false;
     }
-    
-    console.log('🔍 useAuth.hasPermissionAsync - Vérification de permission:', {
-      permission,
-      userId: user.id,
-      userRoles: user.roles,
-      userPermissions: user.permissions
-    });
-    
+
     // Vérifier d'abord dans les permissions de l'utilisateur chargées depuis l'API
     if (user.permissions && user.permissions.length > 0) {
       const hasPermission = user.permissions.includes(permission);
       if (hasPermission) {
-        console.log('✅ useAuth.hasPermissionAsync - Permission trouvée dans user.permissions: true');
         return true;
       }
-      console.log('⚠️ useAuth.hasPermissionAsync - Permission non trouvée dans user.permissions, vérification Redis...');
-    } else {
-      console.log('⚠️ useAuth.hasPermissionAsync - Aucune permission dans user.permissions, synchronisation nécessaire');
     }
-    
+
     try {
       // Toujours synchroniser depuis l'API pour avoir les dernières permissions
-      console.log('🔄 useAuth.hasPermissionAsync - Synchronisation depuis l\'API...');
-      const syncResponse = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/sync`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId: user.id }),
-      });
-      
-      if (syncResponse.ok) {
-        const syncData = await syncResponse.json();
-        console.log('🔄 useAuth.hasPermissionAsync - Données de synchronisation reçues:', {
-          permissionsCount: syncData.permissions?.length || 0,
-          permissions: syncData.permissions
+      const syncData = await apiClient.post<{ permissions: string[] }>('/permissions/sync', { userId: user.id });
+
+      if (syncData.permissions && syncData.permissions.length > 0) {
+        // Mettre à jour les permissions de l'utilisateur seulement si elles ont changé
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          // Éviter la mise à jour si les permissions sont identiques
+          const currentPerms = prevUser.permissions || [];
+          const newPerms = syncData.permissions || [];
+          if (currentPerms.length === newPerms.length &&
+              currentPerms.every((p: string) => newPerms.includes(p)) &&
+              newPerms.every((p: string) => currentPerms.includes(p))) {
+            return prevUser; // Pas de changement, retourner la même référence
+          }
+          return {
+            ...prevUser,
+            permissions: syncData.permissions
+          };
         });
-        
-        if (syncData.permissions && syncData.permissions.length > 0) {
-          // Mettre à jour les permissions de l'utilisateur seulement si elles ont changé
-          setUser(prevUser => {
-            if (!prevUser) return null;
-            // Éviter la mise à jour si les permissions sont identiques
-            const currentPerms = prevUser.permissions || [];
-            const newPerms = syncData.permissions || [];
-            if (currentPerms.length === newPerms.length && 
-                currentPerms.every((p: string) => newPerms.includes(p)) &&
-                newPerms.every((p: string) => currentPerms.includes(p))) {
-              console.log('🔄 useAuth.hasPermissionAsync - Permissions identiques, pas de mise à jour');
-              return prevUser; // Pas de changement, retourner la même référence
-            }
-            console.log('🔄 useAuth.hasPermissionAsync - Mise à jour des permissions utilisateur');
-            return {
-              ...prevUser,
-              permissions: syncData.permissions
-            };
-          });
-          
-          const hasPermission = syncData.permissions.includes(permission);
-          console.log(hasPermission 
-            ? '✅ useAuth.hasPermissionAsync - Permission trouvée après synchronisation: true'
-            : '❌ useAuth.hasPermissionAsync - Permission non trouvée après synchronisation: false'
-          );
-          return hasPermission;
-        } else {
-          console.warn('⚠️ useAuth.hasPermissionAsync - Aucune permission dans la réponse de synchronisation');
-        }
-      } else {
-        console.error('❌ useAuth.hasPermissionAsync - Erreur lors de la synchronisation:', syncResponse.status, syncResponse.statusText);
+
+        const hasPermission = syncData.permissions.includes(permission);
+        return hasPermission;
       }
-      
+
       return false;
     } catch (error) {
-      console.error('❌ useAuth.hasPermissionAsync - Erreur lors de la synchronisation:', error);
       return false;
     }
   }, [user, loading]);
 
   const hasRole = useCallback((role: string): boolean => {
     if (!user) return false;
-    
+
     // Fallback vers les rôles normaux
     return user.roles.includes(role);
   }, [user]);
@@ -324,68 +259,60 @@ export const useAuth = () => {
   // Fonction pour nettoyer l'état utilisateur lors de la déconnexion
   // Fonction pour restaurer l'état Keycloak depuis le localStorage
   const restoreKeycloakState = useCallback(() => {
-    const storedToken = localStorage.getItem('kc_access_token');
-    const storedRefreshToken = localStorage.getItem('kc_refresh_token');
-    const storedIdToken = localStorage.getItem('kc_id_token');
-    const storedExpiresIn = localStorage.getItem('kc_expires_in');
-    
+    const storedToken = getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    const storedRefreshToken = getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    const storedIdToken = getItem(STORAGE_KEYS.ID_TOKEN);
+    const storedExpiresIn = getItem(STORAGE_KEYS.EXPIRES_IN);
+
     if (storedToken && storedRefreshToken) {
       try {
         // Vérifier si le token est expiré
         const tokenData = JSON.parse(atob(storedToken.split('.')[1]));
         const currentTime = Math.floor(Date.now() / 1000);
-        
+
         if (tokenData.exp && tokenData.exp < currentTime) {
           clearUser();
           return false;
         }
-        
+
         // Restaurer l'état Keycloak
-        (keycloak as any).token = storedToken;
-        (keycloak as any).refreshToken = storedRefreshToken;
-        (keycloak as any).idToken = storedIdToken;
-        (keycloak as any).authenticated = true;
-        
+        keycloak.token = storedToken;
+        keycloak.refreshToken = storedRefreshToken;
+        keycloak.idToken = storedIdToken ?? undefined;
+        keycloak.authenticated = true;
+
         // Restaurer tokenParsed si possible
         if (storedToken) {
           try {
-            (keycloak as any).tokenParsed = JSON.parse(atob(storedToken.split('.')[1]));
-          } catch (e) {
-            console.warn('🔍 useAuth - Impossible de parser le token pour tokenParsed');
+            keycloak.tokenParsed = JSON.parse(atob(storedToken.split('.')[1]));
+          } catch {
+            // Token parsing failed silently
           }
         }
-        
+
         return true;
       } catch (error) {
-        console.error('🔍 useAuth - Erreur lors de la restauration:', error);
         clearUser();
         return false;
       }
     }
-    
+
     return false;
   }, []);
-  
+
   const clearUser = useCallback(() => {
     // Nettoyer l'état React
     setUser(null);
     setLoading(false);
-    
+
     // Nettoyer l'état Keycloak
-    (keycloak as any).token = undefined;
-    (keycloak as any).refreshToken = undefined;
-    (keycloak as any).authenticated = false;
-    (keycloak as any).tokenParsed = undefined;
-    
+    keycloak.token = undefined;
+    keycloak.refreshToken = undefined;
+    keycloak.authenticated = false;
+    keycloak.tokenParsed = undefined;
+
     // Nettoyer le localStorage
-    try {
-      localStorage.removeItem('kc_access_token');
-      localStorage.removeItem('kc_refresh_token');
-      localStorage.removeItem('kc_id_token');
-      localStorage.removeItem('kc_expires_in');
-    } catch (error) {
-      console.error('🔍 useAuth - Erreur lors du nettoyage du localStorage:', error);
-    }
+    clearTokens();
   }, []);
 
   return {
