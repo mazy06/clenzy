@@ -23,7 +23,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
-import apiClient from '../../services/apiClient';
+import { API_CONFIG } from '../../config/api';
 
 interface ServiceRequest {
   id: string;
@@ -34,19 +34,6 @@ interface ServiceRequest {
   dueDate: string;
   createdAt: string;
 }
-
-interface ServiceRequestApiItem {
-  id: number;
-  title: string;
-  property?: { name?: string };
-  status?: string;
-  priority?: string;
-  desiredDate?: string;
-  dueDate?: string;
-  createdAt?: string;
-}
-
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
 export default function ServiceRequestsWidget() {
   const navigate = useNavigate();
@@ -67,27 +54,47 @@ export default function ServiceRequestsWidget() {
 
     const loadServiceRequests = async () => {
       try {
+        const token = localStorage.getItem('kc_access_token');
+        if (!token) {
+          setError('Non authentifié');
+          setLoading(false);
+          return;
+        }
+
         // Récupérer les demandes de service récentes (limitées à 5)
-        const data = await apiClient.get<any>('/service-requests', {
-          params: { size: 5, sort: 'createdAt,desc' }
-        });
-        const items = data.content || data || [];
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}/api/service-requests?size=5&sort=createdAt,desc`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
 
-        // Formater les demandes de service
-        const requests = items
-          .slice(0, 5)
-          .map((item: ServiceRequestApiItem) => ({
-            id: item.id.toString(),
-            title: item.title,
-            propertyName: item.property?.name || 'Propriété inconnue',
-            status: item.status || 'PENDING',
-            priority: item.priority?.toLowerCase() || 'normal',
-            dueDate: item.desiredDate || item.dueDate || '',
-            createdAt: item.createdAt || ''
-          }));
-
-        setServiceRequests(requests);
+        if (response.ok) {
+          const data = await response.json();
+          const items = data.content || data || [];
+          
+          // Formater les demandes de service
+          const requests = items
+            .slice(0, 5)
+            .map((item: any) => ({
+              id: item.id.toString(),
+              title: item.title,
+              propertyName: item.property?.name || 'Propriété inconnue',
+              status: item.status || 'PENDING',
+              priority: item.priority?.toLowerCase() || 'normal',
+              dueDate: item.desiredDate || item.dueDate || '',
+              createdAt: item.createdAt || ''
+            }));
+          
+          setServiceRequests(requests);
+        } else {
+          setError('Erreur lors du chargement');
+        }
       } catch (err) {
+        console.error('Erreur chargement demandes de service:', err);
         setError('Erreur de connexion');
       } finally {
         setLoading(false);
@@ -141,7 +148,7 @@ export default function ServiceRequestsWidget() {
     }
   };
 
-  const getStatusColor = (status: string): ChipColor => {
+  const getStatusColor = (status: string) => {
     const statusLower = status?.toLowerCase() || '';
     switch (statusLower) {
       case 'pending':
@@ -161,7 +168,7 @@ export default function ServiceRequestsWidget() {
     }
   };
 
-  const getPriorityColor = (priority: string): ChipColor => {
+  const getPriorityColor = (priority: string) => {
     const priorityLower = priority?.toLowerCase() || '';
     switch (priorityLower) {
       case 'urgent':
@@ -244,10 +251,10 @@ export default function ServiceRequestsWidget() {
                 <ListItemText
                   primary={request.title}
                   secondary={
-                    <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
-                      <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <LocationOn sx={{ fontSize: '14px', color: 'text.secondary' }} />
-                        <Typography component="span" variant="caption" sx={{ fontSize: '0.75rem' }}>
+                        <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
                           {request.propertyName}
                         </Typography>
                       </Box>
@@ -264,23 +271,20 @@ export default function ServiceRequestsWidget() {
                         label={getStatusLabel(request.status)}
                         size="small"
                         sx={{ fontSize: '0.6875rem', height: 20 }}
-                        color={getStatusColor(request.status)}
+                        color={getStatusColor(request.status) as any}
                       />
                       {(request.priority === 'urgent' || request.priority === 'critical' || request.priority === 'high') && (
                         <Chip
                           label={request.priority === 'urgent' || request.priority === 'critical' ? t('serviceRequests.priorities.critical') : t('serviceRequests.priorities.high')}
                           size="small"
                           sx={{ fontSize: '0.6875rem', height: 20 }}
-                          color={getPriorityColor(request.priority)}
+                          color={getPriorityColor(request.priority) as any}
                         />
                       )}
                     </Box>
                   }
                   primaryTypographyProps={{
                     sx: { fontSize: '0.875rem', fontWeight: 500 }
-                  }}
-                  secondaryTypographyProps={{
-                    component: 'div'
                   }}
                 />
               </ListItem>

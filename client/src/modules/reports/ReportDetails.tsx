@@ -7,643 +7,404 @@ import {
   Grid,
   Card,
   CardContent,
+  Button,
   CircularProgress,
   Alert,
+  Chip
 } from '@mui/material';
 import {
+  ArrowBack as ArrowBackIcon,
+  Download as DownloadIcon,
+  Assessment as AssessmentIcon,
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
   People as PeopleIcon,
-  Home as HomeIcon,
-  BarChart as BarChartIcon,
+  Home as HomeIcon
 } from '@mui/icons-material';
-import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import PageHeader from '../../components/PageHeader';
-import DataFetchWrapper from '../../components/DataFetchWrapper';
-import {
-  useInterventionReport,
-  usePropertyReport,
-  useTeamReport,
-  useFinancialReport,
-} from './hooks/useReportData';
+import { API_CONFIG } from '../../config/api';
 
-// ─── Constants ──────────────────────────────────────────────────────────────
-
-const CHART_COLORS = ['#2196f3', '#4caf50', '#ff9800', '#f44336', '#9c27b0', '#00bcd4', '#795548', '#607d8b'];
-
-// ─── Custom Tooltip ─────────────────────────────────────────────────────────
-
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: Array<{ name: string; value: number; color?: string; dataKey?: string }>;
-  label?: string;
-}
-
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
-  if (!active || !payload || payload.length === 0) return null;
-  return (
-    <Paper sx={{ p: 1.5, boxShadow: 3 }}>
-      {label && (
-        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5, fontSize: '0.8125rem' }}>
-          {label}
-        </Typography>
-      )}
-      {payload.map((entry, index) => (
-        <Typography
-          key={index}
-          variant="caption"
-          sx={{ display: 'block', color: entry.color, fontSize: '0.75rem' }}
-        >
-          {entry.name}: {entry.value}
-        </Typography>
-      ))}
-    </Paper>
-  );
-};
-
-// ─── Chart Card Wrapper ─────────────────────────────────────────────────────
-
-interface ChartCardProps {
+interface ReportItem {
+  id: string;
   title: string;
-  children: React.ReactNode;
+  description: string;
+  type: string;
+  dateRange: string;
+  status: 'available' | 'generating' | 'error';
 }
-
-const ChartCard: React.FC<ChartCardProps> = ({ title, children }) => (
-  <Card sx={{ height: '100%', '&:hover': { boxShadow: 3 } }}>
-    <CardContent>
-      <Typography variant="h6" sx={{ fontSize: '0.95rem', fontWeight: 600, mb: 2 }}>
-        {title}
-      </Typography>
-      {children}
-    </CardContent>
-  </Card>
-);
-
-// ─── Empty State ────────────────────────────────────────────────────────────
-
-interface EmptyChartStateProps {
-  message: string;
-  description?: string;
-}
-
-const EmptyChartState: React.FC<EmptyChartStateProps> = ({ message, description }) => (
-  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4 }}>
-    <BarChartIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-    <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
-      {message}
-    </Typography>
-    {description && (
-      <Typography variant="body2" color="text.disabled" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
-        {description}
-      </Typography>
-    )}
-  </Box>
-);
-
-// ─── Report Sections ────────────────────────────────────────────────────────
-
-const InterventionsReport: React.FC = () => {
-  const { t } = useTranslation();
-  const { data, loading, error, retry } = useInterventionReport();
-
-  return (
-    <DataFetchWrapper
-      loading={loading}
-      error={error}
-      onRetry={retry}
-      loadingMessage={t('reports.charts.loadingData')}
-    >
-      {data ? (
-        <Grid container spacing={2}>
-          {/* Pie Chart: Interventions by Status */}
-          <Grid item xs={12} md={6}>
-            <ChartCard title={t('reports.charts.interventionsByStatus')}>
-              {data.byStatus.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={data.byStatus}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={3}
-                      dataKey="value"
-                      nameKey="name"
-                      label={({ name, percent }: { name?: string; percent?: number }) =>
-                        `${name || ''} (${((percent || 0) * 100).toFixed(0)}%)`
-                      }
-                      labelLine={true}
-                    >
-                      {data.byStatus.map((entry, index) => (
-                        <Cell
-                          key={`status-${index}`}
-                          fill={entry.color || CHART_COLORS[index % CHART_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend verticalAlign="bottom" height={36} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <EmptyChartState
-                  message={t('reports.charts.noData')}
-                  description={t('reports.charts.noDataDescription')}
-                />
-              )}
-            </ChartCard>
-          </Grid>
-
-          {/* Bar Chart: Interventions by Type */}
-          <Grid item xs={12} md={6}>
-            <ChartCard title={t('reports.charts.interventionsByType')}>
-              {data.byType.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.byType}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="value" name={t('reports.charts.interventions')} radius={[4, 4, 0, 0]}>
-                      {data.byType.map((entry, index) => (
-                        <Cell
-                          key={`type-${index}`}
-                          fill={entry.color || CHART_COLORS[index % CHART_COLORS.length]}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <EmptyChartState
-                  message={t('reports.charts.noData')}
-                  description={t('reports.charts.noDataDescription')}
-                />
-              )}
-            </ChartCard>
-          </Grid>
-
-          {/* Line Chart: Interventions by Month */}
-          <Grid item xs={12}>
-            <ChartCard title={t('reports.charts.interventionsByMonth')}>
-              {data.byMonth.some((m) => m.total > 0) ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={data.byMonth}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend verticalAlign="bottom" height={36} />
-                    <Line
-                      type="monotone"
-                      dataKey="total"
-                      name={t('reports.charts.total')}
-                      stroke="#2196f3"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="completed"
-                      name={t('reports.charts.completed')}
-                      stroke="#4caf50"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="pending"
-                      name={t('reports.charts.pending')}
-                      stroke="#ff9800"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <EmptyChartState
-                  message={t('reports.charts.noData')}
-                  description={t('reports.charts.noDataDescription')}
-                />
-              )}
-            </ChartCard>
-          </Grid>
-
-          {/* Bar Chart: Interventions by Priority */}
-          <Grid item xs={12} md={6}>
-            <ChartCard title={t('reports.charts.interventionsByPriority')}>
-              {data.byPriority.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.byPriority} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
-                    <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={80} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="value" name={t('reports.charts.interventions')} radius={[0, 4, 4, 0]}>
-                      {data.byPriority.map((entry, index) => (
-                        <Cell
-                          key={`priority-${index}`}
-                          fill={entry.color || CHART_COLORS[index % CHART_COLORS.length]}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <EmptyChartState
-                  message={t('reports.charts.noData')}
-                  description={t('reports.charts.noDataDescription')}
-                />
-              )}
-            </ChartCard>
-          </Grid>
-        </Grid>
-      ) : (
-        <EmptyChartState
-          message={t('reports.charts.noData')}
-          description={t('reports.charts.noDataDescription')}
-        />
-      )}
-    </DataFetchWrapper>
-  );
-};
-
-const TeamsReport: React.FC = () => {
-  const { t } = useTranslation();
-  const { data, loading, error, retry } = useTeamReport();
-
-  return (
-    <DataFetchWrapper
-      loading={loading}
-      error={error}
-      onRetry={retry}
-      loadingMessage={t('reports.charts.loadingData')}
-    >
-      {data ? (
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <ChartCard title={t('reports.charts.teamPerformance')}>
-              {data.teamPerformance.length > 0 ? (
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={data.teamPerformance}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" height={60} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend verticalAlign="bottom" height={36} />
-                    <Bar
-                      dataKey="completed"
-                      name={t('reports.charts.completed')}
-                      fill="#4caf50"
-                      stackId="stack"
-                      radius={[0, 0, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="inProgress"
-                      name={t('reports.charts.inProgress')}
-                      fill="#2196f3"
-                      stackId="stack"
-                      radius={[0, 0, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="pending"
-                      name={t('reports.charts.pending')}
-                      fill="#ff9800"
-                      stackId="stack"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <EmptyChartState
-                  message={t('reports.charts.noData')}
-                  description={t('reports.charts.noDataDescription')}
-                />
-              )}
-            </ChartCard>
-          </Grid>
-        </Grid>
-      ) : (
-        <EmptyChartState
-          message={t('reports.charts.noData')}
-          description={t('reports.charts.noDataDescription')}
-        />
-      )}
-    </DataFetchWrapper>
-  );
-};
-
-const PropertiesReport: React.FC = () => {
-  const { t } = useTranslation();
-  const { data, loading, error, retry } = usePropertyReport();
-
-  return (
-    <DataFetchWrapper
-      loading={loading}
-      error={error}
-      onRetry={retry}
-      loadingMessage={t('reports.charts.loadingData')}
-    >
-      {data ? (
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <ChartCard title={t('reports.charts.interventionsPerProperty')}>
-              {data.propertyStats.length > 0 ? (
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={data.propertyStats}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="name"
-                      tick={{ fontSize: 11 }}
-                      angle={-25}
-                      textAnchor="end"
-                      height={80}
-                    />
-                    <YAxis yAxisId="left" allowDecimals={false} tick={{ fontSize: 12 }} />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      tick={{ fontSize: 12 }}
-                      tickFormatter={(value: number) => `${value}\u00A0\u20AC`}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend verticalAlign="bottom" height={36} />
-                    <Bar
-                      yAxisId="left"
-                      dataKey="interventions"
-                      name={t('reports.charts.interventions')}
-                      fill="#2196f3"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar
-                      yAxisId="right"
-                      dataKey="cost"
-                      name={t('reports.charts.cost')}
-                      fill="#ff9800"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <EmptyChartState
-                  message={t('reports.charts.noData')}
-                  description={t('reports.charts.noDataDescription')}
-                />
-              )}
-            </ChartCard>
-          </Grid>
-        </Grid>
-      ) : (
-        <EmptyChartState
-          message={t('reports.charts.noData')}
-          description={t('reports.charts.noDataDescription')}
-        />
-      )}
-    </DataFetchWrapper>
-  );
-};
-
-const FinancialReport: React.FC = () => {
-  const { t } = useTranslation();
-  const { data, loading, error, retry } = useFinancialReport();
-
-  return (
-    <DataFetchWrapper
-      loading={loading}
-      error={error}
-      onRetry={retry}
-      loadingMessage={t('reports.charts.loadingData')}
-    >
-      {data ? (
-        <Grid container spacing={2}>
-          {/* Line Chart: Revenue by Month */}
-          <Grid item xs={12}>
-            <ChartCard title={t('reports.charts.revenueByMonth')}>
-              {data.monthlyFinancials.some((m) => m.revenue > 0 || m.expenses > 0) ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={data.monthlyFinancials}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                    <YAxis
-                      tick={{ fontSize: 12 }}
-                      tickFormatter={(value: number) => `${value}\u00A0\u20AC`}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend verticalAlign="bottom" height={36} />
-                    <Line
-                      type="monotone"
-                      dataKey="revenue"
-                      name={t('reports.charts.revenue')}
-                      stroke="#4caf50"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="expenses"
-                      name={t('reports.charts.expenses')}
-                      stroke="#f44336"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="profit"
-                      name={t('reports.charts.profit')}
-                      stroke="#2196f3"
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      dot={{ r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <EmptyChartState
-                  message={t('reports.charts.noData')}
-                  description={t('reports.charts.noDataDescription')}
-                />
-              )}
-            </ChartCard>
-          </Grid>
-
-          {/* Pie Chart: Cost Breakdown */}
-          <Grid item xs={12} md={6}>
-            <ChartCard title={t('reports.charts.costBreakdown')}>
-              {data.costBreakdown.length > 0 && data.costBreakdown.some((c) => c.value > 0) ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={data.costBreakdown}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={3}
-                      dataKey="value"
-                      nameKey="name"
-                      label={({ name, percent }: { name?: string; percent?: number }) =>
-                        `${name || ''} (${((percent || 0) * 100).toFixed(0)}%)`
-                      }
-                      labelLine={true}
-                    >
-                      {data.costBreakdown.map((entry, index) => (
-                        <Cell
-                          key={`cost-${index}`}
-                          fill={entry.color || CHART_COLORS[index % CHART_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend verticalAlign="bottom" height={36} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <EmptyChartState
-                  message={t('reports.charts.noData')}
-                  description={t('reports.charts.noDataDescription')}
-                />
-              )}
-            </ChartCard>
-          </Grid>
-        </Grid>
-      ) : (
-        <EmptyChartState
-          message={t('reports.charts.noData')}
-          description={t('reports.charts.noDataDescription')}
-        />
-      )}
-    </DataFetchWrapper>
-  );
-};
-
-// ─── Report Type Configuration ──────────────────────────────────────────────
-
-interface ReportTypeConfig {
-  title: string;
-  icon: React.ReactNode;
-  permission: string;
-  component: React.FC;
-}
-
-// ─── Main Component ─────────────────────────────────────────────────────────
 
 const ReportDetails: React.FC = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
   const { user, hasPermissionAsync, loading: authLoading } = useAuth();
   const { t } = useTranslation();
-  const [permissionError, setPermissionError] = useState<string | null>(null);
-  const [permissionChecked, setPermissionChecked] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [reports, setReports] = useState<ReportItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [tabValue, setTabValue] = useState(0);
 
-  const reportTypes: Record<string, ReportTypeConfig> = {
+  const reportTypes = {
     financial: {
       title: t('reports.sections.financial.title'),
       icon: <EuroIcon color="primary" />,
       permission: 'reports:view',
-      component: FinancialReport,
+      reports: [
+        {
+          id: 'revenue',
+          title: t('reports.financial.revenue.title'),
+          description: t('reports.financial.revenue.description'),
+          type: 'financial',
+          dateRange: 'monthly',
+          status: 'available' as const
+        },
+        {
+          id: 'costs',
+          title: t('reports.financial.costs.title'),
+          description: t('reports.financial.costs.description'),
+          type: 'financial',
+          dateRange: 'monthly',
+          status: 'available' as const
+        },
+        {
+          id: 'profit',
+          title: t('reports.financial.profit.title'),
+          description: t('reports.financial.profit.description'),
+          type: 'financial',
+          dateRange: 'monthly',
+          status: 'available' as const
+        }
+      ]
     },
     interventions: {
       title: t('reports.sections.interventions.title'),
       icon: <ScheduleIcon color="success" />,
       permission: 'reports:view',
-      component: InterventionsReport,
+      reports: [
+        {
+          id: 'performance',
+          title: t('reports.interventions.performance.title'),
+          description: t('reports.interventions.performance.description'),
+          type: 'interventions',
+          dateRange: 'monthly',
+          status: 'available' as const
+        },
+        {
+          id: 'planning',
+          title: t('reports.interventions.planning.title'),
+          description: t('reports.interventions.planning.description'),
+          type: 'interventions',
+          dateRange: 'weekly',
+          status: 'available' as const
+        },
+        {
+          id: 'completion',
+          title: t('reports.interventions.completion.title'),
+          description: t('reports.interventions.completion.description'),
+          type: 'interventions',
+          dateRange: 'monthly',
+          status: 'available' as const
+        }
+      ]
     },
     teams: {
       title: t('reports.sections.teams.title'),
       icon: <PeopleIcon color="info" />,
       permission: 'teams:view',
-      component: TeamsReport,
+      reports: [
+        {
+          id: 'performance',
+          title: t('reports.teams.performance.title'),
+          description: t('reports.teams.performance.description'),
+          type: 'teams',
+          dateRange: 'monthly',
+          status: 'available' as const
+        },
+        {
+          id: 'availability',
+          title: t('reports.teams.availability.title'),
+          description: t('reports.teams.availability.description'),
+          type: 'teams',
+          dateRange: 'weekly',
+          status: 'available' as const
+        },
+        {
+          id: 'workload',
+          title: t('reports.teams.workload.title'),
+          description: t('reports.teams.workload.description'),
+          type: 'teams',
+          dateRange: 'monthly',
+          status: 'available' as const
+        }
+      ]
     },
     properties: {
       title: t('reports.sections.properties.title'),
       icon: <HomeIcon color="warning" />,
       permission: 'reports:view',
-      component: PropertiesReport,
-    },
+      reports: [
+        {
+          id: 'status',
+          title: t('reports.properties.status.title'),
+          description: t('reports.properties.status.description'),
+          type: 'properties',
+          dateRange: 'current',
+          status: 'available' as const
+        },
+        {
+          id: 'maintenance',
+          title: t('reports.properties.maintenance.title'),
+          description: t('reports.properties.maintenance.description'),
+          type: 'properties',
+          dateRange: 'monthly',
+          status: 'available' as const
+        },
+        {
+          id: 'costs',
+          title: t('reports.properties.costs.title'),
+          description: t('reports.properties.costs.description'),
+          type: 'properties',
+          dateRange: 'monthly',
+          status: 'available' as const
+        }
+      ]
+    }
   };
 
-  const currentReportType = type ? reportTypes[type] : undefined;
+  const currentReportType = type && reportTypes[type as keyof typeof reportTypes];
 
   useEffect(() => {
-    if (authLoading || !user) return;
+    // Attendre que l'authentification soit terminée ET que l'utilisateur soit disponible
+    if (authLoading || !user) {
+      if (authLoading) {
+        console.log('🔍 ReportDetails - En attente du chargement de l\'authentification...');
+      } else if (!user) {
+        console.log('🔍 ReportDetails - En attente du chargement de l\'utilisateur...');
+      }
+      return;
+    }
 
     if (!currentReportType) {
-      setPermissionError(t('reports.invalidType'));
-      setPermissionChecked(true);
+      setError(t('reports.invalidType'));
       return;
     }
 
     const checkPermission = async () => {
+      // Triple vérification : s'assurer que user est toujours défini
       if (!user) {
-        setPermissionError(t('reports.noPermission'));
-        setPermissionChecked(true);
+        console.warn('🔍 ReportDetails - Utilisateur non disponible lors de la vérification');
+        setError(t('reports.noPermission'));
+        setReports([]);
         return;
       }
 
+      console.log('🔍 ReportDetails - Vérification permission', { 
+        permission: currentReportType.permission,
+        type,
+        userId: user.id,
+        userPermissions: user.permissions,
+        userRoles: user.roles
+      });
+      
       try {
         const hasPermission = await hasPermissionAsync(currentReportType.permission);
+        console.log('🔍 ReportDetails - Résultat permission', { hasPermission });
+        
         if (!hasPermission) {
-          setPermissionError(t('reports.noPermission'));
-        } else {
-          setPermissionError(null);
+          console.warn('🔍 ReportDetails - Permission refusée', {
+            permission: currentReportType.permission,
+            userPermissions: user.permissions
+          });
+          setError(t('reports.noPermission'));
+          setReports([]); // S'assurer que les rapports sont vidés
+          return;
         }
-      } catch {
-        setPermissionError(t('reports.noPermission'));
-      } finally {
-        setPermissionChecked(true);
+        console.log('🔍 ReportDetails - Permission accordée, chargement des rapports', { 
+          reportsCount: currentReportType.reports.length 
+        });
+        setReports(currentReportType.reports);
+        setError(null); // S'assurer que l'erreur est effacée
+      } catch (err) {
+        console.error('🔍 ReportDetails - Erreur lors de la vérification de permission:', err);
+        setError(t('reports.noPermission'));
+        setReports([]);
       }
     };
 
     checkPermission();
   }, [type, currentReportType, hasPermissionAsync, t, user, authLoading]);
 
-  // Invalid type
+  const handleGenerateReport = async (reportId: string) => {
+    console.log('🔍 ReportDetails - handleGenerateReport appelé', { type, reportId, currentReportType });
+    
+    if (!type || !currentReportType) {
+      console.error('🔍 ReportDetails - Paramètres manquants', { type, currentReportType });
+      setError('Type de rapport ou catégorie manquant');
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const token = localStorage.getItem('kc_access_token');
+      console.log('🔍 ReportDetails - Token récupéré', { hasToken: !!token });
+      
+      if (!token) {
+        console.error('🔍 ReportDetails - Pas de token d\'authentification');
+        setError(t('reports.authenticationError'));
+        setLoading(false);
+        return;
+      }
+
+      // Calculer les dates (dernier mois par défaut)
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 1);
+      
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+
+      const apiUrl = `${API_CONFIG.BASE_URL}/api/reports/${type}/${reportId}?startDate=${startDateStr}&endDate=${endDateStr}`;
+      console.log('🔍 ReportDetails - Appel API', { apiUrl, type, reportId, startDateStr, endDateStr });
+
+      // Appeler l'API pour générer le rapport avec timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 secondes timeout
+
+      let response: Response;
+      try {
+        response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('La génération du rapport a pris trop de temps. Veuillez réessayer.');
+        }
+        throw new Error(`Erreur de connexion: ${fetchError.message || 'Impossible de contacter le serveur'}`);
+      }
+
+      console.log('🔍 ReportDetails - Réponse API', { 
+        status: response.status, 
+        statusText: response.statusText,
+        contentType: response.headers.get('content-type'),
+        ok: response.ok 
+      });
+
+      if (!response.ok) {
+        let errorText = '';
+        try {
+          errorText = await response.text();
+        } catch (e) {
+          errorText = 'Erreur lors de la lecture de la réponse';
+        }
+        
+        console.error('🔍 ReportDetails - Erreur API', { 
+          status: response.status, 
+          statusText: response.statusText,
+          errorText 
+        });
+        
+        let errorMessage = `Erreur ${response.status}: ${response.statusText}`;
+        try {
+          if (errorText) {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.message || errorJson.error || errorMessage;
+          }
+        } catch (e) {
+          // Si ce n'est pas du JSON, utiliser le texte brut
+          if (errorText) {
+            errorMessage = errorText.length > 200 ? errorText.substring(0, 200) + '...' : errorText;
+          }
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      // Vérifier que c'est bien un PDF
+      const contentType = response.headers.get('content-type');
+      console.log('🔍 ReportDetails - Content-Type', { contentType });
+      
+      if (!contentType || !contentType.includes('pdf')) {
+        console.warn('🔍 ReportDetails - Le contenu n\'est pas un PDF', { contentType });
+        // Ne pas bloquer, certains serveurs peuvent ne pas envoyer le bon content-type
+      }
+
+      // Récupérer le PDF avec gestion d'erreur
+      let blob: Blob;
+      try {
+        blob = await response.blob();
+      } catch (blobError: any) {
+        throw new Error(`Erreur lors de la récupération du fichier: ${blobError.message}`);
+      }
+      
+      console.log('🔍 ReportDetails - Blob créé', { size: blob.size, type: blob.type });
+      
+      if (blob.size === 0) {
+        throw new Error('Le fichier PDF généré est vide');
+      }
+
+      // Créer et télécharger le fichier avec gestion d'erreur
+      try {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `rapport-${type}-${reportId}-${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Nettoyer après un court délai
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }, 100);
+        
+        console.log('🔍 ReportDetails - Téléchargement déclenché');
+      } catch (downloadError: any) {
+        throw new Error(`Erreur lors du téléchargement: ${downloadError.message}`);
+      }
+      
+    } catch (err: any) {
+      console.error('🔍 ReportDetails - Erreur génération rapport:', err);
+      const errorMessage = err?.message || err?.toString() || t('reports.generationError');
+      setError(errorMessage);
+      // Ne pas relancer l'erreur pour éviter un écran blanc
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadReport = async (reportId: string) => {
+    // Même logique que handleGenerateReport
+    await handleGenerateReport(reportId);
+  };
+
   if (!currentReportType) {
     return (
       <Box>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {t('reports.invalidType')}
-        </Alert>
-        <PageHeader
-          title={t('reports.title')}
-          subtitle=""
-          backPath="/reports"
-          showBackButton={true}
-        />
+        <Alert severity="error">{t('reports.invalidType')}</Alert>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/reports')}>
+          {t('common.back')}
+        </Button>
       </Box>
     );
   }
 
-  // Auth loading
-  if (authLoading || !permissionChecked) {
+  // Afficher un loader pendant le chargement de l'authentification
+  if (authLoading) {
     return (
       <Box>
         <PageHeader
-          title={currentReportType.title}
-          subtitle={t('reports.sections.' + type + '.description')}
+          title={currentReportType?.title || t('reports.title')}
+          subtitle={t('reports.selectReport')}
           backPath="/reports"
           showBackButton={true}
         />
@@ -654,40 +415,180 @@ const ReportDetails: React.FC = () => {
     );
   }
 
-  // Permission error
-  if (permissionError) {
-    return (
-      <Box>
-        <PageHeader
-          title={currentReportType.title}
-          subtitle={t('reports.sections.' + type + '.description')}
-          backPath="/reports"
-          showBackButton={true}
-        />
+  return (
+    <Box>
+      <PageHeader
+        title={currentReportType.title}
+        subtitle={t('reports.selectReport')}
+        backPath="/reports"
+        showBackButton={true}
+      />
+
+      {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {permissionError}
+          {error}
         </Alert>
+      )}
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
         <Box sx={{ textAlign: 'center', p: 4 }}>
           <Typography variant="body1" color="text.secondary">
             {t('reports.noPermissionMessage')}
           </Typography>
         </Box>
-      </Box>
-    );
-  }
+      ) : (
+        <Grid container spacing={2}>
+          {reports.map((report) => (
+            <Grid item xs={12} md={6} lg={4} key={report.id}>
+              <Card 
+                sx={{ 
+                  height: '100%', 
+                  position: 'relative',
+                  '&:hover': {
+                    boxShadow: 3
+                  }
+                }}
+                onClick={(e) => {
+                  // Empêcher le Card de capturer les clics sur les boutons
+                  e.stopPropagation();
+                }}
+              >
+                <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 1 }}>
+                        {report.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', mb: 1 }}>
+                        {report.description}
+                      </Typography>
+                      <Chip
+                        label={t(`reports.dateRange.${report.dateRange}`)}
+                        size="small"
+                        sx={{ fontSize: '0.6875rem' }}
+                        color="primary"
+                        variant="outlined"
+                      />
+                    </Box>
+                    <Chip
+                      label={t(`reports.status.${report.status}`)}
+                      size="small"
+                      sx={{ fontSize: '0.6875rem' }}
+                      color={report.status === 'available' ? 'success' : 'default'}
+                    />
+                  </Box>
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      gap: 1, 
+                      mt: 2,
+                      position: 'relative',
+                      zIndex: 2
+                    }}
+                    onClick={(e) => {
+                      // Empêcher la propagation vers le Card
+                      e.stopPropagation();
+                    }}
+                  >
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={<AssessmentIcon />}
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('🔍 ReportDetails - Bouton Generate cliqué', { 
+                          reportId: report.id,
+                          reportStatus: report.status,
+                          loading,
+                          disabled: report.status !== 'available' || loading
+                        });
+                        
+                        // Vérifier la permission de génération
+                        const canGenerate = await hasPermissionAsync('reports:generate');
+                        if (!canGenerate) {
+                          console.warn('🔍 ReportDetails - Permission reports:generate refusée');
+                          setError(t('reports.noPermission'));
+                          return;
+                        }
+                        
+                        if (report.status === 'available' && !loading) {
+                          handleGenerateReport(report.id);
+                        } else {
+                          console.warn('🔍 ReportDetails - Bouton désactivé', { 
+                            status: report.status, 
+                            loading 
+                          });
+                        }
+                      }}
+                      disabled={report.status !== 'available' || loading}
+                      sx={{ 
+                        flex: 1, 
+                        pointerEvents: (report.status !== 'available' || loading) ? 'none' : 'auto',
+                        position: 'relative',
+                        zIndex: 3
+                      }}
+                    >
+                      {loading ? t('common.loading') : t('reports.generate')}
+                    </Button>
+                    {report.status === 'available' && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<DownloadIcon />}
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('🔍 ReportDetails - Bouton Download cliqué', { 
+                            reportId: report.id,
+                            loading,
+                            disabled: loading
+                          });
+                          
+                          // Vérifier la permission de téléchargement
+                          const canDownload = await hasPermissionAsync('reports:download');
+                          if (!canDownload) {
+                            console.warn('🔍 ReportDetails - Permission reports:download refusée');
+                            setError(t('reports.noPermission'));
+                            return;
+                          }
+                          
+                          if (!loading) {
+                            handleDownloadReport(report.id);
+                          } else {
+                            console.warn('🔍 ReportDetails - Bouton désactivé (loading)');
+                          }
+                        }}
+                        disabled={loading}
+                        sx={{ 
+                          flex: 1, 
+                          pointerEvents: loading ? 'none' : 'auto',
+                          position: 'relative',
+                          zIndex: 3
+                        }}
+                      >
+                        {t('reports.download')}
+                      </Button>
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
 
-  // Render the report charts
-  const ReportComponent = currentReportType.component;
-
-  return (
-    <Box>
-      <PageHeader
-        title={currentReportType.title}
-        subtitle={t('reports.sections.' + type + '.description')}
-        backPath="/reports"
-        showBackButton={true}
-      />
-      <ReportComponent />
+      {reports.length === 0 && !loading && !error && (
+        <Paper sx={{ p: 3, textAlign: 'center' }}>
+          <Typography variant="body1" color="text.secondary">
+            {t('reports.noReportsAvailable')}
+          </Typography>
+        </Paper>
+      )}
     </Box>
   );
 };

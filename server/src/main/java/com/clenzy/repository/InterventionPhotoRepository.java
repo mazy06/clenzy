@@ -16,11 +16,5 @@ public interface InterventionPhotoRepository extends JpaRepository<InterventionP
     @Query("SELECT ip FROM InterventionPhoto ip WHERE ip.intervention.id = :interventionId ORDER BY ip.createdAt ASC")
     List<InterventionPhoto> findAllByInterventionId(@Param("interventionId") Long interventionId);
     
-    @Query("SELECT ip FROM InterventionPhoto ip WHERE ip.intervention.id = :interventionId AND ip.photoType = :photoType ORDER BY ip.createdAt ASC")
-    List<InterventionPhoto> findByInterventionIdAndPhotoTypeOrderByCreatedAtAsc(
-        @Param("interventionId") Long interventionId, 
-        @Param("photoType") String photoType
-    );
-    
     void deleteByInterventionId(Long interventionId);
 }

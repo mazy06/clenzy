@@ -7,12 +7,14 @@ import SmartRedirect from '../components/SmartRedirect';
 import Dashboard from './dashboard/Dashboard';
 import PropertiesList from './properties/PropertiesList';
 import PropertyCreate from './properties/PropertyCreate';
+import PropertyForm from './properties/PropertyForm';
 import PropertyDetails from './properties/PropertyDetails';
 import PropertyEdit from './properties/PropertyEdit';
 
 // Service requests
 import ServiceRequestsList from './service-requests/ServiceRequestsList';
 import ServiceRequestCreate from './service-requests/ServiceRequestCreate';
+import ServiceRequestForm from './service-requests/ServiceRequestForm';
 import ServiceRequestDetails from './service-requests/ServiceRequestDetails';
 import ServiceRequestEdit from './service-requests/ServiceRequestEdit';
 
@@ -46,9 +48,6 @@ import UserEdit from './users/UserEdit';
 // Settings
 import Settings from './settings/Settings';
 
-// Tarification
-import Tarification from './tarification/Tarification';
-
 // Permissions
 import PermissionConfig from '../components/PermissionConfig';
 
@@ -59,19 +58,13 @@ import ContactCreatePage from './contact/ContactCreatePage';
 // Profile
 import UserProfilePage from './profile/UserProfilePage';
 
-// Notifications
-import NotificationsPage from './notifications/NotificationsPage';
-
-// Calendar
-import CalendarPage from './calendar/CalendarPage';
-
 // Portfolios
 import PortfoliosPage from './portfolios/PortfoliosPage';
+import ClientAssignmentPageNoAuth from './portfolios/ClientAssignmentPageNoAuth';
+import ClientAssignmentPage from './portfolios/ClientAssignmentPage';
 import ClientPropertyAssignmentForm from './portfolios/ClientPropertyAssignmentForm';
 import TeamUserAssignmentForm from './portfolios/TeamUserAssignmentForm';
-
-// Payments
-import PaymentHistoryPage from './payments/PaymentHistoryPage';
+import TeamAssignmentPage from './portfolios/TeamAssignmentPage';
 
 // Admin pages
 import TokenMonitoringPage from './admin/TokenMonitoringPage';
@@ -163,19 +156,7 @@ const AuthenticatedApp: React.FC = () => {
             <InterventionsPendingPayment />
           </ProtectedRoute>
         } />
-
-        <Route path="/payments/history" element={
-          <ProtectedRoute requiredPermission="payments:view">
-            <PaymentHistoryPage />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/calendar" element={
-          <ProtectedRoute requiredPermission="interventions:view">
-            <CalendarPage />
-          </ProtectedRoute>
-        } />
-
+        
         <Route path="/teams" element={
           <ProtectedRoute requiredPermission="teams:view">
             <TeamsList />
@@ -236,13 +217,7 @@ const AuthenticatedApp: React.FC = () => {
             <Settings />
           </ProtectedRoute>
         } />
-
-        <Route path="/tarification" element={
-          <ProtectedRoute requiredPermission="tarification:view">
-            <Tarification />
-          </ProtectedRoute>
-        } />
-
+        
         <Route path="/permissions-test" element={
           <ProtectedRoute requiredPermission="users:manage">
             <PermissionConfig />
@@ -259,10 +234,6 @@ const AuthenticatedApp: React.FC = () => {
         <Route path="/profile" element={
           <UserProfilePage />
         } />
-
-        <Route path="/notifications" element={
-          <NotificationsPage />
-        } />
         
         <Route path="/portfolios" element={
           <ProtectedRoute requiredPermission="portfolios:view">
@@ -273,6 +244,9 @@ const AuthenticatedApp: React.FC = () => {
           <ProtectedRoute requiredPermission="portfolios:manage">
             <ClientPropertyAssignmentForm />
           </ProtectedRoute>
+        } />
+        <Route path="/test-no-auth" element={
+          <ClientAssignmentPageNoAuth />
         } />
         <Route path="/portfolios/team-assignment" element={
           <ProtectedRoute requiredPermission="portfolios:manage">

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Button, Card, CardContent, CircularProgress, Alert } from '@mui/material';
 import { CheckCircle, ArrowBack } from '@mui/icons-material';
-import { paymentsApi } from '../../services/api';
+import { API_CONFIG } from '../../config/api';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const PaymentSuccess: React.FC = () => {
@@ -24,11 +24,21 @@ const PaymentSuccess: React.FC = () => {
     const checkPaymentStatus = async () => {
       try {
         await new Promise(resolve => setTimeout(resolve, 2000)); // Attendre 2 secondes
+        
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/payments/session-status/${sessionId}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`
+          }
+        });
 
-        await paymentsApi.getSessionStatus(sessionId);
-        setLoading(false);
+        if (response.ok) {
+          setLoading(false);
+        } else {
+          setError('Erreur lors de la vérification du paiement');
+          setLoading(false);
+        }
       } catch (err) {
-        setError('Erreur lors de la vérification du paiement');
+        console.error('Erreur vérification paiement:', err);
         setLoading(false);
       }
     };

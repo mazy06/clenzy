@@ -30,10 +30,8 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { serviceRequestsApi } from '../../services/api';
+import { API_CONFIG } from '../../config/api';
 import { useTranslation } from '../../hooks/useTranslation';
-
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
 // Interface pour les demandes de service détaillées
 export interface ServiceRequestDetailsData {
@@ -83,39 +81,52 @@ const ServiceRequestDetails: React.FC = () => {
       
       setLoading(true);
       try {
-        const data: any = await serviceRequestsApi.getById(parseInt(id));
-        // Convertir les données du backend vers le format frontend
-        const convertedServiceRequest: ServiceRequestDetailsData = {
-          id: data.id.toString(),
-          title: data.title,
-          description: data.description,
-          type: (data.serviceType || data.type)?.toString().toLowerCase() || 'other',
-          status: data.status?.toString().toLowerCase() || 'pending',
-          priority: data.priority?.toString().toLowerCase() || 'medium',
-          propertyId: data.propertyId,
-          propertyName: data.property?.name || t('serviceRequests.unknownProperty'),
-          propertyAddress: data.property?.address || '',
-          propertyCity: data.property?.city || '',
-          propertyPostalCode: data.property?.postalCode,
-          propertyCountry: data.property?.country,
-          requestorId: data.userId || data.requestorId,
-          requestorName: data.user ? `${data.user.firstName} ${data.user.lastName}` : (data.requestor ? `${data.requestor.firstName} ${data.requestor.lastName}` : t('serviceRequests.unknownRequestor')),
-          requestorEmail: data.user?.email || data.requestor?.email,
-          assignedToId: data.assignedToId,
-          assignedToName: data.assignedToUser
-            ? `${data.assignedToUser.firstName} ${data.assignedToUser.lastName}`
-            : (data.assignedToTeam ? data.assignedToTeam.name : undefined),
-          assignedToEmail: data.assignedToUser?.email,
-          assignedToType: data.assignedToType || (data.assignedToUser ? 'user' : (data.assignedToTeam ? 'team' : undefined)),
-          estimatedDuration: data.estimatedDurationHours || data.estimatedDuration || 1,
-          dueDate: data.desiredDate || data.dueDate || '',
-          createdAt: data.createdAt || '',
-          updatedAt: data.updatedAt,
-          completedAt: data.completedAt,
-        };
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/service-requests/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('kc_access_token')}`,
+          },
+        });
 
-        setServiceRequest(convertedServiceRequest);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('🔍 ServiceRequestDetails - Demande de service chargée:', data);
+          
+          // Convertir les données du backend vers le format frontend
+          const convertedServiceRequest: ServiceRequestDetailsData = {
+            id: data.id.toString(),
+            title: data.title,
+            description: data.description,
+            type: (data.serviceType || data.type)?.toString().toLowerCase() || 'other',
+            status: data.status?.toString().toLowerCase() || 'pending',
+            priority: data.priority?.toString().toLowerCase() || 'medium',
+            propertyId: data.propertyId,
+            propertyName: data.property?.name || t('serviceRequests.unknownProperty'),
+            propertyAddress: data.property?.address || '',
+            propertyCity: data.property?.city || '',
+            propertyPostalCode: data.property?.postalCode,
+            propertyCountry: data.property?.country,
+            requestorId: data.userId || data.requestorId,
+            requestorName: data.user ? `${data.user.firstName} ${data.user.lastName}` : (data.requestor ? `${data.requestor.firstName} ${data.requestor.lastName}` : t('serviceRequests.unknownRequestor')),
+            requestorEmail: data.user?.email || data.requestor?.email,
+            assignedToId: data.assignedToId,
+            assignedToName: data.assignedToUser 
+              ? `${data.assignedToUser.firstName} ${data.assignedToUser.lastName}` 
+              : (data.assignedToTeam ? data.assignedToTeam.name : undefined),
+            assignedToEmail: data.assignedToUser?.email,
+            assignedToType: data.assignedToType || (data.assignedToUser ? 'user' : (data.assignedToTeam ? 'team' : undefined)),
+            estimatedDuration: data.estimatedDurationHours || data.estimatedDuration || 1,
+            dueDate: data.desiredDate || data.dueDate || '',
+            createdAt: data.createdAt || '',
+            updatedAt: data.updatedAt,
+            completedAt: data.completedAt,
+          };
+          
+          setServiceRequest(convertedServiceRequest);
+        } else {
+          setError(t('serviceRequests.loadError'));
+        }
       } catch (err) {
+        console.error('🔍 ServiceRequestDetails - Erreur chargement:', err);
         setError(t('serviceRequests.loadError'));
       } finally {
         setLoading(false);
@@ -151,7 +162,7 @@ const ServiceRequestDetails: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string): ChipColor => {
+  const getStatusColor = (status: string) => {
     const statusLower = status?.toLowerCase() || '';
     switch (statusLower) {
       case 'pending':
@@ -171,7 +182,7 @@ const ServiceRequestDetails: React.FC = () => {
     }
   };
 
-  const getPriorityColor = (priority: string): ChipColor => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'low':
         return 'default';
@@ -326,13 +337,13 @@ const ServiceRequestDetails: React.FC = () => {
             <Box sx={{ display: 'flex', gap: 0.5 }}>
               <Chip
                 label={getStatusLabel(serviceRequest.status)}
-                color={getStatusColor(serviceRequest.status)}
+                color={getStatusColor(serviceRequest.status) as any}
                 size="small"
                 sx={{ height: 24, fontSize: '0.75rem' }}
               />
               <Chip
                 label={getPriorityLabel(serviceRequest.priority)}
-                color={getPriorityColor(serviceRequest.priority)}
+                color={getPriorityColor(serviceRequest.priority) as any}
                 size="small"
                 icon={<PriorityHigh sx={{ fontSize: 14 }} />}
                 sx={{ height: 24, fontSize: '0.75rem' }}
@@ -452,7 +463,7 @@ const ServiceRequestDetails: React.FC = () => {
                 </Typography>
                 <Chip
                   label={getStatusLabel(serviceRequest.status)}
-                  color={getStatusColor(serviceRequest.status)}
+                  color={getStatusColor(serviceRequest.status) as any}
                   size="small"
                   sx={{ height: 22, fontSize: '0.7rem' }}
                 />
@@ -466,7 +477,7 @@ const ServiceRequestDetails: React.FC = () => {
                 </Typography>
                 <Chip
                   label={`${getPriorityLabel(serviceRequest.priority)}`}
-                  color={getPriorityColor(serviceRequest.priority)}
+                  color={getPriorityColor(serviceRequest.priority) as any}
                   size="small"
                   icon={<PriorityHigh sx={{ fontSize: 14, mr: 0.5 }} />}
                   sx={{ height: 22, fontSize: '0.7rem', '& .MuiChip-icon': { marginLeft: '4px' } }}

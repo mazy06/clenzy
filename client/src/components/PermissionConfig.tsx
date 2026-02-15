@@ -38,7 +38,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useRolePermissions } from '../hooks/useRolePermissions';
 import { usePermissionRefresh } from '../hooks/usePermissionRefresh';
 import PermissionEffectsDemo from './PermissionEffectsDemo';
-import { permissionsApi } from '../services/api';
+import { API_CONFIG } from '../config/api';
 
 const PermissionConfig: React.FC = () => {
   const { user } = useAuth();
@@ -105,9 +105,26 @@ const PermissionConfig: React.FC = () => {
     const loadAllPermissions = async () => {
       try {
         setLoadingPermissions(true);
+        const token = localStorage.getItem('kc_access_token');
+        if (!token) {
+          console.error('🔍 PermissionConfig - Pas de token d\'authentification');
+          return;
+        }
 
-        const permissions = await permissionsApi.getAll();
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/permissions/all`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
 
+        if (!response.ok) {
+          throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+        }
+
+        const permissions = await response.json();
+        console.log('🔍 PermissionConfig - Permissions chargées depuis l\'API:', permissions);
+        
         setAllPermissions(permissions);
         
         // Grouper les permissions par module
@@ -127,7 +144,9 @@ const PermissionConfig: React.FC = () => {
         });
         
         setPermissionsByModule(grouped);
+        console.log('🔍 PermissionConfig - Permissions groupées par module:', grouped);
       } catch (err) {
+        console.error('🔍 PermissionConfig - Erreur lors du chargement des permissions:', err);
         // En cas d'erreur, utiliser les permissions par défaut
         const defaultPermissions = [
           'dashboard:view',
@@ -239,7 +258,8 @@ const PermissionConfig: React.FC = () => {
                     await resetToInitialPermissions(selectedRole);
                     // Déclencher le rafraîchissement global des permissions
                     triggerGlobalRefresh();
-
+                    console.log('🔄 Permissions réinitialisées aux valeurs initiales pour le rôle', selectedRole);
+                    
                     // Afficher une notification de succès
                     setSaveNotification({
                       open: true,
@@ -247,6 +267,8 @@ const PermissionConfig: React.FC = () => {
                       severity: 'success'
                     });
                   } catch (error) {
+                    console.error('❌ Erreur lors de la réinitialisation aux valeurs initiales:', error);
+                    
                     // Afficher une notification d'erreur
                     setSaveNotification({
                       open: true,
@@ -279,7 +301,9 @@ const PermissionConfig: React.FC = () => {
                     
                     // Forcer le rechargement de l'utilisateur pour obtenir les nouvelles permissions
                     window.dispatchEvent(new CustomEvent('force-user-reload'));
-
+                    
+                    console.log('💾 Permissions sauvegardées pour le rôle', selectedRole);
+                    
                     // Afficher une notification de succès
                     setSaveNotification({
                       open: true,
@@ -287,6 +311,8 @@ const PermissionConfig: React.FC = () => {
                       severity: 'success'
                     });
                   } catch (error) {
+                    console.error('❌ Erreur lors de la sauvegarde:', error);
+                    
                     // Afficher une notification d'erreur
                     setSaveNotification({
                       open: true,

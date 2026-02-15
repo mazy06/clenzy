@@ -178,19 +178,6 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
 
-        <!-- Spring Kafka (Message Broker) -->
-        <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId>
-        </dependency>
-
-        <!-- Jasypt Spring Boot (Chiffrement tokens en base) -->
-        <dependency>
-            <groupId>com.github.ulisesbocchio</groupId>
-            <artifactId>jasypt-spring-boot-starter</artifactId>
-            <version>3.0.5</version>
-        </dependency>
-
         <!-- Stripe Payment -->
         <dependency>
             <groupId>com.stripe</groupId>
@@ -198,13 +185,6 @@
             <version>24.16.0</version>
         </dependency>
         
-        <!-- iCal4j - Parser iCalendar (.ics) pour import calendrier externe -->
-        <dependency>
-            <groupId>org.mnode.ical4j</groupId>
-            <artifactId>ical4j</artifactId>
-            <version>3.2.14</version>
-        </dependency>
-
         <!-- iText pour la génération de PDF -->
         <dependency>
             <groupId>com.itextpdf</groupId>
@@ -216,18 +196,6 @@
             <groupId>com.itextpdf</groupId>
             <artifactId>html2pdf</artifactId>
             <version>5.0.2</version>
-        </dependency>
-
-        <!-- Logback JSON structured logging (prod/staging - ingestion Loki/ELK) -->
-        <dependency>
-            <groupId>ch.qos.logback.contrib</groupId>
-            <artifactId>logback-json-classic</artifactId>
-            <version>0.1.5</version>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback.contrib</groupId>
-            <artifactId>logback-jackson</artifactId>
-            <version>0.1.5</version>
         </dependency>
 
         <!-- Test Dependencies -->
