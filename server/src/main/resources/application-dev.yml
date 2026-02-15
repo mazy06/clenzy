@@ -2,8 +2,8 @@ spring:
   datasource:
     url: jdbc:postgresql://postgres:5432/clenzy_dev
     driver-class-name: org.postgresql.Driver
-    username: clenzy
-    password: clenzy123
+    username: ${SPRING_DATASOURCE_USERNAME:clenzy}
+    password: ${SPRING_DATASOURCE_PASSWORD:clenzy123}
     # Configuration HikariCP optimisée pour faible charge
     hikari:
       maximum-pool-size: 10
@@ -51,6 +51,24 @@ spring:
     redis:
       time-to-live: 3600000 # 1 heure
       cache-null-values: false
+  mail:
+    host: ${MAIL_HOST:clenzy-mailpit}
+    port: ${MAIL_PORT:1025}
+    username: ""
+    password: ""
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:clenzy-kafka:9092}
+    consumer:
+      group-id: clenzy-backend
+      auto-offset-reset: earliest
+    producer:
+      acks: all
 
 # Configuration Keycloak
 keycloak:
@@ -58,11 +76,11 @@ keycloak:
   realm: clenzy
   resource: clenzy-web
   credentials:
-    secret: ""
+    secret: ${KEYCLOAK_CLIENT_SECRET:}
   # Configuration pour le client admin
   admin:
-    username: admin
-    password: admin
+    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
     client-id: admin-cli
 
 logging:
@@ -102,12 +120,37 @@ server:
   address: 0.0.0.0
 
 # Configuration Stripe
+# Configuration Airbnb Integration
+airbnb:
+  api:
+    base-url: https://api.airbnb.com/v2
+  oauth:
+    client-id: ${AIRBNB_CLIENT_ID:}
+    client-secret: ${AIRBNB_CLIENT_SECRET:}
+    redirect-uri: ${AIRBNB_REDIRECT_URI:http://localhost:8084/api/airbnb/callback}
+    authorization-url: https://www.airbnb.com/oauth2/auth
+    token-url: https://api.airbnb.com/v2/oauth2/authorizations
+    scopes: listings_r,reservations_r,reservations_w,calendar_r,calendar_w,messages_r,messages_w
+  webhook:
+    secret: ${AIRBNB_WEBHOOK_SECRET:}
+  sync:
+    enabled: false
+    interval-minutes: 15
+
+# Jasypt (chiffrement des tokens en base)
+jasypt:
+  encryptor:
+    password: ${JASYPT_ENCRYPTOR_PASSWORD:dev-jasypt-secret-key}
+
 stripe:
   secret-key: ${STRIPE_SECRET_KEY:sk_test_your_secret_key_here}
   publishable-key: ${STRIPE_PUBLISHABLE_KEY:pk_test_your_publishable_key_here}
   webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_your_webhook_secret_here}
   currency: eur
-  success-url: ${FRONTEND_URL:http://localhost:3001}/interventions/payment/success?session_id={CHECKOUT_SESSION_ID}
-  cancel-url: ${FRONTEND_URL:http://localhost:3001}/interventions/payment/cancel
+  success-url: ${FRONTEND_URL:http://localhost:3000}/interventions/payment/success?session_id={CHECKOUT_SESSION_ID}
+  cancel-url: ${FRONTEND_URL:http://localhost:3000}/interventions/payment/cancel
+  inscription:
+    success-url: ${FRONTEND_URL:http://localhost:3000}/login?inscription=success
+    cancel-url: ${FRONTEND_URL:http://localhost:3000}/inscription?payment=cancelled
 
 
