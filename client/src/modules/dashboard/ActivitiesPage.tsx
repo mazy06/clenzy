@@ -50,7 +50,7 @@ export default function ActivitiesPage() {
     return 'USER';
   })();
   
-  const { activities, loading, error } = useDashboardStats(userRole, user, t, undefined); // Pas de limite pour la page des activités
+  const { activities, loading, error } = useDashboardStats(userRole, t); // Pas de limite pour la page des activités
   
   // TOUS les useState DOIVENT être déclarés AVANT tout autre code
   const [searchTerm, setSearchTerm] = useState('');
