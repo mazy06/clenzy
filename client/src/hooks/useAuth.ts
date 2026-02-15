@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useContext, useRef } from 'react';
 import keycloak from '../keycloak';
-import apiClient from '../services/apiClient';
+import { API_CONFIG } from '../config/api';
 import { CustomPermissionsContext } from './useCustomPermissions';
 import PermissionSyncService from '../services/PermissionSyncService';
 import RedisCacheService from '../services/RedisCacheService';
@@ -57,70 +57,86 @@ export const useAuth = () => {
 
     const loadUserFromKeycloak = async () => {
       try {
-        // Récupérer les informations utilisateur depuis l'API
-        const userData = await apiClient.get<any>('/me');
+        // Récupérer les informations utilisateur depuis l'API avec fetch + keycloak.token
+        const response = await fetch(API_CONFIG.ENDPOINTS.ME, {
+          headers: {
+            'Authorization': `Bearer ${keycloak.token}`,
+            'Content-Type': 'application/json',
+          },
+        });
 
-        // Utiliser directement les permissions depuis l'API
-        const permissions = userData.permissions || [];
+        if (response.ok) {
+          const userData = await response.json();
+          console.log('useAuth - Données utilisateur reçues:', userData);
 
-        // Extraire les rôles depuis realm_access (Keycloak) si le backend ne les retourne pas
-        let roles: string[] = [];
-        if (userData.role) {
-          // Le backend retourne 'role' (singulier)
-          roles = [userData.role];
-        } else if (userData.realm_access && userData.realm_access.roles) {
-          // Extraire depuis realm_access (Keycloak)
-          roles = userData.realm_access.roles.filter((role: string) => role !== 'default-roles-clenzy' && role !== 'offline_access');
-        }
+          // Utiliser directement les permissions depuis l'API
+          const permissions = userData.permissions || [];
 
-        // Créer l'objet utilisateur avec les permissions directes ET les données métier
-        const user: AuthUser = {
-          id: userData.subject || userData.id || 'unknown',
-          email: userData.email || '',
-          username: userData.preferred_username || userData.username || 'Utilisateur',
-          firstName: userData.firstName || '',
-          lastName: userData.lastName || '',
-          fullName: userData.fullName ||
-                   `${userData.firstName || ''} ${userData.lastName || ''}`.trim() ||
-                   userData.preferred_username || userData.username || 'Utilisateur',
-          roles: Array.isArray(roles) ? roles : [roles].filter(Boolean),
-          permissions: Array.isArray(permissions) ? permissions : [permissions].filter(Boolean),
-        };
+          // Extraire les rôles depuis realm_access (Keycloak) si le backend ne les retourne pas
+          let roles: string[] = [];
+          if (userData.role) {
+            // Le backend retourne 'role' (singulier)
+            roles = [userData.role];
+          } else if (userData.realm_access && userData.realm_access.roles) {
+            // Extraire depuis realm_access (Keycloak)
+            roles = userData.realm_access.roles.filter((role: string) => role !== 'default-roles-clenzy' && role !== 'offline_access');
+          }
 
-        setUser(user);
-        setLoading(false);
+          console.log('useAuth - Rôles extraits:', roles);
+          console.log('useAuth - Permissions extraites:', permissions);
 
-        // Initialiser le service de synchronisation des permissions
-        permissionSyncService.initialize(user);
+          // Créer l'objet utilisateur avec les permissions directes ET les données métier
+          const user: AuthUser = {
+            id: userData.subject || userData.id || 'unknown',
+            email: userData.email || '',
+            username: userData.preferred_username || userData.username || 'Utilisateur',
+            firstName: userData.firstName || '',
+            lastName: userData.lastName || '',
+            fullName: userData.fullName ||
+                     `${userData.firstName || ''} ${userData.lastName || ''}`.trim() ||
+                     userData.preferred_username || userData.username || 'Utilisateur',
+            roles: Array.isArray(roles) ? roles : [roles].filter(Boolean),
+            permissions: Array.isArray(permissions) ? permissions : [permissions].filter(Boolean),
+          };
 
-        // Forcer une synchronisation immédiate pour résoudre le problème d'accès
-        try {
-          await permissionSyncService.syncNow();
-        } catch (error) {
-        }
-      } catch (error: any) {
-        if (error.status === 400 || error.status === 401) {
+          setUser(user);
+          setLoading(false);
+
+          // Initialiser le service de synchronisation des permissions
+          permissionSyncService.initialize(user);
+
+          // Forcer une synchronisation immédiate pour résoudre le problème d'accès
+          try {
+            console.log('useAuth - Synchronisation forcée immédiate au chargement');
+            await permissionSyncService.syncNow();
+          } catch (error) {
+            console.warn('useAuth - Erreur lors de la synchronisation forcée:', error);
+          }
+        } else if (response.status === 400 || response.status === 401) {
           // Erreur 400/401, essayer de rafraîchir le token
           try {
-            // Vérifier si on a un refresh token
             if (keycloak.refreshToken) {
               const refreshed = await keycloak.updateToken(30);
               if (refreshed) {
-                // Réessayer de charger les infos utilisateur
                 await loadUserFromKeycloak();
                 return;
               }
             }
           } catch (refreshError) {
+            console.error('useAuth - Erreur lors du rafraîchissement du token:', refreshError);
           }
 
-          // Si le rafraîchissement échoue, déconnecter l'utilisateur
           setUser(null);
           setLoading(false);
         } else {
+          console.error('useAuth - Erreur lors du chargement des données utilisateur:', response.status);
           setUser(null);
           setLoading(false);
         }
+      } catch (error) {
+        console.error('useAuth - Erreur lors du chargement des données utilisateur:', error);
+        setUser(null);
+        setLoading(false);
       }
     };
 
@@ -207,7 +223,21 @@ export const useAuth = () => {
 
     try {
       // Toujours synchroniser depuis l'API pour avoir les dernières permissions
-      const syncData = await apiClient.post<{ permissions: string[] }>('/permissions/sync', { userId: user.id });
+      const syncResponse = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/permissions/sync`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${keycloak.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (!syncResponse.ok) {
+        console.error('useAuth - Erreur lors de la synchronisation:', syncResponse.status);
+        return false;
+      }
+
+      const syncData = await syncResponse.json();
 
       if (syncData.permissions && syncData.permissions.length > 0) {
         // Mettre à jour les permissions de l'utilisateur seulement si elles ont changé
