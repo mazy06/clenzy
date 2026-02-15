@@ -1,7 +1,13 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.InterventionDto;
+import com.clenzy.model.Intervention;
+import com.clenzy.model.User;
+import com.clenzy.model.UserRole;
+import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.UserRepository;
 import com.clenzy.service.InterventionService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,20 +24,112 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.validation.annotation.Validated;
 import com.clenzy.dto.validation.Create;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/api/interventions")
 @Tag(name = "Interventions", description = "Gestion des interventions")
 public class InterventionController {
     
     private final InterventionService interventionService;
-    
-    public InterventionController(InterventionService interventionService) {
+    private final InterventionRepository interventionRepository;
+    private final UserRepository userRepository;
+
+    public InterventionController(InterventionService interventionService,
+                                  InterventionRepository interventionRepository,
+                                  UserRepository userRepository) {
         this.interventionService = interventionService;
+        this.interventionRepository = interventionRepository;
+        this.userRepository = userRepository;
     }
     
+    @GetMapping("/planning")
+    @Operation(summary = "Interventions pour le planning",
+            description = "Retourne les interventions filtrees par proprietes et plage de dates pour le planning. " +
+                    "Admin/Manager voient tout, Host voit ses proprietes uniquement.")
+    public ResponseEntity<List<Map<String, Object>>> getPlanningInterventions(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) List<Long> propertyIds,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String type) {
+
+        // Defaults : 3 mois avant/apres
+        if (from == null) from = LocalDate.now().minusMonths(3);
+        if (to == null) to = LocalDate.now().plusMonths(6);
+
+        LocalDateTime fromDateTime = from.atStartOfDay();
+        LocalDateTime toDateTime = to.atTime(LocalTime.MAX);
+
+        User user = userRepository.findByKeycloakId(jwt.getSubject())
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        String role = user.getRole() != null ? user.getRole().name().toUpperCase() : "";
+        boolean isAdminOrManager = role.contains("ADMIN") || role.contains("MANAGER");
+
+        List<Intervention> interventions;
+
+        if (propertyIds != null && !propertyIds.isEmpty()) {
+            interventions = interventionRepository.findByPropertyIdsAndDateRange(propertyIds, fromDateTime, toDateTime);
+        } else if (isAdminOrManager) {
+            interventions = interventionRepository.findAllByDateRange(fromDateTime, toDateTime);
+        } else {
+            // Host / operational : ses propres proprietes
+            interventions = interventionRepository.findByOwnerKeycloakIdAndDateRange(jwt.getSubject(), fromDateTime, toDateTime);
+        }
+
+        // Filtre optionnel par type
+        if (type != null && !type.isEmpty() && !"all".equals(type)) {
+            interventions = interventions.stream()
+                    .filter(i -> type.equalsIgnoreCase(i.getType()))
+                    .collect(Collectors.toList());
+        }
+
+        // Mapper vers la structure attendue par le frontend (PlanningIntervention)
+        List<Map<String, Object>> result = interventions.stream().map(i -> {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", i.getId());
+            map.put("propertyId", i.getProperty() != null ? i.getProperty().getId() : null);
+            map.put("propertyName", i.getProperty() != null ? i.getProperty().getName() : "");
+            map.put("type", i.getType() != null ? i.getType().toLowerCase() : "cleaning");
+            // Mapper les statuts backend vers les valeurs attendues par le frontend
+            String frontendStatus = "scheduled";
+            if (i.getStatus() != null) {
+                switch (i.getStatus()) {
+                    case IN_PROGRESS: frontendStatus = "in_progress"; break;
+                    case COMPLETED: frontendStatus = "completed"; break;
+                    case CANCELLED: frontendStatus = "cancelled"; break;
+                    default: frontendStatus = "scheduled"; break; // PENDING, AWAITING_VALIDATION, AWAITING_PAYMENT
+                }
+            }
+            map.put("status", frontendStatus);
+            map.put("priority", i.getPriority() != null ? i.getPriority().toLowerCase() : "medium");
+            map.put("title", i.getTitle());
+            map.put("description", i.getDescription());
+            // startDate = scheduledDate, endDate = scheduledDate + duree estimee
+            String startDate = i.getScheduledDate() != null ? i.getScheduledDate().toLocalDate().toString() : null;
+            String endDate = startDate; // par defaut meme jour
+            map.put("startDate", startDate);
+            map.put("endDate", endDate);
+            map.put("startTime", i.getScheduledDate() != null ? i.getScheduledDate().toLocalTime().toString() : "11:00");
+            map.put("estimatedDuration", i.getEstimatedDurationHours());
+            map.put("assigneeName", i.getAssignedUser() != null ?
+                    (i.getAssignedUser().getFirstName() + " " + i.getAssignedUser().getLastName()).trim() : null);
+            return map;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(result);
+    }
+
     @PostMapping
     @Operation(summary = "Créer une intervention")
-    public ResponseEntity<InterventionDto> create(@Validated(Create.class) @RequestBody InterventionDto dto, 
+    public ResponseEntity<InterventionDto> create(@Validated(Create.class) @RequestBody InterventionDto dto,
                                                  @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.status(HttpStatus.CREATED).body(interventionService.create(dto, jwt));
     }

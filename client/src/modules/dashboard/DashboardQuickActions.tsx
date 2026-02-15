@@ -23,39 +23,22 @@ type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
 const quickActionButtonSx = {
   justifyContent: 'flex-start',
   textAlign: 'left',
-  py: 0.75,
-  px: 1.25,
+  py: 0.5,
+  px: 1,
   borderRadius: 1,
-  borderWidth: 1.5,
-  fontSize: '0.8125rem',
-  minHeight: 36,
+  borderWidth: 1,
+  fontSize: '0.75rem',
+  minHeight: 32,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
   '& .MuiButton-startIcon': {
-    marginRight: 0.75,
-    flexShrink: 0
+    marginRight: 0.5,
+    flexShrink: 0,
+    '& .MuiSvgIcon-root': { fontSize: '16px' },
   },
   '&:hover': {
-    borderWidth: 1.5,
-    transform: 'translateY(-1px)',
-    boxShadow: 1,
-    transition: 'all 0.2s ease-in-out'
-  }
-} as const;
-
-/** Simplified button style for full-width buttons (no text truncation props) */
-const fullWidthButtonSx = {
-  justifyContent: 'flex-start',
-  textAlign: 'left',
-  py: 0.75,
-  px: 1.25,
-  borderRadius: 1,
-  borderWidth: 1.5,
-  fontSize: '0.8125rem',
-  minHeight: 36,
-  '&:hover': {
-    borderWidth: 1.5,
+    borderWidth: 1,
     transform: 'translateY(-1px)',
     boxShadow: 1,
     transition: 'all 0.2s ease-in-out'
@@ -95,159 +78,135 @@ const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
   }
 
   return (
-    <Grid item xs={12} md={4}>
-      <Card>
-        <CardContent sx={{ p: 2 }}>
-          <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 1.5 }}>
-            {t('dashboard.quickActions')}
-          </Typography>
+    <Card>
+      <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+        <Typography variant="subtitle2" sx={{ fontSize: '0.8125rem', fontWeight: 600, mb: 1 }}>
+          {t('dashboard.quickActions')}
+        </Typography>
 
-          {/* Tous les boutons sur deux colonnes */}
-          <Grid container spacing={1.5}>
-            {canViewProperties && (
-              <Grid item xs={6}>
-                <Button
-                  variant="outlined"
-                  startIcon={<Add sx={{ fontSize: '18px' }} />}
-                  fullWidth
-                  onClick={() => navigate('/properties/new')}
-                  sx={quickActionButtonSx}
-                >
-                  {t('dashboard.createProperty')}
-                </Button>
-              </Grid>
-            )}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          {canViewProperties && (
+            <Button
+              variant="outlined"
+              startIcon={<Add />}
+              fullWidth
+              onClick={() => navigate('/properties/new')}
+              sx={quickActionButtonSx}
+            >
+              {t('dashboard.createProperty')}
+            </Button>
+          )}
 
-            {canViewServiceRequests && (
-              <Grid item xs={6}>
-                <Button
-                  variant="outlined"
-                  startIcon={<Add sx={{ fontSize: '18px' }} />}
-                  fullWidth
-                  onClick={() => navigate('/service-requests/new')}
-                  sx={quickActionButtonSx}
-                >
-                  {t('dashboard.createRequest')}
-                </Button>
-              </Grid>
-            )}
+          {canViewServiceRequests && (
+            <Button
+              variant="outlined"
+              startIcon={<Add />}
+              fullWidth
+              onClick={() => navigate('/service-requests/new')}
+              sx={quickActionButtonSx}
+            >
+              {t('dashboard.createRequest')}
+            </Button>
+          )}
 
-            {canViewTeams && !isHost && (
-              <Grid item xs={6}>
-                <Button
-                  variant="outlined"
-                  startIcon={<Add sx={{ fontSize: '18px' }} />}
-                  fullWidth
-                  onClick={() => navigate('/teams/new')}
-                  sx={quickActionButtonSx}
-                >
-                  {t('dashboard.createTeam')}
-                </Button>
-              </Grid>
-            )}
+          {canViewTeams && !isHost && (
+            <Button
+              variant="outlined"
+              startIcon={<Add />}
+              fullWidth
+              onClick={() => navigate('/teams/new')}
+              sx={quickActionButtonSx}
+            >
+              {t('dashboard.createTeam')}
+            </Button>
+          )}
 
-            {canViewUsers && !isHost && (
-              <Grid item xs={6}>
-                <Button
-                  variant="outlined"
-                  startIcon={<Add sx={{ fontSize: '18px' }} />}
-                  fullWidth
-                  onClick={() => navigate('/users/new')}
-                  sx={quickActionButtonSx}
-                >
-                  {t('dashboard.createUser')}
-                </Button>
-              </Grid>
-            )}
+          {canViewUsers && !isHost && (
+            <Button
+              variant="outlined"
+              startIcon={<Add />}
+              fullWidth
+              onClick={() => navigate('/users/new')}
+              sx={quickActionButtonSx}
+            >
+              {t('dashboard.createUser')}
+            </Button>
+          )}
 
-            {canViewTeams && (
-              <Grid item xs={6}>
-                <Button
-                  variant="outlined"
-                  startIcon={<GroupIcon sx={{ fontSize: '18px' }} />}
-                  fullWidth
-                  onClick={() => navigate('/teams')}
-                  sx={quickActionButtonSx}
-                >
-                  {t('dashboard.manageTeams')}
-                </Button>
-              </Grid>
-            )}
+          {canViewTeams && (
+            <Button
+              variant="outlined"
+              startIcon={<GroupIcon />}
+              fullWidth
+              onClick={() => navigate('/teams')}
+              sx={quickActionButtonSx}
+            >
+              {t('dashboard.manageTeams')}
+            </Button>
+          )}
 
-            {canViewSettings && (
-              <Grid item xs={6}>
-                <Button
-                  variant="outlined"
-                  startIcon={<Settings sx={{ fontSize: '18px' }} />}
-                  fullWidth
-                  onClick={() => navigate('/settings')}
-                  sx={quickActionButtonSx}
-                >
-                  {t('dashboard.systemSettings')}
-                </Button>
-              </Grid>
-            )}
+          {canViewSettings && (
+            <Button
+              variant="outlined"
+              startIcon={<Settings />}
+              fullWidth
+              onClick={() => navigate('/settings')}
+              sx={quickActionButtonSx}
+            >
+              {t('dashboard.systemSettings')}
+            </Button>
+          )}
 
-            {isAdmin && (
-              <Grid item xs={6}>
-                <Button
-                  variant="outlined"
-                  startIcon={<SecurityIcon sx={{ fontSize: '18px' }} />}
-                  fullWidth
-                  onClick={() => navigate('/admin/monitoring')}
-                  sx={quickActionButtonSx}
-                >
-                  {t('dashboard.tokenMonitoring')}
-                </Button>
-              </Grid>
-            )}
+          {isAdmin && (
+            <Button
+              variant="outlined"
+              startIcon={<SecurityIcon />}
+              fullWidth
+              onClick={() => navigate('/admin/monitoring')}
+              sx={quickActionButtonSx}
+            >
+              {t('dashboard.tokenMonitoring')}
+            </Button>
+          )}
 
-            {canViewUsers && (
-              <Grid item xs={6}>
-                <Button
-                  variant="outlined"
-                  startIcon={<AccountIcon sx={{ fontSize: '18px' }} />}
-                  fullWidth
-                  onClick={() => navigate('/users')}
-                  sx={quickActionButtonSx}
-                >
-                  {t('dashboard.userManagement')}
-                </Button>
-              </Grid>
-            )}
+          {canViewUsers && (
+            <Button
+              variant="outlined"
+              startIcon={<AccountIcon />}
+              fullWidth
+              onClick={() => navigate('/users')}
+              sx={quickActionButtonSx}
+            >
+              {t('dashboard.userManagement')}
+            </Button>
+          )}
 
-            {/* Seuls les ADMIN et MANAGER peuvent créer des interventions manuellement */}
-            {canViewInterventions && (isAdmin || isManager) && (
-              <Grid item xs={6}>
-                <Button
-                  variant="outlined"
-                  startIcon={<Build sx={{ fontSize: '18px' }} />}
-                  fullWidth
-                  onClick={() => navigate('/interventions/new')}
-                  sx={quickActionButtonSx}
-                >
-                  {t('dashboard.createIntervention')}
-                </Button>
-              </Grid>
-            )}
+          {canViewInterventions && (isAdmin || isManager) && (
+            <Button
+              variant="outlined"
+              startIcon={<Build />}
+              fullWidth
+              onClick={() => navigate('/interventions/new')}
+              sx={quickActionButtonSx}
+            >
+              {t('dashboard.createIntervention')}
+            </Button>
+          )}
 
-            {isAdmin && (
-              <Grid item xs={6}>
-                <Button
-                  variant="outlined"
-                  startIcon={<SecurityIcon sx={{ fontSize: '18px' }} />}
-                  fullWidth
-                  onClick={() => navigate('/permissions-test')}
-                  sx={quickActionButtonSx}
-                >
-                  {t('dashboard.managePermissions')}
-                </Button>
-              </Grid>
-            )}
-          </Grid>
-        </CardContent>
-      </Card>
-    </Grid>
+          {isAdmin && (
+            <Button
+              variant="outlined"
+              startIcon={<SecurityIcon />}
+              fullWidth
+              onClick={() => navigate('/permissions-test')}
+              sx={quickActionButtonSx}
+            >
+              {t('dashboard.managePermissions')}
+            </Button>
+          )}
+        </Box>
+      </CardContent>
+    </Card>
   );
 };
 

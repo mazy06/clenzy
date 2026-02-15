@@ -44,6 +44,7 @@ interface Intervention {
   type: string;
   status: string;
   priority: string;
+  propertyType?: string;
   propertyName: string;
   propertyAddress: string;
   requestorName: string;

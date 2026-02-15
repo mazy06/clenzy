@@ -105,6 +105,69 @@ export function clearTokens(): void {
   removeItem(STORAGE_KEYS.REFRESH_TOKEN);
   removeItem(STORAGE_KEYS.ID_TOKEN);
   removeItem(STORAGE_KEYS.EXPIRES_IN);
+  // Supprimer aussi le cookie partagé avec la landing page
+  clearSessionCookie();
+}
+
+// ─── Cross-domain Cookie (shared with landing page) ────────────────────────
+
+const SESSION_COOKIE = 'clenzy_session';
+
+/**
+ * Retourne le domaine racine pour le cookie.
+ * - localhost → pas de domain (partagé entre tous les ports)
+ * - app.clenzy.fr → .clenzy.fr (partagé entre tous les sous-domaines)
+ */
+function getCookieDomain(): string {
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return '';
+  }
+  // Extraire le domaine racine (ex: app.clenzy.fr → .clenzy.fr)
+  const parts = hostname.split('.');
+  if (parts.length >= 2) {
+    return `; domain=.${parts.slice(-2).join('.')}`;
+  }
+  return '';
+}
+
+/**
+ * Save access token as a cookie readable by the landing page.
+ * En dev : partagé entre tous les ports de localhost.
+ * En prod : partagé entre tous les sous-domaines de clenzy.fr.
+ */
+export function setSessionCookie(accessToken: string): void {
+  try {
+    const domain = getCookieDomain();
+    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(accessToken)}; path=/${domain}; max-age=86400; SameSite=Lax${secure}`;
+  } catch {
+    // Silent fail
+  }
+}
+
+/**
+ * Read the session cookie.
+ */
+export function getSessionCookie(): string | null {
+  try {
+    const match = document.cookie.match(new RegExp(`(?:^|; )${SESSION_COOKIE}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Clear the session cookie.
+ */
+export function clearSessionCookie(): void {
+  try {
+    const domain = getCookieDomain();
+    document.cookie = `${SESSION_COOKIE}=; path=/${domain}; max-age=0; SameSite=Lax`;
+  } catch {
+    // Silent fail
+  }
 }
 
 // ─── Default Export ─────────────────────────────────────────────────────────
@@ -119,6 +182,9 @@ const storageService = {
   getRefreshToken,
   saveTokens,
   clearTokens,
+  setSessionCookie,
+  getSessionCookie,
+  clearSessionCookie,
   KEYS: STORAGE_KEYS,
 };
 

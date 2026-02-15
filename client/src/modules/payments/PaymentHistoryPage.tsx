@@ -4,7 +4,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
   Paper,
   Table,
   TableBody,
@@ -19,6 +18,8 @@ import {
   TextField,
   MenuItem,
   Button,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
@@ -30,14 +31,35 @@ import {
   Clear as ClearIcon,
   ReceiptLong as ReceiptLongIcon,
   Warning as WarningIcon,
+  Payment as PaymentIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { paymentsApi } from '../../services/api/paymentsApi';
 import type { PaymentRecord, PaymentSummary, HostOption } from '../../services/api/paymentsApi';
+import apiClient from '../../services/apiClient';
 import PageHeader from '../../components/PageHeader';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
+
+// ─── Couleurs Clenzy ─────────────────────────────────────────────────────────
+const C = {
+  primary: '#6B8A9A',
+  primaryLight: '#8BA3B3',
+  primaryDark: '#5A7684',
+  secondary: '#A6C0CE',
+  success: '#4A9B8E',
+  warning: '#D4A574',
+  warningLight: '#E8C19A',
+  error: '#C97A7A',
+  info: '#7BA3C2',
+  textPrimary: '#1E293B',
+  textSecondary: '#64748B',
+  gray50: '#F8FAFC',
+  gray100: '#F1F5F9',
+  gray200: '#E2E8F0',
+  white: '#ffffff',
+} as const;
 
 const PaymentHistoryPage: React.FC = () => {
   const { t } = useTranslation();
@@ -71,6 +93,10 @@ const PaymentHistoryPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  // Payment processing state
+  const [processingPayment, setProcessingPayment] = useState<number | null>(null);
+  const [payError, setPayError] = useState<string | null>(null);
 
   // Pagination state
   const [page, setPage] = useState(0);
@@ -151,6 +177,28 @@ const PaymentHistoryPage: React.FC = () => {
     setPage(0);
   };
 
+  const handlePay = async (payment: PaymentRecord) => {
+    if (!payment.amount || payment.amount <= 0) {
+      setPayError("Le montant n'est pas defini pour ce paiement");
+      return;
+    }
+
+    try {
+      setProcessingPayment(payment.interventionId);
+      setPayError(null);
+
+      const paymentData = await apiClient.post<{ url: string }>('/payments/create-session', {
+        interventionId: payment.interventionId,
+        amount: payment.amount,
+      });
+
+      window.location.href = paymentData.url;
+    } catch (err: any) {
+      setPayError(err.message || 'Erreur lors de la creation de la session de paiement');
+      setProcessingPayment(null);
+    }
+  };
+
   const hasActiveFilters = search || statusFilter || dateFrom || dateTo || hostFilter;
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -166,7 +214,7 @@ const PaymentHistoryPage: React.FC = () => {
     try {
       return new Date(dateStr).toLocaleDateString('fr-FR', {
         day: '2-digit',
-        month: '2-digit',
+        month: 'short',
         year: 'numeric',
       });
     } catch {
@@ -175,16 +223,29 @@ const PaymentHistoryPage: React.FC = () => {
   };
 
   const getStatusChip = (status: PaymentRecord['status']) => {
-    const config: Record<string, { color: 'success' | 'warning' | 'error' | 'info' | 'default'; label: string }> = {
-      PAID: { color: 'success', label: t('payments.history.paid') },
-      PENDING: { color: 'warning', label: t('payments.history.pending') },
-      PROCESSING: { color: 'info', label: t('payments.history.processing') },
-      FAILED: { color: 'error', label: t('payments.history.failed') },
-      REFUNDED: { color: 'info', label: t('payments.history.refunded') },
-      CANCELLED: { color: 'default', label: t('payments.history.cancelled') },
+    const config: Record<string, { bg: string; color: string; label: string }> = {
+      PAID: { bg: `${C.success}14`, color: C.success, label: t('payments.history.paid') },
+      PENDING: { bg: `${C.warning}14`, color: C.warning, label: t('payments.history.pending') },
+      PROCESSING: { bg: `${C.info}14`, color: C.info, label: t('payments.history.processing') },
+      FAILED: { bg: `${C.error}14`, color: C.error, label: t('payments.history.failed') },
+      REFUNDED: { bg: `${C.info}14`, color: C.info, label: t('payments.history.refunded') },
+      CANCELLED: { bg: `${C.gray100}`, color: C.textSecondary, label: t('payments.history.cancelled') },
     };
-    const c = config[status] || { color: 'default' as const, label: status };
-    return <Chip label={c.label} color={c.color} size="small" />;
+    const c = config[status] || { bg: C.gray100, color: C.textSecondary, label: status };
+    return (
+      <Chip
+        label={c.label}
+        size="small"
+        sx={{
+          fontSize: '0.6875rem',
+          height: 22,
+          bgcolor: c.bg,
+          color: c.color,
+          fontWeight: 500,
+          borderRadius: '6px',
+        }}
+      />
+    );
   };
 
   /** Row styling for unpaid highlighting */
@@ -192,18 +253,24 @@ const PaymentHistoryPage: React.FC = () => {
     if (status === 'PENDING' || status === 'PROCESSING') {
       return {
         cursor: 'pointer',
-        borderLeft: '4px solid #ff9800',
-        backgroundColor: 'rgba(255, 152, 0, 0.04)',
+        borderLeft: `3px solid ${C.warning}`,
+        transition: 'background-color 0.15s ease',
+        '&:hover': { bgcolor: 'rgba(107,138,154,0.04)' },
       };
     }
     if (status === 'FAILED') {
       return {
         cursor: 'pointer',
-        borderLeft: '4px solid #f44336',
-        backgroundColor: 'rgba(244, 67, 54, 0.04)',
+        borderLeft: `3px solid ${C.error}`,
+        transition: 'background-color 0.15s ease',
+        '&:hover': { bgcolor: 'rgba(107,138,154,0.04)' },
       };
     }
-    return { cursor: 'pointer' };
+    return {
+      cursor: 'pointer',
+      transition: 'background-color 0.15s ease',
+      '&:hover': { bgcolor: 'rgba(107,138,154,0.04)' },
+    };
   };
 
   // ─── Summary cards ────────────────────────────────────────────────────────
@@ -215,47 +282,46 @@ const PaymentHistoryPage: React.FC = () => {
         {
           label: t('payments.history.totalPaid'),
           value: formatCurrency(summary.totalPaid),
-          color: '#4caf50',
-          icon: <CheckCircleIcon sx={{ fontSize: 28, color: '#4caf50' }} />,
+          color: C.success,
+          icon: <CheckCircleIcon sx={{ fontSize: 20, color: C.success }} />,
         },
         {
           label: t('payments.history.totalPending'),
           value: formatCurrency(summary.totalPending),
-          color: '#ff9800',
-          icon: <HourglassEmptyIcon sx={{ fontSize: 28, color: '#ff9800' }} />,
+          color: C.warning,
+          icon: <HourglassEmptyIcon sx={{ fontSize: 20, color: C.warning }} />,
         },
         {
           label: t('payments.history.totalRefunded'),
           value: formatCurrency(summary.totalRefunded),
-          color: '#2196f3',
-          icon: <MoneyOffIcon sx={{ fontSize: 28, color: '#2196f3' }} />,
+          color: C.info,
+          icon: <MoneyOffIcon sx={{ fontSize: 20, color: C.info }} />,
         },
         {
           label: t('payments.history.transactions'),
           value: String(summary.transactionCount),
-          color: '#9c27b0',
-          icon: <ReceiptIcon sx={{ fontSize: 28, color: '#9c27b0' }} />,
+          color: C.primary,
+          icon: <ReceiptIcon sx={{ fontSize: 20, color: C.primary }} />,
         },
       ]
     : [
-        // HOST view: Total paid, Total due (orange/red), Transactions
         {
           label: t('payments.history.totalPaid'),
           value: formatCurrency(summary.totalPaid),
-          color: '#4caf50',
-          icon: <CheckCircleIcon sx={{ fontSize: 28, color: '#4caf50' }} />,
+          color: C.success,
+          icon: <CheckCircleIcon sx={{ fontSize: 20, color: C.success }} />,
         },
         {
           label: t('payments.history.totalDue'),
           value: formatCurrency(totalDue),
-          color: totalDue > 0 ? '#f44336' : '#ff9800',
-          icon: <WarningIcon sx={{ fontSize: 28, color: totalDue > 0 ? '#f44336' : '#ff9800' }} />,
+          color: totalDue > 0 ? C.error : C.warning,
+          icon: <WarningIcon sx={{ fontSize: 20, color: totalDue > 0 ? C.error : C.warning }} />,
         },
         {
           label: t('payments.history.transactions'),
           value: String(summary.transactionCount),
-          color: '#9c27b0',
-          icon: <ReceiptIcon sx={{ fontSize: 28, color: '#9c27b0' }} />,
+          color: C.primary,
+          icon: <ReceiptIcon sx={{ fontSize: 20, color: C.primary }} />,
         },
       ];
 
@@ -271,59 +337,103 @@ const PaymentHistoryPage: React.FC = () => {
         showBackButton={true}
       />
 
+      {payError && (
+        <Alert
+          severity="error"
+          sx={{ mb: 2, borderRadius: '8px', fontSize: '0.8125rem' }}
+          onClose={() => setPayError(null)}
+        >
+          {payError}
+        </Alert>
+      )}
+
       {/* Summary cards */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
+      <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
         {summaryCards.map((card) => (
-          <Grid item xs={12} sm={6} md={isAdminOrManager ? 3 : 4} key={card.label}>
-            <Card
-              sx={{
-                borderLeft: `4px solid ${card.color}`,
-                height: '100%',
-              }}
-            >
-              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 2, '&:last-child': { pb: 2 } }}>
+          <Card key={card.label} sx={{ flex: '1 1 180px', borderLeft: `4px solid ${card.color}` }}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+              <Box
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  bgcolor: `${card.color}14`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
                 {card.icon}
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.2 }}>
-                    {card.value}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                    {card.label}
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+              </Box>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.125rem', color: C.textPrimary, lineHeight: 1.2 }}>
+                  {card.value}
+                </Typography>
+                <Typography variant="body2" sx={{ fontSize: '0.75rem', color: C.textSecondary }}>
+                  {card.label}
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
         ))}
-      </Grid>
+      </Box>
 
       {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+      <Paper
+        sx={{
+          p: 1.5,
+          mb: 2,
+          display: 'flex',
+          gap: 1.5,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          borderRadius: '12px',
+          boxShadow: '0 1px 4px rgba(107,138,154,0.10)',
+        }}
+      >
         <TextField
           size="small"
           placeholder={t('payments.history.search')}
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(0); }}
           InputProps={{
-            startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />,
+            startAdornment: <SearchIcon sx={{ mr: 1, color: C.textSecondary, fontSize: 18 }} />,
           }}
-          sx={{ minWidth: 220, flex: 1 }}
+          sx={{
+            minWidth: 200,
+            flex: 1,
+            '& .MuiOutlinedInput-root': {
+              fontSize: '0.8125rem',
+              borderRadius: '8px',
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+            },
+          }}
         />
         <TextField
           select
           size="small"
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-          sx={{ minWidth: 160 }}
+          sx={{
+            minWidth: 150,
+            '& .MuiOutlinedInput-root': {
+              fontSize: '0.8125rem',
+              borderRadius: '8px',
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+            },
+            '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
+          }}
           label={t('payments.history.status')}
         >
-          <MenuItem value="">{t('payments.history.allStatuses')}</MenuItem>
-          <MenuItem value="PAID">{t('payments.history.paid')}</MenuItem>
-          <MenuItem value="PENDING">{t('payments.history.pending')}</MenuItem>
-          <MenuItem value="PROCESSING">{t('payments.history.processing')}</MenuItem>
-          <MenuItem value="FAILED">{t('payments.history.failed')}</MenuItem>
-          <MenuItem value="REFUNDED">{t('payments.history.refunded')}</MenuItem>
-          <MenuItem value="CANCELLED">{t('payments.history.cancelled')}</MenuItem>
+          <MenuItem value="" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.allStatuses')}</MenuItem>
+          <MenuItem value="PAID" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.paid')}</MenuItem>
+          <MenuItem value="PENDING" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.pending')}</MenuItem>
+          <MenuItem value="PROCESSING" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.processing')}</MenuItem>
+          <MenuItem value="FAILED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.failed')}</MenuItem>
+          <MenuItem value="REFUNDED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.refunded')}</MenuItem>
+          <MenuItem value="CANCELLED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.cancelled')}</MenuItem>
         </TextField>
 
         {/* Host filter — ADMIN/MANAGER only */}
@@ -333,12 +443,21 @@ const PaymentHistoryPage: React.FC = () => {
             size="small"
             value={hostFilter}
             onChange={(e) => { setHostFilter(e.target.value ? Number(e.target.value) : ''); setPage(0); }}
-            sx={{ minWidth: 200 }}
+            sx={{
+              minWidth: 180,
+              '& .MuiOutlinedInput-root': {
+                fontSize: '0.8125rem',
+                borderRadius: '8px',
+                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+              },
+              '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
+            }}
             label={t('payments.history.filterByHost')}
           >
-            <MenuItem value="">{t('payments.history.allHosts')}</MenuItem>
+            <MenuItem value="" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.allHosts')}</MenuItem>
             {hostsList.map((host) => (
-              <MenuItem key={host.id} value={host.id}>
+              <MenuItem key={host.id} value={host.id} sx={{ fontSize: '0.8125rem' }}>
                 {host.fullName}
               </MenuItem>
             ))}
@@ -352,7 +471,16 @@ const PaymentHistoryPage: React.FC = () => {
           value={dateFrom}
           onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
           InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 150 }}
+          sx={{
+            minWidth: 140,
+            '& .MuiOutlinedInput-root': {
+              fontSize: '0.8125rem',
+              borderRadius: '8px',
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+            },
+            '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
+          }}
         />
         <TextField
           size="small"
@@ -361,14 +489,31 @@ const PaymentHistoryPage: React.FC = () => {
           value={dateTo}
           onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
           InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 150 }}
+          sx={{
+            minWidth: 140,
+            '& .MuiOutlinedInput-root': {
+              fontSize: '0.8125rem',
+              borderRadius: '8px',
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+            },
+            '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
+          }}
         />
         {hasActiveFilters && (
           <Button
             size="small"
             variant="outlined"
-            startIcon={<ClearIcon />}
+            startIcon={<ClearIcon sx={{ fontSize: 16 }} />}
             onClick={handleClearFilters}
+            sx={{
+              textTransform: 'none',
+              fontSize: '0.8125rem',
+              borderColor: C.gray200,
+              color: C.textSecondary,
+              borderRadius: '8px',
+              '&:hover': { borderColor: C.primary, color: C.primary },
+            }}
           >
             {t('payments.history.clearFilters')}
           </Button>
@@ -382,23 +527,62 @@ const PaymentHistoryPage: React.FC = () => {
         onRetry={loadData}
         isEmpty={payments.length === 0}
         emptyState={
-          <Paper sx={{ p: 6, textAlign: 'center' }}>
-            <ReceiptLongIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              {t('payments.history.noPayments')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t('payments.history.noPaymentsDesc')}
-            </Typography>
-          </Paper>
+          <Card sx={{ borderRadius: '12px' }}>
+            <CardContent sx={{ textAlign: 'center', py: 6 }}>
+              <Box
+                sx={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  bgcolor: `${C.primary}14`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mx: 'auto',
+                  mb: 2,
+                }}
+              >
+                <ReceiptLongIcon sx={{ fontSize: 28, color: C.primary }} />
+              </Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: C.textPrimary, mb: 0.5 }}>
+                {t('payments.history.noPayments')}
+              </Typography>
+              <Typography variant="body2" sx={{ color: C.textSecondary, fontSize: '0.8125rem' }}>
+                {t('payments.history.noPaymentsDesc')}
+              </Typography>
+            </CardContent>
+          </Card>
         }
       >
-        <TableContainer component={Paper}>
+        <TableContainer
+          component={Paper}
+          sx={{
+            borderRadius: '12px',
+            boxShadow: '0 1px 4px rgba(107,138,154,0.10)',
+            '& .MuiTableHead-root': {
+              bgcolor: C.gray50,
+            },
+            '& .MuiTableCell-head': {
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              color: C.textSecondary,
+              borderBottom: `2px solid ${C.gray200}`,
+              py: 1.25,
+              whiteSpace: 'nowrap',
+            },
+            '& .MuiTableCell-body': {
+              fontSize: '0.8125rem',
+              color: C.textPrimary,
+              py: 1.25,
+              borderBottom: `1px solid ${C.gray100}`,
+            },
+          }}
+        >
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>{t('payments.history.date')}</TableCell>
-                {isAdminOrManager && <TableCell>{t('payments.history.hostColumn')}</TableCell>}
+                <TableCell>Nom Prenom</TableCell>
                 <TableCell>{t('payments.history.intervention')}</TableCell>
                 <TableCell>{t('payments.history.property')}</TableCell>
                 <TableCell align="right">{t('payments.history.amount')}</TableCell>
@@ -410,44 +594,78 @@ const PaymentHistoryPage: React.FC = () => {
               {payments.map((payment) => (
                 <TableRow
                   key={payment.id}
-                  hover
                   sx={getRowSx(payment.status)}
                   onClick={() => navigate(`/interventions/${payment.interventionId}`)}
                 >
-                  <TableCell>{formatDate(payment.transactionDate)}</TableCell>
-                  {isAdminOrManager && (
-                    <TableCell>
-                      <Typography variant="body2" fontWeight={500}>
-                        {payment.hostName || '—'}
-                      </Typography>
-                    </TableCell>
-                  )}
                   <TableCell>
-                    <Typography variant="body2" fontWeight={500}>
+                    <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+                      {formatDate(payment.transactionDate)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.8125rem', color: C.textPrimary }}>
+                      {payment.hostName || '\u2014'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: C.textPrimary }}>
                       {payment.interventionTitle}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2">{payment.propertyName}</Typography>
+                    <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+                      {payment.propertyName}
+                    </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2" fontWeight={600}>
+                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.875rem', color: C.warning }}>
                       {formatCurrency(payment.amount)}
                     </Typography>
                   </TableCell>
                   <TableCell>{getStatusChip(payment.status)}</TableCell>
                   <TableCell align="center">
-                    <Tooltip title={t('payments.history.viewIntervention')}>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/interventions/${payment.interventionId}`);
-                        }}
-                      >
-                        <VisibilityIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                      <Tooltip title={t('payments.history.viewIntervention')}>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/interventions/${payment.interventionId}`);
+                          }}
+                          sx={{ color: C.textSecondary, '&:hover': { color: C.primary } }}
+                        >
+                          <VisibilityIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Tooltip>
+                      {(payment.status === 'PENDING' || payment.status === 'PROCESSING') && (
+                        <Tooltip title="Payer cette intervention">
+                          <span>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePay(payment);
+                              }}
+                              disabled={processingPayment === payment.interventionId}
+                              sx={{
+                                color: C.white,
+                                bgcolor: C.primary,
+                                width: 28,
+                                height: 28,
+                                '&:hover': { bgcolor: C.primaryDark },
+                                '&:disabled': { bgcolor: C.primaryLight, color: C.white, opacity: 0.6 },
+                              }}
+                            >
+                              {processingPayment === payment.interventionId ? (
+                                <CircularProgress size={14} sx={{ color: C.white }} />
+                              ) : (
+                                <PaymentIcon sx={{ fontSize: 16 }} />
+                              )}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      )}
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}
@@ -462,6 +680,15 @@ const PaymentHistoryPage: React.FC = () => {
             onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[5, 10, 25, 50]}
             labelRowsPerPage={t('common.all') === 'Tous' ? 'Lignes par page' : 'Rows per page'}
+            sx={{
+              '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                fontSize: '0.8125rem',
+                color: C.textSecondary,
+              },
+              '& .MuiTablePagination-select': {
+                fontSize: '0.8125rem',
+              },
+            }}
           />
         </TableContainer>
       </DataFetchWrapper>

@@ -10,6 +10,7 @@ export interface Intervention {
   status: string;
   priority: string;
   propertyId: number;
+  propertyType?: string;
   propertyName: string;
   propertyAddress: string;
   propertyCity?: string;

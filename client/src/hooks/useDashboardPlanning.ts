@@ -188,25 +188,15 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
           reservationsApi.getPlanningInterventions({ propertyIds, from: extFrom, to: extTo }),
         ]);
 
-        // Ajouter les données mock si admin en mode mock
-        let mockRes: Reservation[] = [];
-        let mockInt: PlanningIntervention[] = [];
-        if (isAdmin && reservationsApi.isMockMode()) {
-          [mockRes, mockInt] = await Promise.all([
-            reservationsApi.getAll({ from: extFrom, to: extTo }),
-            reservationsApi.getPlanningInterventions({ from: extFrom, to: extTo }),
-          ]);
-        }
-
         // Dédupliquer par ID avant d'ajouter
         setReservations((prev) => {
           const existingIds = new Set(prev.map((r) => r.id));
-          const toAdd = [...newReservations, ...mockRes].filter((r) => !existingIds.has(r.id));
+          const toAdd = newReservations.filter((r) => !existingIds.has(r.id));
           return [...prev, ...toAdd];
         });
         setInterventions((prev) => {
           const existingIds = new Set(prev.map((i) => i.id));
-          const toAdd = [...newInterventions, ...mockInt].filter((i) => !existingIds.has(i.id));
+          const toAdd = newInterventions.filter((i) => !existingIds.has(i.id));
           return [...prev, ...toAdd];
         });
       }
@@ -226,6 +216,34 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
     try {
       setLoading(true);
       setError(null);
+
+      // ── Mode mock réservé exclusivement à l'admin ──
+      const useMock = isAdmin && reservationsApi.isMockMode();
+
+      if (useMock) {
+        // Admin en mode développement : utiliser les données fictives
+        const mockProperties = reservationsApi.getMockProperties().map((p) => ({
+          id: p.id,
+          name: p.name,
+          address: p.address,
+          city: p.city,
+        }));
+        const mockPropertyIds = mockProperties.map((p) => p.id);
+        const extFrom = toISODateString(addDays(dateRange.start, -7));
+        const extTo = toISODateString(addDays(dateRange.end, 7));
+
+        const [mockReservations, mockInterventions] = await Promise.all([
+          reservationsApi.getAll({ propertyIds: mockPropertyIds, from: extFrom, to: extTo }),
+          reservationsApi.getPlanningInterventions({ propertyIds: mockPropertyIds, from: extFrom, to: extTo }),
+        ]);
+
+        propertiesRef.current = mockProperties;
+        setProperties(mockProperties);
+        setReservations(mockReservations);
+        setInterventions(mockInterventions);
+        setLoading(false);
+        return;
+      }
 
       // ── Étape 1 : Charger les propriétés réelles via API selon le rôle ──
       let propertyList: Property[] = [];
@@ -305,23 +323,6 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
             to: extendedTo,
           }),
         ]);
-      }
-
-      // ── Étape 3 : ADMIN uniquement — ajouter les données mock de test ──
-      // Les données mock (10 propriétés fictives) ne sont visibles que par
-      // l'admin à des fins de test du planning. Les autres rôles ne voient
-      // que les données réelles issues de l'API.
-      if (isAdmin && reservationsApi.isMockMode()) {
-        const mockProperties = reservationsApi.getMockProperties();
-        mappedProperties.push(...mockProperties);
-
-        const [mockReservations, mockInterventions] = await Promise.all([
-          reservationsApi.getAll({ from: extendedFrom, to: extendedTo }),
-          reservationsApi.getPlanningInterventions({ from: extendedFrom, to: extendedTo }),
-        ]);
-
-        reservationData = [...reservationData, ...mockReservations];
-        interventionData = [...interventionData, ...mockInterventions];
       }
 
       propertiesRef.current = mappedProperties;

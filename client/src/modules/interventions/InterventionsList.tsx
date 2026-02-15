@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
+import InterventionCard from './InterventionCard';
 import {
   Add as AddIcon,
   MoreVert as MoreVertIcon,
@@ -49,6 +50,7 @@ interface Intervention {
   type: string;
   status: string;
   priority: string;
+  propertyType?: string;
   propertyName: string;
   propertyAddress: string;
   requestorName: string;
@@ -617,144 +619,25 @@ export default function InterventionsList() {
             </Card>
           </Grid>
         ) : (
-          Array.isArray(filteredInterventions) && filteredInterventions.length > 0 ? (
-            filteredInterventions.map((intervention) => {
-              // Vérification stricte de l'intervention avant le rendu
-              if (!intervention || typeof intervention !== 'object' || !intervention.id || 
-                  !intervention.title || !intervention.description || !intervention.type || 
-                  !intervention.status || !intervention.priority) {
-                return null;
-              }
-            
+          filteredInterventions.map((intervention) => {
+            // Vérification stricte de l'intervention avant le rendu
+            if (!intervention || typeof intervention !== 'object' || !intervention.id ||
+                !intervention.title || !intervention.description || !intervention.type ||
+                !intervention.status || !intervention.priority) {
+              return null;
+            }
+
             return (
               <Grid item xs={12} md={6} lg={4} key={intervention.id}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 1.5 }}>
-                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
-                    <Typography variant="subtitle1" component="h2" fontWeight={600} sx={{ flex: 1, mr: 0.5, fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={intervention.title}>
-                      {intervention.title}
-                    </Typography>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => handleMenuOpen(e, intervention)}
-                      sx={{ p: 0.5, flexShrink: 0 }}
-                    >
-                      <MoreVertIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
-                  </Box>
-
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.75rem' }} title={intervention.description}>
-                    {intervention.description}
-                  </Typography>
-
-                  <Box display="flex" gap={0.5} mb={1} flexWrap="wrap">
-                    <Chip
-                      label={getTypeLabel(intervention.type)}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                      sx={{ height: 20, fontSize: '0.7rem' }}
-                    />
-                    <Chip
-                      label={getStatusLabel(intervention.status, t)}
-                      size="small"
-                      color={getStatusColor(intervention.status)}
-                      sx={{ height: 20, fontSize: '0.7rem' }}
-                    />
-                    <Chip
-                      label={getPriorityLabel(intervention.priority)}
-                      size="small"
-                      color={getPriorityColor(intervention.priority)}
-                      sx={{ height: 20, fontSize: '0.7rem' }}
-                    />
-                  </Box>
-
-                  <Box mb={1}>
-                    <Box display="flex" alignItems="center" mb={0.5}>
-                      <LocationIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
-                      <Typography variant="caption" sx={{ fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={intervention.propertyName}>
-                        {intervention.propertyName}
-                      </Typography>
-                    </Box>
-                    <Typography variant="caption" color="textSecondary" sx={{ ml: 2, fontSize: '0.7rem' }}>
-                      {intervention.propertyAddress}
-                    </Typography>
-                  </Box>
-
-                  <Box mb={1}>
-                    <Box display="flex" alignItems="center" mb={0.5}>
-                      <PersonIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
-                      <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-                        Demandeur: {intervention.requestorName}
-                      </Typography>
-                    </Box>
-                    <Box display="flex" alignItems="center">
-                      {intervention.assignedToType === 'team' ? (
-                        <GroupIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
-                      ) : (
-                        <PersonIcon sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
-                      )}
-                      <Typography variant="caption" sx={{ fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={intervention.assignedToName || t('interventions.notAssigned')}>
-                        {t('interventions.assignedTo')}: {intervention.assignedToName || t('interventions.notAssigned')}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  <Divider sx={{ my: 1 }} />
-
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                    <Box>
-                      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem', display: 'block' }}>
-                        {t('interventions.scheduled')}: {formatDate(intervention.scheduledDate)}
-                      </Typography>
-                      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
-                        {t('interventions.duration')}: {formatDuration(intervention.estimatedDurationHours)}
-                      </Typography>
-                    </Box>
-                    <Box textAlign="right">
-                      <Typography variant="subtitle1" fontWeight={700} color="primary" sx={{ fontSize: '0.95rem' }}>
-                        {intervention.progressPercentage}%
-                      </Typography>
-                      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
-                        {t('interventions.progress')}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  
-                  {/* Bouton Voir détail */}
-                  <Box sx={{ mt: 'auto', pt: 1 }}>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      fullWidth
-                      onClick={() => navigate(`/interventions/${intervention.id}`)}
-                      startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
-                      size="small"
-                      sx={{ fontSize: '0.75rem' }}
-                    >
-                      {t('interventions.viewDetails')}
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+                <InterventionCard
+                  intervention={intervention}
+                  onMenuOpen={handleMenuOpen}
+                  canEdit={canModifyIntervention(intervention)}
+                  t={t}
+                />
+              </Grid>
             );
           }).filter(Boolean)
-          ) : (
-            <Grid item xs={12}>
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Typography variant="h6" color="text.secondary">
-                  Aucune intervention trouvée
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  {error || 'Aucune intervention ne correspond aux critères de recherche.'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  Les interventions sont créées automatiquement à partir des demandes de service validées.
-                </Typography>
-              </Box>
-            </Grid>
-          )
         )}
       </Grid>
 

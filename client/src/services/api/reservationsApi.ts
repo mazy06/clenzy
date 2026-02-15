@@ -107,7 +107,7 @@ export const INTERVENTION_STATUS_LABELS: Record<PlanningInterventionStatus, stri
 // Quand l'API sera prête, passer _useMockData à false et
 // utiliser les endpoints backend /api/reservations/*.
 
-const _useMockData = true;
+const _useMockData = false;
 
 function isoDate(year: number, month: number, day: number): string {
   return new Date(year, month, day).toISOString().split('T')[0];
@@ -489,10 +489,16 @@ export const reservationsApi = {
       return new Promise((resolve) => setTimeout(() => resolve(data), 300));
     }
 
-    // TODO: Utiliser l'API réelle quand elle sera disponible
-    return apiClient.get<Reservation[]>('/reservations', {
-      params: filters as Record<string, string | number | boolean | null | undefined>,
-    });
+    // API réelle — passer les paramètres au format attendu par Spring
+    const params: Record<string, string | number | boolean | null | undefined> = {};
+    if (filters?.propertyIds && filters.propertyIds.length > 0) {
+      params.propertyIds = filters.propertyIds.join(',');
+    }
+    if (filters?.status) params.status = filters.status;
+    if (filters?.from) params.from = filters.from;
+    if (filters?.to) params.to = filters.to;
+
+    return apiClient.get<Reservation[]>('/reservations', { params });
   },
 
   async getByProperty(propertyId: number): Promise<Reservation[]> {
@@ -534,9 +540,20 @@ export const reservationsApi = {
       return new Promise((resolve) => setTimeout(() => resolve(data), 200));
     }
 
-    // TODO: Utiliser l'API réelle
-    return apiClient.get<PlanningIntervention[]>('/interventions/planning', {
-      params: filters as Record<string, string | number | boolean | null | undefined>,
-    });
+    // Pas encore d'endpoint backend dedié pour les interventions de planning
+    // Retourner un tableau vide — les réservations sont le contenu principal du planning
+    try {
+      const params: Record<string, string | number | boolean | null | undefined> = {};
+      if (filters?.propertyIds && filters.propertyIds.length > 0) {
+        params.propertyIds = filters.propertyIds.join(',');
+      }
+      if (filters?.from) params.from = filters.from;
+      if (filters?.to) params.to = filters.to;
+      if (filters?.type) params.type = filters.type;
+
+      return await apiClient.get<PlanningIntervention[]>('/interventions/planning', { params });
+    } catch {
+      return [];
+    }
   },
 };

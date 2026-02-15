@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -8,12 +8,16 @@ import {
   Typography,
   Stack,
   Alert,
-  CircularProgress
+  CircularProgress,
+  IconButton,
+  InputAdornment,
+  Link
 } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import keycloak from '../../keycloak';
 import clenzyLogo from '../../assets/Clenzy_logo.png';
 import apiClient, { ApiError } from '../../services/apiClient';
-import { saveTokens } from '../../services/storageService';
+import { saveTokens, setSessionCookie } from '../../services/storageService';
 
 export default function Login() {
   const [searchParams] = useSearchParams();
@@ -24,6 +28,7 @@ export default function Login() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +54,9 @@ export default function Login() {
         idToken: data.id_token,
         expiresIn: data.expires_in,
       });
+
+      // Sauvegarder le token dans un cookie partagé (accessible par la landing page)
+      setSessionCookie(data.access_token);
 
       // Forcer la mise à jour de l'état global via l'événement personnalisé
       window.dispatchEvent(new CustomEvent('keycloak-auth-success'));
@@ -117,15 +125,16 @@ export default function Login() {
 
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
-            <TextField 
-              fullWidth 
+            <TextField
+              fullWidth
               size="small"
-              label="Email" 
-              type="email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              required 
+              label="Email ou nom d'utilisateur"
+              type="text"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
               disabled={loading}
+              autoComplete="username"
               sx={{
                 '& .MuiOutlinedInput-root': {
                   '&:hover fieldset': {
@@ -140,15 +149,32 @@ export default function Login() {
                 },
               }}
             />
-            <TextField 
-              fullWidth 
+            <TextField
+              fullWidth
               size="small"
-              label="Mot de passe" 
-              type="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              required 
+              label="Mot de passe"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
               disabled={loading}
+              autoComplete="current-password"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      onClick={() => setShowPassword(!showPassword)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      edge="end"
+                      size="small"
+                      sx={{ color: 'secondary.main' }}
+                    >
+                      {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   '&:hover fieldset': {
@@ -204,12 +230,26 @@ export default function Login() {
         </form>
         
         <Box sx={{ mt: 2, textAlign: 'center' }}>
-          <Typography variant="caption" sx={{ 
+          <Typography variant="caption" sx={{
             color: 'secondary.main',
             fontWeight: 500,
             fontSize: '0.75rem'
           }}>
-            Besoin d'aide ? Contactez le support
+            Besoin d'aide ?{' '}
+            <Link
+              component={RouterLink}
+              to="/support"
+              sx={{
+                color: 'secondary.dark',
+                fontWeight: 600,
+                textDecoration: 'underline',
+                '&:hover': {
+                  color: 'primary.main',
+                },
+              }}
+            >
+              Contactez le support
+            </Link>
           </Typography>
         </Box>
       </Paper>

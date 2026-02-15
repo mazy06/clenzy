@@ -5,6 +5,8 @@ import com.clenzy.model.*;
 import com.clenzy.repository.ICalFeedRepository;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
 import net.fortuna.ical4j.data.CalendarBuilder;
 import net.fortuna.ical4j.data.ParserException;
@@ -65,24 +67,33 @@ public class ICalImportService {
 
     private final ICalFeedRepository icalFeedRepository;
     private final InterventionRepository interventionRepository;
+    private final ServiceRequestRepository serviceRequestRepository;
+    private final ReservationRepository reservationRepository2;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
     private final NotificationService notificationService;
+    private final PricingConfigService pricingConfigService;
     private final HttpClient httpClient;
 
     public ICalImportService(ICalFeedRepository icalFeedRepository,
                              InterventionRepository interventionRepository,
+                             ServiceRequestRepository serviceRequestRepository,
+                             ReservationRepository reservationRepository2,
                              PropertyRepository propertyRepository,
                              UserRepository userRepository,
                              AuditLogService auditLogService,
-                             NotificationService notificationService) {
+                             NotificationService notificationService,
+                             PricingConfigService pricingConfigService) {
         this.icalFeedRepository = icalFeedRepository;
         this.interventionRepository = interventionRepository;
+        this.serviceRequestRepository = serviceRequestRepository;
+        this.reservationRepository2 = reservationRepository2;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.auditLogService = auditLogService;
         this.notificationService = notificationService;
+        this.pricingConfigService = pricingConfigService;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(15))
                 .followRedirects(HttpClient.Redirect.NORMAL)
@@ -120,8 +131,8 @@ public class ICalImportService {
         PreviewResponse response = new PreviewResponse();
         response.setEvents(events);
         response.setPropertyName(property.getName());
-        response.setTotalReservations((int) events.stream().filter(e -> "reservation".equals(e.getType())).count());
-        response.setTotalBlocked((int) events.stream().filter(e -> "blocked".equals(e.getType())).count());
+        response.setTotalReservations(events.size());
+        response.setTotalBlocked(0);
 
         return response;
     }
@@ -148,47 +159,75 @@ public class ICalImportService {
             throw new SecurityException("Vous n'etes pas proprietaire de ce logement");
         }
 
-        // Parser le feed
+        // Parser le feed — toutes les entrees sont traitees comme des reservations
         List<ICalEventPreview> events = fetchAndParseICalFeed(request.getUrl());
-        List<ICalEventPreview> reservations = events.stream()
-                .filter(e -> "reservation".equals(e.getType()))
-                .collect(Collectors.toList());
+        List<ICalEventPreview> reservations = events;
 
-        // Recuperer les UIDs existants pour le dedoublonnage
-        List<Intervention> existingInterventions = interventionRepository.findByPropertyId(property.getId());
-        Set<String> existingUids = existingInterventions.stream()
-                .map(Intervention::getSpecialInstructions)
-                .filter(Objects::nonNull)
-                .flatMap(instructions -> {
-                    // Extraire les UIDs du format [ICAL:xxx]
-                    Pattern p = Pattern.compile("\\[ICAL:([^]]+)]");
-                    Matcher m = p.matcher(instructions);
-                    List<String> uids = new ArrayList<>();
-                    while (m.find()) { uids.add(m.group(1)); }
-                    return uids.stream();
-                })
-                .collect(Collectors.toSet());
+        // Dedoublonnage : on ne skip QUE si la Reservation existe deja en base.
+        // Les interventions orphelines (sans reservation) ne bloquent PAS le re-import.
+        // Cela permet de recreer les reservations manquantes apres mise a jour du code.
+
+        // Sauvegarder/mettre a jour le feed en premier (pour avoir le feedId)
+        ICalFeed feed = icalFeedRepository.findByPropertyIdAndUrl(property.getId(), request.getUrl());
+        if (feed == null) {
+            feed = new ICalFeed(property, request.getUrl(), request.getSourceName());
+        }
+        feed.setAutoCreateInterventions(request.isAutoCreateInterventions());
+        feed = icalFeedRepository.save(feed);
 
         int imported = 0;
         int skipped = 0;
         List<String> errors = new ArrayList<>();
 
+        // Determiner la source a partir du nom
+        String sourceKey = detectSource(request.getSourceName());
+
         for (ICalEventPreview event : reservations) {
             try {
-                // Dedoublonnage par UID
-                if (event.getUid() != null && existingUids.contains(event.getUid())) {
-                    skipped++;
-                    continue;
-                }
-
-                // Creer l'intervention
-                createCleaningIntervention(property, event, request.getSourceName(),
-                        request.isAutoCreateInterventions());
-                imported++;
-
+                // Dedoublonnage par UID : skip uniquement si la Reservation existe deja
                 if (event.getUid() != null) {
-                    existingUids.add(event.getUid());
+                    if (reservationRepository2.existsByExternalUidAndPropertyId(event.getUid(), property.getId())) {
+                        skipped++;
+                        continue;
+                    }
                 }
+
+                // 1. Creer la Reservation
+                Reservation reservation = new Reservation();
+                reservation.setProperty(property);
+                reservation.setGuestName(event.getGuestName());
+                reservation.setGuestCount(property.getMaxGuests() != null ? property.getMaxGuests() : 2);
+                reservation.setCheckIn(event.getDtStart());
+                LocalDate checkOut = event.getDtEnd() != null ? event.getDtEnd() : event.getDtStart().plusDays(1);
+                reservation.setCheckOut(checkOut);
+                reservation.setCheckInTime("15:00");
+                reservation.setCheckOutTime("11:00");
+                reservation.setStatus("confirmed");
+                reservation.setSource(sourceKey);
+                reservation.setSourceName(request.getSourceName());
+                reservation.setConfirmationCode(event.getConfirmationCode());
+                reservation.setExternalUid(event.getUid());
+                reservation.setIcalFeed(feed);
+                reservation.setNotes(event.getDescription());
+                reservation = reservationRepository2.save(reservation);
+
+                // 2. Creer l'intervention de menage (si auto-create active ET pas deja existante)
+                if (request.isAutoCreateInterventions()) {
+                    // Verifier si une intervention avec ce UID existe deja (via specialInstructions)
+                    boolean interventionExists = false;
+                    if (event.getUid() != null) {
+                        List<Intervention> existingInterventions = interventionRepository.findByPropertyId(property.getId());
+                        interventionExists = existingInterventions.stream()
+                                .map(Intervention::getSpecialInstructions)
+                                .filter(Objects::nonNull)
+                                .anyMatch(instr -> instr.contains("[ICAL:" + event.getUid() + "]"));
+                    }
+                    if (!interventionExists) {
+                        createCleaningIntervention(property, event, request.getSourceName(), true);
+                    }
+                }
+
+                imported++;
 
             } catch (Exception e) {
                 log.warn("Erreur import evenement {}: {}", event.getUid(), e.getMessage());
@@ -196,12 +235,7 @@ public class ICalImportService {
             }
         }
 
-        // Sauvegarder/mettre a jour le feed
-        ICalFeed feed = icalFeedRepository.findByPropertyIdAndUrl(property.getId(), request.getUrl());
-        if (feed == null) {
-            feed = new ICalFeed(property, request.getUrl(), request.getSourceName());
-        }
-        feed.setAutoCreateInterventions(request.isAutoCreateInterventions());
+        // Mettre a jour le feed avec les resultats
         feed.setLastSyncAt(LocalDateTime.now());
         feed.setLastSyncStatus(errors.isEmpty() ? "SUCCESS" : "PARTIAL");
         feed.setLastSyncError(errors.isEmpty() ? null : String.join("; ", errors));
@@ -309,21 +343,17 @@ public class ICalImportService {
         String summaryText = summary != null ? summary.getValue() : "";
         preview.setSummary(summaryText);
 
-        // Determiner le type : reservation ou bloquee
-        String summaryLower = summaryText.toLowerCase().trim();
-        boolean isBlocked = BLOCKED_KEYWORDS.stream().anyMatch(keyword -> summaryLower.contains(keyword));
-        preview.setType(isBlocked ? "blocked" : "reservation");
+        // Toutes les entrees iCal sont traitees comme des reservations
+        preview.setType("reservation");
 
         // Extraire guest name et confirmation code du SUMMARY
-        if (!isBlocked) {
-            Matcher matcher = SUMMARY_GUEST_PATTERN.matcher(summaryText.trim());
-            if (matcher.matches()) {
-                preview.setGuestName(matcher.group(1).trim());
-                preview.setConfirmationCode(matcher.group(2).trim());
-            } else {
-                // Pas de code de confirmation : utiliser le summary entier comme nom
-                preview.setGuestName(summaryText.trim());
-            }
+        Matcher matcher = SUMMARY_GUEST_PATTERN.matcher(summaryText.trim());
+        if (matcher.matches()) {
+            preview.setGuestName(matcher.group(1).trim());
+            preview.setConfirmationCode(matcher.group(2).trim());
+        } else if (!summaryText.isBlank()) {
+            // Pas de code de confirmation : utiliser le summary entier comme nom
+            preview.setGuestName(summaryText.trim());
         }
 
         // DTSTART
@@ -389,47 +419,16 @@ public class ICalImportService {
      */
     private void createCleaningIntervention(Property property, ICalEventPreview event,
                                             String sourceName, boolean autoSchedule) {
-        Intervention intervention = new Intervention();
-
-        intervention.setTitle("Menage " + sourceName + " — " + property.getName());
-        intervention.setDescription("Menage apres depart du guest "
-                + (event.getGuestName() != null ? event.getGuestName() : "")
-                + (event.getConfirmationCode() != null ? " (reservation " + event.getConfirmationCode() + ")" : "")
-                + " | Import iCal " + sourceName);
-
-        intervention.setType(ServiceType.CLEANING.name());
-
-        // Determiner le status selon le mode de paiement du host
         User owner = property.getOwner();
-        InterventionStatus interventionStatus;
-        if (autoSchedule) {
-            if (owner != null && owner.isDeferredPayment()) {
-                // Paiement differe : skip AWAITING_PAYMENT, direct en PENDING
-                interventionStatus = InterventionStatus.PENDING;
-            } else {
-                // Paiement immediat requis
-                interventionStatus = InterventionStatus.AWAITING_PAYMENT;
-            }
-        } else {
-            interventionStatus = InterventionStatus.PENDING;
-        }
-        intervention.setStatus(interventionStatus);
-
-        intervention.setPriority(Priority.HIGH.name());
-        intervention.setProperty(property);
 
         // Date du checkout a 11h00
         LocalDate checkOut = event.getDtEnd() != null ? event.getDtEnd() : event.getDtStart().plusDays(1);
-        intervention.setScheduledDate(LocalDateTime.of(checkOut, LocalTime.of(11, 0)));
-        intervention.setGuestCheckoutTime(LocalDateTime.of(checkOut, LocalTime.of(11, 0)));
-        intervention.setGuestCheckinTime(LocalDateTime.of(checkOut, LocalTime.of(15, 0)));
+        LocalDateTime scheduledDate = LocalDateTime.of(checkOut, LocalTime.of(11, 0));
 
-        // Estimer la duree de menage
+        // Estimer la duree et le cout
         int guestCount = property.getMaxGuests() != null ? property.getMaxGuests() : 2;
-        intervention.setEstimatedDurationHours(estimateCleaningDuration(property, guestCount).intValue());
-
-        // Calculer le cout estime (pour le suivi du cumul impaye)
-        intervention.setEstimatedCost(estimateCleaningCost(property));
+        int estimatedDuration = estimateCleaningDuration(property, guestCount).intValue();
+        BigDecimal estimatedCost = estimateCleaningCost(property);
 
         // Instructions speciales avec UID pour dedoublonnage
         StringBuilder instructions = new StringBuilder();
@@ -449,14 +448,71 @@ public class ICalImportService {
         if (property.getAccessInstructions() != null) {
             instructions.append("| Acces: ").append(property.getAccessInstructions());
         }
-        intervention.setSpecialInstructions(instructions.toString().trim());
+        String specialInstructions = instructions.toString().trim();
+
+        // ─── 1. Creer la ServiceRequest associee ───
+        String srTitle = "Menage " + sourceName + " — " + property.getName();
+        ServiceRequest serviceRequest = new ServiceRequest(
+                srTitle,
+                ServiceType.CLEANING,
+                scheduledDate,
+                owner != null ? owner : property.getOwner(),
+                property
+        );
+        serviceRequest.setPriority(Priority.HIGH);
+        serviceRequest.setStatus(RequestStatus.APPROVED);
+        serviceRequest.setEstimatedDurationHours(estimatedDuration);
+        serviceRequest.setEstimatedCost(estimatedCost);
+        serviceRequest.setGuestCheckoutTime(scheduledDate);
+        serviceRequest.setGuestCheckinTime(LocalDateTime.of(checkOut, LocalTime.of(15, 0)));
+        serviceRequest.setSpecialInstructions(specialInstructions);
+        serviceRequest.setDescription("Import iCal " + sourceName
+                + (event.getGuestName() != null ? " — Guest: " + event.getGuestName() : "")
+                + (event.getConfirmationCode() != null ? " (" + event.getConfirmationCode() + ")" : ""));
+
+        serviceRequest = serviceRequestRepository.save(serviceRequest);
+
+        // ─── 2. Creer l'Intervention ───
+        Intervention intervention = new Intervention();
+
+        intervention.setTitle(srTitle);
+        intervention.setDescription("Menage apres depart du guest "
+                + (event.getGuestName() != null ? event.getGuestName() : "")
+                + (event.getConfirmationCode() != null ? " (reservation " + event.getConfirmationCode() + ")" : "")
+                + " | Import iCal " + sourceName);
+
+        intervention.setType(ServiceType.CLEANING.name());
+
+        // Determiner le status selon le mode de paiement du host
+        InterventionStatus interventionStatus;
+        if (autoSchedule) {
+            if (owner != null && owner.isDeferredPayment()) {
+                interventionStatus = InterventionStatus.PENDING;
+            } else {
+                interventionStatus = InterventionStatus.AWAITING_PAYMENT;
+            }
+        } else {
+            interventionStatus = InterventionStatus.PENDING;
+        }
+        intervention.setStatus(interventionStatus);
+
+        intervention.setPriority(Priority.HIGH.name());
+        intervention.setProperty(property);
+        intervention.setServiceRequest(serviceRequest);
+
+        intervention.setScheduledDate(scheduledDate);
+        intervention.setGuestCheckoutTime(scheduledDate);
+        intervention.setGuestCheckinTime(LocalDateTime.of(checkOut, LocalTime.of(15, 0)));
+
+        intervention.setEstimatedDurationHours(estimatedDuration);
+        intervention.setEstimatedCost(estimatedCost);
+        intervention.setSpecialInstructions(specialInstructions);
 
         intervention.setIsUrgent(false);
         intervention.setRequiresFollowUp(false);
 
-        // Requestor = owner de la propriete
-        if (property.getOwner() != null) {
-            intervention.setRequestor(property.getOwner());
+        if (owner != null) {
+            intervention.setRequestor(owner);
         }
 
         interventionRepository.save(intervention);
@@ -485,31 +541,72 @@ public class ICalImportService {
     }
 
     /**
-     * Estime le cout de menage en euros.
-     * Base forfait : Essentiel 35, Confort 55, Premium 80 EUR.
-     * Coefficient surface : +10% si > 60m2, +25% si > 100m2.
+     * Estime le cout de menage en euros via PricingConfigService.
+     * Formule : basePrix(forfait) x typeCoeff x surfaceCoeff x guestCoeff
+     * Prix minimum et arrondi au multiple de 5 EUR.
      */
     private BigDecimal estimateCleaningCost(Property property) {
-        // Prix de base selon le forfait du owner
-        double baseCost = 55.0; // defaut Confort
-        if (property.getOwner() != null && property.getOwner().getForfait() != null) {
-            String forfait = property.getOwner().getForfait().toLowerCase();
-            switch (forfait) {
-                case "essentiel": baseCost = 35.0; break;
-                case "confort": baseCost = 55.0; break;
-                case "premium": baseCost = 80.0; break;
-                default: baseCost = 55.0;
-            }
+        // Prix de base depuis la config dynamique, selon le forfait du owner
+        Map<String, Integer> basePrices = pricingConfigService.getBasePrices();
+        String forfait = (property.getOwner() != null && property.getOwner().getForfait() != null)
+                ? property.getOwner().getForfait().toLowerCase() : "confort";
+        int basePrice = basePrices.getOrDefault(forfait, basePrices.getOrDefault("confort", 75));
+
+        // Coefficient type de propriete (mapper PropertyType enum -> cle PricingConfig)
+        Map<String, Double> typeCoeffs = pricingConfigService.getPropertyTypeCoeffs();
+        String propertyTypeKey = mapPropertyTypeToKey(property.getType());
+        double typeCoeff = typeCoeffs.getOrDefault(propertyTypeKey, 1.0);
+
+        // Coefficient surface (via tiers dynamiques)
+        double surfaceCoeff = property.getSquareMeters() != null
+                ? pricingConfigService.getSurfaceCoeff(property.getSquareMeters()) : 1.0;
+
+        // Coefficient capacite guests
+        Map<String, Double> guestCoeffs = pricingConfigService.getGuestCapacityCoeffs();
+        int guests = property.getMaxGuests() != null ? property.getMaxGuests() : 2;
+        String guestKey = guests <= 2 ? "1-2" : guests <= 4 ? "3-4" : guests <= 6 ? "5-6" : "7+";
+        double guestCoeff = guestCoeffs.getOrDefault(guestKey, 1.0);
+
+        double cost = basePrice * typeCoeff * surfaceCoeff * guestCoeff;
+
+        // Prix minimum
+        int minPrice = pricingConfigService.getMinPrice();
+        cost = Math.max(cost, minPrice);
+
+        // Arrondir au multiple de 5 EUR le plus proche
+        cost = Math.round(cost / 5.0) * 5.0;
+
+        log.debug("Estimation cout menage pour {} : base={} x type({})={} x surface={} x guests({})={} = {}",
+                property.getName(), basePrice, propertyTypeKey, typeCoeff, surfaceCoeff, guestKey, guestCoeff, cost);
+
+        return BigDecimal.valueOf(cost);
+    }
+
+    /**
+     * Mappe un PropertyType enum vers la cle utilisee dans PricingConfig.
+     */
+    private String mapPropertyTypeToKey(PropertyType type) {
+        if (type == null) return "autre";
+        switch (type) {
+            case APARTMENT: return "appartement";
+            case HOUSE: return "maison";
+            case STUDIO: return "studio";
+            case VILLA: return "villa";
+            default: return "autre"; // LOFT, GUEST_ROOM, COTTAGE, CHALET, BOAT, OTHER
         }
-        // Coefficient surface
-        if (property.getSquareMeters() != null) {
-            if (property.getSquareMeters() > 100) {
-                baseCost *= 1.25;
-            } else if (property.getSquareMeters() > 60) {
-                baseCost *= 1.10;
-            }
-        }
-        return BigDecimal.valueOf(Math.round(baseCost * 100.0) / 100.0);
+    }
+
+    /**
+     * Detecte la source (airbnb, booking, etc.) a partir du nom fourni par l'utilisateur.
+     */
+    private String detectSource(String sourceName) {
+        if (sourceName == null) return "other";
+        String lower = sourceName.toLowerCase();
+        if (lower.contains("airbnb")) return "airbnb";
+        if (lower.contains("booking")) return "booking";
+        if (lower.contains("vrbo") || lower.contains("homeaway")) return "other";
+        if (lower.contains("direct")) return "direct";
+        return "other";
     }
 
     // ---- Gestion des feeds ----

@@ -30,6 +30,7 @@ import {
   ViewWeek,
   CalendarMonth,
   AllInclusive,
+  Lock as LockIcon,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useDashboardPlanning } from '../../hooks/useDashboardPlanning';
@@ -183,7 +184,11 @@ function computeMonthSeparators(days: Date[]): MonthSeparator[] {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function DashboardPlanning() {
+interface DashboardPlanningProps {
+  forfait?: string;
+}
+
+export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -587,16 +592,51 @@ export default function DashboardPlanning() {
 
       {/* ─── Grid content ─────────────────────────────────────────────── */}
       {properties.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Home sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
-          <Typography variant="body1" color="text.secondary">
-            {t('dashboard.planning.noProperties') || 'Aucun logement à afficher'}
-          </Typography>
-          <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
-            {t('dashboard.planning.noPropertiesHint') ||
-              "Les logements apparaîtront ici une fois qu'ils seront créés et assignés."}
-          </Typography>
-        </Paper>
+        forfait?.toLowerCase() === 'essentiel' ? (
+          <Paper
+            sx={{
+              p: 4,
+              textAlign: 'center',
+              borderLeft: '4px solid #6B8A9A',
+              borderRadius: '12px',
+            }}
+          >
+            <Box
+              sx={{
+                width: 56,
+                height: 56,
+                borderRadius: '50%',
+                bgcolor: 'rgba(107,138,154,0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mx: 'auto',
+                mb: 2,
+              }}
+            >
+              <LockIcon sx={{ fontSize: 28, color: '#6B8A9A' }} />
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem', color: '#1E293B', mb: 0.5 }}>
+              Planning non disponible avec le forfait Essentiel
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#64748B', fontSize: '0.875rem', lineHeight: 1.6, maxWidth: 480, mx: 'auto' }}>
+              Votre forfait actuel ne permet pas l'acces au planning interactif ni a l'import
+              automatique de vos calendriers Airbnb, Booking et autres plateformes.
+              Passez au forfait Confort ou Premium pour debloquer cette fonctionnalite.
+            </Typography>
+          </Paper>
+        ) : (
+          <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <Home sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+            <Typography variant="body1" color="text.secondary">
+              {t('dashboard.planning.noProperties') || 'Aucun logement a afficher'}
+            </Typography>
+            <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
+              {t('dashboard.planning.noPropertiesHint') ||
+                "Les logements apparaitront ici une fois qu'ils seront crees et assignes."}
+            </Typography>
+          </Paper>
+        )
       ) : viewMode === 'day' ? (
         /* ─── Day View (timeline horaire) ─────────────────────────────── */
         <Paper

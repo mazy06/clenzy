@@ -20,6 +20,7 @@ export interface AuthUser {
   fullName?: string;   // Nom complet métier
   roles: string[];
   permissions: string[];
+  forfait?: string;    // Forfait abonnement: essentiel, confort, premium
 }
 
 export const useAuth = () => {
@@ -97,6 +98,7 @@ export const useAuth = () => {
                      userData.preferred_username || userData.username || 'Utilisateur',
             roles: Array.isArray(roles) ? roles : [roles].filter(Boolean),
             permissions: Array.isArray(permissions) ? permissions : [permissions].filter(Boolean),
+            forfait: userData.forfait || undefined,
           };
 
           setUser(user);
