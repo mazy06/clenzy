@@ -118,7 +118,16 @@ public class InterventionController {
             map.put("startDate", startDate);
             map.put("endDate", endDate);
             map.put("startTime", i.getScheduledDate() != null ? i.getScheduledDate().toLocalTime().toString() : "11:00");
-            map.put("estimatedDuration", i.getEstimatedDurationHours());
+            // Calculer endTime = startTime + estimatedDurationHours
+            if (i.getScheduledDate() != null && i.getEstimatedDurationHours() != null) {
+                java.time.LocalTime endTime = i.getScheduledDate().toLocalTime()
+                        .plusHours(i.getEstimatedDurationHours());
+                map.put("endTime", endTime.toString());
+            } else {
+                map.put("endTime", null);
+            }
+            map.put("estimatedDurationHours", i.getEstimatedDurationHours());
+            map.put("notes", i.getNotes());
             map.put("assigneeName", i.getAssignedUser() != null ?
                     (i.getAssignedUser().getFirstName() + " " + i.getAssignedUser().getLastName()).trim() : null);
             return map;

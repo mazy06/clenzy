@@ -59,6 +59,7 @@ public class PropertyDto {
 
     @NotNull(groups = Create.class)
     public Long ownerId;
+    public String ownerName;
 
     // Informations du manager associé (pour l'endpoint with-managers)
     public Long managerId;

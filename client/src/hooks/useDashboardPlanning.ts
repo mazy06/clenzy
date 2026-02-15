@@ -5,7 +5,6 @@ import type { Property, Reservation, ReservationStatus, PlanningIntervention, Pl
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type PlanningViewMode = 'day' | 'week' | 'month' | 'continuous';
 export type PlanningFilterType = 'all' | 'reservations' | 'interventions';
 
 export interface PlanningProperty {
@@ -13,6 +12,7 @@ export interface PlanningProperty {
   name: string;
   address: string;
   city: string;
+  ownerName?: string;
 }
 
 export interface UseDashboardPlanningReturn {
@@ -24,8 +24,6 @@ export interface UseDashboardPlanningReturn {
   error: string | null;
   // Navigation
   currentDate: Date;
-  viewMode: PlanningViewMode;
-  setViewMode: (mode: PlanningViewMode) => void;
   goToday: () => void;
   goPrev: () => void;
   goNext: () => void;
@@ -47,22 +45,8 @@ export interface UseDashboardPlanningReturn {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function startOfWeek(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  // Monday = start of week (French convention)
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
 function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function endOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
 }
 
 function addDays(date: Date, days: number): Date {
@@ -87,6 +71,8 @@ function toISODateString(date: Date): string {
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
+const INITIAL_MONTHS = 3;
+
 export function useDashboardPlanning(): UseDashboardPlanningReturn {
   const { user } = useAuth();
 
@@ -98,12 +84,17 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<PlanningViewMode>('continuous');
-  // En mode continu, on gère la fin de la plage via un état dédié pour l'infinite scroll
-  const [continuousEndMonth, setContinuousEndMonth] = useState(3); // nombre de mois après le mois courant
+  // continuousEndMonth is used ONLY for display range (days array) — NOT for triggering loadData
+  const continuousEndMonthRef = useRef(INITIAL_MONTHS);
+  const [continuousEndMonth, setContinuousEndMonth] = useState(INITIAL_MONTHS);
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('all');
   const [interventionTypeFilter, setInterventionTypeFilter] = useState<PlanningInterventionType | 'all'>('all');
   const [showInterventions, setShowInterventions] = useState(true);
+
+  // Keep ref in sync
+  useEffect(() => {
+    continuousEndMonthRef.current = continuousEndMonth;
+  }, [continuousEndMonth]);
 
   // Determine user role
   const isAdmin = user?.roles?.includes('ADMIN') || false;
@@ -114,68 +105,57 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
   const isSupervisor = user?.roles?.includes('SUPERVISOR') || false;
   const isOperational = isTechnician || isHousekeeper || isSupervisor;
 
-  // Compute date range
+  // Display date range — extends as user scrolls, does NOT trigger loadData
   const dateRange = useMemo(() => {
-    if (viewMode === 'day') {
-      const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-      return { start, end: start };
-    }
-    if (viewMode === 'week') {
-      const start = startOfWeek(currentDate);
-      const end = addDays(start, 6);
-      return { start, end };
-    }
-    if (viewMode === 'continuous') {
-      // Mode continu : mois courant + N mois suivants (extensible via infinite scroll)
-      const start = startOfMonth(currentDate);
-      const endMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + continuousEndMonth, 0);
-      return { start, end: endMonth };
-    }
-    // month view
     const start = startOfMonth(currentDate);
-    const end = endOfMonth(currentDate);
-    return { start, end };
-  }, [currentDate, viewMode, continuousEndMonth]);
+    const endMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + continuousEndMonth, 0);
+    return { start, end: endMonth };
+  }, [currentDate, continuousEndMonth]);
+
+  // Initial load range — only depends on currentDate, NOT continuousEndMonth
+  // This ensures loadData only runs on navigation (prev/next/today), not on extend
+  const initialLoadRange = useMemo(() => {
+    const start = startOfMonth(currentDate);
+    const endMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + INITIAL_MONTHS, 0);
+    return { start, end: endMonth };
+  }, [currentDate]);
 
   // Generate array of days
   const days = useMemo(() => generateDays(dateRange.start, dateRange.end), [dateRange]);
 
-  // Navigation
+  // Navigation — reset endMonth to initial
   const goToday = useCallback(() => {
     setCurrentDate(new Date());
-    setContinuousEndMonth(3);
+    setContinuousEndMonth(INITIAL_MONTHS);
   }, []);
 
   const goPrev = useCallback(() => {
-    setContinuousEndMonth(3);
-    setCurrentDate((prev) => {
-      if (viewMode === 'day') return addDays(prev, -1);
-      if (viewMode === 'week') return addDays(prev, -7);
-      return new Date(prev.getFullYear(), prev.getMonth() - 1, 1);
-    });
-  }, [viewMode]);
+    setContinuousEndMonth(INITIAL_MONTHS);
+    setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  }, []);
 
   const goNext = useCallback(() => {
-    setContinuousEndMonth(3);
-    setCurrentDate((prev) => {
-      if (viewMode === 'day') return addDays(prev, 1);
-      if (viewMode === 'week') return addDays(prev, 7);
-      return new Date(prev.getFullYear(), prev.getMonth() + 1, 1);
-    });
-  }, [viewMode]);
+    setContinuousEndMonth(INITIAL_MONTHS);
+    setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  }, []);
 
-  // Réf pour les propriétés chargées (nécessaire pour extendRange)
+  // Ref pour les proprietes chargees (necessaire pour extendRange)
   const propertiesRef = useRef<PlanningProperty[]>([]);
 
-  // Infinite scroll : étendre la plage de 3 mois supplémentaires
+  // Guard against concurrent extendRange calls
+  const extendingRef = useRef(false);
+
+  // Infinite scroll : etendre la plage de 3 mois supplementaires
+  // Uses refs to avoid dependency on state that would cause loadData to re-run
   const extendRange = useCallback(async () => {
-    if (viewMode !== 'continuous' || loadingMore) return;
+    if (extendingRef.current) return;
+    extendingRef.current = true;
 
     setLoadingMore(true);
     try {
-      const newEndMonth = continuousEndMonth + 3;
-      // Calculer la plage de données à charger (uniquement les nouveaux mois)
-      const oldEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + continuousEndMonth, 0);
+      const curEndMonth = continuousEndMonthRef.current;
+      const newEndMonth = curEndMonth + 3;
+      const oldEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + curEndMonth, 0);
       const newEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + newEndMonth, 0);
       const extFrom = toISODateString(oldEnd);
       const extTo = toISODateString(addDays(newEnd, 7));
@@ -188,28 +168,28 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
           reservationsApi.getPlanningInterventions({ propertyIds, from: extFrom, to: extTo }),
         ]);
 
-        // Dédupliquer par ID avant d'ajouter
         setReservations((prev) => {
           const existingIds = new Set(prev.map((r) => r.id));
           const toAdd = newReservations.filter((r) => !existingIds.has(r.id));
-          return [...prev, ...toAdd];
+          return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
         });
         setInterventions((prev) => {
           const existingIds = new Set(prev.map((i) => i.id));
           const toAdd = newInterventions.filter((i) => !existingIds.has(i.id));
-          return [...prev, ...toAdd];
+          return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
         });
       }
 
       setContinuousEndMonth(newEndMonth);
     } catch {
-      // Silencieux — on ne bloque pas le planning pour un échec de chargement incrémental
+      // Silencieux
     } finally {
       setLoadingMore(false);
+      extendingRef.current = false;
     }
-  }, [viewMode, loadingMore, continuousEndMonth, currentDate, isAdmin]);
+  }, [currentDate]);
 
-  // Load data
+  // Load data — depends on initialLoadRange (= currentDate only), NOT continuousEndMonth
   const loadData = useCallback(async () => {
     if (!user) return;
 
@@ -217,20 +197,19 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
       setLoading(true);
       setError(null);
 
-      // ── Mode mock réservé exclusivement à l'admin ──
       const useMock = isAdmin && reservationsApi.isMockMode();
 
       if (useMock) {
-        // Admin en mode développement : utiliser les données fictives
         const mockProperties = reservationsApi.getMockProperties().map((p) => ({
           id: p.id,
           name: p.name,
           address: p.address,
           city: p.city,
+          ownerName: (p as any).ownerName || '',
         }));
         const mockPropertyIds = mockProperties.map((p) => p.id);
-        const extFrom = toISODateString(addDays(dateRange.start, -7));
-        const extTo = toISODateString(addDays(dateRange.end, 7));
+        const extFrom = toISODateString(addDays(initialLoadRange.start, -7));
+        const extTo = toISODateString(addDays(initialLoadRange.end, 7));
 
         const [mockReservations, mockInterventions] = await Promise.all([
           reservationsApi.getAll({ propertyIds: mockPropertyIds, from: extFrom, to: extTo }),
@@ -245,11 +224,10 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
         return;
       }
 
-      // ── Étape 1 : Charger les propriétés réelles via API selon le rôle ──
+      // Charger les proprietes reelles via API selon le role
       let propertyList: Property[] = [];
 
       if (isAdmin || isManager) {
-        // Admin/Manager: toutes les propriétés réelles
         try {
           const data = await propertiesApi.getAll();
           propertyList = Array.isArray(data) ? data : (data as any)?.content ?? [];
@@ -257,7 +235,6 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
           propertyList = [];
         }
       } else if (isHost) {
-        // Host: uniquement ses propres propriétés
         try {
           const data = await propertiesApi.getAll({ ownerId: user.id });
           propertyList = Array.isArray(data) ? data : (data as any)?.content ?? [];
@@ -265,7 +242,6 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
           propertyList = [];
         }
       } else if (isOperational) {
-        // Supervisor/Housekeeper/Technician: propriétés assignées via portefeuille client
         try {
           const associations = await managersApi.getAssociations(user.id);
           if (associations?.properties && Array.isArray(associations.properties)) {
@@ -289,26 +265,24 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
             }));
           }
         } catch {
-          // Si l'API associations échoue, liste vide
           propertyList = [];
         }
       }
 
-      // Map vers PlanningProperty (léger)
       const mappedProperties: PlanningProperty[] = propertyList.map((p) => ({
         id: p.id,
         name: p.name,
         address: p.address,
         city: p.city,
+        ownerName: (p as any).ownerName || '',
       }));
 
-      // ── Étape 2 : Charger les réservations/interventions réelles ──
       let reservationData: Reservation[] = [];
       let interventionData: PlanningIntervention[] = [];
 
       const propertyIds = mappedProperties.map((p) => p.id);
-      const extendedFrom = toISODateString(addDays(dateRange.start, -7));
-      const extendedTo = toISODateString(addDays(dateRange.end, 7));
+      const extendedFrom = toISODateString(addDays(initialLoadRange.start, -7));
+      const extendedTo = toISODateString(addDays(initialLoadRange.end, 7));
 
       if (propertyIds.length > 0) {
         [reservationData, interventionData] = await Promise.all([
@@ -334,7 +308,7 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
     } finally {
       setLoading(false);
     }
-  }, [user, isAdmin, isManager, isHost, isOperational, dateRange]);
+  }, [user, isAdmin, isManager, isHost, isOperational, initialLoadRange]);
 
   useEffect(() => {
     loadData();
@@ -361,8 +335,6 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
     loadingMore,
     error,
     currentDate,
-    viewMode,
-    setViewMode,
     goToday,
     goPrev,
     goNext,

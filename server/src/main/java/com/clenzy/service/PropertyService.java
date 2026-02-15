@@ -220,10 +220,20 @@ public class PropertyService {
             
             // Gestion sécurisée de la relation owner (lazy loading)
             try {
-                dto.ownerId = p.getOwner() != null ? p.getOwner().getId() : null;
+                if (p.getOwner() != null) {
+                    dto.ownerId = p.getOwner().getId();
+                    dto.ownerName = (p.getOwner().getFirstName() != null ? p.getOwner().getFirstName() : "")
+                        + " "
+                        + (p.getOwner().getLastName() != null ? p.getOwner().getLastName() : "");
+                    dto.ownerName = dto.ownerName.trim();
+                } else {
+                    dto.ownerId = null;
+                    dto.ownerName = null;
+                }
             } catch (Exception e) {
                 System.err.println("⚠️ PropertyService.toDto - Erreur lors de l'accès à owner: " + e.getMessage());
-                dto.ownerId = null; // Valeur par défaut si l'accès échoue
+                dto.ownerId = null;
+                dto.ownerName = null;
             }
             
             dto.createdAt = p.getCreatedAt();

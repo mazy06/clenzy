@@ -200,8 +200,11 @@ public class ICalImportService {
                 reservation.setCheckIn(event.getDtStart());
                 LocalDate checkOut = event.getDtEnd() != null ? event.getDtEnd() : event.getDtStart().plusDays(1);
                 reservation.setCheckOut(checkOut);
-                reservation.setCheckInTime("15:00");
-                reservation.setCheckOutTime("11:00");
+                // Utiliser les heures par defaut de la propriete, sinon fallback global
+                String defaultCheckIn = property.getDefaultCheckInTime() != null ? property.getDefaultCheckInTime() : "15:00";
+                String defaultCheckOut = property.getDefaultCheckOutTime() != null ? property.getDefaultCheckOutTime() : "11:00";
+                reservation.setCheckInTime(defaultCheckIn);
+                reservation.setCheckOutTime(defaultCheckOut);
                 reservation.setStatus("confirmed");
                 reservation.setSource(sourceKey);
                 reservation.setSourceName(request.getSourceName());
@@ -421,9 +424,11 @@ public class ICalImportService {
                                             String sourceName, boolean autoSchedule) {
         User owner = property.getOwner();
 
-        // Date du checkout a 11h00
+        // Date du checkout avec l'heure par defaut de la propriete
         LocalDate checkOut = event.getDtEnd() != null ? event.getDtEnd() : event.getDtStart().plusDays(1);
-        LocalDateTime scheduledDate = LocalDateTime.of(checkOut, LocalTime.of(11, 0));
+        String defaultCheckOutTime = property.getDefaultCheckOutTime() != null ? property.getDefaultCheckOutTime() : "11:00";
+        LocalTime checkOutTime = LocalTime.parse(defaultCheckOutTime);
+        LocalDateTime scheduledDate = LocalDateTime.of(checkOut, checkOutTime);
 
         // Estimer la duree et le cout
         int guestCount = property.getMaxGuests() != null ? property.getMaxGuests() : 2;

@@ -11,7 +11,7 @@ export const interventionSchema = z.object({
   assignedToId: z.number().optional(),
   assignedToType: z.enum(['user', 'team']).optional(),
   scheduledDate: z.string().min(1, 'La date planifiée est requise'),
-  estimatedDurationHours: z.number().min(0, 'Doit être positif'),
+  estimatedDurationHours: z.number().min(0.5, 'Minimum 30 minutes').max(24, 'Maximum 24 heures'),
   estimatedCost: z.number().min(0, 'Doit être positif').optional(),
   notes: z.string().optional().default(''),
   photos: z.string().optional().default(''),
