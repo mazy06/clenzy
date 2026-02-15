@@ -76,24 +76,29 @@ public class PermissionService {
 
     @Cacheable(value = "permissions", key = "#role")
     public RolePermissionsDto getRolePermissions(String role) {
-        System.out.println("🔍 PermissionService.getRolePermissions() - Récupération pour le rôle: " + role + " depuis la base de données et mise en cache");
+        return loadRolePermissionsFromDatabase(role);
+    }
+
+    /**
+     * Charge les permissions d'un role depuis la base de donnees et met a jour le cache Redis.
+     * Methode extraite pour etre reutilisable (fallback quand le cache Spring retourne une liste vide).
+     */
+    private RolePermissionsDto loadRolePermissionsFromDatabase(String role) {
+        System.out.println("🔍 PermissionService.loadRolePermissionsFromDatabase() - Récupération pour le rôle: " + role + " depuis la base de données");
         List<String> permissions = getPermissionsFromDatabase(role);
-        
-        // Mettre aussi en cache dans Redis pour les autres méthodes
+
+        // Mettre aussi en cache dans Redis pour les autres méthodes (checkUserPermission, etc.)
         if (permissions != null && !permissions.isEmpty()) {
             String key = ROLE_PERMISSIONS_KEY + role;
             redisTemplate.opsForValue().set(key, permissions);
-            System.out.println("✅ PermissionService.getRolePermissions() - Permissions mises en cache Redis pour le rôle: " + role);
+            System.out.println("✅ Permissions mises en cache Redis pour le rôle: " + role + " (" + permissions.size() + " permissions)");
         } else {
-            System.out.println("⚠️ PermissionService.getRolePermissions() - Aucune permission trouvée pour le rôle: " + role);
-            System.out.println("💡 Les permissions doivent être configurées via le menu 'Roles & Permissions'");
+            System.out.println("⚠️ Aucune permission trouvée en base pour le rôle: " + role);
         }
-        
+
         boolean isDefault = !hasCustomPermissions(role);
         List<String> finalPermissions = permissions != null ? permissions : new ArrayList<>();
-        RolePermissionsDto dto = new RolePermissionsDto(role, finalPermissions, isDefault);
-        System.out.println("📊 PermissionService.getRolePermissions() - DTO créé avec " + finalPermissions.size() + " permissions pour le rôle: " + role);
-        return dto;
+        return new RolePermissionsDto(role, finalPermissions, isDefault);
     }
     
     /**
@@ -233,12 +238,10 @@ public class PermissionService {
             Cache permissionsCache = cacheManager.getCache("permissions");
             if (permissionsCache != null) {
                 permissionsCache.clear();
-                System.out.println("🔄 invalidateAllCache() - Cache Spring 'permissions' vide");
             }
             Cache rolesCache = cacheManager.getCache("roles");
             if (rolesCache != null) {
                 rolesCache.clear();
-                System.out.println("🔄 invalidateAllCache() - Cache Spring 'roles' vide");
             }
         } catch (Exception e) {
             System.out.println("⚠️ invalidateAllCache() - Erreur vidage cache Spring: " + e.getMessage());
