@@ -14,6 +14,9 @@ export const STORAGE_KEYS = {
   // i18n
   LANGUAGE: 'i18nextLng',
 
+  // Planning mock mode
+  PLANNING_MOCK: 'clenzy_planning_mock',
+
   // Cross-tab sync
   TOKEN_UPDATE: 'clenzy_token_update',
 } as const;

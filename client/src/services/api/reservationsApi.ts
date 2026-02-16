@@ -103,11 +103,10 @@ export const INTERVENTION_STATUS_LABELS: Record<PlanningInterventionStatus, stri
 };
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
-// TODO: Remplacer par l'API Airbnb réelle via le backend.
-// Quand l'API sera prête, passer _useMockData à false et
-// utiliser les endpoints backend /api/reservations/*.
+// Le mode mock est contrôlé dynamiquement via localStorage.
+// L'admin peut l'activer/désactiver depuis Paramètres → Développement.
 
-const _useMockData = false;
+const MOCK_STORAGE_KEY = 'clenzy_planning_mock';
 
 function isoDate(year: number, month: number, day: number): string {
   return new Date(year, month, day).toISOString().split('T')[0];
@@ -460,7 +459,12 @@ function getMockPropertiesFromReservations(): MockPlanningProperty[] {
 export const reservationsApi = {
   /** Indique si on est en mode mock (data hardcodées). */
   isMockMode(): boolean {
-    return _useMockData;
+    return localStorage.getItem(MOCK_STORAGE_KEY) === 'true';
+  },
+
+  /** Active ou désactive le mode mock (persisté en localStorage). */
+  setMockMode(enabled: boolean): void {
+    localStorage.setItem(MOCK_STORAGE_KEY, enabled ? 'true' : 'false');
   },
 
   /** Retourne les propriétés mock pour le planning (uniquement en mode mock). */
@@ -469,7 +473,7 @@ export const reservationsApi = {
   },
 
   async getAll(filters?: ReservationFilters): Promise<Reservation[]> {
-    if (_useMockData) {
+    if (localStorage.getItem(MOCK_STORAGE_KEY) === 'true') {
       let data = generateMockReservations();
 
       if (filters?.propertyIds && filters.propertyIds.length > 0) {
@@ -502,7 +506,7 @@ export const reservationsApi = {
   },
 
   async getByProperty(propertyId: number): Promise<Reservation[]> {
-    if (_useMockData) {
+    if (localStorage.getItem(MOCK_STORAGE_KEY) === 'true') {
       const data = generateMockReservations().filter((r) => r.propertyId === propertyId);
       return new Promise((resolve) => setTimeout(() => resolve(data), 200));
     }
@@ -521,7 +525,7 @@ export const reservationsApi = {
     from?: string;
     to?: string;
   }): Promise<PlanningIntervention[]> {
-    if (_useMockData) {
+    if (localStorage.getItem(MOCK_STORAGE_KEY) === 'true') {
       let data = generateMockPlanningInterventions();
 
       if (filters?.propertyIds && filters.propertyIds.length > 0) {

@@ -30,6 +30,7 @@ import {
   Palette,
   Storage,
   TuneOutlined,
+  BugReport,
   LightMode,
   DarkMode,
   SettingsBrightness,
@@ -39,6 +40,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useThemeMode } from '../../hooks/useThemeMode';
 import { useNavigate } from 'react-router-dom';
 import storageService, { STORAGE_KEYS } from '../../services/storageService';
+import { reservationsApi } from '../../services/api/reservationsApi';
 import NotificationPreferencesCard from './NotificationPreferencesCard';
 
 // ─── TabPanel ─────────────────────────────────────────────────────────────────
@@ -131,6 +133,10 @@ export default function Settings() {
       }));
     }
   }, [themeMode, isDark]);
+
+  const [planningMock, setPlanningMock] = useState(
+    () => localStorage.getItem(STORAGE_KEYS.PLANNING_MOCK) === 'true'
+  );
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -547,6 +553,43 @@ export default function Settings() {
               </List>
             </Paper>
           </Grid>
+
+          {/* Développement (admin only) */}
+          {user.roles.includes('ADMIN') && (
+            <Grid item xs={12} md={6}>
+              <Paper sx={{ p: 2, height: '100%' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                  <BugReport sx={{ color: 'warning.main', fontSize: 20 }} />
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+                    Développement
+                  </Typography>
+                </Box>
+
+                <List>
+                  <ListItem>
+                    <ListItemIcon>
+                      <BugReport />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Données de démonstration (Planning)"
+                      secondary="Afficher des réservations et interventions fictives dans le planning"
+                    />
+                    <ListItemSecondaryAction>
+                      <Switch
+                        edge="end"
+                        checked={planningMock}
+                        onChange={(e) => {
+                          const enabled = e.target.checked;
+                          setPlanningMock(enabled);
+                          reservationsApi.setMockMode(enabled);
+                        }}
+                      />
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                </List>
+              </Paper>
+            </Grid>
+          )}
         </Grid>
 
         {/* Actions onglet Général */}
