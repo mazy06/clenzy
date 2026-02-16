@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { serviceRequestsApi, teamsApi, usersApi } from '../../services/api';
@@ -93,7 +93,7 @@ export function useServiceRequestsList() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   // Charger les donnees au montage du composant
   useEffect(() => {
@@ -349,17 +349,20 @@ export function useServiceRequestsList() {
   // COMPUTED VALUES
   // ============================================================================
 
-  // Filtrer les demandes de service
-  const filteredServiceRequests = serviceRequests.filter((request) => {
-    const matchesSearch = request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         request.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         request.propertyName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = selectedType === 'all' || request.type === selectedType;
-    const matchesStatus = selectedStatus === 'all' || request.status === selectedStatus;
-    const matchesPriority = selectedPriority === 'all' || request.priority === selectedPriority;
+  // Filtrer les demandes de service (memoized)
+  const filteredServiceRequests = useMemo(() => {
+    return serviceRequests.filter((request) => {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = request.title.toLowerCase().includes(searchLower) ||
+                           request.description.toLowerCase().includes(searchLower) ||
+                           request.propertyName.toLowerCase().includes(searchLower);
+      const matchesType = selectedType === 'all' || request.type === selectedType;
+      const matchesStatus = selectedStatus === 'all' || request.status === selectedStatus;
+      const matchesPriority = selectedPriority === 'all' || request.priority === selectedPriority;
 
-    return matchesSearch && matchesType && matchesStatus && matchesPriority;
-  });
+      return matchesSearch && matchesType && matchesStatus && matchesPriority;
+    });
+  }, [serviceRequests, searchTerm, selectedType, selectedStatus, selectedPriority]);
 
   // Verifier si l'utilisateur peut modifier/supprimer cette demande
   const canModifyServiceRequest = (request: ServiceRequest): boolean => {
@@ -391,8 +394,8 @@ export function useServiceRequestsList() {
     return canModifyServiceRequest(request);
   };
 
-  // Generer les types de service avec traductions
-  const serviceTypes = [
+  // Generer les types de service avec traductions (memoized)
+  const serviceTypes = useMemo(() => [
     { value: 'all', label: t('serviceRequests.allTypes') },
     { value: 'CLEANING', label: 'Nettoyage' },
     { value: 'EXPRESS_CLEANING', label: 'Nettoyage Express' },
@@ -413,25 +416,25 @@ export function useServiceRequestsList() {
     { value: 'DISINFECTION', label: 'Desinfection' },
     { value: 'RESTORATION', label: 'Remise en Etat' },
     { value: 'OTHER', label: 'Autre' },
-  ];
+  ], [t]);
 
-  // Generer les statuts avec traductions
-  const statuses = [
+  // Generer les statuts avec traductions (memoized)
+  const statuses = useMemo(() => [
     { value: 'all', label: t('serviceRequests.allStatuses') },
     ...REQUEST_STATUS_OPTIONS.map(option => ({
       value: option.value,
       label: option.label
     }))
-  ];
+  ], [t]);
 
-  // Generer les priorites avec traductions
-  const priorities = [
+  // Generer les priorites avec traductions (memoized)
+  const priorities = useMemo(() => [
     { value: 'all', label: t('serviceRequests.allPriorities') },
     ...PRIORITY_OPTIONS.map(option => ({
       value: option.value,
       label: option.label
     }))
-  ];
+  ], [t]);
 
   return {
     // Filter state

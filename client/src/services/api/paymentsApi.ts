@@ -163,6 +163,10 @@ export const paymentsApi = {
     }
   },
 
+  async refund(interventionId: number): Promise<{ message: string }> {
+    return apiClient.post<{ message: string }>(`/payments/${interventionId}/refund`);
+  },
+
   async downloadInvoice(id: number): Promise<Blob> {
     try {
       const response = await fetch(

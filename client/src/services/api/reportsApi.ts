@@ -102,12 +102,24 @@ function groupBy<T>(items: T[], keyFn: (item: T) => string): Record<string, T[]>
   }, {});
 }
 
+// ─── Unwrap paginated responses ─────────────────────────────────────────────
+
+/** Extracts the array from a paginated Spring Boot response or a plain array. */
+function unwrapArray<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === 'object' && 'content' in data) {
+    const content = (data as { content: unknown }).content;
+    if (Array.isArray(content)) return content as T[];
+  }
+  return [];
+}
+
 // ─── API ────────────────────────────────────────────────────────────────────
 
 export const reportsApi = {
   async getInterventionStats(): Promise<InterventionReportData> {
-    const interventions = await interventionsApi.getAll();
-    const list: Intervention[] = Array.isArray(interventions) ? interventions : [];
+    const interventions = await interventionsApi.getAll({ size: 1000 } as any);
+    const list: Intervention[] = unwrapArray<Intervention>(interventions);
 
     // By status
     const statusGroups = groupBy(list, (i) => i.status || 'UNKNOWN');
@@ -159,12 +171,12 @@ export const reportsApi = {
 
   async getPropertyStats(): Promise<PropertyReportData> {
     const [properties, interventions] = await Promise.all([
-      propertiesApi.getAll(),
-      interventionsApi.getAll(),
+      propertiesApi.getAll({ size: 1000 }),
+      interventionsApi.getAll({ size: 1000 } as any),
     ]);
 
-    const propList: Property[] = Array.isArray(properties) ? properties : [];
-    const intList: Intervention[] = Array.isArray(interventions) ? interventions : [];
+    const propList: Property[] = unwrapArray<Property>(properties);
+    const intList: Intervention[] = unwrapArray<Intervention>(interventions);
 
     const interventionsByProperty = groupBy(intList, (i) => String(i.propertyId));
 
@@ -187,11 +199,11 @@ export const reportsApi = {
   async getTeamStats(): Promise<TeamReportData> {
     const [teams, interventions] = await Promise.all([
       teamsApi.getAll(),
-      interventionsApi.getAll(),
+      interventionsApi.getAll({ size: 1000 } as any),
     ]);
 
-    const teamList: Team[] = Array.isArray(teams) ? teams : [];
-    const intList: Intervention[] = Array.isArray(interventions) ? interventions : [];
+    const teamList: Team[] = unwrapArray<Team>(teams);
+    const intList: Intervention[] = unwrapArray<Intervention>(interventions);
 
     const teamPerformance: TeamPerformanceData[] = teamList.map((team) => {
       const teamInterventions = intList.filter(
@@ -211,8 +223,8 @@ export const reportsApi = {
   },
 
   async getFinancialStats(): Promise<FinancialReportData> {
-    const interventions = await interventionsApi.getAll();
-    const list: Intervention[] = Array.isArray(interventions) ? interventions : [];
+    const interventions = await interventionsApi.getAll({ size: 1000 } as any);
+    const list: Intervention[] = unwrapArray<Intervention>(interventions);
 
     // Monthly financials (last 6 months) - computed from intervention costs
     const months = getLast6Months();

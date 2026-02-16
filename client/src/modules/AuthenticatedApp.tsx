@@ -87,64 +87,88 @@ const AuthenticatedApp: React.FC = () => {
         
         <Route path="/properties" element={
           <ProtectedRoute requiredPermission="properties:view">
-            <PropertiesList />
+            <ErrorBoundary>
+              <PropertiesList />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
         <Route path="/properties/new" element={
           <ProtectedRoute requiredPermission="properties:create">
-            <PropertyCreate />
+            <ErrorBoundary>
+              <PropertyCreate />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
         <Route path="/properties/:id" element={
           <ProtectedRoute requiredPermission="properties:view">
-            <PropertyDetails />
+            <ErrorBoundary>
+              <PropertyDetails />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
         <Route path="/properties/:id/edit" element={
           <ProtectedRoute requiredPermission="properties:edit">
-            <PropertyEdit />
+            <ErrorBoundary>
+              <PropertyEdit />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
         
         <Route path="/service-requests" element={
           <ProtectedRoute requiredPermission="service-requests:view">
-            <ServiceRequestsList />
+            <ErrorBoundary>
+              <ServiceRequestsList />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
         <Route path="/service-requests/new" element={
           <ProtectedRoute requiredPermission="service-requests:create">
-            <ServiceRequestCreate />
+            <ErrorBoundary>
+              <ServiceRequestCreate />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
         <Route path="/service-requests/:id" element={
           <ProtectedRoute requiredPermission="service-requests:view">
-            <ServiceRequestDetails />
+            <ErrorBoundary>
+              <ServiceRequestDetails />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
         <Route path="/service-requests/:id/edit" element={
           <ProtectedRoute requiredPermission="service-requests:edit">
-            <ServiceRequestEdit />
+            <ErrorBoundary>
+              <ServiceRequestEdit />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
         
         <Route path="/interventions" element={
           <ProtectedRoute requiredPermission="interventions:view">
-            <InterventionsList />
+            <ErrorBoundary>
+              <InterventionsList />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
         <Route path="/interventions/new" element={
           <ProtectedRoute requiredPermission="interventions:create">
-            <InterventionForm />
+            <ErrorBoundary>
+              <InterventionForm />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
         <Route path="/interventions/:id" element={
           <ProtectedRoute requiredPermission="interventions:view">
-            <InterventionDetails />
+            <ErrorBoundary>
+              <InterventionDetails />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
         <Route path="/interventions/:id/edit" element={
           <ProtectedRoute requiredPermission="interventions:edit">
-            <InterventionEdit />
+            <ErrorBoundary>
+              <InterventionEdit />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
         <Route path="/interventions/payment/success" element={
@@ -155,12 +179,16 @@ const AuthenticatedApp: React.FC = () => {
         } />
         <Route path="/interventions/pending-validation" element={
           <ProtectedRoute requiredPermission="interventions:view">
-            <InterventionsPendingValidation />
+            <ErrorBoundary>
+              <InterventionsPendingValidation />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
         <Route path="/interventions/pending-payment" element={
           <ProtectedRoute requiredPermission="interventions:view">
-            <InterventionsPendingPayment />
+            <ErrorBoundary>
+              <InterventionsPendingPayment />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
 

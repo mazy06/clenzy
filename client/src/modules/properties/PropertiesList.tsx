@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogActions,
   Fab,
+  TablePagination,
 } from '@mui/material';
 import {
   Add,
@@ -22,6 +23,7 @@ import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import { propertiesApi, usersApi } from '../../services/api';
 import { PropertyStatus, PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
+import { extractApiList } from '../../types';
 import { createSpacing } from '../../theme/spacing';
 import { useTranslation } from '../../hooks/useTranslation';
 import ExportButton from '../../components/ExportButton';
@@ -87,6 +89,16 @@ interface User {
   role: string;
 }
 
+const paginationSx = {
+  position: 'sticky',
+  bottom: 0,
+  bgcolor: 'background.paper',
+  borderTop: '1px solid',
+  borderColor: 'divider',
+  mt: 2,
+  borderRadius: 1,
+} as const;
+
 export default function PropertiesList() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +110,8 @@ export default function PropertiesList() {
   const [hosts, setHosts] = useState<User[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  const ITEMS_PER_PAGE = 6;
   const navigate = useNavigate();
   const { user, isAdmin, isManager, isHost, hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
@@ -110,17 +124,17 @@ export default function PropertiesList() {
         ? { ownerId: user.id }
         : undefined;
 
-      const data = await propertiesApi.getAll(params) as any;
+      const data = await propertiesApi.getAll(params);
 
-      const convertedProperties = (data.content ?? data)?.map((prop: PropertyApiItem) => ({
+      const convertedProperties: Property[] = extractApiList<PropertyApiItem>(data).map((prop) => ({
         id: prop.id.toString(),
         name: prop.name,
-        type: prop.type?.toLowerCase() || 'apartment',
+        type: (prop.type?.toLowerCase() || 'apartment') as Property['type'],
         address: prop.address,
         city: prop.city,
         postalCode: prop.postalCode,
         country: prop.country,
-        status: prop.status?.toLowerCase() || 'active',
+        status: (prop.status?.toLowerCase() || 'active') as Property['status'],
         rating: 4.5,
         nightlyPrice: prop.nightlyPrice || 0,
         guests: prop.maxGuests || 2,
@@ -136,7 +150,7 @@ export default function PropertiesList() {
         lastCleaning: undefined,
         nextCleaning: undefined,
         ownerId: prop.ownerId?.toString(),
-      })) || [];
+      }));
 
       setProperties(convertedProperties);
     } catch (err) {
@@ -155,8 +169,8 @@ export default function PropertiesList() {
 
       try {
         setLoading(true);
-        const data = await usersApi.getAll({ role: 'HOST' }) as any;
-        setHosts(data.content || data);
+        const data = await usersApi.getAll({ role: 'HOST' });
+        setHosts(extractApiList(data));
       } catch (err) {
         setHosts([]);
       } finally {
@@ -185,24 +199,33 @@ export default function PropertiesList() {
     }
   };
 
-  // Filtrer les propriétés
-  const getFilteredProperties = () => {
+  // Filtrer les propriétés (memoized)
+  const filteredProperties = useMemo(() => {
     return properties.filter((property) => {
-      const matchesSearch = property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           property.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           property.city.toLowerCase().includes(searchTerm.toLowerCase());
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = property.name.toLowerCase().includes(searchLower) ||
+                           property.address.toLowerCase().includes(searchLower) ||
+                           property.city.toLowerCase().includes(searchLower);
       const matchesType = selectedType === 'all' || property.type === selectedType;
       const matchesStatus = selectedStatus === 'all' || property.status === selectedStatus;
       const matchesHost = selectedHost === 'all' || property.ownerId === selectedHost;
 
       return matchesSearch && matchesType && matchesStatus && matchesHost;
     });
-  };
+  }, [properties, searchTerm, selectedType, selectedStatus, selectedHost]);
 
-  const filteredProperties = getFilteredProperties();
+  const paginatedProperties = useMemo(
+    () => filteredProperties.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE),
+    [filteredProperties, page]
+  );
+
+  // Reset page quand les filtres changent
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm, selectedType, selectedStatus, selectedHost]);
 
   // Convertir Property vers PropertyDetails pour le composant PropertyCard
-  const toPropertyDetails = (property: Property): PropertyDetails => ({
+  const toPropertyDetails = useCallback((property: Property): PropertyDetails => ({
     id: property.id,
     name: property.name,
     address: property.address,
@@ -225,18 +248,18 @@ export default function PropertiesList() {
     lastCleaning: property.lastCleaning,
     nextCleaning: property.nextCleaning,
     ownerId: property.ownerId,
-  });
+  }), []);
 
   // Générer les types de propriétés avec traductions
-  const propertyTypes = [
+  const propertyTypes = useMemo(() => [
     { value: 'all', label: t('properties.allTypes') },
     { value: 'apartment', label: t('properties.types.apartment') },
     { value: 'house', label: t('properties.types.house') },
     { value: 'villa', label: t('properties.types.villa') },
     { value: 'studio', label: t('properties.types.studio') },
-  ];
+  ], [t]);
 
-  const exportColumns: ExportColumn[] = [
+  const exportColumns: ExportColumn[] = useMemo(() => [
     { key: 'id', label: 'ID' },
     { key: 'name', label: 'Nom' },
     { key: 'type', label: 'Type' },
@@ -247,7 +270,7 @@ export default function PropertiesList() {
     { key: 'bedrooms', label: 'Chambres' },
     { key: 'bathrooms', label: 'Salles de bain' },
     { key: 'squareMeters', label: 'Surface (m\u00b2)' },
-  ];
+  ], []);
 
   // Générer les statuts avec traductions
   const statusOptions = [
@@ -356,21 +379,35 @@ export default function PropertiesList() {
             </Card>
           </Grid>
         ) : (
-          <Grid container spacing={2}>
-            {filteredProperties.map((property) => (
-              <Grid item xs={12} md={6} lg={4} key={property.id}>
-                <PropertyCard
-                  property={toPropertyDetails(property)}
-                  onEdit={() => navigate(`/properties/${property.id}/edit`)}
-                  onDelete={() => {
-                    setSelectedProperty(property);
-                    setDeleteDialogOpen(true);
-                  }}
-                  onView={() => navigate(`/properties/${property.id}`)}
-                />
-              </Grid>
-            ))}
-          </Grid>
+          <>
+            <Grid container spacing={2}>
+              {paginatedProperties.map((property) => (
+                <Grid item xs={12} md={6} lg={4} key={property.id}>
+                  <PropertyCard
+                    property={toPropertyDetails(property)}
+                    onEdit={() => navigate(`/properties/${property.id}/edit`)}
+                    onDelete={() => {
+                      setSelectedProperty(property);
+                      setDeleteDialogOpen(true);
+                    }}
+                    onView={() => navigate(`/properties/${property.id}`)}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+            {filteredProperties.length > ITEMS_PER_PAGE && (
+              <TablePagination
+                component="div"
+                count={filteredProperties.length}
+                page={page}
+                onPageChange={(_, p) => setPage(p)}
+                rowsPerPage={ITEMS_PER_PAGE}
+                rowsPerPageOptions={[ITEMS_PER_PAGE]}
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
+                sx={paginationSx}
+              />
+            )}
+          </>
         )}
 
       {/* Dialog de confirmation de suppression */}

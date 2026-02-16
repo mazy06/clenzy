@@ -33,6 +33,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi } from '../../services/api';
 import apiClient from '../../services/apiClient';
+import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
@@ -80,8 +81,8 @@ const InterventionsPendingValidation: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const data = await interventionsApi.getAll({ status: 'AWAITING_VALIDATION' } as any);
-      setInterventions((data as any).content || data);
+      const data = await interventionsApi.getAll({ status: 'AWAITING_VALIDATION' });
+      setInterventions(extractApiList(data));
     } catch (err) {
       setError('Erreur de connexion');
     } finally {

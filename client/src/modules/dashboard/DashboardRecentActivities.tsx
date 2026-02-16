@@ -24,7 +24,7 @@ import {
   GroupAdd
 } from '@mui/icons-material';
 import type { NavigateFunction } from 'react-router-dom';
-import type { ActivityItem } from '../../hooks/useDashboardStats';
+import type { ActivityItem } from '../../hooks/useDashboardData';
 import { PRIORITY_OPTIONS, Priority } from '../../types/statusEnums';
 
 type TranslationFn = (key: string, options?: Record<string, unknown>) => string;

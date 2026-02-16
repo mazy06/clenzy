@@ -2,17 +2,23 @@ package com.clenzy.service;
 
 import com.clenzy.dto.MaintenanceRequestDto;
 import com.clenzy.dto.QuoteRequestDto;
+import com.clenzy.util.AttachmentValidator;
+import com.clenzy.util.StringUtils;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Service d'envoi d'emails transactionnels.
@@ -28,7 +34,14 @@ public class EmailService {
     @Value("${clenzy.mail.from:info@clenzy.fr}")
     private String fromAddress;
 
-    private static final String NOTIFICATION_TO = "info@clenzy.fr";
+    @Value("${clenzy.mail.notification-to:info@clenzy.fr}")
+    private String notificationTo;
+
+    @Value("${clenzy.mail.contact.max-attachments:10}")
+    private int maxAttachments;
+
+    @Value("${clenzy.mail.contact.max-attachment-size-bytes:10485760}")
+    private long maxAttachmentSizeBytes;
 
     // Labels français pour les valeurs du formulaire
     private static final Map<String, String> PROPERTY_TYPE_LABELS = Map.of(
@@ -112,7 +125,7 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setFrom(fromAddress);
-            helper.setTo(NOTIFICATION_TO);
+            helper.setTo(notificationTo);
             helper.setReplyTo(dto.getEmail());
             helper.setSubject("📋 Nouvelle demande de devis — " + dto.getFullName() + " — " + dto.getCity());
             helper.setText(buildHtmlBody(dto, recommendedPackage, recommendedRate), true);
@@ -296,7 +309,7 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setFrom(fromAddress);
-            helper.setTo(NOTIFICATION_TO);
+            helper.setTo(notificationTo);
             helper.setReplyTo(dto.getEmail());
 
             String urgencyTag = "urgent".equals(dto.getUrgency()) ? "🔴 URGENT — " : "";
@@ -383,4 +396,83 @@ public class EmailService {
         sb.append("</div></body></html>");
         return sb.toString();
     }
+
+    /**
+     * Envoie un email depuis le module Contact (messages inbox/sent/reply).
+     * Retourne l'identifiant de message fourni par le provider SMTP si disponible.
+     */
+    public String sendContactMessage(
+            String toEmail,
+            String toName,
+            String replyToEmail,
+            String replyToName,
+            String subject,
+            String messageText,
+            List<MultipartFile> attachments
+    ) {
+        try {
+            JavaMailSender ms = requireMailSender();
+            MimeMessage mimeMessage = ms.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            String normalizedSubject = subject == null ? "" : subject.replaceAll("[\\r\\n]+", " ").trim();
+            if (normalizedSubject.isBlank()) normalizedSubject = "(Sans objet)";
+            if (normalizedSubject.length() > 255) normalizedSubject = normalizedSubject.substring(0, 255);
+
+            String normalizedText = messageText == null ? "" : messageText.trim();
+            if (normalizedText.isBlank()) {
+                throw new IllegalArgumentException("Le message est vide");
+            }
+
+            helper.setFrom(fromAddress);
+            helper.setTo(toEmail);
+            if (replyToEmail != null && !replyToEmail.isBlank()) {
+                helper.setReplyTo(replyToEmail);
+            }
+            helper.setSubject(normalizedSubject);
+            helper.setText(normalizedText, buildContactHtmlBody(toName, replyToName, normalizedText));
+
+            List<MultipartFile> safeAttachments = AttachmentValidator.sanitizeAndFilter(attachments);
+            AttachmentValidator.validate(safeAttachments, maxAttachments, maxAttachmentSizeBytes);
+
+            for (MultipartFile file : safeAttachments) {
+                String fileName = StringUtils.sanitizeFileName(file.getOriginalFilename());
+                String contentType = file.getContentType() != null && !file.getContentType().isBlank()
+                        ? file.getContentType()
+                        : "application/octet-stream";
+                helper.addAttachment(fileName, new ByteArrayResource(file.getBytes()), contentType);
+            }
+
+            ms.send(mimeMessage);
+            String providerMessageId = mimeMessage.getMessageID();
+            if (providerMessageId == null || providerMessageId.isBlank()) {
+                providerMessageId = "local-" + UUID.randomUUID();
+            }
+
+            log.info("Email contact envoye vers {} (subject={})", toEmail, normalizedSubject);
+            return providerMessageId;
+        } catch (Exception e) {
+            log.error("Erreur envoi email contact vers {} : {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi email contact", e);
+        }
+    }
+
+    private String buildContactHtmlBody(String toName, String replyToName, String messageText) {
+        String safeToName = StringUtils.firstNonBlank(toName, "destinataire");
+        String safeReplyToName = StringUtils.firstNonBlank(replyToName, "expediteur");
+        String escapedMessage = StringUtils.escapeHtml(messageText).replace("\n", "<br>");
+
+        return "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>"
+                + "<div style='font-family:Arial,sans-serif;max-width:680px;margin:0 auto;color:#1e293b;'>"
+                + "<h2 style='margin:0 0 16px 0;color:#0f172a;'>Nouveau message Clenzy</h2>"
+                + "<p style='margin:0 0 12px 0;'>Bonjour " + StringUtils.escapeHtml(safeToName) + ",</p>"
+                + "<div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:12px;'>"
+                + escapedMessage
+                + "</div>"
+                + "<p style='margin:0;color:#64748b;font-size:13px;'>Ce message vous a ete envoye par "
+                + StringUtils.escapeHtml(safeReplyToName)
+                + " via le module Contact Clenzy.</p>"
+                + "</div></body></html>";
+    }
+
 }

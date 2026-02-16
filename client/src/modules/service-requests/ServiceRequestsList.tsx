@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -10,6 +10,7 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  TablePagination,
 } from '@mui/material';
 import {
   Add,
@@ -37,6 +38,16 @@ import {
   ErrorDialog,
   SuccessDialog,
 } from './ServiceRequestsDialogs';
+
+const paginationSx = {
+  position: 'sticky',
+  bottom: 0,
+  bgcolor: 'background.paper',
+  borderTop: '1px solid',
+  borderColor: 'divider',
+  mt: 2,
+  borderRadius: 1,
+} as const;
 
 export default function ServiceRequestsList() {
   const {
@@ -130,7 +141,20 @@ export default function ServiceRequestsList() {
     t,
   } = useServiceRequestsList();
 
-  const exportColumns: ExportColumn[] = [
+  const [page, setPage] = useState(0);
+  const ITEMS_PER_PAGE = 6;
+
+  const paginatedServiceRequests = useMemo(
+    () => filteredServiceRequests.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE),
+    [filteredServiceRequests, page]
+  );
+
+  // Reset page quand les filtres changent
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm, selectedType, selectedStatus, selectedPriority]);
+
+  const exportColumns: ExportColumn[] = useMemo(() => [
     { key: 'id', label: 'ID' },
     { key: 'title', label: 'Titre' },
     { key: 'type', label: 'Type' },
@@ -141,7 +165,7 @@ export default function ServiceRequestsList() {
     { key: 'assignedToName', label: 'Assigné à' },
     { key: 'dueDate', label: "Date d'échéance", formatter: (v: string) => v ? new Date(v).toLocaleDateString('fr-FR') : '' },
     { key: 'createdAt', label: 'Date de création', formatter: (v: string) => v ? new Date(v).toLocaleDateString('fr-FR') : '' },
-  ];
+  ], []);
 
   return (
     <Box>
@@ -240,7 +264,7 @@ export default function ServiceRequestsList() {
             </Card>
           </Grid>
         ) : (
-          filteredServiceRequests.map((request) => (
+          paginatedServiceRequests.map((request) => (
             <Grid item xs={12} md={6} lg={4} key={request.id}>
               <ServiceRequestCard
                 request={request}
@@ -255,6 +279,19 @@ export default function ServiceRequestsList() {
           ))
         )}
       </Grid>
+
+      {filteredServiceRequests.length > ITEMS_PER_PAGE && (
+        <TablePagination
+          component="div"
+          count={filteredServiceRequests.length}
+          page={page}
+          onPageChange={(_, p) => setPage(p)}
+          rowsPerPage={ITEMS_PER_PAGE}
+          rowsPerPageOptions={[ITEMS_PER_PAGE]}
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
+          sx={paginationSx}
+        />
+      )}
 
       {/* Menu contextuel */}
       <Menu

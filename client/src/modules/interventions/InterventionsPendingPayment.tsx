@@ -29,6 +29,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi } from '../../services/api';
 import apiClient from '../../services/apiClient';
+import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
@@ -94,8 +95,8 @@ const InterventionsPendingPayment: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const data = await interventionsApi.getAll({ status: 'AWAITING_PAYMENT' } as any);
-      const allInterventions = (data as any).content || data;
+      const data = await interventionsApi.getAll({ status: 'AWAITING_PAYMENT' });
+      const allInterventions = extractApiList<Intervention>(data);
       const userInterventions = allInterventions.filter((intervention: Intervention) => {
         const userFullName = user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
         return intervention.requestorName === userFullName ||

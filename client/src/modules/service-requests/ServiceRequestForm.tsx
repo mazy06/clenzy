@@ -4,55 +4,25 @@ import {
   Card,
   CardContent,
   Typography,
-  TextField,
   Button,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  Chip,
-  Divider,
-  IconButton,
   Alert,
   CircularProgress,
-  Autocomplete,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
 } from '@mui/material';
-import {
-  Home,
-  LocationOn,
-  Euro,
-  Bed,
-  Bathroom,
-  SquareFoot,
-  Close,
-  Save,
-  Cancel,
-  Person,
-  Add,
-  Description,
-  Schedule,
-  PriorityHigh,
-  Category,
-  Group,
-  ArrowBack,
-} from '@mui/icons-material';
+import { ArrowBack } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { serviceRequestsApi, propertiesApi, usersApi, teamsApi } from '../../services/api';
 import apiClient from '../../services/apiClient';
-import { InterventionType, INTERVENTION_TYPE_OPTIONS, InterventionTypeUtils } from '../../types/interventionTypes';
-import { REQUEST_STATUS_OPTIONS } from '../../types/statusEnums';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { serviceRequestSchema } from '../../schemas';
 import type { ServiceRequestFormValues } from '../../schemas';
+
+import ServiceRequestFormInfo from './ServiceRequestFormInfo';
+import ServiceRequestFormProperty from './ServiceRequestFormProperty';
+import ServiceRequestFormPlanning from './ServiceRequestFormPlanning';
+import ServiceRequestFormAssignment from './ServiceRequestFormAssignment';
 
 // Types pour les demandes de service
 export interface ServiceRequestFormData {
@@ -101,12 +71,14 @@ interface ServiceRequestFormProps {
   onSuccess?: () => void;
   setLoading?: (loading: boolean) => void;
   loading?: boolean;
+  /** Ref that exposes a submit() trigger to parent — replaces DOM querySelector hack */
+  submitRef?: React.MutableRefObject<(() => void) | null>;
   // Edit mode props
   serviceRequestId?: number;
   mode?: 'create' | 'edit';
 }
 
-const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSuccess, setLoading, loading, serviceRequestId, mode = 'create' }) => {
+const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSuccess, setLoading, loading, submitRef, serviceRequestId, mode = 'create' }) => {
   const navigate = useNavigate();
   const { user, hasPermissionAsync,  isAdmin, isManager, isHost } = useAuth();
   const { t } = useTranslation();
@@ -125,7 +97,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   const [approvedStatus, setApprovedStatus] = useState(false);
 
   // react-hook-form with Zod validation
-  const { control, handleSubmit: rhfHandleSubmit, watch, setValue, reset } = useForm<ServiceRequestFormValues>({
+  const { control, handleSubmit: rhfHandleSubmit, watch, setValue, reset, formState: { errors } } = useForm<ServiceRequestFormValues>({
     resolver: zodResolver(serviceRequestSchema),
     defaultValues: {
       title: '',
@@ -155,8 +127,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     const loadServiceRequest = async () => {
       setLoadingServiceRequest(true);
       try {
-        const serviceRequest = await serviceRequestsApi.getById(serviceRequestId);
-        const sr = serviceRequest as any;
+        const sr = await serviceRequestsApi.getById(serviceRequestId);
 
         // Check if APPROVED - prevent editing
         if (sr.status === 'APPROVED') {
@@ -444,53 +415,18 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     }
   };
 
-  // Constantes pour les enums
-  const serviceTypes = INTERVENTION_TYPE_OPTIONS.map(option => ({
-    value: option.value,
-    label: option.label
-  }));
-
-  const priorities = [
-    { value: 'LOW', label: t('serviceRequests.priorities.low') },
-    { value: 'NORMAL', label: t('serviceRequests.priorities.normal') },
-    { value: 'HIGH', label: t('serviceRequests.priorities.high') },
-    { value: 'CRITICAL', label: t('serviceRequests.priorities.critical') },
-  ];
-
-  const statuses = REQUEST_STATUS_OPTIONS.map(option => ({
-    value: option.value,
-    label: option.label
-  }));
-
-  const durations = [
-    { value: 0.5, label: t('serviceRequests.durations.30min') },
-    { value: 1, label: t('serviceRequests.durations.1h') },
-    { value: 1.5, label: t('serviceRequests.durations.1h30') },
-    { value: 2, label: t('serviceRequests.durations.2h') },
-    { value: 3, label: t('serviceRequests.durations.3h') },
-    { value: 4, label: t('serviceRequests.durations.4h') },
-    { value: 6, label: t('serviceRequests.durations.6h') },
-    { value: 8, label: t('serviceRequests.durations.8h') },
-  ];
-
-  // Filtrer les utilisateurs par rôle approprié pour l'assignation
-  const getAssignableUsers = () => {
-    return users.filter(user =>
-      ['housekeeper', 'technician', 'supervisor', 'manager'].includes(user.role.toLowerCase())
-    );
-  };
-
-  // Obtenir le label du type d'intervention
-  const getInterventionTypeLabel = (type: string) => {
-    const interventionTypes: Record<string, string> = {
-      cleaning: t('serviceRequests.interventionTypes.cleaning'),
-      maintenance: t('serviceRequests.interventionTypes.maintenance'),
-      repair: t('serviceRequests.interventionTypes.repair'),
-      inspection: t('serviceRequests.interventionTypes.inspection'),
-      mixed: t('serviceRequests.interventionTypes.mixed'),
+  // Expose submit trigger to parent via ref — replaces DOM querySelector hack
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    if (submitRef) {
+      submitRef.current = rhfHandleSubmit(onSubmit);
+    }
+    return () => {
+      if (submitRef) submitRef.current = null;
     };
-    return interventionTypes[type.toLowerCase()] || type;
-  };
+  });
+
+  const isAdminOrManager = isAdmin() || isManager();
 
   return (
     <Box>
@@ -511,391 +447,39 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
       <Card sx={{ mt: 2 }}>
         <CardContent sx={{ p: 2 }}>
           <form onSubmit={rhfHandleSubmit(onSubmit)}>
-            {/* Informations de base */}
-            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-              {t('serviceRequests.sections.basicInfo')}
-            </Typography>
+            <ServiceRequestFormInfo
+              control={control}
+              errors={errors}
+            />
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={isEditMode ? 6 : 8}>
-                <Controller
-                  name="title"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={`${t('serviceRequests.fields.title')} *`}
-                      required
-                      placeholder={t('serviceRequests.fields.titlePlaceholder')}
-                      size="small"
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message}
-                    />
-                  )}
-                />
-              </Grid>
+            <ServiceRequestFormProperty
+              control={control}
+              errors={errors}
+              properties={properties}
+              users={users}
+              isAdminOrManager={isAdminOrManager}
+            />
 
-              <Grid item xs={12} md={isEditMode ? 3 : 4}>
-                <Controller
-                  name="serviceType"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <FormControl fullWidth required error={!!fieldState.error}>
-                      <InputLabel>{t('serviceRequests.fields.serviceType')} *</InputLabel>
-                      <Select
-                        {...field}
-                        label={`${t('serviceRequests.fields.serviceType')} *`}
-                        size="small"
-                      >
-                        {serviceTypes.map((type) => {
-                          const typeOption = INTERVENTION_TYPE_OPTIONS.find(option => option.value === type.value);
-                          const IconComponent = typeOption?.icon;
+            <ServiceRequestFormPlanning
+              control={control}
+              errors={errors}
+            />
 
-                          return (
-                            <MenuItem key={type.value} value={type.value}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                {IconComponent && <IconComponent sx={{ fontSize: 18 }} />}
-                                <Typography variant="body2">{type.label}</Typography>
-                              </Box>
-                            </MenuItem>
-                          );
-                        })}
-                      </Select>
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-
-              {/* Statut - seulement en mode édition */}
-              {isEditMode && (
-                <Grid item xs={12} md={3}>
-                  <Controller
-                    name="status"
-                    control={control}
-                    render={({ field }) => (
-                      <FormControl fullWidth required>
-                        <InputLabel>{t('common.status')} *</InputLabel>
-                        <Select
-                          value={field.value || 'PENDING'}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          label={`${t('common.status')} *`}
-                          size="small"
-                        >
-                          {statuses.map((status) => (
-                            <MenuItem key={status.value} value={status.value}>
-                              {status.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    )}
-                  />
-                </Grid>
-              )}
-            </Grid>
-
-            {/* Description */}
-            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-              {t('serviceRequests.sections.description')}
-            </Typography>
-
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12}>
-                <Controller
-                  name="description"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      multiline
-                      rows={3}
-                      label={`${t('serviceRequests.fields.detailedDescription')} *`}
-                      required
-                      placeholder={t('serviceRequests.fields.descriptionPlaceholder')}
-                      size="small"
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message}
-                    />
-                  )}
-                />
-              </Grid>
-            </Grid>
-
-            {/* Propriété */}
-            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-              {t('serviceRequests.sections.property')}
-            </Typography>
-
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12}>
-                <Controller
-                  name="propertyId"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <FormControl fullWidth required error={!!fieldState.error}>
-                      <InputLabel>{t('serviceRequests.fields.property')} *</InputLabel>
-                      <Select
-                        value={field.value}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        onBlur={field.onBlur}
-                        label={`${t('serviceRequests.fields.property')} *`}
-                        size="small"
-                      >
-                        {properties.map((property) => (
-                          <MenuItem key={property.id} value={property.id}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                              <Home sx={{ fontSize: 18 }} />
-                              <Typography variant="body2">{property.name} - {property.address}, {property.city}</Typography>
-                            </Box>
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-            </Grid>
-
-            {/* Priorité et durée */}
-            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-              {t('serviceRequests.sections.priorityPlanning')}
-            </Typography>
-
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={4}>
-                <Controller
-                  name="priority"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <FormControl fullWidth required error={!!fieldState.error}>
-                      <InputLabel>{t('serviceRequests.fields.priority')} *</InputLabel>
-                      <Select
-                        {...field}
-                        label={`${t('serviceRequests.fields.priority')} *`}
-                        size="small"
-                      >
-                        {priorities.map((priority) => (
-                          <MenuItem key={priority.value} value={priority.value}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                              <PriorityHigh sx={{ fontSize: 18 }} />
-                              <Typography variant="body2">{priority.label}</Typography>
-                            </Box>
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <Controller
-                  name="estimatedDurationHours"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <FormControl fullWidth required error={!!fieldState.error}>
-                      <InputLabel>{t('serviceRequests.fields.estimatedDuration')} *</InputLabel>
-                      <Select
-                        value={field.value}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        onBlur={field.onBlur}
-                        label={`${t('serviceRequests.fields.estimatedDuration')} *`}
-                        size="small"
-                      >
-                        {durations.map((duration) => (
-                          <MenuItem key={duration.value} value={duration.value}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                              <Schedule sx={{ fontSize: 18 }} />
-                              <Typography variant="body2">{duration.label}</Typography>
-                            </Box>
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <Controller
-                  name="desiredDate"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={`${t('serviceRequests.fields.dueDate')} *`}
-                      type="datetime-local"
-                      required
-                      size="small"
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message}
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-            </Grid>
-
-            {/* Demandeur et assignation */}
+            {/* Assignation et statut */}
             <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
               {t('serviceRequests.sections.requestorAssignment')}
             </Typography>
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              {/* Demandeur */}
-              <Grid item xs={12} md={4}>
-                <Controller
-                  name="userId"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <FormControl fullWidth required error={!!fieldState.error}>
-                      <InputLabel>{t('serviceRequests.fields.requestor')} *</InputLabel>
-                      <Select
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        onBlur={field.onBlur}
-                        label={`${t('serviceRequests.fields.requestor')} *`}
-                        disabled={!isAdmin() && !isManager()} // Seuls les admin/manager peuvent changer le demandeur
-                        size="small"
-                      >
-                        {users.map((user) => (
-                          <MenuItem key={user.id} value={user.id}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                              <Person sx={{ fontSize: 18 }} />
-                              <Typography variant="body2">{user.firstName} {user.lastName} ({user.role}) - {user.email}</Typography>
-                            </Box>
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {!isAdmin() && !isManager() && (
-                        <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                          {t('serviceRequests.fields.requestorHelper')}
-                        </FormHelperText>
-                      )}
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-
-              {/* Type d'assignation - seulement pour ADMIN, MANAGER ou utilisateur qui gère le portefeuille */}
-              {canAssignForProperty && (
-                <Grid item xs={12} md={6}>
-                  <Controller
-                    name="assignedToType"
-                    control={control}
-                    render={({ field }) => (
-                      <FormControl fullWidth>
-                        <InputLabel>{t('serviceRequests.fields.assignmentType')}</InputLabel>
-                        <Select
-                          value={field.value || ''}
-                          onChange={(e) => {
-                            const val = e.target.value as 'user' | 'team' | '';
-                            field.onChange(val || undefined);
-                            setValue('assignedToId', undefined);
-                          }}
-                          onBlur={field.onBlur}
-                          label={t('serviceRequests.fields.assignmentType')}
-                          size="small"
-                        >
-                          <MenuItem value="">
-                            <em>{t('serviceRequests.fields.noAssignment')}</em>
-                          </MenuItem>
-                          <MenuItem value="user">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                              <Person sx={{ fontSize: 18 }} />
-                              <Typography variant="body2">{t('serviceRequests.fields.individualUser')}</Typography>
-                            </Box>
-                          </MenuItem>
-                          <MenuItem value="team">
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                              <Group sx={{ fontSize: 18 }} />
-                              <Typography variant="body2">{t('serviceRequests.fields.team')}</Typography>
-                            </Box>
-                          </MenuItem>
-                        </Select>
-                      </FormControl>
-                    )}
-                  />
-                </Grid>
-              )}
-            </Grid>
-
-            {/* Assignation spécifique - seulement pour ADMIN, MANAGER ou utilisateur qui gère le portefeuille */}
-            {canAssignForProperty && watchedAssignedToType && (
-              <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={12}>
-                  <Controller
-                    name="assignedToId"
-                    control={control}
-                    render={({ field }) => (
-                      <FormControl fullWidth>
-                        <InputLabel>
-                          {watchedAssignedToType === 'user' ? t('serviceRequests.fields.assignedToUser') : t('serviceRequests.fields.assignedToTeam')}
-                        </InputLabel>
-                        <Select
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                          onBlur={field.onBlur}
-                          label={watchedAssignedToType === 'user' ? t('serviceRequests.fields.assignedToUser') : t('serviceRequests.fields.assignedToTeam')}
-                          size="small"
-                        >
-                          <MenuItem value="">
-                            <em>{t('serviceRequests.fields.select')}</em>
-                          </MenuItem>
-                          {watchedAssignedToType === 'user' ? (
-                            getAssignableUsers().map((user) => (
-                              <MenuItem key={user.id} value={user.id}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                  <Person sx={{ fontSize: 18 }} />
-                                  <Typography variant="body2">{user.firstName} {user.lastName} ({user.role}) - {user.email}</Typography>
-                                </Box>
-                              </MenuItem>
-                            ))
-                          ) : (
-                            teams.map((team) => (
-                              <MenuItem key={team.id} value={team.id}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                  <Group sx={{ fontSize: 18 }} />
-                                  <Box>
-                                    <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.85rem' }}>
-                                      {team.name}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                                      {team.memberCount} {t('serviceRequests.members')} • {getInterventionTypeLabel(team.interventionType)}
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                              </MenuItem>
-                            ))
-                          )}
-                        </Select>
-                      </FormControl>
-                    )}
-                  />
-                </Grid>
-              </Grid>
-            )}
+            <ServiceRequestFormAssignment
+              control={control}
+              errors={errors}
+              setValue={setValue}
+              users={users}
+              teams={teams}
+              canAssignForProperty={canAssignForProperty}
+              watchedAssignedToType={watchedAssignedToType}
+              isEditMode={isEditMode}
+            />
 
           </form>
 

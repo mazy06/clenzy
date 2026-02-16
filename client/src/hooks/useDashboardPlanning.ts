@@ -69,9 +69,19 @@ function toISODateString(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
+/** Safely unwrap API response that may be a plain array or a paginated { content: T[] } */
+function unwrapPropertyList(data: unknown): Property[] {
+  if (Array.isArray(data)) return data as Property[];
+  if (data && typeof data === 'object' && 'content' in data && Array.isArray((data as { content: unknown }).content)) {
+    return (data as { content: Property[] }).content;
+  }
+  return [];
+}
+
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 const INITIAL_MONTHS = 3;
+const MAX_MONTHS = 12; // Cap to prevent unbounded memory growth
 
 export function useDashboardPlanning(): UseDashboardPlanningReturn {
   const { user } = useAuth();
@@ -149,12 +159,14 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
   // Uses refs to avoid dependency on state that would cause loadData to re-run
   const extendRange = useCallback(async () => {
     if (extendingRef.current) return;
+    // Cap at MAX_MONTHS to prevent unbounded memory growth
+    if (continuousEndMonthRef.current >= MAX_MONTHS) return;
     extendingRef.current = true;
 
     setLoadingMore(true);
     try {
       const curEndMonth = continuousEndMonthRef.current;
-      const newEndMonth = curEndMonth + 3;
+      const newEndMonth = Math.min(curEndMonth + 3, MAX_MONTHS);
       const oldEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + curEndMonth, 0);
       const newEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + newEndMonth, 0);
       const extFrom = toISODateString(oldEnd);
@@ -205,7 +217,7 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
           name: p.name,
           address: p.address,
           city: p.city,
-          ownerName: (p as any).ownerName || '',
+          ownerName: p.ownerName || '',
         }));
         const mockPropertyIds = mockProperties.map((p) => p.id);
         const extFrom = toISODateString(addDays(initialLoadRange.start, -7));
@@ -230,14 +242,14 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
       if (isAdmin || isManager) {
         try {
           const data = await propertiesApi.getAll();
-          propertyList = Array.isArray(data) ? data : (data as any)?.content ?? [];
+          propertyList = unwrapPropertyList(data);
         } catch {
           propertyList = [];
         }
       } else if (isHost) {
         try {
           const data = await propertiesApi.getAll({ ownerId: user.id });
-          propertyList = Array.isArray(data) ? data : (data as any)?.content ?? [];
+          propertyList = unwrapPropertyList(data);
         } catch {
           propertyList = [];
         }
@@ -274,7 +286,7 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
         name: p.name,
         address: p.address,
         city: p.city,
-        ownerName: (p as any).ownerName || '',
+        ownerName: p.ownerName || '',
       }));
 
       let reservationData: Reservation[] = [];

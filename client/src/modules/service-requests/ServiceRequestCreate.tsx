@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Button, Box } from '@mui/material';
 import { Cancel, Save } from '@mui/icons-material';
@@ -13,6 +13,7 @@ const ServiceRequestCreate: React.FC = () => {
   const { t } = useTranslation();
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const submitRef = useRef<(() => void) | null>(null);
 
   // Vérifier les permissions silencieusement
   const [canCreate, setCanCreate] = useState(false);
@@ -74,14 +75,7 @@ const ServiceRequestCreate: React.FC = () => {
             </Button>
             <Button
               variant="contained"
-              onClick={() => {
-                // Appeler directement la fonction de soumission du formulaire
-                const form = document.querySelector('form');
-                if (form) {
-                  const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-                  form.dispatchEvent(submitEvent);
-                }
-              }}
+              onClick={() => submitRef.current?.()}
               startIcon={<Save />}
               disabled={loading}
             >
@@ -96,6 +90,7 @@ const ServiceRequestCreate: React.FC = () => {
         onSuccess={handleSuccess}
         setLoading={setLoading}
         loading={loading}
+        submitRef={submitRef}
       />
     </Box>
   );

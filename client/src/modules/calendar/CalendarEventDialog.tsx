@@ -19,6 +19,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Intervention } from '../../services/api';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   INTERVENTION_STATUS_OPTIONS,
   PRIORITY_OPTIONS,
@@ -78,6 +79,7 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
   intervention,
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   if (!intervention) return null;
 
@@ -111,7 +113,7 @@ const CalendarEventDialog: React.FC<CalendarEventDialogProps> = ({
             sx={{ fontSize: '0.75rem' }}
           />
           <Chip
-            label={getTypeLabel(intervention.type)}
+            label={getTypeLabel(intervention.type, t)}
             size="small"
             color="primary"
             variant="outlined"

@@ -18,6 +18,9 @@ import {
   TableRow,
   InputAdornment,
   Chip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import {
   Save,
@@ -29,6 +32,7 @@ import {
   SquareFoot,
   Computer,
   Devices,
+  ExpandMore,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -77,6 +81,10 @@ export default function Tarification() {
     message: '',
     severity: 'success',
   });
+  const [expandedSection, setExpandedSection] = useState<string | false>('basePrices');
+  const handleAccordionChange = (panel: string) => (_: React.SyntheticEvent, isExpanded: boolean) => {
+    setExpandedSection(isExpanded ? panel : false);
+  };
 
   // Load config
   useEffect(() => {
@@ -166,119 +174,54 @@ export default function Tarification() {
         </Alert>
       )}
 
-      <Grid container spacing={2}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         {/* ─── Section 1: Prix de base des forfaits ────────────────── */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+        <Accordion expanded={expandedSection === 'basePrices'} onChange={handleAccordionChange('basePrices')} sx={{ '&:before': { display: 'none' } }}>
+          <AccordionSummary expandIcon={<ExpandMore />}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Euro sx={{ color: 'primary.main', fontSize: 20 }} />
-              <Typography variant="subtitle1" fontWeight={600}>
-                {t('tarification.basePrices.title')}
-              </Typography>
+              <Box>
+                <Typography variant="subtitle1" fontWeight={600}>{t('tarification.basePrices.title')}</Typography>
+                <Typography variant="body2" color="text.secondary">{t('tarification.basePrices.subtitle')}</Typography>
+              </Box>
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t('tarification.basePrices.subtitle')}
-            </Typography>
-
+          </AccordionSummary>
+          <AccordionDetails>
             <Grid container spacing={1.5}>
               <Grid item xs={6}>
-                <TextField
-                  label={t('tarification.basePrices.essentiel')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={config.basePriceEssentiel}
-                  onChange={(e) => updateNumericField('basePriceEssentiel', e.target.value)}
-                  disabled={!canEdit}
-                  InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
-                />
+                <TextField label={t('tarification.basePrices.essentiel')} type="number" size="small" fullWidth value={config.basePriceEssentiel} onChange={(e) => updateNumericField('basePriceEssentiel', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }} />
               </Grid>
               <Grid item xs={6}>
-                <TextField
-                  label={t('tarification.basePrices.confort')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={config.basePriceConfort}
-                  onChange={(e) => updateNumericField('basePriceConfort', e.target.value)}
-                  disabled={!canEdit}
-                  InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
-                />
+                <TextField label={t('tarification.basePrices.confort')} type="number" size="small" fullWidth value={config.basePriceConfort} onChange={(e) => updateNumericField('basePriceConfort', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }} />
               </Grid>
               <Grid item xs={6}>
-                <TextField
-                  label={t('tarification.basePrices.premium')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={config.basePricePremium}
-                  onChange={(e) => updateNumericField('basePricePremium', e.target.value)}
-                  disabled={!canEdit}
-                  InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
-                />
+                <TextField label={t('tarification.basePrices.premium')} type="number" size="small" fullWidth value={config.basePricePremium} onChange={(e) => updateNumericField('basePricePremium', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }} />
               </Grid>
               <Grid item xs={6}>
-                <TextField
-                  label={t('tarification.basePrices.minPrice')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={config.minPrice}
-                  onChange={(e) => updateNumericField('minPrice', e.target.value)}
-                  disabled={!canEdit}
-                  helperText={t('tarification.basePrices.minPriceHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
-                />
+                <TextField label={t('tarification.basePrices.minPrice')} type="number" size="small" fullWidth value={config.minPrice} onChange={(e) => updateNumericField('minPrice', e.target.value)} disabled={!canEdit} helperText={t('tarification.basePrices.minPriceHelp')} InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }} />
               </Grid>
             </Grid>
-          </Paper>
-        </Grid>
+          </AccordionDetails>
+        </Accordion>
 
-        {/* ─── Section 2: Abonnement PMS ───────────────────────────── */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, height: '100%' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+        {/* ─── Section 2: Abonnement PMS + Automation ──────────────── */}
+        <Accordion expanded={expandedSection === 'subscription'} onChange={handleAccordionChange('subscription')} sx={{ '&:before': { display: 'none' } }}>
+          <AccordionSummary expandIcon={<ExpandMore />}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Devices sx={{ color: 'info.main', fontSize: 20 }} />
-              <Typography variant="subtitle1" fontWeight={600}>
-                {t('tarification.pms.title')}
-              </Typography>
+              <Box>
+                <Typography variant="subtitle1" fontWeight={600}>{t('tarification.pms.title')}</Typography>
+                <Typography variant="body2" color="text.secondary">{t('tarification.pms.subtitle')}</Typography>
+              </Box>
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t('tarification.pms.subtitle')}
-            </Typography>
-
+          </AccordionSummary>
+          <AccordionDetails>
             <Grid container spacing={1.5}>
               <Grid item xs={6}>
-                <TextField
-                  label={t('tarification.pms.monthly')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={(config.pmsMonthlyPriceCents / 100).toFixed(0)}
-                  onChange={(e) => {
-                    const euros = parseInt(e.target.value, 10);
-                    if (!isNaN(euros)) setConfig((prev) => ({ ...prev, pmsMonthlyPriceCents: euros * 100 }));
-                  }}
-                  disabled={!canEdit}
-                  helperText={t('tarification.pms.monthlyHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end">€/mois</InputAdornment> }}
-                />
+                <TextField label={t('tarification.pms.monthly')} type="number" size="small" fullWidth value={(config.pmsMonthlyPriceCents / 100).toFixed(0)} onChange={(e) => { const euros = parseInt(e.target.value, 10); if (!isNaN(euros)) setConfig((prev) => ({ ...prev, pmsMonthlyPriceCents: euros * 100 })); }} disabled={!canEdit} helperText={t('tarification.pms.monthlyHelp')} InputProps={{ endAdornment: <InputAdornment position="end">€/mois</InputAdornment> }} />
               </Grid>
               <Grid item xs={6}>
-                <TextField
-                  label={t('tarification.pms.sync')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={(config.pmsSyncPriceCents / 100).toFixed(0)}
-                  onChange={(e) => {
-                    const euros = parseInt(e.target.value, 10);
-                    if (!isNaN(euros)) setConfig((prev) => ({ ...prev, pmsSyncPriceCents: euros * 100 }));
-                  }}
-                  disabled={!canEdit}
-                  helperText={t('tarification.pms.syncHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end">€/mois</InputAdornment> }}
-                />
+                <TextField label={t('tarification.pms.sync')} type="number" size="small" fullWidth value={(config.pmsSyncPriceCents / 100).toFixed(0)} onChange={(e) => { const euros = parseInt(e.target.value, 10); if (!isNaN(euros)) setConfig((prev) => ({ ...prev, pmsSyncPriceCents: euros * 100 })); }} disabled={!canEdit} helperText={t('tarification.pms.syncHelp')} InputProps={{ endAdornment: <InputAdornment position="end">€/mois</InputAdornment> }} />
               </Grid>
             </Grid>
 
@@ -286,58 +229,33 @@ export default function Tarification() {
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
               <Computer sx={{ color: 'warning.main', fontSize: 20 }} />
-              <Typography variant="subtitle1" fontWeight={600}>
-                {t('tarification.automation.title')}
-              </Typography>
+              <Typography variant="subtitle1" fontWeight={600}>{t('tarification.automation.title')}</Typography>
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t('tarification.automation.subtitle')}
-            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{t('tarification.automation.subtitle')}</Typography>
 
             <Grid container spacing={1.5}>
               <Grid item xs={6}>
-                <TextField
-                  label={t('tarification.automation.basic')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={config.automationBasicSurcharge}
-                  onChange={(e) => updateNumericField('automationBasicSurcharge', e.target.value)}
-                  disabled={!canEdit}
-                  helperText={t('tarification.automation.basicHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
-                />
+                <TextField label={t('tarification.automation.basic')} type="number" size="small" fullWidth value={config.automationBasicSurcharge} onChange={(e) => updateNumericField('automationBasicSurcharge', e.target.value)} disabled={!canEdit} helperText={t('tarification.automation.basicHelp')} InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }} />
               </Grid>
               <Grid item xs={6}>
-                <TextField
-                  label={t('tarification.automation.full')}
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={config.automationFullSurcharge}
-                  onChange={(e) => updateNumericField('automationFullSurcharge', e.target.value)}
-                  disabled={!canEdit}
-                  helperText={t('tarification.automation.fullHelp')}
-                  InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
-                />
+                <TextField label={t('tarification.automation.full')} type="number" size="small" fullWidth value={config.automationFullSurcharge} onChange={(e) => updateNumericField('automationFullSurcharge', e.target.value)} disabled={!canEdit} helperText={t('tarification.automation.fullHelp')} InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }} />
               </Grid>
             </Grid>
-          </Paper>
-        </Grid>
+          </AccordionDetails>
+        </Accordion>
 
         {/* ─── Section 3: Coefficients type de logement ────────────── */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+        <Accordion expanded={expandedSection === 'propertyType'} onChange={handleAccordionChange('propertyType')} sx={{ '&:before': { display: 'none' } }}>
+          <AccordionSummary expandIcon={<ExpandMore />}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Home sx={{ color: 'secondary.main', fontSize: 20 }} />
-              <Typography variant="subtitle1" fontWeight={600}>
-                {t('tarification.propertyType.title')}
-              </Typography>
+              <Box>
+                <Typography variant="subtitle1" fontWeight={600}>{t('tarification.propertyType.title')}</Typography>
+                <Typography variant="body2" color="text.secondary">{t('tarification.propertyType.subtitle')}</Typography>
+              </Box>
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t('tarification.propertyType.subtitle')}
-            </Typography>
-
+          </AccordionSummary>
+          <AccordionDetails>
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -349,41 +267,30 @@ export default function Tarification() {
                 <TableBody>
                   {Object.entries(config.propertyTypeCoeffs).map(([key, value]) => (
                     <TableRow key={key}>
-                      <TableCell>
-                        {t(`tarification.propertyType.${key}`) || key}
-                      </TableCell>
+                      <TableCell>{t(`tarification.propertyType.${key}`) || key}</TableCell>
                       <TableCell align="right" sx={{ width: 120 }}>
-                        <TextField
-                          type="number"
-                          size="small"
-                          value={value}
-                          onChange={(e) => updateCoeff('propertyTypeCoeffs', key, e.target.value)}
-                          disabled={!canEdit}
-                          inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }}
-                          sx={{ width: 100 }}
-                        />
+                        <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('propertyTypeCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
-          </Paper>
-        </Grid>
+          </AccordionDetails>
+        </Accordion>
 
         {/* ─── Section 4: Coefficients nombre de logements ─────────── */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+        <Accordion expanded={expandedSection === 'propertyCount'} onChange={handleAccordionChange('propertyCount')} sx={{ '&:before': { display: 'none' } }}>
+          <AccordionSummary expandIcon={<ExpandMore />}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Home sx={{ color: 'success.main', fontSize: 20 }} />
-              <Typography variant="subtitle1" fontWeight={600}>
-                {t('tarification.propertyCount.title')}
-              </Typography>
+              <Box>
+                <Typography variant="subtitle1" fontWeight={600}>{t('tarification.propertyCount.title')}</Typography>
+                <Typography variant="body2" color="text.secondary">{t('tarification.propertyCount.subtitle')}</Typography>
+              </Box>
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t('tarification.propertyCount.subtitle')}
-            </Typography>
-
+          </AccordionSummary>
+          <AccordionDetails>
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -395,41 +302,30 @@ export default function Tarification() {
                 <TableBody>
                   {Object.entries(config.propertyCountCoeffs).map(([key, value]) => (
                     <TableRow key={key}>
-                      <TableCell>
-                        {t(`tarification.propertyCount.${key}`) || key}
-                      </TableCell>
+                      <TableCell>{t(`tarification.propertyCount.${key}`) || key}</TableCell>
                       <TableCell align="right" sx={{ width: 120 }}>
-                        <TextField
-                          type="number"
-                          size="small"
-                          value={value}
-                          onChange={(e) => updateCoeff('propertyCountCoeffs', key, e.target.value)}
-                          disabled={!canEdit}
-                          inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }}
-                          sx={{ width: 100 }}
-                        />
+                        <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('propertyCountCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
-          </Paper>
-        </Grid>
+          </AccordionDetails>
+        </Accordion>
 
         {/* ─── Section 5: Coefficients capacité voyageurs ──────────── */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+        <Accordion expanded={expandedSection === 'guestCapacity'} onChange={handleAccordionChange('guestCapacity')} sx={{ '&:before': { display: 'none' } }}>
+          <AccordionSummary expandIcon={<ExpandMore />}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <People sx={{ color: 'primary.main', fontSize: 20 }} />
-              <Typography variant="subtitle1" fontWeight={600}>
-                {t('tarification.guestCapacity.title')}
-              </Typography>
+              <Box>
+                <Typography variant="subtitle1" fontWeight={600}>{t('tarification.guestCapacity.title')}</Typography>
+                <Typography variant="body2" color="text.secondary">{t('tarification.guestCapacity.subtitle')}</Typography>
+              </Box>
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t('tarification.guestCapacity.subtitle')}
-            </Typography>
-
+          </AccordionSummary>
+          <AccordionDetails>
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -441,41 +337,30 @@ export default function Tarification() {
                 <TableBody>
                   {Object.entries(config.guestCapacityCoeffs).map(([key, value]) => (
                     <TableRow key={key}>
-                      <TableCell>
-                        {t(`tarification.guestCapacity.${key}`) || key}
-                      </TableCell>
+                      <TableCell>{t(`tarification.guestCapacity.${key}`) || key}</TableCell>
                       <TableCell align="right" sx={{ width: 120 }}>
-                        <TextField
-                          type="number"
-                          size="small"
-                          value={value}
-                          onChange={(e) => updateCoeff('guestCapacityCoeffs', key, e.target.value)}
-                          disabled={!canEdit}
-                          inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }}
-                          sx={{ width: 100 }}
-                        />
+                        <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('guestCapacityCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
-          </Paper>
-        </Grid>
+          </AccordionDetails>
+        </Accordion>
 
         {/* ─── Section 6: Coefficients fréquence ───────────────────── */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+        <Accordion expanded={expandedSection === 'frequency'} onChange={handleAccordionChange('frequency')} sx={{ '&:before': { display: 'none' } }}>
+          <AccordionSummary expandIcon={<ExpandMore />}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Speed sx={{ color: 'warning.main', fontSize: 20 }} />
-              <Typography variant="subtitle1" fontWeight={600}>
-                {t('tarification.frequency.title')}
-              </Typography>
+              <Box>
+                <Typography variant="subtitle1" fontWeight={600}>{t('tarification.frequency.title')}</Typography>
+                <Typography variant="body2" color="text.secondary">{t('tarification.frequency.subtitle')}</Typography>
+              </Box>
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t('tarification.frequency.subtitle')}
-            </Typography>
-
+          </AccordionSummary>
+          <AccordionDetails>
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -487,41 +372,30 @@ export default function Tarification() {
                 <TableBody>
                   {Object.entries(config.frequencyCoeffs).map(([key, value]) => (
                     <TableRow key={key}>
-                      <TableCell>
-                        {t(`tarification.frequency.${key}`) || key}
-                      </TableCell>
+                      <TableCell>{t(`tarification.frequency.${key}`) || key}</TableCell>
                       <TableCell align="right" sx={{ width: 120 }}>
-                        <TextField
-                          type="number"
-                          size="small"
-                          value={value}
-                          onChange={(e) => updateCoeff('frequencyCoeffs', key, e.target.value)}
-                          disabled={!canEdit}
-                          inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }}
-                          sx={{ width: 100 }}
-                        />
+                        <TextField type="number" size="small" value={value} onChange={(e) => updateCoeff('frequencyCoeffs', key, e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
-          </Paper>
-        </Grid>
+          </AccordionDetails>
+        </Accordion>
 
         {/* ─── Section 7: Paliers surface ──────────────────────────── */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+        <Accordion expanded={expandedSection === 'surfaceTiers'} onChange={handleAccordionChange('surfaceTiers')} sx={{ '&:before': { display: 'none' } }}>
+          <AccordionSummary expandIcon={<ExpandMore />}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <SquareFoot sx={{ color: 'error.main', fontSize: 20 }} />
-              <Typography variant="subtitle1" fontWeight={600}>
-                {t('tarification.surface.title')}
-              </Typography>
+              <Box>
+                <Typography variant="subtitle1" fontWeight={600}>{t('tarification.surface.title')}</Typography>
+                <Typography variant="body2" color="text.secondary">{t('tarification.surface.subtitle')}</Typography>
+              </Box>
             </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {t('tarification.surface.subtitle')}
-            </Typography>
-
+          </AccordionSummary>
+          <AccordionDetails>
             <TableContainer>
               <Table size="small">
                 <TableHead>
@@ -535,35 +409,20 @@ export default function Tarification() {
                   {config.surfaceTiers.map((tier, index) => (
                     <TableRow key={index}>
                       <TableCell>
-                        <Chip
-                          label={tier.label}
-                          size="small"
-                          variant="outlined"
-                          color={index === config.surfaceTiers.length - 1 ? 'error' : 'default'}
-                        />
+                        <Chip label={tier.label} size="small" variant="outlined" color={index === config.surfaceTiers.length - 1 ? 'error' : 'default'} />
                       </TableCell>
-                      <TableCell align="center">
-                        {tier.maxSurface !== null ? `${tier.maxSurface} m²` : '—'}
-                      </TableCell>
+                      <TableCell align="center">{tier.maxSurface !== null ? `${tier.maxSurface} m²` : '—'}</TableCell>
                       <TableCell align="right" sx={{ width: 120 }}>
-                        <TextField
-                          type="number"
-                          size="small"
-                          value={tier.coeff}
-                          onChange={(e) => updateSurfaceTier(index, 'coeff', e.target.value)}
-                          disabled={!canEdit}
-                          inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }}
-                          sx={{ width: 100 }}
-                        />
+                        <TextField type="number" size="small" value={tier.coeff} onChange={(e) => updateSurfaceTier(index, 'coeff', e.target.value)} disabled={!canEdit} inputProps={{ step: 0.05, min: 0.1, max: 5.0, style: { textAlign: 'right' } }} sx={{ width: 100 }} />
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
-          </Paper>
-        </Grid>
-      </Grid>
+          </AccordionDetails>
+        </Accordion>
+      </Box>
 
       {/* ─── Action buttons ──────────────────────────────────────── */}
       {canEdit && (

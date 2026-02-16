@@ -20,6 +20,8 @@ export interface Property {
   cleaningFrequency: string;
   ownerId: number;
   ownerName?: string;
+  defaultCheckInTime?: string;
+  defaultCheckOutTime?: string;
   createdAt?: string;
   updatedAt?: string;
 }

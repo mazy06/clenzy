@@ -28,8 +28,15 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { getServiceTypeBannerUrl } from '../utils/serviceTypeBanner';
-
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+import { useTranslation } from '../hooks/useTranslation';
+import { formatDate, formatDuration } from '../utils/formatUtils';
+import {
+  getServiceRequestStatusColor,
+  getServiceRequestStatusLabel,
+  getServiceRequestPriorityColor,
+  getServiceRequestPriorityLabel,
+  getInterventionTypeLabel,
+} from '../utils/statusUtils';
 
 interface ServiceRequest {
   id: string;
@@ -136,59 +143,170 @@ const getTypeSmallIcon = (type: string) => {
   return <Category {...iconProps} />;
 };
 
-const getTypeLabel = (type: string): string => {
-  switch (type) {
-    case 'CLEANING': return 'Nettoyage';
-    case 'EXPRESS_CLEANING': return 'Express';
-    case 'DEEP_CLEANING': return 'Nettoyage Profond';
-    case 'WINDOW_CLEANING': return 'Vitres';
-    case 'FLOOR_CLEANING': return 'Sols';
-    case 'KITCHEN_CLEANING': return 'Cuisine';
-    case 'BATHROOM_CLEANING': return 'Sanitaires';
-    case 'PREVENTIVE_MAINTENANCE': return 'Maintenance';
-    case 'EMERGENCY_REPAIR': return 'Urgence';
-    case 'ELECTRICAL_REPAIR': return 'Électricité';
-    case 'PLUMBING_REPAIR': return 'Plomberie';
-    case 'HVAC_REPAIR': return 'Climatisation';
-    case 'APPLIANCE_REPAIR': return 'Électroménager';
-    case 'GARDENING': return 'Jardinage';
-    case 'EXTERIOR_CLEANING': return 'Extérieur';
-    case 'PEST_CONTROL': return 'Désinsectisation';
-    case 'DISINFECTION': return 'Désinfection';
-    case 'RESTORATION': return 'Remise en état';
-    case 'OTHER': return 'Autre';
-    default: return type;
-  }
-};
+const styles = {
+  cardRoot: {
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    cursor: 'pointer',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    '&:hover': {
+      transform: 'translateY(-4px)',
+      boxShadow: '0 12px 28px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08)',
+    },
+  },
+  bannerBox: {
+    position: 'relative',
+    height: 110,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  menuButton: {
+    position: 'absolute',
+    top: 8,
+    right: 10,
+    color: 'rgba(255,255,255,0.7)',
+    bgcolor: 'rgba(0,0,0,0.15)',
+    '&:hover': { bgcolor: 'rgba(0,0,0,0.3)', color: '#fff' },
+    width: 28,
+    height: 28,
+  },
+  badgeBar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    px: 1.5,
+    py: 0.75,
+    bgcolor: 'grey.50',
+    borderBottom: '1px solid',
+    borderColor: 'grey.100',
+    gap: 0.75,
+    minHeight: 34,
+  },
+  badgeBarLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.5,
+    flexShrink: 0,
+  },
+  statusChip: {
+    height: 22,
+    fontSize: '0.62rem',
+    fontWeight: 600,
+    '& .MuiChip-label': { px: 0.75 },
+  },
+  priorityChip: {
+    height: 22,
+    fontSize: '0.62rem',
+    fontWeight: 600,
+    '& .MuiChip-label': { px: 0.75 },
+  },
+  dateBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.4,
+    flexShrink: 0,
+  },
+  dateText: {
+    color: 'text.secondary',
+    fontWeight: 600,
+    fontSize: '0.68rem',
+    lineHeight: 1,
+  },
+  infoContent: {
+    flexGrow: 1,
+    p: 1.75,
+    pb: '8px !important',
+  },
+  titleText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    fontSize: '0.95rem',
+    mb: 0.25,
+    color: 'text.primary',
+  },
+  descriptionText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    display: 'block',
+    fontSize: '0.7rem',
+    mb: 1,
+  },
+  propertyRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.5,
+    mb: 1,
+  },
+  propertyText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    flex: 1,
+    fontSize: '0.7rem',
+  },
+  metricsRow: {
+    display: 'flex',
+    gap: 0.75,
+    mb: 1.25,
+    flexWrap: 'wrap',
+  },
+  metricBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.4,
+    bgcolor: 'grey.100',
+    borderRadius: 1,
+    px: 0.75,
+    py: 0.35,
+  },
+  assignRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.5,
+    mb: 0.5,
+  },
+  requestorRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.5,
+  },
+  actionBar: {
+    px: 1.75,
+    pb: 1.25,
+    pt: 0,
+    display: 'flex',
+    gap: 0.75,
+  },
+  detailsButton: {
+    fontSize: '0.72rem',
+    py: 0.5,
+    borderColor: 'grey.300',
+    color: 'text.secondary',
+    '&:hover': {
+      borderColor: 'primary.main',
+      color: 'primary.main',
+      bgcolor: 'rgba(107, 138, 154, 0.04)',
+    },
+  },
+  locationIcon: {
+    fontSize: 14,
+    color: 'text.secondary',
+    flexShrink: 0,
+  },
+  teamBadge: {
+    ml: 0.5,
+    color: 'info.main',
+    fontSize: '0.6rem',
+  },
+} as const;
 
-// Formater la date
-const formatDate = (dateString: string): string => {
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  } catch {
-    return 'Date invalide';
-  }
-};
-
-// Formater la durée estimée
-const formatDuration = (hours: number): string => {
-  if (hours < 1) {
-    const minutes = Math.round(hours * 60);
-    return `${minutes} min`;
-  }
-  if (hours === 1) return '1h';
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
-  if (m === 0) return `${h}h`;
-  return `${h}h${m}min`;
-};
-
-const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
+const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
   request,
   onMenuOpen,
   typeIcons,
@@ -198,11 +316,12 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
   priorityColors,
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const statusLabel = statuses.find(s => s.value === request.status)?.label || request.status;
   const priorityLabel = priorities.find(p => p.value === request.priority)?.label || request.priority;
-  const statusChipColor = (statusColors[request.status] as ChipColor) || 'default';
-  const priorityChipColor = (priorityColors[request.priority] as ChipColor) || 'default';
+  const statusChipColor = getServiceRequestStatusColor(request.status);
+  const priorityChipColor = getServiceRequestPriorityColor(request.priority);
 
   const handleViewDetails = () => {
     navigate(`/service-requests/${request.id}`);
@@ -210,171 +329,71 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
 
   return (
     <Card
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        cursor: 'pointer',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: '0 12px 28px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08)',
-        },
-      }}
+      sx={styles.cardRoot}
       onClick={handleViewDetails}
     >
       {/* ─── Zone visuelle : Bandeau image + gradient ─── */}
       <Box
         sx={{
-          position: 'relative',
+          ...styles.bannerBox,
           background: getTypeGradient(request.type),
           backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.35)), url(${getServiceTypeBannerUrl(request.type)})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          height: 110,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
         }}
       >
-        {/* Icône type en arrière-plan décoratif */}
-        <Box
-          sx={{
-            position: 'absolute',
-            right: -10,
-            bottom: -10,
-            opacity: 0.8,
-          }}
-        >
-          {getTypeIcon(request.type, 80)}
-        </Box>
-
-        {/* Type en haut à gauche */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 10,
-            left: 12,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.75,
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {getTypeSmallIcon(request.type)}
-          </Box>
-          <Typography
-            variant="caption"
-            sx={{
-              color: 'rgba(255,255,255,0.9)',
-              fontWeight: 600,
-              fontSize: '0.7rem',
-              letterSpacing: '0.5px',
-              textTransform: 'uppercase',
-            }}
-          >
-            {getTypeLabel(request.type)}
-          </Typography>
-        </Box>
-
-        {/* Badge statut — coin supérieur droit */}
-        <Chip
-          label={statusLabel}
-          color={statusChipColor}
-          size="small"
-          sx={{
-            position: 'absolute',
-            top: 10,
-            right: 10,
-            height: 22,
-            fontSize: '0.65rem',
-            fontWeight: 600,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-          }}
-        />
-
-        {/* Date d'échéance — coin inférieur gauche */}
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: 10,
-            left: 12,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-            bgcolor: 'rgba(0,0,0,0.35)',
-            backdropFilter: 'blur(4px)',
-            borderRadius: 1.5,
-            px: 1.25,
-            py: 0.5,
-          }}
-        >
-          <CalendarToday sx={{ fontSize: 14, color: 'rgba(255,255,255,0.8)' }} />
-          <Typography
-            variant="caption"
-            sx={{
-              color: '#fff',
-              fontWeight: 600,
-              fontSize: '0.75rem',
-              lineHeight: 1,
-            }}
-          >
-            {formatDate(request.dueDate)}
-          </Typography>
-        </Box>
-
-        {/* Badge priorité — coin inférieur droit */}
-        <Chip
-          label={priorityLabel}
-          color={priorityChipColor}
-          size="small"
-          variant="filled"
-          sx={{
-            position: 'absolute',
-            bottom: 10,
-            right: 10,
-            height: 20,
-            fontSize: '0.6rem',
-            fontWeight: 600,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-          }}
-        />
-
         {/* Menu contextuel */}
         <IconButton
           size="small"
           onClick={(e) => { e.stopPropagation(); onMenuOpen(e, request); }}
-          sx={{
-            position: 'absolute',
-            top: 8,
-            right: 70,
-            color: 'rgba(255,255,255,0.7)',
-            bgcolor: 'rgba(0,0,0,0.15)',
-            '&:hover': { bgcolor: 'rgba(0,0,0,0.3)', color: '#fff' },
-            width: 28,
-            height: 28,
-          }}
+          sx={styles.menuButton}
         >
           <MoreVert sx={{ fontSize: 16 }} />
         </IconButton>
       </Box>
 
+      {/* ─── Barre de badges (entre bandeau et contenu) ─── */}
+      <Box
+        sx={styles.badgeBar}
+      >
+        {/* Gauche : statut + priorité */}
+        <Box sx={styles.badgeBarLeft}>
+          <Chip
+            label={statusLabel}
+            color={statusChipColor}
+            size="small"
+            sx={styles.statusChip}
+          />
+          <Chip
+            label={priorityLabel}
+            color={priorityChipColor}
+            size="small"
+            variant="outlined"
+            sx={styles.priorityChip}
+          />
+        </Box>
+
+        {/* Droite : date d'échéance */}
+        <Box
+          sx={styles.dateBox}
+        >
+          <Schedule sx={{ fontSize: 13, color: 'text.secondary' }} />
+          <Typography
+            variant="caption"
+            sx={styles.dateText}
+          >
+            {formatDate(request.dueDate)}
+          </Typography>
+        </Box>
+      </Box>
+
       {/* ─── Zone info ─── */}
-      <CardContent sx={{ flexGrow: 1, p: 1.75, pb: '8px !important' }}>
+      <CardContent sx={styles.infoContent}>
         {/* Titre */}
         <Typography
           variant="subtitle1"
           fontWeight={700}
-          sx={{
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            fontSize: '0.95rem',
-            mb: 0.25,
-            color: 'text.primary',
-          }}
+          sx={styles.titleText}
           title={request.title}
         >
           {request.title}
@@ -384,32 +403,19 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
         <Typography
           variant="caption"
           color="text.secondary"
-          sx={{
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            display: 'block',
-            fontSize: '0.7rem',
-            mb: 1,
-          }}
+          sx={styles.descriptionText}
           title={request.description}
         >
           {request.description}
         </Typography>
 
         {/* Propriété */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-          <LocationOn sx={{ fontSize: 14, color: 'text.secondary', flexShrink: 0 }} />
+        <Box sx={styles.propertyRow}>
+          <LocationOn sx={styles.locationIcon} />
           <Typography
             variant="caption"
             color="text.secondary"
-            sx={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              flex: 1,
-              fontSize: '0.7rem',
-            }}
+            sx={styles.propertyText}
             title={request.propertyName}
           >
             {request.propertyName}
@@ -418,23 +424,10 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
 
         {/* Métriques — ligne horizontale compacte */}
         <Box
-          sx={{
-            display: 'flex',
-            gap: 0.75,
-            mb: 1.25,
-            flexWrap: 'wrap',
-          }}
+          sx={styles.metricsRow}
         >
           <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.4,
-              bgcolor: 'grey.100',
-              borderRadius: 1,
-              px: 0.75,
-              py: 0.35,
-            }}
+            sx={styles.metricBox}
           >
             <AccessTime sx={{ fontSize: 14, color: 'text.secondary' }} />
             <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.72rem', color: 'text.primary' }}>
@@ -442,15 +435,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
             </Typography>
           </Box>
           <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.4,
-              bgcolor: 'grey.100',
-              borderRadius: 1,
-              px: 0.75,
-              py: 0.35,
-            }}
+            sx={styles.metricBox}
           >
             <Schedule sx={{ fontSize: 14, color: 'text.secondary' }} />
             <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.72rem', color: 'text.primary' }}>
@@ -461,7 +446,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
 
         {/* Assignation */}
         {request.assignedToName && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+          <Box sx={styles.assignRow}>
             {request.assignedToType === 'team' ? (
               <GroupIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
             ) : (
@@ -470,7 +455,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
             <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
               {request.assignedToName}
               {request.assignedToType === 'team' && (
-                <Box component="span" sx={{ ml: 0.5, color: 'info.main', fontSize: '0.6rem' }}>
+                <Box component="span" sx={styles.teamBadge}>
                   (Équipe)
                 </Box>
               )}
@@ -479,7 +464,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
         )}
 
         {/* Demandeur */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box sx={styles.requestorRow}>
           <PersonIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
           <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
             {request.requestorName}
@@ -488,30 +473,22 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = ({
       </CardContent>
 
       {/* ─── Zone actions ─── */}
-      <Box sx={{ px: 1.75, pb: 1.25, pt: 0, display: 'flex', gap: 0.75 }}>
+      <Box sx={styles.actionBar}>
         <Button
           fullWidth
           size="small"
           startIcon={<Visibility sx={{ fontSize: 15 }} />}
           onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
           variant="outlined"
-          sx={{
-            fontSize: '0.72rem',
-            py: 0.5,
-            borderColor: 'grey.300',
-            color: 'text.secondary',
-            '&:hover': {
-              borderColor: 'primary.main',
-              color: 'primary.main',
-              bgcolor: 'rgba(107, 138, 154, 0.04)',
-            },
-          }}
+          sx={styles.detailsButton}
         >
           Détails
         </Button>
       </Box>
     </Card>
   );
-};
+});
+
+ServiceRequestCard.displayName = 'ServiceRequestCard';
 
 export default ServiceRequestCard;

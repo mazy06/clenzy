@@ -136,6 +136,8 @@
     "interventionsRequireAttention": "interventions nécessitent une attention",
     "interventionsPendingValidation": "Interventions en attente de validation",
     "interventionsAwaitingValidation": "interventions en attente de validation",
+    "pendingPayments": "Paiements en attente",
+    "noPendingPayments": "Aucun paiement en attente",
     "interventionsPendingPayment": "Interventions en attente de paiement",
     "interventionsAwaitingPayment": "interventions en attente de paiement",
     "viewAll": "Voir tout",
@@ -195,7 +197,16 @@
       "maintenance": "Maintenance",
       "scheduled": "Planifiée",
       "inProgress": "En cours",
-      "completed": "Terminée"
+      "completed": "Terminée",
+      "zoomDays": "Jours",
+      "zoomHour": "1 heure",
+      "zoomHalfHour": "30 minutes",
+      "loadingMore": "Chargement des mois suivants...",
+      "pagination": "logements",
+      "allStatuses": "Tous",
+      "allTypes": "Toutes",
+      "lockedTitle": "Planning non disponible avec le forfait Essentiel",
+      "lockedDescription": "Votre forfait actuel ne permet pas l'accès au planning interactif ni à l'import automatique de vos calendriers Airbnb, Booking et autres plateformes. Passez au forfait Confort ou Premium pour débloquer cette fonctionnalité."
     },
     "noOperationsPermissions": "Vous n'avez pas les permissions nécessaires pour voir les opérations."
   },
@@ -283,6 +294,15 @@
       "boat": "Bateau",
       "other": "Autre"
     },
+    "statuses": {
+      "ACTIVE": "Actif",
+      "INACTIVE": "Inactif",
+      "MAINTENANCE": "Maintenance",
+      "UNDER_MAINTENANCE": "Maintenance",
+      "RENTED": "Loué",
+      "SOLD": "Vendu",
+      "ARCHIVED": "Archivé"
+    },
     "cleaningFrequencies": {
       "afterEachStay": "Après chaque séjour",
       "weekly": "Hebdomadaire",
@@ -298,6 +318,8 @@
       "cleaning": "Nettoyage"
     },
     "noInterventions": "Aucune intervention programmée pour cette propriété.",
+    "statusAndMaintenance": "Statut et entretien",
+    "scheduledDate": "Date prévue",
     "informationsGeneral": "Informations générales",
     "configuration": "Configuration",
     "characteristics": "Caractéristiques",
@@ -544,9 +566,42 @@
       "PENDING": "En attente",
       "AWAITING_VALIDATION": "En attente de validation",
       "AWAITING_PAYMENT": "En attente de paiement",
+      "SCHEDULED": "Planifié",
       "IN_PROGRESS": "En cours",
+      "ON_HOLD": "Suspendu",
       "COMPLETED": "Terminé",
       "CANCELLED": "Annulé"
+    },
+    "priorities": {
+      "LOW": "Basse",
+      "NORMAL": "Normale",
+      "HIGH": "Haute",
+      "URGENT": "Urgente",
+      "CRITICAL": "Critique"
+    },
+    "types": {
+      "CLEANING": "Nettoyage",
+      "EXPRESS_CLEANING": "Nettoyage Express",
+      "DEEP_CLEANING": "Nettoyage en Profondeur",
+      "WINDOW_CLEANING": "Nettoyage des Vitres",
+      "FLOOR_CLEANING": "Nettoyage des Sols",
+      "KITCHEN_CLEANING": "Nettoyage de la Cuisine",
+      "BATHROOM_CLEANING": "Nettoyage des Sanitaires",
+      "MAINTENANCE": "Maintenance",
+      "PREVENTIVE_MAINTENANCE": "Maintenance Préventive",
+      "REPAIR": "Réparation",
+      "EMERGENCY_REPAIR": "Réparation d'Urgence",
+      "ELECTRICAL_REPAIR": "Réparation Électrique",
+      "PLUMBING_REPAIR": "Réparation Plomberie",
+      "HVAC_REPAIR": "Réparation Climatisation",
+      "APPLIANCE_REPAIR": "Réparation Électroménager",
+      "GARDENING": "Jardinage",
+      "EXTERIOR_CLEANING": "Nettoyage Extérieur",
+      "PEST_CONTROL": "Désinsectisation",
+      "DISINFECTION": "Désinfection",
+      "RESTORATION": "Remise en État",
+      "INSPECTION": "Inspection",
+      "OTHER": "Autre"
     }
   },
   "teams": {

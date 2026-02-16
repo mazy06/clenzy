@@ -2,6 +2,7 @@ package com.clenzy.repository;
 
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
+import com.clenzy.model.UserStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +19,8 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     Optional<User> findByKeycloakId(String keycloakId);
     boolean existsByKeycloakId(String keycloakId);
     List<User> findByKeycloakIdIsNotNull();
+    List<User> findByStatusAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(UserStatus status);
+    List<User> findByStatusAndRoleInAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(UserStatus status, List<UserRole> roles);
     
     @Query("SELECT u FROM User u WHERE u.role IN :roles")
     @QueryHints({
@@ -40,5 +43,4 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     })
     List<User> findByRoleInWithTeams(@Param("roles") List<UserRole> roles);
 }
-
 

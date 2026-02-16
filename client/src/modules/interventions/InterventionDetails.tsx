@@ -29,6 +29,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
+import { useTranslation } from '../../hooks/useTranslation';
 import { useInterventionDetails } from './useInterventionDetails';
 import {
   getStatusColor,
@@ -42,6 +43,41 @@ import InterventionSidebar from './InterventionSidebar';
 import InterventionProgressSteps from './InterventionProgressSteps';
 import { ProgressDialog, NotesDialog, PhotosDialog } from './InterventionDialogs';
 
+const styles = {
+  flexLayout: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 2,
+    '& > *': {
+      flex: '1 1 auto',
+      minWidth: { xs: '100%', sm: 'calc(50% - 8px)', md: 'calc(33.333% - 11px)' },
+      maxWidth: { xs: '100%', sm: 'calc(50% - 8px)', md: 'calc(33.333% - 11px)' },
+    },
+  },
+  iconBox: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 20,
+    height: 20,
+    flexShrink: 0,
+  },
+  sidebarToggle: {
+    mr: 1,
+    border: '1px solid',
+    borderColor: 'divider',
+  },
+  spinIcon: {
+    color: 'info.main',
+    fontSize: 20,
+    animation: 'spin 2s linear infinite',
+    '@keyframes spin': {
+      '0%': { transform: 'rotate(0deg)' },
+      '100%': { transform: 'rotate(360deg)' },
+    },
+  },
+} as const;
+
 // Fonction JSX pour l'icône de statut
 const getStatusIcon = (status: string) => {
   const iconSx = { fontSize: 20 };
@@ -50,17 +86,7 @@ const getStatusIcon = (status: string) => {
       return <WarningIcon sx={{ color: 'warning.main', ...iconSx }} />;
     case 'IN_PROGRESS':
       return (
-        <AutorenewIcon
-          sx={{
-            color: 'info.main',
-            fontSize: 20,
-            animation: 'spin 2s linear infinite',
-            '@keyframes spin': {
-              '0%': { transform: 'rotate(0deg)' },
-              '100%': { transform: 'rotate(360deg)' }
-            }
-          }}
-        />
+        <AutorenewIcon sx={styles.spinIcon} />
       );
     case 'COMPLETED':
       return <CheckCircleIcon sx={{ color: 'success.main', ...iconSx }} />;
@@ -74,6 +100,7 @@ const getStatusIcon = (status: string) => {
 export default function InterventionDetailsPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { t } = useTranslation();
 
   const {
     // Auth
@@ -178,7 +205,7 @@ export default function InterventionDetailsPage() {
             <IconButton
               onClick={() => setShowSidebar(!showSidebar)}
               size="small"
-              sx={{ mr: 1, border: '1px solid', borderColor: 'divider' }}
+              sx={styles.sidebarToggle}
               title={showSidebar ? "Masquer les détails" : "Afficher les détails"}
             >
               {showSidebar ? <ChevronRightIcon /> : <ChevronLeftIcon />}
@@ -231,48 +258,37 @@ export default function InterventionDetailsPage() {
                 <Divider sx={{ my: 1.5 }} />
 
                 {/* Layout responsive avec flexbox */}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 2,
-                    '& > *': {
-                      flex: '1 1 auto',
-                      minWidth: { xs: '100%', sm: 'calc(50% - 8px)', md: 'calc(33.333% - 11px)' },
-                      maxWidth: { xs: '100%', sm: 'calc(50% - 8px)', md: 'calc(33.333% - 11px)' }
-                    }
-                  }}
-                >
+                <Box sx={styles.flexLayout}>
                   {/* Type */}
                   <Box display="flex" alignItems="center" gap={1}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
+                    <Box sx={styles.iconBox}>
                       <BuildIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
                     </Box>
                     <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Type:</Typography>
-                    <Chip label={getTypeLabel(intervention.type)} color="primary" variant="outlined" size="small" sx={{ height: 22, fontSize: '0.7rem' }} />
+                    <Chip label={getTypeLabel(intervention.type, t)} color="primary" variant="outlined" size="small" sx={{ height: 22, fontSize: '0.7rem' }} />
                   </Box>
 
                   {/* Statut */}
                   <Box display="flex" alignItems="center" gap={1}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
+                    <Box sx={styles.iconBox}>
                       {getStatusIcon(intervention.status)}
                     </Box>
                     <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Statut:</Typography>
-                    <Chip label={getStatusLabel(intervention.status)} color={getStatusColor(intervention.status)} size="small" sx={{ height: 22, fontSize: '0.7rem' }} />
+                    <Chip label={getStatusLabel(intervention.status, t)} color={getStatusColor(intervention.status)} size="small" sx={{ height: 22, fontSize: '0.7rem' }} />
                   </Box>
 
                   {/* Priorité */}
                   <Box display="flex" alignItems="center" gap={1}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
+                    <Box sx={styles.iconBox}>
                       <PriorityHighIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
                     </Box>
                     <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Priorité:</Typography>
-                    <Chip label={getPriorityLabel(intervention.priority)} color={getPriorityColor(intervention.priority)} size="small" sx={{ height: 22, fontSize: '0.7rem' }} />
+                    <Chip label={getPriorityLabel(intervention.priority, t)} color={getPriorityColor(intervention.priority)} size="small" sx={{ height: 22, fontSize: '0.7rem' }} />
                   </Box>
 
                   {/* Planifié */}
                   <Box display="flex" alignItems="center" gap={1}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
+                    <Box sx={styles.iconBox}>
                       <ScheduleIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
                     </Box>
                     <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Planifié:</Typography>
@@ -284,7 +300,7 @@ export default function InterventionDetailsPage() {
                   {/* Date et heure de début */}
                   {intervention.startTime && (
                     <Box display="flex" alignItems="center" gap={1}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
+                      <Box sx={styles.iconBox}>
                         <PlayCircleOutlineIcon sx={{ color: 'success.main', fontSize: 20 }} />
                       </Box>
                       <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Début:</Typography>
@@ -297,7 +313,7 @@ export default function InterventionDetailsPage() {
                   {/* Date de fin */}
                   {intervention.endTime && (
                     <Box display="flex" alignItems="center" gap={1}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, flexShrink: 0 }}>
+                      <Box sx={styles.iconBox}>
                         <StopCircleIcon sx={{ color: 'error.main', fontSize: 20 }} />
                       </Box>
                       <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Fin:</Typography>

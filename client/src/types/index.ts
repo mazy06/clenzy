@@ -120,6 +120,22 @@ export interface PaginatedResponse<T> {
   number: number;
 }
 
+/**
+ * Extraire le tableau depuis une réponse API qui peut être :
+ * - un tableau directement : T[]
+ * - une réponse paginée Spring Data : { content: T[] }
+ *
+ * Remplace le pattern `(data as any).content || data` à travers le codebase.
+ */
+export function extractApiList<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === 'object' && 'content' in data) {
+    const paginated = data as { content: unknown };
+    if (Array.isArray(paginated.content)) return paginated.content as T[];
+  }
+  return [];
+}
+
 /** Options de filtre générique pour les listes */
 export interface FilterOption {
   value: string;

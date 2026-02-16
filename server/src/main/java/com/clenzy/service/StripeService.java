@@ -7,7 +7,9 @@ import com.clenzy.model.PaymentStatus;
 import com.clenzy.repository.InterventionRepository;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
+import com.stripe.model.Refund;
 import com.stripe.model.checkout.Session;
+import com.stripe.param.RefundCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -217,6 +219,64 @@ public class StripeService {
             } catch (NumberFormatException e) {
                 // Ignorer les IDs invalides
             }
+        }
+    }
+
+    /**
+     * Rembourse un paiement via Stripe et met a jour le statut de l'intervention.
+     */
+    public void refundPayment(Long interventionId) throws StripeException {
+        Stripe.apiKey = stripeSecretKey;
+
+        Intervention intervention = interventionRepository.findById(interventionId)
+            .orElseThrow(() -> new RuntimeException("Intervention non trouvee: " + interventionId));
+
+        if (intervention.getPaymentStatus() != PaymentStatus.PAID) {
+            throw new RuntimeException("Seuls les paiements confirmes peuvent etre rembourses. Statut actuel: " + intervention.getPaymentStatus());
+        }
+
+        // Recuperer le PaymentIntent depuis la session Stripe
+        String sessionId = intervention.getStripeSessionId();
+        if (sessionId == null || sessionId.isBlank()) {
+            throw new RuntimeException("Aucune session Stripe associee a cette intervention");
+        }
+
+        Session session = Session.retrieve(sessionId);
+        String paymentIntentId = session.getPaymentIntent();
+        if (paymentIntentId == null || paymentIntentId.isBlank()) {
+            throw new RuntimeException("Aucun PaymentIntent trouve pour la session: " + sessionId);
+        }
+
+        // Creer le remboursement Stripe (remboursement total)
+        RefundCreateParams refundParams = RefundCreateParams.builder()
+            .setPaymentIntent(paymentIntentId)
+            .build();
+        Refund.create(refundParams);
+
+        // Mettre a jour le statut
+        intervention.setPaymentStatus(PaymentStatus.REFUNDED);
+        interventionRepository.save(intervention);
+
+        // Notifications
+        try {
+            if (intervention.getProperty() != null && intervention.getProperty().getOwner() != null
+                    && intervention.getProperty().getOwner().getKeycloakId() != null) {
+                notificationService.notify(
+                    intervention.getProperty().getOwner().getKeycloakId(),
+                    NotificationKey.PAYMENT_REFUND_COMPLETED,
+                    "Remboursement effectue",
+                    "Le paiement pour l'intervention \"" + intervention.getTitle() + "\" a ete rembourse",
+                    "/interventions/" + intervention.getId()
+                );
+            }
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.PAYMENT_REFUND_COMPLETED,
+                "Remboursement effectue",
+                "Le paiement pour l'intervention \"" + intervention.getTitle() + "\" a ete rembourse",
+                "/interventions/" + intervention.getId()
+            );
+        } catch (Exception e) {
+            System.err.println("Erreur notification PAYMENT_REFUND_COMPLETED: " + e.getMessage());
         }
     }
 }

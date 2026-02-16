@@ -1,84 +1,230 @@
 package com.clenzy.controller;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.clenzy.dto.ContactBulkDeleteRequest;
+import com.clenzy.dto.ContactBulkStatusRequest;
+import com.clenzy.dto.ContactMessageDto;
+import com.clenzy.dto.ContactSendRequest;
+import com.clenzy.service.ContactMessageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api/contact")
 @Tag(name = "Contact", description = "Gestion des messages de contact")
 public class ContactController {
 
+    private static final Logger log = LoggerFactory.getLogger(ContactController.class);
+
+    private final ContactMessageService contactMessageService;
+
+    public ContactController(ContactMessageService contactMessageService) {
+        this.contactMessageService = contactMessageService;
+    }
+
+    // ─── Lecture (contact:view) ─────────────────────────────────────────────
+
+    @GetMapping("/messages/inbox")
+    @Operation(summary = "Recuperer les messages recus")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    public ResponseEntity<Page<ContactMessageDto>> getInboxMessages(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(contactMessageService.listMessages("inbox", safePageable(page, size), jwt));
+    }
+
     @GetMapping("/messages/received")
-    @Operation(summary = "Récupérer les messages reçus")
-    public ResponseEntity<Page<Map<String, Object>>> getReceivedMessages(
-            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        // Pour l'instant, retourner une page vide
-        // TODO: Implémenter la vraie logique avec le service et le repository
-        Page<Map<String, Object>> emptyPage = new PageImpl<>(new ArrayList<>(), pageable, 0);
-        return ResponseEntity.ok(emptyPage);
+    @Operation(summary = "Compatibilite: alias vers inbox")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    public ResponseEntity<Page<ContactMessageDto>> getReceivedMessages(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(contactMessageService.listMessages("inbox", safePageable(page, size), jwt));
     }
 
     @GetMapping("/messages/sent")
-    @Operation(summary = "Récupérer les messages envoyés")
-    public ResponseEntity<Page<Map<String, Object>>> getSentMessages(
-            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        // Pour l'instant, retourner une page vide
-        // TODO: Implémenter la vraie logique avec le service et le repository
-        Page<Map<String, Object>> emptyPage = new PageImpl<>(new ArrayList<>(), pageable, 0);
-        return ResponseEntity.ok(emptyPage);
+    @Operation(summary = "Recuperer les messages envoyes")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    public ResponseEntity<Page<ContactMessageDto>> getSentMessages(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(contactMessageService.listMessages("sent", safePageable(page, size), jwt));
+    }
+
+    @GetMapping("/messages/archived")
+    @Operation(summary = "Recuperer les messages archives")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    public ResponseEntity<Page<ContactMessageDto>> getArchivedMessages(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(contactMessageService.listMessages("archived", safePageable(page, size), jwt));
     }
 
     @GetMapping("/recipients")
-    @Operation(summary = "Récupérer la liste des destinataires autorisés")
-    public ResponseEntity<List<Map<String, Object>>> getRecipients() {
-        // Pour l'instant, retourner une liste vide
-        // TODO: Implémenter la vraie logique pour récupérer les utilisateurs autorisés
-        return ResponseEntity.ok(new ArrayList<>());
-    }
-
-    @PostMapping("/messages")
-    @Operation(summary = "Envoyer un message de contact")
-    public ResponseEntity<Map<String, Object>> sendMessage(@RequestBody Map<String, Object> messageData) {
-        // Pour l'instant, retourner un succès
-        // TODO: Implémenter la vraie logique pour sauvegarder le message
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "Message envoyé avec succès");
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    @Operation(summary = "Recuperer la liste des destinataires autorises")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    public ResponseEntity<?> getRecipients(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(contactMessageService.listRecipients(jwt));
     }
 
     @PutMapping("/messages/{id}/status")
-    @Operation(summary = "Mettre à jour le statut d'un message")
-    public ResponseEntity<Map<String, Object>> updateMessageStatus(
-            @PathVariable String id,
-            @RequestParam String status) {
-        // Pour l'instant, retourner un succès
-        // TODO: Implémenter la vraie logique pour mettre à jour le statut
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "Statut mis à jour avec succès");
-        return ResponseEntity.ok(response);
+    @Operation(summary = "Mettre a jour le statut d'un message")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    public ResponseEntity<ContactMessageDto> updateMessageStatus(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long id,
+            @RequestParam String status
+    ) {
+        return ResponseEntity.ok(contactMessageService.updateStatus(jwt, id, status));
     }
+
+    @PutMapping("/messages/{id}/archive")
+    @Operation(summary = "Archiver un message")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    public ResponseEntity<ContactMessageDto> archiveMessage(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        return ResponseEntity.ok(contactMessageService.archiveMessage(jwt, id));
+    }
+
+    @PutMapping("/messages/{id}/unarchive")
+    @Operation(summary = "Desarchiver un message")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    public ResponseEntity<ContactMessageDto> unarchiveMessage(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        return ResponseEntity.ok(contactMessageService.unarchiveMessage(jwt, id));
+    }
+
+    // ─── Envoi (contact:send) ──────────────────────────────────────────────
+
+    @PostMapping(value = "/messages")
+    @Operation(summary = "Envoyer un message de contact (multipart)")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<ContactMessageDto> sendMessage(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String recipientId,
+            @RequestParam String subject,
+            @RequestParam String message,
+            @RequestParam(defaultValue = "MEDIUM") String priority,
+            @RequestParam(defaultValue = "GENERAL") String category,
+            @RequestParam(value = "attachments", required = false) List<MultipartFile> attachments
+    ) {
+        ContactMessageDto created = contactMessageService.sendMessage(
+                jwt, recipientId, subject, message, priority, category, attachments
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PostMapping(value = "/messages/json", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Envoyer un message de contact (json)")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<ContactMessageDto> sendMessageJson(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody ContactSendRequest request
+    ) {
+        ContactMessageDto created = contactMessageService.sendMessage(
+                jwt,
+                request.recipientId(),
+                request.subject(),
+                request.message(),
+                request.priority() != null ? request.priority() : "MEDIUM",
+                request.category() != null ? request.category() : "GENERAL",
+                List.of()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PostMapping(value = "/messages/{id}/reply")
+    @Operation(summary = "Repondre a un message")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<ContactMessageDto> replyToMessage(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long id,
+            @RequestParam String message,
+            @RequestParam(value = "attachments", required = false) List<MultipartFile> attachments
+    ) {
+        ContactMessageDto reply = contactMessageService.replyToMessage(jwt, id, message, attachments);
+        return ResponseEntity.status(HttpStatus.CREATED).body(reply);
+    }
+
+    // ─── Gestion (contact:manage) ──────────────────────────────────────────
 
     @DeleteMapping("/messages/{id}")
     @Operation(summary = "Supprimer un message")
-    public ResponseEntity<Void> deleteMessage(@PathVariable String id) {
-        // Pour l'instant, retourner un succès
-        // TODO: Implémenter la vraie logique pour supprimer le message
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    public ResponseEntity<Void> deleteMessage(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        contactMessageService.deleteMessage(jwt, id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/messages/bulk/status")
+    @Operation(summary = "Mettre a jour le statut de plusieurs messages")
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> bulkUpdateStatus(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody ContactBulkStatusRequest request
+    ) {
+        return ResponseEntity.ok(contactMessageService.bulkUpdateStatus(jwt, request.ids(), request.status()));
+    }
+
+    @PostMapping("/messages/bulk/delete")
+    @Operation(summary = "Supprimer plusieurs messages")
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> bulkDelete(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody ContactBulkDeleteRequest request
+    ) {
+        return ResponseEntity.ok(contactMessageService.bulkDelete(jwt, request.ids()));
+    }
+
+    // ─── Exception handlers ───────────────────────────────────────────────
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+    }
+
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<Map<String, Object>> handleForbidden(SecurityException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<Map<String, Object>> handleNotFound(NoSuchElementException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleGeneric(Exception e) {
+        log.error("Erreur sur le module contact: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Erreur interne"));
+    }
+
+    private Pageable safePageable(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        return PageRequest.of(safePage, safeSize);
     }
 }

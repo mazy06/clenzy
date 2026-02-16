@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Button } from '@mui/material';
 import { Cancel, Save } from '@mui/icons-material';
@@ -11,6 +11,7 @@ const ServiceRequestEdit: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const submitRef = useRef<(() => void) | null>(null);
 
   const handleClose = () => {
     navigate(`/service-requests/${id}`);
@@ -36,13 +37,7 @@ const ServiceRequestEdit: React.FC = () => {
             </Button>
             <Button
               variant="contained"
-              onClick={() => {
-                const form = document.querySelector('form');
-                if (form) {
-                  const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-                  form.dispatchEvent(submitEvent);
-                }
-              }}
+              onClick={() => submitRef.current?.()}
               startIcon={<Save />}
               disabled={loading}
             >
@@ -58,6 +53,7 @@ const ServiceRequestEdit: React.FC = () => {
         onClose={handleClose}
         setLoading={setLoading}
         loading={loading}
+        submitRef={submitRef}
       />
     </Box>
   );
