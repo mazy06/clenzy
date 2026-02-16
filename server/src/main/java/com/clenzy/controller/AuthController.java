@@ -177,6 +177,12 @@ public class AuthController {
                     permissions = permissionService.getUserPermissionsForSync(keycloakId);
                 }
 
+                // Fallback ultime pour ADMIN : si toujours vide, injecter toutes les permissions
+                if ((permissions == null || permissions.isEmpty()) && user.getRole() == UserRole.ADMIN) {
+                    log.warn("/me - FALLBACK ADMIN : injection de toutes les permissions disponibles");
+                    permissions = permissionService.getAllAvailablePermissions();
+                }
+
                 claims.put("permissions", permissions);
 
                 log.info("/me - Utilisateur: {} role: {} permissions: {} ({})",

@@ -126,6 +126,14 @@ public class StripeService {
                 "Le paiement pour l'intervention \"" + intervention.getTitle() + "\" a ete confirme",
                 "/interventions/" + intervention.getId()
             );
+
+            // Notifier les admins/managers qu'une action d'assignation est requise
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.INTERVENTION_AWAITING_VALIDATION,
+                "Action requise : assignation",
+                "L'intervention \"" + intervention.getTitle() + "\" est payee et en attente d'assignation d'equipe.",
+                "/interventions"
+            );
         } catch (Exception e) {
             System.err.println("Erreur notification PAYMENT_CONFIRMED: " + e.getMessage());
         }
