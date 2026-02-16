@@ -524,21 +524,24 @@ public class PermissionService {
         // Toujours charger depuis la base de données pour avoir les dernières permissions
         // (ignorer le cache Redis pour être sûr d'avoir les données à jour)
         List<String> permissions = getPermissionsFromDatabase(userRole.name());
-        
+
+        // Fallback ADMIN : si aucune permission trouvée en base, injecter toutes les permissions disponibles
+        if ((permissions == null || permissions.isEmpty()) && userRole == UserRole.ADMIN) {
+            System.out.println("⚠️ PermissionService.getUserPermissionsForSync() - FALLBACK ADMIN : injection de toutes les permissions");
+            permissions = getAllAvailablePermissions();
+        }
+
         if (permissions != null && !permissions.isEmpty()) {
             System.out.println("✅ PermissionService.getUserPermissionsForSync() - " + permissions.size() + " permissions récupérées pour le rôle " + userRole.name());
-            System.out.println("📋 Permissions: " + String.join(", ", permissions));
-            
+
             // Mettre en cache dans Redis pour l'utilisateur ET pour le rôle
             updateUserPermissionsInRedis(userId, permissions);
             String roleKey = ROLE_PERMISSIONS_KEY + userRole.name();
             redisTemplate.opsForValue().set(roleKey, permissions);
-            System.out.println("✅ PermissionService.getUserPermissionsForSync() - Permissions mises en cache Redis pour l'utilisateur et le rôle");
-            
+
             return permissions;
         } else {
             System.out.println("⚠️ PermissionService.getUserPermissionsForSync() - Aucune permission trouvée pour le rôle " + userRole.name());
-            System.out.println("💡 Les permissions doivent être configurées via le menu 'Roles & Permissions'");
             return new ArrayList<>();
         }
     }

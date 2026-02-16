@@ -15,7 +15,16 @@ import {
   Badge,
   Tooltip,
   Divider,
-  Button
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  ToggleButton,
+  ToggleButtonGroup,
+  FormControl,
+  InputLabel,
+  Select as MuiSelect,
 } from '@mui/material';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
@@ -36,7 +45,9 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { interventionsApi } from '../../services/api';
+import { interventionsApi, teamsApi, usersApi } from '../../services/api';
+import type { Team } from '../../services/api';
+import type { User } from '../../services/api/usersApi';
 import { InterventionStatus, INTERVENTION_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } from '../../types/statusEnums';
 import { createSpacing } from '../../theme/spacing';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -193,6 +204,14 @@ export default function InterventionsList() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedPriority, setSelectedPriority] = useState('all');
 
+  // États pour le dialog d'assignation rapide
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [assignType, setAssignType] = useState<'user' | 'team'>('team');
+  const [assignTargetId, setAssignTargetId] = useState<number | ''>('');
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+  const [assignLoading, setAssignLoading] = useState(false);
+
   // Vérifier les permissions pour les interventions - TOUS les useState AVANT les useEffect
   const [canViewInterventions, setCanViewInterventions] = useState(false);
   const [canCreateInterventions, setCanCreateInterventions] = useState(false);
@@ -309,6 +328,53 @@ export default function InterventionsList() {
     }
 
     handleMenuClose();
+  };
+
+  // ─── Assignation rapide ────────────────────────────────────────────
+  const handleOpenAssignDialog = async () => {
+    setAssignDialogOpen(true);
+    setAssignType('team');
+    setAssignTargetId('');
+    // On ne ferme PAS le menu contextuel ici, on garde selectedIntervention
+    setAnchorEl(null);
+
+    // Charger équipes et utilisateurs en parallèle
+    try {
+      const [fetchedTeams, fetchedUsers] = await Promise.all([
+        teamsApi.getAll(),
+        usersApi.getAll(),
+      ]);
+      setTeams(Array.isArray(fetchedTeams) ? fetchedTeams : []);
+      setAvailableUsers(Array.isArray(fetchedUsers) ? fetchedUsers : []);
+    } catch {
+      setTeams([]);
+      setAvailableUsers([]);
+    }
+  };
+
+  const handleCloseAssignDialog = () => {
+    setAssignDialogOpen(false);
+    setSelectedIntervention(null);
+  };
+
+  const handleAssign = async () => {
+    if (!selectedIntervention || assignTargetId === '') return;
+
+    setAssignLoading(true);
+    try {
+      if (assignType === 'team') {
+        await interventionsApi.assign(selectedIntervention.id, undefined, assignTargetId as number);
+      } else {
+        await interventionsApi.assign(selectedIntervention.id, assignTargetId as number, undefined);
+      }
+      setAssignDialogOpen(false);
+      setSelectedIntervention(null);
+      loadInterventions();
+    } catch (err) {
+      // Silently fail — l'erreur apparaîtra via la notification API
+    } finally {
+      setAssignLoading(false);
+    }
   };
 
   const canModifyIntervention = (intervention: Intervention): boolean => {
@@ -661,6 +727,12 @@ export default function InterventionsList() {
           <VisibilityIcon sx={{ mr: 1, fontSize: 18 }} />
           {t('interventions.viewDetails')}
         </MenuItem>
+        {(isManager() || isAdmin()) && selectedIntervention?.status === 'PENDING' && (
+          <MenuItem onClick={handleOpenAssignDialog} sx={{ fontSize: '0.85rem', py: 0.75 }}>
+            <AssignmentIcon sx={{ mr: 1, fontSize: 18, color: 'info.main' }} />
+            Assigner
+          </MenuItem>
+        )}
         {canModifyIntervention(selectedIntervention!) && (
           <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
             <EditIcon sx={{ mr: 1, fontSize: 18 }} />
@@ -674,6 +746,95 @@ export default function InterventionsList() {
           </MenuItem>
         )}
       </Menu>
+
+      {/* ─── Dialog d'assignation rapide ─── */}
+      <Dialog
+        open={assignDialogOpen}
+        onClose={handleCloseAssignDialog}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ pb: 1, fontSize: '1rem', fontWeight: 600 }}>
+          Assigner l'intervention
+          {selectedIntervention && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontSize: '0.8125rem' }}>
+              {selectedIntervention.title}
+            </Typography>
+          )}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          {/* Sélecteur type : Équipe / Utilisateur */}
+          <ToggleButtonGroup
+            value={assignType}
+            exclusive
+            onChange={(_e, val) => {
+              if (val !== null) {
+                setAssignType(val);
+                setAssignTargetId('');
+              }
+            }}
+            size="small"
+            fullWidth
+            sx={{ mb: 2 }}
+          >
+            <ToggleButton value="team" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
+              <GroupIcon sx={{ mr: 0.5, fontSize: 18 }} />
+              Équipe
+            </ToggleButton>
+            <ToggleButton value="user" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
+              <PersonIcon sx={{ mr: 0.5, fontSize: 18 }} />
+              Utilisateur
+            </ToggleButton>
+          </ToggleButtonGroup>
+
+          {/* Sélecteur cible */}
+          <FormControl fullWidth size="small">
+            <InputLabel>{assignType === 'team' ? 'Équipe' : 'Utilisateur'}</InputLabel>
+            <MuiSelect
+              value={assignTargetId}
+              onChange={(e) => setAssignTargetId(e.target.value as number)}
+              label={assignType === 'team' ? 'Équipe' : 'Utilisateur'}
+            >
+              {assignType === 'team'
+                ? teams.map((team) => (
+                    <MenuItem key={team.id} value={team.id} sx={{ fontSize: '0.875rem' }}>
+                      {team.name}
+                      {team.memberCount !== undefined && (
+                        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                          ({team.memberCount} membres)
+                        </Typography>
+                      )}
+                    </MenuItem>
+                  ))
+                : availableUsers.map((u) => (
+                    <MenuItem key={u.id} value={u.id} sx={{ fontSize: '0.875rem' }}>
+                      {u.firstName} {u.lastName}
+                      {u.role && (
+                        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                          ({u.role})
+                        </Typography>
+                      )}
+                    </MenuItem>
+                  ))}
+            </MuiSelect>
+          </FormControl>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleCloseAssignDialog} size="small" sx={{ textTransform: 'none' }}>
+            Annuler
+          </Button>
+          <Button
+            onClick={handleAssign}
+            variant="contained"
+            size="small"
+            disabled={assignTargetId === '' || assignLoading}
+            sx={{ textTransform: 'none' }}
+          >
+            {assignLoading ? <CircularProgress size={18} /> : 'Assigner'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

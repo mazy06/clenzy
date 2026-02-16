@@ -124,4 +124,11 @@ export const interventionsApi = {
     formData.append('photoType', photoType);
     return apiClient.upload<Intervention>(`/interventions/${id}/photos`, formData);
   },
+
+  assign(id: number, userId?: number, teamId?: number) {
+    const params: Record<string, number> = {};
+    if (userId) params.userId = userId;
+    if (teamId) params.teamId = teamId;
+    return apiClient.put<Intervention>(`/interventions/${id}/assign`, undefined, { params });
+  },
 };
