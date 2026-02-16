@@ -7,7 +7,8 @@ public enum NotificationCategory {
     SERVICE_REQUEST("service_request"),
     PAYMENT("payment"),
     SYSTEM("system"),
-    TEAM("team");
+    TEAM("team"),
+    CONTACT("contact");
 
     private final String value;
 

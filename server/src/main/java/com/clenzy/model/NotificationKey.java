@@ -106,9 +106,18 @@ public enum NotificationKey {
     PROPERTY_CREATED(NotificationType.SUCCESS, NotificationCategory.SYSTEM, true),
     PROPERTY_UPDATED(NotificationType.INFO, NotificationCategory.SYSTEM, false),
     PROPERTY_DELETED(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
-    PROPERTY_STATUS_CHANGED(NotificationType.INFO, NotificationCategory.SYSTEM, true);
+    PROPERTY_STATUS_CHANGED(NotificationType.INFO, NotificationCategory.SYSTEM, true),
 
-    // Total: 18 + 8 + 10 + 6 + 8 + 6 + 5 + 3 + 2 + 4 = 70
+    // ─── CONTACT (6 cles) ─────────────────────────────────────────────────────
+
+    CONTACT_MESSAGE_RECEIVED(NotificationType.INFO, NotificationCategory.CONTACT, true),
+    CONTACT_MESSAGE_SENT(NotificationType.SUCCESS, NotificationCategory.CONTACT, true),
+    CONTACT_MESSAGE_REPLIED(NotificationType.INFO, NotificationCategory.CONTACT, true),
+    CONTACT_MESSAGE_ARCHIVED(NotificationType.INFO, NotificationCategory.CONTACT, false),
+    CONTACT_FORM_RECEIVED(NotificationType.WARNING, NotificationCategory.CONTACT, true),
+    CONTACT_FORM_STATUS_CHANGED(NotificationType.INFO, NotificationCategory.CONTACT, false);
+
+    // Total: 18 + 8 + 10 + 6 + 8 + 6 + 5 + 3 + 2 + 4 + 6 = 76
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

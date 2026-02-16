@@ -37,6 +37,7 @@ public class ContactMessageService {
     private final EmailService emailService;
     private final ObjectMapper objectMapper;
     private final ContactFileStorageService fileStorageService;
+    private final NotificationService notificationService;
 
     @Value("${clenzy.mail.contact.max-attachments:10}")
     private int maxAttachments;
@@ -49,13 +50,15 @@ public class ContactMessageService {
             UserRepository userRepository,
             EmailService emailService,
             ObjectMapper objectMapper,
-            ContactFileStorageService fileStorageService
+            ContactFileStorageService fileStorageService,
+            NotificationService notificationService
     ) {
         this.contactMessageRepository = contactMessageRepository;
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.objectMapper = objectMapper;
         this.fileStorageService = fileStorageService;
+        this.notificationService = notificationService;
     }
 
     // ─── Lecture ─────────────────────────────────────────────────────────────
@@ -165,6 +168,19 @@ public class ContactMessageService {
         // Stocker les fichiers sur disque apres l'envoi email (best-effort)
         storeAndUpdateAttachments(contactMessage, sanitizedAttachments, attachmentMetadata);
 
+        // Notifications
+        String senderName = (actor.firstName() + " " + actor.lastName()).trim();
+        if (!recipient.external() && recipient.keycloakId() != null) {
+            notificationService.notify(recipient.keycloakId(), NotificationKey.CONTACT_MESSAGE_RECEIVED,
+                    "Nouveau message de " + senderName,
+                    normalizedSubject,
+                    "/contact");
+        }
+        notificationService.notify(actor.userId(), NotificationKey.CONTACT_MESSAGE_SENT,
+                "Message envoye",
+                "Votre message \"" + normalizedSubject + "\" a ete envoye avec succes",
+                "/contact?tab=1");
+
         return ContactMessageDto.fromEntity(contactMessage);
     }
 
@@ -220,6 +236,15 @@ public class ContactMessageService {
             original.setRepliedAt(LocalDateTime.now());
         }
         // @Transactional flushe les modifications sur original et reply au commit
+
+        // Notification au destinataire de la reponse
+        String replySenderName = (actor.firstName() + " " + actor.lastName()).trim();
+        if (reply.getRecipientKeycloakId() != null && !"external".equals(reply.getRecipientKeycloakId())) {
+            notificationService.notify(reply.getRecipientKeycloakId(), NotificationKey.CONTACT_MESSAGE_REPLIED,
+                    "Reponse de " + replySenderName,
+                    reply.getSubject(),
+                    "/contact");
+        }
 
         return ContactMessageDto.fromEntity(reply);
     }
@@ -293,7 +318,14 @@ public class ContactMessageService {
                 .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
         message.setArchived(true);
         message.setArchivedAt(LocalDateTime.now());
-        return ContactMessageDto.fromEntity(contactMessageRepository.save(message));
+        ContactMessageDto dto = ContactMessageDto.fromEntity(contactMessageRepository.save(message));
+
+        notificationService.notify(userId, NotificationKey.CONTACT_MESSAGE_ARCHIVED,
+                "Message archive",
+                "\"" + message.getSubject() + "\" a ete archive",
+                "/contact?tab=2");
+
+        return dto;
     }
 
     @Transactional

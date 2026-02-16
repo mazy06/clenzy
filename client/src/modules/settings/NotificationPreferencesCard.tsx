@@ -30,6 +30,7 @@ import {
   Person,
   Shield,
   Home,
+  Email,
   Save,
 } from '@mui/icons-material';
 import { notificationPreferencesApi, type NotificationPreferencesMap } from '../../services/api';
@@ -199,6 +200,20 @@ const CATEGORIES: CategoryGroup[] = [
       { key: 'PROPERTY_UPDATED', title: 'Propriete modifiee', description: 'Quand une propriete est mise a jour' },
       { key: 'PROPERTY_DELETED', title: 'Propriete supprimee', description: 'Quand une propriete est supprimee' },
       { key: 'PROPERTY_STATUS_CHANGED', title: 'Statut modifie', description: 'Quand le statut d\'une propriete change' },
+    ],
+  },
+  {
+    id: 'contact',
+    label: 'Contact & Messagerie',
+    icon: <Email fontSize="small" />,
+    color: '#e91e63',
+    keys: [
+      { key: 'CONTACT_MESSAGE_RECEIVED', title: 'Message recu', description: 'Quand vous recevez un nouveau message' },
+      { key: 'CONTACT_MESSAGE_SENT', title: 'Message envoye', description: 'Confirmation quand un message est envoye' },
+      { key: 'CONTACT_MESSAGE_REPLIED', title: 'Reponse recue', description: 'Quand quelqu\'un repond a votre message' },
+      { key: 'CONTACT_MESSAGE_ARCHIVED', title: 'Message archive', description: 'Quand un message est archive' },
+      { key: 'CONTACT_FORM_RECEIVED', title: 'Formulaire recu', description: 'Quand un formulaire (devis, maintenance, support) est soumis' },
+      { key: 'CONTACT_FORM_STATUS_CHANGED', title: 'Statut formulaire modifie', description: 'Quand le statut d\'un formulaire change' },
     ],
   },
 ];

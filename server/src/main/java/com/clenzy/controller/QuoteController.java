@@ -5,7 +5,9 @@ import com.clenzy.dto.QuoteResponseDto;
 import com.clenzy.model.ReceivedForm;
 import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.EmailService;
+import com.clenzy.service.NotificationService;
 import com.clenzy.service.PricingConfigService;
+import com.clenzy.model.NotificationKey;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -41,17 +43,20 @@ public class QuoteController {
     private final PricingConfigService pricingConfigService;
     private final ReceivedFormRepository receivedFormRepository;
     private final ObjectMapper objectMapper;
+    private final NotificationService notificationService;
 
     // Rate limiter simple en mémoire : IP -> liste de timestamps
     private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
     private static final int MAX_REQUESTS_PER_HOUR = 5;
 
     public QuoteController(EmailService emailService, PricingConfigService pricingConfigService,
-                           ReceivedFormRepository receivedFormRepository, ObjectMapper objectMapper) {
+                           ReceivedFormRepository receivedFormRepository, ObjectMapper objectMapper,
+                           NotificationService notificationService) {
         this.emailService = emailService;
         this.pricingConfigService = pricingConfigService;
         this.receivedFormRepository = receivedFormRepository;
         this.objectMapper = objectMapper;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -134,6 +139,18 @@ public class QuoteController {
             receivedFormRepository.save(form);
         } catch (Exception e) {
             log.error("Erreur sauvegarde formulaire devis : {}", e.getMessage());
+        }
+
+        // 4c. Notification aux admins/managers
+        try {
+            notificationService.notifyAdminsAndManagers(
+                    NotificationKey.CONTACT_FORM_RECEIVED,
+                    "Nouveau devis — " + dto.getFullName(),
+                    "Demande de devis de " + dto.getFullName() + " (" + dto.getCity() + ") — Forfait : " + recommendedPackage,
+                    "/contact?tab=2"
+            );
+        } catch (Exception e) {
+            log.error("Erreur notification formulaire devis : {}", e.getMessage());
         }
 
         log.info("Demande de devis traitée : {} ({}) — Forfait : {} ({}€/intervention)",
