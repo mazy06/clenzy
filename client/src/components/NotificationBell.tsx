@@ -21,6 +21,7 @@ import {
   Payment,
   Info,
   Groups,
+  Email,
   Circle,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -36,6 +37,7 @@ const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
   payment: <Payment sx={{ fontSize: 18, color: '#2e7d32' }} />,
   system: <Info sx={{ fontSize: 18, color: '#9c27b0' }} />,
   team: <Groups sx={{ fontSize: 18, color: '#0288d1' }} />,
+  contact: <Email sx={{ fontSize: 18, color: '#e91e63' }} />,
 };
 
 function timeAgo(dateStr: string): string {

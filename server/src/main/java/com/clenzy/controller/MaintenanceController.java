@@ -4,6 +4,8 @@ import com.clenzy.dto.MaintenanceRequestDto;
 import com.clenzy.model.ReceivedForm;
 import com.clenzy.repository.ReceivedFormRepository;
 import com.clenzy.service.EmailService;
+import com.clenzy.service.NotificationService;
+import com.clenzy.model.NotificationKey;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -35,16 +37,18 @@ public class MaintenanceController {
     private final EmailService emailService;
     private final ReceivedFormRepository receivedFormRepository;
     private final ObjectMapper objectMapper;
+    private final NotificationService notificationService;
 
     // Rate limiter simple en mémoire : IP -> liste de timestamps
     private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
     private static final int MAX_REQUESTS_PER_HOUR = 5;
 
     public MaintenanceController(EmailService emailService, ReceivedFormRepository receivedFormRepository,
-                                 ObjectMapper objectMapper) {
+                                 ObjectMapper objectMapper, NotificationService notificationService) {
         this.emailService = emailService;
         this.receivedFormRepository = receivedFormRepository;
         this.objectMapper = objectMapper;
+        this.notificationService = notificationService;
     }
 
     @PostMapping("/maintenance-request")
@@ -93,6 +97,20 @@ public class MaintenanceController {
             receivedFormRepository.save(form);
         } catch (Exception e) {
             log.error("Erreur sauvegarde formulaire maintenance : {}", e.getMessage());
+        }
+
+        // 3c. Notification aux admins/managers
+        try {
+            int nbWorks = (dto.getSelectedWorks() != null ? dto.getSelectedWorks().size() : 0)
+                    + (dto.getCustomNeed() != null && !dto.getCustomNeed().isBlank() ? 1 : 0);
+            notificationService.notifyAdminsAndManagers(
+                    NotificationKey.CONTACT_FORM_RECEIVED,
+                    "Nouveau devis maintenance — " + dto.getFullName(),
+                    "Demande de " + dto.getFullName() + " — " + nbWorks + " intervention(s) — Urgence : " + dto.getUrgency(),
+                    "/contact?tab=2"
+            );
+        } catch (Exception e) {
+            log.error("Erreur notification formulaire maintenance : {}", e.getMessage());
         }
 
         int totalWorks = (dto.getSelectedWorks() != null ? dto.getSelectedWorks().size() : 0)

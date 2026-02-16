@@ -18,6 +18,7 @@ import {
   Payment,
   Info,
   Groups,
+  Email,
   DoneAll,
   Delete,
   Circle,
@@ -33,7 +34,7 @@ import DataFetchWrapper from '../../components/DataFetchWrapper';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-type TabFilter = 'all' | 'unread' | 'intervention' | 'service_request' | 'payment' | 'system';
+type TabFilter = 'all' | 'unread' | 'intervention' | 'service_request' | 'payment' | 'system' | 'contact';
 
 const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
   intervention: <Build sx={{ fontSize: 20, color: '#1976d2' }} />,
@@ -41,6 +42,7 @@ const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
   payment: <Payment sx={{ fontSize: 20, color: '#2e7d32' }} />,
   system: <Info sx={{ fontSize: 20, color: '#9c27b0' }} />,
   team: <Groups sx={{ fontSize: 20, color: '#0288d1' }} />,
+  contact: <Email sx={{ fontSize: 20, color: '#e91e63' }} />,
 };
 
 function getTypeColor(type: Notification['type']): 'info' | 'success' | 'warning' | 'error' {
@@ -92,6 +94,7 @@ export default function NotificationsPage() {
       case 'service_request':
       case 'payment':
       case 'system':
+      case 'contact':
         return notifications.filter((n) => n.category === activeTab);
       default:
         return notifications;
@@ -141,6 +144,7 @@ export default function NotificationsPage() {
     { value: 'service_request', label: t('notifications.tabs.requests') || 'Demandes' },
     { value: 'payment', label: t('notifications.tabs.payments') || 'Paiements' },
     { value: 'system', label: t('notifications.tabs.system') || 'Systeme' },
+    { value: 'contact', label: t('notifications.tabs.contact') || 'Contact' },
   ];
 
   return (

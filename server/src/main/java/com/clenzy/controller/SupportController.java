@@ -2,6 +2,8 @@ package com.clenzy.controller;
 
 import com.clenzy.model.ReceivedForm;
 import com.clenzy.repository.ReceivedFormRepository;
+import com.clenzy.service.NotificationService;
+import com.clenzy.model.NotificationKey;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -32,6 +34,7 @@ public class SupportController {
 
     private final ReceivedFormRepository receivedFormRepository;
     private final ObjectMapper objectMapper;
+    private final NotificationService notificationService;
 
     // Rate limiter simple en memoire : IP -> liste de timestamps
     private final Map<String, CopyOnWriteArrayList<Instant>> rateLimitMap = new ConcurrentHashMap<>();
@@ -46,9 +49,11 @@ public class SupportController {
             "other", "Autre"
     );
 
-    public SupportController(ReceivedFormRepository receivedFormRepository, ObjectMapper objectMapper) {
+    public SupportController(ReceivedFormRepository receivedFormRepository, ObjectMapper objectMapper,
+                             NotificationService notificationService) {
         this.receivedFormRepository = receivedFormRepository;
         this.objectMapper = objectMapper;
+        this.notificationService = notificationService;
     }
 
     @PostMapping("/support")
@@ -97,6 +102,14 @@ public class SupportController {
             receivedFormRepository.save(form);
 
             log.info("Demande de support sauvegardee : {} ({}) — Sujet : {}", name, email, subjectLabel);
+
+            // Notification aux admins/managers
+            notificationService.notifyAdminsAndManagers(
+                    NotificationKey.CONTACT_FORM_RECEIVED,
+                    "Nouvelle demande de support — " + name,
+                    "Sujet : " + subjectLabel + " — De : " + name + " (" + email + ")",
+                    "/contact?tab=2"
+            );
         } catch (Exception e) {
             log.error("Erreur sauvegarde formulaire support : {}", e.getMessage());
             return ResponseEntity.internalServerError()
