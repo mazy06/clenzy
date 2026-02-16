@@ -6,15 +6,14 @@ import {
   Paper,
   Typography,
   Button,
-  Fab,
   Badge
 } from '@mui/material';
 import {
-  Add as AddIcon,
   Send as SendIcon,
   Inbox as InboxIcon,
   Archive as ArchiveIcon,
-  Description as FormsIcon
+  Description as FormsIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ContactMessages from './ContactMessages';
@@ -88,8 +87,8 @@ const ContactPage: React.FC = () => {
   return (
     <Box sx={{ width: '100%', height: 'calc(100vh - 56px - 32px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <Paper sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden', height: '100%' }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
-          <Tabs value={tabValue} onChange={handleTabChange} aria-label="contact tabs">
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+          <Tabs value={tabValue} onChange={handleTabChange} aria-label="contact tabs" sx={{ flex: 1 }}>
             <Tab
               icon={
                 <Badge badgeContent={unreadCount} color="error" max={99}>
@@ -125,6 +124,14 @@ const ContactPage: React.FC = () => {
               />
             )}
           </Tabs>
+          <Button
+            variant="contained"
+            startIcon={<EditIcon />}
+            onClick={handleNewMessage}
+            sx={{ mr: 2, textTransform: 'none', fontWeight: 600, borderRadius: '8px', whiteSpace: 'nowrap' }}
+          >
+            {t('contact.newMessage')}
+          </Button>
         </Box>
 
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
@@ -148,20 +155,6 @@ const ContactPage: React.FC = () => {
         </Box>
       </Paper>
 
-      {/* Bouton flottant pour nouveau message */}
-      <Fab
-        color="primary"
-        size="small"
-        aria-label={t('contact.ariaLabel.newMessage')}
-        onClick={handleNewMessage}
-        sx={{
-          position: 'fixed',
-          bottom: 12,
-          right: 12,
-        }}
-      >
-        <AddIcon sx={{ fontSize: 20 }} />
-      </Fab>
     </Box>
   );
 };

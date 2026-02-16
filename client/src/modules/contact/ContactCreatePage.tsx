@@ -16,7 +16,7 @@ const ContactCreatePage: React.FC = () => {
   }, [searchParams]);
 
   return (
-    <ContactForm />
+    <ContactForm onCancel={() => navigate('/contact')} />
   );
 };
 

@@ -27,50 +27,35 @@ import {
   Send as SendIcon,
   Email as EmailIcon,
   AttachFile as AttachFileIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import { contactApi } from '../../services/api';
 import { useTranslation } from '../../hooks/useTranslation';
 import ContactMessageThread from './ContactMessageThread';
 import type { ContactMessageItem } from './ContactMessageThread';
 
-// ─── Couleurs Clenzy ─────────────────────────────────────────────────────────
-const C = {
-  primary: '#6B8A9A',
-  primaryLight: '#8BA3B3',
-  primaryDark: '#5A7684',
-  success: '#4A9B8E',
-  warning: '#D4A574',
-  error: '#C97A7A',
-  info: '#7BA3C2',
-  textPrimary: '#1E293B',
-  textSecondary: '#64748B',
-  gray50: '#F8FAFC',
-  gray100: '#F1F5F9',
-  gray200: '#E2E8F0',
-} as const;
-
-// ─── Config statuts ──────────────────────────────────────────────────────────
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  ALL:       { label: 'Tous',     color: C.primary,       bg: C.primary },
-  SENT:      { label: 'Envoye',   color: C.info,          bg: `${C.info}14` },
-  DELIVERED: { label: 'Delivre',  color: C.primary,       bg: `${C.primary}14` },
-  READ:      { label: 'Lu',       color: C.success,       bg: `${C.success}14` },
-  REPLIED:   { label: 'Repondu',  color: C.warning,       bg: `${C.warning}14` },
+// ─── Config statuts (utilise les tokens MUI palette) ─────────────────────────
+const STATUS_CONFIG: Record<string, { label: string; palette: string }> = {
+  ALL:       { label: 'Tous',     palette: 'primary' },
+  SENT:      { label: 'Envoye',   palette: 'info' },
+  DELIVERED: { label: 'Delivre',  palette: 'primary' },
+  READ:      { label: 'Lu',       palette: 'success' },
+  REPLIED:   { label: 'Repondu',  palette: 'warning' },
 };
 
-const PRIORITY_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  LOW:    { label: 'Basse',   color: C.success,       bg: `${C.success}14` },
-  MEDIUM: { label: 'Moyenne', color: C.info,          bg: `${C.info}14` },
-  HIGH:   { label: 'Haute',   color: C.warning,       bg: `${C.warning}14` },
-  URGENT: { label: 'Urgente', color: C.error,         bg: `${C.error}14` },
+const PRIORITY_CONFIG: Record<string, { label: string; palette: string }> = {
+  LOW:    { label: 'Basse',   palette: 'success' },
+  MEDIUM: { label: 'Moyenne', palette: 'info' },
+  HIGH:   { label: 'Haute',   palette: 'warning' },
+  URGENT: { label: 'Urgente', palette: 'error' },
 };
 
-const CATEGORY_CONFIG: Record<string, { label: string; color: string }> = {
-  GENERAL:     { label: 'General',     color: C.primary },
-  TECHNICAL:   { label: 'Technique',   color: C.info },
-  MAINTENANCE: { label: 'Maintenance', color: C.warning },
-  CLEANING:    { label: 'Menage',      color: C.success },
-  EMERGENCY:   { label: 'Urgence',     color: C.error },
+const CATEGORY_CONFIG: Record<string, { label: string; palette: string }> = {
+  GENERAL:     { label: 'General',     palette: 'primary' },
+  TECHNICAL:   { label: 'Technique',   palette: 'info' },
+  MAINTENANCE: { label: 'Maintenance', palette: 'warning' },
+  CLEANING:    { label: 'Menage',      palette: 'success' },
+  EMERGENCY:   { label: 'Urgence',     palette: 'error' },
 };
 
 // ─── Composant principal ─────────────────────────────────────────────────────
@@ -276,36 +261,39 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
       {/* Toolbar */}
-      <Box sx={{ display: 'flex', gap: 1, p: 1.5, borderBottom: `1px solid ${C.gray200}`, alignItems: 'center', flexWrap: 'wrap' }}>
+      <Box sx={{ display: 'flex', gap: 1, p: 1.5, borderBottom: 1, borderColor: 'divider', alignItems: 'center', flexWrap: 'wrap' }}>
         <TextField
           size="small"
           placeholder="Rechercher..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{ startAdornment: <SearchIcon sx={{ mr: 0.5, fontSize: 18, color: C.textSecondary }} /> }}
+          InputProps={{ startAdornment: <SearchIcon sx={{ mr: 0.5, fontSize: 18, color: 'text.secondary' }} /> }}
           sx={{
             minWidth: 180, flex: 1,
             '& .MuiOutlinedInput-root': { fontSize: '0.8125rem', borderRadius: '8px' },
           }}
         />
-        {statusFilters.map(s => (
-          <Chip
-            key={s}
-            label={STATUS_CONFIG[s]?.label || s}
-            size="small"
-            onClick={() => { setFilterStatus(s); setPage(0); }}
-            sx={{
-              fontSize: '0.6875rem', height: 26, borderRadius: '6px', cursor: 'pointer',
-              bgcolor: filterStatus === s ? STATUS_CONFIG[s]?.color || C.primary : C.gray100,
-              color: filterStatus === s ? '#fff' : C.textSecondary,
-              fontWeight: filterStatus === s ? 600 : 400,
-              '&:hover': { opacity: 0.85 },
-            }}
-          />
-        ))}
+        {statusFilters.map(s => {
+          const conf = STATUS_CONFIG[s];
+          return (
+            <Chip
+              key={s}
+              label={conf?.label || s}
+              size="small"
+              onClick={() => { setFilterStatus(s); setPage(0); }}
+              sx={{
+                fontSize: '0.6875rem', height: 26, borderRadius: '6px', cursor: 'pointer',
+                bgcolor: filterStatus === s ? `${conf?.palette || 'primary'}.main` : 'action.hover',
+                color: filterStatus === s ? `${conf?.palette || 'primary'}.contrastText` : 'text.secondary',
+                fontWeight: filterStatus === s ? 600 : 400,
+                '&:hover': { opacity: 0.85 },
+              }}
+            />
+          );
+        })}
         <Tooltip title="Rafraichir">
           <IconButton size="small" onClick={loadMessages}>
-            <RefreshIcon sx={{ fontSize: 18, color: C.textSecondary }} />
+            <RefreshIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
           </IconButton>
         </Tooltip>
       </Box>
@@ -314,16 +302,16 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
       {selectedIds.size > 0 && (
         <Box sx={{
           display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 0.75,
-          bgcolor: `${C.primary}0A`, borderBottom: `1px solid ${C.gray200}`,
+          bgcolor: 'action.selected', borderBottom: 1, borderColor: 'divider',
         }}>
           <Checkbox
             size="small"
             indeterminate={selectedIds.size > 0 && selectedIds.size < filteredMessages.length}
             checked={filteredMessages.length > 0 && selectedIds.size === filteredMessages.length}
             onChange={handleSelectAll}
-            sx={{ p: 0.25, color: C.primary, '&.Mui-checked': { color: C.primary } }}
+            sx={{ p: 0.25, color: 'primary.main', '&.Mui-checked': { color: 'primary.main' } }}
           />
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: C.textPrimary, fontWeight: 600, flex: 1 }}>
+          <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.primary', fontWeight: 600, flex: 1 }}>
             {selectedIds.size} selectionne{selectedIds.size > 1 ? 's' : ''}
           </Typography>
           {type === 'received' && (
@@ -334,8 +322,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
               startIcon={<MarkAsReadIcon sx={{ fontSize: 14 }} />}
               sx={{
                 textTransform: 'none', fontSize: '0.75rem', fontWeight: 500,
-                borderColor: C.gray200, color: C.textSecondary, borderRadius: '6px',
-                '&:hover': { borderColor: C.primary, color: C.primary },
+                borderRadius: '6px',
               }}
             >
               Marquer lu
@@ -344,12 +331,12 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
           <Button
             size="small"
             variant="outlined"
+            color="error"
             onClick={handleBulkDelete}
             startIcon={<DeleteIcon sx={{ fontSize: 14 }} />}
             sx={{
               textTransform: 'none', fontSize: '0.75rem', fontWeight: 500,
-              borderColor: C.error, color: C.error, borderRadius: '6px',
-              '&:hover': { bgcolor: `${C.error}08` },
+              borderRadius: '6px',
             }}
           >
             Supprimer
@@ -360,17 +347,17 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
       {/* Content */}
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-          <CircularProgress size={32} sx={{ color: C.primary }} />
+          <CircularProgress size={32} color="primary" />
         </Box>
       ) : filteredMessages.length === 0 ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 1.5 }}>
-          <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: `${C.primary}14`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <InboxIcon sx={{ fontSize: 28, color: C.primary }} />
+          <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: 'action.selected', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <InboxIcon sx={{ fontSize: 28, color: 'primary.main' }} />
           </Box>
-          <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: C.textPrimary }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: 'text.primary' }}>
             {t('contact.noMessages')}
           </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: C.textSecondary }}>
+          <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
             {t('contact.noMessagesDesc')}
           </Typography>
         </Box>
@@ -378,7 +365,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
         <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
 
           {/* ─── Liste gauche (35%) ─── */}
-          <Box sx={{ width: '35%', borderRight: `1px solid ${C.gray200}`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <Box sx={{ width: '35%', borderRight: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <Box sx={{ flex: 1, overflowY: 'auto' }}>
               {filteredMessages.map(message => {
                 const isSelected = selectedMessage?.id === message.id;
@@ -399,11 +386,12 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                     sx={{
                       p: 1.25,
                       cursor: 'pointer',
-                      borderBottom: `1px solid ${C.gray100}`,
-                      bgcolor: isSelected ? `${C.primary}08` : 'transparent',
-                      borderLeft: isSelected ? `3px solid ${C.primary}` : '3px solid transparent',
+                      borderBottom: 1, borderColor: 'divider',
+                      bgcolor: isSelected ? 'action.selected' : 'transparent',
+                      borderLeft: isSelected ? 3 : 3,
+                      borderLeftColor: isSelected ? 'primary.main' : 'transparent',
                       transition: 'all 0.15s ease',
-                      '&:hover': { bgcolor: `${C.primary}04` },
+                      '&:hover': { bgcolor: 'action.hover' },
                     }}
                   >
                     {/* Top row: checkbox + chips + unread dot */}
@@ -412,7 +400,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                         size="small"
                         checked={isChecked}
                         onClick={(e) => handleToggleSelect(e, message.id)}
-                        sx={{ p: 0, mr: 0.5, color: C.gray200, '&.Mui-checked': { color: C.primary } }}
+                        sx={{ p: 0, mr: 0.5, color: 'text.disabled', '&.Mui-checked': { color: 'primary.main' } }}
                       />
                       {categoryConf && (
                         <Chip
@@ -420,8 +408,9 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                           size="small"
                           sx={{
                             fontSize: '0.5625rem', height: 20, borderRadius: '4px',
-                            bgcolor: `${categoryConf.color}14`, color: categoryConf.color,
-                            fontWeight: 500,
+                            bgcolor: `${categoryConf.palette}.main`,
+                            color: `${categoryConf.palette}.contrastText`,
+                            fontWeight: 500, opacity: 0.85,
                           }}
                         />
                       )}
@@ -431,28 +420,29 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                           size="small"
                           sx={{
                             fontSize: '0.5625rem', height: 20, borderRadius: '4px',
-                            bgcolor: priorityConf.bg, color: priorityConf.color,
-                            fontWeight: 500,
+                            bgcolor: `${priorityConf.palette}.main`,
+                            color: `${priorityConf.palette}.contrastText`,
+                            fontWeight: 500, opacity: 0.85,
                           }}
                         />
                       )}
                       <Box sx={{ flex: 1 }} />
                       {isUnread && (
-                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: C.warning, flexShrink: 0 }} />
+                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'warning.main', flexShrink: 0 }} />
                       )}
                     </Box>
 
                     {/* Person name */}
                     <Typography variant="body2" sx={{
                       fontSize: '0.8125rem', fontWeight: isUnread ? 700 : 500,
-                      color: C.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {person}
                     </Typography>
 
                     {/* Subject */}
                     <Typography variant="caption" sx={{
-                      fontSize: '0.6875rem', color: C.textSecondary,
+                      fontSize: '0.6875rem', color: 'text.secondary',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block',
                       fontWeight: isUnread ? 600 : 400,
                     }}>
@@ -461,7 +451,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
 
                     {/* Date + status chip */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                      <Typography variant="caption" sx={{ fontSize: '0.625rem', color: C.textSecondary }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
                         {formatShortDate(message.createdAt)}
                       </Typography>
                       {statusConf && (
@@ -470,12 +460,14 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                           size="small"
                           sx={{
                             fontSize: '0.5625rem', height: 18, borderRadius: '4px', ml: 'auto',
-                            bgcolor: statusConf.bg, color: statusConf.color, fontWeight: 500,
+                            bgcolor: `${statusConf.palette}.main`,
+                            color: `${statusConf.palette}.contrastText`,
+                            fontWeight: 500, opacity: 0.85,
                           }}
                         />
                       )}
                       {message.attachments && message.attachments.length > 0 && (
-                        <AttachFileIcon sx={{ fontSize: 12, color: C.textSecondary, ml: 0.25 }} />
+                        <AttachFileIcon sx={{ fontSize: 12, color: 'text.secondary', ml: 0.25 }} />
                       )}
                     </Box>
                   </Box>
@@ -492,8 +484,8 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
               rowsPerPage={rowsPerPage}
               rowsPerPageOptions={[]}
               sx={{
-                borderTop: `1px solid ${C.gray200}`, flexShrink: 0,
-                '& .MuiTablePagination-displayedRows': { fontSize: '0.75rem', color: C.textSecondary },
+                borderTop: 1, borderColor: 'divider', flexShrink: 0,
+                '& .MuiTablePagination-displayedRows': { fontSize: '0.75rem', color: 'text.secondary' },
               }}
             />
           </Box>
@@ -512,9 +504,9 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                         size="small"
                         sx={{
                           fontSize: '0.6875rem', height: 22, borderRadius: '6px',
-                          bgcolor: `${CATEGORY_CONFIG[selectedMessage.category].color}14`,
-                          color: CATEGORY_CONFIG[selectedMessage.category].color,
-                          fontWeight: 500,
+                          bgcolor: `${CATEGORY_CONFIG[selectedMessage.category].palette}.main`,
+                          color: `${CATEGORY_CONFIG[selectedMessage.category].palette}.contrastText`,
+                          fontWeight: 500, opacity: 0.85,
                         }}
                       />
                     )}
@@ -525,9 +517,9 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                         size="small"
                         sx={{
                           fontSize: '0.6875rem', height: 22, borderRadius: '6px',
-                          bgcolor: STATUS_CONFIG[selectedMessage.status].bg,
-                          color: STATUS_CONFIG[selectedMessage.status].color,
-                          fontWeight: 500,
+                          bgcolor: `${STATUS_CONFIG[selectedMessage.status].palette}.main`,
+                          color: `${STATUS_CONFIG[selectedMessage.status].palette}.contrastText`,
+                          fontWeight: 500, opacity: 0.85,
                         }}
                       />
                     )}
@@ -538,24 +530,24 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                         size="small"
                         sx={{
                           fontSize: '0.6875rem', height: 22, borderRadius: '6px',
-                          bgcolor: PRIORITY_CONFIG[selectedMessage.priority].bg,
-                          color: PRIORITY_CONFIG[selectedMessage.priority].color,
-                          fontWeight: 500,
+                          bgcolor: `${PRIORITY_CONFIG[selectedMessage.priority].palette}.main`,
+                          color: `${PRIORITY_CONFIG[selectedMessage.priority].palette}.contrastText`,
+                          fontWeight: 500, opacity: 0.85,
                         }}
                       />
                     )}
                   </Box>
 
                   {/* Subject */}
-                  <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 700, color: C.textPrimary, mb: 1 }}>
+                  <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 700, color: 'text.primary', mb: 1 }}>
                     {selectedMessage.subject}
                   </Typography>
 
                   {/* Infos contact */}
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <EmailIcon sx={{ fontSize: 14, color: C.textSecondary }} />
-                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: C.textPrimary }}>
+                      <EmailIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.primary' }}>
                         {type === 'sent'
                           ? `${selectedMessage.recipient.firstName} ${selectedMessage.recipient.lastName} (${selectedMessage.recipient.email})`
                           : `${selectedMessage.sender.firstName} ${selectedMessage.sender.lastName} (${selectedMessage.sender.email})`
@@ -564,8 +556,8 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                     </Box>
                     {type !== 'sent' && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <SendIcon sx={{ fontSize: 14, color: C.textSecondary }} />
-                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: C.textSecondary }}>
+                        <SendIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
                           Vers : {selectedMessage.recipient.firstName} {selectedMessage.recipient.lastName}
                         </Typography>
                       </Box>
@@ -573,7 +565,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                   </Box>
 
                   {/* Date */}
-                  <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: C.textSecondary }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
                     {type === 'sent' ? 'Envoye le' : 'Recu le'} {formatDate(selectedMessage.createdAt)}
                     {selectedMessage.readAt && ` • Lu le ${formatDate(selectedMessage.readAt)}`}
                     {selectedMessage.repliedAt && ` • Repondu le ${formatDate(selectedMessage.repliedAt)}`}
@@ -585,13 +577,13 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                 {/* Message body */}
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="caption" sx={{
-                    fontSize: '0.6875rem', color: C.textSecondary, fontWeight: 600,
+                    fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 600,
                     textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', mb: 0.5,
                   }}>
                     Message
                   </Typography>
                   <Typography variant="body2" sx={{
-                    fontSize: '0.8125rem', color: C.textPrimary, whiteSpace: 'pre-wrap', lineHeight: 1.6,
+                    fontSize: '0.8125rem', color: 'text.primary', whiteSpace: 'pre-wrap', lineHeight: 1.6,
                   }}>
                     {selectedMessage.message}
                   </Typography>
@@ -601,7 +593,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                 {selectedMessage.attachments && selectedMessage.attachments.length > 0 && (
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="caption" sx={{
-                      fontSize: '0.6875rem', color: C.textSecondary, fontWeight: 600,
+                      fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 600,
                       textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', mb: 0.5,
                     }}>
                       Pieces jointes ({selectedMessage.attachments.length})
@@ -613,9 +605,15 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                           icon={<AttachFileIcon sx={{ fontSize: 14 }} />}
                           label={att.originalName}
                           size="small"
+                          variant="outlined"
+                          clickable={!!att.storagePath}
+                          onClick={att.storagePath ? () => contactApi.downloadAttachment(Number(selectedMessage.id), att.id, att.originalName) : undefined}
+                          deleteIcon={att.storagePath ? <DownloadIcon sx={{ fontSize: 16 }} /> : undefined}
+                          onDelete={att.storagePath ? () => contactApi.downloadAttachment(Number(selectedMessage.id), att.id, att.originalName) : undefined}
                           sx={{
                             fontSize: '0.75rem', borderRadius: '6px',
-                            bgcolor: C.gray100, color: C.textPrimary,
+                            cursor: att.storagePath ? 'pointer' : 'default',
+                            '&:hover': att.storagePath ? { bgcolor: 'action.hover' } : {},
                           }}
                         />
                       ))}
@@ -632,11 +630,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                     variant="contained"
                     startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
                     onClick={handleViewThread}
-                    sx={{
-                      textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
-                      bgcolor: C.primary, borderRadius: '8px',
-                      '&:hover': { bgcolor: C.primaryDark },
-                    }}
+                    sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, borderRadius: '8px' }}
                   >
                     Voir le fil
                   </Button>
@@ -647,11 +641,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                     variant="outlined"
                     startIcon={<ReplyIcon sx={{ fontSize: 16 }} />}
                     onClick={() => setThreadDialogOpen(true)}
-                    sx={{
-                      textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
-                      borderColor: C.gray200, color: C.textSecondary, borderRadius: '8px',
-                      '&:hover': { borderColor: C.primary, color: C.primary },
-                    }}
+                    sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
                   >
                     Repondre
                   </Button>
@@ -661,13 +651,10 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                     <Button
                       size="small"
                       variant="outlined"
+                      color="success"
                       startIcon={<MarkAsReadIcon sx={{ fontSize: 16 }} />}
                       onClick={handleMarkAsRead}
-                      sx={{
-                        textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
-                        borderColor: C.gray200, color: C.textSecondary, borderRadius: '8px',
-                        '&:hover': { borderColor: C.success, color: C.success },
-                      }}
+                      sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
                     >
                       Marquer lu
                     </Button>
@@ -680,11 +667,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                       variant="outlined"
                       startIcon={<ArchiveIcon sx={{ fontSize: 16 }} />}
                       onClick={handleArchive}
-                      sx={{
-                        textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
-                        borderColor: C.gray200, color: C.textSecondary, borderRadius: '8px',
-                        '&:hover': { borderColor: C.primary, color: C.primary },
-                      }}
+                      sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
                     >
                       Archiver
                     </Button>
@@ -694,11 +677,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                       variant="outlined"
                       startIcon={<UnarchiveIcon sx={{ fontSize: 16 }} />}
                       onClick={handleUnarchive}
-                      sx={{
-                        textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
-                        borderColor: C.gray200, color: C.textSecondary, borderRadius: '8px',
-                        '&:hover': { borderColor: C.primary, color: C.primary },
-                      }}
+                      sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
                     >
                       Desarchiver
                     </Button>
@@ -708,13 +687,10 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                   <Button
                     size="small"
                     variant="outlined"
+                    color="error"
                     startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
                     onClick={handleDelete}
-                    sx={{
-                      textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
-                      borderColor: C.error, color: C.error, borderRadius: '8px',
-                      '&:hover': { bgcolor: `${C.error}08` },
-                    }}
+                    sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
                   >
                     Supprimer
                   </Button>
@@ -722,8 +698,8 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
               </Box>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 1 }}>
-                <EmailIcon sx={{ fontSize: 48, color: C.gray200 }} />
-                <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: C.textSecondary }}>
+                <EmailIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+                <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
                   Selectionnez un message pour voir son contenu
                 </Typography>
               </Box>

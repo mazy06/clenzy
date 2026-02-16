@@ -176,4 +176,6 @@ clenzy:
     port: ${IMAP_PORT:993}
     username: ${IMAP_USERNAME:info@clenzy.fr}
     password: ${IMAP_PASSWORD:}
+  uploads:
+    contact-dir: ${CONTACT_UPLOADS_DIR:/app/uploads/contact}
 

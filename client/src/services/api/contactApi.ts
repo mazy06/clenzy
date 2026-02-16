@@ -1,5 +1,16 @@
 import apiClient from '../apiClient';
 import { PaginatedResponse } from '../apiClient';
+import { API_CONFIG } from '../../config/api';
+import { getAccessToken } from '../storageService';
+
+export interface ContactAttachment {
+  id: string;
+  filename: string;
+  originalName: string;
+  size: number;
+  contentType: string;
+  storagePath?: string | null;
+}
 
 export interface ContactMessage {
   id: number;
@@ -13,7 +24,7 @@ export interface ContactMessage {
   category: string;
   status: string;
   createdAt: string;
-  attachments?: string[];
+  attachments?: ContactAttachment[];
 }
 
 export interface ContactFormData {
@@ -87,6 +98,26 @@ export const contactApi = {
       });
     }
     return apiClient.upload<ContactMessage>(`/contact/messages/${id}/reply`, formData);
+  },
+  /** Telecharger une piece jointe */
+  async downloadAttachment(messageId: number, attachmentId: string, filename: string) {
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/contact/messages/${messageId}/attachments/${attachmentId}`;
+    const token = getAccessToken();
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      throw new Error(`Erreur ${response.status} lors du telechargement`);
+    }
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
   },
   /** Reset availability flag */
   resetAvailability() {

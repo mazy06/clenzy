@@ -8,5 +8,6 @@ public record ContactAttachmentDto(
         String filename,
         String originalName,
         long size,
-        String contentType
+        String contentType,
+        String storagePath
 ) {}

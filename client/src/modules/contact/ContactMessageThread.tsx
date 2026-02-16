@@ -16,8 +16,10 @@ import {
   Close as CloseIcon,
   AttachFile as AttachFileIcon,
   InsertDriveFile as FileIcon,
-  ArrowBack as ArrowBackIcon
+  ArrowBack as ArrowBackIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
+import { contactApi } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import ContactTemplates from './ContactTemplates';
@@ -35,6 +37,7 @@ export interface ContactMessageAttachment {
   originalName: string;
   size: number;
   contentType: string;
+  storagePath?: string | null;
 }
 
 export interface ContactMessageItem {
@@ -182,7 +185,7 @@ const ContactMessageThread: React.FC<ContactMessageThreadProps> = ({
           display: 'flex',
           flexDirection: 'column',
           gap: 2,
-          bgcolor: 'grey.50',
+          bgcolor: 'background.default',
           minHeight: 0
         }}
       >
@@ -224,7 +227,7 @@ const ContactMessageThread: React.FC<ContactMessageThreadProps> = ({
                 sx={{
                   p: 2,
                   borderRadius: 2,
-                  bgcolor: isSender ? 'primary.main' : 'grey.200',
+                  bgcolor: isSender ? 'primary.main' : 'action.hover',
                   color: isSender ? 'primary.contrastText' : 'text.primary',
                   maxWidth: '100%',
                   wordBreak: 'break-word'
@@ -245,7 +248,15 @@ const ContactMessageThread: React.FC<ContactMessageThreadProps> = ({
                       label={`${attachment.originalName} (${formatFileSize(attachment.size)})`}
                       size="small"
                       variant="outlined"
-                      sx={{ maxWidth: 250 }}
+                      clickable={!!attachment.storagePath}
+                      onClick={attachment.storagePath ? () => contactApi.downloadAttachment(Number(msg.id), attachment.id, attachment.originalName) : undefined}
+                      deleteIcon={attachment.storagePath ? <DownloadIcon sx={{ fontSize: 16 }} /> : undefined}
+                      onDelete={attachment.storagePath ? () => contactApi.downloadAttachment(Number(msg.id), attachment.id, attachment.originalName) : undefined}
+                      sx={{
+                        maxWidth: 250,
+                        cursor: attachment.storagePath ? 'pointer' : 'default',
+                        '&:hover': attachment.storagePath ? { bgcolor: 'action.hover' } : {},
+                      }}
                     />
                   ))}
                 </Box>

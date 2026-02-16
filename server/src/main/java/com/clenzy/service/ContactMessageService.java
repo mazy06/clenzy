@@ -36,6 +36,7 @@ public class ContactMessageService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final ObjectMapper objectMapper;
+    private final ContactFileStorageService fileStorageService;
 
     @Value("${clenzy.mail.contact.max-attachments:10}")
     private int maxAttachments;
@@ -47,12 +48,14 @@ public class ContactMessageService {
             ContactMessageRepository contactMessageRepository,
             UserRepository userRepository,
             EmailService emailService,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            ContactFileStorageService fileStorageService
     ) {
         this.contactMessageRepository = contactMessageRepository;
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.objectMapper = objectMapper;
+        this.fileStorageService = fileStorageService;
     }
 
     // ─── Lecture ─────────────────────────────────────────────────────────────
@@ -100,6 +103,17 @@ public class ContactMessageService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Recupere un message en validant que l'utilisateur est sender ou recipient.
+     * Utilise pour le telechargement des pieces jointes.
+     */
+    @Transactional(readOnly = true)
+    public ContactMessage getMessageForUser(Long messageId, Jwt jwt) {
+        String userId = requireUserId(jwt);
+        return contactMessageRepository.findByIdForUser(messageId, userId)
+                .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
+    }
+
     // ─── Envoi ──────────────────────────────────────────────────────────────
 
     @Transactional
@@ -142,11 +156,14 @@ public class ContactMessageService {
         contactMessage.setPriority(messagePriority);
         contactMessage.setCategory(messageCategory);
         contactMessage.setStatus(ContactMessageStatus.SENT);
-        contactMessage.setAttachments(serializeAttachments(buildAttachmentMetadata(sanitizedAttachments)));
+        List<ContactAttachmentDto> attachmentMetadata = buildAttachmentMetadata(sanitizedAttachments);
+        contactMessage.setAttachments(serializeAttachments(attachmentMetadata));
 
         contactMessage = contactMessageRepository.save(contactMessage);
         dispatchEmail(contactMessage, actor, sanitizedAttachments);
-        // @Transactional flushe les modifications dirty (providerMessageId, status) au commit
+
+        // Stocker les fichiers sur disque apres l'envoi email (best-effort)
+        storeAndUpdateAttachments(contactMessage, sanitizedAttachments, attachmentMetadata);
 
         return ContactMessageDto.fromEntity(contactMessage);
     }
@@ -189,10 +206,14 @@ public class ContactMessageService {
         reply.setPriority(original.getPriority());
         reply.setCategory(original.getCategory());
         reply.setStatus(ContactMessageStatus.SENT);
-        reply.setAttachments(serializeAttachments(buildAttachmentMetadata(sanitizedAttachments)));
+        List<ContactAttachmentDto> attachmentMetadata = buildAttachmentMetadata(sanitizedAttachments);
+        reply.setAttachments(serializeAttachments(attachmentMetadata));
 
         reply = contactMessageRepository.save(reply);
         dispatchEmail(reply, actor, sanitizedAttachments);
+
+        // Stocker les fichiers sur disque apres l'envoi email (best-effort)
+        storeAndUpdateAttachments(reply, sanitizedAttachments, attachmentMetadata);
 
         original.setStatus(ContactMessageStatus.REPLIED);
         if (original.getRepliedAt() == null) {
@@ -447,10 +468,35 @@ public class ContactMessageService {
             String name = StringUtils.sanitizeFileName(attachment.getOriginalFilename());
             String contentType = StringUtils.firstNonBlank(attachment.getContentType(), "application/octet-stream");
             result.add(new ContactAttachmentDto(
-                    UUID.randomUUID().toString(), name, name, attachment.getSize(), contentType
+                    UUID.randomUUID().toString(), name, name, attachment.getSize(), contentType, null
             ));
         }
         return result;
+    }
+
+    /**
+     * Stocke les fichiers sur disque et met a jour les metadonnees JSONB avec les storagePath.
+     * Appele APRES l'envoi email pour ne pas bloquer la livraison en cas d'echec de stockage.
+     */
+    private void storeAndUpdateAttachments(ContactMessage message, List<MultipartFile> files,
+                                            List<ContactAttachmentDto> metadata) {
+        if (files.isEmpty()) return;
+        try {
+            List<ContactAttachmentDto> updated = new ArrayList<>();
+            for (int i = 0; i < metadata.size(); i++) {
+                ContactAttachmentDto dto = metadata.get(i);
+                MultipartFile file = files.get(i);
+                String storagePath = fileStorageService.store(message.getId(), dto.id(), dto.filename(), file);
+                updated.add(new ContactAttachmentDto(
+                        dto.id(), dto.filename(), dto.originalName(), dto.size(), dto.contentType(), storagePath
+                ));
+            }
+            message.setAttachments(serializeAttachments(updated));
+            // L'entite dirty sera flushee au commit de la @Transactional
+        } catch (Exception e) {
+            log.error("Echec du stockage des pieces jointes pour le message #{}: {}", message.getId(), e.getMessage());
+            // Ne PAS relancer — l'email a deja ete envoye avec succes
+        }
     }
 
     private String serializeAttachments(List<ContactAttachmentDto> attachments) {
