@@ -7,6 +7,8 @@ import com.clenzy.dto.UserProfileDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.exception.KeycloakOperationException;
 import com.clenzy.model.User;
+import com.clenzy.model.UserRole;
+import com.clenzy.model.UserStatus;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -153,6 +155,27 @@ public class UserService {
             user.setKeycloakId(keycloakId);
             userRepository.save(user);
         });
+    }
+
+    @Transactional
+    public User autoProvisionUser(String keycloakId, String email, String firstName, String lastName, UserRole role) {
+        try {
+            User user = new User();
+            user.setKeycloakId(keycloakId);
+            user.setEmail(email);
+            user.setFirstName(firstName != null ? firstName : "");
+            user.setLastName(lastName != null ? lastName : "");
+            user.setRole(role);
+            user.setStatus(UserStatus.ACTIVE);
+            user.setEmailVerified(true);
+            user = userRepository.save(user);
+            System.out.println("Auto-provisioning: utilisateur cree en base - ID=" + user.getId() +
+                    ", email=" + email + ", role=" + role.name() + ", keycloakId=" + keycloakId);
+            return user;
+        } catch (Exception e) {
+            System.err.println("Erreur auto-provisioning: " + e.getMessage());
+            return null;
+        }
     }
 
     public void delete(Long id) {
