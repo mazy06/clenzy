@@ -57,7 +57,11 @@ function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-const ContactForm: React.FC = () => {
+interface ContactFormProps {
+  onCancel?: () => void;
+}
+
+const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const isRestrictedUser = user?.roles?.includes('HOST') || user?.roles?.includes('HOUSEKEEPER') || user?.roles?.includes('TECHNICIAN') || user?.roles?.includes('SUPERVISOR');
@@ -454,8 +458,12 @@ const ContactForm: React.FC = () => {
                   <Button
                     variant="outlined"
                     onClick={() => {
-                      reset();
-                      setAttachments([]);
+                      if (onCancel) {
+                        onCancel();
+                      } else {
+                        reset();
+                        setAttachments([]);
+                      }
                     }}
                     disabled={submitting}
                   >
