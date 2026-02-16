@@ -20,13 +20,12 @@ import {
   ArrowForward
 } from '@mui/icons-material';
 import type { NavigateFunction } from 'react-router-dom';
-import type { ActivityItem } from '../../hooks/useDashboardStats';
+import { useDashboardData } from '../../hooks/useDashboardData';
+import type { ActivityItem } from '../../hooks/useDashboardData';
 
 type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
 
 interface DashboardActivityFeedProps {
-  activities: ActivityItem[];
-  loading: boolean;
   navigate: NavigateFunction;
   t: TranslationFn;
 }
@@ -73,16 +72,16 @@ const getStatusColor = (status: ActivityItem['status']): 'success' | 'error' | '
   }
 };
 
-const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = ({
-  activities,
-  loading,
+const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = React.memo(({
   navigate,
   t
 }) => {
+  const { activities, loading } = useDashboardData();
+
   return (
-    <Card>
-      <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 }, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexShrink: 0 }}>
           <Typography variant="subtitle2" sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
             {t('dashboard.activityFeed.title')}
           </Typography>
@@ -118,8 +117,8 @@ const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = ({
             {t('dashboard.activityFeed.noActivity')}
           </Typography>
         ) : (
-          <Box>
-            {activities.slice(0, 5).map((activity, index, arr) => (
+          <Box sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+            {activities.slice(0, 4).map((activity, index, arr) => (
               <Box
                 key={`${activity.id}-${index}`}
                 sx={{
@@ -166,7 +165,7 @@ const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = ({
                 </Box>
 
                 {/* Activity content */}
-                <Box sx={{ flex: 1, pb: index < arr.length - 1 ? 1 : 0, minWidth: 0 }}>
+                <Box sx={{ flex: 1, pb: index < arr.length - 1 ? 0.5 : 0, minWidth: 0 }}>
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 0.5 }}>
                     <Box sx={{ minWidth: 0, flex: 1 }}>
                       <Typography
@@ -211,6 +210,8 @@ const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+DashboardActivityFeed.displayName = 'DashboardActivityFeed';
 
 export default DashboardActivityFeed;

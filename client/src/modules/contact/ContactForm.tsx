@@ -148,8 +148,9 @@ const ContactForm: React.FC = () => {
       setSuccess(t('contact.success.messageSent'));
       reset();
       setAttachments([]);
-    } catch (_err) {
-      setError(t('contact.errors.connectionError'));
+    } catch (err: unknown) {
+      const apiErr = err as { message?: string };
+      setError(apiErr?.message || t('contact.errors.connectionError'));
     } finally {
       setSubmitting(false);
     }
@@ -207,26 +208,61 @@ const ContactForm: React.FC = () => {
                   control={control}
                   render={({ field }) => (
                     <Autocomplete
+                      freeSolo
                       options={usersList}
-                      getOptionLabel={(option) => `${option.firstName} ${option.lastName} (${option.email})`}
-                      value={usersList.find(u => u.id === field.value) || null}
+                      getOptionLabel={(option) => {
+                        if (typeof option === 'string') return option;
+                        return `${option.firstName} ${option.lastName} (${option.email})`;
+                      }}
+                      value={usersList.find(u => u.id === field.value) || field.value || null}
                       onChange={(_, newValue) => {
-                        field.onChange(newValue ? newValue.id : '');
+                        if (typeof newValue === 'string') {
+                          // Saisie libre (email)
+                          field.onChange(newValue.trim());
+                        } else if (newValue) {
+                          // Selection d'un utilisateur dans la liste
+                          field.onChange(newValue.id);
+                        } else {
+                          field.onChange('');
+                        }
+                      }}
+                      onInputChange={(_, inputValue, reason) => {
+                        if (reason === 'input') {
+                          // Mettre a jour la valeur a chaque frappe pour les saisies libres
+                          const trimmed = inputValue.trim();
+                          if (trimmed && !usersList.find(u => u.id === trimmed)) {
+                            field.onChange(trimmed);
+                          }
+                        }
+                      }}
+                      filterOptions={(options, { inputValue }) => {
+                        const lower = inputValue.toLowerCase();
+                        return options.filter(
+                          (o) =>
+                            o.firstName.toLowerCase().includes(lower) ||
+                            o.lastName.toLowerCase().includes(lower) ||
+                            o.email.toLowerCase().includes(lower)
+                        );
                       }}
                       loading={loading}
                       disabled={loading}
-                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                      isOptionEqualToValue={(option, value) => {
+                        if (typeof value === 'string') return option.id === value || option.email === value;
+                        return option.id === value.id;
+                      }}
                       renderOption={(props, option) => (
-                        <li {...props} key={option.id}>
+                        <li {...props} key={typeof option === 'string' ? option : option.id}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <PersonIcon fontSize="small" />
                             <Box>
                               <Typography variant="body2">
-                                {option.firstName} {option.lastName}
+                                {typeof option === 'string' ? option : `${option.firstName} ${option.lastName}`}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {option.email} - {option.role}
-                              </Typography>
+                              {typeof option !== 'string' && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {option.email} - {option.role}
+                                </Typography>
+                              )}
                             </Box>
                           </Box>
                         </li>
@@ -235,13 +271,25 @@ const ContactForm: React.FC = () => {
                         <TextField
                           {...params}
                           label={t('contact.recipient')}
+                          placeholder={t('contact.recipientPlaceholder') || 'Sélectionner un utilisateur ou saisir un email'}
                           error={!!errors.recipientId}
                           helperText={errors.recipientId?.message}
+                          onBlur={(e) => {
+                            // Commettre la saisie libre quand le champ perd le focus
+                            const inputValue = (e.target as HTMLInputElement).value?.trim();
+                            if (inputValue) {
+                              const matchedUser = usersList.find(u =>
+                                `${u.firstName} ${u.lastName} (${u.email})` === inputValue
+                              );
+                              field.onChange(matchedUser ? matchedUser.id : inputValue);
+                            }
+                            field.onBlur();
+                          }}
                           InputProps={{
                             ...params.InputProps,
                             startAdornment: (
                               <>
-                                <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                                <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
                                 {params.InputProps.startAdornment}
                               </>
                             ),

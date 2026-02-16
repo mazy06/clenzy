@@ -7,37 +7,17 @@ import {
   TextField,
   Button,
   Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  Chip,
-  Divider,
-  IconButton,
   Alert,
   CircularProgress,
-  Autocomplete,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
 } from '@mui/material';
 import {
-  Save as SaveIcon,
-  Cancel as CancelIcon,
-  Home,
-  LocationOn,
   Person,
-  Add,
-  Close as CloseIcon,
-  Euro,
-  Bed,
-  Bathroom,
-  SquareFoot,
-  Schedule
 } from '@mui/icons-material';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -46,6 +26,12 @@ import { propertySchema } from '../../schemas';
 import type { PropertyFormValues } from '../../schemas';
 import { PropertyStatus, PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
 import { useTranslation } from '../../hooks/useTranslation';
+import { extractApiList } from '../../types';
+
+import PropertyFormBasicInfo from './PropertyFormBasicInfo';
+import PropertyFormAddress from './PropertyFormAddress';
+import PropertyFormDetails from './PropertyFormDetails';
+import PropertyFormSettings from './PropertyFormSettings';
 
 // Types pour les propriétés
 export interface PropertyFormData {
@@ -108,10 +94,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
     lastName: '',
     email: '',
   });
-  
+
   // IMPORTANT: déclarer tous les hooks avant tout retour conditionnel
   const { control, handleSubmit: rhfHandleSubmit, setValue, reset, formState: { errors } } = useForm<PropertyFormValues>({
-    resolver: zodResolver(propertySchema) as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(propertySchema) as any, // zodResolver type mismatch with react-hook-form
     defaultValues: {
       name: '',
       address: '',
@@ -138,9 +125,8 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
     // Charger les utilisateurs pour tous les rôles (nécessaire pour l'assignation du propriétaire)
     setLoadingUsers(true);
     try {
-      const data = await usersApi.getAll() as any;
-      const usersList = data.content || data || [];
-      setUsers(usersList);
+      const data = await usersApi.getAll();
+      setUsers(extractApiList(data));
     } catch (error) {
     } finally {
       setLoadingUsers(false);
@@ -177,7 +163,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
     const loadProperty = async () => {
       setLoadingProperty(true);
       try {
-        const property = await propertiesApi.getById(propertyId) as any;
+        const property = await propertiesApi.getById(propertyId);
         reset({
           name: property.name || '',
           address: property.address || '',
@@ -275,7 +261,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
         role: 'HOST',
       });
       setValue('ownerId', newUser.id);
-      setUsers(prev => [...prev, newUser as any]);
+      setUsers(prev => [...prev, newUser as User]);
       setShowOwnerDialog(false);
       setTemporaryOwner({ firstName: '', lastName: '', email: '' });
     } catch (err: any) {
@@ -348,420 +334,18 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
         <CardContent sx={{ p: 2 }}>
         <form onSubmit={rhfHandleSubmit(onSubmit)}>
           <Grid container spacing={2}>
-            {/* Informations de base */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-                {t('properties.tabs.overview')}
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} md={8}>
-              <Controller
-                name="name"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label={t('properties.propertyName')}
-                    required
-                    placeholder={t('properties.propertyNamePlaceholder')}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Controller
-                name="type"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <FormControl fullWidth required error={!!fieldState.error}>
-                    <InputLabel>{t('properties.propertyType')}</InputLabel>
-                    <Select
-                      {...field}
-                      label={t('properties.propertyType')}
-                      size="small"
-                    >
-                      {propertyTypes.map(type => (
-                        <MenuItem key={type.value} value={type.value}>
-                          {type.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
-                  </FormControl>
-                )}
-              />
-            </Grid>
-
-            {/* Adresse */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <LocationOn sx={{ fontSize: 18 }} />
-                {t('properties.address')}
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Controller
-                name="address"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label={t('properties.fullAddress')}
-                    required
-                    placeholder={t('properties.fullAddressPlaceholder')}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Controller
-                name="city"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label={t('properties.city')}
-                    required
-                    placeholder={t('properties.cityPlaceholder')}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Controller
-                name="postalCode"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label={t('properties.postalCode')}
-                    required
-                    placeholder={t('properties.postalCodePlaceholder')}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Controller
-                name="country"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label={t('properties.country')}
-                    required
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                  />
-                )}
-              />
-            </Grid>
-
-            {/* Caractéristiques */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-                {t('properties.characteristics')}
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <Controller
-                name="bedroomCount"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    type="number"
-                    label={t('properties.bedroomCount')}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                    required
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    InputProps={{
-                      startAdornment: <Bed sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />,
-                    }}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <Controller
-                name="bathroomCount"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    type="number"
-                    label={t('properties.bathroomCount')}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                    required
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    InputProps={{
-                      startAdornment: <Bathroom sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />,
-                    }}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <Controller
-                name="squareMeters"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    type="number"
-                    label={t('properties.surface')}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                    required
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    InputProps={{
-                      startAdornment: <SquareFoot sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />,
-                    }}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={3}>
-              <Controller
-                name="nightlyPrice"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    type="number"
-                    label={t('properties.nightlyPriceField')}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    InputProps={{
-                      startAdornment: <Euro sx={{ mr: 0.75, color: 'text.secondary', fontSize: 18 }} />,
-                    }}
-                    placeholder={t('properties.nightlyPricePlaceholder')}
-                    inputProps={{
-                      step: "0.01",
-                      min: "0"
-                    }}
-                  />
-                )}
-              />
-            </Grid>
-
-            {/* Configuration */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-                {t('properties.configuration')}
-              </Typography>
-            </Grid>
-
-            {/* Champ Owner - comportement différent selon le rôle */}
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="ownerId"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <FormControl fullWidth required error={!!fieldState.error}>
-                    <InputLabel>{t('properties.owner')} *</InputLabel>
-                    <Select
-                      {...field}
-                      label={`${t('properties.owner')} *`}
-                      disabled={!isAdmin() && !isManager()} // Seuls les admin/manager peuvent changer le propriétaire
-                      size="small"
-                    >
-                      {users.map((user) => (
-                        <MenuItem key={user.id} value={user.id}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <Person sx={{ fontSize: 16 }} />
-                            <Typography variant="body2">{user.firstName} {user.lastName} ({user.role}) - {user.email}</Typography>
-                          </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
-                  </FormControl>
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="status"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <FormControl fullWidth required error={!!fieldState.error}>
-                    <InputLabel>{t('properties.status')}</InputLabel>
-                    <Select
-                      {...field}
-                      label={t('properties.status')}
-                      size="small"
-                    >
-                      {propertyStatuses.map(status => (
-                        <MenuItem key={status.value} value={status.value}>
-                          {status.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
-                  </FormControl>
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="cleaningFrequency"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <FormControl fullWidth required error={!!fieldState.error}>
-                    <InputLabel>{t('properties.cleaningFrequency')}</InputLabel>
-                    <Select
-                      {...field}
-                      label={t('properties.cleaningFrequency')}
-                      size="small"
-                    >
-                      {cleaningFrequencies.map(freq => (
-                        <MenuItem key={freq.value} value={freq.value}>
-                          {freq.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
-                  </FormControl>
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="maxGuests"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    type="number"
-                    label={t('properties.maxGuests')}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                    required
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                  />
-                )}
-              />
-            </Grid>
-
-            {/* Heures par défaut */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Schedule sx={{ fontSize: 18 }} />
-                Heures par défaut
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="defaultCheckInTime"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    type="time"
-                    label="Heure d'arrivée par défaut"
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message || 'Check-in (défaut : 15:00)'}
-                    InputLabelProps={{ shrink: true }}
-                    inputProps={{ step: 900 }}
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Controller
-                name="defaultCheckOutTime"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    type="time"
-                    label="Heure de départ par défaut"
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message || 'Check-out (défaut : 11:00)'}
-                    InputLabelProps={{ shrink: true }}
-                    inputProps={{ step: 900 }}
-                  />
-                )}
-              />
-            </Grid>
-
-            {/* Description */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-                {t('properties.description')}
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Controller
-                name="description"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label={t('properties.description')}
-                    multiline
-                    rows={3}
-                    placeholder={t('properties.descriptionPlaceholder')}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                  />
-                )}
-              />
-            </Grid>
+            <PropertyFormBasicInfo control={control} errors={errors} propertyTypes={propertyTypes} />
+            <PropertyFormAddress control={control} errors={errors} />
+            <PropertyFormDetails control={control} errors={errors} />
+            <PropertyFormSettings
+              control={control}
+              errors={errors}
+              users={users}
+              propertyStatuses={propertyStatuses}
+              cleaningFrequencies={cleaningFrequencies}
+              isAdmin={isAdmin}
+              isManager={isManager}
+            />
 
             {/* Messages d'erreur et de succès */}
             {error && (
@@ -791,7 +375,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
           {t('properties.newOwnerDialog')}
         </Typography>
       </DialogTitle>
-      
+
       <DialogContent sx={{ pt: 1.5 }}>
         <Grid container spacing={1.5}>
           <Grid item xs={12} md={6}>
@@ -804,7 +388,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
               size="small"
             />
           </Grid>
-          
+
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
@@ -815,7 +399,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
               size="small"
             />
           </Grid>
-          
+
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -830,12 +414,12 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
           </Grid>
         </Grid>
       </DialogContent>
-      
+
       <DialogActions sx={{ px: 2, pb: 1.5 }}>
         <Button onClick={() => setShowOwnerDialog(false)} size="small">
           {t('common.cancel')}
         </Button>
-        <Button 
+        <Button
           onClick={handleCreateTemporaryOwner}
           variant="contained"
           disabled={!temporaryOwner.firstName || !temporaryOwner.lastName || !temporaryOwner.email}

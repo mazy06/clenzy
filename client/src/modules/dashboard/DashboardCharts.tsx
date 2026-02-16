@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
@@ -23,43 +23,21 @@ import {
   Legend
 } from 'recharts';
 import { useTranslation } from '../../hooks/useTranslation';
-import { reportsApi } from '../../services/api';
-import type { InterventionReportData, FinancialReportData } from '../../services/api';
+import { useDashboardData } from '../../hooks/useDashboardData';
 
-const CHART_HEIGHT = 240;
-
-const DashboardCharts: React.FC = () => {
+const DashboardCharts: React.FC = React.memo(() => {
   const { t } = useTranslation();
-  const [interventionData, setInterventionData] = useState<InterventionReportData | null>(null);
-  const [financialData, setFinancialData] = useState<FinancialReportData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { charts, loading } = useDashboardData();
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const [intData, finData] = await Promise.all([
-          reportsApi.getInterventionStats().catch(() => null),
-          reportsApi.getFinancialStats().catch(() => null),
-        ]);
-        if (intData) setInterventionData(intData);
-        if (finData) setFinancialData(finData);
-      } catch {
-        // Graceful fallback - charts will show "no data"
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+  const interventionData = charts.interventionData;
+  const financialData = charts.financialData;
 
   if (loading) {
     return (
-      <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+      <Grid container spacing={1.5} sx={{ height: '100%' }}>
         {[0, 1, 2].map((i) => (
-          <Grid item xs={12} md={4} key={i}>
-            <Card sx={{ height: CHART_HEIGHT }}>
+          <Grid item xs={12} md={4} key={i} sx={{ height: '100%' }}>
+            <Card sx={{ height: '100%' }}>
               <CardContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                 <CircularProgress size={28} />
               </CardContent>
@@ -75,12 +53,12 @@ const DashboardCharts: React.FC = () => {
   const monthlyFinancials = financialData?.monthlyFinancials || [];
 
   return (
-    <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+    <Grid container spacing={1.5} sx={{ height: '100%' }}>
       {/* Intervention Trend Chart (Line) */}
-      <Grid item xs={12} md={4}>
-        <Card sx={{ height: CHART_HEIGHT }}>
+      <Grid item xs={12} md={4} sx={{ height: '100%' }}>
+        <Card sx={{ height: '100%' }}>
           <CardContent sx={{ p: 1.5, height: '100%', display: 'flex', flexDirection: 'column', '&:last-child': { pb: 1.5 } }}>
-            <Typography variant="subtitle2" sx={{ fontSize: '0.8125rem', fontWeight: 600, mb: 0.5 }}>
+            <Typography variant="subtitle2" sx={{ fontSize: '0.8125rem', fontWeight: 600, mb: 0.5, flexShrink: 0 }}>
               {t('dashboard.charts.interventionTrend')}
             </Typography>
             {byMonth.length === 0 ? (
@@ -90,8 +68,8 @@ const DashboardCharts: React.FC = () => {
                 </Typography>
               </Box>
             ) : (
-              <Box sx={{ flex: 1, minHeight: 80 }}>
-                <ResponsiveContainer width="100%" height="100%" minHeight={80}>
+              <Box sx={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={byMonth} margin={{ top: 5, right: 8, left: -15, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="month" tick={{ fontSize: 10 }} />
@@ -109,10 +87,10 @@ const DashboardCharts: React.FC = () => {
       </Grid>
 
       {/* Status Distribution (Donut/Pie) */}
-      <Grid item xs={12} md={4}>
-        <Card sx={{ height: CHART_HEIGHT }}>
+      <Grid item xs={12} md={4} sx={{ height: '100%' }}>
+        <Card sx={{ height: '100%' }}>
           <CardContent sx={{ p: 1.5, height: '100%', display: 'flex', flexDirection: 'column', '&:last-child': { pb: 1.5 } }}>
-            <Typography variant="subtitle2" sx={{ fontSize: '0.8125rem', fontWeight: 600, mb: 0.5 }}>
+            <Typography variant="subtitle2" sx={{ fontSize: '0.8125rem', fontWeight: 600, mb: 0.5, flexShrink: 0 }}>
               {t('dashboard.charts.statusDistribution')}
             </Typography>
             {byStatus.length === 0 ? (
@@ -122,15 +100,15 @@ const DashboardCharts: React.FC = () => {
                 </Typography>
               </Box>
             ) : (
-              <Box sx={{ flex: 1, minHeight: 80 }}>
-                <ResponsiveContainer width="100%" height="100%" minHeight={80}>
+              <Box sx={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={byStatus}
                       cx="50%"
                       cy="50%"
-                      innerRadius={40}
-                      outerRadius={65}
+                      innerRadius="35%"
+                      outerRadius="60%"
                       paddingAngle={3}
                       dataKey="value"
                       nameKey="name"
@@ -150,10 +128,10 @@ const DashboardCharts: React.FC = () => {
       </Grid>
 
       {/* Revenue Overview (Bar) */}
-      <Grid item xs={12} md={4}>
-        <Card sx={{ height: CHART_HEIGHT }}>
+      <Grid item xs={12} md={4} sx={{ height: '100%' }}>
+        <Card sx={{ height: '100%' }}>
           <CardContent sx={{ p: 1.5, height: '100%', display: 'flex', flexDirection: 'column', '&:last-child': { pb: 1.5 } }}>
-            <Typography variant="subtitle2" sx={{ fontSize: '0.8125rem', fontWeight: 600, mb: 0.5 }}>
+            <Typography variant="subtitle2" sx={{ fontSize: '0.8125rem', fontWeight: 600, mb: 0.5, flexShrink: 0 }}>
               {t('dashboard.charts.revenueOverview')}
             </Typography>
             {monthlyFinancials.length === 0 ? (
@@ -163,8 +141,8 @@ const DashboardCharts: React.FC = () => {
                 </Typography>
               </Box>
             ) : (
-              <Box sx={{ flex: 1, minHeight: 80 }}>
-                <ResponsiveContainer width="100%" height="100%" minHeight={80}>
+              <Box sx={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={monthlyFinancials} margin={{ top: 5, right: 8, left: -15, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="month" tick={{ fontSize: 10 }} />
@@ -182,6 +160,8 @@ const DashboardCharts: React.FC = () => {
       </Grid>
     </Grid>
   );
-};
+});
+
+DashboardCharts.displayName = 'DashboardCharts';
 
 export default DashboardCharts;

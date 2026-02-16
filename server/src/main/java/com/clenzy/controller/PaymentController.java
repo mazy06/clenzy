@@ -288,6 +288,37 @@ public class PaymentController {
         }
     }
 
+    // ─── Remboursement ─────────────────────────────────────────────────────────
+
+    /**
+     * Rembourse un paiement via Stripe. Reservé aux ADMIN et MANAGER.
+     */
+    @PostMapping("/{interventionId}/refund")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<?> refundPayment(@PathVariable Long interventionId) {
+        try {
+            Intervention intervention = interventionRepository.findById(interventionId)
+                .orElseThrow(() -> new RuntimeException("Intervention non trouvée"));
+
+            if (intervention.getPaymentStatus() != PaymentStatus.PAID) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Seuls les paiements confirmés peuvent être remboursés. Statut actuel: " + intervention.getPaymentStatus()));
+            }
+
+            stripeService.refundPayment(interventionId);
+
+            return ResponseEntity.ok(Map.of("message", "Remboursement effectué avec succès"));
+        } catch (StripeException e) {
+            logger.error("Erreur Stripe lors du remboursement de l'intervention {}", interventionId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Erreur Stripe: " + e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Erreur lors du remboursement de l'intervention {}", interventionId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Erreur: " + e.getMessage()));
+        }
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────────
 
     private User resolveCurrentUser(Jwt jwt) {

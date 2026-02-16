@@ -23,12 +23,12 @@ type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
 const quickActionButtonSx = {
   justifyContent: 'flex-start',
   textAlign: 'left',
-  py: 0.5,
+  py: 0.25,
   px: 1,
   borderRadius: 1,
   borderWidth: 1,
   fontSize: '0.75rem',
-  minHeight: 32,
+  minHeight: 28,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
@@ -59,7 +59,7 @@ interface DashboardQuickActionsProps {
   t: TranslationFn;
 }
 
-const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
+const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = React.memo(({
   canViewProperties,
   canViewServiceRequests,
   canViewInterventions,
@@ -84,7 +84,7 @@ const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
           {t('dashboard.quickActions')}
         </Typography>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, overflow: 'auto' }}>
           {canViewProperties && (
             <Button
               variant="outlined"
@@ -208,6 +208,8 @@ const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+DashboardQuickActions.displayName = 'DashboardQuickActions';
 
 export default DashboardQuickActions;

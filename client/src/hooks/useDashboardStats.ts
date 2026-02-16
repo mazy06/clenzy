@@ -167,7 +167,7 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
   // Charger les statistiques des propriétés
   const loadPropertiesStats = async (): Promise<{ active: number; total: number; previous: number }> => {
     try {
-      const data = await apiClient.get<PaginatedResponse<ApiProperty> | ApiProperty[]>('/properties');
+      const data = await apiClient.get<PaginatedResponse<ApiProperty> | ApiProperty[]>('/properties', { params: { size: 1000 } });
       const properties: ApiProperty[] = (data as PaginatedResponse<ApiProperty>).content || (data as ApiProperty[]) || [];
 
       // Compter les propriétés actives
@@ -192,7 +192,7 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
   // Charger les statistiques des demandes de service
   const loadServiceRequestsStats = async (): Promise<{ pending: number; total: number; previous: number }> => {
     try {
-      const data = await apiClient.get<PaginatedResponse<ApiServiceRequest> | ApiServiceRequest[]>('/service-requests');
+      const data = await apiClient.get<PaginatedResponse<ApiServiceRequest> | ApiServiceRequest[]>('/service-requests', { params: { size: 1000 } });
       const requests: ApiServiceRequest[] = (data as PaginatedResponse<ApiServiceRequest>).content || (data as ApiServiceRequest[]) || [];
 
       // Compter les demandes en cours
@@ -219,7 +219,7 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
   // Charger les statistiques des interventions
   const loadInterventionsStats = async (): Promise<{ today: number; total: number; previous: number }> => {
     try {
-      const data = await apiClient.get<PaginatedResponse<ApiIntervention> | ApiIntervention[]>('/interventions');
+      const data = await apiClient.get<PaginatedResponse<ApiIntervention> | ApiIntervention[]>('/interventions', { params: { size: 1000 } });
       const interventions: ApiIntervention[] = (data as PaginatedResponse<ApiIntervention>).content || (data as ApiIntervention[]) || [];
 
       // Compter les interventions d'aujourd'hui
@@ -255,11 +255,11 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
     try {
       // Combiner les données des différents endpoints pour créer des activités
       const [propertiesData, requestsData, interventionsData, usersData, teamsData] = await Promise.all([
-        apiClient.get<PaginatedResponse<ApiProperty> | ApiProperty[]>('/properties').catch(() => null),
-        apiClient.get<PaginatedResponse<ApiServiceRequest> | ApiServiceRequest[]>('/service-requests').catch(() => null),
-        apiClient.get<PaginatedResponse<ApiIntervention> | ApiIntervention[]>('/interventions').catch(() => null),
-        apiClient.get<PaginatedResponse<ApiUser> | ApiUser[]>('/users').catch(() => null),
-        apiClient.get<PaginatedResponse<ApiTeam> | ApiTeam[]>('/teams').catch(() => null),
+        apiClient.get<PaginatedResponse<ApiProperty> | ApiProperty[]>('/properties', { params: { size: 1000 } }).catch(() => null),
+        apiClient.get<PaginatedResponse<ApiServiceRequest> | ApiServiceRequest[]>('/service-requests', { params: { size: 1000 } }).catch(() => null),
+        apiClient.get<PaginatedResponse<ApiIntervention> | ApiIntervention[]>('/interventions', { params: { size: 1000 } }).catch(() => null),
+        apiClient.get<PaginatedResponse<ApiUser> | ApiUser[]>('/users', { params: { size: 1000 } }).catch(() => null),
+        apiClient.get<PaginatedResponse<ApiTeam> | ApiTeam[]>('/teams', { params: { size: 1000 } }).catch(() => null),
       ]);
 
       const activities: ActivityItem[] = [];

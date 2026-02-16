@@ -2,37 +2,31 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Card,
-  CardContent,
   Grid,
-  TextField,
   Button,
   Alert,
   CircularProgress,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  Divider,
-  FormHelperText,
   IconButton
 } from '@mui/material';
 import {
-  Save as SaveIcon,
-  Cancel as CancelIcon,
   ArrowBack
 } from '@mui/icons-material';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { interventionSchema, type InterventionFormValues } from '../../schemas';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi, propertiesApi, usersApi, teamsApi } from '../../services/api';
 import apiClient from '../../services/apiClient';
-import { InterventionType, INTERVENTION_TYPE_OPTIONS, InterventionTypeUtils } from '../../types/interventionTypes';
-import { InterventionStatus, INTERVENTION_STATUS_OPTIONS, Priority, PRIORITY_OPTIONS } from '../../types/statusEnums';
+import { extractApiList } from '../../types';
+import type { Intervention } from '../../types';
+import { InterventionType } from '../../types/interventionTypes';
+import { InterventionStatus, Priority } from '../../types/statusEnums';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
+import InterventionFormMainInfo from './InterventionFormMainInfo';
+import InterventionFormPropertyRequestor from './InterventionFormPropertyRequestor';
+import InterventionFormAssignment from './InterventionFormAssignment';
+import InterventionFormCostsNotes from './InterventionFormCostsNotes';
 
 // Exported for backward compatibility
 export interface InterventionFormData {
@@ -80,22 +74,6 @@ interface Team {
   interventionType: string;
 }
 
-const interventionTypes = INTERVENTION_TYPE_OPTIONS.map(option => ({
-  value: option.value,
-  label: option.label
-}));
-
-// Utilisation des enums partages
-const statuses = INTERVENTION_STATUS_OPTIONS.map(option => ({
-  value: option.value,
-  label: option.label
-}));
-
-const priorities = PRIORITY_OPTIONS.map(option => ({
-  value: option.value,
-  label: option.label
-}));
-
 interface InterventionFormProps {
   onClose?: () => void;
   onSuccess?: () => void;
@@ -141,8 +119,9 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   const [scheduledDatePart, setScheduledDatePart] = useState('');
   const [scheduledTimePart, setScheduledTimePart] = useState('11:00');
 
-  const { control, handleSubmit: rhfHandleSubmit, watch, setValue, reset } = useForm<InterventionFormValues>({
-    resolver: zodResolver(interventionSchema) as any,
+  const { control, handleSubmit: rhfHandleSubmit, watch, setValue, reset, formState: { errors } } = useForm<InterventionFormValues>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(interventionSchema) as any, // zodResolver type mismatch with react-hook-form
     defaultValues: {
       title: '',
       description: '',
@@ -215,19 +194,14 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
         ]);
 
         // Charger l'intervention separement en mode edit
-        let interventionData: any = null;
+        let interventionData: Intervention | null = null;
         if (isEditMode && interventionId) {
           interventionData = await interventionsApi.getById(interventionId);
         }
 
-        const propertiesList = (propertiesData as any)?.content || propertiesData;
-        setProperties(propertiesList);
-
-        const usersList = (usersData as any)?.content || usersData;
-        setUsers(usersList);
-
-        const teamsList = (teamsData as any)?.content || teamsData;
-        setTeams(teamsList);
+        setProperties(extractApiList(propertiesData));
+        setUsers(extractApiList(usersData));
+        setTeams(extractApiList(teamsData));
 
         // In edit mode, populate the form with existing intervention data
         if (isEditMode && interventionData) {
@@ -305,7 +279,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
     try {
       if (isEditMode && interventionId) {
         // ── Edit mode: update the existing intervention ──
-        await interventionsApi.update(interventionId, formData as any);
+        await interventionsApi.update(interventionId, formData);
 
         if (onSuccess) {
           onSuccess();
@@ -314,7 +288,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
         }
       } else {
         // ── Create mode: create a new intervention ──
-        const savedIntervention = await interventionsApi.create(formData as any);
+        const savedIntervention = await interventionsApi.create(formData);
 
         // Si un cout estime est defini ET que ce n'est pas un HOST, creer une session de paiement
         // Les HOST ne paient pas directement, ils attendent la validation du manager
@@ -389,447 +363,45 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
       <form onSubmit={rhfHandleSubmit(onSubmit)} id="intervention-form">
         <Grid container spacing={2}>
           {/* Informations principales */}
-          <Grid item xs={12} md={8}>
-            <Card>
-              <CardContent sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
-                  {t('interventions.sections.mainInfo')}
-                </Typography>
-
-                <Grid container spacing={1.5}>
-                  <Grid item xs={12}>
-                    <Controller
-                      name="title"
-                      control={control}
-                      render={({ field, fieldState }) => (
-                        <TextField
-                          {...field}
-                          fullWidth
-                          label={t('interventions.fields.title')}
-                          required
-                          error={!!fieldState.error}
-                          helperText={fieldState.error?.message}
-                          size="small"
-                        />
-                      )}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <Controller
-                      name="description"
-                      control={control}
-                      render={({ field, fieldState }) => (
-                        <TextField
-                          {...field}
-                          fullWidth
-                          label={t('interventions.fields.description')}
-                          multiline
-                          rows={3}
-                          required
-                          error={!!fieldState.error}
-                          helperText={fieldState.error?.message}
-                          size="small"
-                        />
-                      )}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={6}>
-                    <Controller
-                      name="type"
-                      control={control}
-                      render={({ field, fieldState }) => (
-                        <FormControl fullWidth required error={!!fieldState.error}>
-                          <InputLabel>{t('interventions.fields.interventionType')}</InputLabel>
-                          <Select
-                            {...field}
-                            label={t('interventions.fields.interventionType')}
-                            size="small"
-                          >
-                            {interventionTypes.map((type) => {
-                              const typeOption = INTERVENTION_TYPE_OPTIONS.find(option => option.value === type.value);
-                              const IconComponent = typeOption?.icon;
-
-                              return (
-                                <MenuItem key={type.value} value={type.value}>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                                    {IconComponent && <IconComponent sx={{ fontSize: 18 }} />}
-                                    <Typography variant="body2">{type.label}</Typography>
-                                  </Box>
-                                </MenuItem>
-                              );
-                            })}
-                          </Select>
-                          {fieldState.error && (
-                            <FormHelperText>{fieldState.error.message}</FormHelperText>
-                          )}
-                        </FormControl>
-                      )}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={6}>
-                    <Controller
-                      name="status"
-                      control={control}
-                      render={({ field, fieldState }) => (
-                        <FormControl fullWidth required error={!!fieldState.error}>
-                          <InputLabel>{t('interventions.fields.status')}</InputLabel>
-                          <Select
-                            {...field}
-                            label={t('interventions.fields.status')}
-                            size="small"
-                          >
-                            {statuses.map((status) => (
-                              <MenuItem key={status.value} value={status.value}>
-                                {status.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                          {fieldState.error && (
-                            <FormHelperText>{fieldState.error.message}</FormHelperText>
-                          )}
-                        </FormControl>
-                      )}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} sm={6}>
-                    <Controller
-                      name="priority"
-                      control={control}
-                      render={({ field, fieldState }) => (
-                        <FormControl fullWidth required error={!!fieldState.error}>
-                          <InputLabel>{t('interventions.fields.priority')}</InputLabel>
-                          <Select
-                            {...field}
-                            label={t('interventions.fields.priority')}
-                            size="small"
-                          >
-                            {priorities.map((priority) => (
-                              <MenuItem key={priority.value} value={priority.value}>
-                                {priority.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                          {fieldState.error && (
-                            <FormHelperText>{fieldState.error.message}</FormHelperText>
-                          )}
-                        </FormControl>
-                      )}
-                    />
-                  </Grid>
-
-                  {/* Date planifiée (date seule) */}
-                  <Grid item xs={12} sm={4}>
-                    <TextField
-                      fullWidth
-                      label={t('interventions.fields.scheduledDate')}
-                      type="date"
-                      required
-                      value={scheduledDatePart}
-                      onChange={(e) => setScheduledDatePart(e.target.value)}
-                      size="small"
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Grid>
-
-                  {/* Heure de début */}
-                  <Grid item xs={6} sm={4}>
-                    <TextField
-                      fullWidth
-                      label="Heure"
-                      type="time"
-                      required
-                      value={scheduledTimePart}
-                      onChange={(e) => setScheduledTimePart(e.target.value)}
-                      size="small"
-                      InputLabelProps={{ shrink: true }}
-                      inputProps={{ step: 900 }}
-                      helperText={
-                        (() => {
-                          const sel = properties.find(p => p.id === watchedPropertyId);
-                          return sel?.defaultCheckOutTime ? `Défaut : ${sel.defaultCheckOutTime}` : undefined;
-                        })()
-                      }
-                    />
-                  </Grid>
-
-                  {/* Durée estimée (fractionnaire) */}
-                  <Grid item xs={6} sm={4}>
-                    <Controller
-                      name="estimatedDurationHours"
-                      control={control}
-                      render={({ field, fieldState }) => (
-                        <TextField
-                          {...field}
-                          fullWidth
-                          label={t('interventions.fields.estimatedDuration')}
-                          type="number"
-                          required
-                          error={!!fieldState.error}
-                          helperText={fieldState.error?.message || 'En heures (ex: 1.5 = 1h30)'}
-                          inputProps={{ min: 0.5, max: 24, step: 0.5 }}
-                          size="small"
-                          onChange={(e) => field.onChange(Number(e.target.value))}
-                        />
-                      )}
-                    />
-                  </Grid>
-
-                  {/* Hidden field for react-hook-form scheduledDate */}
-                  <Controller
-                    name="scheduledDate"
-                    control={control}
-                    render={({ field }) => (
-                      <input type="hidden" {...field} />
-                    )}
-                  />
-
-                  <Grid item xs={12} sm={6}>
-                    <Controller
-                      name="progressPercentage"
-                      control={control}
-                      render={({ field, fieldState }) => (
-                        <TextField
-                          {...field}
-                          fullWidth
-                          label={t('interventions.fields.initialProgress')}
-                          type="number"
-                          error={!!fieldState.error}
-                          helperText={fieldState.error?.message}
-                          inputProps={{ min: 0, max: 100 }}
-                          size="small"
-                          onChange={(e) => field.onChange(Number(e.target.value))}
-                        />
-                      )}
-                    />
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
+          <InterventionFormMainInfo
+            control={control}
+            errors={errors}
+            scheduledDatePart={scheduledDatePart}
+            scheduledTimePart={scheduledTimePart}
+            setScheduledDatePart={setScheduledDatePart}
+            setScheduledTimePart={setScheduledTimePart}
+            properties={properties}
+            watchedPropertyId={watchedPropertyId}
+          />
 
           {/* Informations secondaires */}
           <Grid item xs={12} md={4}>
             {/* Propriete et demandeur */}
-            <Card sx={{ mb: 1.5 }}>
-              <CardContent sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
-                  {t('interventions.sections.propertyRequestor')}
-                </Typography>
-
-                <Controller
-                  name="propertyId"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <FormControl fullWidth required sx={{ mb: 1.5 }} error={!!fieldState.error}>
-                      <InputLabel>{t('interventions.fields.property')}</InputLabel>
-                      <Select
-                        {...field}
-                        label={t('interventions.fields.property')}
-                        size="small"
-                      >
-                        {properties.map((property) => (
-                          <MenuItem key={property.id} value={property.id}>
-                            <Typography variant="body2">{property.name} - {property.address}, {property.city}</Typography>
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
-                  )}
-                />
-
-                <Controller
-                  name="requestorId"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <FormControl fullWidth required error={!!fieldState.error}>
-                      <InputLabel>{t('interventions.fields.requestor')}</InputLabel>
-                      <Select
-                        {...field}
-                        label={t('interventions.fields.requestor')}
-                        disabled={!isAdmin() && !isManager()}
-                        size="small"
-                      >
-                        {users.map((user) => (
-                          <MenuItem key={user.id} value={user.id}>
-                            <Typography variant="body2">{user.firstName} {user.lastName} ({user.email})</Typography>
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {!isAdmin() && !isManager() && (
-                        <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                          {t('interventions.fields.requestorHelper')}
-                        </FormHelperText>
-                      )}
-                      {fieldState.error && (
-                        <FormHelperText>{fieldState.error.message}</FormHelperText>
-                      )}
-                    </FormControl>
-                  )}
-                />
-              </CardContent>
-            </Card>
+            <InterventionFormPropertyRequestor
+              control={control}
+              errors={errors}
+              properties={properties}
+              users={users}
+              isAdmin={isAdmin}
+              isManager={isManager}
+            />
 
             {/* Assignation */}
-            <Card sx={{ mb: 1.5 }}>
-              <CardContent sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
-                  {t('interventions.sections.assignment')}
-                </Typography>
+            <InterventionFormAssignment
+              control={control}
+              errors={errors}
+              setValue={setValue}
+              users={users}
+              teams={teams}
+              watchedAssignedToType={watchedAssignedToType}
+            />
 
-                <Controller
-                  name="assignedToType"
-                  control={control}
-                  render={({ field }) => (
-                    <FormControl fullWidth sx={{ mb: 1.5 }}>
-                      <InputLabel>{t('interventions.fields.assignmentType')}</InputLabel>
-                      <Select
-                        value={field.value || ''}
-                        onChange={(e) => {
-                          const val = e.target.value as 'user' | 'team' | '';
-                          field.onChange(val || undefined);
-                          setValue('assignedToId', undefined);
-                        }}
-                        label={t('interventions.fields.assignmentType')}
-                        size="small"
-                      >
-                        <MenuItem value="">{t('interventions.fields.noAssignment')}</MenuItem>
-                        <MenuItem value="user">{t('interventions.fields.user')}</MenuItem>
-                        <MenuItem value="team">{t('interventions.fields.team')}</MenuItem>
-                      </Select>
-                    </FormControl>
-                  )}
-                />
-
-                {watchedAssignedToType === 'user' && (
-                  <Controller
-                    name="assignedToId"
-                    control={control}
-                    render={({ field }) => (
-                      <FormControl fullWidth>
-                        <InputLabel>{t('interventions.fields.assignedUser')}</InputLabel>
-                        <Select
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                          label={t('interventions.fields.assignedUser')}
-                          size="small"
-                        >
-                          {users.filter(user => ['TECHNICIAN', 'SUPERVISOR', 'MANAGER'].includes(user.role)).map((user) => (
-                            <MenuItem key={user.id} value={user.id}>
-                              <Typography variant="body2">{user.firstName} {user.lastName} ({user.role})</Typography>
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    )}
-                  />
-                )}
-
-                {watchedAssignedToType === 'team' && (
-                  <Controller
-                    name="assignedToId"
-                    control={control}
-                    render={({ field }) => (
-                      <FormControl fullWidth>
-                        <InputLabel>{t('interventions.fields.assignedTeam')}</InputLabel>
-                        <Select
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                          label={t('interventions.fields.assignedTeam')}
-                          size="small"
-                        >
-                          {teams.map((team) => (
-                            <MenuItem key={team.id} value={team.id}>
-                              <Typography variant="body2">{team.name} ({team.interventionType})</Typography>
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    )}
-                  />
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Couts - Seulement pour les admins et managers, pas pour les HOST */}
-            {!isHost() && (
-              <Card>
-                <CardContent sx={{ p: 2 }}>
-                  <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
-                    {t('interventions.sections.costs')}
-                  </Typography>
-
-                  <Controller
-                    name="estimatedCost"
-                    control={control}
-                    render={({ field, fieldState }) => (
-                      <TextField
-                        fullWidth
-                        label={t('interventions.fields.estimatedCost')}
-                        type="number"
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                        error={!!fieldState.error}
-                        helperText={fieldState.error?.message}
-                        inputProps={{ min: 0, step: 0.01 }}
-                        size="small"
-                      />
-                    )}
-                  />
-                </CardContent>
-              </Card>
-            )}
-          </Grid>
-
-          {/* Notes et photos */}
-          <Grid item xs={12}>
-            <Card>
-              <CardContent sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
-                  {t('interventions.sections.notesPhotos')}
-                </Typography>
-
-                <Controller
-                  name="notes"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={t('interventions.fields.notes')}
-                      multiline
-                      rows={3}
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message}
-                      sx={{ mb: 1.5 }}
-                      size="small"
-                    />
-                  )}
-                />
-
-                <Controller
-                  name="photos"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label={t('interventions.fields.photosUrl')}
-                      placeholder={t('interventions.fields.photosUrlPlaceholder')}
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message}
-                      size="small"
-                    />
-                  )}
-                />
-              </CardContent>
-            </Card>
+            {/* Couts et Notes/Photos */}
+            <InterventionFormCostsNotes
+              control={control}
+              errors={errors}
+              isHost={isHost}
+            />
           </Grid>
         </Grid>
 

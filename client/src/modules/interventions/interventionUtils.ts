@@ -1,3 +1,14 @@
+// Re-export shared utilities for backward compatibility
+export {
+  getInterventionStatusColor as getStatusColor,
+  getInterventionStatusLabel as getStatusLabel,
+  getInterventionPriorityColor as getPriorityColor,
+  getInterventionPriorityLabel as getPriorityLabel,
+  getInterventionTypeLabel as getTypeLabel,
+  type ChipColor,
+} from '../../utils/statusUtils';
+export { formatDateTime as formatDate, formatDuration } from '../../utils/formatUtils';
+
 // Types
 export interface InterventionDetailsData {
   id: number;
@@ -37,8 +48,6 @@ export interface InterventionDetailsData {
   paymentStatus?: string;
 }
 
-export type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
-
 export interface PropertyDetails {
   bedroomCount?: number;
   bathroomCount?: number;
@@ -56,81 +65,7 @@ export interface StepNotes {
   after_photos?: string;
 }
 
-// Utility functions
-export const getStatusColor = (status: string): ChipColor => {
-  switch (status) {
-    case 'PENDING': return 'warning';
-    case 'IN_PROGRESS': return 'info';
-    case 'COMPLETED': return 'success';
-    case 'CANCELLED': return 'error';
-    default: return 'default';
-  }
-};
-
-export const getStatusLabel = (status: string) => {
-  switch (status) {
-    case 'PENDING': return 'En attente';
-    case 'IN_PROGRESS': return 'En cours';
-    case 'COMPLETED': return 'Terminé';
-    case 'CANCELLED': return 'Annulé';
-    default: return status;
-  }
-};
-
-export const getPriorityColor = (priority: string): ChipColor => {
-  switch (priority) {
-    case 'LOW': return 'success';
-    case 'NORMAL': return 'info';
-    case 'HIGH': return 'warning';
-    case 'URGENT': return 'error';
-    default: return 'default';
-  }
-};
-
-export const getPriorityLabel = (priority: string) => {
-  switch (priority) {
-    case 'LOW': return 'Basse';
-    case 'NORMAL': return 'Normale';
-    case 'HIGH': return 'Haute';
-    case 'URGENT': return 'Urgente';
-    default: return priority;
-  }
-};
-
-export const getTypeLabel = (type: string) => {
-  switch (type) {
-    case 'CLEANING': return 'Nettoyage';
-    case 'EXPRESS_CLEANING': return 'Nettoyage Express';
-    case 'DEEP_CLEANING': return 'Nettoyage en Profondeur';
-    case 'WINDOW_CLEANING': return 'Nettoyage des Vitres';
-    case 'FLOOR_CLEANING': return 'Nettoyage des Sols';
-    case 'KITCHEN_CLEANING': return 'Nettoyage de la Cuisine';
-    case 'BATHROOM_CLEANING': return 'Nettoyage des Sanitaires';
-    case 'PREVENTIVE_MAINTENANCE': return 'Maintenance Préventive';
-    case 'EMERGENCY_REPAIR': return 'Réparation d\'Urgence';
-    case 'ELECTRICAL_REPAIR': return 'Réparation Électrique';
-    case 'PLUMBING_REPAIR': return 'Réparation Plomberie';
-    case 'HVAC_REPAIR': return 'Réparation Climatisation';
-    case 'INSPECTION': return 'Inspection';
-    default: return type;
-  }
-};
-
-export const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-export const formatDuration = (hours: number) => {
-  if (hours === 1) return '1 heure';
-  return `${hours} heures`;
-};
-
+// Local utility functions (not duplicated in shared utils)
 export const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',

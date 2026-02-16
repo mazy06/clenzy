@@ -31,9 +31,9 @@ interface DashboardStatsCardsProps {
   navigate: NavigateFunction;
 }
 
-const DashboardStatsCards: React.FC<DashboardStatsCardsProps> = ({ stats, loading, error, navigate }) => {
+const DashboardStatsCards: React.FC<DashboardStatsCardsProps> = React.memo(({ stats, loading, error, navigate }) => {
   return (
-    <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+    <Grid container spacing={1.5} sx={{ mb: 0.5 }}>
       {loading ? (
         Array.from({ length: 4 }).map((_, index) => (
           <Grid item xs={6} sm={6} md={3} key={index}>
@@ -70,7 +70,7 @@ const DashboardStatsCards: React.FC<DashboardStatsCardsProps> = ({ stats, loadin
               }}
             >
               <CardActionArea onClick={() => navigate(stat.route)}>
-                <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+                <CardContent sx={{ p: 1, '&:last-child': { pb: 1 } }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {/* Icone */}
                     <Box
@@ -151,6 +151,8 @@ const DashboardStatsCards: React.FC<DashboardStatsCardsProps> = ({ stats, loadin
       )}
     </Grid>
   );
-};
+});
+
+DashboardStatsCards.displayName = 'DashboardStatsCards';
 
 export default DashboardStatsCards;

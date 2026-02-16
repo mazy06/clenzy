@@ -4,25 +4,15 @@ import {
   Typography,
   Paper,
   IconButton,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   CircularProgress,
   Alert,
   Tooltip,
-  Switch,
-  FormControlLabel,
   useTheme,
   useMediaQuery,
-  ToggleButton,
-  ToggleButtonGroup,
 } from '@mui/material';
 import {
   ChevronLeft,
   ChevronRight,
-  Today as TodayIcon,
   Home,
   CleaningServices,
   Build,
@@ -30,6 +20,8 @@ import {
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useDashboardPlanning } from '../../hooks/useDashboardPlanning';
+import PlanningToolbar from './PlanningToolbar';
+import type { ZoomLevel } from './PlanningToolbar';
 import type { Reservation, ReservationStatus, PlanningIntervention, PlanningInterventionType } from '../../services/api';
 import {
   RESERVATION_STATUS_COLORS,
@@ -53,8 +45,6 @@ const HOUR_RANGE_START = 0;
 const HOUR_RANGE_END = 24;
 const TOTAL_HOURS = HOUR_RANGE_END - HOUR_RANGE_START; // 24
 
-type ZoomLevel = 'compact' | 'standard' | 'detailed';
-
 const ZOOM_CONFIG: Record<ZoomLevel, { dayWidth: number; marks: number[]; label: string }> = {
   compact:  { dayWidth: 38,  marks: [], label: 'J' },
   standard: { dayWidth: 136, marks: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], label: '1H' },
@@ -77,6 +67,22 @@ const INTERVENTION_FILTER_OPTIONS: { value: PlanningInterventionType | 'all'; la
   { value: 'cleaning', label: 'Menage' },
   { value: 'maintenance', label: 'Maintenance' },
 ];
+
+// ─── Stable sx objects (avoid re-creation on every render) ──────────────────
+
+const SX_LOADING = { display: 'flex', justifyContent: 'center', py: 6 } as const;
+const SX_ERROR = { mb: 2 } as const;
+const SX_ROOT = { display: 'flex', flexDirection: 'column', height: '100%' } as const;
+const SX_GRID_PAPER = { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' } as const;
+const SX_SCROLL_CONTAINER = { flex: 1, overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' } as const;
+const SX_MONTH_HEADER_ROW = { display: 'flex', position: 'sticky', top: 0, zIndex: 5, backgroundColor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' } as const;
+const SX_MONTH_HEADER_SPACER = { width: PROPERTY_COL_WIDTH, minWidth: PROPERTY_COL_WIDTH, flexShrink: 0, position: 'sticky', left: 0, zIndex: 6, backgroundColor: 'background.paper', borderRight: '1px solid', borderColor: 'divider' } as const;
+const SX_GRAD_SPACER = { width: PROPERTY_COL_WIDTH, minWidth: PROPERTY_COL_WIDTH, flexShrink: 0, position: 'sticky', left: 0, zIndex: 4, backgroundColor: 'background.paper', borderRight: '1px solid', borderColor: 'divider', height: GRADUATION_ROW_HEIGHT } as const;
+const SX_LOADING_MORE = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, py: 0.5, borderTop: '1px solid', borderColor: 'divider', backgroundColor: 'action.hover', flexShrink: 0 } as const;
+const SX_PAGINATION = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, py: 0.5, borderTop: '1px solid', borderColor: 'divider', backgroundColor: 'background.paper', flexShrink: 0 } as const;
+const SX_PROPERTY_NAME = { fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as const;
+const SX_PROPERTY_OWNER = { fontSize: '0.625rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'primary.main', fontWeight: 500 } as const;
+const SX_PROPERTY_CITY = { fontSize: '0.625rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -113,35 +119,16 @@ function getHourOffsetPx(timeStr: string | undefined, dayColWidth: number): numb
 const WEEKDAY_SHORT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 const MONTH_SHORT = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// ─── Hook: mesure dynamique de la largeur du conteneur ──────────────────────
+// ─── Hook: ref callback for container ───────────────────────────────────────
+// Simple ref callback — no ResizeObserver needed (width is not used)
 
-function useContainerWidth(): [React.RefCallback<HTMLDivElement>, number] {
-  const [width, setWidth] = useState(0);
-  const observerRef = useRef<ResizeObserver | null>(null);
-
+function useContainerRef(): React.RefCallback<HTMLDivElement> {
   const refCallback = useCallback((node: HTMLDivElement | null) => {
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-      observerRef.current = null;
-    }
-    if (node) {
-      setWidth(node.getBoundingClientRect().width);
-      observerRef.current = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          setWidth(entry.contentRect.width);
-        }
-      });
-      observerRef.current.observe(node);
-    }
+    // Placeholder — only used as a ref for the container Paper.
+    // No resize observation needed since the grid width is computed from days[].
+    void node;
   }, []);
-
-  useEffect(() => {
-    return () => {
-      if (observerRef.current) observerRef.current.disconnect();
-    };
-  }, []);
-
-  return [refCallback, width];
+  return refCallback;
 }
 
 // ─── Compute month separators for header ────────────────────────────────────
@@ -192,6 +179,25 @@ function buildHourTickGradient(zoomLevel: ZoomLevel, darkMode: boolean): string 
   return `linear-gradient(to right, ${stops.join(', ')})`;
 }
 
+/** CSS gradient for the graduation header row — stronger tick marks, zero DOM overhead */
+function buildGraduationTickGradient(zoomLevel: ZoomLevel, darkMode: boolean, isToday: boolean): string {
+  const marks = ZOOM_CONFIG[zoomLevel].marks;
+  if (marks.length === 0) return 'none';
+  const stops = marks.map((h) => {
+    const pct = ((h - HOUR_RANGE_START) / TOTAL_HOURS) * 100;
+    const isHalfHour = !Number.isInteger(h);
+    const color = isToday
+      ? (isHalfHour ? 'rgba(25,118,210,0.2)' : 'rgba(25,118,210,0.4)')
+      : (h === 12
+        ? 'rgba(25,118,210,0.25)'
+        : isHalfHour
+          ? (darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
+          : (darkMode ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.15)'));
+    return `transparent calc(${pct}% - 0.5px), ${color} calc(${pct}% - 0.5px), ${color} calc(${pct}% + 0.5px), transparent calc(${pct}% + 0.5px)`;
+  });
+  return `linear-gradient(to right, ${stops.join(', ')})`;
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 interface DashboardPlanningProps {
@@ -226,13 +232,21 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
     filteredInterventions,
   } = useDashboardPlanning();
 
-  const today = useMemo(() => new Date(), []);
+  // Stable "today" that only changes when the calendar day changes
+  const todayKey = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const today = useMemo(() => new Date(), [todayKey]);
 
   // ─── Zoom level ──────────────────────────────────────────────────────────
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>(isMobile ? 'compact' : 'standard');
   const dayColWidth = ZOOM_CONFIG[zoomLevel].dayWidth;
   const hourTickGradient = useMemo(() => buildHourTickGradient(zoomLevel, isDark), [zoomLevel, isDark]);
   const hasGraduation = ZOOM_CONFIG[zoomLevel].marks.length > 0;
+  const graduationGradient = useMemo(() => buildGraduationTickGradient(zoomLevel, isDark, false), [zoomLevel, isDark]);
+  const graduationGradientToday = useMemo(() => buildGraduationTickGradient(zoomLevel, isDark, true), [zoomLevel, isDark]);
 
   // ─── Compute sticky top offsets for header rows ────────────────────────
   const monthRowHeight = 24;
@@ -313,8 +327,14 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
     const visibleDay = currentDays[clampedIndex];
     if (visibleDay) {
       const key = `${visibleDay.getFullYear()}-${String(visibleDay.getMonth() + 1).padStart(2, '0')}`;
-      setVisibleMonthKey(key);
-      setVisibleMonth(new Date(visibleDay.getFullYear(), visibleDay.getMonth(), 1));
+      // Only update state if month actually changed — avoids unnecessary re-renders during scroll
+      setVisibleMonthKey((prev) => prev === key ? prev : key);
+      setVisibleMonth((prev) => {
+        if (prev && prev.getFullYear() === visibleDay.getFullYear() && prev.getMonth() === visibleDay.getMonth()) {
+          return prev;
+        }
+        return new Date(visibleDay.getFullYear(), visibleDay.getMonth(), 1);
+      });
     }
   }, [dayColWidth]);
 
@@ -368,11 +388,17 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
     }
   }, [handleGridScroll]);
 
-  // ─── Mesure dynamique de la largeur ─────────────────────────────────────
-  const [containerRef] = useContainerWidth();
+  // ─── Ref pour le container ──────────────────────────────────────────────
+  const containerRef = useContainerRef();
 
   const gridWidth = PROPERTY_COL_WIDTH + days.length * dayColWidth;
   const monthSeparators = useMemo(() => computeMonthSeparators(days), [days]);
+
+  // ─── Go-today handler (combines ref reset + navigation) ──────────────────
+  const handleGoToday = useCallback(() => {
+    hasScrolledToTodayRef.current = false;
+    goToday();
+  }, [goToday]);
 
   // ─── Group data by property ─────────────────────────────────────────────
   const reservationsByProperty = useMemo(() => {
@@ -424,150 +450,38 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
   // ─── Loading / Error ────────────────────────────────────────────────────
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+      <Box sx={SX_LOADING}>
         <CircularProgress size={32} />
       </Box>
     );
   }
 
   if (error) {
-    return <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>;
+    return <Alert severity="error" sx={SX_ERROR}>{error}</Alert>;
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <Box sx={SX_ROOT}>
       {/* ─── Toolbar ─────────────────────────────────────────────────────── */}
-      <Paper sx={{ p: 1, mb: 1, flexShrink: 0 }}>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
-
-          {/* Zoom toggle */}
-          <ToggleButtonGroup
-            value={zoomLevel}
-            exclusive
-            onChange={(_, v) => v && setZoomLevel(v as ZoomLevel)}
-            size="small"
-            sx={{ '& .MuiToggleButton-root': { py: 0.25, px: 0.75, fontSize: '0.6875rem', textTransform: 'none' } }}
-          >
-            <ToggleButton value="compact">
-              <Tooltip title="Jours"><Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>J</Typography></Tooltip>
-            </ToggleButton>
-            <ToggleButton value="standard">
-              <Tooltip title="1 heure"><Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>1H</Typography></Tooltip>
-            </ToggleButton>
-            <ToggleButton value="detailed">
-              <Tooltip title="30 minutes"><Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>30m</Typography></Tooltip>
-            </ToggleButton>
-          </ToggleButtonGroup>
-
-          {/* Navigation */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-            <IconButton size="small" onClick={goPrev}>
-              <ChevronLeft sx={{ fontSize: 20 }} />
-            </IconButton>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<TodayIcon sx={{ fontSize: 14 }} />}
-              onClick={() => { hasScrolledToTodayRef.current = false; goToday(); }}
-              sx={{ textTransform: 'none', fontSize: '0.75rem', px: 1, py: 0.25, minWidth: 'auto' }}
-            >
-              {t('dashboard.planning.today') || "Aujourd'hui"}
-            </Button>
-            <IconButton size="small" onClick={goNext}>
-              <ChevronRight sx={{ fontSize: 20 }} />
-            </IconButton>
-          </Box>
-
-          {/* Title */}
-          <Typography variant="subtitle2" fontWeight={600} sx={{ fontSize: '0.8125rem', textTransform: 'capitalize' }}>
-            {titleText}
-          </Typography>
-
-          <Box sx={{ flex: 1 }} />
-
-          {/* Stats */}
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
-            {visibleReservationCount} resa
-            {showInterventions && <> &middot; {visibleInterventionCount} inter.</>}
-            {' \u00B7 '}
-            {properties.length} logement{properties.length > 1 ? 's' : ''}
-          </Typography>
-
-          {/* Legend */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-            <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
-              Resa :
-            </Typography>
-            {STATUS_FILTER_OPTIONS.filter((s) => s.value !== 'all').map((opt) => (
-              <Box key={opt.value} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: RESERVATION_STATUS_COLORS[opt.value as ReservationStatus], flexShrink: 0 }} />
-                <Typography variant="caption" sx={{ fontSize: '0.5625rem', color: RESERVATION_STATUS_COLORS[opt.value as ReservationStatus], fontWeight: 600 }}>
-                  {opt.label}
-                </Typography>
-              </Box>
-            ))}
-            {showInterventions && (
-              <>
-                <Box sx={{ width: '1px', height: 12, backgroundColor: 'divider', mx: 0.25 }} />
-                <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
-                  Inter. :
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                  <CleaningServices sx={{ fontSize: 10, color: INTERVENTION_TYPE_COLORS.cleaning }} />
-                  <Typography variant="caption" sx={{ fontSize: '0.5625rem', color: INTERVENTION_TYPE_COLORS.cleaning, fontWeight: 600 }}>
-                    {INTERVENTION_TYPE_LABELS.cleaning}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                  <Build sx={{ fontSize: 10, color: INTERVENTION_TYPE_COLORS.maintenance }} />
-                  <Typography variant="caption" sx={{ fontSize: '0.5625rem', color: INTERVENTION_TYPE_COLORS.maintenance, fontWeight: 600 }}>
-                    {INTERVENTION_TYPE_LABELS.maintenance}
-                  </Typography>
-                </Box>
-              </>
-            )}
-          </Box>
-
-          {/* Intervention toggle */}
-          <FormControlLabel
-            control={<Switch size="small" checked={showInterventions} onChange={(e) => setShowInterventions(e.target.checked)} />}
-            label={<Typography variant="caption" sx={{ fontSize: '0.6875rem' }}>Interventions</Typography>}
-            sx={{ mr: 0, ml: 0 }}
-          />
-
-          {/* Intervention type filter */}
-          {showInterventions && (
-            <FormControl size="small" sx={{ minWidth: 100 }}>
-              <InputLabel sx={{ fontSize: '0.75rem' }}>Type</InputLabel>
-              <Select
-                value={interventionTypeFilter}
-                label="Type"
-                onChange={(e) => setInterventionTypeFilter(e.target.value as PlanningInterventionType | 'all')}
-                sx={{ fontSize: '0.75rem', '& .MuiSelect-select': { py: 0.5 } }}
-              >
-                {INTERVENTION_FILTER_OPTIONS.map((opt) => (
-                  <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.75rem' }}>{opt.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
-
-          {/* Status filter */}
-          <FormControl size="small" sx={{ minWidth: 110 }}>
-            <InputLabel sx={{ fontSize: '0.75rem' }}>Statut</InputLabel>
-            <Select
-              value={statusFilter}
-              label="Statut"
-              onChange={(e) => setStatusFilter(e.target.value as ReservationStatus | 'all')}
-              sx={{ fontSize: '0.75rem', '& .MuiSelect-select': { py: 0.5 } }}
-            >
-              {STATUS_FILTER_OPTIONS.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.75rem' }}>{opt.label}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
-      </Paper>
+      <PlanningToolbar
+        zoomLevel={zoomLevel}
+        onZoomChange={setZoomLevel}
+        onGoPrev={goPrev}
+        onGoToday={handleGoToday}
+        onGoNext={goNext}
+        titleText={titleText}
+        visibleReservationCount={visibleReservationCount}
+        visibleInterventionCount={visibleInterventionCount}
+        propertyCount={properties.length}
+        showInterventions={showInterventions}
+        onShowInterventionsChange={setShowInterventions}
+        interventionTypeFilter={interventionTypeFilter}
+        onInterventionTypeFilterChange={setInterventionTypeFilter}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        statusFilterOptions={STATUS_FILTER_OPTIONS}
+        interventionFilterOptions={INTERVENTION_FILTER_OPTIONS}
+      />
 
       {/* ─── Grid content ───────────────────────────────────────────────── */}
       {properties.length === 0 ? (
@@ -577,12 +491,10 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
               <LockIcon sx={{ fontSize: 28, color: 'primary.main' }} />
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem', color: 'text.primary', mb: 0.5 }}>
-              Planning non disponible avec le forfait Essentiel
+              {t('dashboard.planning.lockedTitle')}
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem', lineHeight: 1.6, maxWidth: 480, mx: 'auto' }}>
-              Votre forfait actuel ne permet pas l'acces au planning interactif ni a l'import
-              automatique de vos calendriers Airbnb, Booking et autres plateformes.
-              Passez au forfait Confort ou Premium pour debloquer cette fonctionnalite.
+              {t('dashboard.planning.lockedDescription')}
             </Typography>
           </Paper>
         ) : (
@@ -599,21 +511,21 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
       ) : (
         <Paper
           ref={containerRef}
-          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}
+          sx={SX_GRID_PAPER}
         >
           {/* Scrollable grid area */}
           <Box
             ref={scrollContainerRef}
             onScroll={handleGridScroll}
             onWheel={handleWheel}
-            sx={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' }}
+            sx={SX_SCROLL_CONTAINER}
           >
             <Box sx={{ width: gridWidth, position: 'relative' }}>
 
               {/* ─── Month header row ──────────────────────────────────── */}
               {monthSeparators.length > 1 && (
-                <Box sx={{ display: 'flex', position: 'sticky', top: 0, zIndex: 5, backgroundColor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' }}>
-                  <Box sx={{ width: PROPERTY_COL_WIDTH, minWidth: PROPERTY_COL_WIDTH, flexShrink: 0, position: 'sticky', left: 0, zIndex: 6, backgroundColor: 'background.paper', borderRight: '1px solid', borderColor: 'divider' }} />
+                <Box sx={SX_MONTH_HEADER_ROW}>
+                  <Box sx={SX_MONTH_HEADER_SPACER} />
                   {monthSeparators.map((sep) => (
                     <Box key={`${sep.year}-${sep.month}`} sx={{ width: sep.count * dayColWidth, textAlign: 'center', py: 0.25, borderRight: '2px solid', borderColor: 'primary.light', backgroundColor: 'background.paper' }}>
                       <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6875rem', textTransform: 'capitalize', color: 'primary.main' }}>
@@ -695,28 +607,19 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                   }}
                 >
                   {/* Property column spacer */}
-                  <Box
-                    sx={{
-                      width: PROPERTY_COL_WIDTH, minWidth: PROPERTY_COL_WIDTH, flexShrink: 0,
-                      position: 'sticky', left: 0, zIndex: 4,
-                      backgroundColor: 'background.paper', borderRight: '1px solid', borderColor: 'divider',
-                      height: GRADUATION_ROW_HEIGHT,
-                    }}
-                  />
+                  <Box sx={SX_GRAD_SPACER} />
 
-                  {/* Graduation tick marks per day (traits verticaux, sans labels) */}
+                  {/* Graduation tick marks per day — CSS gradient, zero DOM per tick */}
                   {days.map((day, idx) => {
                     const isToday = isSameDay(day, today);
                     const isPast = day < today && !isToday;
                     const isFirstOfMonth = day.getDate() === 1 && idx > 0;
-                    const hourMarks = ZOOM_CONFIG[zoomLevel].marks;
 
                     return (
                       <Box
                         key={`grad-${day.toISOString()}`}
                         sx={{
                           width: dayColWidth, minWidth: dayColWidth,
-                          position: 'relative',
                           height: GRADUATION_ROW_HEIGHT,
                           borderRight: '1px solid',
                           borderColor: isFirstOfMonth ? 'primary.light' : 'divider',
@@ -727,32 +630,9 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                               ? (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)')
                               : (isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)'),
                           opacity: isPast ? 0.5 : 1,
+                          backgroundImage: isToday ? graduationGradientToday : graduationGradient,
                         }}
-                      >
-                        {hourMarks.map((h) => {
-                          const leftPct = ((h - HOUR_RANGE_START) / TOTAL_HOURS) * 100;
-                          const isHalfHour = !Number.isInteger(h);
-                          return (
-                            <Box
-                              key={h}
-                              sx={{
-                                position: 'absolute',
-                                left: `${leftPct}%`,
-                                top: 0,
-                                width: '1px',
-                                height: isHalfHour ? '40%' : '100%',
-                                backgroundColor: isToday
-                                  ? (isHalfHour ? 'rgba(25,118,210,0.2)' : 'rgba(25,118,210,0.4)')
-                                  : (h === 12
-                                    ? 'rgba(25,118,210,0.25)'
-                                    : isHalfHour
-                                      ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
-                                      : (isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.15)')),
-                              }}
-                            />
-                          );
-                        })}
-                      </Box>
+                      />
                     );
                   })}
                 </Box>
@@ -786,15 +666,15 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                         borderRight: '1px solid', borderColor: 'divider', boxShadow: isDark ? '2px 0 4px rgba(0,0,0,0.3)' : '2px 0 4px rgba(0,0,0,0.08)',
                       }}
                     >
-                      <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Typography variant="body2" fontWeight={600} sx={SX_PROPERTY_NAME}>
                         {property.name}
                       </Typography>
                       {property.ownerName && (
-                        <Typography variant="caption" sx={{ fontSize: '0.625rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'primary.main', fontWeight: 500 }}>
+                        <Typography variant="caption" sx={SX_PROPERTY_OWNER}>
                           {property.ownerName}
                         </Typography>
                       )}
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Typography variant="caption" color="text.secondary" sx={SX_PROPERTY_CITY}>
                         {property.city || property.address}
                       </Typography>
                     </Box>
@@ -835,6 +715,7 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                           reservation={reservation}
                           days={days}
                           rangeStart={dateRange.start}
+                          today={today}
                           topOffset={ROW_PADDING}
                           barHeight={BAR_ROW_HEIGHT}
                           dayColWidth={dayColWidth}
@@ -864,22 +745,22 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
 
           {/* Loading indicator */}
           {loadingMore && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, py: 0.5, borderTop: '1px solid', borderColor: 'divider', backgroundColor: 'action.hover', flexShrink: 0 }}>
+            <Box sx={SX_LOADING_MORE}>
               <CircularProgress size={14} />
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
-                Chargement des mois suivants...
+                {t('dashboard.planning.loadingMore')}
               </Typography>
             </Box>
           )}
 
           {/* Pagination */}
           {totalPropertyPages > 1 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, py: 0.5, borderTop: '1px solid', borderColor: 'divider', backgroundColor: 'background.paper', flexShrink: 0 }}>
+            <Box sx={SX_PAGINATION}>
               <IconButton size="small" onClick={() => setPropertyPage((p) => Math.max(0, p - 1))} disabled={propertyPage === 0}>
                 <ChevronLeft sx={{ fontSize: 18 }} />
               </IconButton>
               <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                {propertyPage * PROPERTIES_PER_PAGE + 1} - {Math.min((propertyPage + 1) * PROPERTIES_PER_PAGE, properties.length)} / {properties.length} logements
+                {propertyPage * PROPERTIES_PER_PAGE + 1} - {Math.min((propertyPage + 1) * PROPERTIES_PER_PAGE, properties.length)} / {properties.length} {t('dashboard.planning.pagination')}
               </Typography>
               <IconButton size="small" onClick={() => setPropertyPage((p) => Math.min(totalPropertyPages - 1, p + 1))} disabled={propertyPage >= totalPropertyPages - 1}>
                 <ChevronRight sx={{ fontSize: 18 }} />
@@ -898,17 +779,16 @@ interface ReservationBarProps {
   reservation: Reservation;
   days: Date[];
   rangeStart: Date;
+  today: Date;
   topOffset: number;
   barHeight: number;
   dayColWidth: number;
   zoomLevel: ZoomLevel;
 }
 
-function ReservationBar({ reservation, days, rangeStart, topOffset, barHeight, dayColWidth, zoomLevel }: ReservationBarProps) {
+function ReservationBar({ reservation, days, rangeStart, today: todayOnly, topOffset, barHeight, dayColWidth, zoomLevel }: ReservationBarProps) {
   const checkIn = toDateOnly(reservation.checkIn);
   const checkOut = toDateOnly(reservation.checkOut);
-  const today = new Date();
-  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
   const startOffset = daysBetween(rangeStart, checkIn);
   const endOffset = daysBetween(rangeStart, checkOut);
@@ -985,7 +865,9 @@ const MemoizedReservationBar = React.memo(ReservationBar, (prev, next) => {
     && prev.dayColWidth === next.dayColWidth
     && prev.zoomLevel === next.zoomLevel
     && prev.topOffset === next.topOffset
-    && prev.days.length === next.days.length;
+    && prev.days.length === next.days.length
+    && prev.rangeStart.getTime() === next.rangeStart.getTime()
+    && prev.today.getTime() === next.today.getTime();
 });
 
 // ─── InterventionBar Sub-component ──────────────────────────────────────────
@@ -1082,5 +964,6 @@ const MemoizedInterventionBar = React.memo(InterventionBar, (prev, next) => {
     && prev.dayColWidth === next.dayColWidth
     && prev.zoomLevel === next.zoomLevel
     && prev.topOffset === next.topOffset
-    && prev.days.length === next.days.length;
+    && prev.days.length === next.days.length
+    && prev.rangeStart.getTime() === next.rangeStart.getTime();
 });

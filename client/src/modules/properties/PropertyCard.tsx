@@ -32,11 +32,18 @@ import {
   Close,
   SquareFoot,
   MoreVert,
+  Schedule,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
+import { useTranslation } from '../../hooks/useTranslation';
 import { getPropertyTypeBannerUrl } from '../../utils/propertyTypeBanner';
-
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+import { formatDate } from '../../utils/formatUtils';
+import {
+  getPropertyStatusColor,
+  getPropertyStatusLabel,
+  getPropertyTypeLabel,
+  getCleaningFrequencyLabel,
+} from '../../utils/statusUtils';
 
 // Interface pour les propriétés détaillées
 export interface PropertyDetails {
@@ -83,9 +90,173 @@ const typeGradients: Record<string, string> = {
   studio: 'linear-gradient(135deg, #7BA3C2 0%, #9BB8D1 100%)',
 };
 
-const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete, onView }) => {
+const styles = {
+  // ── Card ──
+  cardRoot: {
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    cursor: 'pointer',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    '&:hover': {
+      transform: 'translateY(-4px)',
+      boxShadow: '0 12px 28px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08)',
+    },
+  },
+  bannerBox: {
+    position: 'relative',
+    height: 110,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  badgeBar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    px: 1.5,
+    py: 0.75,
+    bgcolor: 'grey.50',
+    borderBottom: '1px solid',
+    borderColor: 'grey.100',
+    gap: 0.75,
+    minHeight: 34,
+  },
+  statusChip: {
+    height: 22,
+    fontSize: '0.62rem',
+    fontWeight: 600,
+    '& .MuiChip-label': { px: 0.75 },
+  },
+  priceChip: {
+    height: 22,
+    fontSize: '0.62rem',
+    fontWeight: 600,
+    '& .MuiChip-label': { px: 0.75 },
+  },
+  dateBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.4,
+    flexShrink: 0,
+  },
+  dateText: {
+    color: 'text.secondary',
+    fontWeight: 600,
+    fontSize: '0.68rem',
+    lineHeight: 1,
+  },
+  infoContent: {
+    flexGrow: 1,
+    p: 1.75,
+    pb: '12px !important',
+  },
+  nameText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    fontSize: '0.95rem',
+    mb: 0.5,
+    color: 'text.primary',
+  },
+  addressText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    flex: 1,
+    fontSize: '0.7rem',
+  },
+  metricsRow: {
+    display: 'flex',
+    gap: 0.75,
+    mb: 1.25,
+    flexWrap: 'wrap',
+  },
+  metricBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.4,
+    bgcolor: 'grey.100',
+    borderRadius: 1,
+    px: 0.75,
+    py: 0.35,
+  },
+  metricIconBox: {
+    color: 'text.secondary',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  amenityOverflow: {
+    fontSize: '0.62rem',
+    height: 20,
+    bgcolor: 'grey.100',
+    color: 'text.secondary',
+  },
+  actionBar: {
+    px: 1.75,
+    pb: 1.25,
+    pt: 0,
+    display: 'flex',
+    gap: 0.75,
+  },
+  detailsButton: {
+    fontSize: '0.72rem',
+    py: 0.5,
+    borderColor: 'grey.300',
+    color: 'text.secondary',
+    '&:hover': {
+      borderColor: 'primary.main',
+      color: 'primary.main',
+      bgcolor: 'rgba(107, 138, 154, 0.04)',
+    },
+  },
+
+  // ── Dialog ──
+  dialogTitleBox: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dialogIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dialogCharacteristicsRow: {
+    display: 'flex',
+    gap: 2,
+    flexWrap: 'wrap',
+  },
+  dialogMetricBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 1,
+    bgcolor: 'grey.50',
+    border: '1px solid',
+    borderColor: 'grey.200',
+    borderRadius: 1.5,
+    px: 1.5,
+    py: 1,
+    minWidth: 120,
+  },
+  dialogDescription: {
+    overflow: 'hidden',
+    display: '-webkit-box',
+    WebkitLineClamp: 4,
+    WebkitBoxOrient: 'vertical',
+    lineHeight: 1.4,
+  },
+} as const;
+
+const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit, onDelete, onView }) => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
+  const { t } = useTranslation();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   // Vérifier les permissions
@@ -128,66 +299,6 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
     return typeGradients[type.toLowerCase()] || typeGradients.apartment;
   };
 
-  // Obtenir la couleur du statut
-  const getStatusColor = (status: string): ChipColor => {
-    switch (status.toUpperCase()) {
-      case 'ACTIVE':
-        return 'success';
-      case 'INACTIVE':
-        return 'default';
-      case 'MAINTENANCE':
-      case 'UNDER_MAINTENANCE':
-        return 'warning';
-      case 'RENTED':
-        return 'info';
-      case 'SOLD':
-      case 'ARCHIVED':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
-
-  // Traduire le statut
-  const getStatusLabel = (status: string): string => {
-    switch (status.toUpperCase()) {
-      case 'ACTIVE': return 'Actif';
-      case 'INACTIVE': return 'Inactif';
-      case 'MAINTENANCE':
-      case 'UNDER_MAINTENANCE': return 'Maintenance';
-      case 'RENTED': return 'Loué';
-      case 'SOLD': return 'Vendu';
-      case 'ARCHIVED': return 'Archivé';
-      default: return status;
-    }
-  };
-
-  // Traduire le type
-  const getTypeLabel = (type: string): string => {
-    switch (type.toLowerCase()) {
-      case 'apartment':
-      case 'appartement': return 'Appartement';
-      case 'house':
-      case 'maison': return 'Maison';
-      case 'villa': return 'Villa';
-      case 'studio': return 'Studio';
-      default: return type;
-    }
-  };
-
-  // Formater la fréquence de nettoyage
-  const formatCleaningFrequency = (freq: string) => {
-    switch (freq.toUpperCase()) {
-      case 'DAILY': return 'Quotidien';
-      case 'WEEKLY': return 'Hebdomadaire';
-      case 'BIWEEKLY': return 'Bi-hebdomadaire';
-      case 'MONTHLY': return 'Mensuel';
-      case 'ON_DEMAND': return 'Sur demande';
-      case 'AFTER_EACH_STAY': return 'Après chaque séjour';
-      default: return freq;
-    }
-  };
-
   const handleViewDetails = () => {
     if (onView) {
       onView();
@@ -200,144 +311,60 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
     <>
       {/* Carte principale — Design moderne */}
       <Card
-        sx={{
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          cursor: 'pointer',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 12px 28px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.08)',
-          },
-        }}
+        sx={styles.cardRoot}
         onClick={handleViewDetails}
       >
         {/* ─── Zone visuelle : Bandeau gradient ─── */}
         <Box
           sx={{
-            position: 'relative',
+            ...styles.bannerBox,
             background: getGradient(property.propertyType),
             backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.35)), url(${getPropertyTypeBannerUrl(property.propertyType)})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            height: 110,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
           }}
         >
-          {/* Icône type en arrière-plan décoratif */}
-          <Box
-            sx={{
-              position: 'absolute',
-              right: -10,
-              bottom: -10,
-              opacity: 0.8,
-            }}
-          >
-            {getPropertyTypeIcon(property.propertyType, 80)}
+        </Box>
+
+        {/* ─── Barre de badges (entre bandeau et contenu) ─── */}
+        <Box sx={styles.badgeBar}>
+          {/* Gauche : statut + prix */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+            <Chip
+              label={getPropertyStatusLabel(property.status, t)}
+              color={getPropertyStatusColor(property.status)}
+              size="small"
+              sx={styles.statusChip}
+            />
+            <Chip
+              label={`${property.nightlyPrice}€/nuit`}
+              size="small"
+              variant="outlined"
+              sx={styles.priceChip}
+            />
           </Box>
 
-          {/* Type de propriété en haut à gauche */}
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 10,
-              left: 12,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.75,
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              {getPropertyTypeIcon(property.propertyType, 18)}
+          {/* Droite : date */}
+          {(property.createdAt || property.nextCleaning || property.lastCleaning) && (
+            <Box sx={styles.dateBox}>
+              <Schedule sx={{ fontSize: 13, color: 'text.secondary' }} />
+              <Typography
+                variant="caption"
+                sx={styles.dateText}
+              >
+                {new Date(property.nextCleaning || property.lastCleaning || property.createdAt || '').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+              </Typography>
             </Box>
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'rgba(255,255,255,0.9)',
-                fontWeight: 600,
-                fontSize: '0.7rem',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-              }}
-            >
-              {getTypeLabel(property.propertyType)}
-            </Typography>
-          </Box>
-
-          {/* Badge statut — coin supérieur droit */}
-          <Chip
-            label={getStatusLabel(property.status)}
-            color={getStatusColor(property.status)}
-            size="small"
-            sx={{
-              position: 'absolute',
-              top: 10,
-              right: 10,
-              height: 22,
-              fontSize: '0.65rem',
-              fontWeight: 600,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-            }}
-          />
-
-          {/* Prix/nuit — coin inférieur gauche */}
-          <Box
-            sx={{
-              position: 'absolute',
-              bottom: 10,
-              left: 12,
-              display: 'flex',
-              alignItems: 'baseline',
-              gap: 0.5,
-              bgcolor: 'rgba(0,0,0,0.35)',
-              backdropFilter: 'blur(4px)',
-              borderRadius: 1.5,
-              px: 1.25,
-              py: 0.5,
-            }}
-          >
-            <Typography
-              variant="subtitle1"
-              sx={{
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '1.1rem',
-                lineHeight: 1,
-              }}
-            >
-              {property.nightlyPrice}€
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'rgba(255,255,255,0.75)',
-                fontSize: '0.65rem',
-              }}
-            >
-              /nuit
-            </Typography>
-          </Box>
+          )}
         </Box>
 
         {/* ─── Zone info ─── */}
-        <CardContent sx={{ flexGrow: 1, p: 1.75, pb: '12px !important' }}>
+        <CardContent sx={styles.infoContent}>
           {/* Nom */}
           <Typography
             variant="subtitle1"
             fontWeight={700}
-            sx={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              fontSize: '0.95rem',
-              mb: 0.5,
-              color: 'text.primary',
-            }}
+            sx={styles.nameText}
             title={property.name}
           >
             {property.name}
@@ -349,13 +376,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                flex: 1,
-                fontSize: '0.7rem',
-              }}
+              sx={styles.addressText}
               title={`${property.address}, ${property.postalCode} ${property.city}, ${property.country}`}
             >
               {property.address}, {property.postalCode} {property.city}
@@ -363,14 +384,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
           </Box>
 
           {/* Métriques — ligne horizontale compacte */}
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 0.75,
-              mb: 1.25,
-              flexWrap: 'wrap',
-            }}
-          >
+          <Box sx={styles.metricsRow}>
             {[
               { icon: <BedIcon sx={{ fontSize: 14 }} />, value: property.bedrooms, label: 'ch.' },
               { icon: <BathroomIcon sx={{ fontSize: 14 }} />, value: property.bathrooms, label: 'sdb' },
@@ -379,17 +393,9 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
             ].map((metric, idx) => (
               <Box
                 key={idx}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.4,
-                  bgcolor: 'grey.100',
-                  borderRadius: 1,
-                  px: 0.75,
-                  py: 0.35,
-                }}
+                sx={styles.metricBox}
               >
-                <Box sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center' }}>
+                <Box sx={styles.metricIconBox}>
                   {metric.icon}
                 </Box>
                 <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.72rem', color: 'text.primary' }}>
@@ -418,12 +424,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
                 <Chip
                   label={`+${property.amenities.length - 3}`}
                   size="small"
-                  sx={{
-                    fontSize: '0.62rem',
-                    height: 20,
-                    bgcolor: 'grey.100',
-                    color: 'text.secondary',
-                  }}
+                  sx={styles.amenityOverflow}
                 />
               )}
             </Box>
@@ -433,30 +434,20 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <CleaningServices sx={{ fontSize: 13, color: 'text.disabled' }} />
             <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
-              {formatCleaningFrequency(property.cleaningFrequency)}
+              {getCleaningFrequencyLabel(property.cleaningFrequency, t)}
             </Typography>
           </Box>
         </CardContent>
 
         {/* ─── Zone actions ─── */}
-        <Box sx={{ px: 1.75, pb: 1.25, pt: 0, display: 'flex', gap: 0.75 }}>
+        <Box sx={styles.actionBar}>
           <Button
             fullWidth
             size="small"
             startIcon={<Visibility sx={{ fontSize: 15 }} />}
             onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
             variant="outlined"
-            sx={{
-              fontSize: '0.72rem',
-              py: 0.5,
-              borderColor: 'grey.300',
-              color: 'text.secondary',
-              '&:hover': {
-                borderColor: 'primary.main',
-                color: 'primary.main',
-                bgcolor: 'rgba(107, 138, 154, 0.04)',
-              },
-            }}
+            sx={styles.detailsButton}
           >
             Détails
           </Button>
@@ -485,17 +476,12 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
         onClick={(e) => e.stopPropagation()}
       >
         <DialogTitle sx={{ pb: 1 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box sx={styles.dialogTitleBox}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Box
                 sx={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 1,
+                  ...styles.dialogIconBox,
                   background: getGradient(property.propertyType),
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
                 }}
               >
                 {getPropertyTypeIcon(property.propertyType, 22)}
@@ -505,7 +491,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
                   {property.name}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {getTypeLabel(property.propertyType)} • {getStatusLabel(property.status)}
+                  {getPropertyTypeLabel(property.propertyType, t)} • {getPropertyStatusLabel(property.status, t)}
                 </Typography>
               </Box>
             </Box>
@@ -536,7 +522,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
               <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: 'primary.main' }}>
                 Caractéristiques
               </Typography>
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              <Box sx={styles.dialogCharacteristicsRow}>
                 {[
                   { icon: <BedIcon sx={{ fontSize: 18 }} />, value: property.bedrooms, label: 'Chambres' },
                   { icon: <BathroomIcon sx={{ fontSize: 18 }} />, value: property.bathrooms, label: 'Salles de bain' },
@@ -545,18 +531,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
                 ].map((item, idx) => (
                   <Box
                     key={idx}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      bgcolor: 'grey.50',
-                      border: '1px solid',
-                      borderColor: 'grey.200',
-                      borderRadius: 1.5,
-                      px: 1.5,
-                      py: 1,
-                      minWidth: 120,
-                    }}
+                    sx={styles.dialogMetricBox}
                   >
                     <Box sx={{ color: 'primary.main', display: 'flex' }}>{item.icon}</Box>
                     <Box>
@@ -587,7 +562,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                 <CleaningServices sx={{ fontSize: 18, color: 'text.secondary' }} />
-                <Typography variant="body2">{formatCleaningFrequency(property.cleaningFrequency)}</Typography>
+                <Typography variant="body2">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Typography>
               </Box>
             </Grid>
 
@@ -642,13 +617,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
                 <Typography
                   variant="body2"
                   color="text.secondary"
-                  sx={{
-                    overflow: 'hidden',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 4,
-                    WebkitBoxOrient: 'vertical',
-                    lineHeight: 1.4,
-                  }}
+                  sx={styles.dialogDescription}
                 >
                   {property.description}
                 </Typography>
@@ -677,6 +646,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
       </Dialog>
     </>
   );
-};
+});
+
+PropertyCard.displayName = 'PropertyCard';
 
 export default PropertyCard;

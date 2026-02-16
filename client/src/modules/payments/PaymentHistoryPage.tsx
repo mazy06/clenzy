@@ -21,6 +21,10 @@ import {
   CircularProgress,
   Alert,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
@@ -100,6 +104,12 @@ const PaymentHistoryPage: React.FC = () => {
   // Payment processing state
   const [processingPayment, setProcessingPayment] = useState<number | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
+
+  // Refund state
+  const [refundingPayment, setRefundingPayment] = useState<number | null>(null);
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [refundTarget, setRefundTarget] = useState<PaymentRecord | null>(null);
+  const [refundError, setRefundError] = useState<string | null>(null);
 
   // Pagination state
   const [page, setPage] = useState(0);
@@ -199,6 +209,28 @@ const PaymentHistoryPage: React.FC = () => {
     } catch (err: any) {
       setPayError(err.message || 'Erreur lors de la creation de la session de paiement');
       setProcessingPayment(null);
+    }
+  };
+
+  const handleRefundClick = (payment: PaymentRecord) => {
+    setRefundTarget(payment);
+    setRefundDialogOpen(true);
+    setRefundError(null);
+  };
+
+  const handleRefundConfirm = async () => {
+    if (!refundTarget) return;
+    try {
+      setRefundingPayment(refundTarget.interventionId);
+      setRefundError(null);
+      await paymentsApi.refund(refundTarget.interventionId);
+      setRefundDialogOpen(false);
+      setRefundTarget(null);
+      loadData(); // Recharger la liste
+    } catch (err: any) {
+      setRefundError(err.message || 'Erreur lors du remboursement');
+    } finally {
+      setRefundingPayment(null);
     }
   };
 
@@ -681,6 +713,34 @@ const PaymentHistoryPage: React.FC = () => {
                           </span>
                         </Tooltip>
                       )}
+                      {isAdminOrManager && payment.status === 'PAID' && (
+                        <Tooltip title="Rembourser">
+                          <span>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRefundClick(payment);
+                              }}
+                              disabled={refundingPayment === payment.interventionId}
+                              sx={{
+                                color: C.white,
+                                bgcolor: C.error,
+                                width: 28,
+                                height: 28,
+                                '&:hover': { bgcolor: theme.palette.error.dark },
+                                '&:disabled': { bgcolor: theme.palette.error.light, color: C.white, opacity: 0.6 },
+                              }}
+                            >
+                              {refundingPayment === payment.interventionId ? (
+                                <CircularProgress size={14} sx={{ color: C.white }} />
+                              ) : (
+                                <MoneyOffIcon sx={{ fontSize: 16 }} />
+                              )}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      )}
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -708,6 +768,54 @@ const PaymentHistoryPage: React.FC = () => {
           />
         </TableContainer>
       </DataFetchWrapper>
+
+      {/* Dialog de confirmation de remboursement */}
+      <Dialog
+        open={refundDialogOpen}
+        onClose={() => { setRefundDialogOpen(false); setRefundTarget(null); setRefundError(null); }}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ pb: 1, fontSize: '1rem', fontWeight: 600 }}>
+          Confirmer le remboursement
+        </DialogTitle>
+        <DialogContent>
+          {refundTarget && (
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              Voulez-vous rembourser <strong>{formatCurrency(refundTarget.amount)}</strong> pour
+              l'intervention <strong>{refundTarget.interventionTitle}</strong> ?
+            </Typography>
+          )}
+          <Typography variant="caption" color="text.secondary">
+            Cette action est irréversible. Le montant sera remboursé via Stripe.
+          </Typography>
+          {refundError && (
+            <Alert severity="error" sx={{ mt: 1.5, py: 0.5 }}>
+              {refundError}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => { setRefundDialogOpen(false); setRefundTarget(null); setRefundError(null); }}
+            size="small"
+            sx={{ textTransform: 'none' }}
+          >
+            Annuler
+          </Button>
+          <Button
+            onClick={handleRefundConfirm}
+            variant="contained"
+            color="error"
+            size="small"
+            disabled={refundingPayment !== null}
+            sx={{ textTransform: 'none' }}
+          >
+            {refundingPayment !== null ? <CircularProgress size={18} /> : 'Rembourser'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

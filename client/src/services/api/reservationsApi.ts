@@ -428,6 +428,7 @@ export interface MockPlanningProperty {
   name: string;
   address: string;
   city: string;
+  ownerName?: string;
 }
 
 function getMockPropertiesFromReservations(): MockPlanningProperty[] {

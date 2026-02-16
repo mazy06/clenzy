@@ -32,6 +32,50 @@ import { useAuth } from '../../hooks/useAuth';
 import { propertiesApi, interventionsApi } from '../../services/api';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
+import { formatDate } from '../../utils/formatUtils';
+import { getPropertyStatusColor, getCleaningFrequencyLabel } from '../../utils/statusUtils';
+import { extractApiList } from '../../types';
+
+const styles = {
+  loadingBox: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '50vh',
+  },
+  sectionTitleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.75,
+    mb: 1,
+  },
+  infoColumn: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 1.25,
+  },
+  infoRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.75,
+  },
+  statusChip: {
+    height: 22,
+    fontSize: '0.7rem',
+    mt: 0.5,
+  },
+  interventionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    mb: 0.75,
+  },
+  interventionDescription: {
+    fontSize: '0.75rem',
+    display: 'block',
+    mb: 0.5,
+  },
+} as const;
 
 // Interface pour les propriétés détaillées
 export interface PropertyDetailsData {
@@ -126,7 +170,7 @@ const PropertyDetails: React.FC = () => {
 
       setLoading(true);
       try {
-        const propertyData = await propertiesApi.getById(Number(id)) as any;
+        const propertyData = await propertiesApi.getById(Number(id));
         // Convertir les données du backend vers le format frontend
         const convertedProperty: PropertyDetailsData = {
           id: propertyData.id.toString(),
@@ -172,9 +216,8 @@ const PropertyDetails: React.FC = () => {
       if (!id) return;
 
       try {
-        const data = await interventionsApi.getAll({ propertyId: Number(id) }) as any;
-        const interventionsList = data.content || data || [];
-        setInterventions(interventionsList);
+        const data = await interventionsApi.getAll({ propertyId: Number(id) });
+        setInterventions(extractApiList(data));
       } catch (err) {
       }
     };
@@ -215,34 +258,10 @@ const PropertyDetails: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string): 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
-    switch (status) {
-      case 'active':
-        return 'success';
-      case 'inactive':
-        return 'default';
-      case 'maintenance':
-        return 'warning';
-      default:
-        return 'default';
-    }
-  };
-
-  const formatCleaningFrequency = (freq: string) => {
-    const freqMap: Record<string, string> = {
-      'daily': t('properties.cleaningFrequencies.daily'),
-      'weekly': t('properties.cleaningFrequencies.weekly'),
-      'biweekly': t('properties.cleaningFrequencies.biweekly'),
-      'monthly': t('properties.cleaningFrequencies.monthly'),
-      'on_demand': t('properties.cleaningFrequencies.onDemand'),
-      'after_each_stay': t('properties.cleaningFrequencies.afterEachStay'),
-    };
-    return freqMap[freq.toLowerCase()] || freq;
-  };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+      <Box sx={styles.loadingBox}>
         <CircularProgress size={32} />
       </Box>
     );
@@ -321,13 +340,13 @@ const PropertyDetails: React.FC = () => {
                 <Grid item xs={12} md={6}>
                   <Card variant="outlined">
                     <CardContent sx={{ p: 1.5 }}>
-                      <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
+                      <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={styles.sectionTitleRow}>
                         <Box sx={{ fontSize: 18 }}>{getPropertyTypeIcon(property.propertyType)}</Box>
                         {t('properties.informationsGeneral')}
                       </Typography>
                       
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <Box sx={styles.infoColumn}>
+                        <Box sx={styles.infoRow}>
                           <LocationOn color="action" sx={{ fontSize: 18 }} />
                           <Box>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.address')}</Typography>
@@ -337,7 +356,7 @@ const PropertyDetails: React.FC = () => {
                           </Box>
                         </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <Box sx={styles.infoRow}>
                           <Euro color="action" sx={{ fontSize: 18 }} />
                           <Box>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.nightlyPrice')}</Typography>
@@ -345,7 +364,7 @@ const PropertyDetails: React.FC = () => {
                           </Box>
                         </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <Box sx={styles.infoRow}>
                           <Bed color="action" sx={{ fontSize: 18 }} />
                           <Box>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.bedrooms')}</Typography>
@@ -353,7 +372,7 @@ const PropertyDetails: React.FC = () => {
                           </Box>
                         </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <Box sx={styles.infoRow}>
                           <Bathroom color="action" sx={{ fontSize: 18 }} />
                           <Box>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.bathroomCount')}</Typography>
@@ -361,7 +380,7 @@ const PropertyDetails: React.FC = () => {
                           </Box>
                         </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <Box sx={styles.infoRow}>
                           <SquareFoot color="action" sx={{ fontSize: 18 }} />
                           <Box>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.surface')}</Typography>
@@ -369,7 +388,7 @@ const PropertyDetails: React.FC = () => {
                           </Box>
                         </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <Box sx={styles.infoRow}>
                           <Person color="action" sx={{ fontSize: 18 }} />
                           <Box>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.maxCapacity')}</Typography>
@@ -385,26 +404,26 @@ const PropertyDetails: React.FC = () => {
                 <Grid item xs={12} md={6}>
                   <Card variant="outlined">
                     <CardContent sx={{ p: 1.5 }}>
-                      <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
+                      <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={styles.sectionTitleRow}>
                         <CleaningServices sx={{ fontSize: 18 }} />
-                        Statut et entretien
+                        {t('properties.statusAndMaintenance')}
                       </Typography>
                       
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+                      <Box sx={styles.infoColumn}>
                         <Box>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Statut</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.status')}</Typography>
                           <Chip 
                             label={property.status} 
-                            color={getStatusColor(property.status)}
+                            color={getPropertyStatusColor(property.status)}
                             size="small"
-                            sx={{ height: 22, fontSize: '0.7rem', mt: 0.5 }}
+                            sx={styles.statusChip}
                           />
                         </Box>
 
                         <Box>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>Fréquence de nettoyage</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.cleaningFrequency')}</Typography>
                           <Typography variant="body2" sx={{ fontSize: '0.85rem', mt: 0.5 }}>
-                            {formatCleaningFrequency(property.cleaningFrequency)}
+                            {getCleaningFrequencyLabel(property.cleaningFrequency, t)}
                           </Typography>
                         </Box>
                       </Box>
@@ -417,10 +436,10 @@ const PropertyDetails: React.FC = () => {
                   <Card variant="outlined">
                     <CardContent sx={{ p: 1.5 }}>
                       <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1 }}>
-                        Description
+                        {t('properties.description')}
                       </Typography>
                       <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                        {property.description || 'Aucune description disponible'}
+                        {property.description || t('properties.noDescription')}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -432,7 +451,7 @@ const PropertyDetails: React.FC = () => {
           <TabPanel value={tabValue} index={1}>
             <Box sx={{ p: 2 }}>
               <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
-                Interventions
+                {t('properties.tabs.interventions')}
               </Typography>
               
               {interventions.length > 0 ? (
@@ -441,7 +460,7 @@ const PropertyDetails: React.FC = () => {
                     <Grid item xs={12} md={6} key={intervention.id}>
                       <Card variant="outlined">
                         <CardContent sx={{ p: 1.5 }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.75 }}>
+                          <Box sx={styles.interventionHeader}>
                             <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                               {intervention.type}
                             </Typography>
@@ -452,11 +471,11 @@ const PropertyDetails: React.FC = () => {
                               sx={{ height: 22, fontSize: '0.7rem' }}
                             />
                           </Box>
-                          <Typography variant="caption" color="text.secondary" gutterBottom sx={{ fontSize: '0.75rem', display: 'block', mb: 0.5 }}>
+                          <Typography variant="caption" color="text.secondary" gutterBottom sx={styles.interventionDescription}>
                             {intervention.description}
                           </Typography>
                           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                            Date prévue: {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR')}
+                            {t('properties.scheduledDate')}: {formatDate(intervention.scheduledDate)}
                           </Typography>
                         </CardContent>
                       </Card>

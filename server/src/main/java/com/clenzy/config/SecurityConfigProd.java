@@ -70,7 +70,6 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/api/webhooks/stripe").permitAll()
-                        .requestMatchers("/api/contact/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         // Actuator (health, info, prometheus et metrics sans auth — accès réseau Docker interne uniquement)
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus", "/actuator/metrics").permitAll()

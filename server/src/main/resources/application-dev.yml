@@ -54,14 +54,23 @@ spring:
   mail:
     host: ${MAIL_HOST:clenzy-mailpit}
     port: ${MAIL_PORT:1025}
-    username: ""
-    password: ""
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
-          auth: false
+          auth: ${MAIL_SMTP_AUTH:false}
           starttls:
-            enable: false
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:false}
+            required: ${MAIL_SMTP_STARTTLS_REQUIRED:false}
+          ssl:
+            enable: ${MAIL_SMTP_SSL_ENABLE:false}
+          connectiontimeout: ${MAIL_SMTP_CONNECTION_TIMEOUT_MS:5000}
+          timeout: ${MAIL_SMTP_TIMEOUT_MS:5000}
+          writetimeout: ${MAIL_SMTP_WRITE_TIMEOUT_MS:5000}
+          pool: true
+          poolSize: ${MAIL_SMTP_POOL_SIZE:5}
+          quitwait: false
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:clenzy-kafka:9092}
     consumer:
@@ -153,4 +162,18 @@ stripe:
     success-url: ${FRONTEND_URL:http://localhost:3000}/login?inscription=success
     cancel-url: ${FRONTEND_URL:http://localhost:3000}/inscription?payment=cancelled
 
+clenzy:
+  mail:
+    provider: ${MAIL_PROVIDER:generic}
+    from: ${MAIL_FROM:info@clenzy.fr}
+    notification-to: ${MAIL_NOTIFICATION_TO:info@clenzy.fr}
+    contact:
+      max-attachments: ${MAIL_MAX_ATTACHMENTS:10}
+      max-attachment-size-bytes: ${MAIL_MAX_ATTACHMENT_SIZE_BYTES:10485760}
+  imap:
+    enabled: ${IMAP_ENABLED:false}
+    host: ${IMAP_HOST:mail.clenzy.fr}
+    port: ${IMAP_PORT:993}
+    username: ${IMAP_USERNAME:info@clenzy.fr}
+    password: ${IMAP_PASSWORD:}
 
