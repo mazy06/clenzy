@@ -166,8 +166,34 @@ public class AuthController {
                                 keycloakId, user.getId(), email);
                         userService.updateKeycloakId(user.getId(), keycloakId);
                     } else {
-                        log.warn("/me - Aucun utilisateur trouve ni par keycloakId ({}) ni par email ({})",
-                                keycloakId, email);
+                        // Auto-provisioning : creer l'utilisateur en base a partir du JWT
+                        log.warn("/me - Aucun utilisateur trouve, auto-provisioning depuis le JWT...");
+                        UserRole role = UserRole.HOST; // Role par defaut
+                        // Determiner le role depuis Keycloak realm_access
+                        Object ra = jwt.getClaim("realm_access");
+                        if (ra instanceof Map) {
+                            Object rolesObj = ((Map<String, Object>) ra).get("roles");
+                            if (rolesObj instanceof List) {
+                                List<?> rolesList = (List<?>) rolesObj;
+                                for (Object r : rolesList) {
+                                    String roleName = r.toString().toUpperCase();
+                                    try {
+                                        role = UserRole.valueOf(roleName);
+                                        break; // Prendre le premier role valide
+                                    } catch (IllegalArgumentException ignored) {}
+                                }
+                            }
+                        }
+                        user = userService.autoProvisionUser(
+                                keycloakId,
+                                email,
+                                jwt.getClaim("given_name"),
+                                jwt.getClaim("family_name"),
+                                role
+                        );
+                        if (user != null) {
+                            log.info("/me - Auto-provisioning reussi: {} (role: {})", email, user.getRole().name());
+                        }
                     }
                 }
             }
