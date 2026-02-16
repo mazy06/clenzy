@@ -170,7 +170,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ menuItems }) => {
             key={item.id}
             onClick={() => handleNavigation(item.path)}
             sx={{
-              color: isActive(item.path) ? '#A6C0CE' : '#666666',
+              color: isActive(item.path) ? '#A6C0CE' : theme.palette.text.secondary,
               fontWeight: isActive(item.path) ? 600 : 500,
               textTransform: 'none',
               borderBottom: isActive(item.path) ? '2px solid #A6C0CE' : '2px solid transparent',
@@ -191,7 +191,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({ menuItems }) => {
           </Button>
         ))
       ) : (
-        <Box sx={{ px: 2, color: '#999', fontSize: '0.875rem' }}>
+        <Box sx={{ px: 2, color: 'text.disabled', fontSize: '0.875rem' }}>
           {t('navigation.noMenuAvailable')}
         </Box>
       )}

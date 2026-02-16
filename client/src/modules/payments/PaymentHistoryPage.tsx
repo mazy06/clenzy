@@ -20,6 +20,7 @@ import {
   Button,
   CircularProgress,
   Alert,
+  useTheme,
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
@@ -42,29 +43,31 @@ import apiClient from '../../services/apiClient';
 import PageHeader from '../../components/PageHeader';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 
-// ─── Couleurs Clenzy ─────────────────────────────────────────────────────────
-const C = {
-  primary: '#6B8A9A',
-  primaryLight: '#8BA3B3',
-  primaryDark: '#5A7684',
-  secondary: '#A6C0CE',
-  success: '#4A9B8E',
-  warning: '#D4A574',
-  warningLight: '#E8C19A',
-  error: '#C97A7A',
-  info: '#7BA3C2',
-  textPrimary: '#1E293B',
-  textSecondary: '#64748B',
-  gray50: '#F8FAFC',
-  gray100: '#F1F5F9',
-  gray200: '#E2E8F0',
-  white: '#ffffff',
-} as const;
-
 const PaymentHistoryPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
+  // ─── Couleurs Clenzy (theme-aware) ──────────────────────────────────────────
+  const C = {
+    primary: theme.palette.primary.main,
+    primaryLight: isDark ? theme.palette.primary.light : '#8BA3B3',
+    primaryDark: isDark ? theme.palette.primary.dark : '#5A7684',
+    secondary: theme.palette.secondary.main,
+    success: theme.palette.success.main,
+    warning: theme.palette.warning.main,
+    warningLight: isDark ? theme.palette.warning.light : '#E8C19A',
+    error: theme.palette.error.main,
+    info: theme.palette.info.main,
+    textPrimary: theme.palette.text.primary,
+    textSecondary: theme.palette.text.secondary,
+    gray50: isDark ? theme.palette.grey[100] : '#F8FAFC',
+    gray100: isDark ? theme.palette.grey[200] : '#F1F5F9',
+    gray200: isDark ? theme.palette.grey[300] : '#E2E8F0',
+    white: isDark ? theme.palette.background.paper : '#ffffff',
+  };
 
   // Role detection
   const isAdminOrManager = user?.roles?.some((r) => ['ADMIN', 'MANAGER'].includes(r)) ?? false;
@@ -246,6 +249,19 @@ const PaymentHistoryPage: React.FC = () => {
         }}
       />
     );
+  };
+
+  /** Returns the status color for a payment (reuses the same mapping as getStatusChip) */
+  const getStatusColor = (status: PaymentRecord['status']): string => {
+    const colorMap: Record<string, string> = {
+      PAID: C.success,
+      PENDING: C.warning,
+      PROCESSING: C.info,
+      FAILED: C.error,
+      REFUNDED: C.info,
+      CANCELLED: C.textSecondary,
+    };
+    return colorMap[status] || C.textSecondary;
   };
 
   /** Row styling for unpaid highlighting */
@@ -618,7 +634,7 @@ const PaymentHistoryPage: React.FC = () => {
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.875rem', color: C.warning }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.875rem', color: getStatusColor(payment.status) }}>
                       {formatCurrency(payment.amount)}
                     </Typography>
                   </TableCell>

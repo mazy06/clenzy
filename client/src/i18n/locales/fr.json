@@ -456,6 +456,7 @@
     "create": "Nouvelle intervention",
     "createTitle": "Créer une intervention",
     "createSubtitle": "Formulaire de création d'une nouvelle intervention",
+    "editTitle": "Modifier l'intervention",
     "edit": "Modifier l'intervention",
     "details": "Détails de l'intervention",
     "search": "Rechercher une intervention...",

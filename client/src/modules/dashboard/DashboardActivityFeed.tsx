@@ -16,7 +16,8 @@ import {
   HomeWork,
   RequestQuote,
   PersonAdd,
-  GroupAdd
+  GroupAdd,
+  ArrowForward
 } from '@mui/icons-material';
 import type { NavigateFunction } from 'react-router-dom';
 import type { ActivityItem } from '../../hooks/useDashboardStats';
@@ -88,6 +89,7 @@ const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = ({
           <Button
             variant="text"
             size="small"
+            endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
             onClick={() => navigate('/dashboard/activities')}
             sx={{
               textTransform: 'none',
@@ -117,7 +119,7 @@ const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = ({
           </Typography>
         ) : (
           <Box>
-            {activities.map((activity, index) => (
+            {activities.slice(0, 5).map((activity, index, arr) => (
               <Box
                 key={`${activity.id}-${index}`}
                 sx={{
@@ -151,7 +153,7 @@ const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = ({
                   >
                     {getActivityIcon(activity)}
                   </Box>
-                  {index < activities.length - 1 && (
+                  {index < arr.length - 1 && (
                     <Box
                       sx={{
                         width: 1.5,
@@ -164,7 +166,7 @@ const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = ({
                 </Box>
 
                 {/* Activity content */}
-                <Box sx={{ flex: 1, pb: index < activities.length - 1 ? 1 : 0, minWidth: 0 }}>
+                <Box sx={{ flex: 1, pb: index < arr.length - 1 ? 1 : 0, minWidth: 0 }}>
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 0.5 }}>
                     <Box sx={{ minWidth: 0, flex: 1 }}>
                       <Typography

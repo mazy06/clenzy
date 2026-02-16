@@ -17,6 +17,8 @@ import {
   CircularProgress,
   Tabs,
   Tab,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import {
   Notifications,
@@ -28,6 +30,9 @@ import {
   Palette,
   Storage,
   TuneOutlined,
+  LightMode,
+  DarkMode,
+  SettingsBrightness,
 } from '@mui/icons-material';
 import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
 import { useAuth } from '../../hooks/useAuth';
@@ -463,25 +468,47 @@ export default function Settings() {
               </Box>
 
               <List>
-                <ListItem>
-                  <ListItemIcon>
-                    <Palette />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Mode sombre"
-                    secondary="Utiliser le thème sombre"
-                  />
-                  <ListItemSecondaryAction>
-                    <Switch
-                      edge="end"
-                      checked={isDark}
-                      onChange={(e) => {
-                        const newTheme = e.target.checked ? 'dark' : 'light';
-                        handleSettingChange('display', 'theme', newTheme);
-                        setThemeMode(newTheme);
-                      }}
+                <ListItem sx={{ flexDirection: 'column', alignItems: 'flex-start', gap: 1.5, py: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Palette sx={{ color: 'text.secondary', fontSize: 20 }} />
+                    <ListItemText
+                      primary="Apparence"
+                      secondary={
+                        themeMode === 'auto'
+                          ? `Système (${isDark ? 'sombre' : 'clair'} détecté)`
+                          : themeMode === 'dark'
+                            ? 'Mode sombre'
+                            : 'Mode clair'
+                      }
+                      sx={{ m: 0 }}
                     />
-                  </ListItemSecondaryAction>
+                  </Box>
+                  <ToggleButtonGroup
+                    value={themeMode}
+                    exclusive
+                    onChange={(_e, newMode) => {
+                      if (newMode !== null) {
+                        handleSettingChange('display', 'theme', newMode);
+                        setThemeMode(newMode);
+                      }
+                    }}
+                    size="small"
+                    fullWidth
+                    sx={{ '& .MuiToggleButton-root': { textTransform: 'none', fontSize: '0.8125rem', gap: 0.75, py: 0.75 } }}
+                  >
+                    <ToggleButton value="light">
+                      <LightMode sx={{ fontSize: 18 }} />
+                      Clair
+                    </ToggleButton>
+                    <ToggleButton value="dark">
+                      <DarkMode sx={{ fontSize: 18 }} />
+                      Sombre
+                    </ToggleButton>
+                    <ToggleButton value="auto">
+                      <SettingsBrightness sx={{ fontSize: 18 }} />
+                      Système
+                    </ToggleButton>
+                  </ToggleButtonGroup>
                 </ListItem>
 
                 <ListItem>

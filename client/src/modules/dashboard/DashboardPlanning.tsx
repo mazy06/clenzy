@@ -42,23 +42,23 @@ import {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const PROPERTY_COL_WIDTH = 160;
-const RESERVATION_ROW_HEIGHT = 36;
-const INTERVENTION_ROW_HEIGHT = 28;
+const BAR_ROW_HEIGHT = 36;
 const ROW_PADDING = 4;
 const PROPERTIES_PER_PAGE = 8;
+const GRADUATION_ROW_HEIGHT = 10;
 
 // ─── Zoom system ─────────────────────────────────────────────────────────────
 
-const HOUR_RANGE_START = 6;
-const HOUR_RANGE_END = 23;
-const TOTAL_HOURS = HOUR_RANGE_END - HOUR_RANGE_START; // 17
+const HOUR_RANGE_START = 0;
+const HOUR_RANGE_END = 24;
+const TOTAL_HOURS = HOUR_RANGE_END - HOUR_RANGE_START; // 24
 
 type ZoomLevel = 'compact' | 'standard' | 'detailed';
 
 const ZOOM_CONFIG: Record<ZoomLevel, { dayWidth: number; marks: number[]; label: string }> = {
-  compact: { dayWidth: 38, marks: [], label: 'J' },
-  standard: { dayWidth: 80, marks: [6, 9, 12, 15, 18, 21], label: '3H' },
-  detailed: { dayWidth: 136, marks: [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], label: '1H' },
+  compact:  { dayWidth: 38,  marks: [], label: 'J' },
+  standard: { dayWidth: 136, marks: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], label: '1H' },
+  detailed: { dayWidth: 260, marks: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5, 15, 15.5, 16, 16.5, 17, 17.5, 18, 18.5, 19, 19.5, 20, 20.5, 21, 21.5, 22, 22.5, 23, 23.5], label: '30m' },
 };
 
 // ─── Filter options ──────────────────────────────────────────────────────────
@@ -176,12 +176,17 @@ function computeMonthSeparators(days: Date[]): MonthSeparator[] {
 
 // ─── CSS gradient for hour tick marks (zero DOM overhead) ───────────────────
 
-function buildHourTickGradient(zoomLevel: ZoomLevel): string {
+function buildHourTickGradient(zoomLevel: ZoomLevel, darkMode: boolean): string {
   const marks = ZOOM_CONFIG[zoomLevel].marks;
   if (marks.length === 0) return 'none';
   const stops = marks.map((h) => {
     const pct = ((h - HOUR_RANGE_START) / TOTAL_HOURS) * 100;
-    const color = h === 12 ? 'rgba(25,118,210,0.18)' : 'rgba(0,0,0,0.06)';
+    const isHalfHour = !Number.isInteger(h);
+    const color = h === 12
+      ? 'rgba(25,118,210,0.18)'
+      : isHalfHour
+        ? (darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)')
+        : (darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)');
     return `transparent calc(${pct}% - 0.5px), ${color} calc(${pct}% - 0.5px), ${color} calc(${pct}% + 0.5px), transparent calc(${pct}% + 0.5px)`;
   });
   return `linear-gradient(to right, ${stops.join(', ')})`;
@@ -196,6 +201,7 @@ interface DashboardPlanningProps {
 export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const {
@@ -223,9 +229,17 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
   const today = useMemo(() => new Date(), []);
 
   // ─── Zoom level ──────────────────────────────────────────────────────────
-  const [zoomLevel, setZoomLevel] = useState<ZoomLevel>(isMobile ? 'compact' : 'detailed');
+  const [zoomLevel, setZoomLevel] = useState<ZoomLevel>(isMobile ? 'compact' : 'standard');
   const dayColWidth = ZOOM_CONFIG[zoomLevel].dayWidth;
-  const hourTickGradient = useMemo(() => buildHourTickGradient(zoomLevel), [zoomLevel]);
+  const hourTickGradient = useMemo(() => buildHourTickGradient(zoomLevel, isDark), [zoomLevel, isDark]);
+  const hasGraduation = ZOOM_CONFIG[zoomLevel].marks.length > 0;
+
+  // ─── Compute sticky top offsets for header rows ────────────────────────
+  const monthRowHeight = 24;
+  const dayRowHeight = 38;
+  const hasMonthRow = useMemo(() => computeMonthSeparators(days).length > 1, [days]);
+  const dayRowTop = hasMonthRow ? monthRowHeight : 0;
+  const graduationRowTop = dayRowTop + dayRowHeight;
 
   // ─── Pagination des proprietes ──────────────────────────────────────────
   const [propertyPage, setPropertyPage] = useState(0);
@@ -381,8 +395,8 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
     return map;
   }, [filteredInterventions]);
 
-  const totalRowHeight = RESERVATION_ROW_HEIGHT + ROW_PADDING * 2
-    + (showInterventions ? INTERVENTION_ROW_HEIGHT + ROW_PADDING : 0);
+  const totalRowHeight = BAR_ROW_HEIGHT + ROW_PADDING * 2
+    + (showInterventions ? BAR_ROW_HEIGHT + ROW_PADDING : 0);
 
   // ─── Stats filtrees par mois visible ────────────────────────────────────
   const visibleReservationCount = useMemo(() => {
@@ -438,10 +452,10 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
               <Tooltip title="Jours"><Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>J</Typography></Tooltip>
             </ToggleButton>
             <ToggleButton value="standard">
-              <Tooltip title="3 heures"><Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>3H</Typography></Tooltip>
+              <Tooltip title="1 heure"><Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>1H</Typography></Tooltip>
             </ToggleButton>
             <ToggleButton value="detailed">
-              <Tooltip title="1 heure"><Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>1H</Typography></Tooltip>
+              <Tooltip title="30 minutes"><Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>30m</Typography></Tooltip>
             </ToggleButton>
           </ToggleButtonGroup>
 
@@ -558,14 +572,14 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
       {/* ─── Grid content ───────────────────────────────────────────────── */}
       {properties.length === 0 ? (
         forfait?.toLowerCase() === 'essentiel' ? (
-          <Paper sx={{ p: 4, textAlign: 'center', borderLeft: '4px solid #6B8A9A', borderRadius: '12px' }}>
+          <Paper sx={{ p: 4, textAlign: 'center', borderLeft: '4px solid', borderColor: 'primary.main', borderRadius: '12px' }}>
             <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: 'rgba(107,138,154,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
-              <LockIcon sx={{ fontSize: 28, color: '#6B8A9A' }} />
+              <LockIcon sx={{ fontSize: 28, color: 'primary.main' }} />
             </Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem', color: '#1E293B', mb: 0.5 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1rem', color: 'text.primary', mb: 0.5 }}>
               Planning non disponible avec le forfait Essentiel
             </Typography>
-            <Typography variant="body2" sx={{ color: '#64748B', fontSize: '0.875rem', lineHeight: 1.6, maxWidth: 480, mx: 'auto' }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem', lineHeight: 1.6, maxWidth: 480, mx: 'auto' }}>
               Votre forfait actuel ne permet pas l'acces au planning interactif ni a l'import
               automatique de vos calendriers Airbnb, Booking et autres plateformes.
               Passez au forfait Confort ou Premium pour debloquer cette fonctionnalite.
@@ -610,15 +624,15 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                 </Box>
               )}
 
-              {/* ─── Header row (days) ──────────────────────────────────── */}
+              {/* ─── Header row (days — nom + numéro uniquement) ──────── */}
               <Box
                 sx={{
                   display: 'flex',
                   position: 'sticky',
-                  top: monthSeparators.length > 1 ? 24 : 0,
+                  top: dayRowTop,
                   zIndex: 3,
                   backgroundColor: 'background.paper',
-                  borderBottom: '2px solid',
+                  borderBottom: hasGraduation ? '1px solid' : '2px solid',
                   borderColor: 'divider',
                 }}
               >
@@ -636,68 +650,121 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                   </Typography>
                 </Box>
 
-                {/* Day columns */}
+                {/* Day columns — seulement nom + numéro */}
                 {days.map((day, idx) => {
                   const isToday = isSameDay(day, today);
                   const isPast = day < today && !isToday;
                   const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                   const isFirstOfMonth = day.getDate() === 1 && idx > 0;
-                  const hourMarks = ZOOM_CONFIG[zoomLevel].marks;
 
                   return (
                     <Box
                       key={day.toISOString()}
                       sx={{
-                        width: dayColWidth, minWidth: dayColWidth, textAlign: 'center', py: 0.25,
+                        width: dayColWidth, minWidth: dayColWidth, textAlign: 'center',
+                        py: 0.4,
                         borderRight: '1px solid',
                         borderColor: isFirstOfMonth ? 'primary.light' : 'divider',
                         borderRightWidth: isFirstOfMonth ? 2 : 1,
-                        backgroundColor: isToday ? 'primary.main' : isPast ? '#e8e8e8' : isWeekend ? 'action.hover' : 'background.paper',
-                        position: 'relative',
+                        backgroundColor: isToday ? 'primary.main' : isPast ? (isDark ? theme.palette.grey[200] : '#e8e8e8') : isWeekend ? 'action.hover' : 'background.paper',
                         opacity: isPast ? 0.6 : 1,
                       }}
                     >
-                      <Typography variant="caption" sx={{ fontSize: '0.5625rem', fontWeight: isToday ? 700 : 400, color: isToday ? 'primary.contrastText' : isPast ? '#999' : 'text.secondary', display: 'block', lineHeight: 1.2 }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.5625rem', fontWeight: isToday ? 700 : 400, color: isToday ? 'primary.contrastText' : isPast ? 'text.disabled' : 'text.secondary', display: 'block', lineHeight: 1.2 }}>
                         {WEEKDAY_SHORT[day.getDay()]}
                       </Typography>
-                      <Typography variant="caption" sx={{ fontSize: '0.6875rem', fontWeight: isToday ? 700 : 500, color: isToday ? 'primary.contrastText' : isPast ? '#999' : 'text.primary', display: 'block', lineHeight: 1.2 }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.6875rem', fontWeight: isToday ? 700 : 500, color: isToday ? 'primary.contrastText' : isPast ? 'text.disabled' : 'text.primary', display: 'block', lineHeight: 1.2 }}>
                         {day.getDate()}
                       </Typography>
-                      {/* Hour mark labels */}
-                      {hourMarks.length > 0 && (
-                        <Box sx={{ display: 'flex', width: '100%', mt: 0.125, px: 0 }}>
-                          {hourMarks.map((h) => {
-                            const leftPct = ((h - HOUR_RANGE_START) / TOTAL_HOURS) * 100;
-                            return (
-                              <Typography
-                                key={h}
-                                variant="caption"
-                                sx={{
-                                  position: 'absolute',
-                                  left: `${leftPct}%`,
-                                  transform: 'translateX(-50%)',
-                                  bottom: 0,
-                                  fontSize: '0.375rem',
-                                  lineHeight: 1,
-                                  color: isToday ? 'rgba(255,255,255,0.6)' : 'text.disabled',
-                                }}
-                              >
-                                {h}
-                              </Typography>
-                            );
-                          })}
-                        </Box>
-                      )}
                     </Box>
                   );
                 })}
               </Box>
 
+              {/* ─── Graduation row (heures / minutes — rangée séparée) ─ */}
+              {hasGraduation && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    position: 'sticky',
+                    top: graduationRowTop,
+                    zIndex: 3,
+                    backgroundColor: 'background.paper',
+                    borderBottom: '2px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  {/* Property column spacer */}
+                  <Box
+                    sx={{
+                      width: PROPERTY_COL_WIDTH, minWidth: PROPERTY_COL_WIDTH, flexShrink: 0,
+                      position: 'sticky', left: 0, zIndex: 4,
+                      backgroundColor: 'background.paper', borderRight: '1px solid', borderColor: 'divider',
+                      height: GRADUATION_ROW_HEIGHT,
+                    }}
+                  />
+
+                  {/* Graduation tick marks per day (traits verticaux, sans labels) */}
+                  {days.map((day, idx) => {
+                    const isToday = isSameDay(day, today);
+                    const isPast = day < today && !isToday;
+                    const isFirstOfMonth = day.getDate() === 1 && idx > 0;
+                    const hourMarks = ZOOM_CONFIG[zoomLevel].marks;
+
+                    return (
+                      <Box
+                        key={`grad-${day.toISOString()}`}
+                        sx={{
+                          width: dayColWidth, minWidth: dayColWidth,
+                          position: 'relative',
+                          height: GRADUATION_ROW_HEIGHT,
+                          borderRight: '1px solid',
+                          borderColor: isFirstOfMonth ? 'primary.light' : 'divider',
+                          borderRightWidth: isFirstOfMonth ? 2 : 1,
+                          backgroundColor: isToday
+                            ? 'rgba(25,118,210,0.08)'
+                            : isPast
+                              ? (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)')
+                              : (isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)'),
+                          opacity: isPast ? 0.5 : 1,
+                        }}
+                      >
+                        {hourMarks.map((h) => {
+                          const leftPct = ((h - HOUR_RANGE_START) / TOTAL_HOURS) * 100;
+                          const isHalfHour = !Number.isInteger(h);
+                          return (
+                            <Box
+                              key={h}
+                              sx={{
+                                position: 'absolute',
+                                left: `${leftPct}%`,
+                                top: 0,
+                                width: '1px',
+                                height: isHalfHour ? '40%' : '100%',
+                                backgroundColor: isToday
+                                  ? (isHalfHour ? 'rgba(25,118,210,0.2)' : 'rgba(25,118,210,0.4)')
+                                  : (h === 12
+                                    ? 'rgba(25,118,210,0.25)'
+                                    : isHalfHour
+                                      ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
+                                      : (isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.15)')),
+                              }}
+                            />
+                          );
+                        })}
+                      </Box>
+                    );
+                  })}
+                </Box>
+              )}
+
               {/* ─── Property rows (paginated) ──────────────────────── */}
               {paginatedProperties.map((property, rowIndex) => {
                 const propertyReservations = reservationsByProperty.get(property.id) || [];
                 const propertyInterventions = interventionsByProperty.get(property.id) || [];
-                const rowBg = rowIndex % 2 === 0 ? '#ffffff' : '#f5f5f5';
+                const rowBg = rowIndex % 2 === 0
+                  ? theme.palette.background.paper
+                  : (isDark ? theme.palette.grey[200] : '#f5f5f5');
 
                 return (
                   <Box
@@ -705,8 +772,8 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                     sx={{
                       display: 'flex', position: 'relative', height: totalRowHeight,
                       borderBottom: '1px solid', borderColor: 'divider', backgroundColor: rowBg,
-                      '&:hover': { backgroundColor: '#ebebeb' },
-                      '&:hover > .sticky-property-cell': { backgroundColor: '#ebebeb' },
+                      '&:hover': { backgroundColor: isDark ? theme.palette.grey[300] : '#ebebeb' },
+                      '&:hover > .sticky-property-cell': { backgroundColor: isDark ? theme.palette.grey[300] : '#ebebeb' },
                     }}
                   >
                     {/* Property name cell */}
@@ -716,14 +783,14 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                         width: PROPERTY_COL_WIDTH, minWidth: PROPERTY_COL_WIDTH, flexShrink: 0, px: 1.5,
                         display: 'flex', flexDirection: 'column', justifyContent: 'center',
                         position: 'sticky', left: 0, zIndex: 2, backgroundColor: rowBg,
-                        borderRight: '1px solid', borderColor: 'divider', boxShadow: '2px 0 4px rgba(0,0,0,0.08)',
+                        borderRight: '1px solid', borderColor: 'divider', boxShadow: isDark ? '2px 0 4px rgba(0,0,0,0.3)' : '2px 0 4px rgba(0,0,0,0.08)',
                       }}
                     >
                       <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {property.name}
                       </Typography>
                       {property.ownerName && (
-                        <Typography variant="caption" sx={{ fontSize: '0.625rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#6B8A9A', fontWeight: 500 }}>
+                        <Typography variant="caption" sx={{ fontSize: '0.625rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'primary.main', fontWeight: 500 }}>
                           {property.ownerName}
                         </Typography>
                       )}
@@ -748,7 +815,13 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                               borderRight: '1px solid',
                               borderColor: isFirstOfMonth ? 'primary.light' : 'divider',
                               borderRightWidth: isFirstOfMonth ? 2 : 1,
-                              backgroundColor: isPast ? 'rgba(0,0,0,0.04)' : isToday ? 'rgba(25, 118, 210, 0.06)' : isWeekend ? 'rgba(0,0,0,0.02)' : 'transparent',
+                              backgroundColor: isPast
+                                ? (isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)')
+                                : isToday
+                                  ? 'rgba(25, 118, 210, 0.06)'
+                                  : isWeekend
+                                    ? (isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)')
+                                    : 'transparent',
                               backgroundImage: isPast ? 'none' : hourTickGradient,
                             }}
                           />
@@ -763,7 +836,7 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                           days={days}
                           rangeStart={dateRange.start}
                           topOffset={ROW_PADDING}
-                          barHeight={RESERVATION_ROW_HEIGHT}
+                          barHeight={BAR_ROW_HEIGHT}
                           dayColWidth={dayColWidth}
                           zoomLevel={zoomLevel}
                         />
@@ -776,8 +849,8 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                           intervention={intervention}
                           days={days}
                           rangeStart={dateRange.start}
-                          topOffset={ROW_PADDING + RESERVATION_ROW_HEIGHT + ROW_PADDING}
-                          barHeight={INTERVENTION_ROW_HEIGHT}
+                          topOffset={ROW_PADDING + BAR_ROW_HEIGHT + ROW_PADDING}
+                          barHeight={BAR_ROW_HEIGHT}
                           dayColWidth={dayColWidth}
                           zoomLevel={zoomLevel}
                         />
@@ -834,6 +907,8 @@ interface ReservationBarProps {
 function ReservationBar({ reservation, days, rangeStart, topOffset, barHeight, dayColWidth, zoomLevel }: ReservationBarProps) {
   const checkIn = toDateOnly(reservation.checkIn);
   const checkOut = toDateOnly(reservation.checkOut);
+  const today = new Date();
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
   const startOffset = daysBetween(rangeStart, checkIn);
   const endOffset = daysBetween(rangeStart, checkOut);
@@ -855,8 +930,20 @@ function ReservationBar({ reservation, days, rangeStart, topOffset, barHeight, d
   const right = visibleEnd * dayColWidth + checkOutHourOffset;
   const width = right - left;
 
-  const color = RESERVATION_STATUS_COLORS[reservation.status];
-  const statusLabel = RESERVATION_STATUS_LABELS[reservation.status];
+  // ─── Statut effectif basé sur la date du jour ─────────────────────────────
+  // Si annulé/en attente, on garde le statut brut.
+  // Sinon on calcule en fonction de checkIn/checkOut vs aujourd'hui.
+  const effectiveStatus: ReservationStatus = (() => {
+    if (reservation.status === 'cancelled' || reservation.status === 'pending') {
+      return reservation.status;
+    }
+    if (todayOnly > checkOut) return 'checked_out';
+    if (todayOnly >= checkIn && todayOnly <= checkOut) return 'checked_in';
+    return reservation.status; // futur → confirmed
+  })();
+
+  const color = RESERVATION_STATUS_COLORS[effectiveStatus];
+  const statusLabel = RESERVATION_STATUS_LABELS[effectiveStatus];
   const nights = daysBetween(checkIn, checkOut);
   const checkInStr = checkIn.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
   const checkOutStr = checkOut.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
@@ -875,16 +962,16 @@ function ReservationBar({ reservation, days, rangeStart, topOffset, barHeight, d
           position: 'absolute', top: topOffset, left: left,
           width: Math.max(width - 4, 16), height: barHeight - 4,
           backgroundColor: color, borderRadius: '14px', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', px: 0.75, overflow: 'hidden',
-          opacity: reservation.status === 'cancelled' ? 0.5 : 0.9,
+          display: 'flex', alignItems: 'center', px: 1.5, overflow: 'hidden',
+          opacity: effectiveStatus === 'cancelled' ? 0.5 : 0.9,
           transition: 'opacity 0.15s, box-shadow 0.15s',
           '&:hover': { opacity: 1, boxShadow: `0 2px 8px ${color}60`, zIndex: 1 },
         }}
       >
         <Typography variant="caption" sx={{
-          color: '#fff', fontWeight: 600, fontSize: '0.6875rem', overflow: 'hidden',
+          color: '#fff', fontWeight: 600, fontSize: '0.75rem', overflow: 'hidden',
           textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          textDecoration: reservation.status === 'cancelled' ? 'line-through' : 'none',
+          textDecoration: effectiveStatus === 'cancelled' ? 'line-through' : 'none',
         }}>
           {width > 60 ? reservation.guestName : reservation.guestName.split(' ')[0]}
         </Typography>
@@ -925,20 +1012,16 @@ function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight,
 
   if (visibleStart >= days.length || visibleEnd <= 0) return null;
 
-  // Hour-level adjustments
+  // Hour-level adjustment — only for start position (anchor at start)
   const startHourOffset = (startOffset >= 0 && zoomLevel !== 'compact')
     ? getHourOffsetPx(intervention.startTime, dayColWidth)
     : 0;
 
-  let endHourOffset = 0;
-  if (zoomLevel !== 'compact' && intervention.endTime) {
-    // endOffset already adds +1 full day, so we subtract dayColWidth and add the endTime offset
-    endHourOffset = getHourOffsetPx(intervention.endTime, dayColWidth) - dayColWidth;
-  }
-
   const left = visibleStart * dayColWidth + startHourOffset;
-  const rawWidth = (visibleEnd - visibleStart) * dayColWidth + endHourOffset - startHourOffset;
-  const width = Math.max(rawWidth, 16);
+
+  // Minimum width to always show full label — anchored at start, ignore end clipping
+  const MIN_BAR_WIDTH = 120;
+  const width = Math.max(MIN_BAR_WIDTH, 16);
 
   const color = INTERVENTION_TYPE_COLORS[intervention.type];
   const typeLabel = INTERVENTION_TYPE_LABELS[intervention.type];
@@ -967,9 +1050,9 @@ function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight,
       <Box
         sx={{
           position: 'absolute', top: topOffset, left: left,
-          width: Math.max(width - 4, 16), height: barHeight - 4,
+          width: width, height: barHeight - 4,
           backgroundColor: isCancelled ? '#9e9e9e' : color, borderRadius: '14px',
-          cursor: 'pointer', display: 'flex', alignItems: 'center', px: 0.5, overflow: 'hidden',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', px: 1, gap: 0.5, overflow: 'hidden',
           opacity: isCompleted ? 0.55 : isCancelled ? 0.4 : 0.85,
           transition: 'opacity 0.15s, box-shadow 0.15s',
           backgroundImage: isCompleted
@@ -978,17 +1061,16 @@ function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight,
           '&:hover': { opacity: 1, boxShadow: `0 2px 6px ${color}50`, zIndex: 1 },
         }}
       >
-        {width > 40 && (
-          intervention.type === 'cleaning'
-            ? <CleaningServices sx={{ fontSize: 11, color: '#fff', mr: 0.25, flexShrink: 0 }} />
-            : <Build sx={{ fontSize: 11, color: '#fff', mr: 0.25, flexShrink: 0 }} />
-        )}
+        {intervention.type === 'cleaning'
+          ? <CleaningServices sx={{ fontSize: 12, color: '#fff', flexShrink: 0 }} />
+          : <Build sx={{ fontSize: 12, color: '#fff', flexShrink: 0 }} />
+        }
         <Typography variant="caption" sx={{
           color: '#fff', fontWeight: 600, fontSize: '0.5625rem', overflow: 'hidden',
           textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           textDecoration: isCancelled ? 'line-through' : 'none',
         }}>
-          {width > 80 ? intervention.title : typeLabel}
+          {intervention.title}
         </Typography>
       </Box>
     </Tooltip>
