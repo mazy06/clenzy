@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useSearchParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -11,13 +11,16 @@ import {
   CircularProgress,
   IconButton,
   InputAdornment,
-  Link
+  Link,
+  ThemeProvider,
+  CssBaseline
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import keycloak from '../../keycloak';
 import clenzyLogo from '../../assets/Clenzy_logo.png';
 import apiClient, { ApiError } from '../../services/apiClient';
 import { saveTokens, setSessionCookie } from '../../services/storageService';
+import lightTheme from '../../theme/theme';
 
 export default function Login() {
   const [searchParams] = useSearchParams();
@@ -66,9 +69,30 @@ export default function Login() {
     } catch (err) {
       const apiErr = err as ApiError;
       if (apiErr.status) {
-        setError(apiErr.message || 'Erreur de connexion');
+        // Messages user-friendly selon le code HTTP
+        switch (apiErr.status) {
+          case 401:
+            setError('Email ou mot de passe incorrect.');
+            break;
+          case 400:
+            setError('Veuillez remplir tous les champs.');
+            break;
+          case 403:
+            setError('Votre compte est désactivé. Contactez le support.');
+            break;
+          case 429:
+            setError('Trop de tentatives. Veuillez réessayer dans quelques minutes.');
+            break;
+          case 500:
+          case 502:
+          case 503:
+            setError('Le serveur est temporairement indisponible. Réessayez dans un instant.');
+            break;
+          default:
+            setError('Une erreur est survenue. Veuillez réessayer.');
+        }
       } else {
-        setError('Erreur de connexion au serveur. Vérifiez votre connexion internet.');
+        setError('Impossible de contacter le serveur. Vérifiez votre connexion internet.');
       }
     } finally {
       setLoading(false);
@@ -76,15 +100,17 @@ export default function Login() {
   };
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
+    <ThemeProvider theme={lightTheme}>
+    <CssBaseline />
+    <Box sx={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
       background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)', // Palette Clenzy
-      p: 2 
+      p: 2
     }}>
-      <Paper elevation={8} sx={{ 
+      <Paper elevation={8} sx={{
         p: 2.5, 
         width: '100%', 
         maxWidth: 400, 
@@ -254,6 +280,7 @@ export default function Login() {
         </Box>
       </Paper>
     </Box>
+    </ThemeProvider>
   );
 }
 
