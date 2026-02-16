@@ -142,6 +142,19 @@ public class UserService {
         return userRepository.findByKeycloakId(keycloakId).orElse(null);
     }
 
+    @Transactional(readOnly = true)
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null);
+    }
+
+    @Transactional
+    public void updateKeycloakId(Long userId, String keycloakId) {
+        userRepository.findById(userId).ifPresent(user -> {
+            user.setKeycloakId(keycloakId);
+            userRepository.save(user);
+        });
+    }
+
     public void delete(Long id) {
         User user = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
         
