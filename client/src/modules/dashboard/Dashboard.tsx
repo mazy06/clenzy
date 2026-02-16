@@ -390,7 +390,7 @@ const Dashboard: React.FC = () => {
           {/* ── Activite + Operations : grille unifiee ─────────────────── */}
           {(hasActivityContent || hasOperationsContent) && (
             <Grid container spacing={1.5}>
-              {/* ─ Colonne gauche : Activite + Alertes ─────────────────── */}
+              {/* ─ Colonne gauche : Activite + Paiements ────────────────── */}
               <Grid item xs={12} md={5}>
                 {hasActivityContent && (
                   <DashboardActivityFeed
@@ -399,11 +399,6 @@ const Dashboard: React.FC = () => {
                     navigate={navigate}
                     t={t}
                   />
-                )}
-                {canViewInterventions && (
-                  <Box sx={{ mt: 1.5 }}>
-                    <AlertsWidget />
-                  </Box>
                 )}
                 {canViewInterventions && (
                   <Box sx={{ mt: 1.5 }}>
@@ -424,7 +419,7 @@ const Dashboard: React.FC = () => {
                 )}
               </Grid>
 
-              {/* ─ Colonne droite : Actions rapides ────────────────────── */}
+              {/* ─ Colonne droite : Actions rapides + Alertes ───────────── */}
               <Grid item xs={12} md={3}>
                 <DashboardQuickActions
                   canViewProperties={canViewProperties}
@@ -439,6 +434,11 @@ const Dashboard: React.FC = () => {
                   navigate={navigate}
                   t={t}
                 />
+                {canViewInterventions && (
+                  <Box sx={{ mt: 1.5 }}>
+                    <AlertsWidget />
+                  </Box>
+                )}
               </Grid>
             </Grid>
           )}

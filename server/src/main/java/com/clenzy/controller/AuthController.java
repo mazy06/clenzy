@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
+import java.time.LocalDateTime;
 import com.clenzy.model.User;
 import com.clenzy.service.UserService;
 import com.clenzy.service.PermissionService;
@@ -154,6 +155,23 @@ public class AuthController {
             String keycloakId = jwt.getSubject();
             User user = userService.findByKeycloakId(keycloakId);
 
+            // Auto-liaison : si l'utilisateur n'est pas trouve par keycloakId,
+            // chercher par email et lier automatiquement le keycloakId
+            if (user == null) {
+                String email = jwt.getClaim("email");
+                if (email != null && !email.isBlank()) {
+                    user = userService.findByEmail(email);
+                    if (user != null) {
+                        log.info("/me - Auto-liaison keycloakId {} -> utilisateur {} (email: {})",
+                                keycloakId, user.getId(), email);
+                        userService.updateKeycloakId(user.getId(), keycloakId);
+                    } else {
+                        log.warn("/me - Aucun utilisateur trouve ni par keycloakId ({}) ni par email ({})",
+                                keycloakId, email);
+                    }
+                }
+            }
+
             if (user != null) {
                 claims.put("id", user.getId());
                 claims.put("firstName", user.getFirstName());
@@ -189,15 +207,76 @@ public class AuthController {
                         user.getEmail(), user.getRole().name(), permissions.size(),
                         permissions.isEmpty() ? "VIDE" : String.join(",", permissions));
             } else {
-                log.warn("/me - Utilisateur non trouve pour keycloakId: {}", keycloakId);
+                log.warn("/me - Utilisateur non trouve pour keycloakId: {} et email: {}",
+                        keycloakId, jwt.getClaim("email"));
+                // Retourner les infos de base du JWT meme sans correspondance en base
+                claims.put("permissions", List.of());
+                claims.put("role", "UNKNOWN");
             }
 
             return claims;
 
         } catch (Exception e) {
-            log.error("Erreur dans /me: {}", e.getMessage());
+            log.error("Erreur dans /me: {}", e.getMessage(), e);
             return Map.of("authenticated", true, "error", "Erreur lors de la recuperation des donnees");
         }
+    }
+
+    @GetMapping("/auth/debug-permissions")
+    @Operation(summary = "Diagnostic des permissions pour le debug en production")
+    public ResponseEntity<Map<String, Object>> debugPermissions(@AuthenticationPrincipal Jwt jwt) {
+        Map<String, Object> debug = new HashMap<>();
+
+        if (jwt == null) {
+            debug.put("error", "Aucun JWT");
+            return ResponseEntity.status(401).body(debug);
+        }
+
+        debug.put("jwt_subject", jwt.getSubject());
+        debug.put("jwt_email", jwt.getClaim("email"));
+        debug.put("jwt_preferred_username", jwt.getClaim("preferred_username"));
+
+        Object realmAccess = jwt.getClaim("realm_access");
+        if (realmAccess instanceof Map) {
+            debug.put("jwt_realm_access", realmAccess);
+        } else {
+            debug.put("jwt_realm_access", "ABSENT");
+        }
+
+        String keycloakId = jwt.getSubject();
+        User userByKc = userService.findByKeycloakId(keycloakId);
+        debug.put("user_found_by_keycloakId", userByKc != null);
+
+        String email = jwt.getClaim("email");
+        User userByEmail = (email != null) ? userService.findByEmail(email) : null;
+        debug.put("user_found_by_email", userByEmail != null);
+
+        if (userByKc != null) {
+            debug.put("user_id", userByKc.getId());
+            debug.put("user_role", userByKc.getRole().name());
+            debug.put("user_keycloakId", userByKc.getKeycloakId());
+
+            RolePermissionsDto rolePerms = permissionService.getRolePermissions(userByKc.getRole().name());
+            debug.put("permissions_from_cache", rolePerms.getPermissions());
+            debug.put("permissions_from_cache_count", rolePerms.getPermissions() != null ? rolePerms.getPermissions().size() : 0);
+
+            List<String> dbPerms = permissionService.getUserPermissionsForSync(keycloakId);
+            debug.put("permissions_from_db", dbPerms);
+            debug.put("permissions_from_db_count", dbPerms != null ? dbPerms.size() : 0);
+
+            List<String> allPerms = permissionService.getAllAvailablePermissions();
+            debug.put("all_available_permissions_count", allPerms != null ? allPerms.size() : 0);
+        } else if (userByEmail != null) {
+            debug.put("user_by_email_id", userByEmail.getId());
+            debug.put("user_by_email_role", userByEmail.getRole().name());
+            debug.put("user_by_email_keycloakId", userByEmail.getKeycloakId());
+            debug.put("mismatch", "User exists by email but keycloakId does not match JWT subject");
+        } else {
+            debug.put("user_status", "NOT_FOUND");
+            debug.put("suggestion", "Run POST /api/sync/force-sync-all-to-keycloak to sync users");
+        }
+
+        return ResponseEntity.ok(debug);
     }
 
     @PostMapping("/logout")
