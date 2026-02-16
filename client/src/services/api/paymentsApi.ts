@@ -8,8 +8,8 @@ export interface PaymentSession {
 }
 
 export interface PaymentSessionStatus {
-  status: string;
   paymentStatus: string;
+  interventionStatus: string;
 }
 
 // ─── Payment History Types ──────────────────────────────────────────────────

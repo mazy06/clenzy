@@ -43,7 +43,7 @@ function getSavedMode(): ThemeMode {
   } catch {
     // Silent fail
   }
-  return 'light';
+  return 'auto';
 }
 
 // ─── Helper: resolve isDark from mode ───────────────────────────────────────

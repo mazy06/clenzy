@@ -79,8 +79,8 @@ export const RESERVATION_SOURCE_LABELS: Record<ReservationSource, string> = {
 };
 
 export const INTERVENTION_TYPE_COLORS: Record<PlanningInterventionType, string> = {
-  cleaning: '#7BA3C2',    // bleu harmonieux (thème info)
-  maintenance: '#C97A7A', // rose doux (thème error)
+  cleaning: '#9B7FC4',    // violet doux — distinct du bleu-gris checked_in
+  maintenance: '#D49B5A', // ambre/ocre chaud — distinct du warning et de l'error
 };
 
 export const INTERVENTION_TYPE_LABELS: Record<PlanningInterventionType, string> = {
@@ -89,10 +89,10 @@ export const INTERVENTION_TYPE_LABELS: Record<PlanningInterventionType, string> 
 };
 
 export const INTERVENTION_STATUS_COLORS: Record<PlanningInterventionStatus, string> = {
-  scheduled: '#7BA3C2',   // bleu harmonieux (thème info)
-  in_progress: '#6B8A9A', // bleu-gris (thème primary)
-  completed: '#4A9B8E',   // teal (thème success)
-  cancelled: '#9e9e9e',   // grey (conservé)
+  scheduled: '#7BA3C2',   // bleu harmonieux (thème info) — statut planifié
+  in_progress: '#6B8A9A', // bleu-gris (thème primary) — en cours
+  completed: '#4A9B8E',   // teal (thème success) — terminé
+  cancelled: '#9e9e9e',   // grey — annulé
 };
 
 export const INTERVENTION_STATUS_LABELS: Record<PlanningInterventionStatus, string> = {

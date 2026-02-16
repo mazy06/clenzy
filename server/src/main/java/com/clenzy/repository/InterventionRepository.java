@@ -144,7 +144,9 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     
     /**
      * Trouver une intervention par son ID de session Stripe
+     * EntityGraph pour charger property, property.owner et requestor (nécessaire pour les notifications et le DTO)
      */
+    @EntityGraph(attributePaths = {"property", "property.owner", "requestor"})
     @Query("SELECT i FROM Intervention i WHERE i.stripeSessionId = :sessionId")
     java.util.Optional<Intervention> findByStripeSessionId(@Param("sessionId") String sessionId);
     
@@ -180,7 +182,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     /**
      * Historique des paiements — interventions d'un requestor specifique (HOST)
      */
-    @EntityGraph(attributePaths = {"property"})
+    @EntityGraph(attributePaths = {"property", "requestor"})
     @Query("SELECT i FROM Intervention i WHERE i.requestor.id = :requestorId " +
            "AND i.estimatedCost IS NOT NULL AND i.estimatedCost > 0 " +
            "AND (:paymentStatus IS NULL OR i.paymentStatus = :paymentStatus)")

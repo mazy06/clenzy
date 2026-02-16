@@ -14,7 +14,7 @@ import {
   Visibility,
   Edit,
   LocationOn,
-  CleaningServices,
+  AutoAwesome,
   Build,
   Schedule,
   AccessTime,
@@ -28,9 +28,10 @@ import {
   Yard,
   BugReport,
   AutoFixHigh,
+  FiberManualRecord,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { getPropertyTypeBannerUrl } from '../../utils/propertyTypeBanner';
+import LiveDashboardPulse from './LiveDashboardPulse';
 
 type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
@@ -60,38 +61,9 @@ interface InterventionCardProps {
   t: (key: string) => string;
 }
 
-// Gradient par catégorie de type d'intervention
-const getTypeGradient = (type: string): string => {
-  const cleaningTypes = [
-    'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
-    'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING',
-    'EXTERIOR_CLEANING', 'DISINFECTION',
-  ];
-  const repairTypes = [
-    'EMERGENCY_REPAIR', 'ELECTRICAL_REPAIR', 'PLUMBING_REPAIR',
-    'HVAC_REPAIR', 'APPLIANCE_REPAIR',
-  ];
-  const maintenanceTypes = ['PREVENTIVE_MAINTENANCE', 'RESTORATION'];
-  const outdoorTypes = ['GARDENING', 'PEST_CONTROL'];
-
-  if (cleaningTypes.includes(type)) {
-    return 'linear-gradient(135deg, #5B9BD5 0%, #7CB4E2 100%)';
-  }
-  if (repairTypes.includes(type)) {
-    return 'linear-gradient(135deg, #C0504D 0%, #D4726F 100%)';
-  }
-  if (maintenanceTypes.includes(type)) {
-    return 'linear-gradient(135deg, #E8A838 0%, #F0C060 100%)';
-  }
-  if (outdoorTypes.includes(type)) {
-    return 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)';
-  }
-  return 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)';
-};
-
 // Icône de type en arrière-plan
 const getTypeIcon = (type: string, size: number = 48) => {
-  const iconProps = { sx: { fontSize: size, color: 'rgba(255,255,255,0.35)' } };
+  const iconProps = { sx: { fontSize: size, color: 'rgba(255,255,255,0.18)' } };
   const cleaningTypes = [
     'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
     'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING',
@@ -102,7 +74,7 @@ const getTypeIcon = (type: string, size: number = 48) => {
     'HVAC_REPAIR', 'APPLIANCE_REPAIR',
   ];
 
-  if (cleaningTypes.includes(type)) return <CleaningServices {...iconProps} />;
+  if (cleaningTypes.includes(type)) return <AutoAwesome {...iconProps} />;
   if (repairTypes.includes(type)) return <Build {...iconProps} />;
   if (type === 'PREVENTIVE_MAINTENANCE') return <Build {...iconProps} />;
   if (type === 'GARDENING') return <Yard {...iconProps} />;
@@ -113,7 +85,7 @@ const getTypeIcon = (type: string, size: number = 48) => {
 
 // Petite icône de type pour le header
 const getTypeSmallIcon = (type: string) => {
-  const iconProps = { sx: { fontSize: 18, color: 'rgba(255,255,255,0.9)' } };
+  const iconProps = { sx: { fontSize: 16, color: 'rgba(255,255,255,0.85)' } };
   const cleaningTypes = [
     'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
     'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING',
@@ -124,7 +96,7 @@ const getTypeSmallIcon = (type: string) => {
     'HVAC_REPAIR', 'APPLIANCE_REPAIR',
   ];
 
-  if (cleaningTypes.includes(type)) return <CleaningServices {...iconProps} />;
+  if (cleaningTypes.includes(type)) return <AutoAwesome {...iconProps} />;
   if (repairTypes.includes(type)) return <Build {...iconProps} />;
   if (type === 'PREVENTIVE_MAINTENANCE') return <Build {...iconProps} />;
   if (type === 'GARDENING') return <Yard {...iconProps} />;
@@ -234,7 +206,6 @@ const InterventionCard: React.FC<InterventionCardProps> = ({
   t,
 }) => {
   const navigate = useNavigate();
-  const propertyBannerUrl = intervention.propertyType ? getPropertyTypeBannerUrl(intervention.propertyType) : null;
 
   const handleViewDetails = () => {
     navigate(`/interventions/${intervention.id}`);
@@ -264,38 +235,14 @@ const InterventionCard: React.FC<InterventionCardProps> = ({
       }}
       onClick={handleViewDetails}
     >
-      {/* ─── Zone visuelle : Bandeau gradient ─── */}
-      <Box
-        sx={{
-          position: 'relative',
-          background: propertyBannerUrl ? 'transparent' : getTypeGradient(intervention.type),
-          ...(propertyBannerUrl
-            ? {
-                backgroundImage: `linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.40)), url(${propertyBannerUrl})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }
-            : null),
-          height: 110,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-        }}
+      {/* ─── Zone visuelle : Bandeau Live Dashboard Pulse ─── */}
+      <LiveDashboardPulse
+        type={intervention.type}
+        priority={intervention.priority}
+        status={intervention.status}
+        height={110}
       >
-        {/* Icône type en arrière-plan décoratif */}
-        <Box
-          sx={{
-            position: 'absolute',
-            right: -10,
-            bottom: -10,
-            opacity: 0.8,
-          }}
-        >
-          {getTypeIcon(intervention.type, 80)}
-        </Box>
-
-        {/* Type en haut à gauche */}
+        {/* Type en haut à gauche — label glassmorphism */}
         <Box
           sx={{
             position: 'absolute',
@@ -303,7 +250,13 @@ const InterventionCard: React.FC<InterventionCardProps> = ({
             left: 12,
             display: 'flex',
             alignItems: 'center',
-            gap: 0.75,
+            gap: 0.6,
+            bgcolor: 'rgba(255,255,255,0.08)',
+            backdropFilter: 'blur(8px)',
+            borderRadius: 1.5,
+            border: '1px solid rgba(255,255,255,0.1)',
+            px: 1,
+            py: 0.4,
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -314,7 +267,7 @@ const InterventionCard: React.FC<InterventionCardProps> = ({
             sx={{
               color: 'rgba(255,255,255,0.9)',
               fontWeight: 600,
-              fontSize: '0.7rem',
+              fontSize: '0.68rem',
               letterSpacing: '0.5px',
               textTransform: 'uppercase',
             }}
@@ -323,86 +276,91 @@ const InterventionCard: React.FC<InterventionCardProps> = ({
           </Typography>
         </Box>
 
-        {/* Badge statut — coin supérieur droit */}
-        <Chip
-          label={getStatusLabel(intervention.status)}
-          color={getStatusColor(intervention.status)}
-          size="small"
-          sx={{
-            position: 'absolute',
-            top: 10,
-            right: 10,
-            height: 22,
-            fontSize: '0.65rem',
-            fontWeight: 600,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-          }}
-        />
-
-        {/* Date planifiée — coin inférieur gauche */}
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: 10,
-            left: 12,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-            bgcolor: 'rgba(0,0,0,0.35)',
-            backdropFilter: 'blur(4px)',
-            borderRadius: 1.5,
-            px: 1.25,
-            py: 0.5,
-          }}
-        >
-          <Schedule sx={{ fontSize: 14, color: 'rgba(255,255,255,0.8)' }} />
-          <Typography
-            variant="caption"
-            sx={{
-              color: '#fff',
-              fontWeight: 600,
-              fontSize: '0.75rem',
-              lineHeight: 1,
-            }}
-          >
-            {formatDate(intervention.scheduledDate)}
-          </Typography>
-        </Box>
-
-        {/* Badge priorité — coin inférieur droit */}
-        <Chip
-          label={getPriorityLabel(intervention.priority)}
-          color={getPriorityColor(intervention.priority)}
-          size="small"
-          variant="filled"
-          sx={{
-            position: 'absolute',
-            bottom: 10,
-            right: 10,
-            height: 20,
-            fontSize: '0.6rem',
-            fontWeight: 600,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-          }}
-        />
-
-        {/* Menu contextuel */}
+        {/* Menu contextuel — coin supérieur droit */}
         <IconButton
           size="small"
           onClick={(e) => { e.stopPropagation(); onMenuOpen(e, intervention); }}
           sx={{
             position: 'absolute',
-            top: 8,
-            right: 70,
-            color: 'rgba(255,255,255,0.7)',
-            bgcolor: 'rgba(0,0,0,0.15)',
-            '&:hover': { bgcolor: 'rgba(0,0,0,0.3)', color: '#fff' },
+            top: 10,
+            right: 12,
+            color: 'rgba(255,255,255,0.6)',
+            bgcolor: 'rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', color: '#fff' },
             width: 28,
             height: 28,
           }}
         >
           <MoreVert sx={{ fontSize: 16 }} />
         </IconButton>
+      </LiveDashboardPulse>
+
+      {/* ─── Barre de badges (entre bandeau et contenu) ─── */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: 1.5,
+          py: 0.75,
+          bgcolor: 'grey.50',
+          borderBottom: '1px solid',
+          borderColor: 'grey.100',
+          gap: 0.75,
+          minHeight: 34,
+        }}
+      >
+        {/* Gauche : statut + priorité */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+          <Chip
+            label={getStatusLabel(intervention.status)}
+            color={getStatusColor(intervention.status)}
+            size="small"
+            sx={{
+              height: 22,
+              fontSize: '0.62rem',
+              fontWeight: 600,
+              '& .MuiChip-label': { px: 0.75 },
+            }}
+          />
+          <Chip
+            label={getPriorityLabel(intervention.priority)}
+            color={getPriorityColor(intervention.priority)}
+            size="small"
+            variant="outlined"
+            sx={{
+              height: 22,
+              fontSize: '0.62rem',
+              fontWeight: 600,
+              '& .MuiChip-label': { px: 0.75 },
+            }}
+          />
+        </Box>
+
+        {/* Droite : date planifiée */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.4,
+            flexShrink: 0,
+          }}
+        >
+          <Schedule sx={{ fontSize: 13, color: 'text.secondary' }} />
+          <Typography
+            variant="caption"
+            sx={{
+              color: 'text.secondary',
+              fontWeight: 600,
+              fontSize: '0.68rem',
+              lineHeight: 1,
+            }}
+          >
+            {formatDate(intervention.scheduledDate)}
+          </Typography>
+        </Box>
       </Box>
 
       {/* ─── Zone info ─── */}

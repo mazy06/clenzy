@@ -119,6 +119,13 @@ public class StripeService {
                     "/interventions/" + intervention.getId()
                 );
             }
+            // Notifier également les admins/managers
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.PAYMENT_CONFIRMED,
+                "Paiement confirme",
+                "Le paiement pour l'intervention \"" + intervention.getTitle() + "\" a ete confirme",
+                "/interventions/" + intervention.getId()
+            );
         } catch (Exception e) {
             System.err.println("Erreur notification PAYMENT_CONFIRMED: " + e.getMessage());
         }

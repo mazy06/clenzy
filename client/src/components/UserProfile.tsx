@@ -105,7 +105,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
           p: 0.5,
           borderRadius: 1,
           '&:hover': {
-            backgroundColor: 'rgba(166, 192, 206, 0.1)',
+            backgroundColor: 'action.hover',
           },
           transition: 'background-color 0.2s ease'
         }}
@@ -118,10 +118,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
           sx={{ 
             width: 28, // 32 → 28
             height: 28, // 32 → 28
-            bgcolor: '#A6C0CE',
-            fontSize: '0.8125rem', // 0.9rem → 0.8125rem
+            bgcolor: 'secondary.main',
+            fontSize: '0.8125rem',
             fontWeight: 700,
-            border: '1.5px solid rgba(166, 192, 206, 0.3)' // 2px → 1.5px
+            border: '1.5px solid',
+            borderColor: 'secondary.light',
           }}
         >
           {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || 'U'}
@@ -160,10 +161,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
               mt: 0,
               minWidth: 240,
               borderRadius: 0,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              backgroundColor: 'white',
+              boxShadow: theme.palette.mode === 'dark' ? '0 4px 16px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.15)',
+              backgroundColor: 'background.paper',
               borderTop: '2px solid',
-              borderColor: '#A6C0CE',
+              borderColor: 'secondary.main',
               maxHeight: 'calc(100vh - 56px)',
               overflow: 'auto',
               zIndex: 1300,
@@ -175,7 +176,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
                 py: 1.25,
                 fontSize: '0.875rem',
                 '&:hover': {
-                  backgroundColor: 'rgba(166, 192, 206, 0.08)',
+                  backgroundColor: 'action.hover',
                 },
               },
             },
@@ -209,7 +210,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
           sx={{
             px: 2,
             py: 1.5,
-            backgroundColor: 'rgba(166, 192, 206, 0.08)',
+            backgroundColor: 'action.hover',
             borderBottom: '1px solid',
             borderColor: 'divider',
             display: 'flex',
@@ -222,10 +223,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
             sx={{ 
               width: 44,
               height: 44,
-              bgcolor: '#A6C0CE',
+              bgcolor: 'secondary.main',
               fontSize: '1.1rem',
               fontWeight: 700,
-              border: '2px solid rgba(166, 192, 206, 0.4)',
+              border: '2px solid',
+              borderColor: 'secondary.light',
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
             }}
           >
@@ -265,7 +267,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
               <Typography 
                 variant="caption" 
                 sx={{ 
-                  color: '#A6C0CE', 
+                  color: 'secondary.main',
                   fontSize: '0.7rem', 
                   mt: 0.25,
                   fontWeight: 600,

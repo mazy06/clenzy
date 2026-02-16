@@ -420,6 +420,7 @@
     "create": "New intervention",
     "createTitle": "Create intervention",
     "createSubtitle": "Form to create a new intervention",
+    "editTitle": "Edit intervention",
     "edit": "Edit intervention",
     "details": "Intervention details",
     "search": "Search for an intervention...",

@@ -16,7 +16,8 @@ import {
   Paper,
   Chip,
   IconButton,
-  Tooltip
+  Tooltip,
+  useTheme,
 } from '@mui/material';
 import {
   Payment as PaymentIcon,
@@ -31,25 +32,6 @@ import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
-
-// ─── Couleurs Clenzy ─────────────────────────────────────────────────────────
-const C = {
-  primary: '#6B8A9A',
-  primaryLight: '#8BA3B3',
-  primaryDark: '#5A7684',
-  secondary: '#A6C0CE',
-  success: '#4A9B8E',
-  warning: '#D4A574',
-  warningLight: '#E8C19A',
-  error: '#C97A7A',
-  info: '#7BA3C2',
-  textPrimary: '#1E293B',
-  textSecondary: '#64748B',
-  gray50: '#F8FAFC',
-  gray100: '#F1F5F9',
-  gray200: '#E2E8F0',
-  white: '#ffffff',
-} as const;
 
 interface Intervention {
   id: number;
@@ -72,6 +54,27 @@ const InterventionsPendingPayment: React.FC = () => {
   const { user, isHost } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
+  // ─── Couleurs Clenzy (theme-aware) ──────────────────────────────────────────
+  const C = {
+    primary: theme.palette.primary.main,
+    primaryLight: isDark ? theme.palette.primary.light : '#8BA3B3',
+    primaryDark: isDark ? theme.palette.primary.dark : '#5A7684',
+    secondary: theme.palette.secondary.main,
+    success: theme.palette.success.main,
+    warning: theme.palette.warning.main,
+    warningLight: isDark ? theme.palette.warning.light : '#E8C19A',
+    error: theme.palette.error.main,
+    info: theme.palette.info.main,
+    textPrimary: theme.palette.text.primary,
+    textSecondary: theme.palette.text.secondary,
+    gray50: isDark ? theme.palette.grey[100] : '#F8FAFC',
+    gray100: isDark ? theme.palette.grey[200] : '#F1F5F9',
+    gray200: isDark ? theme.palette.grey[300] : '#E2E8F0',
+    white: isDark ? theme.palette.background.paper : '#ffffff',
+  };
   const [interventions, setInterventions] = useState<Intervention[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

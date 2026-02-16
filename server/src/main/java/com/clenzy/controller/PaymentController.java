@@ -11,12 +11,14 @@ import com.clenzy.model.UserRole;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.StripeService;
+import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -43,6 +45,9 @@ public class PaymentController {
     private final StripeService stripeService;
     private final InterventionRepository interventionRepository;
     private final UserRepository userRepository;
+
+    @Value("${stripe.secret-key}")
+    private String stripeSecretKey;
 
     @Autowired
     public PaymentController(StripeService stripeService,
@@ -117,7 +122,9 @@ public class PaymentController {
     }
     
     /**
-     * Vérifie le statut d'une session de paiement
+     * Vérifie le statut d'une session de paiement.
+     * Si le paiement est encore en PROCESSING, interroge directement l'API Stripe
+     * pour vérifier si la session a été payée (fallback si le webhook n'a pas été reçu).
      */
     @GetMapping("/session-status/{sessionId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'HOST')")
@@ -126,10 +133,31 @@ public class PaymentController {
             Intervention intervention = interventionRepository.findByStripeSessionId(sessionId)
                 .orElseThrow(() -> new RuntimeException("Intervention non trouvée pour cette session"));
 
-            return ResponseEntity.ok(intervention.getPaymentStatus());
+            // Si encore en PROCESSING, vérifier directement auprès de Stripe
+            if (intervention.getPaymentStatus() == PaymentStatus.PROCESSING) {
+                try {
+                    Stripe.apiKey = stripeSecretKey;
+                    Session stripeSession = Session.retrieve(sessionId);
+                    if ("paid".equals(stripeSession.getPaymentStatus())) {
+                        // Le webhook n'a pas encore été traité, on confirme manuellement
+                        logger.info("Fallback: confirmation manuelle du paiement pour session {}", sessionId);
+                        stripeService.confirmPayment(sessionId);
+                        // Recharger l'intervention après confirmation
+                        intervention = interventionRepository.findByStripeSessionId(sessionId)
+                            .orElse(intervention);
+                    }
+                } catch (StripeException e) {
+                    logger.warn("Impossible de vérifier la session Stripe {}: {}", sessionId, e.getMessage());
+                }
+            }
+
+            return ResponseEntity.ok(Map.of(
+                "paymentStatus", intervention.getPaymentStatus().name(),
+                "interventionStatus", intervention.getStatus().name()
+            ));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body("Session non trouvée: " + e.getMessage());
+                .body(Map.of("error", "Session non trouvée: " + e.getMessage()));
         }
     }
 

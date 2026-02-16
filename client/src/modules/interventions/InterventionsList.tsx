@@ -198,7 +198,8 @@ export default function InterventionsList() {
   const [canCreateInterventions, setCanCreateInterventions] = useState(false);
   const [canEditInterventions, setCanEditInterventions] = useState(false);
   const [canDeleteInterventions, setCanDeleteInterventions] = useState(false);
-  
+  const [permissionsLoading, setPermissionsLoading] = useState(true);
+
   // Vérifier toutes les permissions en une seule fois
   useEffect(() => {
     const checkAllPermissions = async () => {
@@ -213,13 +214,14 @@ export default function InterventionsList() {
         hasPermissionAsync('interventions:edit'),
         hasPermissionAsync('interventions:delete')
       ]);
-      
+
       setCanViewInterventions(canView);
       setCanCreateInterventions(canCreate);
       setCanEditInterventions(canEdit);
       setCanDeleteInterventions(canDelete);
+      setPermissionsLoading(false);
     };
-    
+
     checkAllPermissions();
   }, [hasPermissionAsync]);
 
@@ -424,6 +426,15 @@ export default function InterventionsList() {
 
   // Vérifications conditionnelles dans le rendu
   if (!user) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress size={32} />
+      </Box>
+    );
+  }
+
+  // Permissions en cours de chargement → spinner
+  if (permissionsLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress size={32} />
