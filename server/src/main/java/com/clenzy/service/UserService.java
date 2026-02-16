@@ -10,6 +10,7 @@ import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.UserStatus;
 import com.clenzy.model.NotificationKey;
+import java.util.UUID;
 import com.clenzy.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -162,18 +163,22 @@ public class UserService {
         try {
             User user = new User();
             user.setKeycloakId(keycloakId);
-            user.setEmail(email);
-            user.setFirstName(firstName != null ? firstName : "");
-            user.setLastName(lastName != null ? lastName : "");
+            user.setEmail(email != null ? email : keycloakId + "@auto-provisioned.local");
+            user.setFirstName(firstName != null && !firstName.isBlank() ? firstName : "Auto");
+            user.setLastName(lastName != null && !lastName.isBlank() ? lastName : "Provisioned");
             user.setRole(role);
             user.setStatus(UserStatus.ACTIVE);
             user.setEmailVerified(true);
+            // Mot de passe aleatoire — l'utilisateur se connecte via Keycloak, pas via ce password
+            user.setPassword(UUID.randomUUID().toString().replace("-", "") + "Aa1!");
             user = userRepository.save(user);
+            userRepository.flush(); // Force le flush pour detecter les erreurs de contrainte
             System.out.println("Auto-provisioning: utilisateur cree en base - ID=" + user.getId() +
                     ", email=" + email + ", role=" + role.name() + ", keycloakId=" + keycloakId);
             return user;
         } catch (Exception e) {
             System.err.println("Erreur auto-provisioning: " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
     }
