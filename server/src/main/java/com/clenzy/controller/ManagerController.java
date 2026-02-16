@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/managers")
-@CrossOrigin(origins = "*")
+
 public class ManagerController {
 
     @Autowired
@@ -76,7 +76,7 @@ public class ManagerController {
      * Récupérer tous les managers et admins pour les formulaires d'association
      */
     @GetMapping("/all")
-    @CrossOrigin(origins = "*")
+    
     public ResponseEntity<String> getAllManagersAndAdmins() {
         try {
             System.out.println("🔄 ManagerController - Récupération de tous les managers et admins...");
@@ -100,7 +100,7 @@ public class ManagerController {
      * Récupérer tous les utilisateurs HOST pour les formulaires d'association
      */
     @GetMapping("/hosts")
-    @CrossOrigin(origins = "*")
+    
     public ResponseEntity<String> getAllHostUsers() {
         try {
             System.out.println("🔄 ManagerController - Récupération des HOSTs disponibles...");
@@ -145,7 +145,7 @@ public class ManagerController {
      * Récupérer les propriétés des clients sélectionnés
      */
     @PostMapping("/properties/by-clients")
-    @CrossOrigin(origins = "*")
+    
     public ResponseEntity<String> getPropertiesByClients(@RequestBody List<Long> clientIds) {
         try {
             System.out.println("🔄 ManagerController - Récupération des propriétés pour clients: " + clientIds);
@@ -201,7 +201,7 @@ public class ManagerController {
      * Accepte soit un ID numérique soit un UUID Keycloak
      */
     @GetMapping("/{managerId}/associations")
-    @CrossOrigin(origins = "*")
+    
     public ResponseEntity<ManagerAssociationsDto> getManagerAssociations(
             @PathVariable String managerId) {
         
@@ -251,7 +251,7 @@ public class ManagerController {
      * Assigner des clients et propriétés à un manager
      */
     @PostMapping("/{managerId}/assign")
-    @CrossOrigin(origins = "*")
+    
     @Transactional
     public ResponseEntity<String> assignClientsAndProperties(
             @PathVariable Long managerId,
@@ -421,7 +421,7 @@ public class ManagerController {
      * Récupérer tous les utilisateurs opérationnels (techniciens et housekeepers)
      */
     @GetMapping("/operational-users")
-    @CrossOrigin(origins = "*")
+    
     public ResponseEntity<String> getOperationalUsers() {
         try {
             System.out.println("🔄 ManagerController - Récupération des utilisateurs opérationnels...");
@@ -476,7 +476,7 @@ public class ManagerController {
      * Récupérer toutes les équipes disponibles
      */
     @GetMapping("/teams")
-    @CrossOrigin(origins = "*")
+    
     public ResponseEntity<String> getAllTeams() {
         try {
             System.out.println("🔄 ManagerController - Récupération de toutes les équipes depuis la base de données");
@@ -525,7 +525,7 @@ public class ManagerController {
      * Assigner des équipes et utilisateurs à un manager
      */
     @PostMapping("/{managerId}/assign-teams-users")
-    @CrossOrigin(origins = "*")
+    
     @Transactional
     public ResponseEntity<String> assignTeamsAndUsers(@PathVariable Long managerId, @RequestBody TeamUserAssignmentRequest request) {
         try {
@@ -611,7 +611,7 @@ public class ManagerController {
      * Modifier l'assignation d'un client vers un autre manager
      */
     @PutMapping("/{clientId}/reassign")
-    @CrossOrigin(origins = "*")
+    
     public ResponseEntity<String> reassignClient(
             @PathVariable Long clientId,
             @RequestBody ReassignmentRequest request) {
@@ -633,7 +633,7 @@ public class ManagerController {
     // ===== ENDPOINTS DE DÉSASSIGNATION =====
 
     @DeleteMapping("/{managerId}/clients/{clientId}")
-    @CrossOrigin(origins = "*")
+    
     @Transactional
     public ResponseEntity<String> unassignClient(
             @PathVariable String managerId, // Changé de Long à String
@@ -691,7 +691,7 @@ public class ManagerController {
     }
 
     @DeleteMapping("/{managerId}/teams/{teamId}")
-    @CrossOrigin(origins = "*")
+    
     @Transactional
     public ResponseEntity<String> unassignTeam(
             @PathVariable String managerId, // Changé de Long à String
@@ -739,7 +739,7 @@ public class ManagerController {
     }
 
     @DeleteMapping("/{managerId}/users/{userId}")
-    @CrossOrigin(origins = "*")
+    
     @Transactional
     public ResponseEntity<String> unassignUser(
             @PathVariable String managerId, // Changé de Long à String
@@ -789,7 +789,7 @@ public class ManagerController {
     // ===== ENDPOINTS POUR LA GESTION DES PROPRIÉTÉS INDIVIDUELLES =====
 
     @PostMapping("/{managerId}/properties/{propertyId}/assign")
-    @CrossOrigin(origins = "*")
+    
     @Transactional
     public ResponseEntity<String> assignPropertyToManager(
             @PathVariable String managerId, // String pour supporter Keycloak ID
@@ -853,7 +853,7 @@ public class ManagerController {
     }
 
     @DeleteMapping("/{managerId}/properties/{propertyId}")
-    @CrossOrigin(origins = "*")
+    
     @Transactional
     public ResponseEntity<String> unassignPropertyFromManager(
             @PathVariable String managerId, // String pour supporter Keycloak ID
@@ -925,7 +925,7 @@ public class ManagerController {
     }
 
     @PutMapping("/{managerId}/properties/{propertyId}/reassign")
-    @CrossOrigin(origins = "*")
+    
     @Transactional
     public ResponseEntity<String> reassignPropertyToManager(
             @PathVariable String managerId, // String pour supporter Keycloak ID

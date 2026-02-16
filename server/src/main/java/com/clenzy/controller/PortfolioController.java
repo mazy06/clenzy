@@ -16,7 +16,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/portfolios")
-@CrossOrigin(origins = "*")
 public class PortfolioController {
 
     @Autowired
