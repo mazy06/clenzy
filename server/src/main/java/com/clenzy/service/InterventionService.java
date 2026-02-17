@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
 import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.UserRole;
+import com.clenzy.config.KafkaConfig;
+import org.springframework.kafka.core.KafkaTemplate;
 import java.util.Arrays;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.Base64;
@@ -42,19 +44,22 @@ public class InterventionService {
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final NotificationService notificationService;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public InterventionService(InterventionRepository interventionRepository,
                               InterventionPhotoRepository interventionPhotoRepository,
                              PropertyRepository propertyRepository,
                              UserRepository userRepository,
                              TeamRepository teamRepository,
-                             NotificationService notificationService) {
+                             NotificationService notificationService,
+                             KafkaTemplate<String, Object> kafkaTemplate) {
         this.interventionRepository = interventionRepository;
         this.interventionPhotoRepository = interventionPhotoRepository;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.teamRepository = teamRepository;
         this.notificationService = notificationService;
+        this.kafkaTemplate = kafkaTemplate;
     }
     
     public InterventionDto create(InterventionDto dto, Jwt jwt) {
@@ -362,6 +367,31 @@ public class InterventionService {
             System.err.println("Erreur notification startIntervention: " + e.getMessage());
         }
 
+        // ─── Génération automatique du BON_INTERVENTION ──────────────────────
+        try {
+            // Destinataire : le technicien assigné (ou le propriétaire si pas de technicien)
+            String emailTo = "";
+            if (intervention.getAssignedUser() != null && intervention.getAssignedUser().getEmail() != null) {
+                emailTo = intervention.getAssignedUser().getEmail();
+            } else if (intervention.getProperty() != null && intervention.getProperty().getOwner() != null) {
+                emailTo = intervention.getProperty().getOwner().getEmail();
+            }
+
+            kafkaTemplate.send(
+                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
+                "bon-intervention-" + intervention.getId(),
+                Map.of(
+                    "documentType", "BON_INTERVENTION",
+                    "referenceId", intervention.getId(),
+                    "referenceType", "intervention",
+                    "emailTo", emailTo != null ? emailTo : ""
+                )
+            );
+            System.out.println("📄 Événement BON_INTERVENTION publié sur Kafka pour l'intervention: " + intervention.getId());
+        } catch (Exception e) {
+            System.err.println("Erreur publication Kafka BON_INTERVENTION: " + e.getMessage());
+        }
+
         return convertToDto(intervention);
     }
 
@@ -471,6 +501,43 @@ public class InterventionService {
             
             // Notifier les parties concernées (managers, admins, hosts)
             notifyInterventionCompleted(intervention);
+
+            // ─── Génération automatique VALIDATION_FIN_MISSION ───────────────
+            try {
+                String emailToHost = (intervention.getProperty() != null && intervention.getProperty().getOwner() != null)
+                        ? intervention.getProperty().getOwner().getEmail() : "";
+                String emailToTech = (intervention.getAssignedUser() != null)
+                        ? intervention.getAssignedUser().getEmail() : "";
+
+                // Envoyer au Host
+                kafkaTemplate.send(
+                    KafkaConfig.TOPIC_DOCUMENT_GENERATE,
+                    "validation-fin-mission-host-" + intervention.getId(),
+                    Map.of(
+                        "documentType", "VALIDATION_FIN_MISSION",
+                        "referenceId", intervention.getId(),
+                        "referenceType", "intervention",
+                        "emailTo", emailToHost != null ? emailToHost : ""
+                    )
+                );
+
+                // Envoyer au Technicien (si différent du Host)
+                if (emailToTech != null && !emailToTech.isEmpty() && !emailToTech.equals(emailToHost)) {
+                    kafkaTemplate.send(
+                        KafkaConfig.TOPIC_DOCUMENT_GENERATE,
+                        "validation-fin-mission-tech-" + intervention.getId(),
+                        Map.of(
+                            "documentType", "VALIDATION_FIN_MISSION",
+                            "referenceId", intervention.getId(),
+                            "referenceType", "intervention",
+                            "emailTo", emailToTech
+                        )
+                    );
+                }
+                System.out.println("📄 Événement(s) VALIDATION_FIN_MISSION publié(s) sur Kafka pour l'intervention: " + intervention.getId());
+            } catch (Exception e) {
+                System.err.println("Erreur publication Kafka VALIDATION_FIN_MISSION: " + e.getMessage());
+            }
         }
         
         intervention = interventionRepository.save(intervention);

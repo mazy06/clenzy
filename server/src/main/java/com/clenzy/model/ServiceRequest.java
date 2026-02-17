@@ -80,9 +80,15 @@ public class ServiceRequest {
     
     @Column(name = "approved_by")
     private String approvedBy;
-    
+
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
+
+    @Column(name = "devis_accepted_by")
+    private String devisAcceptedBy;
+
+    @Column(name = "devis_accepted_at")
+    private LocalDateTime devisAcceptedAt;
     
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
@@ -280,7 +286,23 @@ public class ServiceRequest {
     public void setApprovedAt(LocalDateTime approvedAt) {
         this.approvedAt = approvedAt;
     }
-    
+
+    public String getDevisAcceptedBy() {
+        return devisAcceptedBy;
+    }
+
+    public void setDevisAcceptedBy(String devisAcceptedBy) {
+        this.devisAcceptedBy = devisAcceptedBy;
+    }
+
+    public LocalDateTime getDevisAcceptedAt() {
+        return devisAcceptedAt;
+    }
+
+    public void setDevisAcceptedAt(LocalDateTime devisAcceptedAt) {
+        this.devisAcceptedAt = devisAcceptedAt;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }

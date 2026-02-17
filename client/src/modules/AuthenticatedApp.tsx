@@ -56,6 +56,10 @@ import PermissionConfig from '../components/PermissionConfig';
 import ContactPage from './contact/ContactPage';
 import ContactCreatePage from './contact/ContactCreatePage';
 
+// Documents
+import DocumentsPage from './documents/DocumentsPage';
+import TemplateDetails from './documents/TemplateDetails';
+
 // Profile
 import UserProfilePage from './profile/UserProfilePage';
 
@@ -283,7 +287,22 @@ const AuthenticatedApp: React.FC = () => {
         <Route path="/contact/create" element={
           <ContactCreatePage />
         } />
-        
+
+        <Route path="/documents" element={
+          <ProtectedRoute requiredPermission="documents:view">
+            <ErrorBoundary>
+              <DocumentsPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+        <Route path="/documents/templates/:id" element={
+          <ProtectedRoute requiredPermission="documents:view">
+            <ErrorBoundary>
+              <TemplateDetails />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
         <Route path="/profile" element={
           <UserProfilePage />
         } />

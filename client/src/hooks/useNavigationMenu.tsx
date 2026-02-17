@@ -14,6 +14,7 @@ import {
   Security,
   Euro,
   Payment,
+  Description,
 } from '@mui/icons-material';
 
 export interface MenuItem {
@@ -83,6 +84,13 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     roles: ['all'],
     permission: 'contact:view',
     translationKey: 'navigation.contact'
+  },
+  {
+    icon: <Description />,
+    path: '/documents',
+    roles: ['ADMIN', 'MANAGER'],
+    permission: 'documents:view',
+    translationKey: 'navigation.documents'
   },
   {
     icon: <Assessment />,

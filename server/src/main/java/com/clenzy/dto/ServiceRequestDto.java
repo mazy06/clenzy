@@ -40,6 +40,8 @@ public class ServiceRequestDto {
     public boolean requiresApproval;
     public String approvedBy;
     public LocalDateTime approvedAt;
+    public String devisAcceptedBy;
+    public LocalDateTime devisAcceptedAt;
 
     @NotNull(groups = Create.class)
     public Long userId;

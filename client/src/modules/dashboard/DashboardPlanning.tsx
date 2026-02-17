@@ -79,7 +79,7 @@ const SX_MONTH_HEADER_ROW = { display: 'flex', position: 'sticky', top: 0, zInde
 const SX_MONTH_HEADER_SPACER = { width: PROPERTY_COL_WIDTH, minWidth: PROPERTY_COL_WIDTH, flexShrink: 0, position: 'sticky', left: 0, zIndex: 6, backgroundColor: 'background.paper', borderRight: '1px solid', borderColor: 'divider' } as const;
 const SX_GRAD_SPACER = { width: PROPERTY_COL_WIDTH, minWidth: PROPERTY_COL_WIDTH, flexShrink: 0, position: 'sticky', left: 0, zIndex: 4, backgroundColor: 'background.paper', borderRight: '1px solid', borderColor: 'divider', height: GRADUATION_ROW_HEIGHT } as const;
 const SX_LOADING_MORE = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, py: 0.5, borderTop: '1px solid', borderColor: 'divider', backgroundColor: 'action.hover', flexShrink: 0 } as const;
-const SX_PAGINATION = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, py: 0.5, borderTop: '1px solid', borderColor: 'divider', backgroundColor: 'background.paper', flexShrink: 0 } as const;
+const SX_PAGINATION = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, py: 0.5, px: 1.5, borderTop: '1px solid', borderColor: 'divider', backgroundColor: 'background.paper', flexShrink: 0 } as const;
 const SX_PROPERTY_NAME = { fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as const;
 const SX_PROPERTY_OWNER = { fontSize: '0.625rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'primary.main', fontWeight: 500 } as const;
 const SX_PROPERTY_CITY = { fontSize: '0.625rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as const;
@@ -470,9 +470,6 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
         onGoToday={handleGoToday}
         onGoNext={goNext}
         titleText={titleText}
-        visibleReservationCount={visibleReservationCount}
-        visibleInterventionCount={visibleInterventionCount}
-        propertyCount={properties.length}
         showInterventions={showInterventions}
         onShowInterventionsChange={setShowInterventions}
         interventionTypeFilter={interventionTypeFilter}
@@ -753,20 +750,71 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
             </Box>
           )}
 
-          {/* Pagination */}
-          {totalPropertyPages > 1 && (
-            <Box sx={SX_PAGINATION}>
-              <IconButton size="small" onClick={() => setPropertyPage((p) => Math.max(0, p - 1))} disabled={propertyPage === 0}>
-                <ChevronLeft sx={{ fontSize: 18 }} />
-              </IconButton>
-              <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                {propertyPage * PROPERTIES_PER_PAGE + 1} - {Math.min((propertyPage + 1) * PROPERTIES_PER_PAGE, properties.length)} / {properties.length} {t('dashboard.planning.pagination')}
-              </Typography>
-              <IconButton size="small" onClick={() => setPropertyPage((p) => Math.min(totalPropertyPages - 1, p + 1))} disabled={propertyPage >= totalPropertyPages - 1}>
-                <ChevronRight sx={{ fontSize: 18 }} />
-              </IconButton>
+          {/* Barre inférieure : Légende | Pagination | Stats */}
+          <Box sx={SX_PAGINATION}>
+            {/* Légende — gauche */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, alignItems: 'flex-start' }}>
+              {/* Réservations */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
+                  {t('dashboard.planning.legendReservations') || 'Resa :'}
+                </Typography>
+                {STATUS_FILTER_OPTIONS.filter((s) => s.value !== 'all').map((opt) => (
+                  <Box key={opt.value} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, backgroundColor: RESERVATION_STATUS_COLORS[opt.value as ReservationStatus] }} />
+                    <Typography variant="caption" sx={{ fontSize: '0.5625rem', fontWeight: 600, color: RESERVATION_STATUS_COLORS[opt.value as ReservationStatus] }}>
+                      {opt.label}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+              {/* Interventions */}
+              {showInterventions && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                  <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
+                    {t('dashboard.planning.legendInterventions') || 'Inter. :'}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                    <CleaningServices sx={{ fontSize: 10, color: INTERVENTION_TYPE_COLORS.cleaning }} />
+                    <Typography variant="caption" sx={{ fontSize: '0.5625rem', fontWeight: 600, color: INTERVENTION_TYPE_COLORS.cleaning }}>
+                      {INTERVENTION_TYPE_LABELS.cleaning}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                    <Build sx={{ fontSize: 10, color: INTERVENTION_TYPE_COLORS.maintenance }} />
+                    <Typography variant="caption" sx={{ fontSize: '0.5625rem', fontWeight: 600, color: INTERVENTION_TYPE_COLORS.maintenance }}>
+                      {INTERVENTION_TYPE_LABELS.maintenance}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
             </Box>
-          )}
+
+            {/* Pagination — centre */}
+            {totalPropertyPages > 1 ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <IconButton size="small" onClick={() => setPropertyPage((p) => Math.max(0, p - 1))} disabled={propertyPage === 0}>
+                  <ChevronLeft sx={{ fontSize: 18 }} />
+                </IconButton>
+                <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                  {propertyPage * PROPERTIES_PER_PAGE + 1} - {Math.min((propertyPage + 1) * PROPERTIES_PER_PAGE, properties.length)} / {properties.length} {t('dashboard.planning.pagination')}
+                </Typography>
+                <IconButton size="small" onClick={() => setPropertyPage((p) => Math.min(totalPropertyPages - 1, p + 1))} disabled={propertyPage >= totalPropertyPages - 1}>
+                  <ChevronRight sx={{ fontSize: 18 }} />
+                </IconButton>
+              </Box>
+            ) : (
+              <Box />
+            )}
+
+            {/* Stats — droite */}
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', textAlign: 'right' }}>
+              {visibleReservationCount} {t('dashboard.planning.reservations') || 'resa'}
+              {showInterventions && <> &middot; {visibleInterventionCount} {t('dashboard.planning.interventionCount') || 'inter.'}</>}
+              {' \u00B7 '}
+              {properties.length} {t('dashboard.planning.properties') || 'logement'}{properties.length > 1 ? 's' : ''}
+            </Typography>
+          </Box>
         </Paper>
       )}
     </Box>

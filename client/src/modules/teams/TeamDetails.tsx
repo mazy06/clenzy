@@ -173,7 +173,9 @@ const TeamDetails: React.FC = () => {
             <Chip
               label={getInterventionTypeLabel(team.interventionType)}
               color="primary"
+              variant="outlined"
               size="medium"
+              sx={{ borderWidth: 1.5, '& .MuiChip-label': { px: 1 } }}
             />
           </Box>
 

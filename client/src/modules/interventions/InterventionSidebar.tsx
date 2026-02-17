@@ -115,9 +115,11 @@ const InterventionSidebar: React.FC<InterventionSidebarProps> = ({ intervention 
                 size="small"
                 variant="outlined"
                 sx={{
-                  height: 20,
-                  fontSize: '0.65rem',
-                  mt: 0.5
+                  height: 22,
+                  fontSize: '0.7rem',
+                  mt: 0.5,
+                  borderWidth: 1.5,
+                  '& .MuiChip-label': { px: 0.75 },
                 }}
               />
             </Box>

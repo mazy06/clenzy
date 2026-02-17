@@ -196,12 +196,14 @@ const styles = {
     height: 22,
     fontSize: '0.62rem',
     fontWeight: 600,
+    borderWidth: 1.5,
     '& .MuiChip-label': { px: 0.75 },
   },
   priorityChip: {
     height: 22,
     fontSize: '0.62rem',
     fontWeight: 600,
+    borderWidth: 1.5,
     '& .MuiChip-label': { px: 0.75 },
   },
   dateBox: {
@@ -362,6 +364,7 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
             label={statusLabel}
             color={statusChipColor}
             size="small"
+            variant="outlined"
             sx={styles.statusChip}
           />
           <Chip

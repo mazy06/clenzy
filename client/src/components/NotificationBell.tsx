@@ -38,6 +38,7 @@ const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
   system: <Info sx={{ fontSize: 18, color: '#9c27b0' }} />,
   team: <Groups sx={{ fontSize: 18, color: '#0288d1' }} />,
   contact: <Email sx={{ fontSize: 18, color: '#e91e63' }} />,
+  document: <Description sx={{ fontSize: 18, color: '#f57c00' }} />,
 };
 
 function timeAgo(dateStr: string): string {

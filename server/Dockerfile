@@ -2,15 +2,18 @@
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /workspace
 
-# Copy only server module to leverage Docker cache better
+# 1. Copier le pom.xml seul pour cacher les dependances
 COPY pom.xml /workspace/pom.xml
+
+# 2. Telecharger les dependances (layer cachee tant que pom.xml ne change pas)
+RUN mvn -B dependency:go-offline -DskipTests
+
+# 3. Copier le code source
 COPY src /workspace/src
 
-# Build jar (skip tests)
-# -U: force update of dependencies
-# Clean Maven cache to avoid version conflicts
-RUN rm -rf ~/.m2/repository/ch/qos/logback || true && \
-    mvn -B -U -DskipTests clean package
+# 4. Build jar (skip tests) — les dependances sont deja en cache
+RUN mvn -B -DskipTests clean package && \
+    rm -rf ~/.m2/repository
 
 # ====== Runtime stage ======
 FROM eclipse-temurin:17-jre

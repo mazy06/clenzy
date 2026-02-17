@@ -193,12 +193,17 @@ const ReceivedFormsTab: React.FC = () => {
               key={t || 'all'}
               label={conf ? conf.label : 'Tous'}
               size="small"
+              variant="outlined"
+              color={(conf?.palette || 'primary') as 'primary' | 'info' | 'success' | 'warning' | 'error'}
               onClick={() => { setFilterType(t); setPage(0); }}
               sx={{
                 fontSize: '0.6875rem', height: 26, borderRadius: '6px', cursor: 'pointer',
-                bgcolor: filterType === t ? `${conf?.palette || 'primary'}.main` : 'action.hover',
-                color: filterType === t ? `${conf?.palette || 'primary'}.contrastText` : 'text.secondary',
+                borderWidth: 1.5, '& .MuiChip-label': { px: 1 },
                 fontWeight: filterType === t ? 600 : 400,
+                ...(filterType === t && {
+                  bgcolor: `${conf?.palette || 'primary'}.main`,
+                  color: `${conf?.palette || 'primary'}.contrastText`,
+                }),
                 '&:hover': { opacity: 0.85 },
               }}
             />
@@ -255,12 +260,11 @@ const ReceivedFormsTab: React.FC = () => {
                         icon={typeConf.icon as React.ReactElement}
                         label={typeConf.label}
                         size="small"
+                        variant="outlined"
+                        color={typeConf.palette as 'primary' | 'info' | 'success' | 'warning' | 'error'}
                         sx={{
-                          fontSize: '0.5625rem', height: 20, borderRadius: '4px',
-                          bgcolor: `${typeConf.palette}.main`,
-                          color: `${typeConf.palette}.contrastText`,
-                          fontWeight: 500, opacity: 0.85,
-                          '& .MuiChip-icon': { color: 'inherit' },
+                          fontSize: '0.625rem', height: 22, borderWidth: 1.5,
+                          fontWeight: 500, '& .MuiChip-label': { px: 0.75 },
                         }}
                       />
                       {isNew && (
@@ -307,22 +311,21 @@ const ReceivedFormsTab: React.FC = () => {
                       icon={(FORM_TYPE_CONFIG[selectedForm.formType]?.icon || <DescriptionIcon sx={{ fontSize: 14 }} />) as React.ReactElement}
                       label={FORM_TYPE_CONFIG[selectedForm.formType]?.label || selectedForm.formType}
                       size="small"
+                      variant="outlined"
+                      color={(FORM_TYPE_CONFIG[selectedForm.formType]?.palette || 'primary') as 'primary' | 'info' | 'success' | 'warning' | 'error'}
                       sx={{
-                        fontSize: '0.6875rem', height: 22, borderRadius: '6px',
-                        bgcolor: `${FORM_TYPE_CONFIG[selectedForm.formType]?.palette || 'primary'}.main`,
-                        color: `${FORM_TYPE_CONFIG[selectedForm.formType]?.palette || 'primary'}.contrastText`,
-                        fontWeight: 500, opacity: 0.85,
-                        '& .MuiChip-icon': { color: 'inherit' },
+                        fontSize: '0.6875rem', height: 22, borderWidth: 1.5,
+                        fontWeight: 500, '& .MuiChip-label': { px: 0.75 },
                       }}
                     />
                     <Chip
                       label={STATUS_CONFIG[selectedForm.status]?.label || selectedForm.status}
                       size="small"
+                      variant="outlined"
+                      color={(STATUS_CONFIG[selectedForm.status]?.palette || 'primary') as 'primary' | 'info' | 'success' | 'warning' | 'error'}
                       sx={{
-                        fontSize: '0.6875rem', height: 22, borderRadius: '6px',
-                        bgcolor: `${STATUS_CONFIG[selectedForm.status]?.palette || 'primary'}.main`,
-                        color: `${STATUS_CONFIG[selectedForm.status]?.palette || 'primary'}.contrastText`,
-                        fontWeight: 500, opacity: 0.85,
+                        fontSize: '0.6875rem', height: 22, borderWidth: 1.5,
+                        fontWeight: 500, '& .MuiChip-label': { px: 0.75 },
                       }}
                     />
                   </Box>

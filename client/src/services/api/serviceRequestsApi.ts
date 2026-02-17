@@ -53,4 +53,7 @@ export const serviceRequestsApi = {
   validate(id: number) {
     return apiClient.post<ServiceRequest>(`/service-requests/${id}/validate`);
   },
+  acceptDevis(id: number) {
+    return apiClient.post<ServiceRequest>(`/service-requests/${id}/accept-devis`);
+  },
 };

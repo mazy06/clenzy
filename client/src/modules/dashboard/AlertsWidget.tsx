@@ -92,7 +92,8 @@ const AlertsWidget: React.FC = React.memo(() => {
                           <Chip
                             label={alert.count}
                             size="small"
-                            sx={{ fontSize: '0.5625rem', height: 16, '& .MuiChip-label': { px: 0.5 } }}
+                            variant="outlined"
+                            sx={{ fontSize: '0.625rem', height: 22, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
                             color={getColor(alert.type)}
                           />
                         )}

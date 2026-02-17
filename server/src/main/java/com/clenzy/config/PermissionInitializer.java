@@ -141,6 +141,18 @@ public class PermissionInitializer {
         anyCreated |= ensurePermission("reports:manage", "Gerer les rapports (admin)", "reports",
                 List.of("ADMIN"));
 
+        // --- Documents ---
+        anyCreated |= ensurePermission("documents:view", "Voir les documents et templates", "documents",
+                List.of("ADMIN", "MANAGER"));
+        anyCreated |= ensurePermission("documents:create", "Creer des templates de documents", "documents",
+                List.of("ADMIN"));
+        anyCreated |= ensurePermission("documents:edit", "Modifier les templates de documents", "documents",
+                List.of("ADMIN"));
+        anyCreated |= ensurePermission("documents:delete", "Supprimer des templates de documents", "documents",
+                List.of("ADMIN"));
+        anyCreated |= ensurePermission("documents:compliance", "Voir et gerer la conformite NF", "documents",
+                List.of("ADMIN"));
+
         // --- Contact ---
         anyCreated |= ensurePermission("contact:view", "Voir les messages de contact", "contact",
                 List.of("ADMIN", "MANAGER", "HOST", "TECHNICIAN", "HOUSEKEEPER", "SUPERVISOR"));
@@ -176,7 +188,7 @@ public class PermissionInitializer {
             permissionService.invalidateAllCache();
         }
 
-        log.info("Verification des permissions terminee ({} permissions verifiees).", 32);
+        log.info("Verification des permissions terminee ({} permissions verifiees).", 37);
     }
 
     private boolean ensurePermission(String name, String description, String module, List<String> roleNames) {

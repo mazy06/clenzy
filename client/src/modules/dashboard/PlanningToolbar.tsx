@@ -19,16 +19,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Today as TodayIcon,
-  CleaningServices,
-  Build,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ReservationStatus, PlanningInterventionType } from '../../services/api';
-import {
-  RESERVATION_STATUS_COLORS,
-  INTERVENTION_TYPE_COLORS,
-  INTERVENTION_TYPE_LABELS,
-} from '../../services/api/reservationsApi';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -51,9 +44,6 @@ interface PlanningToolbarProps {
   onGoToday: () => void;
   onGoNext: () => void;
   titleText: string;
-  visibleReservationCount: number;
-  visibleInterventionCount: number;
-  propertyCount: number;
   showInterventions: boolean;
   onShowInterventionsChange: (show: boolean) => void;
   interventionTypeFilter: PlanningInterventionType | 'all';
@@ -73,13 +63,6 @@ const TOGGLE_LABEL_SX = { fontSize: '0.6875rem', fontWeight: 600 } as const;
 const NAV_BOX_SX = { display: 'flex', alignItems: 'center', gap: 0.25 } as const;
 const TODAY_BTN_SX = { textTransform: 'none', fontSize: '0.75rem', px: 1, py: 0.25, minWidth: 'auto' } as const;
 const TITLE_SX = { fontSize: '0.8125rem', textTransform: 'capitalize' } as const;
-const STATS_SX = { fontSize: '0.6875rem' } as const;
-const LEGEND_WRAPPER_SX = { display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' } as const;
-const LEGEND_LABEL_SX = { fontSize: '0.625rem', color: 'text.secondary' } as const;
-const LEGEND_ITEM_SX = { display: 'flex', alignItems: 'center', gap: 0.25 } as const;
-const LEGEND_DOT_BASE_SX = { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 } as const;
-const LEGEND_TEXT_SX = { fontSize: '0.5625rem', fontWeight: 600 } as const;
-const DIVIDER_SX = { width: '1px', height: 12, backgroundColor: 'divider', mx: 0.25 } as const;
 const SWITCH_LABEL_SX = { fontSize: '0.6875rem' } as const;
 const FILTER_CONTROL_SX = { minWidth: 100 } as const;
 const FILTER_CONTROL_WIDE_SX = { minWidth: 110 } as const;
@@ -96,9 +79,6 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   onGoToday,
   onGoNext,
   titleText,
-  visibleReservationCount,
-  visibleInterventionCount,
-  propertyCount,
   showInterventions,
   onShowInterventionsChange,
   interventionTypeFilter,
@@ -164,49 +144,6 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
         </Typography>
 
         <Box sx={{ flex: 1 }} />
-
-        {/* Stats */}
-        <Typography variant="caption" color="text.secondary" sx={STATS_SX}>
-          {visibleReservationCount} {t('dashboard.planning.reservations') || 'resa'}
-          {showInterventions && <> &middot; {visibleInterventionCount} {t('dashboard.planning.interventionCount') || 'inter.'}</>}
-          {' \u00B7 '}
-          {propertyCount} {t('dashboard.planning.properties') || 'logement'}{propertyCount > 1 ? 's' : ''}
-        </Typography>
-
-        {/* Legend */}
-        <Box sx={LEGEND_WRAPPER_SX}>
-          <Typography variant="caption" fontWeight={700} sx={LEGEND_LABEL_SX}>
-            {t('dashboard.planning.legendReservations') || 'Resa :'}
-          </Typography>
-          {statusFilterOptions.filter((s) => s.value !== 'all').map((opt) => (
-            <Box key={opt.value} sx={LEGEND_ITEM_SX}>
-              <Box sx={{ ...LEGEND_DOT_BASE_SX, backgroundColor: RESERVATION_STATUS_COLORS[opt.value as ReservationStatus] }} />
-              <Typography variant="caption" sx={{ ...LEGEND_TEXT_SX, color: RESERVATION_STATUS_COLORS[opt.value as ReservationStatus] }}>
-                {opt.label}
-              </Typography>
-            </Box>
-          ))}
-          {showInterventions && (
-            <>
-              <Box sx={DIVIDER_SX} />
-              <Typography variant="caption" fontWeight={700} sx={LEGEND_LABEL_SX}>
-                {t('dashboard.planning.legendInterventions') || 'Inter. :'}
-              </Typography>
-              <Box sx={LEGEND_ITEM_SX}>
-                <CleaningServices sx={{ fontSize: 10, color: INTERVENTION_TYPE_COLORS.cleaning }} />
-                <Typography variant="caption" sx={{ ...LEGEND_TEXT_SX, color: INTERVENTION_TYPE_COLORS.cleaning }}>
-                  {INTERVENTION_TYPE_LABELS.cleaning}
-                </Typography>
-              </Box>
-              <Box sx={LEGEND_ITEM_SX}>
-                <Build sx={{ fontSize: 10, color: INTERVENTION_TYPE_COLORS.maintenance }} />
-                <Typography variant="caption" sx={{ ...LEGEND_TEXT_SX, color: INTERVENTION_TYPE_COLORS.maintenance }}>
-                  {INTERVENTION_TYPE_LABELS.maintenance}
-                </Typography>
-              </Box>
-            </>
-          )}
-        </Box>
 
         {/* Intervention toggle */}
         <FormControlLabel

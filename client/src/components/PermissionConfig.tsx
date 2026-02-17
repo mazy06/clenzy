@@ -31,7 +31,8 @@ import {
   Info as InfoIcon,
   Error as ErrorIcon,
   Business as BusinessIcon,
-  Notifications as NotificationsIcon
+  Notifications as NotificationsIcon,
+  Description as DescriptionIcon
 } from '@mui/icons-material';
 import PageHeader from './PageHeader';
 import { useAuth } from '../hooks/useAuth';
@@ -96,6 +97,7 @@ const PermissionConfig: React.FC = () => {
       'settings': 'Paramètres',
       'users': 'Utilisateurs',
       'reports': 'Rapports',
+      'documents': 'Documents',
     };
     return moduleMap[module] || module.charAt(0).toUpperCase() + module.slice(1);
   };
@@ -140,6 +142,7 @@ const PermissionConfig: React.FC = () => {
           'settings:view', 'settings:edit',
           'users:manage',
           'reports:view', 'reports:generate', 'reports:download', 'reports:manage',
+          'documents:view', 'documents:create', 'documents:edit', 'documents:delete', 'documents:compliance',
         ];
         setAllPermissions(defaultPermissions);
         setPermissionsByModule({
@@ -153,6 +156,7 @@ const PermissionConfig: React.FC = () => {
           'Paramètres': ['settings:view', 'settings:edit'],
           'Utilisateurs': ['users:manage'],
           'Rapports': ['reports:view', 'reports:generate', 'reports:download', 'reports:manage'],
+          'Documents': ['documents:view', 'documents:create', 'documents:edit', 'documents:delete', 'documents:compliance'],
         });
       } finally {
         setLoadingPermissions(false);
@@ -174,7 +178,8 @@ const PermissionConfig: React.FC = () => {
       'Contact': <NotificationsIcon sx={{ color: 'text.secondary' }} />,
       'Utilisateurs': <PersonIcon sx={{ color: 'text.secondary' }} />,
       'Paramètres': <SettingsIcon sx={{ color: 'text.secondary' }} />,
-      'Rapports': <AssessmentIcon sx={{ color: 'text.secondary' }} />
+      'Rapports': <AssessmentIcon sx={{ color: 'text.secondary' }} />,
+      'Documents': <DescriptionIcon sx={{ color: 'text.secondary' }} />
     };
     return iconMap[moduleName] || <InfoIcon sx={{ color: 'text.secondary' }} />;
   };

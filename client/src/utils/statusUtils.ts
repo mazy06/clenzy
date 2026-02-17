@@ -87,6 +87,7 @@ export function getCleaningFrequencyLabel(freq: string, t: TranslationFn): strin
 const SR_STATUS_COLORS: Record<string, ChipColor> = {
   pending: 'warning',
   approved: 'info',
+  devis_accepted: 'success',
   in_progress: 'info',
   completed: 'success',
   cancelled: 'default',
@@ -102,6 +103,7 @@ export function getServiceRequestStatusLabel(status: string, t: TranslationFn): 
   const keyMap: Record<string, string> = {
     pending: 'serviceRequests.statuses.pending',
     approved: 'serviceRequests.statuses.approved',
+    devis_accepted: 'serviceRequests.statuses.devisAccepted',
     in_progress: 'serviceRequests.statuses.inProgress',
     completed: 'serviceRequests.statuses.completed',
     cancelled: 'serviceRequests.statuses.cancelled',

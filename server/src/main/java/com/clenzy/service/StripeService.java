@@ -4,6 +4,7 @@ import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.PaymentStatus;
+import com.clenzy.config.KafkaConfig;
 import com.clenzy.repository.InterventionRepository;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
@@ -12,11 +13,13 @@ import com.stripe.model.checkout.Session;
 import com.stripe.param.RefundCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Service
 @Transactional
@@ -24,6 +27,7 @@ public class StripeService {
     
     private final InterventionRepository interventionRepository;
     private final NotificationService notificationService;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
@@ -37,10 +41,10 @@ public class StripeService {
     @Value("${stripe.cancel-url}")
     private String cancelUrl;
 
-    public StripeService(InterventionRepository interventionRepository, NotificationService notificationService) {
+    public StripeService(InterventionRepository interventionRepository, NotificationService notificationService, KafkaTemplate<String, Object> kafkaTemplate) {
         this.interventionRepository = interventionRepository;
         this.notificationService = notificationService;
-        // Stripe sera initialisé avec la clé secrète depuis les propriétés
+        this.kafkaTemplate = kafkaTemplate;
     }
     
     /**
@@ -139,6 +143,37 @@ public class StripeService {
         } catch (Exception e) {
             System.err.println("Erreur notification PAYMENT_CONFIRMED: " + e.getMessage());
         }
+
+        // ─── Génération automatique FACTURE + JUSTIFICATIF_PAIEMENT ──────────
+        try {
+            String emailTo = (intervention.getProperty() != null && intervention.getProperty().getOwner() != null)
+                    ? intervention.getProperty().getOwner().getEmail() : "";
+
+            kafkaTemplate.send(
+                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
+                "facture-int-" + intervention.getId(),
+                Map.of(
+                    "documentType", "FACTURE",
+                    "referenceId", intervention.getId(),
+                    "referenceType", "intervention",
+                    "emailTo", emailTo != null ? emailTo : ""
+                )
+            );
+
+            kafkaTemplate.send(
+                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
+                "justif-paiement-int-" + intervention.getId(),
+                Map.of(
+                    "documentType", "JUSTIFICATIF_PAIEMENT",
+                    "referenceId", intervention.getId(),
+                    "referenceType", "intervention",
+                    "emailTo", emailTo != null ? emailTo : ""
+                )
+            );
+            System.out.println("📄 Événements FACTURE + JUSTIFICATIF_PAIEMENT publiés sur Kafka pour l'intervention: " + intervention.getId());
+        } catch (Exception e) {
+            System.err.println("Erreur publication Kafka FACTURE/JUSTIFICATIF_PAIEMENT: " + e.getMessage());
+        }
     }
     
     /**
@@ -194,6 +229,36 @@ public class StripeService {
                     intervention.setPaidAt(LocalDateTime.now());
                     intervention.setStripeSessionId(sessionId);
                     interventionRepository.save(intervention);
+
+                    // ─── Génération automatique FACTURE + JUSTIFICATIF_PAIEMENT ──
+                    try {
+                        String emailTo = (intervention.getProperty() != null && intervention.getProperty().getOwner() != null)
+                                ? intervention.getProperty().getOwner().getEmail() : "";
+
+                        kafkaTemplate.send(
+                            KafkaConfig.TOPIC_DOCUMENT_GENERATE,
+                            "facture-int-" + intervention.getId(),
+                            Map.of(
+                                "documentType", "FACTURE",
+                                "referenceId", intervention.getId(),
+                                "referenceType", "intervention",
+                                "emailTo", emailTo != null ? emailTo : ""
+                            )
+                        );
+                        kafkaTemplate.send(
+                            KafkaConfig.TOPIC_DOCUMENT_GENERATE,
+                            "justif-paiement-int-" + intervention.getId(),
+                            Map.of(
+                                "documentType", "JUSTIFICATIF_PAIEMENT",
+                                "referenceId", intervention.getId(),
+                                "referenceType", "intervention",
+                                "emailTo", emailTo != null ? emailTo : ""
+                            )
+                        );
+                        System.out.println("📄 Événements FACTURE + JUSTIFICATIF_PAIEMENT publiés (groupé) pour l'intervention: " + intervention.getId());
+                    } catch (Exception e) {
+                        System.err.println("Erreur publication Kafka FACTURE/JUSTIFICATIF (groupé): " + e.getMessage());
+                    }
                 }
             } catch (NumberFormatException e) {
                 // Ignorer les IDs invalides
@@ -277,6 +342,26 @@ public class StripeService {
             );
         } catch (Exception e) {
             System.err.println("Erreur notification PAYMENT_REFUND_COMPLETED: " + e.getMessage());
+        }
+
+        // ─── Génération automatique JUSTIFICATIF_REMBOURSEMENT ───────────────
+        try {
+            String emailTo = (intervention.getProperty() != null && intervention.getProperty().getOwner() != null)
+                    ? intervention.getProperty().getOwner().getEmail() : "";
+
+            kafkaTemplate.send(
+                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
+                "justif-remboursement-int-" + intervention.getId(),
+                Map.of(
+                    "documentType", "JUSTIFICATIF_REMBOURSEMENT",
+                    "referenceId", intervention.getId(),
+                    "referenceType", "intervention",
+                    "emailTo", emailTo != null ? emailTo : ""
+                )
+            );
+            System.out.println("📄 Événement JUSTIFICATIF_REMBOURSEMENT publié sur Kafka pour l'intervention: " + intervention.getId());
+        } catch (Exception e) {
+            System.err.println("Erreur publication Kafka JUSTIFICATIF_REMBOURSEMENT: " + e.getMessage());
         }
     }
 }

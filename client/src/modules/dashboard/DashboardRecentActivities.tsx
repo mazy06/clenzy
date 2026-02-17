@@ -144,11 +144,14 @@ const DashboardRecentActivities: React.FC<DashboardRecentActivitiesProps> = ({ a
                                   <Chip
                                     label={badgeLabel}
                                     size="small"
+                                    variant="outlined"
                                     color={badgeColor}
                                     sx={{
-                                      height: 20,
+                                      height: 22,
                                       fontSize: '0.6875rem',
-                                      fontWeight: 600
+                                      fontWeight: 600,
+                                      borderWidth: 1.5,
+                                      '& .MuiChip-label': { px: 0.75 },
                                     }}
                                   />
                                   <Box component="span">{parts[1]}</Box>
@@ -173,7 +176,8 @@ const DashboardRecentActivities: React.FC<DashboardRecentActivitiesProps> = ({ a
                   <Chip
                     label={activity.status}
                     size="small"
-                    sx={{ fontSize: '0.6875rem', height: 20 }}
+                    variant="outlined"
+                    sx={{ fontSize: '0.6875rem', height: 22, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
                     color={
                       activity.status === 'completed' ? 'success' :
                       activity.status === 'urgent' ? 'error' :

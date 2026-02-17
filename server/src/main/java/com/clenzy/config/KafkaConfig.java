@@ -47,6 +47,7 @@ public class KafkaConfig {
     public static final String TOPIC_NOTIFICATIONS = "notifications.send";
     public static final String TOPIC_AUDIT_EVENTS = "audit.events";
     public static final String TOPIC_DLQ = "airbnb.dlq";
+    public static final String TOPIC_DOCUMENT_GENERATE = "documents.generate";
 
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
@@ -161,6 +162,14 @@ public class KafkaConfig {
     public NewTopic dlqTopic() {
         return TopicBuilder.name(TOPIC_DLQ)
                 .partitions(1)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic documentGenerateTopic() {
+        return TopicBuilder.name(TOPIC_DOCUMENT_GENERATE)
+                .partitions(3)
                 .replicas(1)
                 .build();
     }

@@ -115,9 +115,16 @@ public enum NotificationKey {
     CONTACT_MESSAGE_REPLIED(NotificationType.INFO, NotificationCategory.CONTACT, true),
     CONTACT_MESSAGE_ARCHIVED(NotificationType.INFO, NotificationCategory.CONTACT, false),
     CONTACT_FORM_RECEIVED(NotificationType.WARNING, NotificationCategory.CONTACT, true),
-    CONTACT_FORM_STATUS_CHANGED(NotificationType.INFO, NotificationCategory.CONTACT, false);
+    CONTACT_FORM_STATUS_CHANGED(NotificationType.INFO, NotificationCategory.CONTACT, false),
 
-    // Total: 18 + 8 + 10 + 6 + 8 + 6 + 5 + 3 + 2 + 4 + 6 = 76
+    // ─── DOCUMENT (4 cles) ──────────────────────────────────────────────────────
+
+    DOCUMENT_GENERATED(NotificationType.SUCCESS, NotificationCategory.DOCUMENT, true),
+    DOCUMENT_GENERATION_FAILED(NotificationType.ERROR, NotificationCategory.DOCUMENT, true),
+    DOCUMENT_TEMPLATE_UPLOADED(NotificationType.INFO, NotificationCategory.DOCUMENT, false),
+    DOCUMENT_SENT_BY_EMAIL(NotificationType.SUCCESS, NotificationCategory.DOCUMENT, true);
+
+    // Total: 18 + 8 + 10 + 6 + 8 + 6 + 5 + 3 + 2 + 4 + 6 + 4 = 80
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

@@ -222,10 +222,11 @@ export default function ActivitiesPage() {
             </FormControl>
           </Grid>
           <Grid item xs={12} md={2}>
-            <Chip 
+            <Chip
               label={`${filteredActivities.length} activité${filteredActivities.length > 1 ? 's' : ''}`}
               color="primary"
               variant="outlined"
+              sx={{ borderWidth: 1.5, '& .MuiChip-label': { px: 1 } }}
             />
           </Grid>
         </Grid>
@@ -251,10 +252,12 @@ export default function ActivitiesPage() {
                           {activity.type}
                         </Typography>
                       </Box>
-                      <Chip 
-                        label={getStatusLabel(activity.status)} 
+                      <Chip
+                        label={getStatusLabel(activity.status)}
                         color={getStatusColor(activity.status)}
                         size="small"
+                        variant="outlined"
+                        sx={{ borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
                       />
                     </Box>
                     

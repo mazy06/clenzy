@@ -19,6 +19,8 @@ import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.TeamRepository;
 import com.clenzy.model.Team;
 import com.clenzy.model.NotificationKey;
+import com.clenzy.config.KafkaConfig;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -43,14 +45,16 @@ public class ServiceRequestService {
     private final InterventionRepository interventionRepository;
     private final TeamRepository teamRepository;
     private final NotificationService notificationService;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository, TeamRepository teamRepository, NotificationService notificationService) {
+    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository, TeamRepository teamRepository, NotificationService notificationService, KafkaTemplate<String, Object> kafkaTemplate) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
         this.interventionRepository = interventionRepository;
         this.teamRepository = teamRepository;
         this.notificationService = notificationService;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     public ServiceRequestDto create(ServiceRequestDto dto) {
@@ -334,6 +338,24 @@ public class ServiceRequestService {
             System.err.println("Erreur notification SERVICE_REQUEST_APPROVED: " + e.getMessage());
         }
 
+        // ─── Génération automatique du DEVIS ─────────────────────────────────
+        try {
+            String emailTo = serviceRequest.getUser() != null ? serviceRequest.getUser().getEmail() : null;
+            kafkaTemplate.send(
+                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
+                "devis-sr-" + serviceRequest.getId(),
+                Map.of(
+                    "documentType", "DEVIS",
+                    "referenceId", serviceRequest.getId(),
+                    "referenceType", "service_request",
+                    "emailTo", emailTo != null ? emailTo : ""
+                )
+            );
+            System.out.println("📄 Événement DEVIS publié sur Kafka pour la demande: " + serviceRequest.getId());
+        } catch (Exception e) {
+            System.err.println("Erreur publication Kafka DEVIS: " + e.getMessage());
+        }
+
         return dto;
         } catch (Exception e) {
             System.err.println("🔍 DEBUG - Erreur dans validateAndCreateIntervention: " + e.getMessage());
@@ -343,8 +365,75 @@ public class ServiceRequestService {
     }
 
     /**
-     * Extrait le rôle de l'utilisateur depuis le JWT
+     * Acceptation du devis par le Host.
+     * Change le statut de la demande de APPROVED à DEVIS_ACCEPTED
+     * et déclenche la génération de l'AUTORISATION_TRAVAUX.
      */
+    public ServiceRequestDto acceptDevis(Long serviceRequestId, Jwt jwt) {
+        ServiceRequest serviceRequest = serviceRequestRepository.findById(serviceRequestId)
+                .orElseThrow(() -> new NotFoundException("Demande de service non trouvée"));
+
+        // Vérifier que la demande est bien au statut APPROVED (devis généré, en attente d'acceptation)
+        if (!RequestStatus.APPROVED.equals(serviceRequest.getStatus())) {
+            throw new IllegalStateException("Le devis ne peut être accepté que lorsque la demande est au statut APPROVED. Statut actuel: " + serviceRequest.getStatus());
+        }
+
+        // Vérifier que c'est bien le Host (propriétaire) qui accepte le devis
+        UserRole userRole = extractUserRole(jwt);
+        String keycloakId = jwt.getSubject();
+
+        // Les admins/managers peuvent aussi accepter pour le host
+        if (userRole == UserRole.HOST) {
+            // Vérifier que le host est le propriétaire de la propriété
+            User currentUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
+            if (currentUser == null || serviceRequest.getProperty() == null
+                    || serviceRequest.getProperty().getOwner() == null
+                    || !serviceRequest.getProperty().getOwner().getId().equals(currentUser.getId())) {
+                throw new com.clenzy.exception.UnauthorizedException("Vous n'êtes pas autorisé à accepter ce devis");
+            }
+        } else if (userRole != UserRole.ADMIN && userRole != UserRole.MANAGER) {
+            throw new com.clenzy.exception.UnauthorizedException("Seuls le propriétaire, les managers et les admins peuvent accepter un devis");
+        }
+
+        // Mettre à jour le statut
+        serviceRequest.setStatus(RequestStatus.DEVIS_ACCEPTED);
+        serviceRequest.setDevisAcceptedBy(keycloakId);
+        serviceRequest.setDevisAcceptedAt(LocalDateTime.now());
+        serviceRequest = serviceRequestRepository.save(serviceRequest);
+
+        // ─── Notification ────────────────────────────────────────────────────
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.SERVICE_REQUEST_APPROVED,
+                "Devis accepté",
+                "Le devis pour la demande \"" + serviceRequest.getTitle() + "\" a été accepté par le client",
+                "/service-requests/" + serviceRequest.getId()
+            );
+        } catch (Exception e) {
+            System.err.println("Erreur notification DEVIS_ACCEPTED: " + e.getMessage());
+        }
+
+        // ─── Génération automatique de l'AUTORISATION_TRAVAUX ────────────────
+        try {
+            String emailTo = serviceRequest.getUser() != null ? serviceRequest.getUser().getEmail() : null;
+            kafkaTemplate.send(
+                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
+                "autorisation-travaux-sr-" + serviceRequest.getId(),
+                Map.of(
+                    "documentType", "AUTORISATION_TRAVAUX",
+                    "referenceId", serviceRequest.getId(),
+                    "referenceType", "service_request",
+                    "emailTo", emailTo != null ? emailTo : ""
+                )
+            );
+            System.out.println("📄 Événement AUTORISATION_TRAVAUX publié sur Kafka pour la demande: " + serviceRequest.getId());
+        } catch (Exception e) {
+            System.err.println("Erreur publication Kafka AUTORISATION_TRAVAUX: " + e.getMessage());
+        }
+
+        return toDto(serviceRequest);
+    }
+
     /**
      * Extrait le rôle principal de l'utilisateur depuis le JWT
      * Les rôles sont stockés dans realm_access.roles et préfixés avec "ROLE_"
@@ -576,6 +665,8 @@ public class ServiceRequestService {
         dto.requiresApproval = e.isRequiresApproval();
         dto.approvedBy = e.getApprovedBy();
         dto.approvedAt = e.getApprovedAt();
+        dto.devisAcceptedBy = e.getDevisAcceptedBy();
+        dto.devisAcceptedAt = e.getDevisAcceptedAt();
         dto.userId = e.getUser() != null ? e.getUser().getId() : null;
         dto.propertyId = e.getProperty() != null ? e.getProperty().getId() : null;
         

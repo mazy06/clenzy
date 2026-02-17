@@ -174,12 +174,14 @@ const styles = {
     height: 22,
     fontSize: '0.62rem',
     fontWeight: 600,
+    borderWidth: 1.5,
     '& .MuiChip-label': { px: 0.75 },
   },
   priorityChip: {
     height: 22,
     fontSize: '0.62rem',
     fontWeight: 600,
+    borderWidth: 1.5,
     '& .MuiChip-label': { px: 0.75 },
   },
   dateBox: {
@@ -337,6 +339,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
             label={getInterventionStatusLabel(intervention.status, t)}
             color={getInterventionStatusColor(intervention.status)}
             size="small"
+            variant="outlined"
             sx={styles.statusChip}
           />
           <Chip

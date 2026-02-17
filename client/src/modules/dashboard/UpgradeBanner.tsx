@@ -140,14 +140,15 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
               <Chip
                 label="Forfait Essentiel"
                 size="small"
+                variant="outlined"
                 sx={{
-                  bgcolor: C.gray100,
                   color: C.textSecondary,
                   fontWeight: 600,
                   fontSize: '0.7rem',
                   height: 22,
-                  borderRadius: '12px',
-                  border: `1px solid ${C.gray200}`,
+                  borderWidth: 1.5,
+                  borderColor: C.gray200,
+                  '& .MuiChip-label': { px: 0.75 },
                 }}
               />
             </Box>
@@ -194,16 +195,16 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                   <Chip
                     label="Recommande"
                     size="small"
+                    variant="outlined"
+                    color="primary"
                     sx={{
                       position: 'absolute',
                       top: -10,
                       right: 8,
-                      bgcolor: C.primary,
-                      color: C.white,
                       fontWeight: 700,
                       fontSize: '0.65rem',
                       height: 20,
-                      borderRadius: '12px',
+                      borderWidth: 1.5,
                       '& .MuiChip-label': { px: 1 },
                     }}
                   />

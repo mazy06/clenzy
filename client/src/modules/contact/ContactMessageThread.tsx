@@ -165,6 +165,8 @@ const ContactMessageThread: React.FC<ContactMessageThreadProps> = ({
         <Chip
           label={message.priority}
           size="small"
+          variant="outlined"
+          sx={{ borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
           color={
             message.priority === 'URGENT' ? 'error' :
             message.priority === 'HIGH' ? 'warning' :
@@ -253,7 +255,7 @@ const ContactMessageThread: React.FC<ContactMessageThreadProps> = ({
                       deleteIcon={attachment.storagePath ? <DownloadIcon sx={{ fontSize: 16 }} /> : undefined}
                       onDelete={attachment.storagePath ? () => contactApi.downloadAttachment(Number(msg.id), attachment.id, attachment.originalName) : undefined}
                       sx={{
-                        maxWidth: 250,
+                        maxWidth: 250, borderWidth: 1.5,
                         cursor: attachment.storagePath ? 'pointer' : 'default',
                         '&:hover': attachment.storagePath ? { bgcolor: 'action.hover' } : {},
                       }}
@@ -286,6 +288,8 @@ const ContactMessageThread: React.FC<ContactMessageThreadProps> = ({
                 icon={<FileIcon />}
                 label={`${file.name} (${formatFileSize(file.size)})`}
                 size="small"
+                variant="outlined"
+                sx={{ borderWidth: 1.5 }}
                 onDelete={() => removeReplyAttachment(index)}
               />
             ))}
