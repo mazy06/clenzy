@@ -339,8 +339,9 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                             <Chip
                               label={option.label}
                               size="small"
+                              variant="outlined"
                               color={option.color}
-                              sx={{ mr: 1 }}
+                              sx={{ mr: 1, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
                             />
                             {option.label}
                           </MenuItem>
@@ -444,7 +445,8 @@ const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
                           label={`${file.name} (${formatFileSize(file.size)})`}
                           onDelete={() => removeAttachment(index)}
                           size="small"
-                          sx={{ mr: 1, mb: 1 }}
+                          variant="outlined"
+                          sx={{ mr: 1, mb: 1, borderWidth: 1.5 }}
                         />
                       ))}
                     </Box>

@@ -198,8 +198,9 @@ const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = React.memo((
                     <Chip
                       label={activity.status}
                       size="small"
+                      variant="outlined"
                       color={getStatusColor(activity.status)}
-                      sx={{ fontSize: '0.5625rem', height: 16, flexShrink: 0, '& .MuiChip-label': { px: 0.75 } }}
+                      sx={{ fontSize: '0.625rem', height: 22, flexShrink: 0, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
                     />
                   </Box>
                 </Box>

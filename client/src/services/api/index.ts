@@ -85,3 +85,13 @@ export type {
   UnpaidIntervention,
   PaymentLinkResponse,
 } from './deferredPaymentsApi';
+
+export { documentsApi } from './documentsApi';
+export type {
+  DocumentTemplate,
+  DocumentTemplateTag,
+  DocumentGeneration,
+  GenerateDocumentRequest,
+  DocumentTypeOption,
+  TagCategoryOption,
+} from './documentsApi';

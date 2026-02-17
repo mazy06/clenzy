@@ -280,12 +280,17 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
               key={s}
               label={conf?.label || s}
               size="small"
+              variant="outlined"
+              color={(conf?.palette || 'primary') as 'primary' | 'info' | 'success' | 'warning' | 'error'}
               onClick={() => { setFilterStatus(s); setPage(0); }}
               sx={{
                 fontSize: '0.6875rem', height: 26, borderRadius: '6px', cursor: 'pointer',
-                bgcolor: filterStatus === s ? `${conf?.palette || 'primary'}.main` : 'action.hover',
-                color: filterStatus === s ? `${conf?.palette || 'primary'}.contrastText` : 'text.secondary',
+                borderWidth: 1.5, '& .MuiChip-label': { px: 1 },
                 fontWeight: filterStatus === s ? 600 : 400,
+                ...(filterStatus === s && {
+                  bgcolor: `${conf?.palette || 'primary'}.main`,
+                  color: `${conf?.palette || 'primary'}.contrastText`,
+                }),
                 '&:hover': { opacity: 0.85 },
               }}
             />
@@ -406,11 +411,11 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                         <Chip
                           label={categoryConf.label}
                           size="small"
+                          variant="outlined"
+                          color={categoryConf.palette as 'primary' | 'info' | 'success' | 'warning' | 'error'}
                           sx={{
-                            fontSize: '0.5625rem', height: 20, borderRadius: '4px',
-                            bgcolor: `${categoryConf.palette}.main`,
-                            color: `${categoryConf.palette}.contrastText`,
-                            fontWeight: 500, opacity: 0.85,
+                            fontSize: '0.625rem', height: 22, borderWidth: 1.5,
+                            fontWeight: 500, '& .MuiChip-label': { px: 0.75 },
                           }}
                         />
                       )}
@@ -418,11 +423,11 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                         <Chip
                           label={priorityConf.label}
                           size="small"
+                          variant="outlined"
+                          color={priorityConf.palette as 'primary' | 'info' | 'success' | 'warning' | 'error'}
                           sx={{
-                            fontSize: '0.5625rem', height: 20, borderRadius: '4px',
-                            bgcolor: `${priorityConf.palette}.main`,
-                            color: `${priorityConf.palette}.contrastText`,
-                            fontWeight: 500, opacity: 0.85,
+                            fontSize: '0.625rem', height: 22, borderWidth: 1.5,
+                            fontWeight: 500, '& .MuiChip-label': { px: 0.75 },
                           }}
                         />
                       )}
@@ -458,11 +463,11 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                         <Chip
                           label={statusConf.label}
                           size="small"
+                          variant="outlined"
+                          color={statusConf.palette as 'primary' | 'info' | 'success' | 'warning' | 'error'}
                           sx={{
-                            fontSize: '0.5625rem', height: 18, borderRadius: '4px', ml: 'auto',
-                            bgcolor: `${statusConf.palette}.main`,
-                            color: `${statusConf.palette}.contrastText`,
-                            fontWeight: 500, opacity: 0.85,
+                            fontSize: '0.625rem', height: 22, borderWidth: 1.5, ml: 'auto',
+                            fontWeight: 500, '& .MuiChip-label': { px: 0.75 },
                           }}
                         />
                       )}
@@ -502,11 +507,11 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                       <Chip
                         label={CATEGORY_CONFIG[selectedMessage.category].label}
                         size="small"
+                        variant="outlined"
+                        color={CATEGORY_CONFIG[selectedMessage.category].palette as 'primary' | 'info' | 'success' | 'warning' | 'error'}
                         sx={{
-                          fontSize: '0.6875rem', height: 22, borderRadius: '6px',
-                          bgcolor: `${CATEGORY_CONFIG[selectedMessage.category].palette}.main`,
-                          color: `${CATEGORY_CONFIG[selectedMessage.category].palette}.contrastText`,
-                          fontWeight: 500, opacity: 0.85,
+                          fontSize: '0.6875rem', height: 22, borderWidth: 1.5,
+                          fontWeight: 500, '& .MuiChip-label': { px: 0.75 },
                         }}
                       />
                     )}
@@ -515,11 +520,11 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                       <Chip
                         label={STATUS_CONFIG[selectedMessage.status].label}
                         size="small"
+                        variant="outlined"
+                        color={STATUS_CONFIG[selectedMessage.status].palette as 'primary' | 'info' | 'success' | 'warning' | 'error'}
                         sx={{
-                          fontSize: '0.6875rem', height: 22, borderRadius: '6px',
-                          bgcolor: `${STATUS_CONFIG[selectedMessage.status].palette}.main`,
-                          color: `${STATUS_CONFIG[selectedMessage.status].palette}.contrastText`,
-                          fontWeight: 500, opacity: 0.85,
+                          fontSize: '0.6875rem', height: 22, borderWidth: 1.5,
+                          fontWeight: 500, '& .MuiChip-label': { px: 0.75 },
                         }}
                       />
                     )}
@@ -528,11 +533,11 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                       <Chip
                         label={PRIORITY_CONFIG[selectedMessage.priority].label}
                         size="small"
+                        variant="outlined"
+                        color={PRIORITY_CONFIG[selectedMessage.priority].palette as 'primary' | 'info' | 'success' | 'warning' | 'error'}
                         sx={{
-                          fontSize: '0.6875rem', height: 22, borderRadius: '6px',
-                          bgcolor: `${PRIORITY_CONFIG[selectedMessage.priority].palette}.main`,
-                          color: `${PRIORITY_CONFIG[selectedMessage.priority].palette}.contrastText`,
-                          fontWeight: 500, opacity: 0.85,
+                          fontSize: '0.6875rem', height: 22, borderWidth: 1.5,
+                          fontWeight: 500, '& .MuiChip-label': { px: 0.75 },
                         }}
                       />
                     )}
@@ -611,7 +616,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                           deleteIcon={att.storagePath ? <DownloadIcon sx={{ fontSize: 16 }} /> : undefined}
                           onDelete={att.storagePath ? () => contactApi.downloadAttachment(Number(selectedMessage.id), att.id, att.originalName) : undefined}
                           sx={{
-                            fontSize: '0.75rem', borderRadius: '6px',
+                            fontSize: '0.75rem', borderWidth: 1.5,
                             cursor: att.storagePath ? 'pointer' : 'default',
                             '&:hover': att.storagePath ? { bgcolor: 'action.hover' } : {},
                           }}

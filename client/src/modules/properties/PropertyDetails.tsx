@@ -63,6 +63,8 @@ const styles = {
     height: 22,
     fontSize: '0.7rem',
     mt: 0.5,
+    borderWidth: 1.5,
+    '& .MuiChip-label': { px: 0.75 },
   },
   interventionHeader: {
     display: 'flex',
@@ -412,10 +414,11 @@ const PropertyDetails: React.FC = () => {
                       <Box sx={styles.infoColumn}>
                         <Box>
                           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{t('properties.status')}</Typography>
-                          <Chip 
-                            label={property.status} 
+                          <Chip
+                            label={property.status}
                             color={getPropertyStatusColor(property.status)}
                             size="small"
+                            variant="outlined"
                             sx={styles.statusChip}
                           />
                         </Box>
@@ -464,11 +467,12 @@ const PropertyDetails: React.FC = () => {
                             <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                               {intervention.type}
                             </Typography>
-                            <Chip 
-                              label={intervention.status} 
+                            <Chip
+                              label={intervention.status}
                               color={intervention.status === 'completed' ? 'success' : 'warning'}
                               size="small"
-                              sx={{ height: 22, fontSize: '0.7rem' }}
+                              variant="outlined"
+                              sx={{ height: 22, fontSize: '0.7rem', borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
                             />
                           </Box>
                           <Typography variant="caption" color="text.secondary" gutterBottom sx={styles.interventionDescription}>

@@ -8,7 +8,8 @@ public enum NotificationCategory {
     PAYMENT("payment"),
     SYSTEM("system"),
     TEAM("team"),
-    CONTACT("contact");
+    CONTACT("contact"),
+    DOCUMENT("document");
 
     private final String value;
 

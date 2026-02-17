@@ -330,13 +330,14 @@ const InterventionsPendingPayment: React.FC = () => {
                     <Chip
                       label={getTypeLabel(intervention.type)}
                       size="small"
+                      variant="outlined"
+                      color="primary"
                       sx={{
                         fontSize: '0.6875rem',
                         height: 22,
-                        bgcolor: `${C.primary}14`,
-                        color: C.primary,
                         fontWeight: 500,
-                        borderRadius: '6px',
+                        borderWidth: 1.5,
+                        '& .MuiChip-label': { px: 0.75 },
                       }}
                     />
                   </TableCell>

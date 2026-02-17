@@ -81,6 +81,18 @@ public class ServiceRequestController {
         InterventionDto intervention = service.validateAndCreateIntervention(id, teamId, userId, jwt);
         return ResponseEntity.status(HttpStatus.CREATED).body(intervention);
     }
+
+    @PostMapping("/{id}/accept-devis")
+    @Operation(summary = "Accepter le devis d'une demande de service",
+               description = "Le Host (propriétaire) accepte le devis généré. " +
+                           "Change le statut de APPROVED à DEVIS_ACCEPTED et " +
+                           "déclenche la génération de l'AUTORISATION_TRAVAUX.")
+    public ResponseEntity<ServiceRequestDto> acceptDevis(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+        ServiceRequestDto result = service.acceptDevis(id, jwt);
+        return ResponseEntity.ok(result);
+    }
 }
 
 

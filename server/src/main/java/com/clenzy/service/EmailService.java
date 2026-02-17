@@ -457,6 +457,42 @@ public class EmailService {
         }
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // Email de document genere (PDF en piece jointe)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Envoie un email avec un document PDF en piece jointe.
+     *
+     * @param toEmail     Adresse email du destinataire
+     * @param subject     Objet de l'email
+     * @param htmlBody    Corps HTML de l'email
+     * @param pdfFilename Nom du fichier PDF
+     * @param pdfBytes    Contenu du PDF
+     */
+    public void sendDocumentEmail(String toEmail, String subject, String htmlBody,
+                                   String pdfFilename, byte[] pdfBytes) {
+        try {
+            JavaMailSender ms = requireMailSender();
+            MimeMessage message = ms.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromAddress);
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(htmlBody, true);
+
+            // Ajouter le PDF en piece jointe
+            helper.addAttachment(pdfFilename, new ByteArrayResource(pdfBytes), "application/pdf");
+
+            ms.send(message);
+            log.info("Document email sent to {} (attachment: {})", toEmail, pdfFilename);
+        } catch (MessagingException e) {
+            log.error("Failed to send document email to {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi de l'email avec document", e);
+        }
+    }
+
     private String buildContactHtmlBody(String toName, String replyToName, String messageText) {
         String safeToName = StringUtils.firstNonBlank(toName, "destinataire");
         String safeReplyToName = StringUtils.firstNonBlank(replyToName, "expediteur");

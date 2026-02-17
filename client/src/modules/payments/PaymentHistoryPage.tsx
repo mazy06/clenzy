@@ -258,26 +258,27 @@ const PaymentHistoryPage: React.FC = () => {
   };
 
   const getStatusChip = (status: PaymentRecord['status']) => {
-    const config: Record<string, { bg: string; color: string; label: string }> = {
-      PAID: { bg: `${C.success}14`, color: C.success, label: t('payments.history.paid') },
-      PENDING: { bg: `${C.warning}14`, color: C.warning, label: t('payments.history.pending') },
-      PROCESSING: { bg: `${C.info}14`, color: C.info, label: t('payments.history.processing') },
-      FAILED: { bg: `${C.error}14`, color: C.error, label: t('payments.history.failed') },
-      REFUNDED: { bg: `${C.info}14`, color: C.info, label: t('payments.history.refunded') },
-      CANCELLED: { bg: `${C.gray100}`, color: C.textSecondary, label: t('payments.history.cancelled') },
+    const config: Record<string, { color: 'success' | 'warning' | 'info' | 'error' | 'default'; label: string }> = {
+      PAID: { color: 'success', label: t('payments.history.paid') },
+      PENDING: { color: 'warning', label: t('payments.history.pending') },
+      PROCESSING: { color: 'info', label: t('payments.history.processing') },
+      FAILED: { color: 'error', label: t('payments.history.failed') },
+      REFUNDED: { color: 'info', label: t('payments.history.refunded') },
+      CANCELLED: { color: 'default', label: t('payments.history.cancelled') },
     };
-    const c = config[status] || { bg: C.gray100, color: C.textSecondary, label: status };
+    const c = config[status] || { color: 'default' as const, label: status };
     return (
       <Chip
         label={c.label}
         size="small"
+        variant="outlined"
+        color={c.color}
         sx={{
           fontSize: '0.6875rem',
           height: 22,
-          bgcolor: c.bg,
-          color: c.color,
           fontWeight: 500,
-          borderRadius: '6px',
+          borderWidth: 1.5,
+          '& .MuiChip-label': { px: 0.75 },
         }}
       />
     );

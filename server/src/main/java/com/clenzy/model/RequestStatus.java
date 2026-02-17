@@ -6,6 +6,7 @@ package com.clenzy.model;
 public enum RequestStatus {
     PENDING("En attente"),
     APPROVED("Approuvé"),
+    DEVIS_ACCEPTED("Devis accepté"),
     IN_PROGRESS("En cours"),
     COMPLETED("Terminé"),
     CANCELLED("Annulé"),

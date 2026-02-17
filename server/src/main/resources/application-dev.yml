@@ -178,4 +178,8 @@ clenzy:
     password: ${IMAP_PASSWORD:}
   uploads:
     contact-dir: ${CONTACT_UPLOADS_DIR:/app/uploads/contact}
+    templates-dir: ${TEMPLATES_DIR:/app/uploads/templates}
+    documents-dir: ${DOCUMENTS_DIR:/app/uploads/documents}
+  libreoffice:
+    url: ${LIBREOFFICE_URL:http://clenzy-libreoffice:3000}
 

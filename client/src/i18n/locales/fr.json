@@ -403,6 +403,7 @@
     "statuses": {
       "pending": "En attente",
       "approved": "Approuvé",
+      "devisAccepted": "Devis accepté",
       "inProgress": "En cours",
       "completed": "Terminé",
       "cancelled": "Annulé",

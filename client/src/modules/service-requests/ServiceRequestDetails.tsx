@@ -25,6 +25,7 @@ import {
   CleaningServices,
   Build,
   Group,
+  CheckCircle,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -74,6 +75,8 @@ const styles = {
   chipSmall: {
     height: 24,
     fontSize: '0.75rem',
+    borderWidth: 1.5,
+    '& .MuiChip-label': { px: 1 },
   },
   propertyRow: {
     display: 'flex',
@@ -106,7 +109,9 @@ const styles = {
   priorityChip: {
     height: 22,
     fontSize: '0.7rem',
+    borderWidth: 1.5,
     '& .MuiChip-icon': { marginLeft: '4px' },
+    '& .MuiChip-label': { px: 0.75 },
   },
   personRow: {
     display: 'flex',
@@ -116,8 +121,10 @@ const styles = {
   },
   teamChip: {
     ml: 0.5,
-    height: 20,
-    fontSize: '0.65rem',
+    height: 22,
+    fontSize: '0.7rem',
+    borderWidth: 1.5,
+    '& .MuiChip-label': { px: 0.75 },
   },
 } as const;
 
@@ -161,6 +168,8 @@ const ServiceRequestDetails: React.FC = () => {
   
   // Vérifier les permissions pour l'édition - DOIT être déclaré avant tout retour conditionnel
   const [canEdit, setCanEdit] = useState(false);
+  const [acceptingDevis, setAcceptingDevis] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Charger les données de la demande de service
   useEffect(() => {
@@ -310,12 +319,14 @@ const ServiceRequestDetails: React.FC = () => {
                 label={getServiceRequestStatusLabel(serviceRequest.status, t)}
                 color={getServiceRequestStatusColor(serviceRequest.status)}
                 size="small"
+                variant="outlined"
                 sx={styles.chipSmall}
               />
               <Chip
                 label={getServiceRequestPriorityLabel(serviceRequest.priority, t)}
                 color={getServiceRequestPriorityColor(serviceRequest.priority)}
                 size="small"
+                variant="outlined"
                 icon={<PriorityHigh sx={{ fontSize: 14 }} />}
                 sx={styles.chipSmall}
               />
@@ -436,7 +447,8 @@ const ServiceRequestDetails: React.FC = () => {
                   label={getServiceRequestStatusLabel(serviceRequest.status, t)}
                   color={getServiceRequestStatusColor(serviceRequest.status)}
                   size="small"
-                  sx={{ height: 22, fontSize: '0.7rem' }}
+                  variant="outlined"
+                  sx={{ height: 22, fontSize: '0.7rem', borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
                 />
               </Box>
             </Grid>
@@ -450,6 +462,7 @@ const ServiceRequestDetails: React.FC = () => {
                   label={`${getServiceRequestPriorityLabel(serviceRequest.priority, t)}`}
                   color={getServiceRequestPriorityColor(serviceRequest.priority)}
                   size="small"
+                  variant="outlined"
                   icon={<PriorityHigh sx={{ fontSize: 14, mr: 0.5 }} />}
                   sx={styles.priorityChip}
                 />

@@ -216,6 +216,18 @@ const CATEGORIES: CategoryGroup[] = [
       { key: 'CONTACT_FORM_STATUS_CHANGED', title: 'Statut formulaire modifie', description: 'Quand le statut d\'un formulaire change' },
     ],
   },
+  {
+    id: 'document',
+    label: 'Documents',
+    icon: <Description sx={{ color: '#f57c00' }} />,
+    color: '#f57c00',
+    keys: [
+      { key: 'DOCUMENT_GENERATED', title: 'Document genere', description: 'Quand un document PDF est genere avec succes' },
+      { key: 'DOCUMENT_GENERATION_FAILED', title: 'Echec de generation', description: 'Quand la generation d\'un document echoue' },
+      { key: 'DOCUMENT_TEMPLATE_UPLOADED', title: 'Template uploade', description: 'Quand un nouveau template de document est uploade' },
+      { key: 'DOCUMENT_SENT_BY_EMAIL', title: 'Document envoye par email', description: 'Quand un document est envoye par email au destinataire' },
+    ],
+  },
 ];
 
 // ─── Composant ────────────────────────────────────────────────────────────────

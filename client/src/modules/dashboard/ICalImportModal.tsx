@@ -453,6 +453,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             color="primary"
             size="small"
             variant="outlined"
+            sx={{ borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
           />
         </Box>
 
@@ -533,11 +534,13 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             label={`${importResult.imported} importee${importResult.imported > 1 ? 's' : ''}`}
             color="success"
             variant="outlined"
+            sx={{ borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
           />
           <Chip
             label={`${importResult.skipped} doublon${importResult.skipped > 1 ? 's' : ''} ignore${importResult.skipped > 1 ? 's' : ''}`}
             color="default"
             variant="outlined"
+            sx={{ borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
           />
           {hasErrors && (
             <Chip
@@ -545,6 +548,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
               label={`${importResult.errors.length} erreur${importResult.errors.length > 1 ? 's' : ''}`}
               color="error"
               variant="outlined"
+              sx={{ borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
             />
           )}
         </Box>

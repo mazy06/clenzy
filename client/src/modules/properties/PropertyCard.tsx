@@ -128,12 +128,14 @@ const styles = {
     height: 22,
     fontSize: '0.62rem',
     fontWeight: 600,
+    borderWidth: 1.5,
     '& .MuiChip-label': { px: 0.75 },
   },
   priceChip: {
     height: 22,
     fontSize: '0.62rem',
     fontWeight: 600,
+    borderWidth: 1.5,
     '& .MuiChip-label': { px: 0.75 },
   },
   dateBox: {
@@ -334,6 +336,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               label={getPropertyStatusLabel(property.status, t)}
               color={getPropertyStatusColor(property.status)}
               size="small"
+              variant="outlined"
               sx={styles.statusChip}
             />
             <Chip
@@ -386,25 +389,27 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
           {/* Métriques — ligne horizontale compacte */}
           <Box sx={styles.metricsRow}>
             {[
-              { icon: <BedIcon sx={{ fontSize: 14 }} />, value: property.bedrooms, label: 'ch.' },
-              { icon: <BathroomIcon sx={{ fontSize: 14 }} />, value: property.bathrooms, label: 'sdb' },
-              { icon: <SquareFoot sx={{ fontSize: 14 }} />, value: property.surfaceArea, label: 'm²' },
-              { icon: <PersonIcon sx={{ fontSize: 14 }} />, value: property.maxGuests, label: 'voy.' },
+              { icon: <BedIcon sx={{ fontSize: 13 }} />, value: property.bedrooms, label: 'ch.' },
+              { icon: <BathroomIcon sx={{ fontSize: 13 }} />, value: property.bathrooms, label: 'sdb' },
+              { icon: <SquareFoot sx={{ fontSize: 13 }} />, value: property.surfaceArea, label: 'm²' },
+              { icon: <PersonIcon sx={{ fontSize: 13 }} />, value: property.maxGuests, label: 'voy.' },
             ].map((metric, idx) => (
-              <Box
+              <Chip
                 key={idx}
-                sx={styles.metricBox}
-              >
-                <Box sx={styles.metricIconBox}>
-                  {metric.icon}
-                </Box>
-                <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.72rem', color: 'text.primary' }}>
-                  {metric.value}
-                </Typography>
-                <Typography variant="caption" sx={{ fontSize: '0.62rem', color: 'text.secondary' }}>
-                  {metric.label}
-                </Typography>
-              </Box>
+                icon={metric.icon}
+                label={`${metric.value} ${metric.label}`}
+                size="small"
+                variant="outlined"
+                sx={{
+                  height: 22,
+                  fontSize: '0.62rem',
+                  fontWeight: 600,
+                  borderWidth: 1.5,
+                  borderColor: 'grey.300',
+                  '& .MuiChip-icon': { fontSize: 13, ml: 0.5 },
+                  '& .MuiChip-label': { px: 0.75 },
+                }}
+              />
             ))}
           </Box>
 
@@ -417,14 +422,15 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   label={amenity}
                   size="small"
                   variant="outlined"
-                  sx={{ fontSize: '0.62rem', height: 20, borderColor: 'grey.300' }}
+                  sx={{ fontSize: '0.62rem', height: 22, borderColor: 'grey.300', borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
                 />
               ))}
               {property.amenities.length > 3 && (
                 <Chip
                   label={`+${property.amenities.length - 3}`}
                   size="small"
-                  sx={styles.amenityOverflow}
+                  variant="outlined"
+                  sx={{ fontSize: '0.62rem', height: 22, borderWidth: 1.5, borderColor: 'grey.300', color: 'text.secondary', '& .MuiChip-label': { px: 0.75 } }}
                 />
               )}
             </Box>
@@ -584,7 +590,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                         color="primary"
                         variant="outlined"
                         size="small"
-                        sx={{ fontSize: '0.72rem', height: 24 }}
+                        sx={{ fontSize: '0.72rem', height: 24, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
                       />
                     ))}
                   </Box>

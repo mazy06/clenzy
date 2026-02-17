@@ -401,6 +401,7 @@
     "statuses": {
       "pending": "Pending",
       "approved": "Approved",
+      "devisAccepted": "Quote accepted",
       "inProgress": "In progress",
       "completed": "Completed",
       "cancelled": "Cancelled",

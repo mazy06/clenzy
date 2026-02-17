@@ -107,14 +107,16 @@ const ServiceRequestsWidget: React.FC = React.memo(() => {
                     <Chip
                       label={getServiceRequestStatusLabel(request.status, t)}
                       size="small"
-                      sx={{ fontSize: '0.5625rem', height: 16, '& .MuiChip-label': { px: 0.5 } }}
+                      variant="outlined"
+                      sx={{ fontSize: '0.625rem', height: 22, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
                       color={getServiceRequestStatusColor(request.status)}
                     />
                     {(request.priority === 'urgent' || request.priority === 'critical' || request.priority === 'high') && (
                       <Chip
                         label={request.priority === 'urgent' || request.priority === 'critical' ? t('serviceRequests.priorities.critical') : t('serviceRequests.priorities.high')}
                         size="small"
-                        sx={{ fontSize: '0.5625rem', height: 16, '& .MuiChip-label': { px: 0.5 } }}
+                        variant="outlined"
+                        sx={{ fontSize: '0.625rem', height: 22, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
                         color={getServiceRequestPriorityColor(request.priority)}
                       />
                     )}

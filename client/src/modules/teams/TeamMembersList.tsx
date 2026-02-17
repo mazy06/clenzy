@@ -192,17 +192,19 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
                             size="small"
                             color={getRoleColor(member.roleInTeam || member.role)}
                             variant="outlined"
-                            sx={{ height: 22, fontSize: '0.7rem' }}
+                            sx={{ height: 22, fontSize: '0.7rem', borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
                           />
                           <Chip
                             label={isAvailable ? t('teams.workload.available') : t('teams.workload.busy')}
                             size="small"
+                            variant="outlined"
+                            color={isAvailable ? 'success' : 'warning'}
                             sx={{
                               height: 22,
-                              fontSize: '0.65rem',
-                              bgcolor: isAvailable ? 'success.light' : 'warning.light',
-                              color: isAvailable ? 'success.dark' : 'warning.dark',
+                              fontSize: '0.7rem',
                               fontWeight: 600,
+                              borderWidth: 1.5,
+                              '& .MuiChip-label': { px: 0.75 },
                             }}
                           />
                         </Box>
