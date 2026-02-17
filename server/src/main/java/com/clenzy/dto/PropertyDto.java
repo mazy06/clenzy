@@ -7,6 +7,7 @@ import com.clenzy.model.PropertyType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -66,6 +67,30 @@ public class PropertyDto {
     public String managerFirstName;
     public String managerLastName;
     public String managerEmail;
+
+    // Tarification ménage
+    @Min(0)
+    public BigDecimal cleaningBasePrice;
+    public Integer cleaningDurationMinutes;
+    public Integer numberOfFloors;
+    public Boolean hasExterior;
+    public Boolean hasLaundry;
+
+    // Prestations à la carte
+    @Min(0)
+    public Integer windowCount;
+    @Min(0)
+    public Integer frenchDoorCount;
+    @Min(0)
+    public Integer slidingDoorCount;
+    public Boolean hasIroning;
+    public Boolean hasDeepKitchen;
+    public Boolean hasDisinfection;
+
+    // Équipements (amenities)
+    public List<String> amenities;
+
+    public String cleaningNotes;
 
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;

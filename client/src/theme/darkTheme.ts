@@ -139,8 +139,8 @@ const darkTheme = createTheme({
   // ── Typography (identique au light theme) ──
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h1: { fontWeight: 700, fontSize: '1.75rem', lineHeight: 1.2 },
-    h2: { fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.25 },
+    h1: { fontWeight: 700, fontSize: '1.75rem', lineHeight: 1.2, letterSpacing: '-0.01em' },
+    h2: { fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.25, letterSpacing: '-0.01em' },
     h3: { fontWeight: 600, fontSize: '1.25rem', lineHeight: 1.3 },
     h4: { fontWeight: 600, fontSize: '1.125rem', lineHeight: 1.35 },
     h5: { fontWeight: 600, fontSize: '1rem', lineHeight: 1.4 },
@@ -177,7 +177,7 @@ const darkTheme = createTheme({
       },
     },
 
-    // ── Boutons : glow au hover ──
+    // ── Boutons : flat, pas de glow ──
     MuiButton: {
       styleOverrides: {
         root: {
@@ -188,14 +188,14 @@ const darkTheme = createTheme({
           minHeight: 36,
           boxShadow: 'none',
           '&:hover': {
-            boxShadow: '0 0 12px rgba(127, 160, 180, 0.15)',
+            boxShadow: 'none',
           },
         },
         sizeSmall: { padding: '4px 12px', fontSize: '0.75rem', minHeight: 32 },
         sizeLarge: { padding: '8px 20px', fontSize: '0.875rem', minHeight: 40 },
         contained: {
           '&:hover': {
-            boxShadow: '0 0 16px rgba(127, 160, 180, 0.25)',
+            boxShadow: 'none',
           },
         },
         outlined: {
@@ -210,17 +210,16 @@ const darkTheme = createTheme({
       },
     },
 
-    // ── Cards : border subtile + inset top highlight ──
+    // ── Cards : border subtile, flat ──
     MuiCard: {
       styleOverrides: {
         root: {
           borderRadius: 8,
           backgroundColor: '#162231',
-          border: '1px solid rgba(138, 170, 196, 0.08)',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03)',
+          border: '1px solid rgba(138, 170, 196, 0.1)',
+          boxShadow: 'none',
           '&:hover': {
-            boxShadow: '0 4px 8px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
-            borderColor: 'rgba(138, 170, 196, 0.12)',
+            borderColor: 'rgba(138, 170, 196, 0.18)',
           },
         },
       },
@@ -235,31 +234,31 @@ const darkTheme = createTheme({
       },
     },
 
-    // ── Paper : système d'élévation 4 niveaux ──
+    // ── Paper : flat avec bordures ──
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 8,
           backgroundImage: 'none',
-          border: '1px solid rgba(138, 170, 196, 0.06)',
+          border: '1px solid rgba(138, 170, 196, 0.08)',
         },
         elevation0: {
           boxShadow: 'none',
-          border: '1px solid rgba(138, 170, 196, 0.06)',
         },
         elevation1: {
-          boxShadow: '0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03)',
+          boxShadow: 'none',
+          border: '1px solid rgba(138, 170, 196, 0.1)',
         },
         elevation2: {
-          boxShadow: '0 4px 8px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
         },
         elevation3: {
           backgroundColor: '#1D2B3D',
-          boxShadow: '0 8px 16px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
         },
         elevation4: {
           backgroundColor: '#1D2B3D',
-          boxShadow: '0 12px 24px rgba(0,0,0,0.6), 0 6px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
         },
       },
     },
@@ -321,13 +320,13 @@ const darkTheme = createTheme({
       },
     },
 
-    // ── AppBar : surface paper + border-bottom subtile ──
+    // ── AppBar : flat, border-bottom uniquement ──
     MuiAppBar: {
       styleOverrides: {
         root: {
-          boxShadow: '0 1px 0 rgba(138, 170, 196, 0.08)',
+          boxShadow: 'none',
           backgroundColor: '#162231',
-          borderBottom: '1px solid rgba(138, 170, 196, 0.06)',
+          borderBottom: '1px solid rgba(138, 170, 196, 0.08)',
         },
       },
     },

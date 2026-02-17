@@ -6,7 +6,6 @@ import {
   IconButton,
   CircularProgress,
   Alert,
-  Tooltip,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -14,15 +13,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Home,
-  CleaningServices,
-  Build,
+  AutoAwesome,
+  Handyman,
   Lock as LockIcon,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useDashboardPlanning } from '../../hooks/useDashboardPlanning';
 import PlanningToolbar from './PlanningToolbar';
 import type { ZoomLevel } from './PlanningToolbar';
-import type { Reservation, ReservationStatus, PlanningIntervention, PlanningInterventionType } from '../../services/api';
+import type { Reservation, ReservationStatus, ReservationSource, PlanningIntervention, PlanningInterventionType } from '../../services/api';
 import {
   RESERVATION_STATUS_COLORS,
   RESERVATION_STATUS_LABELS,
@@ -30,6 +29,7 @@ import {
   INTERVENTION_TYPE_LABELS,
   INTERVENTION_STATUS_LABELS,
 } from '../../services/api/reservationsApi';
+import ThemedTooltip from '../../components/ThemedTooltip';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -75,14 +75,14 @@ const SX_ERROR = { mb: 2 } as const;
 const SX_ROOT = { display: 'flex', flexDirection: 'column', height: '100%' } as const;
 const SX_GRID_PAPER = { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' } as const;
 const SX_SCROLL_CONTAINER = { flex: 1, overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' } as const;
-const SX_MONTH_HEADER_ROW = { display: 'flex', position: 'sticky', top: 0, zIndex: 5, backgroundColor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' } as const;
+const SX_MONTH_HEADER_ROW = { display: 'flex', backgroundColor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' } as const;
 const SX_MONTH_HEADER_SPACER = { width: PROPERTY_COL_WIDTH, minWidth: PROPERTY_COL_WIDTH, flexShrink: 0, position: 'sticky', left: 0, zIndex: 6, backgroundColor: 'background.paper', borderRight: '1px solid', borderColor: 'divider' } as const;
 const SX_GRAD_SPACER = { width: PROPERTY_COL_WIDTH, minWidth: PROPERTY_COL_WIDTH, flexShrink: 0, position: 'sticky', left: 0, zIndex: 4, backgroundColor: 'background.paper', borderRight: '1px solid', borderColor: 'divider', height: GRADUATION_ROW_HEIGHT } as const;
 const SX_LOADING_MORE = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, py: 0.5, borderTop: '1px solid', borderColor: 'divider', backgroundColor: 'action.hover', flexShrink: 0 } as const;
 const SX_PAGINATION = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, py: 0.5, px: 1.5, borderTop: '1px solid', borderColor: 'divider', backgroundColor: 'background.paper', flexShrink: 0 } as const;
-const SX_PROPERTY_NAME = { fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as const;
-const SX_PROPERTY_OWNER = { fontSize: '0.625rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'primary.main', fontWeight: 500 } as const;
-const SX_PROPERTY_CITY = { fontSize: '0.625rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as const;
+const SX_PROPERTY_NAME = { fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'text.primary', lineHeight: 1.3 } as const;
+const SX_PROPERTY_OWNER = { fontSize: '0.5625rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'primary.main', lineHeight: 1.2, letterSpacing: '0.01em' } as const;
+const SX_PROPERTY_CITY = { fontSize: '0.5625rem', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'text.secondary', lineHeight: 1.2, letterSpacing: '0.02em' } as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -202,9 +202,11 @@ function buildGraduationTickGradient(zoomLevel: ZoomLevel, darkMode: boolean, is
 
 interface DashboardPlanningProps {
   forfait?: string;
+  zoomLevel: ZoomLevel;
+  onZoomChange: (zoom: ZoomLevel) => void;
 }
 
-export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
+export default function DashboardPlanning({ forfait, zoomLevel, onZoomChange }: DashboardPlanningProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -240,20 +242,12 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const today = useMemo(() => new Date(), [todayKey]);
 
-  // ─── Zoom level ──────────────────────────────────────────────────────────
-  const [zoomLevel, setZoomLevel] = useState<ZoomLevel>(isMobile ? 'compact' : 'standard');
+  // ─── Zoom level (controlled from parent) ─────────────────────────────────
   const dayColWidth = ZOOM_CONFIG[zoomLevel].dayWidth;
   const hourTickGradient = useMemo(() => buildHourTickGradient(zoomLevel, isDark), [zoomLevel, isDark]);
   const hasGraduation = ZOOM_CONFIG[zoomLevel].marks.length > 0;
   const graduationGradient = useMemo(() => buildGraduationTickGradient(zoomLevel, isDark, false), [zoomLevel, isDark]);
   const graduationGradientToday = useMemo(() => buildGraduationTickGradient(zoomLevel, isDark, true), [zoomLevel, isDark]);
-
-  // ─── Compute sticky top offsets for header rows ────────────────────────
-  const monthRowHeight = 24;
-  const dayRowHeight = 38;
-  const hasMonthRow = useMemo(() => computeMonthSeparators(days).length > 1, [days]);
-  const dayRowTop = hasMonthRow ? monthRowHeight : 0;
-  const graduationRowTop = dayRowTop + dayRowHeight;
 
   // ─── Pagination des proprietes ──────────────────────────────────────────
   const [propertyPage, setPropertyPage] = useState(0);
@@ -464,8 +458,6 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
     <Box sx={SX_ROOT}>
       {/* ─── Toolbar ─────────────────────────────────────────────────────── */}
       <PlanningToolbar
-        zoomLevel={zoomLevel}
-        onZoomChange={setZoomLevel}
         onGoPrev={goPrev}
         onGoToday={handleGoToday}
         onGoNext={goNext}
@@ -525,7 +517,16 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                   <Box sx={SX_MONTH_HEADER_SPACER} />
                   {monthSeparators.map((sep) => (
                     <Box key={`${sep.year}-${sep.month}`} sx={{ width: sep.count * dayColWidth, textAlign: 'center', py: 0.25, borderRight: '2px solid', borderColor: 'primary.light', backgroundColor: 'background.paper' }}>
-                      <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.6875rem', textTransform: 'capitalize', color: 'primary.main' }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: '0.625rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          color: 'primary.main',
+                        }}
+                      >
                         {sep.label}
                       </Typography>
                     </Box>
@@ -537,9 +538,6 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
               <Box
                 sx={{
                   display: 'flex',
-                  position: 'sticky',
-                  top: dayRowTop,
-                  zIndex: 3,
                   backgroundColor: 'background.paper',
                   borderBottom: hasGraduation ? '1px solid' : '2px solid',
                   borderColor: 'divider',
@@ -554,7 +552,16 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                     display: 'flex', alignItems: 'center',
                   }}
                 >
-                  <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.75rem' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontSize: '0.625rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      color: 'text.secondary',
+                    }}
+                  >
                     {t('dashboard.planning.property') || 'Logement'}
                   </Typography>
                 </Box>
@@ -579,10 +586,31 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                         opacity: isPast ? 0.6 : 1,
                       }}
                     >
-                      <Typography variant="caption" sx={{ fontSize: '0.5625rem', fontWeight: isToday ? 700 : 400, color: isToday ? 'primary.contrastText' : isPast ? 'text.disabled' : 'text.secondary', display: 'block', lineHeight: 1.2 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: '0.5625rem',
+                          fontWeight: isToday ? 700 : 500,
+                          letterSpacing: '0.03em',
+                          textTransform: 'uppercase',
+                          color: isToday ? 'primary.contrastText' : isPast ? 'text.disabled' : 'text.secondary',
+                          display: 'block',
+                          lineHeight: 1.2,
+                        }}
+                      >
                         {WEEKDAY_SHORT[day.getDay()]}
                       </Typography>
-                      <Typography variant="caption" sx={{ fontSize: '0.6875rem', fontWeight: isToday ? 700 : 500, color: isToday ? 'primary.contrastText' : isPast ? 'text.disabled' : 'text.primary', display: 'block', lineHeight: 1.2 }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: '0.6875rem',
+                          fontWeight: isToday ? 700 : 600,
+                          letterSpacing: '-0.02em',
+                          color: isToday ? 'primary.contrastText' : isPast ? 'text.disabled' : 'text.primary',
+                          display: 'block',
+                          lineHeight: 1.2,
+                        }}
+                      >
                         {day.getDate()}
                       </Typography>
                     </Box>
@@ -595,9 +623,6 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
                 <Box
                   sx={{
                     display: 'flex',
-                    position: 'sticky',
-                    top: graduationRowTop,
-                    zIndex: 3,
                     backgroundColor: 'background.paper',
                     borderBottom: '2px solid',
                     borderColor: 'divider',
@@ -743,8 +768,8 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
           {/* Loading indicator */}
           {loadingMore && (
             <Box sx={SX_LOADING_MORE}>
-              <CircularProgress size={14} />
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+              <CircularProgress size={12} />
+              <Typography variant="caption" sx={{ fontSize: '0.5625rem', fontWeight: 500, color: 'text.secondary', letterSpacing: '0.02em' }}>
                 {t('dashboard.planning.loadingMore')}
               </Typography>
             </Box>
@@ -755,14 +780,31 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
             {/* Légende — gauche */}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, alignItems: 'flex-start' }}>
               {/* Réservations */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
-                  {t('dashboard.planning.legendReservations') || 'Resa :'}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.5625rem',
+                    fontWeight: 700,
+                    color: 'text.secondary',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  {t('dashboard.planning.legendReservations') || 'Réservations :'}
                 </Typography>
                 {STATUS_FILTER_OPTIONS.filter((s) => s.value !== 'all').map((opt) => (
                   <Box key={opt.value} sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                    <Box sx={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, backgroundColor: RESERVATION_STATUS_COLORS[opt.value as ReservationStatus] }} />
-                    <Typography variant="caption" sx={{ fontSize: '0.5625rem', fontWeight: 600, color: RESERVATION_STATUS_COLORS[opt.value as ReservationStatus] }}>
+                    <Box sx={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, backgroundColor: RESERVATION_STATUS_COLORS[opt.value as ReservationStatus] }} />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: '0.5625rem',
+                        fontWeight: 500,
+                        color: RESERVATION_STATUS_COLORS[opt.value as ReservationStatus],
+                        letterSpacing: '0.01em',
+                      }}
+                    >
                       {opt.label}
                     </Typography>
                   </Box>
@@ -770,19 +812,28 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
               </Box>
               {/* Interventions */}
               {showInterventions && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                  <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
-                    {t('dashboard.planning.legendInterventions') || 'Inter. :'}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontSize: '0.5625rem',
+                      fontWeight: 700,
+                      color: 'text.secondary',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    {t('dashboard.planning.legendInterventions') || 'Interventions :'}
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                    <CleaningServices sx={{ fontSize: 10, color: INTERVENTION_TYPE_COLORS.cleaning }} />
-                    <Typography variant="caption" sx={{ fontSize: '0.5625rem', fontWeight: 600, color: INTERVENTION_TYPE_COLORS.cleaning }}>
+                    <AutoAwesome sx={{ fontSize: 9, color: INTERVENTION_TYPE_COLORS.cleaning }} />
+                    <Typography variant="caption" sx={{ fontSize: '0.5625rem', fontWeight: 500, color: INTERVENTION_TYPE_COLORS.cleaning, letterSpacing: '0.01em' }}>
                       {INTERVENTION_TYPE_LABELS.cleaning}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                    <Build sx={{ fontSize: 10, color: INTERVENTION_TYPE_COLORS.maintenance }} />
-                    <Typography variant="caption" sx={{ fontSize: '0.5625rem', fontWeight: 600, color: INTERVENTION_TYPE_COLORS.maintenance }}>
+                    <Handyman sx={{ fontSize: 9, color: INTERVENTION_TYPE_COLORS.maintenance }} />
+                    <Typography variant="caption" sx={{ fontSize: '0.5625rem', fontWeight: 500, color: INTERVENTION_TYPE_COLORS.maintenance, letterSpacing: '0.01em' }}>
                       {INTERVENTION_TYPE_LABELS.maintenance}
                     </Typography>
                   </Box>
@@ -792,15 +843,24 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
 
             {/* Pagination — centre */}
             {totalPropertyPages > 1 ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <IconButton size="small" onClick={() => setPropertyPage((p) => Math.max(0, p - 1))} disabled={propertyPage === 0}>
-                  <ChevronLeft sx={{ fontSize: 18 }} />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                <IconButton size="small" onClick={() => setPropertyPage((p) => Math.max(0, p - 1))} disabled={propertyPage === 0} sx={{ width: 24, height: 24 }}>
+                  <ChevronLeft sx={{ fontSize: 16 }} />
                 </IconButton>
-                <Typography variant="caption" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                  {propertyPage * PROPERTIES_PER_PAGE + 1} - {Math.min((propertyPage + 1) * PROPERTIES_PER_PAGE, properties.length)} / {properties.length} {t('dashboard.planning.pagination')}
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.625rem',
+                    fontWeight: 600,
+                    color: 'text.secondary',
+                    letterSpacing: '0.01em',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {propertyPage * PROPERTIES_PER_PAGE + 1}–{Math.min((propertyPage + 1) * PROPERTIES_PER_PAGE, properties.length)} / {properties.length}
                 </Typography>
-                <IconButton size="small" onClick={() => setPropertyPage((p) => Math.min(totalPropertyPages - 1, p + 1))} disabled={propertyPage >= totalPropertyPages - 1}>
-                  <ChevronRight sx={{ fontSize: 18 }} />
+                <IconButton size="small" onClick={() => setPropertyPage((p) => Math.min(totalPropertyPages - 1, p + 1))} disabled={propertyPage >= totalPropertyPages - 1} sx={{ width: 24, height: 24 }}>
+                  <ChevronRight sx={{ fontSize: 16 }} />
                 </IconButton>
               </Box>
             ) : (
@@ -808,7 +868,17 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
             )}
 
             {/* Stats — droite */}
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', textAlign: 'right' }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontSize: '0.5625rem',
+                fontWeight: 500,
+                color: 'text.secondary',
+                textAlign: 'right',
+                letterSpacing: '0.01em',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
               {visibleReservationCount} {t('dashboard.planning.reservations') || 'resa'}
               {showInterventions && <> &middot; {visibleInterventionCount} {t('dashboard.planning.interventionCount') || 'inter.'}</>}
               {' \u00B7 '}
@@ -816,6 +886,54 @@ export default function DashboardPlanning({ forfait }: DashboardPlanningProps) {
             </Typography>
           </Box>
         </Paper>
+      )}
+    </Box>
+  );
+}
+
+// ─── Source Logos ─────────────────────────────────────────────────────────────
+
+import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.png';
+import bookingLogoSmall from '../../assets/logo/booking-logo-small.svg';
+import clenzyLogo from '../../assets/logo/clenzy-logo.png';
+import homeAwayLogo from '../../assets/logo/HomeAway-logo.png';
+import expediaLogo from '../../assets/logo/expedia-logo.png';
+import leboncoinLogo from '../../assets/logo/Leboncoin-logo.png';
+
+const SOURCE_LOGOS: Record<string, string> = {
+  airbnb: airbnbLogoSmall,
+  booking: bookingLogoSmall,
+  direct: clenzyLogo,
+  homeaway: homeAwayLogo,
+  expedia: expediaLogo,
+  leboncoin: leboncoinLogo,
+};
+
+function SourceLogo({ source, size = 16 }: { source: ReservationSource; size?: number }) {
+  const logo = SOURCE_LOGOS[source];
+  const imgSize = size * 0.7;
+
+  return (
+    <Box
+      sx={{
+        width: size, height: size, minWidth: size, borderRadius: '50%',
+        backgroundColor: '#fff', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', flexShrink: 0,
+        boxShadow: '0 0 0 1px rgba(255,255,255,0.3)',
+      }}
+    >
+      {logo ? (
+        <img
+          src={logo}
+          alt={source}
+          width={imgSize}
+          height={imgSize}
+          style={{ objectFit: 'contain', borderRadius: '50%' }}
+        />
+      ) : (
+        <Typography sx={{ fontSize: size * 0.5, fontWeight: 700, color: '#9e9e9e', lineHeight: 1 }}>
+          ?
+        </Typography>
       )}
     </Box>
   );
@@ -884,27 +1002,36 @@ function ReservationBar({ reservation, days, rangeStart, today: todayOnly, topOf
   ].filter(Boolean).join('\n');
 
   return (
-    <Tooltip title={<Box sx={{ whiteSpace: 'pre-line', fontSize: '0.75rem', lineHeight: 1.5 }}>{tooltipContent}</Box>} arrow placement="top">
+    <ThemedTooltip title={<Box sx={{ whiteSpace: 'pre-line', fontSize: '0.6875rem', lineHeight: 1.5, letterSpacing: '0.01em' }}>{tooltipContent}</Box>} arrow placement="top">
       <Box
         sx={{
           position: 'absolute', top: topOffset, left: left,
           width: Math.max(width - 4, 16), height: barHeight - 4,
           backgroundColor: color, borderRadius: '14px', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', px: 1.5, overflow: 'hidden',
+          display: 'flex', alignItems: 'center', gap: 0.5, px: 1, overflow: 'hidden',
           opacity: effectiveStatus === 'cancelled' ? 0.5 : 0.9,
           transition: 'opacity 0.15s, box-shadow 0.15s',
           '&:hover': { opacity: 1, boxShadow: `0 2px 8px ${color}60`, zIndex: 1 },
         }}
       >
-        <Typography variant="caption" sx={{
-          color: '#fff', fontWeight: 600, fontSize: '0.75rem', overflow: 'hidden',
-          textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          textDecoration: effectiveStatus === 'cancelled' ? 'line-through' : 'none',
-        }}>
+        <SourceLogo source={reservation.source} size={barHeight - 12} />
+        <Typography
+          variant="caption"
+          sx={{
+            color: '#fff',
+            fontWeight: 600,
+            fontSize: '0.6875rem',
+            letterSpacing: '0.01em',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            textDecoration: effectiveStatus === 'cancelled' ? 'line-through' : 'none',
+          }}
+        >
           {width > 60 ? reservation.guestName : reservation.guestName.split(' ')[0]}
         </Typography>
       </Box>
-    </Tooltip>
+    </ThemedTooltip>
   );
 }
 
@@ -949,9 +1076,12 @@ function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight,
 
   const left = visibleStart * dayColWidth + startHourOffset;
 
-  // Minimum width to always show full label — anchored at start, ignore end clipping
-  const MIN_BAR_WIDTH = 120;
-  const width = Math.max(MIN_BAR_WIDTH, 16);
+  // Width adapts to label length — icon (11px) + gap (4px) + text + padding (16px)
+  // ~5.5px per character at 0.5625rem font-size (Inter 600)
+  const ICON_AND_PAD = 11 + 4 + 16;
+  const CHAR_WIDTH = 5.5;
+  const textWidth = intervention.title.length * CHAR_WIDTH;
+  const width = Math.max(ICON_AND_PAD + textWidth, 60);
 
   const color = INTERVENTION_TYPE_COLORS[intervention.type];
   const typeLabel = INTERVENTION_TYPE_LABELS[intervention.type];
@@ -976,7 +1106,7 @@ function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight,
   const isCancelled = intervention.status === 'cancelled';
 
   return (
-    <Tooltip title={<Box sx={{ whiteSpace: 'pre-line', fontSize: '0.75rem', lineHeight: 1.5 }}>{tooltipContent}</Box>} arrow placement="bottom">
+    <ThemedTooltip title={<Box sx={{ whiteSpace: 'pre-line', fontSize: '0.6875rem', lineHeight: 1.5, letterSpacing: '0.01em' }}>{tooltipContent}</Box>} arrow placement="bottom">
       <Box
         sx={{
           position: 'absolute', top: topOffset, left: left,
@@ -992,18 +1122,26 @@ function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight,
         }}
       >
         {intervention.type === 'cleaning'
-          ? <CleaningServices sx={{ fontSize: 12, color: '#fff', flexShrink: 0 }} />
-          : <Build sx={{ fontSize: 12, color: '#fff', flexShrink: 0 }} />
+          ? <AutoAwesome sx={{ fontSize: 11, color: '#fff', flexShrink: 0 }} />
+          : <Handyman sx={{ fontSize: 11, color: '#fff', flexShrink: 0 }} />
         }
-        <Typography variant="caption" sx={{
-          color: '#fff', fontWeight: 600, fontSize: '0.5625rem', overflow: 'hidden',
-          textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          textDecoration: isCancelled ? 'line-through' : 'none',
-        }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: '#fff',
+            fontWeight: 600,
+            fontSize: '0.5625rem',
+            letterSpacing: '0.02em',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            textDecoration: isCancelled ? 'line-through' : 'none',
+          }}
+        >
           {intervention.title}
         </Typography>
       </Box>
-    </Tooltip>
+    </ThemedTooltip>
   );
 }
 

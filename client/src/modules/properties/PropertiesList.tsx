@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -21,185 +21,78 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
-import { propertiesApi, usersApi } from '../../services/api';
-import { PropertyStatus, PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
-import { extractApiList } from '../../types';
-import { createSpacing } from '../../theme/spacing';
+import { PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
 import { useTranslation } from '../../hooks/useTranslation';
 import ExportButton from '../../components/ExportButton';
 import type { ExportColumn } from '../../utils/exportUtils';
 import PropertyCard from './PropertyCard';
 import type { PropertyDetails } from './PropertyCard';
+import { usePropertiesList } from '../../hooks/usePropertiesList';
+import type { PropertyListItem } from '../../hooks/usePropertiesList';
 
-interface PropertyApiItem {
-  id: number;
-  name: string;
-  type?: string;
-  address: string;
-  city: string;
-  postalCode?: string;
-  country?: string;
-  status?: string;
-  nightlyPrice?: number;
-  maxGuests?: number;
-  bedroomCount?: number;
-  bathroomCount?: number;
-  squareMeters?: number;
-  description?: string;
-  amenities?: string[];
-  cleaningFrequency?: string;
-  contactPhone?: string;
-  contactEmail?: string;
-  ownerId?: number;
-}
+// ─── Stable sx constants ────────────────────────────────────────────────────
 
-// Types pour les propriétés (format interne)
-interface Property {
-  id: string;
-  name: string;
-  type: 'apartment' | 'house' | 'villa' | 'studio';
-  address: string;
-  city: string;
-  postalCode?: string;
-  country?: string;
-  status: 'active' | 'inactive' | 'maintenance';
-  rating: number;
-  nightlyPrice: number;
-  guests: number;
-  bedrooms: number;
-  bathrooms: number;
-  squareMeters?: number;
-  description?: string;
-  amenities?: string[];
-  cleaningFrequency?: string;
-  contactPhone?: string;
-  contactEmail?: string;
-  imageUrl?: string;
-  lastCleaning?: string;
-  nextCleaning?: string;
-  ownerId?: string;
-}
+const ACTION_BUTTON_SX = {
+  fontSize: '0.75rem',
+  fontWeight: 600,
+  letterSpacing: '0.01em',
+  height: 28,
+  px: 1.5,
+  borderRadius: 1,
+  textTransform: 'none',
+  '& .MuiButton-startIcon': { mr: 0.5 },
+  '& .MuiSvgIcon-root': { fontSize: 14 },
+} as const;
 
-// Type pour les utilisateurs (hosts)
-interface User {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
-}
-
-const paginationSx = {
+const PAGINATION_SX = {
   position: 'sticky',
   bottom: 0,
   bgcolor: 'background.paper',
   borderTop: '1px solid',
   borderColor: 'divider',
-  mt: 2,
+  mt: 1.5,
   borderRadius: 1,
+  '& .MuiTablePagination-toolbar': {
+    minHeight: 36,
+    px: 1,
+  },
+  '& .MuiTablePagination-displayedRows': {
+    fontSize: '0.75rem',
+    fontWeight: 500,
+  },
+  '& .MuiTablePagination-actions .MuiIconButton-root': {
+    p: 0.5,
+    '& .MuiSvgIcon-root': { fontSize: 18 },
+  },
 } as const;
 
+const EMPTY_STATE_ICON_SX = {
+  fontSize: 36,
+  color: 'text.secondary',
+  opacity: 0.5,
+} as const;
+
+const ITEMS_PER_PAGE = 6;
+
 export default function PropertiesList() {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // ─── React Query ──────────────────────────────────────────────────
+  const { properties, isLoading, deleteProperty } = usePropertiesList();
+
+  // ─── Local UI state ───────────────────────────────────────────────
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedHost, setSelectedHost] = useState('all');
-  const [hosts, setHosts] = useState<User[]>([]);
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<PropertyListItem | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [page, setPage] = useState(0);
-  const ITEMS_PER_PAGE = 6;
+
   const navigate = useNavigate();
-  const { user, isAdmin, isManager, isHost, hasPermissionAsync } = useAuth();
+  const { isAdmin, isManager, isHost } = useAuth();
   const { t } = useTranslation();
 
-  // Charger les propriétés depuis l'API
-  const loadProperties = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = (isHost() && !isAdmin() && !isManager() && user?.id)
-        ? { ownerId: user.id }
-        : undefined;
+  // ─── Filtering ────────────────────────────────────────────────────
 
-      const data = await propertiesApi.getAll(params);
-
-      const convertedProperties: Property[] = extractApiList<PropertyApiItem>(data).map((prop) => ({
-        id: prop.id.toString(),
-        name: prop.name,
-        type: (prop.type?.toLowerCase() || 'apartment') as Property['type'],
-        address: prop.address,
-        city: prop.city,
-        postalCode: prop.postalCode,
-        country: prop.country,
-        status: (prop.status?.toLowerCase() || 'active') as Property['status'],
-        rating: 4.5,
-        nightlyPrice: prop.nightlyPrice || 0,
-        guests: prop.maxGuests || 2,
-        bedrooms: prop.bedroomCount || 1,
-        bathrooms: prop.bathroomCount || 1,
-        squareMeters: prop.squareMeters,
-        description: prop.description,
-        amenities: prop.amenities || [],
-        cleaningFrequency: prop.cleaningFrequency || 'ON_DEMAND',
-        contactPhone: prop.contactPhone || '',
-        contactEmail: prop.contactEmail || '',
-        imageUrl: undefined,
-        lastCleaning: undefined,
-        nextCleaning: undefined,
-        ownerId: prop.ownerId?.toString(),
-      }));
-
-      setProperties(convertedProperties);
-    } catch (err) {
-    } finally {
-      setLoading(false);
-    }
-  }, [isHost, isAdmin, isManager, user?.id]);
-
-  // Charger les hôtes (utilisateurs avec le rôle HOST)
-  useEffect(() => {
-    const loadHosts = async () => {
-      if (!false && !false) {
-        setHosts([]);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const data = await usersApi.getAll({ role: 'HOST' });
-        setHosts(extractApiList(data));
-      } catch (err) {
-        setHosts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadHosts();
-  }, [hasPermissionAsync]);
-
-  useEffect(() => {
-    loadProperties();
-  }, [loadProperties]);
-
-  const confirmDelete = async () => {
-    if (!selectedProperty) return;
-
-    try {
-      await propertiesApi.delete(Number(selectedProperty.id));
-      setProperties(prev => prev.filter(p => p.id !== selectedProperty.id));
-    } catch (err) {
-      setError('Erreur de connexion lors de la suppression');
-    } finally {
-      setDeleteDialogOpen(false);
-      setSelectedProperty(null);
-    }
-  };
-
-  // Filtrer les propriétés (memoized)
   const filteredProperties = useMemo(() => {
     return properties.filter((property) => {
       const searchLower = searchTerm.toLowerCase();
@@ -219,13 +112,22 @@ export default function PropertiesList() {
     [filteredProperties, page]
   );
 
-  // Reset page quand les filtres changent
   useEffect(() => {
     setPage(0);
   }, [searchTerm, selectedType, selectedStatus, selectedHost]);
 
-  // Convertir Property vers PropertyDetails pour le composant PropertyCard
-  const toPropertyDetails = useCallback((property: Property): PropertyDetails => ({
+  // ─── Delete handler ───────────────────────────────────────────────
+
+  const confirmDelete = () => {
+    if (!selectedProperty) return;
+    deleteProperty(selectedProperty.id);
+    setDeleteDialogOpen(false);
+    setSelectedProperty(null);
+  };
+
+  // ─── Converter to PropertyCard format ─────────────────────────────
+
+  const toPropertyDetails = useCallback((property: PropertyListItem): PropertyDetails => ({
     id: property.id,
     name: property.name,
     address: property.address,
@@ -248,9 +150,15 @@ export default function PropertiesList() {
     lastCleaning: property.lastCleaning,
     nextCleaning: property.nextCleaning,
     ownerId: property.ownerId,
+    createdAt: property.createdAt,
+    cleaningBasePrice: property.cleaningBasePrice,
+    numberOfFloors: property.numberOfFloors,
+    hasExterior: property.hasExterior,
+    hasLaundry: property.hasLaundry,
   }), []);
 
-  // Générer les types de propriétés avec traductions
+  // ─── Filter options ───────────────────────────────────────────────
+
   const propertyTypes = useMemo(() => [
     { value: 'all', label: t('properties.allTypes') },
     { value: 'apartment', label: t('properties.types.apartment') },
@@ -272,7 +180,6 @@ export default function PropertiesList() {
     { key: 'squareMeters', label: 'Surface (m\u00b2)' },
   ], []);
 
-  // Générer les statuts avec traductions
   const statusOptions = [
     { value: 'all', label: t('properties.allStatuses') },
     ...PROPERTY_STATUS_OPTIONS.map(option => ({
@@ -280,6 +187,8 @@ export default function PropertiesList() {
       label: option.label
     }))
   ];
+
+  // ─── Render ───────────────────────────────────────────────────────
 
   return (
     <Box>
@@ -289,7 +198,7 @@ export default function PropertiesList() {
         backPath="/dashboard"
         showBackButton={false}
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
             <ExportButton
               data={filteredProperties}
               columns={exportColumns}
@@ -301,6 +210,7 @@ export default function PropertiesList() {
               startIcon={<Add />}
               onClick={() => navigate('/properties/new')}
               size="small"
+              sx={ACTION_BUTTON_SX}
             >
               {t('properties.create')}
             </Button>
@@ -326,14 +236,6 @@ export default function PropertiesList() {
             onChange: setSelectedStatus,
             label: t('properties.status')
           },
-          ...(false || false ? {
-            host: {
-              value: selectedHost,
-              options: [{ value: 'all', label: t('properties.allHosts') }, ...hosts.map(host => ({ value: host.id.toString(), label: `${host.firstName} ${host.lastName}` }))],
-              onChange: setSelectedHost,
-              label: t('properties.owner')
-            }
-          } : {})
         }}
         counter={{
           label: t('properties.property'),
@@ -343,96 +245,132 @@ export default function PropertiesList() {
         }}
       />
 
-      {/* Liste des propri\u00e9t\u00e9s */}
+      {/* Liste des propriétés */}
       {filteredProperties.length === 0 ? (
-          <Grid item xs={12}>
-            <Card sx={{ textAlign: 'center', py: 2.5, px: 2, ...createSpacing.card() }}>
-              <CardContent>
-                <Box sx={{ mb: 1.5 }}>
-                  <Home sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.6 }} />
-                </Box>
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  {t('properties.noPropertyFound')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                  {isAdmin() || isManager()
-                    ? t('properties.noPropertyCreated')
-                    : t('properties.noPropertyAssigned')}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 3, display: 'block' }}>
-                  {t('properties.propertiesDescription')}
-                </Typography>
-                {(false || isAdmin() || isManager() || isHost()) && (
-                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                    <Button
-                      variant="contained"
-                      startIcon={<Add />}
-                      onClick={() => navigate('/properties/new')}
-                      size="small"
-                      sx={{ borderRadius: 1.5 }}
-                    >
-                      {t('properties.createFirst')}
-                    </Button>
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-        ) : (
-          <>
-            <Grid container spacing={2}>
-              {paginatedProperties.map((property) => (
-                <Grid item xs={12} md={6} lg={4} key={property.id}>
-                  <PropertyCard
-                    property={toPropertyDetails(property)}
-                    onEdit={() => navigate(`/properties/${property.id}/edit`)}
-                    onDelete={() => {
-                      setSelectedProperty(property);
-                      setDeleteDialogOpen(true);
-                    }}
-                    onView={() => navigate(`/properties/${property.id}`)}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-            {filteredProperties.length > ITEMS_PER_PAGE && (
-              <TablePagination
-                component="div"
-                count={filteredProperties.length}
-                page={page}
-                onPageChange={(_, p) => setPage(p)}
-                rowsPerPage={ITEMS_PER_PAGE}
-                rowsPerPageOptions={[ITEMS_PER_PAGE]}
-                labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-                sx={paginationSx}
-              />
+        <Card sx={{ textAlign: 'center', py: 2, px: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+          <CardContent sx={{ py: 1.5 }}>
+            <Box sx={{ mb: 1 }}>
+              <Home sx={EMPTY_STATE_ICON_SX} />
+            </Box>
+            <Typography
+              variant="h6"
+              color="text.secondary"
+              sx={{ fontSize: '0.875rem', fontWeight: 600, mb: 0.5 }}
+            >
+              {t('properties.noPropertyFound')}
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontSize: '0.75rem', mb: 0.5 }}
+            >
+              {isAdmin() || isManager()
+                ? t('properties.noPropertyCreated')
+                : t('properties.noPropertyAssigned')}
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontSize: '0.6875rem', mb: 1.5, display: 'block' }}
+            >
+              {t('properties.propertiesDescription')}
+            </Typography>
+            {(isAdmin() || isManager() || isHost()) && (
+              <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={() => navigate('/properties/new')}
+                  size="small"
+                  sx={ACTION_BUTTON_SX}
+                >
+                  {t('properties.createFirst')}
+                </Button>
+              </Box>
             )}
-          </>
-        )}
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <Grid container spacing={1.5}>
+            {paginatedProperties.map((property) => (
+              <Grid item xs={12} md={6} lg={4} key={property.id}>
+                <PropertyCard
+                  property={toPropertyDetails(property)}
+                  onEdit={() => navigate(`/properties/${property.id}/edit`)}
+                  onDelete={() => {
+                    setSelectedProperty(property);
+                    setDeleteDialogOpen(true);
+                  }}
+                  onView={() => navigate(`/properties/${property.id}`)}
+                />
+              </Grid>
+            ))}
+          </Grid>
+          {filteredProperties.length > ITEMS_PER_PAGE && (
+            <TablePagination
+              component="div"
+              count={filteredProperties.length}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={ITEMS_PER_PAGE}
+              rowsPerPageOptions={[ITEMS_PER_PAGE]}
+              labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
+              sx={PAGINATION_SX}
+            />
+          )}
+        </>
+      )}
 
       {/* Dialog de confirmation de suppression */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>{t('properties.confirmDelete')}</DialogTitle>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ fontSize: '0.875rem', fontWeight: 600, pb: 0.5 }}>
+          {t('properties.confirmDelete')}
+        </DialogTitle>
         <DialogContent>
-          <Typography>
+          <Typography sx={{ fontSize: '0.8125rem' }}>
             {t('properties.confirmDeleteMessage', { name: selectedProperty?.name })}
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>{t('common.cancel')}</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
+        <DialogActions sx={{ px: 2, pb: 1.5 }}>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            size="small"
+            sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            onClick={confirmDelete}
+            color="error"
+            variant="contained"
+            size="small"
+            sx={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'none', height: 28 }}
+          >
             {t('properties.delete')}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* FAB pour ajouter rapidement */}
-      {(false || isAdmin() || isManager() || isHost()) && (
+      {(isAdmin() || isManager() || isHost()) && (
         <Fab
-          color="secondary"
+          color="primary"
           aria-label="add"
           size="small"
-          sx={{ position: 'fixed', bottom: 12, right: 12, display: { md: 'none' } }}
+          sx={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+            display: { md: 'none' },
+            width: 40,
+            height: 40,
+            '& .MuiSvgIcon-root': { fontSize: 20 },
+          }}
           onClick={() => navigate('/properties/new')}
         >
           <Add />

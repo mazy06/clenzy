@@ -25,14 +25,32 @@ export default function PageHeader({
   const navigate = useNavigate();
 
   return (
-    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}> {/* mb: 3 → 2 */}
+    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
       {/* Titre et sous-titre à gauche */}
       <Box>
-        <Typography variant="h5" component="h1" sx={{ mb: 0.5, fontSize: '1.125rem', fontWeight: 600 }}> {/* h4 → h5, mb réduit */}
+        <Typography
+          variant="h5"
+          component="h1"
+          sx={{
+            mb: 0.25,
+            fontSize: '1rem',
+            fontWeight: 700,
+            letterSpacing: '-0.01em',
+            color: 'text.primary',
+          }}
+        >
           {title}
         </Typography>
         {subtitle && (
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}> {/* body1 → body2 */}
+          <Typography
+            variant="body2"
+            sx={{
+              fontSize: '0.75rem',
+              color: 'text.secondary',
+              fontWeight: 400,
+              letterSpacing: '0.01em',
+            }}
+          >
             {subtitle}
           </Typography>
         )}

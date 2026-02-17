@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -14,7 +14,6 @@ import {
   DialogActions,
   Grid,
   Divider,
-  Tooltip,
 } from '@mui/material';
 import {
   Edit,
@@ -33,6 +32,9 @@ import {
   SquareFoot,
   MoreVert,
   Schedule,
+  Payments,
+  AutoAwesome,
+  Timer,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -44,6 +46,7 @@ import {
   getPropertyTypeLabel,
   getCleaningFrequencyLabel,
 } from '../../utils/statusUtils';
+import ThemedTooltip from '../../components/ThemedTooltip';
 
 // Interface pour les propriétés détaillées
 export interface PropertyDetails {
@@ -71,6 +74,10 @@ export interface PropertyDetails {
   ownerId?: string;
   createdAt?: string;
   updatedAt?: string;
+  cleaningBasePrice?: number;
+  numberOfFloors?: number;
+  hasExterior?: boolean;
+  hasLaundry?: boolean;
 }
 
 interface PropertyCardProps {
@@ -255,6 +262,93 @@ const styles = {
   },
 } as const;
 
+// ─── Amenity → category color mapping ───────────────────────────────────────
+
+type AmenityChipColor = 'primary' | 'success' | 'info' | 'warning' | 'secondary' | 'default';
+
+const AMENITY_CATEGORY_MAP: Record<string, AmenityChipColor> = {
+  WIFI: 'primary', TV: 'primary', AIR_CONDITIONING: 'primary', HEATING: 'primary',
+  EQUIPPED_KITCHEN: 'success', DISHWASHER: 'success', MICROWAVE: 'success', OVEN: 'success',
+  WASHING_MACHINE: 'info', DRYER: 'info', IRON: 'info', HAIR_DRYER: 'info',
+  PARKING: 'warning', POOL: 'warning', JACUZZI: 'warning', GARDEN_TERRACE: 'warning', BARBECUE: 'warning',
+  SAFE: 'secondary', BABY_BED: 'secondary', HIGH_CHAIR: 'secondary',
+};
+
+function getAmenityColor(amenity: string): AmenityChipColor {
+  return AMENITY_CATEGORY_MAP[amenity] || 'default';
+}
+
+// ─── Cleaning estimation (lightweight version for cards) ────────────────────
+
+const SURFACE_TIERS: { maxSurface: number | null; base: number }[] = [
+  { maxSurface: 30, base: 35 }, { maxSurface: 50, base: 45 },
+  { maxSurface: 70, base: 55 }, { maxSurface: 100, base: 70 },
+  { maxSurface: 150, base: 90 }, { maxSurface: null, base: 110 },
+];
+
+function estimateCleaningPrice(p: PropertyDetails): number | null {
+  const sqm = p.surfaceArea ?? 0;
+  const hasBase = p.cleaningBasePrice != null && p.cleaningBasePrice > 0;
+  if (sqm <= 0 && !hasBase) return null;
+
+  const base = hasBase
+    ? p.cleaningBasePrice!
+    : (SURFACE_TIERS.find(t => t.maxSurface === null || sqm <= t.maxSurface)?.base ?? 110);
+
+  let surcharge = 0;
+  surcharge += Math.max(0, (p.bedrooms ?? 1) - 1) * 5;
+  surcharge += Math.max(0, (p.bathrooms ?? 1) - 1) * 4;
+  if ((p.numberOfFloors ?? 0) > 1) surcharge += ((p.numberOfFloors ?? 1) - 1) * 8;
+  if (p.hasExterior) surcharge += 12;
+  if (p.hasLaundry) surcharge += 8;
+  if ((p.maxGuests ?? 2) > 4) surcharge += ((p.maxGuests ?? 2) - 4) * 3;
+
+  return Math.max(30, Math.round((base + surcharge) / 5) * 5);
+}
+
+// ─── Duration estimation (lightweight version for cards) ─────────────────────
+
+function estimateCleaningDuration(p: PropertyDetails): number | null {
+  const bedrooms = p.bedrooms ?? 1;
+  const bathrooms = p.bathrooms ?? 1;
+  const sqm = p.surfaceArea ?? 0;
+
+  if (sqm <= 0 && bedrooms <= 0) return null;
+
+  // Base from bedroom count (type T)
+  let mins: number;
+  if (bedrooms <= 1)       mins = 90;
+  else if (bedrooms === 2) mins = 120;
+  else if (bedrooms === 3) mins = 150;
+  else if (bedrooms === 4) mins = 180;
+  else                      mins = 210;
+
+  // Extra bathrooms (+15 min each above 1)
+  if (bathrooms > 1) mins += (bathrooms - 1) * 15;
+
+  // Surface surcharge (>80m² → +1 min per 5m²)
+  if (sqm > 80) mins += Math.floor((sqm - 80) / 5);
+
+  // Extra floors (+15 min each above 1)
+  if ((p.numberOfFloors ?? 0) > 1) mins += ((p.numberOfFloors ?? 1) - 1) * 15;
+
+  // Boolean add-ons
+  if (p.hasLaundry) mins += 10;
+  if (p.hasExterior) mins += 25;
+
+  return mins;
+}
+
+function formatDuration(mins: number): string {
+  const hours = Math.floor(mins / 60);
+  const remainder = mins % 60;
+  if (hours === 0) return `${mins}min`;
+  if (remainder === 0) return `${hours}h`;
+  return `${hours}h${String(remainder).padStart(2, '0')}`;
+}
+
+// ─── Component ──────────────────────────────────────────────────────────────
+
 const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit, onDelete, onView }) => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
@@ -276,6 +370,10 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
     };
     checkPermissions();
   }, [hasPermissionAsync]);
+
+  // Estimation du prix et de la durée de ménage
+  const cleaningPrice = useMemo(() => estimateCleaningPrice(property), [property]);
+  const cleaningDuration = useMemo(() => estimateCleaningDuration(property), [property]);
 
   // Obtenir l'icône du type de propriété
   const getPropertyTypeIcon = (type: string, size: number = 48) => {
@@ -330,7 +428,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
         {/* ─── Barre de badges (entre bandeau et contenu) ─── */}
         <Box sx={styles.badgeBar}>
-          {/* Gauche : statut + prix */}
+          {/* Gauche : statut + prix nuit (si renseigné) */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
             <Chip
               label={getPropertyStatusLabel(property.status, t)}
@@ -339,26 +437,70 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               variant="outlined"
               sx={styles.statusChip}
             />
-            <Chip
-              label={`${property.nightlyPrice}€/nuit`}
-              size="small"
-              variant="outlined"
-              sx={styles.priceChip}
-            />
+            {property.nightlyPrice > 0 && (
+              <Chip
+                label={`${property.nightlyPrice}€/nuit`}
+                size="small"
+                variant="outlined"
+                sx={styles.priceChip}
+              />
+            )}
           </Box>
 
-          {/* Droite : date */}
-          {(property.createdAt || property.nextCleaning || property.lastCleaning) && (
-            <Box sx={styles.dateBox}>
-              <Schedule sx={{ fontSize: 13, color: 'text.secondary' }} />
-              <Typography
-                variant="caption"
-                sx={styles.dateText}
+          {/* Droite : estimation ménage + date */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+            {cleaningPrice != null && (
+              <ThemedTooltip
+                title={
+                  <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.5 }}>
+                    {t('properties.cleaningEstimateTooltip')}
+                  </Typography>
+                }
+                arrow
+                placement="top"
               >
-                {new Date(property.nextCleaning || property.lastCleaning || property.createdAt || '').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
-              </Typography>
-            </Box>
-          )}
+                <Chip
+                  icon={<Payments sx={{ fontSize: 12 }} />}
+                  label={`${cleaningPrice}€ estimé / ménage`}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                  sx={{ ...styles.priceChip, '& .MuiChip-icon': { fontSize: 12, ml: 0.5 }, cursor: 'default' }}
+                />
+              </ThemedTooltip>
+            )}
+            {cleaningDuration != null && (
+              <ThemedTooltip
+                title={
+                  <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.5 }}>
+                    {t('properties.cleaningDurationTooltip')}
+                  </Typography>
+                }
+                arrow
+                placement="top"
+              >
+                <Chip
+                  icon={<Timer sx={{ fontSize: 12 }} />}
+                  label={`~${formatDuration(cleaningDuration)}`}
+                  size="small"
+                  color="info"
+                  variant="outlined"
+                  sx={{ ...styles.priceChip, '& .MuiChip-icon': { fontSize: 12, ml: 0.5 }, cursor: 'default' }}
+                />
+              </ThemedTooltip>
+            )}
+            {(property.createdAt || property.nextCleaning || property.lastCleaning) && (
+              <Box sx={styles.dateBox}>
+                <Schedule sx={{ fontSize: 13, color: 'text.secondary' }} />
+                <Typography
+                  variant="caption"
+                  sx={styles.dateText}
+                >
+                  {new Date(property.nextCleaning || property.lastCleaning || property.createdAt || '').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                </Typography>
+              </Box>
+            )}
+          </Box>
         </Box>
 
         {/* ─── Zone info ─── */}
@@ -386,63 +528,96 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             </Typography>
           </Box>
 
-          {/* Métriques — ligne horizontale compacte */}
-          <Box sx={styles.metricsRow}>
-            {[
-              { icon: <BedIcon sx={{ fontSize: 13 }} />, value: property.bedrooms, label: 'ch.' },
-              { icon: <BathroomIcon sx={{ fontSize: 13 }} />, value: property.bathrooms, label: 'sdb' },
-              { icon: <SquareFoot sx={{ fontSize: 13 }} />, value: property.surfaceArea, label: 'm²' },
-              { icon: <PersonIcon sx={{ fontSize: 13 }} />, value: property.maxGuests, label: 'voy.' },
-            ].map((metric, idx) => (
-              <Chip
-                key={idx}
-                icon={metric.icon}
-                label={`${metric.value} ${metric.label}`}
-                size="small"
-                variant="outlined"
-                sx={{
-                  height: 22,
-                  fontSize: '0.62rem',
-                  fontWeight: 600,
-                  borderWidth: 1.5,
-                  borderColor: 'grey.300',
-                  '& .MuiChip-icon': { fontSize: 13, ml: 0.5 },
-                  '& .MuiChip-label': { px: 0.75 },
-                }}
-              />
-            ))}
-          </Box>
-
-          {/* Commodités */}
-          {property.amenities && property.amenities.length > 0 && (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-              {property.amenities.slice(0, 3).map((amenity, index) => (
+          {/* Métriques + Commodités — deux colonnes */}
+          <Box sx={{ display: 'flex', gap: 1, mb: 1.25 }}>
+            {/* Colonne gauche : métriques */}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, flex: 1, minWidth: 0 }}>
+              {[
+                { icon: <BedIcon sx={{ fontSize: 13 }} />, value: property.bedrooms, label: 'ch.' },
+                { icon: <BathroomIcon sx={{ fontSize: 13 }} />, value: property.bathrooms, label: 'sdb' },
+                { icon: <SquareFoot sx={{ fontSize: 13 }} />, value: property.surfaceArea, label: 'm²' },
+                { icon: <PersonIcon sx={{ fontSize: 13 }} />, value: property.maxGuests, label: 'voy.' },
+              ].map((metric, idx) => (
                 <Chip
-                  key={index}
-                  label={amenity}
+                  key={idx}
+                  icon={metric.icon}
+                  label={`${metric.value} ${metric.label}`}
                   size="small"
                   variant="outlined"
-                  sx={{ fontSize: '0.62rem', height: 22, borderColor: 'grey.300', borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                  sx={{
+                    height: 22,
+                    fontSize: '0.62rem',
+                    fontWeight: 600,
+                    borderWidth: 1.5,
+                    borderColor: 'grey.300',
+                    '& .MuiChip-icon': { fontSize: 13, ml: 0.5 },
+                    '& .MuiChip-label': { px: 0.75 },
+                  }}
                 />
               ))}
-              {property.amenities.length > 3 && (
-                <Chip
-                  label={`+${property.amenities.length - 3}`}
-                  size="small"
-                  variant="outlined"
-                  sx={{ fontSize: '0.62rem', height: 22, borderWidth: 1.5, borderColor: 'grey.300', color: 'text.secondary', '& .MuiChip-label': { px: 0.75 } }}
-                />
-              )}
             </Box>
-          )}
+
+            {/* Colonne droite : commodités */}
+            {property.amenities && property.amenities.length > 0 && (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, flex: 1, minWidth: 0, justifyContent: 'flex-end' }}>
+                {property.amenities.slice(0, 3).map((amenity, index) => (
+                  <Chip
+                    key={index}
+                    label={t(`properties.amenities.items.${amenity}`)}
+                    size="small"
+                    color={getAmenityColor(amenity)}
+                    variant="outlined"
+                    sx={{ fontSize: '0.62rem', height: 22, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                  />
+                ))}
+                {property.amenities.length > 3 && (
+                  <ThemedTooltip
+                    title={
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {property.amenities.map((a, i) => (
+                          <Chip
+                            key={i}
+                            label={t(`properties.amenities.items.${a}`)}
+                            color={getAmenityColor(a)}
+                            variant="outlined"
+                            size="small"
+                            sx={{ fontSize: '0.6rem', height: 20, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                          />
+                        ))}
+                      </Box>
+                    }
+                    arrow
+                    placement="top"
+                  >
+                    <Chip
+                      label={`+${property.amenities.length - 3}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{ fontSize: '0.62rem', height: 22, borderWidth: 1.5, borderColor: 'grey.300', color: 'text.secondary', '& .MuiChip-label': { px: 0.75 }, cursor: 'default' }}
+                    />
+                  </ThemedTooltip>
+                )}
+              </Box>
+            )}
+          </Box>
 
           {/* Fréquence de nettoyage */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <CleaningServices sx={{ fontSize: 13, color: 'text.disabled' }} />
-            <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
-              {getCleaningFrequencyLabel(property.cleaningFrequency, t)}
-            </Typography>
-          </Box>
+          <Chip
+            icon={<AutoAwesome sx={{ fontSize: 12 }} />}
+            label={getCleaningFrequencyLabel(property.cleaningFrequency, t)}
+            size="small"
+            variant="outlined"
+            color="primary"
+            sx={{
+              alignSelf: 'flex-start',
+              height: 22,
+              fontSize: '0.62rem',
+              fontWeight: 600,
+              borderWidth: 1.5,
+              '& .MuiChip-icon': { fontSize: 12, ml: 0.5 },
+              '& .MuiChip-label': { px: 0.75 },
+            }}
+          />
         </CardContent>
 
         {/* ─── Zone actions ─── */}
@@ -553,14 +728,23 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               <Divider />
             </Grid>
 
-            {/* Prix et nettoyage */}
+            {/* Estimation ménage + prix nuit */}
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.75, color: 'primary.main' }}>
-                Tarification
+                {t('properties.cleaningEstimate')}
               </Typography>
-              <Typography variant="h5" fontWeight={700} color="success.main">
-                {property.nightlyPrice}€ <Typography component="span" variant="caption" color="text.secondary">/nuit</Typography>
-              </Typography>
+              {cleaningPrice != null ? (
+                <Typography variant="h5" fontWeight={700} color="primary.main">
+                  {cleaningPrice}€ <Typography component="span" variant="caption" color="text.secondary">{t('properties.priceEstimation.perIntervention')}</Typography>
+                </Typography>
+              ) : (
+                <Typography variant="body2" color="text.secondary">—</Typography>
+              )}
+              {property.nightlyPrice > 0 && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {property.nightlyPrice}€ / {t('properties.perNight')}
+                </Typography>
+              )}
             </Grid>
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.75, color: 'primary.main' }}>
@@ -586,8 +770,8 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                     {property.amenities.map((amenity, index) => (
                       <Chip
                         key={index}
-                        label={amenity}
-                        color="primary"
+                        label={t(`properties.amenities.items.${amenity}`)}
+                        color={getAmenityColor(amenity)}
                         variant="outlined"
                         size="small"
                         sx={{ fontSize: '0.72rem', height: 24, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}

@@ -13,12 +13,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Stepper,
-  Step,
-  StepLabel,
   Alert,
   Switch,
-  FormControlLabel,
   Tooltip,
   CircularProgress,
   Chip,
@@ -29,7 +25,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Grid,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -40,13 +35,18 @@ import {
   Info as InfoIcon,
   Sync as SyncIcon,
   EventAvailable as EventIcon,
+  ArrowBack as ArrowBackIcon,
+  ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
-import { iCalApi } from '../../services/api/iCalApi';
-import { propertiesApi } from '../../services/api/propertiesApi';
-import { usersApi } from '../../services/api/usersApi';
-import type { Property } from '../../services/api/propertiesApi';
 import type { ICalPreviewResponse, ICalImportResponse, ICalEventPreview } from '../../services/api/iCalApi';
 import { useAuth } from '../../hooks/useAuth';
+import {
+  useICalAccess,
+  useICalProperties,
+  useICalOwners,
+  useICalPreview,
+  useICalImport,
+} from './useICalImport';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -54,13 +54,6 @@ interface ICalImportModalProps {
   open: boolean;
   onClose: () => void;
   onImportSuccess?: () => void;
-}
-
-interface Owner {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
 }
 
 const SOURCES = [
@@ -71,7 +64,101 @@ const SOURCES = [
   { value: 'Autre', label: 'Autre' },
 ];
 
-const STEPS = ['Configuration', 'Apercu', 'Resultat'];
+const STEPS = ['Configuration', 'Aperçu', 'Résultat'];
+
+// ─── Stable sx ───────────────────────────────────────────────────────────────
+
+const SX_FIELD = {
+  '& .MuiOutlinedInput-root': {
+    borderRadius: '10px',
+    fontSize: '0.8125rem',
+  },
+  '& .MuiInputLabel-root': {
+    fontSize: '0.8125rem',
+  },
+  '& .MuiFormHelperText-root': {
+    fontSize: '0.6875rem',
+    mt: 0.5,
+  },
+} as const;
+
+const SX_SELECT = {
+  borderRadius: '10px',
+  fontSize: '0.8125rem',
+  '& .MuiOutlinedInput-notchedOutline': {
+    borderRadius: '10px',
+  },
+} as const;
+
+// ─── Step indicator component ────────────────────────────────────────────────
+
+const StepIndicator: React.FC<{ steps: string[]; activeStep: number }> = ({ steps, activeStep }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, py: 1.5 }}>
+    {steps.map((label, idx) => {
+      const isActive = idx === activeStep;
+      const isDone = idx < activeStep;
+      return (
+        <React.Fragment key={label}>
+          {idx > 0 && (
+            <Box
+              sx={{
+                width: 48,
+                height: 2,
+                backgroundColor: isDone ? 'primary.main' : 'divider',
+                mx: 0.5,
+                borderRadius: 1,
+                transition: 'background-color 0.3s',
+              }}
+            />
+          )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                transition: 'all 0.3s',
+                ...(isActive && {
+                  backgroundColor: 'primary.main',
+                  color: 'primary.contrastText',
+                  boxShadow: '0 0 0 3px rgba(107, 138, 154, 0.2)',
+                }),
+                ...(isDone && {
+                  backgroundColor: 'primary.main',
+                  color: 'primary.contrastText',
+                }),
+                ...(!isActive && !isDone && {
+                  backgroundColor: 'action.hover',
+                  color: 'text.disabled',
+                  border: '1.5px solid',
+                  borderColor: 'divider',
+                }),
+              }}
+            >
+              {isDone ? '✓' : idx + 1}
+            </Box>
+            <Typography
+              variant="caption"
+              sx={{
+                fontSize: '0.625rem',
+                fontWeight: isActive ? 700 : 500,
+                color: isActive ? 'text.primary' : 'text.secondary',
+                letterSpacing: '0.02em',
+              }}
+            >
+              {label}
+            </Typography>
+          </Box>
+        </React.Fragment>
+      );
+    })}
+  </Box>
+);
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -87,9 +174,6 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   const [propertyId, setPropertyId] = useState<number | ''>('');
   const [sourceName, setSourceName] = useState('Airbnb');
   const [autoCreateInterventions, setAutoCreateInterventions] = useState(false);
-  const [allProperties, setAllProperties] = useState<Property[]>([]);
-  const [owners, setOwners] = useState<Owner[]>([]);
-  const [hasAccess, setHasAccess] = useState(true);
 
   // Step 2: Preview
   const [preview, setPreview] = useState<ICalPreviewResponse | null>(null);
@@ -97,55 +181,40 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   // Step 3: Result
   const [importResult, setImportResult] = useState<ICalImportResponse | null>(null);
 
-  // UI state
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Local error for form validation only
+  const [formError, setFormError] = useState<string | null>(null);
 
-  // Determine si l'utilisateur peut changer le proprietaire
   const canChangeOwner = isAdmin() || isManager();
 
-  // ─── Load properties + owners + check access on open ────────────────
+  // ─── React Query hooks ──────────────────────────────────────────────
+
+  const accessQuery = useICalAccess(open);
+  const propertiesQuery = useICalProperties(open);
+  const ownersQuery = useICalOwners(open && canChangeOwner);
+  const previewMutation = useICalPreview();
+  const importMutation = useICalImport();
+
+  const hasAccess = accessQuery.data?.allowed ?? true;
+  const allProperties = propertiesQuery.data ?? [];
+  const owners = ownersQuery.data ?? [];
+
+  // Derived loading: any mutation in flight
+  const loading = previewMutation.isPending || importMutation.isPending;
+
+  // Derived error: mutation errors or form validation error
+  const error =
+    formError
+    ?? previewMutation.error?.message
+    ?? importMutation.error?.message
+    ?? null;
+
+  // ─── Auto-set ownerId for host users ────────────────────────────────
 
   useEffect(() => {
-    if (open) {
-      loadInitialData();
+    if (open && isHost() && !canChangeOwner && user?.id && ownerId === '') {
+      setOwnerId(Number(user.id));
     }
-  }, [open]);
-
-  const loadInitialData = async () => {
-    try {
-      const promises: Promise<any>[] = [
-        propertiesApi.getAll({ size: 500, sort: 'name,asc' }),
-        iCalApi.checkAccess(),
-      ];
-
-      // Charger les proprietaires si admin/manager
-      if (canChangeOwner) {
-        promises.push(usersApi.getAll({ role: 'HOST' }));
-      }
-
-      const results = await Promise.all(promises);
-
-      const propertiesPage = results[0];
-      const accessCheck = results[1];
-
-      const list = Array.isArray(propertiesPage) ? propertiesPage : (propertiesPage as any).content ?? [];
-      setAllProperties(list);
-      setHasAccess(accessCheck.allowed);
-
-      if (canChangeOwner && results[2]) {
-        const hostsData = Array.isArray(results[2]) ? results[2] : (results[2] as any).content ?? [];
-        setOwners(hostsData);
-      }
-
-      // Pour un HOST, pre-selectionner son propre ID
-      if (isHost() && !canChangeOwner && user?.id) {
-        setOwnerId(Number(user.id));
-      }
-    } catch (err) {
-      console.error('Erreur chargement donnees initiales:', err);
-    }
-  };
+  }, [open, user?.id]);
 
   // ─── Proprietes filtrees par proprietaire ────────────────────────────
 
@@ -153,7 +222,6 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
     ? allProperties.filter(p => p.ownerId === Number(ownerId))
     : allProperties;
 
-  // Quand le proprietaire change, reset la propriete si elle n'est plus dans la liste filtree
   useEffect(() => {
     if (propertyId && ownerId) {
       const stillValid = filteredProperties.some(p => p.id === propertyId);
@@ -167,11 +235,9 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
 
   const getOwnerDisplayName = (): string => {
     if (!user) return '';
-    // Pour un HOST, afficher son propre nom
     if (isHost() && !canChangeOwner) {
       return `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || '';
     }
-    // Pour admin/manager avec un owner selectionne
     if (ownerId) {
       const owner = owners.find(o => o.id === Number(ownerId));
       return owner ? `${owner.firstName} ${owner.lastName}` : '';
@@ -190,8 +256,9 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
     setAutoCreateInterventions(false);
     setPreview(null);
     setImportResult(null);
-    setError(null);
-    setLoading(false);
+    setFormError(null);
+    previewMutation.reset();
+    importMutation.reset();
     onClose();
   };
 
@@ -199,21 +266,22 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
 
   const handlePreview = async () => {
     if (!url.trim() || !propertyId) {
-      setError('Veuillez renseigner l\'URL du calendrier et selectionner une propriete.');
+      setFormError('Veuillez renseigner l\'URL du calendrier et sélectionner une propriété.');
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    setFormError(null);
+    previewMutation.reset();
 
     try {
-      const response = await iCalApi.previewFeed({ url: url.trim(), propertyId: propertyId as number });
+      const response = await previewMutation.mutateAsync({
+        url: url.trim(),
+        propertyId: propertyId as number,
+      });
       setPreview(response);
       setActiveStep(1);
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de la previsualisation du calendrier.');
-    } finally {
-      setLoading(false);
+    } catch {
+      // Error is handled by previewMutation.error
     }
   };
 
@@ -222,11 +290,11 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   const handleImport = async () => {
     if (!preview || !propertyId) return;
 
-    setLoading(true);
-    setError(null);
+    setFormError(null);
+    importMutation.reset();
 
     try {
-      const response = await iCalApi.importFeed({
+      const response = await importMutation.mutateAsync({
         url: url.trim(),
         propertyId: propertyId as number,
         sourceName,
@@ -234,13 +302,9 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
       });
       setImportResult(response);
       setActiveStep(2);
-      if (onImportSuccess) {
-        onImportSuccess();
-      }
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de l\'import du calendrier.');
-    } finally {
-      setLoading(false);
+      onImportSuccess?.();
+    } catch {
+      // Error is handled by importMutation.error
     }
   };
 
@@ -264,20 +328,37 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   const renderConfigStep = () => (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       {!hasAccess && (
-        <Alert severity="warning" sx={{ mb: 1 }}>
+        <Alert
+          severity="warning"
+          sx={{ borderRadius: '10px', fontSize: '0.8125rem' }}
+        >
           L'import iCal est disponible avec les forfaits Confort et Premium.
-          Mettez a jour votre forfait pour acceder a cette fonctionnalite.
         </Alert>
       )}
 
-      <Alert severity="info" icon={<InfoIcon />} sx={{ '& .MuiAlert-message': { width: '100%' } }}>
-        <Typography variant="body2">
-          Collez le lien iCal de votre calendrier externe pour importer vos reservations.
-        </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-          Airbnb : Annonce &rarr; Tarification et disponibilite &rarr; Exporter le calendrier
-        </Typography>
-      </Alert>
+      {/* Info banner */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 1.5,
+          p: 1.5,
+          borderRadius: '10px',
+          backgroundColor: 'rgba(107, 138, 154, 0.06)',
+          border: '1px solid',
+          borderColor: 'rgba(107, 138, 154, 0.15)',
+        }}
+      >
+        <InfoIcon sx={{ fontSize: 18, color: 'primary.main', mt: 0.25 }} />
+        <Box>
+          <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary' }}>
+            Collez le lien iCal de votre calendrier externe pour importer vos réservations.
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6875rem' }}>
+            Airbnb : Annonce &rarr; Tarification et disponibilité &rarr; Exporter le calendrier
+          </Typography>
+        </Box>
+      </Box>
 
       {/* URL du calendrier */}
       <TextField
@@ -288,144 +369,135 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         fullWidth
         required
         disabled={!hasAccess}
-        helperText="Copiez le lien iCal depuis votre plateforme de reservation"
+        helperText="Copiez le lien iCal depuis votre plateforme de réservation"
+        size="small"
+        sx={SX_FIELD}
         InputProps={{
-          startAdornment: <CalendarIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} />,
+          startAdornment: <CalendarIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
         }}
       />
 
-      {/* Proprietaire + Propriete + Source + Menage auto — Layout 2 colonnes */}
-      <Grid container spacing={2}>
-        {/* Colonne gauche : Proprietaire + Propriete */}
-        <Grid item xs={12} md={6}>
-          {/* Champ Proprietaire */}
-          {canChangeOwner ? (
-            <FormControl fullWidth disabled={!hasAccess} sx={{ mb: 2 }}>
-              <InputLabel>Proprietaire</InputLabel>
-              <Select
-                value={ownerId}
-                label="Proprietaire"
-                onChange={(e) => {
-                  setOwnerId(e.target.value as number);
-                  setPropertyId(''); // reset propriete quand on change de proprietaire
-                }}
-              >
-                {owners.map((owner) => (
-                  <MenuItem key={owner.id} value={owner.id}>
-                    {owner.firstName} {owner.lastName} — {owner.email}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          ) : (
-            <TextField
-              label="Proprietaire"
-              value={getOwnerDisplayName()}
-              fullWidth
-              disabled
-              sx={{
-                mb: 2,
-                '& .MuiInputBase-input.Mui-disabled': {
-                  WebkitTextFillColor: 'rgba(0,0,0,0.6)',
-                },
+      {/* 2-column grid — champs principaux */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+        {/* Proprietaire */}
+        {canChangeOwner ? (
+          <FormControl fullWidth disabled={!hasAccess} size="small" sx={SX_FIELD}>
+            <InputLabel>Propriétaire</InputLabel>
+            <Select
+              value={ownerId}
+              label="Propriétaire"
+              onChange={(e) => {
+                setOwnerId(e.target.value as number);
+                setPropertyId('');
               }}
-            />
-          )}
-
-          {/* Champ Propriete */}
-          <FormControl fullWidth required disabled={!hasAccess || (canChangeOwner && !ownerId)}>
-            <InputLabel>Propriete</InputLabel>
-            <Select
-              value={propertyId}
-              label="Propriete"
-              onChange={(e) => setPropertyId(e.target.value as number)}
+              sx={SX_SELECT}
             >
-              {filteredProperties.map((p) => (
-                <MenuItem key={p.id} value={p.id}>
-                  {p.name} — {p.city}
-                </MenuItem>
-              ))}
-              {filteredProperties.length === 0 && (
-                <MenuItem disabled value="">
-                  <Typography variant="body2" color="text.secondary" fontStyle="italic">
-                    {canChangeOwner && !ownerId
-                      ? 'Selectionnez d\'abord un proprietaire'
-                      : 'Aucune propriete disponible'}
-                  </Typography>
-                </MenuItem>
-              )}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* Colonne droite : Source + Menage automatique */}
-        <Grid item xs={12} md={6}>
-          {/* Champ Source */}
-          <FormControl fullWidth disabled={!hasAccess} sx={{ mb: 2 }}>
-            <InputLabel>Source</InputLabel>
-            <Select
-              value={sourceName}
-              label="Source"
-              onChange={(e) => setSourceName(e.target.value)}
-            >
-              {SOURCES.map((s) => (
-                <MenuItem key={s.value} value={s.value}>
-                  {s.label}
+              {owners.map((owner) => (
+                <MenuItem key={owner.id} value={owner.id} sx={{ fontSize: '0.8125rem' }}>
+                  {owner.firstName} {owner.lastName} — {owner.email}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
+        ) : (
+          <TextField
+            label="Propriétaire"
+            value={getOwnerDisplayName()}
+            fullWidth
+            disabled
+            size="small"
+            sx={{
+              ...SX_FIELD,
+              '& .MuiInputBase-input.Mui-disabled': {
+                WebkitTextFillColor: 'rgba(0,0,0,0.6)',
+              },
+            }}
+          />
+        )}
 
-          {/* Menage automatique */}
-          <Box sx={{
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 1,
-            p: 1.5,
-            bgcolor: autoCreateInterventions ? 'rgba(107, 138, 154, 0.04)' : 'transparent',
-            transition: 'background-color 0.2s',
-            height: 'calc(100% - 68px)', // aligner avec le champ source + gap
-            display: 'flex',
-            alignItems: 'flex-start',
-          }}>
-            <FormControlLabel
-              control={
-                <Tooltip
-                  title={
-                    !hasAccess
-                      ? 'Disponible avec le forfait Confort ou Premium'
-                      : ''
-                  }
-                  arrow
-                >
-                  <span>
-                    <Switch
-                      checked={autoCreateInterventions}
-                      onChange={(e) => setAutoCreateInterventions(e.target.checked)}
-                      disabled={!hasAccess}
-                      color="primary"
-                    />
-                  </span>
-                </Tooltip>
-              }
-              label={
-                <Box>
-                  <Typography variant="body2" fontWeight={500}>
-                    Menage automatique
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Planifie un menage le jour du checkout a 11h00
-                  </Typography>
-                </Box>
-              }
-              sx={{ alignItems: 'flex-start', ml: 0, mr: 0 }}
+        {/* Source */}
+        <FormControl fullWidth disabled={!hasAccess} size="small" sx={SX_FIELD}>
+          <InputLabel>Source</InputLabel>
+          <Select
+            value={sourceName}
+            label="Source"
+            onChange={(e) => setSourceName(e.target.value)}
+            sx={SX_SELECT}
+          >
+            {SOURCES.map((s) => (
+              <MenuItem key={s.value} value={s.value} sx={{ fontSize: '0.8125rem' }}>
+                {s.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        {/* Propriete */}
+        <FormControl fullWidth required disabled={!hasAccess || (canChangeOwner && !ownerId)} size="small" sx={SX_FIELD}>
+          <InputLabel>Propriété</InputLabel>
+          <Select
+            value={propertyId}
+            label="Propriété"
+            onChange={(e) => setPropertyId(e.target.value as number)}
+            sx={SX_SELECT}
+          >
+            {filteredProperties.map((p) => (
+              <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8125rem' }}>
+                {p.name} — {p.city}
+              </MenuItem>
+            ))}
+            {filteredProperties.length === 0 && (
+              <MenuItem disabled value="">
+                <Typography variant="body2" color="text.secondary" fontStyle="italic" sx={{ fontSize: '0.8125rem' }}>
+                  {canChangeOwner && !ownerId
+                    ? 'Sélectionnez d\'abord un propriétaire'
+                    : 'Aucune propriété disponible'}
+                </Typography>
+              </MenuItem>
+            )}
+          </Select>
+        </FormControl>
+      </Box>
+
+      {/* Menage automatique — ligne inline legere */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          py: 0.5,
+          cursor: 'pointer',
+        }}
+        onClick={() => hasAccess && setAutoCreateInterventions(!autoCreateInterventions)}
+      >
+        <Tooltip
+          title={!hasAccess ? 'Disponible avec le forfait Confort ou Premium' : ''}
+          arrow
+        >
+          <span>
+            <Switch
+              checked={autoCreateInterventions}
+              onChange={(e) => setAutoCreateInterventions(e.target.checked)}
+              disabled={!hasAccess}
+              color="primary"
+              size="small"
             />
-          </Box>
-        </Grid>
-      </Grid>
+          </span>
+        </Tooltip>
+        <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary' }}>
+          Ménage automatique
+        </Typography>
+        <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+          — Planifie un ménage le jour du checkout à 11h00
+        </Typography>
+      </Box>
 
       {error && (
-        <Alert severity="error" onClose={() => setError(null)}>
+        <Alert
+          severity="error"
+          onClose={() => { setFormError(null); previewMutation.reset(); }}
+          sx={{ borderRadius: '10px', fontSize: '0.8125rem' }}
+        >
           {error}
         </Alert>
       )}
@@ -437,52 +509,73 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   const renderPreviewStep = () => {
     if (!preview) return null;
 
-    // Toutes les entrees sont des reservations — plus de distinction bloquee/reservation
     const allEvents = preview.events;
     const totalCount = allEvents.length;
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <Typography variant="subtitle1" fontWeight={600}>
+          <Typography variant="subtitle2" sx={{ fontSize: '0.875rem', fontWeight: 700 }}>
             {preview.propertyName}
           </Typography>
           <Chip
-            icon={<EventIcon sx={{ fontSize: 16 }} />}
-            label={`${totalCount} reservation${totalCount > 1 ? 's' : ''}`}
+            icon={<EventIcon sx={{ fontSize: 14 }} />}
+            label={`${totalCount} réservation${totalCount > 1 ? 's' : ''}`}
             color="primary"
             size="small"
             variant="outlined"
-            sx={{ borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+            sx={{
+              fontSize: '0.6875rem',
+              fontWeight: 600,
+              height: 24,
+              '& .MuiChip-icon': { fontSize: 14 },
+            }}
           />
         </Box>
 
         {totalCount === 0 && (
-          <Alert severity="info">
-            Aucune reservation trouvee dans ce calendrier.
+          <Alert severity="info" sx={{ borderRadius: '10px', fontSize: '0.8125rem' }}>
+            Aucune réservation trouvée dans ce calendrier.
           </Alert>
         )}
 
-        <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 350 }}>
+        <TableContainer
+          component={Paper}
+          variant="outlined"
+          sx={{
+            maxHeight: 320,
+            borderRadius: '10px',
+            '& .MuiTableCell-root': { fontSize: '0.8125rem', py: 1, px: 1.5 },
+            '& .MuiTableCell-head': { fontWeight: 700, fontSize: '0.75rem', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.03em' },
+          }}
+        >
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>Arrivee</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Depart</TableCell>
-                <TableCell sx={{ fontWeight: 600 }} align="center">Nuits</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Guest / Details</TableCell>
+                <TableCell>Arrivée</TableCell>
+                <TableCell>Départ</TableCell>
+                <TableCell align="center">Nuits</TableCell>
+                <TableCell>Guest / Détails</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {allEvents.map((event: ICalEventPreview, index: number) => (
-                <TableRow key={`evt-${index}`} hover>
+                <TableRow key={`evt-${index}`} hover sx={{ '&:last-child td': { border: 0 } }}>
                   <TableCell>{formatDate(event.dtStart)}</TableCell>
                   <TableCell>{formatDate(event.dtEnd)}</TableCell>
-                  <TableCell align="center">{event.nights || '-'}</TableCell>
+                  <TableCell align="center">
+                    <Chip
+                      label={event.nights || '-'}
+                      size="small"
+                      sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 22, minWidth: 28 }}
+                    />
+                  </TableCell>
                   <TableCell>
-                    {event.guestName || event.summary || 'Reservation'}
+                    <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500 }}>
+                      {event.guestName || event.summary || 'Réservation'}
+                    </Typography>
                     {event.confirmationCode && (
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
                         {event.confirmationCode}
                       </Typography>
                     )}
@@ -494,14 +587,32 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         </TableContainer>
 
         {autoCreateInterventions && totalCount > 0 && (
-          <Alert severity="info" icon={<SyncIcon />}>
-            {totalCount} intervention{totalCount > 1 ? 's' : ''} de menage
-            {totalCount > 1 ? ' seront' : ' sera'} automatiquement planifiee{totalCount > 1 ? 's' : ''} a 11h00 chaque jour de checkout.
-          </Alert>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 1.5,
+              p: 1.5,
+              borderRadius: '10px',
+              backgroundColor: 'rgba(107, 138, 154, 0.06)',
+              border: '1px solid',
+              borderColor: 'rgba(107, 138, 154, 0.15)',
+            }}
+          >
+            <SyncIcon sx={{ fontSize: 18, color: 'primary.main', mt: 0.25 }} />
+            <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+              {totalCount} intervention{totalCount > 1 ? 's' : ''} de ménage
+              {totalCount > 1 ? ' seront' : ' sera'} automatiquement planifiée{totalCount > 1 ? 's' : ''} à 11h00 chaque jour de checkout.
+            </Typography>
+          </Box>
         )}
 
         {error && (
-          <Alert severity="error" onClose={() => setError(null)}>
+          <Alert
+            severity="error"
+            onClose={() => { setFormError(null); importMutation.reset(); }}
+            sx={{ borderRadius: '10px', fontSize: '0.8125rem' }}
+          >
             {error}
           </Alert>
         )}
@@ -517,61 +628,89 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
     const hasErrors = importResult.errors && importResult.errors.length > 0;
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', py: 2 }}>
-        {!hasErrors ? (
-          <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main' }} />
-        ) : (
-          <ErrorIcon sx={{ fontSize: 64, color: 'warning.main' }} />
-        )}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, alignItems: 'center', py: 3 }}>
+        {/* Success/Warning icon */}
+        <Box
+          sx={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: hasErrors ? 'rgba(255, 152, 0, 0.08)' : 'rgba(76, 175, 80, 0.08)',
+          }}
+        >
+          {!hasErrors ? (
+            <CheckCircleIcon sx={{ fontSize: 36, color: 'success.main' }} />
+          ) : (
+            <ErrorIcon sx={{ fontSize: 36, color: 'warning.main' }} />
+          )}
+        </Box>
 
-        <Typography variant="h6" textAlign="center">
-          Import termine
+        <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+          Import terminé
         </Typography>
 
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Chip
-            icon={<CheckCircleIcon />}
-            label={`${importResult.imported} importee${importResult.imported > 1 ? 's' : ''}`}
+            icon={<CheckCircleIcon sx={{ fontSize: 14 }} />}
+            label={`${importResult.imported} importée${importResult.imported > 1 ? 's' : ''}`}
             color="success"
             variant="outlined"
-            sx={{ borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+            size="small"
+            sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 28, '& .MuiChip-icon': { fontSize: 14 } }}
           />
           <Chip
-            label={`${importResult.skipped} doublon${importResult.skipped > 1 ? 's' : ''} ignore${importResult.skipped > 1 ? 's' : ''}`}
-            color="default"
+            label={`${importResult.skipped} doublon${importResult.skipped > 1 ? 's' : ''} ignoré${importResult.skipped > 1 ? 's' : ''}`}
             variant="outlined"
-            sx={{ borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+            size="small"
+            sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 28, borderColor: 'divider', color: 'text.secondary' }}
           />
           {hasErrors && (
             <Chip
-              icon={<ErrorIcon />}
+              icon={<ErrorIcon sx={{ fontSize: 14 }} />}
               label={`${importResult.errors.length} erreur${importResult.errors.length > 1 ? 's' : ''}`}
               color="error"
               variant="outlined"
-              sx={{ borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+              size="small"
+              sx={{ fontSize: '0.6875rem', fontWeight: 600, height: 28, '& .MuiChip-icon': { fontSize: 14 } }}
             />
           )}
         </Box>
 
         {hasErrors && (
-          <Alert severity="warning" sx={{ width: '100%' }}>
-            <Typography variant="body2" fontWeight={500} sx={{ mb: 0.5 }}>
-              Certains evenements n'ont pas pu etre importes :
+          <Alert severity="warning" sx={{ width: '100%', borderRadius: '10px', fontSize: '0.8125rem' }}>
+            <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5, fontSize: '0.8125rem' }}>
+              Certains événements n'ont pas pu être importés :
             </Typography>
             {importResult.errors.map((err, i) => (
-              <Typography key={i} variant="caption" display="block" color="text.secondary">
+              <Typography key={i} variant="caption" display="block" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
                 &bull; {err}
               </Typography>
             ))}
           </Alert>
         )}
 
-        <Alert severity="info" sx={{ width: '100%' }}>
-          <Typography variant="body2">
-            Votre calendrier sera automatiquement re-synchronise toutes les 3 heures.
-            Les doublons sont ignores automatiquement.
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 1.5,
+            p: 1.5,
+            borderRadius: '10px',
+            backgroundColor: 'rgba(107, 138, 154, 0.06)',
+            border: '1px solid',
+            borderColor: 'rgba(107, 138, 154, 0.15)',
+            width: '100%',
+          }}
+        >
+          <SyncIcon sx={{ fontSize: 18, color: 'primary.main', mt: 0.25 }} />
+          <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+            Votre calendrier sera automatiquement re-synchronisé toutes les 3 heures.
+            Les doublons sont ignorés automatiquement.
           </Typography>
-        </Alert>
+        </Box>
       </Box>
     );
   };
@@ -584,13 +723,15 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
     <Dialog
       open={open}
       onClose={handleClose}
-      maxWidth="md"
+      maxWidth="sm"
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 2,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-          minHeight: 400,
+          borderRadius: '14px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+          border: '1px solid',
+          borderColor: 'divider',
+          overflow: 'hidden',
         },
       }}
     >
@@ -600,55 +741,94 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          pb: 1,
+          py: 1.5,
+          px: 3,
           borderBottom: '1px solid',
           borderColor: 'divider',
         }}
       >
         <Box display="flex" alignItems="center" gap={1}>
-          <CalendarIcon color="primary" />
-          <Typography variant="h6" component="div">
+          <Box
+            sx={{
+              width: 32,
+              height: 32,
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(107, 138, 154, 0.08)',
+            }}
+          >
+            <CalendarIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+          </Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '0.9375rem' }}>
             Import Calendrier iCal
           </Typography>
         </Box>
-        <IconButton onClick={handleClose} size="small" sx={{ color: 'text.secondary' }}>
-          <CloseIcon />
+        <IconButton onClick={handleClose} size="small" sx={{ color: 'text.secondary', '&:hover': { backgroundColor: 'action.hover' } }}>
+          <CloseIcon sx={{ fontSize: 18 }} />
         </IconButton>
       </DialogTitle>
 
       {/* ─── Stepper ────────────────────────────────────────────────────── */}
-      <Box sx={{ px: 3, pt: 2 }}>
-        <Stepper activeStep={activeStep} alternativeLabel>
-          {STEPS.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
+      <Box sx={{ px: 3, pt: 0.5 }}>
+        <StepIndicator steps={STEPS} activeStep={activeStep} />
       </Box>
 
       {/* ─── Content ────────────────────────────────────────────────────── */}
-      <DialogContent sx={{ pt: 3, pb: 2 }}>
+      <DialogContent sx={{ px: 3, py: 2.5 }}>
         {activeStep === 0 && renderConfigStep()}
         {activeStep === 1 && renderPreviewStep()}
         {activeStep === 2 && renderResultStep()}
       </DialogContent>
 
       {/* ─── Actions ────────────────────────────────────────────────────── */}
-      <DialogActions sx={{ px: 3, pb: 3, gap: 1, justifyContent: 'flex-end' }}>
+      <DialogActions
+        sx={{
+          px: 3,
+          py: 1.5,
+          gap: 1,
+          justifyContent: 'flex-end',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
         {activeStep === 0 && (
           <>
-            <Button onClick={handleClose} variant="outlined" sx={{ minWidth: 100 }}>
+            <Button
+              onClick={handleClose}
+              variant="outlined"
+              size="small"
+              sx={{
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                px: 2.5,
+                borderColor: 'divider',
+                color: 'text.secondary',
+                '&:hover': { borderColor: 'text.secondary', backgroundColor: 'action.hover' },
+              }}
+            >
               Annuler
             </Button>
             <Button
               onClick={handlePreview}
               variant="contained"
+              size="small"
               disabled={loading || !hasAccess || !url.trim() || !propertyId}
-              startIcon={loading ? <CircularProgress size={18} /> : <ImportIcon />}
-              sx={{ minWidth: 140 }}
+              startIcon={loading ? <CircularProgress size={16} /> : <ArrowForwardIcon sx={{ fontSize: 16 }} />}
+              sx={{
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                px: 2.5,
+                boxShadow: 'none',
+                '&:hover': { boxShadow: 'none' },
+              }}
             >
-              {loading ? 'Chargement...' : 'Previsualiser'}
+              {loading ? 'Chargement...' : 'Prévisualiser'}
             </Button>
           </>
         )}
@@ -656,30 +836,62 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
         {activeStep === 1 && (
           <>
             <Button
-              onClick={() => { setActiveStep(0); setError(null); }}
+              onClick={() => { setActiveStep(0); setFormError(null); previewMutation.reset(); importMutation.reset(); }}
               variant="outlined"
+              size="small"
               disabled={loading}
-              sx={{ minWidth: 100 }}
+              startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />}
+              sx={{
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                px: 2.5,
+                borderColor: 'divider',
+                color: 'text.secondary',
+                '&:hover': { borderColor: 'text.secondary', backgroundColor: 'action.hover' },
+              }}
             >
               Retour
             </Button>
             <Button
               onClick={handleImport}
               variant="contained"
-              color="primary"
+              size="small"
               disabled={loading || !preview || totalPreviewEvents === 0}
-              startIcon={loading ? <CircularProgress size={18} /> : <ImportIcon />}
-              sx={{ minWidth: 180 }}
+              startIcon={loading ? <CircularProgress size={16} /> : <ImportIcon sx={{ fontSize: 16 }} />}
+              sx={{
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                px: 2.5,
+                boxShadow: 'none',
+                '&:hover': { boxShadow: 'none' },
+              }}
             >
               {loading
                 ? 'Import en cours...'
-                : `Importer ${totalPreviewEvents} reservation${totalPreviewEvents > 1 ? 's' : ''}`}
+                : `Importer ${totalPreviewEvents} réservation${totalPreviewEvents > 1 ? 's' : ''}`}
             </Button>
           </>
         )}
 
         {activeStep === 2 && (
-          <Button onClick={handleClose} variant="contained" sx={{ minWidth: 100 }}>
+          <Button
+            onClick={handleClose}
+            variant="contained"
+            size="small"
+            sx={{
+              borderRadius: '10px',
+              textTransform: 'none',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              px: 3,
+              boxShadow: 'none',
+              '&:hover': { boxShadow: 'none' },
+            }}
+          >
             Fermer
           </Button>
         )}

@@ -4,21 +4,18 @@ import {
   Typography,
   Paper,
   IconButton,
-  Button,
-  FormControl,
-  InputLabel,
   Select,
   MenuItem,
   Tooltip,
-  Switch,
-  FormControlLabel,
-  ToggleButton,
-  ToggleButtonGroup,
+  Chip,
 } from '@mui/material';
 import {
   ChevronLeft,
   ChevronRight,
-  Today as TodayIcon,
+  TodayOutlined,
+  Visibility,
+  VisibilityOff,
+  FilterList,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ReservationStatus, PlanningInterventionType } from '../../services/api';
@@ -38,8 +35,6 @@ interface InterventionFilterOption {
 }
 
 interface PlanningToolbarProps {
-  zoomLevel: ZoomLevel;
-  onZoomChange: (zoom: ZoomLevel) => void;
   onGoPrev: () => void;
   onGoToday: () => void;
   onGoNext: () => void;
@@ -56,25 +51,52 @@ interface PlanningToolbarProps {
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
-const TOOLBAR_WRAPPER_SX = { p: 1, mb: 1, flexShrink: 0 } as const;
-const TOOLBAR_CONTENT_SX = { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 } as const;
-const TOGGLE_GROUP_SX = { '& .MuiToggleButton-root': { py: 0.25, px: 0.75, fontSize: '0.6875rem', textTransform: 'none' } } as const;
-const TOGGLE_LABEL_SX = { fontSize: '0.6875rem', fontWeight: 600 } as const;
-const NAV_BOX_SX = { display: 'flex', alignItems: 'center', gap: 0.25 } as const;
-const TODAY_BTN_SX = { textTransform: 'none', fontSize: '0.75rem', px: 1, py: 0.25, minWidth: 'auto' } as const;
-const TITLE_SX = { fontSize: '0.8125rem', textTransform: 'capitalize' } as const;
-const SWITCH_LABEL_SX = { fontSize: '0.6875rem' } as const;
-const FILTER_CONTROL_SX = { minWidth: 100 } as const;
-const FILTER_CONTROL_WIDE_SX = { minWidth: 110 } as const;
-const FILTER_LABEL_SX = { fontSize: '0.75rem' } as const;
-const FILTER_SELECT_SX = { fontSize: '0.75rem', '& .MuiSelect-select': { py: 0.5 } } as const;
-const FILTER_MENUITEM_SX = { fontSize: '0.75rem' } as const;
+const TOOLBAR_WRAPPER_SX = {
+  px: 0, py: 0.5, mb: 0.5, flexShrink: 0,
+  border: 'none', boxShadow: 'none',
+  backgroundColor: 'transparent',
+} as const;
+
+const TOOLBAR_CONTENT_SX = {
+  display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.75,
+} as const;
+
+const NAV_ICON_SX = {
+  width: 26, height: 26,
+  color: 'text.secondary',
+  '&:hover': { backgroundColor: 'action.hover' },
+} as const;
+
+const COMPACT_SELECT_SX = {
+  fontSize: '0.625rem',
+  '& .MuiSelect-select': {
+    py: 0.3,
+    px: 1,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.5,
+  },
+  '& .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'divider',
+    borderRadius: '13px',
+  },
+  '&:hover .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'text.secondary',
+  },
+  '& .MuiInputBase-input': {
+    fontSize: '0.625rem',
+    letterSpacing: '0.01em',
+  },
+  minHeight: 0,
+  height: 26,
+  borderRadius: '13px',
+} as const;
+
+const FILTER_MENUITEM_SX = { fontSize: '0.6875rem', py: 0.5, letterSpacing: '0.01em' } as const;
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
-  zoomLevel,
-  onZoomChange,
   onGoPrev,
   onGoToday,
   onGoNext,
@@ -91,98 +113,130 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   const { t } = useTranslation();
 
   return (
-    <Paper sx={TOOLBAR_WRAPPER_SX}>
+    <Paper sx={TOOLBAR_WRAPPER_SX} elevation={0}>
       <Box sx={TOOLBAR_CONTENT_SX}>
 
-        {/* Zoom toggle */}
-        <ToggleButtonGroup
-          value={zoomLevel}
-          exclusive
-          onChange={(_, v) => v && onZoomChange(v as ZoomLevel)}
-          size="small"
-          sx={TOGGLE_GROUP_SX}
-        >
-          <ToggleButton value="compact">
-            <Tooltip title={t('dashboard.planning.zoomDays') || 'Jours'}>
-              <Typography sx={TOGGLE_LABEL_SX}>J</Typography>
-            </Tooltip>
-          </ToggleButton>
-          <ToggleButton value="standard">
-            <Tooltip title={t('dashboard.planning.zoomHour') || '1 heure'}>
-              <Typography sx={TOGGLE_LABEL_SX}>1H</Typography>
-            </Tooltip>
-          </ToggleButton>
-          <ToggleButton value="detailed">
-            <Tooltip title={t('dashboard.planning.zoomHalfHour') || '30 minutes'}>
-              <Typography sx={TOGGLE_LABEL_SX}>30m</Typography>
-            </Tooltip>
-          </ToggleButton>
-        </ToggleButtonGroup>
-
-        {/* Navigation */}
-        <Box sx={NAV_BOX_SX}>
-          <IconButton size="small" onClick={onGoPrev}>
-            <ChevronLeft sx={{ fontSize: 20 }} />
+        {/* ─── Navigation: prev / today / next ───────────────────────── */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+          <IconButton size="small" onClick={onGoPrev} sx={NAV_ICON_SX}>
+            <ChevronLeft sx={{ fontSize: 16 }} />
           </IconButton>
-          <Button
+
+          <Chip
+            icon={<TodayOutlined sx={{ fontSize: 13 }} />}
+            label={t('dashboard.planning.today') || "Aujourd'hui"}
             size="small"
             variant="outlined"
-            startIcon={<TodayIcon sx={{ fontSize: 14 }} />}
             onClick={onGoToday}
-            sx={TODAY_BTN_SX}
-          >
-            {t('dashboard.planning.today') || "Aujourd'hui"}
-          </Button>
-          <IconButton size="small" onClick={onGoNext}>
-            <ChevronRight sx={{ fontSize: 20 }} />
+            sx={{
+              fontSize: '0.625rem',
+              fontWeight: 600,
+              height: 26,
+              letterSpacing: '0.01em',
+              cursor: 'pointer',
+              borderColor: 'divider',
+              color: 'text.primary',
+              '&:hover': { backgroundColor: 'action.hover', borderColor: 'text.secondary' },
+              '& .MuiChip-icon': { fontSize: 13, color: 'primary.main' },
+            }}
+          />
+
+          <IconButton size="small" onClick={onGoNext} sx={NAV_ICON_SX}>
+            <ChevronRight sx={{ fontSize: 16 }} />
           </IconButton>
         </Box>
 
-        {/* Title */}
-        <Typography variant="subtitle2" fontWeight={600} sx={TITLE_SX}>
+        {/* ─── Month title ───────────────────────────────────────────── */}
+        <Typography
+          variant="subtitle2"
+          sx={{
+            fontSize: '0.8125rem',
+            fontWeight: 700,
+            textTransform: 'capitalize',
+            color: 'text.primary',
+            letterSpacing: '-0.02em',
+          }}
+        >
           {titleText}
         </Typography>
 
         <Box sx={{ flex: 1 }} />
 
-        {/* Intervention toggle */}
-        <FormControlLabel
-          control={<Switch size="small" checked={showInterventions} onChange={(e) => onShowInterventionsChange(e.target.checked)} />}
-          label={<Typography variant="caption" sx={SWITCH_LABEL_SX}>{t('dashboard.planning.interventions') || 'Interventions'}</Typography>}
-          sx={{ mr: 0, ml: 0 }}
-        />
+        {/* ─── Filters group (right side) ────────────────────────────── */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
 
-        {/* Intervention type filter */}
-        {showInterventions && (
-          <FormControl size="small" sx={FILTER_CONTROL_SX}>
-            <InputLabel sx={FILTER_LABEL_SX}>{t('dashboard.planning.interventionType') || 'Type'}</InputLabel>
+          {/* Intervention toggle chip */}
+          <Chip
+            icon={showInterventions ? <Visibility sx={{ fontSize: 13 }} /> : <VisibilityOff sx={{ fontSize: 13 }} />}
+            label={t('dashboard.planning.interventions') || 'Interventions'}
+            size="small"
+            variant={showInterventions ? 'filled' : 'outlined'}
+            color={showInterventions ? 'primary' : 'default'}
+            onClick={() => onShowInterventionsChange(!showInterventions)}
+            sx={{
+              fontSize: '0.625rem',
+              fontWeight: 600,
+              height: 26,
+              letterSpacing: '0.01em',
+              cursor: 'pointer',
+              '& .MuiChip-icon': { fontSize: 13 },
+              ...(!showInterventions && {
+                borderColor: 'divider',
+                color: 'text.secondary',
+              }),
+            }}
+          />
+
+          {/* Intervention type filter */}
+          {showInterventions && (
+            <Tooltip title={t('dashboard.planning.interventionType') || 'Type'}>
+              <Select
+                value={interventionTypeFilter}
+                onChange={(e) => onInterventionTypeFilterChange(e.target.value as PlanningInterventionType | 'all')}
+                size="small"
+                displayEmpty
+                sx={COMPACT_SELECT_SX}
+                renderValue={(val) => {
+                  const opt = interventionFilterOptions.find((o) => o.value === val);
+                  return (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <FilterList sx={{ fontSize: 12, color: 'text.secondary' }} />
+                      <span>{opt?.label || 'Type'}</span>
+                    </Box>
+                  );
+                }}
+              >
+                {interventionFilterOptions.map((opt) => (
+                  <MenuItem key={opt.value} value={opt.value} sx={FILTER_MENUITEM_SX}>{opt.label}</MenuItem>
+                ))}
+              </Select>
+            </Tooltip>
+          )}
+
+          {/* Status filter */}
+          <Tooltip title={t('dashboard.planning.status') || 'Statut'}>
             <Select
-              value={interventionTypeFilter}
-              label={t('dashboard.planning.interventionType') || 'Type'}
-              onChange={(e) => onInterventionTypeFilterChange(e.target.value as PlanningInterventionType | 'all')}
-              sx={FILTER_SELECT_SX}
+              value={statusFilter}
+              onChange={(e) => onStatusFilterChange(e.target.value as ReservationStatus | 'all')}
+              size="small"
+              displayEmpty
+              sx={COMPACT_SELECT_SX}
+              renderValue={(val) => {
+                const opt = statusFilterOptions.find((o) => o.value === val);
+                return (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <FilterList sx={{ fontSize: 12, color: 'text.secondary' }} />
+                    <span>{opt?.label || 'Statut'}</span>
+                  </Box>
+                );
+              }}
             >
-              {interventionFilterOptions.map((opt) => (
+              {statusFilterOptions.map((opt) => (
                 <MenuItem key={opt.value} value={opt.value} sx={FILTER_MENUITEM_SX}>{opt.label}</MenuItem>
               ))}
             </Select>
-          </FormControl>
-        )}
-
-        {/* Status filter */}
-        <FormControl size="small" sx={FILTER_CONTROL_WIDE_SX}>
-          <InputLabel sx={FILTER_LABEL_SX}>{t('dashboard.planning.status') || 'Statut'}</InputLabel>
-          <Select
-            value={statusFilter}
-            label={t('dashboard.planning.status') || 'Statut'}
-            onChange={(e) => onStatusFilterChange(e.target.value as ReservationStatus | 'all')}
-            sx={FILTER_SELECT_SX}
-          >
-            {statusFilterOptions.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value} sx={FILTER_MENUITEM_SX}>{opt.label}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+          </Tooltip>
+        </Box>
       </Box>
     </Paper>
   );

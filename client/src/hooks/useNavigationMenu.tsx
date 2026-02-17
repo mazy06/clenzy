@@ -8,14 +8,25 @@ import {
   Assignment,
   People,
   Settings,
-  Notifications,
   Business,
   Assessment,
   Security,
   Euro,
   Payment,
   Description,
+  Mail,
+  AdminPanelSettings,
 } from '@mui/icons-material';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export type NavGroup = 'main' | 'management' | 'admin';
+
+export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
+  main: 'Principal',
+  management: 'Gestion',
+  admin: 'Administration',
+};
 
 export interface MenuItem {
   id: string;
@@ -25,6 +36,7 @@ export interface MenuItem {
   roles: string[];
   permission?: string;
   translationKey?: string;
+  group: NavGroup;
 }
 
 interface UseNavigationMenuReturn {
@@ -34,112 +46,143 @@ interface UseNavigationMenuReturn {
   refreshMenu: () => void;
 }
 
-// Configuration centralisée du menu (les textes seront traduits dynamiquement)
+// ─── Menu Configuration ──────────────────────────────────────────────────────
+
 const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
+  // ── Main ──
   {
     icon: <Dashboard />,
     path: '/dashboard',
     roles: ['all'],
     permission: 'dashboard:view',
-    translationKey: 'navigation.dashboard'
+    translationKey: 'navigation.dashboard',
+    group: 'main',
   },
   {
     icon: <Home />,
     path: '/properties',
     roles: ['ADMIN', 'MANAGER', 'HOST'],
     permission: 'properties:view',
-    translationKey: 'navigation.properties'
+    translationKey: 'navigation.properties',
+    group: 'main',
   },
   {
     icon: <Assignment />,
     path: '/service-requests',
     roles: ['ADMIN', 'MANAGER', 'HOST', 'SUPERVISOR'],
     permission: 'service-requests:view',
-    translationKey: 'navigation.serviceRequests'
+    translationKey: 'navigation.serviceRequests',
+    group: 'main',
   },
   {
     icon: <Build />,
     path: '/interventions',
     roles: ['ADMIN', 'MANAGER', 'TECHNICIAN', 'HOUSEKEEPER', 'SUPERVISOR'],
     permission: 'interventions:view',
-    translationKey: 'navigation.interventions'
+    translationKey: 'navigation.interventions',
+    group: 'main',
   },
+  // ── Management ──
   {
     icon: <People />,
     path: '/teams',
     roles: ['ADMIN', 'MANAGER', 'SUPERVISOR'],
     permission: 'teams:view',
-    translationKey: 'navigation.teams'
+    translationKey: 'navigation.teams',
+    group: 'management',
   },
   {
     icon: <Business />,
     path: '/portfolios',
     roles: ['ADMIN', 'MANAGER'],
     permission: 'portfolios:view',
-    translationKey: 'navigation.portfolios'
+    translationKey: 'navigation.portfolios',
+    group: 'management',
   },
   {
-    icon: <Notifications />,
+    icon: <Mail />,
     path: '/contact',
     roles: ['all'],
     permission: 'contact:view',
-    translationKey: 'navigation.contact'
+    translationKey: 'navigation.contact',
+    group: 'management',
   },
   {
     icon: <Description />,
     path: '/documents',
     roles: ['ADMIN', 'MANAGER'],
     permission: 'documents:view',
-    translationKey: 'navigation.documents'
+    translationKey: 'navigation.documents',
+    group: 'management',
   },
   {
     icon: <Assessment />,
     path: '/reports',
     roles: ['ADMIN', 'MANAGER'],
     permission: 'reports:view',
-    translationKey: 'navigation.reports'
-  },
-  {
-    icon: <People />,
-    path: '/users',
-    roles: ['ADMIN'],
-    permission: 'users:manage',
-    translationKey: 'navigation.users'
+    translationKey: 'navigation.reports',
+    group: 'management',
   },
   {
     icon: <Euro />,
     path: '/tarification',
     roles: ['ADMIN', 'MANAGER'],
     permission: 'tarification:view',
-    translationKey: 'navigation.tarification'
+    translationKey: 'navigation.tarification',
+    group: 'management',
   },
   {
     icon: <Payment />,
     path: '/payments/history',
     roles: ['ADMIN', 'MANAGER', 'HOST'],
     permission: 'payments:view',
-    translationKey: 'navigation.payments'
+    translationKey: 'navigation.payments',
+    group: 'management',
+  },
+  // ── Admin ──
+  {
+    icon: <People />,
+    path: '/users',
+    roles: ['ADMIN'],
+    permission: 'users:manage',
+    translationKey: 'navigation.users',
+    group: 'admin',
   },
   {
     icon: <Settings />,
     path: '/settings',
     roles: ['ADMIN', 'MANAGER'],
     permission: 'settings:view',
-    translationKey: 'navigation.settings'
+    translationKey: 'navigation.settings',
+    group: 'admin',
   },
   {
-    icon: <Build />,
+    icon: <AdminPanelSettings />,
     path: '/permissions-test',
     roles: ['ADMIN'],
-    translationKey: 'navigation.rolesPermissions'
+    translationKey: 'navigation.rolesPermissions',
+    group: 'admin',
   },
   {
     icon: <Security />,
     path: '/admin/monitoring',
     roles: ['ADMIN', 'MANAGER'],
-    translationKey: 'navigation.monitoring'
-  }
+    translationKey: 'navigation.monitoring',
+    group: 'admin',
+  },
 ];
+
+// ─── Helper ──────────────────────────────────────────────────────────────────
+
+export function groupMenuItems(items: MenuItem[]): Record<NavGroup, MenuItem[]> {
+  return {
+    main: items.filter((i) => i.group === 'main'),
+    management: items.filter((i) => i.group === 'management'),
+    admin: items.filter((i) => i.group === 'admin'),
+  };
+}
+
+// ─── Hook ────────────────────────────────────────────────────────────────────
 
 export const useNavigationMenu = (): UseNavigationMenuReturn => {
   const { hasPermissionAsync, isAdmin, isManager, user } = useAuth();
@@ -195,7 +238,8 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
             path: item.path,
             roles: item.roles,
             permission: item.permission,
-            translationKey: item.translationKey
+            translationKey: item.translationKey,
+            group: item.group,
           });
         }
       }
@@ -212,7 +256,8 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
         icon: <Dashboard />,
         path: '/dashboard',
         roles: ['all'],
-        translationKey: 'navigation.dashboard'
+        translationKey: 'navigation.dashboard',
+        group: 'main',
       }];
     } finally {
       setLoading(false);
@@ -233,7 +278,7 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
     if (user) {
       refreshMenu();
     }
-  }, [user?.id, user?.permissions, refreshMenu]); // Dépendre de l'ID, des permissions et de la fonction de rafraîchissement
+  }, [user?.id, user?.permissions, refreshMenu]);
 
   // Mémoriser le résultat pour éviter les re-renders inutiles
   const memoizedMenuItems = useMemo(() => menuItems, [menuItems]);

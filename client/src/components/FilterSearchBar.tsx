@@ -9,7 +9,6 @@ import {
   Select,
   MenuItem,
   Typography,
-  Chip
 } from '@mui/material';
 import { SxProps, Theme } from '@mui/material/styles';
 import { Search } from '@mui/icons-material';
@@ -32,48 +31,13 @@ export interface FilterSearchBarProps {
   onSearchChange: (value: string) => void;
   searchPlaceholder?: string;
   filters: {
-    type?: {
-      value: string;
-      options: FilterOption[];
-      onChange: (value: string) => void;
-      label?: string;
-    };
-    status?: {
-      value: string;
-      options: FilterOption[];
-      onChange: (value: string) => void;
-      label?: string;
-    };
-    priority?: {
-      value: string;
-      options: FilterOption[];
-      onChange: (value: string) => void;
-      label?: string;
-    };
-    category?: {
-      value: string;
-      options: FilterOption[];
-      onChange: (value: string) => void;
-      label?: string;
-    };
-    location?: {
-      value: string;
-      options: FilterOption[];
-      onChange: (value: string) => void;
-      label?: string;
-    };
-    assignedTo?: {
-      value: string;
-      options: FilterOption[];
-      onChange: (value: string) => void;
-      label?: string;
-    };
-    host?: {
-      value: string;
-      options: FilterOption[];
-      onChange: (value: string) => void;
-      label?: string;
-    };
+    type?: FilterConfig;
+    status?: FilterConfig;
+    priority?: FilterConfig;
+    category?: FilterConfig;
+    location?: FilterConfig;
+    assignedTo?: FilterConfig;
+    host?: FilterConfig;
   };
   counter: {
     label: string;
@@ -84,6 +48,67 @@ export interface FilterSearchBarProps {
   sx?: SxProps<Theme>;
 }
 
+// ─── Stable sx constants ────────────────────────────────────────────────────
+
+const PAPER_SX = {
+  p: 1,
+  mb: 1,
+  boxShadow: 'none',
+  border: '1px solid',
+  borderColor: 'divider',
+} as const;
+
+const SEARCH_SX = {
+  minWidth: '200px',
+  flex: '0 0 auto',
+  '& .MuiOutlinedInput-root': {
+    fontSize: '0.8125rem',
+    height: 34,
+  },
+  '& .MuiInputBase-input': {
+    fontSize: '0.8125rem',
+    py: 0.5,
+  },
+  '& .MuiInputBase-input::placeholder': {
+    fontSize: '0.8125rem',
+  },
+} as const;
+
+const FILTER_SX = {
+  minWidth: '120px',
+  flex: '0 0 auto',
+  '& .MuiOutlinedInput-root': {
+    fontSize: '0.8125rem',
+    height: 34,
+  },
+  '& .MuiInputLabel-root': {
+    fontSize: '0.75rem',
+    fontWeight: 500,
+    letterSpacing: '0.01em',
+  },
+  '& .MuiInputLabel-shrink': {
+    fontSize: '0.75rem',
+  },
+  '& .MuiSelect-select': {
+    fontSize: '0.8125rem',
+    py: '6px !important',
+  },
+} as const;
+
+const MENU_ITEM_SX = {
+  fontSize: '0.8125rem',
+  py: 0.5,
+  minHeight: 32,
+} as const;
+
+const COUNTER_SX = {
+  fontSize: '0.75rem',
+  fontWeight: 600,
+  color: 'primary.main',
+  whiteSpace: 'nowrap',
+  letterSpacing: '0.01em',
+} as const;
+
 export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
   searchTerm,
   onSearchChange,
@@ -92,34 +117,26 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
   counter,
   sx = {}
 }) => {
-  // Fonction pour générer le texte du compteur
   const getCounterText = () => {
     const { count, singular, plural, label } = counter;
     const suffix = count > 1 ? (plural || 's') : (singular || '');
     return `${count} ${label}${suffix}`;
   };
 
-  // Fonction pour rendre un filtre
   const renderFilter = (filterKey: string, filter: FilterConfig) => {
     if (!filter) return null;
 
     return (
-      <FormControl key={filterKey} size="small" sx={{ minWidth: '140px', flex: '0 0 auto' }}>
-        <InputLabel sx={{ fontSize: '0.875rem' }}>{filter.label || filterKey}</InputLabel>
+      <FormControl key={filterKey} size="small" sx={FILTER_SX}>
+        <InputLabel>{filter.label || filterKey}</InputLabel>
         <Select
           value={filter.value}
           label={filter.label || filterKey}
           onChange={(e) => filter.onChange(e.target.value)}
-          sx={{
-            fontSize: '0.875rem',
-            '& .MuiSelect-select': {
-              fontSize: '0.875rem',
-            },
-          }}
         >
           {filter.options.map((option: FilterOption) => (
-            <MenuItem key={option.value} value={option.value} sx={{ fontSize: '0.875rem' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <MenuItem key={option.value} value={option.value} sx={MENU_ITEM_SX}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                 {option.icon}
                 {option.label}
               </Box>
@@ -131,55 +148,32 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
   };
 
   return (
-    <Paper sx={{ p: 3, mb: 3, ...sx }}>
-      {/* Ligne unique : Recherche, Filtres et Compteur */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-        {/* Champ de recherche */}
+    <Paper sx={{ ...PAPER_SX, ...sx }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+        {/* Search field */}
         <TextField
           placeholder={searchPlaceholder}
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           size="small"
-          sx={{
-            minWidth: '250px',
-            flex: '0 0 auto',
-            fontSize: '0.875rem',
-            '& .MuiOutlinedInput-root': {
-              fontSize: '0.875rem',
-            },
-            '& .MuiInputBase-input': {
-              fontSize: '0.875rem',
-            },
-          }}
+          sx={SEARCH_SX}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <Search sx={{ fontSize: 18 }} />
+                <Search sx={{ fontSize: 16, color: 'text.secondary' }} />
               </InputAdornment>
             ),
           }}
         />
 
-        {/* Filtres dynamiques */}
-        {Object.entries(filters).map(([key, filter]) => 
+        {/* Dynamic filters */}
+        {Object.entries(filters).map(([key, filter]) =>
           filter ? renderFilter(key, filter) : null
         )}
 
-        {/* Compteur avec espace suffisant */}
-        <Box sx={{ 
-          ml: 'auto', 
-          flex: '0 0 auto',
-          minWidth: '120px',
-          textAlign: 'right'
-        }}>
-          <Typography 
-            variant="body2" 
-            color="text.secondary" 
-            sx={{ 
-              fontSize: '0.875rem',
-              whiteSpace: 'nowrap'
-            }}
-          >
+        {/* Counter */}
+        <Box sx={{ ml: 'auto', flex: '0 0 auto', minWidth: '80px', textAlign: 'right' }}>
+          <Typography variant="body2" sx={COUNTER_SX}>
             {getCounterText()}
           </Typography>
         </Box>

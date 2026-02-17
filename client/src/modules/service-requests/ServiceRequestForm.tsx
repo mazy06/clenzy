@@ -95,6 +95,8 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   const [loadingServiceRequest, setLoadingServiceRequest] = useState(false);
   const [canAssignForProperty, setCanAssignForProperty] = useState(false);
   const [approvedStatus, setApprovedStatus] = useState(false);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [hasPermission, setHasPermission] = useState(false);
 
   // react-hook-form with Zod validation
   const { control, handleSubmit: rhfHandleSubmit, watch, setValue, reset, formState: { errors } } = useForm<ServiceRequestFormValues>({
@@ -262,7 +264,6 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   }, [isHost, user?.id, setValue, isEditMode]);
 
   // Charger la liste des équipes depuis l'API
-  const [teams, setTeams] = useState<Team[]>([]);
   useEffect(() => {
     const loadTeams = async () => {
       try {
@@ -295,8 +296,6 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   }, [users, user, isHost, isAdmin, isManager, setValue, isEditMode]);
 
   // Vérifier les permissions silencieusement
-  const [hasPermission, setHasPermission] = useState(false);
-
   useEffect(() => {
     const checkPermissions = async () => {
       const permission = isEditMode ? 'service-requests:edit' : 'service-requests:create';
@@ -307,37 +306,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     checkPermissions();
   }, [hasPermissionAsync, isEditMode]);
 
-  // Si l'utilisateur n'a pas les permissions, ne rien afficher
-  if (!hasPermission) {
-    return null;
-  }
-
-  // En mode édition, si la demande est approuvée, empêcher l'édition
-  if (isEditMode && approvedStatus) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info" sx={{ mb: 3 }}>
-          {t('serviceRequests.approvedCannotEdit')}
-        </Alert>
-        <Button
-          variant="contained"
-          onClick={() => navigate(`/service-requests/${serviceRequestId}`)}
-          startIcon={<ArrowBack />}
-        >
-          {t('common.back')}
-        </Button>
-      </Box>
-    );
-  }
-
-  if (loadingData || loadingServiceRequest) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress size={32} />
-      </Box>
-    );
-  }
-
+  // ─── Submit handler (defined before guards so hooks below can reference it) ──
   const onSubmit = async (formData: ServiceRequestFormValues) => {
     if (!formData.propertyId || !formData.userId) {
       setError(t('serviceRequests.errors.selectPropertyRequestor'));
@@ -416,7 +385,6 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   };
 
   // Expose submit trigger to parent via ref — replaces DOM querySelector hack
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     if (submitRef) {
       submitRef.current = rhfHandleSubmit(onSubmit);
@@ -427,6 +395,38 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   });
 
   const isAdminOrManager = isAdmin() || isManager();
+
+  // ─── Guards (all hooks are above this line) ──────────────────────────────
+
+  if (!hasPermission) {
+    return null;
+  }
+
+  // En mode édition, si la demande est approuvée, empêcher l'édition
+  if (isEditMode && approvedStatus) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="info" sx={{ mb: 3 }}>
+          {t('serviceRequests.approvedCannotEdit')}
+        </Alert>
+        <Button
+          variant="contained"
+          onClick={() => navigate(`/service-requests/${serviceRequestId}`)}
+          startIcon={<ArrowBack />}
+        >
+          {t('common.back')}
+        </Button>
+      </Box>
+    );
+  }
+
+  if (loadingData || loadingServiceRequest) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <CircularProgress size={32} />
+      </Box>
+    );
+  }
 
   return (
     <Box>

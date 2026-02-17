@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import apiClient from '../services/apiClient';
 import type { AuthUser } from './useAuth';
 import type { InterventionReportData, FinancialReportData } from '../services/api/reportsApi';
+import type { DashboardPeriod } from '../modules/dashboard/DashboardDateFilter';
 
 // ============================================================================
 // Types — API entities (inlined from useDashboardStats)
@@ -414,6 +415,29 @@ interface DashboardDataProviderProps {
   isAdmin: boolean;
   isManager: boolean;
   isHost: boolean;
+  period?: DashboardPeriod;
+}
+
+// ─── Period → days mapping ────────────────────────────────────────────────
+
+function periodToDays(period: DashboardPeriod): number {
+  switch (period) {
+    case 'week': return 7;
+    case 'month': return 30;
+    case 'quarter': return 90;
+    case 'year': return 365;
+    default: return 30;
+  }
+}
+
+function filterByPeriod<T>(items: T[], dateAccessor: (item: T) => string | undefined, periodDays: number): T[] {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - periodDays);
+  return items.filter((item) => {
+    const dateStr = dateAccessor(item);
+    if (!dateStr) return false;
+    return new Date(dateStr) >= cutoff;
+  });
 }
 
 export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
@@ -424,6 +448,7 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
   isAdmin,
   isManager,
   isHost,
+  period = 'month',
 }) => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
@@ -457,11 +482,19 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
         apiClient.get<PaginatedResponse<ApiTeam> | ApiTeam[]>('/teams', { params: { size: 1000 } }).catch(() => null),
       ]);
 
-      const properties = unwrapArray<ApiProperty>(propertiesData);
-      const requests = unwrapArray<ApiServiceRequest>(requestsData);
-      const interventions = unwrapArray<ApiIntervention>(interventionsData);
-      const users = unwrapArray<ApiUser>(usersData);
-      const teams = unwrapArray<ApiTeam>(teamsData);
+      const allProperties = unwrapArray<ApiProperty>(propertiesData);
+      const allRequests = unwrapArray<ApiServiceRequest>(requestsData);
+      const allInterventions = unwrapArray<ApiIntervention>(interventionsData);
+      const allUsers = unwrapArray<ApiUser>(usersData);
+      const allTeams = unwrapArray<ApiTeam>(teamsData);
+
+      // ── 1b. Filter by selected period ──────────────────────────────
+      const days = periodToDays(period);
+      const properties = allProperties; // Properties are not time-filtered (always show all)
+      const requests = filterByPeriod(allRequests, (r) => r.createdAt, days);
+      const interventions = filterByPeriod(allInterventions, (i) => i.scheduledDate || i.createdAt || undefined, days);
+      const users = filterByPeriod(allUsers, (u) => u.createdAt || u.updatedAt || undefined, days);
+      const teams = filterByPeriod(allTeams, (t) => t.createdAt || t.updatedAt || undefined, days);
 
       // ── 2. Role-based filtering IDs ──────────────────────────────────
       let hostPropertyIds: number[] = [];
@@ -841,7 +874,7 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [userRole, user, isAdmin, isManager, isHost]);
+  }, [userRole, user, isAdmin, isManager, isHost, period]);
 
   useEffect(() => {
     loadAll();

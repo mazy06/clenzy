@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Box,
   Typography,
-  Grid,
   Card,
   CardContent,
   Button
@@ -19,16 +18,31 @@ import type { NavigateFunction } from 'react-router-dom';
 
 type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
 
+// ─── Stable sx constants ────────────────────────────────────────────────────
+
+const CARD_CONTENT_SX = { p: 1.25, '&:last-child': { pb: 1.25 } } as const;
+
+const SECTION_TITLE_SX = {
+  fontSize: '0.75rem',
+  fontWeight: 700,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.04em',
+  color: 'text.secondary',
+  mb: 0.75,
+} as const;
+
 /** Common button style shared across all quick action buttons */
 const quickActionButtonSx = {
   justifyContent: 'flex-start',
   textAlign: 'left',
-  py: 0.25,
+  py: 0.375,
   px: 1,
   borderRadius: 1,
   borderWidth: 1,
   fontSize: '0.75rem',
-  minHeight: 28,
+  fontWeight: 600,
+  letterSpacing: '0.01em',
+  minHeight: 30,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
@@ -39,10 +53,8 @@ const quickActionButtonSx = {
   },
   '&:hover': {
     borderWidth: 1,
-    transform: 'translateY(-1px)',
-    boxShadow: 1,
-    transition: 'all 0.2s ease-in-out'
-  }
+    backgroundColor: 'rgba(107, 138, 154, 0.06)',
+  },
 } as const;
 
 interface DashboardQuickActionsProps {
@@ -79,12 +91,12 @@ const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = React.memo((
 
   return (
     <Card>
-      <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-        <Typography variant="subtitle2" sx={{ fontSize: '0.8125rem', fontWeight: 600, mb: 1 }}>
+      <CardContent sx={CARD_CONTENT_SX}>
+        <Typography variant="subtitle2" sx={SECTION_TITLE_SX}>
           {t('dashboard.quickActions')}
         </Typography>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, overflow: 'auto' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.375, overflow: 'auto' }}>
           {canViewProperties && (
             <Button
               variant="outlined"

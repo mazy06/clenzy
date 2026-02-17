@@ -125,13 +125,15 @@ const theme = createTheme({
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
       fontWeight: 700,
-      fontSize: '1.75rem', // 2.5rem → 1.75rem
+      fontSize: '1.75rem',
       lineHeight: 1.2,
+      letterSpacing: '-0.01em',
     },
     h2: {
       fontWeight: 700,
-      fontSize: '1.5rem', // 2rem → 1.5rem
+      fontSize: '1.5rem',
       lineHeight: 1.25,
+      letterSpacing: '-0.01em',
     },
     h3: {
       fontWeight: 600,
@@ -190,13 +192,13 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 6,
-          padding: '6px 16px', // 8px 24px → 6px 16px
-          fontSize: '0.8125rem', // 0.875rem → 0.8125rem
+          padding: '6px 16px',
+          fontSize: '0.8125rem',
           fontWeight: 600,
-          minHeight: 36, // Hauteur minimale réduite
+          minHeight: 36,
           boxShadow: 'none',
           '&:hover': {
-            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            boxShadow: 'none',
           },
         },
         sizeSmall: {
@@ -211,7 +213,7 @@ const theme = createTheme({
         },
         contained: {
           '&:hover': {
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            boxShadow: 'none',
           },
         },
         outlined: {
@@ -225,10 +227,12 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 8, // 16 → 8
-          boxShadow: '0 1px 2px rgba(0,0,0,0.08), 0 1px 1px rgba(0,0,0,0.04)',
+          borderRadius: 8,
+          boxShadow: 'none',
+          border: '1px solid',
+          borderColor: '#E2E8F0',
           '&:hover': {
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
+            borderColor: '#CBD5E1',
           },
         },
       },
@@ -246,13 +250,18 @@ const theme = createTheme({
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 8,
+        },
+        elevation0: {
+          boxShadow: 'none',
         },
         elevation1: {
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
+          boxShadow: 'none',
+          border: '1px solid',
+          borderColor: '#E2E8F0',
         },
         elevation2: {
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         },
       },
     },
@@ -314,15 +323,16 @@ const theme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          boxShadow: 'none',
         },
       },
     },
     MuiDrawer: {
       styleOverrides: {
         paper: {
-          borderRight: 'none',
-          boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
+          borderRight: '1px solid',
+          borderColor: '#E2E8F0',
+          boxShadow: 'none',
         },
       },
     },
@@ -383,9 +393,9 @@ const theme = createTheme({
     MuiFab: {
       styleOverrides: {
         root: {
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           '&:hover': {
-            boxShadow: '0 6px 16px rgba(0,0,0,0.2)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
           },
         },
       },

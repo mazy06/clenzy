@@ -27,6 +27,25 @@ interface ExportButtonProps {
   onExport?: () => void;
 }
 
+// ─── Stable sx constants ────────────────────────────────────────────────────
+
+const BUTTON_SX = {
+  textTransform: 'none',
+  fontSize: '0.75rem',
+  fontWeight: 600,
+  letterSpacing: '0.01em',
+  height: 28,
+  px: 1.5,
+  '& .MuiButton-startIcon': { mr: 0.5 },
+  '& .MuiSvgIcon-root': { fontSize: 14 },
+} as const;
+
+const MENU_ITEM_SX = {
+  fontSize: '0.8125rem',
+  py: 0.5,
+  minHeight: 32,
+} as const;
+
 export default function ExportButton({
   data,
   columns,
@@ -60,6 +79,19 @@ export default function ExportButton({
 
   const tooltipTitle = isDataEmpty ? t('export.noData') : '';
 
+  const snackbarElement = (
+    <Snackbar
+      open={snackbarOpen}
+      autoHideDuration={3000}
+      onClose={() => setSnackbarOpen(false)}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+    >
+      <Alert onClose={() => setSnackbarOpen(false)} severity="success" variant="filled" sx={{ width: '100%', fontSize: '0.75rem' }}>
+        {t('export.success')}
+      </Alert>
+    </Snackbar>
+  );
+
   if (variant === 'icon') {
     return (
       <>
@@ -70,21 +102,13 @@ export default function ExportButton({
               disabled={isDisabled}
               size="small"
               color="primary"
+              sx={{ '& .MuiSvgIcon-root': { fontSize: 16 } }}
             >
               <DownloadIcon />
             </IconButton>
           </span>
         </Tooltip>
-        <Snackbar
-          open={snackbarOpen}
-          autoHideDuration={3000}
-          onClose={() => setSnackbarOpen(false)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <Alert onClose={() => setSnackbarOpen(false)} severity="success" variant="filled" sx={{ width: '100%' }}>
-            {t('export.success')}
-          </Alert>
-        </Snackbar>
+        {snackbarElement}
       </>
     );
   }
@@ -100,7 +124,7 @@ export default function ExportButton({
               startIcon={<DownloadIcon />}
               onClick={handleMenuOpen}
               disabled={isDisabled}
-              sx={{ textTransform: 'none' }}
+              sx={BUTTON_SX}
             >
               {t('export.button')}
             </Button>
@@ -112,24 +136,15 @@ export default function ExportButton({
           onClose={handleMenuClose}
         >
           {formats.includes('csv') && (
-            <MenuItem onClick={handleExportCSV}>
+            <MenuItem onClick={handleExportCSV} sx={MENU_ITEM_SX}>
               <ListItemIcon>
-                <CsvIcon fontSize="small" />
+                <CsvIcon sx={{ fontSize: 16 }} />
               </ListItemIcon>
-              <ListItemText>{t('export.csv')}</ListItemText>
+              <ListItemText primaryTypographyProps={{ fontSize: '0.8125rem' }}>{t('export.csv')}</ListItemText>
             </MenuItem>
           )}
         </Menu>
-        <Snackbar
-          open={snackbarOpen}
-          autoHideDuration={3000}
-          onClose={() => setSnackbarOpen(false)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <Alert onClose={() => setSnackbarOpen(false)} severity="success" variant="filled" sx={{ width: '100%' }}>
-            {t('export.success')}
-          </Alert>
-        </Snackbar>
+        {snackbarElement}
       </>
     );
   }
@@ -145,22 +160,13 @@ export default function ExportButton({
             startIcon={<DownloadIcon />}
             onClick={handleExportCSV}
             disabled={isDisabled}
-            sx={{ textTransform: 'none' }}
+            sx={BUTTON_SX}
           >
             {t('export.button')}
           </Button>
         </span>
       </Tooltip>
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setSnackbarOpen(false)} severity="success" variant="filled" sx={{ width: '100%' }}>
-          {t('export.success')}
-        </Alert>
-      </Snackbar>
+      {snackbarElement}
     </>
   );
 }

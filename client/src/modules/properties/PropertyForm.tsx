@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
+  Paper,
   Typography,
   TextField,
   Button,
@@ -14,54 +13,41 @@ import {
   DialogContent,
   DialogActions,
 } from '@mui/material';
-import {
-  Person,
-} from '@mui/icons-material';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Person } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { propertiesApi, usersApi } from '../../services/api';
-import { propertySchema } from '../../schemas';
-import type { PropertyFormValues } from '../../schemas';
-import { PropertyStatus, PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
+import { usersApi } from '../../services/api';
+import { usePropertyForm } from '../../hooks/usePropertyForm';
+import type { FormUser } from '../../hooks/usePropertyForm';
+import { PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
 import { useTranslation } from '../../hooks/useTranslation';
-import { extractApiList } from '../../types';
 
 import PropertyFormBasicInfo from './PropertyFormBasicInfo';
 import PropertyFormAddress from './PropertyFormAddress';
 import PropertyFormDetails from './PropertyFormDetails';
 import PropertyFormSettings from './PropertyFormSettings';
+import CleaningPriceEstimator from './CleaningPriceEstimator';
 
-// Types pour les propriétés
-export interface PropertyFormData {
-  name: string;
-  address: string;
-  city: string;
-  postalCode: string;
-  country: string;
-  type: string;
-  status: string;
-  bedroomCount: number;
-  bathroomCount: number;
-  squareMeters: number;
-  nightlyPrice: number;
-  description: string;
-  maxGuests: number;
-  cleaningFrequency: string;
-  ownerId: number;
-}
+// ─── Stable sx constants ────────────────────────────────────────────────────
 
-// Type pour les utilisateurs
-interface User {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
-}
+const FORM_PAPER_SX = {
+  border: '1px solid',
+  borderColor: 'divider',
+  borderRadius: 1.5,
+  boxShadow: 'none',
+  p: 2.5,
+} as const;
 
-// Type pour la création d'owner temporaire
+const DIALOG_TITLE_SX = {
+  fontSize: '0.8125rem',
+  fontWeight: 600,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 0.75,
+} as const;
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
 interface TemporaryOwner {
   firstName: string;
   lastName: string;
@@ -77,123 +63,46 @@ interface PropertyFormProps {
   mode?: 'create' | 'edit';
 }
 
+// ─── Main component ─────────────────────────────────────────────────────────
+
 const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propertyId, mode = 'create' }) => {
   const { user, hasPermissionAsync, isAdmin, isManager, isHost } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isEditMode = mode === 'edit' || !!propertyId;
-  const [loading, setLoading] = useState(false);
-  const [loadingProperty, setLoadingProperty] = useState(isEditMode);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
+
+  // ─── React Query hook ─────────────────────────────────────────────────
+  const {
+    control,
+    errors,
+    handleSubmit,
+    setValue,
+    users,
+    isLoadingProperty,
+    isSubmitting,
+    isSuccess,
+    submitError,
+    submitForm,
+  } = usePropertyForm({
+    propertyId,
+    isEditMode,
+    onSuccess: () => {
+      if (onSuccess) onSuccess();
+      if (onClose) onClose();
+    },
+    onNavigate: (path) => navigate(path),
+  });
+
+  // ─── Owner dialog (kept local) ───────────────────────────────────────
   const [showOwnerDialog, setShowOwnerDialog] = useState(false);
   const [temporaryOwner, setTemporaryOwner] = useState<TemporaryOwner>({
     firstName: '',
     lastName: '',
     email: '',
   });
+  const [ownerError, setOwnerError] = useState<string | null>(null);
 
-  // IMPORTANT: déclarer tous les hooks avant tout retour conditionnel
-  const { control, handleSubmit: rhfHandleSubmit, setValue, reset, formState: { errors } } = useForm<PropertyFormValues>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(propertySchema) as any, // zodResolver type mismatch with react-hook-form
-    defaultValues: {
-      name: '',
-      address: '',
-      city: '',
-      postalCode: '',
-      country: 'France',
-      type: 'APARTMENT',
-      status: 'ACTIVE',
-      bedroomCount: 1,
-      bathroomCount: 1,
-      squareMeters: 0,
-      nightlyPrice: 0,
-      description: '',
-      maxGuests: 2,
-      cleaningFrequency: 'AFTER_EACH_STAY',
-      ownerId: 0,
-      defaultCheckInTime: '15:00',
-      defaultCheckOutTime: '11:00',
-    },
-  });
-
-  // Charger la liste des utilisateurs (nécessaire pour assigner le propriétaire)
-  const loadUsers = useCallback(async () => {
-    // Charger les utilisateurs pour tous les rôles (nécessaire pour l'assignation du propriétaire)
-    setLoadingUsers(true);
-    try {
-      const data = await usersApi.getAll();
-      setUsers(extractApiList(data));
-    } catch (error) {
-    } finally {
-      setLoadingUsers(false);
-    }
-  }, []);
-
-  // Charger les utilisateurs au montage
-  useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
-
-  // Définir l'owner par défaut selon le rôle (uniquement en mode création)
-  useEffect(() => {
-    if (isEditMode) return; // En mode édition, l'owner est chargé depuis la propriété
-    if (isHost() && user?.email) {
-      // Pour un HOST, essayer de trouver son ID dans la base
-      const hostUser = users.find(u => u.email === user.email);
-      if (hostUser) {
-        setValue('ownerId', hostUser.id);
-      }
-    } else if (!isAdmin() && !isManager() && user?.email) {
-      // Pour les autres rôles non-admin, sélectionner automatiquement l'utilisateur connecté
-      const currentUser = users.find(u => u.email === user.email);
-      if (currentUser) {
-        setValue('ownerId', currentUser.id);
-      }
-    }
-  }, [users, user, isHost, isAdmin, isManager, setValue, isEditMode]);
-
-  // Charger les données de la propriété en mode édition
-  useEffect(() => {
-    if (!isEditMode || !propertyId) return;
-
-    const loadProperty = async () => {
-      setLoadingProperty(true);
-      try {
-        const property = await propertiesApi.getById(propertyId);
-        reset({
-          name: property.name || '',
-          address: property.address || '',
-          city: property.city || '',
-          postalCode: property.postalCode || '',
-          country: property.country || '',
-          type: property.type?.toUpperCase() || 'APARTMENT',
-          status: property.status?.toUpperCase() || 'ACTIVE',
-          bedroomCount: property.bedroomCount || 1,
-          bathroomCount: property.bathroomCount || 1,
-          squareMeters: property.squareMeters || 0,
-          nightlyPrice: property.nightlyPrice || 0,
-          description: property.description || '',
-          maxGuests: property.maxGuests || 2,
-          cleaningFrequency: property.cleaningFrequency?.toUpperCase() || 'AFTER_EACH_STAY',
-          ownerId: property.ownerId || 0,
-          defaultCheckInTime: property.defaultCheckInTime || '15:00',
-          defaultCheckOutTime: property.defaultCheckOutTime || '11:00',
-        });
-      } catch (err) {
-        setError(t('properties.loadError'));
-      } finally {
-        setLoadingProperty(false);
-      }
-    };
-
-    loadProperty();
-  }, [isEditMode, propertyId, reset, t]);
-
-  // Vérifier les permissions au chargement
+  // ─── Permissions ──────────────────────────────────────────────────────
   const [hasPermission, setHasPermission] = useState(false);
 
   useEffect(() => {
@@ -203,25 +112,41 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
         : await hasPermissionAsync('properties:create');
       setHasPermission(permission);
     };
-
     checkPermissions();
   }, [hasPermissionAsync, isEditMode]);
 
-  // Si l'utilisateur n'a pas les permissions, ne rien afficher
-  if (!hasPermission) {
-    return null;
-  }
+  // ─── Auto-select owner for non-admin in create mode ───────────────────
+  useEffect(() => {
+    if (isEditMode || users.length === 0) return;
+    if (isHost() && user?.email) {
+      const hostUser = users.find(u => u.email === user.email);
+      if (hostUser) setValue('ownerId', hostUser.id);
+    } else if (!isAdmin() && !isManager() && user?.email) {
+      const currentUser = users.find(u => u.email === user.email);
+      if (currentUser) setValue('ownerId', currentUser.id);
+    }
+  }, [users, user, isHost, isAdmin, isManager, setValue, isEditMode]);
 
-  // Afficher un loader pendant le chargement de la propriété en mode édition
-  if (loadingProperty) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  // ─── Temporary owner creation ─────────────────────────────────────────
+  const handleCreateTemporaryOwner = async () => {
+    try {
+      const newUser = await usersApi.create({
+        firstName: temporaryOwner.firstName,
+        lastName: temporaryOwner.lastName,
+        email: temporaryOwner.email,
+        password: 'TempPass123!',
+        role: 'HOST',
+      });
+      setValue('ownerId', newUser.id);
+      setShowOwnerDialog(false);
+      setTemporaryOwner({ firstName: '', lastName: '', email: '' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur inconnue';
+      setOwnerError('Erreur lors de la création: ' + message);
+    }
+  };
 
-  // Types de propriétés disponibles (correspondant au backend)
+  // ─── Option lists ─────────────────────────────────────────────────────
   const propertyTypes = [
     { value: 'APARTMENT', label: t('properties.types.apartment') },
     { value: 'HOUSE', label: t('properties.types.house') },
@@ -235,13 +160,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
     { value: 'OTHER', label: t('properties.types.other') },
   ];
 
-  // Utilisation des enums partagés pour les statuts des propriétés
   const propertyStatuses = PROPERTY_STATUS_OPTIONS.map(option => ({
     value: option.value,
-    label: option.label
+    label: option.label,
   }));
 
-  // Fréquences de nettoyage (correspondant au backend)
   const cleaningFrequencies = [
     { value: 'AFTER_EACH_STAY', label: t('properties.cleaningFrequencies.afterEachStay') },
     { value: 'WEEKLY', label: t('properties.cleaningFrequencies.weekly') },
@@ -250,93 +173,49 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
     { value: 'ON_DEMAND', label: t('properties.cleaningFrequencies.onDemand') },
   ];
 
-  // Gestion de la création d'owner temporaire
-  const handleCreateTemporaryOwner = async () => {
-    try {
-      const newUser = await usersApi.create({
-        firstName: temporaryOwner.firstName,
-        lastName: temporaryOwner.lastName,
-        email: temporaryOwner.email,
-        password: 'TempPass123!', // Mot de passe temporaire respectant les contraintes
-        role: 'HOST',
-      });
-      setValue('ownerId', newUser.id);
-      setUsers(prev => [...prev, newUser as User]);
-      setShowOwnerDialog(false);
-      setTemporaryOwner({ firstName: '', lastName: '', email: '' });
-    } catch (err: any) {
-      setError('Erreur lors de la création de l\'owner: ' + (err.message || 'Erreur inconnue'));
-    }
-  };
+  // ─── Guards ───────────────────────────────────────────────────────────
 
-  // Soumission du formulaire
-  const onSubmit = async (formData: PropertyFormValues) => {
-    setLoading(true);
-    setError(null);
+  if (!hasPermission) return null;
 
-    try {
-      // Préparer les données pour le backend
-      const backendData = {
-        name: formData.name,
-        address: formData.address,
-        city: formData.city,
-        postalCode: formData.postalCode,
-        country: formData.country,
-        type: formData.type,
-        status: formData.status,
-        bedroomCount: formData.bedroomCount,
-        bathroomCount: formData.bathroomCount,
-        squareMeters: formData.squareMeters,
-        nightlyPrice: formData.nightlyPrice,
-        description: formData.description,
-        maxGuests: formData.maxGuests,
-        cleaningFrequency: formData.cleaningFrequency,
-        ownerId: formData.ownerId,
-        defaultCheckInTime: formData.defaultCheckInTime,
-        defaultCheckOutTime: formData.defaultCheckOutTime,
-      };
-
-      if (isEditMode && propertyId) {
-        await propertiesApi.update(propertyId, backendData);
-        setSuccess(true);
-        setTimeout(() => {
-          navigate(`/properties/${propertyId}`);
-        }, 1500);
-      } else {
-        await propertiesApi.create(backendData);
-        setSuccess(true);
-        setTimeout(() => {
-          if (onSuccess) onSuccess();
-          if (onClose) onClose();
-        }, 1500);
-      }
-    } catch (err: any) {
-      const errorMsg = isEditMode
-        ? 'Erreur lors de la mise à jour: ' + (err.message || 'Erreur inconnue')
-        : err.message || 'Erreur lors de la création de la propriété';
-      setError(errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (success) {
+  if (isLoadingProperty) {
     return (
-      <Alert severity="success" sx={{ mt: 2 }}>
-        {isEditMode ? t('properties.updateSuccess') : `${t('properties.create')} ${t('common.success')} ! ${t('common.loading')}`}
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '40vh' }}>
+        <CircularProgress size={28} />
+      </Box>
+    );
+  }
+
+  if (isSuccess) {
+    return (
+      <Alert severity="success" sx={{ fontSize: '0.8125rem', py: 0.75 }}>
+        {isEditMode ? t('properties.updateSuccess') : `${t('properties.create')} ${t('common.success')} !`}
       </Alert>
     );
   }
 
+  // ─── Render ───────────────────────────────────────────────────────────
+
   return (
-    <Box>
-      <Card>
-        <CardContent sx={{ p: 2 }}>
-        <form onSubmit={rhfHandleSubmit(onSubmit)}>
-          <Grid container spacing={2}>
-            <PropertyFormBasicInfo control={control} errors={errors} propertyTypes={propertyTypes} />
-            <PropertyFormAddress control={control} errors={errors} />
-            <PropertyFormDetails control={control} errors={errors} />
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      <Box sx={{ flexShrink: 0 }}>
+        <CleaningPriceEstimator control={control} />
+      </Box>
+      <form
+        onSubmit={handleSubmit((data) => submitForm(data))}
+        style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}
+      >
+        <Box sx={{ display: 'flex', gap: 2, flex: 1, minHeight: 0 }}>
+          {/* ── Colonne gauche : Infos principales ──────────────────── */}
+          <Paper sx={{ ...FORM_PAPER_SX, flex: 7, minWidth: 0, overflow: 'auto' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <PropertyFormBasicInfo control={control} errors={errors} propertyTypes={propertyTypes} />
+              <PropertyFormAddress control={control} errors={errors} />
+              <PropertyFormDetails control={control} errors={errors} />
+            </Box>
+          </Paper>
+
+          {/* ── Colonne droite : Configuration & Ménage ─────────────── */}
+          <Paper sx={{ ...FORM_PAPER_SX, flex: 5, minWidth: 0, overflow: 'auto' }}>
             <PropertyFormSettings
               control={control}
               errors={errors}
@@ -346,89 +225,86 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
               isAdmin={isAdmin}
               isManager={isManager}
             />
+          </Paper>
+        </Box>
 
-            {/* Messages d'erreur et de succès */}
-            {error && (
+        {/* Error message */}
+        {submitError && (
+          <Alert severity="error" sx={{ fontSize: '0.8125rem', py: 0.5, mt: 1.5, flexShrink: 0 }}>{submitError}</Alert>
+        )}
+
+        {/* Hidden submit button for PageHeader trigger */}
+        <Button type="submit" sx={{ display: 'none' }} data-submit-property disabled={isSubmitting}>
+          Soumettre
+        </Button>
+      </form>
+
+      {/* ─── Owner creation dialog ─────────────────────────────────────── */}
+      <Dialog open={showOwnerDialog} onClose={() => setShowOwnerDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ pb: 0.5 }}>
+          <Typography sx={DIALOG_TITLE_SX}>
+            <Person color="primary" sx={{ fontSize: 16 }} />
+            {t('properties.newOwnerDialog')}
+          </Typography>
+        </DialogTitle>
+
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Grid container spacing={1.5}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label={`${t('properties.firstName')} *`}
+                value={temporaryOwner.firstName}
+                onChange={(e) => setTemporaryOwner(prev => ({ ...prev, firstName: e.target.value }))}
+                required
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label={`${t('properties.lastName')} *`}
+                value={temporaryOwner.lastName}
+                onChange={(e) => setTemporaryOwner(prev => ({ ...prev, lastName: e.target.value }))}
+                required
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label={`${t('properties.email')} *`}
+                type="email"
+                value={temporaryOwner.email}
+                onChange={(e) => setTemporaryOwner(prev => ({ ...prev, email: e.target.value }))}
+                required
+                size="small"
+                helperText={t('properties.passwordHelper')}
+              />
+            </Grid>
+            {ownerError && (
               <Grid item xs={12}>
-                <Alert severity="error">{error}</Alert>
+                <Alert severity="error" sx={{ fontSize: '0.8125rem', py: 0.5 }}>{ownerError}</Alert>
               </Grid>
             )}
-
-            {/* Bouton de soumission caché pour le PageHeader */}
-            <Button
-              type="submit"
-              sx={{ display: 'none' }}
-              data-submit-property
-            >
-              Soumettre
-            </Button>
           </Grid>
-        </form>
-        </CardContent>
-      </Card>
+        </DialogContent>
 
-      {/* Dialog pour créer un nouvel owner temporaire */}
-    <Dialog open={showOwnerDialog} onClose={() => setShowOwnerDialog(false)} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ pb: 1 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-          <Person color="primary" sx={{ fontSize: 18 }} />
-          {t('properties.newOwnerDialog')}
-        </Typography>
-      </DialogTitle>
-
-      <DialogContent sx={{ pt: 1.5 }}>
-        <Grid container spacing={1.5}>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label={`${t('properties.firstName')} *`}
-              value={temporaryOwner.firstName}
-              onChange={(e) => setTemporaryOwner(prev => ({ ...prev, firstName: e.target.value }))}
-              required
-              size="small"
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label={`${t('properties.lastName')} *`}
-              value={temporaryOwner.lastName}
-              onChange={(e) => setTemporaryOwner(prev => ({ ...prev, lastName: e.target.value }))}
-              required
-              size="small"
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label={`${t('properties.email')} *`}
-              type="email"
-              value={temporaryOwner.email}
-              onChange={(e) => setTemporaryOwner(prev => ({ ...prev, email: e.target.value }))}
-              required
-              size="small"
-              helperText={t('properties.passwordHelper')}
-            />
-          </Grid>
-        </Grid>
-      </DialogContent>
-
-      <DialogActions sx={{ px: 2, pb: 1.5 }}>
-        <Button onClick={() => setShowOwnerDialog(false)} size="small">
-          {t('common.cancel')}
-        </Button>
-        <Button
-          onClick={handleCreateTemporaryOwner}
-          variant="contained"
-          disabled={!temporaryOwner.firstName || !temporaryOwner.lastName || !temporaryOwner.email}
-          size="small"
-        >
-          {t('common.create')}
-        </Button>
-      </DialogActions>
-    </Dialog>
+        <DialogActions sx={{ px: 2, pb: 1.5 }}>
+          <Button onClick={() => setShowOwnerDialog(false)} size="small" sx={{ fontSize: '0.75rem' }}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            onClick={handleCreateTemporaryOwner}
+            variant="contained"
+            disabled={!temporaryOwner.firstName || !temporaryOwner.lastName || !temporaryOwner.email}
+            size="small"
+            sx={{ fontSize: '0.75rem' }}
+          >
+            {t('common.create')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
