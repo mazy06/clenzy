@@ -331,7 +331,90 @@
     "selectOwnerLabel": "Select an owner",
     "new": "New",
     "maxCapacity": "Max capacity",
-    "people": "people"
+    "people": "people",
+    "defaultHours": "Default hours",
+    "checkInTime": "Default check-in time",
+    "checkOutTime": "Default check-out time",
+    "cleaningPricing": "Cleaning pricing",
+    "cleaningBasePrice": "Base price (€)",
+    "cleaningBasePriceHelper": "Fixed price per intervention",
+    "cleaningDuration": "Estimated duration (min)",
+    "cleaningDurationHelper": "Average cleaning time",
+    "numberOfFloors": "Number of floors",
+    "hasExterior": "Terrace / Garden",
+    "hasLaundry": "Linen provided",
+    "cleaningNotes": "Cleaning instructions",
+    "cleaningNotesPlaceholder": "Specific instructions for cleaning...",
+    "addOnServices": {
+      "title": "Add-on services",
+      "windows": "Windows",
+      "windowCount": "Windows",
+      "windowCountHelper": "+5 min/unit",
+      "windowCountShort": "win.",
+      "frenchDoorCount": "French doors",
+      "frenchDoorCountHelper": "+8 min/unit",
+      "frenchDoorCountShort": "fr. doors",
+      "slidingDoorCount": "Sliding doors",
+      "slidingDoorCountHelper": "+12 min/unit",
+      "slidingDoorCountShort": "sliding",
+      "hasIroning": "Ironing / folding",
+      "hasDeepKitchen": "Deep kitchen cleaning",
+      "hasDisinfection": "Disinfection"
+    },
+    "durationEstimation": {
+      "title": "Estimated duration",
+      "computed": "Automatically calculated"
+    },
+    "amenities": {
+      "title": "Amenities",
+      "categories": {
+        "comfort": "Comfort",
+        "kitchen": "Kitchen",
+        "appliances": "Appliances",
+        "outdoor": "Outdoor",
+        "safetyFamily": "Safety & Family"
+      },
+      "items": {
+        "WIFI": "WiFi",
+        "TV": "TV",
+        "AIR_CONDITIONING": "Air Conditioning",
+        "HEATING": "Heating",
+        "EQUIPPED_KITCHEN": "Equipped Kitchen",
+        "DISHWASHER": "Dishwasher",
+        "MICROWAVE": "Microwave",
+        "OVEN": "Oven",
+        "WASHING_MACHINE": "Washing Machine",
+        "DRYER": "Dryer",
+        "IRON": "Iron",
+        "HAIR_DRYER": "Hair Dryer",
+        "PARKING": "Parking",
+        "POOL": "Pool",
+        "JACUZZI": "Jacuzzi",
+        "GARDEN_TERRACE": "Garden / Terrace",
+        "BARBECUE": "Barbecue",
+        "SAFE": "Safe",
+        "BABY_BED": "Baby Bed",
+        "HIGH_CHAIR": "High Chair"
+      }
+    },
+    "createdAt": "Creation date",
+    "lastCleaning": "Last cleaning",
+    "priceEstimation": {
+      "title": "Price estimation",
+      "range": "{{min}}€ – {{max}}€",
+      "basedOn": "Based on entered characteristics",
+      "noEstimation": "Fill in characteristics to get an estimate",
+      "perIntervention": "per intervention",
+      "cleaningTypes": {
+        "CLEANING": "Standard",
+        "EXPRESS_CLEANING": "Express",
+        "DEEP_CLEANING": "Deep clean"
+      }
+    },
+    "cleaningEstimate": "Cleaning estimate",
+    "cleaningEstimateTooltip": "Indicative estimate for the cleaning intervention cost. Final pricing is subject to the service provider's acceptance.",
+    "cleaningDurationTooltip": "Estimated cleaning intervention duration based on property characteristics. Actual duration may vary.",
+    "activeFeatures": "Active options"
   },
   "serviceRequests": {
     "title": "Service Requests",

@@ -106,6 +106,49 @@ public class Property {
     @Column(name = "default_check_out_time", length = 5)
     private String defaultCheckOutTime = "11:00";
 
+    // ─── Tarification ménage ────────────────────────────────────────────────────
+
+    @Column(name = "cleaning_base_price", precision = 10, scale = 2)
+    private BigDecimal cleaningBasePrice;
+
+    @Column(name = "cleaning_duration_minutes")
+    private Integer cleaningDurationMinutes;
+
+    @Column(name = "number_of_floors")
+    private Integer numberOfFloors;
+
+    @Column(name = "has_exterior")
+    private Boolean hasExterior = false;
+
+    @Column(name = "has_laundry")
+    private Boolean hasLaundry = true;
+
+    // ─── Prestations à la carte ───────────────────────────────────────────────────
+
+    @Column(name = "window_count")
+    private Integer windowCount = 0;
+
+    @Column(name = "french_door_count")
+    private Integer frenchDoorCount = 0;
+
+    @Column(name = "sliding_door_count")
+    private Integer slidingDoorCount = 0;
+
+    @Column(name = "has_ironing")
+    private Boolean hasIroning = false;
+
+    @Column(name = "has_deep_kitchen")
+    private Boolean hasDeepKitchen = false;
+
+    @Column(name = "has_disinfection")
+    private Boolean hasDisinfection = false;
+
+    @Column(name = "amenities", columnDefinition = "TEXT")
+    private String amenities;
+
+    @Column(name = "cleaning_notes", columnDefinition = "TEXT")
+    private String cleaningNotes;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -384,9 +427,113 @@ public class Property {
     public Set<PropertyPhoto> getPhotos() {
         return photos;
     }
-    
+
     public void setPhotos(Set<PropertyPhoto> photos) {
         this.photos = photos;
+    }
+
+    public BigDecimal getCleaningBasePrice() {
+        return cleaningBasePrice;
+    }
+
+    public void setCleaningBasePrice(BigDecimal cleaningBasePrice) {
+        this.cleaningBasePrice = cleaningBasePrice;
+    }
+
+    public Integer getCleaningDurationMinutes() {
+        return cleaningDurationMinutes;
+    }
+
+    public void setCleaningDurationMinutes(Integer cleaningDurationMinutes) {
+        this.cleaningDurationMinutes = cleaningDurationMinutes;
+    }
+
+    public Integer getNumberOfFloors() {
+        return numberOfFloors;
+    }
+
+    public void setNumberOfFloors(Integer numberOfFloors) {
+        this.numberOfFloors = numberOfFloors;
+    }
+
+    public Boolean getHasExterior() {
+        return hasExterior;
+    }
+
+    public void setHasExterior(Boolean hasExterior) {
+        this.hasExterior = hasExterior;
+    }
+
+    public Boolean getHasLaundry() {
+        return hasLaundry;
+    }
+
+    public void setHasLaundry(Boolean hasLaundry) {
+        this.hasLaundry = hasLaundry;
+    }
+
+    public Integer getWindowCount() {
+        return windowCount;
+    }
+
+    public void setWindowCount(Integer windowCount) {
+        this.windowCount = windowCount;
+    }
+
+    public Integer getFrenchDoorCount() {
+        return frenchDoorCount;
+    }
+
+    public void setFrenchDoorCount(Integer frenchDoorCount) {
+        this.frenchDoorCount = frenchDoorCount;
+    }
+
+    public Integer getSlidingDoorCount() {
+        return slidingDoorCount;
+    }
+
+    public void setSlidingDoorCount(Integer slidingDoorCount) {
+        this.slidingDoorCount = slidingDoorCount;
+    }
+
+    public Boolean getHasIroning() {
+        return hasIroning;
+    }
+
+    public void setHasIroning(Boolean hasIroning) {
+        this.hasIroning = hasIroning;
+    }
+
+    public Boolean getHasDeepKitchen() {
+        return hasDeepKitchen;
+    }
+
+    public void setHasDeepKitchen(Boolean hasDeepKitchen) {
+        this.hasDeepKitchen = hasDeepKitchen;
+    }
+
+    public Boolean getHasDisinfection() {
+        return hasDisinfection;
+    }
+
+    public void setHasDisinfection(Boolean hasDisinfection) {
+        this.hasDisinfection = hasDisinfection;
+    }
+
+    public String getAmenities() {
+        return amenities;
+    }
+
+    public void setAmenities(String amenities) {
+        this.amenities = amenities;
+    }
+
+    public String getCleaningNotes() {
+        return cleaningNotes;
+    }
+
+    public void setCleaningNotes(String cleaningNotes) {
+        this.cleaningNotes = cleaningNotes;
     }
     
     // Méthodes utilitaires

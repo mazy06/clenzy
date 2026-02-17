@@ -333,7 +333,90 @@
     "selectOwnerLabel": "Sélectionner un propriétaire",
     "new": "Nouveau",
     "maxCapacity": "Capacité max",
-    "people": "personnes"
+    "people": "personnes",
+    "defaultHours": "Heures par défaut",
+    "checkInTime": "Heure d'arrivée par défaut",
+    "checkOutTime": "Heure de départ par défaut",
+    "cleaningPricing": "Tarification ménage",
+    "cleaningBasePrice": "Prix de base (€)",
+    "cleaningBasePriceHelper": "Prix fixe par intervention",
+    "cleaningDuration": "Durée estimée (min)",
+    "cleaningDurationHelper": "Temps moyen de ménage",
+    "numberOfFloors": "Nombre d'étages",
+    "hasExterior": "Terrasse / Jardin",
+    "hasLaundry": "Linge fourni",
+    "cleaningNotes": "Consignes de ménage",
+    "cleaningNotesPlaceholder": "Instructions spécifiques pour le ménage...",
+    "addOnServices": {
+      "title": "Prestations à la carte",
+      "windows": "Vitres",
+      "windowCount": "Fenêtres",
+      "windowCountHelper": "+5 min/unité",
+      "windowCountShort": "fen.",
+      "frenchDoorCount": "Portes-fenêtres",
+      "frenchDoorCountHelper": "+8 min/unité",
+      "frenchDoorCountShort": "p-fen.",
+      "slidingDoorCount": "Baies vitrées",
+      "slidingDoorCountHelper": "+12 min/unité",
+      "slidingDoorCountShort": "baies",
+      "hasIroning": "Repassage / pliage",
+      "hasDeepKitchen": "Cuisine profonde",
+      "hasDisinfection": "Désinfection"
+    },
+    "durationEstimation": {
+      "title": "Durée estimée",
+      "computed": "Calculée automatiquement"
+    },
+    "amenities": {
+      "title": "Équipements",
+      "categories": {
+        "comfort": "Confort",
+        "kitchen": "Cuisine",
+        "appliances": "Électroménager",
+        "outdoor": "Extérieur",
+        "safetyFamily": "Sécurité & Famille"
+      },
+      "items": {
+        "WIFI": "WiFi",
+        "TV": "TV",
+        "AIR_CONDITIONING": "Climatisation",
+        "HEATING": "Chauffage",
+        "EQUIPPED_KITCHEN": "Cuisine équipée",
+        "DISHWASHER": "Lave-vaisselle",
+        "MICROWAVE": "Micro-ondes",
+        "OVEN": "Four",
+        "WASHING_MACHINE": "Lave-linge",
+        "DRYER": "Sèche-linge",
+        "IRON": "Fer à repasser",
+        "HAIR_DRYER": "Sèche-cheveux",
+        "PARKING": "Parking",
+        "POOL": "Piscine",
+        "JACUZZI": "Jacuzzi",
+        "GARDEN_TERRACE": "Jardin / Terrasse",
+        "BARBECUE": "Barbecue",
+        "SAFE": "Coffre-fort",
+        "BABY_BED": "Lit bébé",
+        "HIGH_CHAIR": "Chaise haute"
+      }
+    },
+    "createdAt": "Date de création",
+    "lastCleaning": "Dernier ménage",
+    "priceEstimation": {
+      "title": "Estimation du prix",
+      "range": "{{min}}€ – {{max}}€",
+      "basedOn": "Basé sur les caractéristiques saisies",
+      "noEstimation": "Renseignez les caractéristiques pour obtenir une estimation",
+      "perIntervention": "par intervention",
+      "cleaningTypes": {
+        "CLEANING": "Standard",
+        "EXPRESS_CLEANING": "Express",
+        "DEEP_CLEANING": "En profondeur"
+      }
+    },
+    "cleaningEstimate": "Estimation ménage",
+    "cleaningEstimateTooltip": "Estimation indicative du coût de l'intervention ménage. Le tarif définitif est soumis à l'acceptation du prestataire.",
+    "cleaningDurationTooltip": "Durée estimée de l'intervention ménage basée sur les caractéristiques du logement. La durée réelle peut varier.",
+    "activeFeatures": "Options actives"
   },
   "serviceRequests": {
     "title": "Demandes de service",

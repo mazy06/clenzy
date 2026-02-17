@@ -13,61 +13,40 @@ import {
   Logout,
   Person
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { authApi } from '../services/api';
 import keycloak from '../keycloak';
 import { clearTokens } from '../services/storageService';
-import { MenuItem as MenuItemType } from '../hooks/useNavigationMenu';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useTranslation } from '../hooks/useTranslation';
 
 interface UserProfileProps {
   onLogout: () => void;
-  menuItems: MenuItemType[];
 }
 
-export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems }) => {
-  const { user, isAdmin, isManager, isSupervisor, clearUser } = useAuth();
+export const UserProfile: React.FC<UserProfileProps> = ({ onLogout }) => {
+  const { user, clearUser } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
-  // Menus à afficher dans le menu déroulant (tous sauf ceux affichés directement dans la top nav)
-  const dropdownMenus = menuItems.filter(item => 
-    !['/dashboard', '/properties', '/service-requests', '/interventions', '/teams', '/portfolios', '/contact'].includes(item.path)
-  );
-
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
-
   const handleLogout = async () => {
     try {
-      // Appel au backend pour la déconnexion
       await authApi.logout();
-
-      // Nettoyage local
       clearTokens();
-
-      // Réinitialiser l'état Keycloak
       keycloak.token = undefined;
       keycloak.refreshToken = undefined;
       keycloak.authenticated = false;
-
-      // Nettoyer l'état utilisateur React
       clearUser();
-
-      // Déclencher l'événement de déconnexion
       window.dispatchEvent(new CustomEvent('keycloak-auth-logout'));
-
       handleMenuClose();
       onLogout();
     } catch (error) {
+      // silent
     }
   };
 
@@ -84,40 +63,33 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
     handleMenuClose();
   };
 
-  const handleMenuNavigation = (path: string) => {
-    navigate(path);
-    handleMenuClose();
-  };
-
   if (!user) {
     return null;
   }
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      {/* Profil utilisateur avec menu déroulant */}
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+      {/* Avatar cliquable */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
           gap: 1,
           cursor: 'pointer',
           p: 0.5,
-          borderRadius: 1,
-          '&:hover': {
-            backgroundColor: 'action.hover',
-          },
-          transition: 'background-color 0.2s ease'
+          borderRadius: '6px',
+          '&:hover': { backgroundColor: 'action.hover' },
+          transition: 'background-color 150ms',
         }}
         onClick={handleProfileClick}
         aria-controls={open ? 'user-menu' : undefined}
         aria-haspopup="true"
         aria-expanded={open ? 'true' : undefined}
       >
-        <Avatar 
-          sx={{ 
-            width: 28, // 32 → 28
-            height: 28, // 32 → 28
+        <Avatar
+          sx={{
+            width: 28,
+            height: 28,
             bgcolor: 'secondary.main',
             fontSize: '0.8125rem',
             fontWeight: 700,
@@ -128,9 +100,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
           {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || 'U'}
         </Avatar>
         {!isMobile && (
-          <Typography 
-            variant="body2" 
-            fontWeight={600} 
+          <Typography
+            variant="body2"
+            fontWeight={600}
             color="text.primary"
             sx={{ lineHeight: 1, px: 0.5, fontSize: '0.8125rem' }}
           >
@@ -139,73 +111,41 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
         )}
       </Box>
 
-      {/* Menu déroulant */}
+      {/* Menu deroulant */}
       <Menu
         id="user-menu"
         open={open}
         onClose={handleMenuClose}
         anchorEl={anchorEl}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         disableAutoFocusItem
         slotProps={{
           paper: {
-            elevation: 3,
+            elevation: 0,
             sx: {
-              mt: 0,
+              mt: 1,
               minWidth: 240,
-              borderRadius: 0,
-              boxShadow: theme.palette.mode === 'dark' ? '0 4px 16px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.15)',
+              borderRadius: '8px',
+              border: '1px solid',
+              borderColor: 'divider',
+              boxShadow: theme.palette.mode === 'dark'
+                ? '0 4px 16px rgba(0,0,0,0.3)'
+                : '0 4px 12px rgba(0,0,0,0.08)',
               backgroundColor: 'background.paper',
-              borderTop: '2px solid',
-              borderColor: 'secondary.main',
-              maxHeight: 'calc(100vh - 56px)',
-              overflow: 'auto',
-              zIndex: 1300,
-              position: 'fixed',
-              right: 0,
-              top: '56px !important',
+              overflow: 'hidden',
               '& .MuiMenuItem-root': {
                 px: 1.5,
                 py: 1.25,
                 fontSize: '0.875rem',
-                '&:hover': {
-                  backgroundColor: 'action.hover',
-                },
+                '&:hover': { backgroundColor: 'action.hover' },
               },
             },
           },
         }}
-        MenuListProps={{
-          sx: {
-            py: 0,
-          },
-        }}
-        disableScrollLock
-        BackdropProps={{
-          sx: {
-            backgroundColor: 'transparent',
-          },
-        }}
-        sx={{
-          '& .MuiPaper-root': {
-            marginTop: '0px !important',
-            top: '56px !important',
-            right: '0px !important',
-            left: 'auto !important',
-          },
-          '& .MuiBackdrop-root': {
-            backgroundColor: 'transparent',
-          },
-        }}
+        MenuListProps={{ sx: { py: 0 } }}
       >
-        {/* Badge utilisateur intégré - partie intégrante de la top nav */}
+        {/* Badge utilisateur */}
         <Box
           sx={{
             px: 2,
@@ -216,29 +156,27 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
             display: 'flex',
             alignItems: 'center',
             gap: 1.5,
-            minHeight: 64,
           }}
         >
-          <Avatar 
-            sx={{ 
-              width: 44,
-              height: 44,
+          <Avatar
+            sx={{
+              width: 40,
+              height: 40,
               bgcolor: 'secondary.main',
-              fontSize: '1.1rem',
+              fontSize: '1rem',
               fontWeight: 700,
               border: '2px solid',
               borderColor: 'secondary.light',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
             }}
           >
             {user.firstName?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase() || 'U'}
           </Avatar>
           <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-            <Typography 
-              variant="body1" 
-              fontWeight={700} 
-              sx={{ 
-                color: 'text.primary', 
+            <Typography
+              variant="body1"
+              fontWeight={700}
+              sx={{
+                color: 'text.primary',
                 lineHeight: 1.3,
                 fontSize: '0.9375rem',
                 overflow: 'hidden',
@@ -249,11 +187,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
               {user.firstName || user.username || t('navigation.defaultUser')}
             </Typography>
             {user.email && (
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  color: 'text.secondary', 
-                  fontSize: '0.75rem', 
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'text.secondary',
+                  fontSize: '0.75rem',
                   mt: 0.25,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -264,11 +202,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
               </Typography>
             )}
             {user.roles && user.roles.length > 0 && (
-              <Typography 
-                variant="caption" 
-                sx={{ 
+              <Typography
+                variant="caption"
+                sx={{
                   color: 'secondary.main',
-                  fontSize: '0.7rem', 
+                  fontSize: '0.7rem',
                   mt: 0.25,
                   fontWeight: 600,
                   textTransform: 'uppercase',
@@ -279,47 +217,30 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
             )}
           </Box>
         </Box>
-        
+
         <Divider />
 
         {/* Profil */}
         <MenuItem onClick={handleProfileNavigation}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Person sx={{ fontSize: '18px', color: 'secondary.main' }} />
-            <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>{t('navigation.myProfile')}</Typography>
+            <Person sx={{ fontSize: 18, color: 'secondary.main' }} />
+            <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+              {t('navigation.myProfile')}
+            </Typography>
           </Box>
         </MenuItem>
 
-        {/* Autres menus */}
-        {dropdownMenus.length > 0 && (
-          <>
-            <Divider />
-            {dropdownMenus.map((item) => (
-              <MenuItem
-                key={item.id}
-                onClick={() => handleMenuNavigation(item.path)}
-                selected={isActive(item.path)}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ '& .MuiSvgIcon-root': { fontSize: '18px', color: 'secondary.main' } }}>{item.icon}</Box>
-                  <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>{item.text}</Typography>
-                </Box>
-              </MenuItem>
-            ))}
-          </>
-        )}
-
         <Divider />
 
-        {/* Sélecteur de langue */}
+        {/* Langue */}
         <Box sx={{ px: 1.5, py: 1 }}>
           <LanguageSwitcher variant="select" />
         </Box>
 
         <Divider />
 
-        {/* Déconnexion */}
-        <MenuItem 
+        {/* Deconnexion */}
+        <MenuItem
           onClick={handleLogout}
           sx={{
             color: 'error.main',
@@ -330,8 +251,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout, menuItems })
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Logout sx={{ fontSize: '18px', color: 'error.main' }} />
-            <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.875rem' }}>{t('navigation.logout')}</Typography>
+            <Logout sx={{ fontSize: 18, color: 'error.main' }} />
+            <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.875rem' }}>
+              {t('navigation.logout')}
+            </Typography>
           </Box>
         </MenuItem>
       </Menu>

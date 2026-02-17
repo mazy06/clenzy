@@ -1,53 +1,61 @@
 import React from 'react';
-import { ToggleButtonGroup, ToggleButton } from '@mui/material';
-import { useTranslation } from '../../hooks/useTranslation';
+import { Box, Chip } from '@mui/material';
+
+// ─── Types ──────────────────────────────────────────────────────────────────
 
 export type DashboardPeriod = 'week' | 'month' | 'quarter' | 'year';
 
-interface DashboardDateFilterProps {
-  period: DashboardPeriod;
-  onPeriodChange: (period: DashboardPeriod) => void;
+export interface DateFilterOption<T extends string = string> {
+  value: T;
+  label: string;
 }
 
-const DashboardDateFilter: React.FC<DashboardDateFilterProps> = ({ period, onPeriodChange }) => {
-  const { t } = useTranslation();
+interface DashboardDateFilterProps<T extends string = string> {
+  value: T;
+  onChange: (value: T) => void;
+  options: DateFilterOption<T>[];
+}
 
-  const handleChange = (_event: React.MouseEvent<HTMLElement>, newPeriod: DashboardPeriod | null) => {
-    if (newPeriod !== null) {
-      onPeriodChange(newPeriod);
-    }
-  };
+// ─── Component ──────────────────────────────────────────────────────────────
 
+function DashboardDateFilterInner<T extends string>({
+  value,
+  onChange,
+  options,
+}: DashboardDateFilterProps<T>) {
   return (
-    <ToggleButtonGroup
-      value={period}
-      exclusive
-      onChange={handleChange}
-      size="small"
-      sx={{
-        '& .MuiToggleButton-root': {
-          px: 1.5,
-          py: 0.5,
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          textTransform: 'none',
-          borderColor: 'divider',
-          '&.Mui-selected': {
-            bgcolor: 'primary.main',
-            color: 'primary.contrastText',
-            '&:hover': {
-              bgcolor: 'primary.dark',
-            },
-          },
-        },
-      }}
-    >
-      <ToggleButton value="week">{t('dashboard.dateFilter.week')}</ToggleButton>
-      <ToggleButton value="month">{t('dashboard.dateFilter.month')}</ToggleButton>
-      <ToggleButton value="quarter">{t('dashboard.dateFilter.quarter')}</ToggleButton>
-      <ToggleButton value="year">{t('dashboard.dateFilter.year')}</ToggleButton>
-    </ToggleButtonGroup>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      {options.map((opt) => {
+        const isSelected = value === opt.value;
+        return (
+          <Chip
+            key={opt.value}
+            label={opt.label}
+            size="small"
+            variant={isSelected ? 'filled' : 'outlined'}
+            color={isSelected ? 'primary' : 'default'}
+            onClick={() => onChange(opt.value)}
+            sx={{
+              fontSize: '0.6875rem',
+              fontWeight: 600,
+              height: 28,
+              cursor: 'pointer',
+              ...(!isSelected && {
+                borderColor: 'divider',
+                color: 'text.secondary',
+                '&:hover': {
+                  backgroundColor: 'action.hover',
+                  borderColor: 'text.secondary',
+                },
+              }),
+            }}
+          />
+        );
+      })}
+    </Box>
   );
-};
+}
+
+const DashboardDateFilter = React.memo(DashboardDateFilterInner) as typeof DashboardDateFilterInner;
 
 export default DashboardDateFilter;

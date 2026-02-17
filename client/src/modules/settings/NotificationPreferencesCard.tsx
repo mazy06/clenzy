@@ -355,98 +355,107 @@ export default function NotificationPreferencesCard() {
         Choisissez les notifications que vous souhaitez recevoir. Desactivez celles qui ne vous interessent pas.
       </Typography>
 
-      {/* Categories Accordions */}
-      {CATEGORIES.map((category) => {
-        const stats = getCategoryStats(category);
-        const allEnabled = stats.enabled === stats.total;
-        const noneEnabled = stats.enabled === 0;
+      {/* Categories Accordions — grille 2 colonnes */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+          gap: 1,
+          alignItems: 'start',
+        }}
+      >
+        {CATEGORIES.map((category) => {
+          const stats = getCategoryStats(category);
+          const allEnabled = stats.enabled === stats.total;
+          const noneEnabled = stats.enabled === 0;
 
-        return (
-          <Accordion
-            key={category.id}
-            disableGutters
-            sx={{
-              '&:before': { display: 'none' },
-              boxShadow: 'none',
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: '8px !important',
-              mb: 1,
-              '&.Mui-expanded': { mb: 1 },
-            }}
-          >
-            <AccordionSummary
-              expandIcon={<ExpandMore />}
-              sx={{ minHeight: 48, '& .MuiAccordionSummary-content': { my: 0.5 } }}
+          return (
+            <Accordion
+              key={category.id}
+              disableGutters
+              sx={{
+                '&:before': { display: 'none' },
+                boxShadow: 'none',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: '8px !important',
+                m: 0,
+                '&.Mui-expanded': { m: 0 },
+              }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', pr: 1 }}>
-                <Box sx={{ color: noneEnabled ? 'text.disabled' : category.color, display: 'flex', transition: 'color 0.2s' }}>
-                  {category.icon}
-                </Box>
-                <Typography
-                  variant="body2"
-                  fontWeight={600}
-                  sx={{
-                    flex: 1,
-                    color: noneEnabled ? 'text.disabled' : 'text.primary',
-                    transition: 'color 0.2s',
-                  }}
-                >
-                  {category.label}
-                </Typography>
-                <Chip
-                  label={`${stats.enabled}/${stats.total}`}
-                  size="small"
-                  color={allEnabled ? 'success' : noneEnabled ? 'default' : 'warning'}
-                  variant="outlined"
-                  sx={{ fontSize: '0.7rem', height: 22 }}
-                />
-                <Tooltip title={allEnabled ? 'Desactiver toute la section' : noneEnabled ? 'Activer toute la section' : 'Tout activer'}>
-                  <Switch
-                    size="small"
-                    checked={!noneEnabled}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                      e.stopPropagation();
-                      handleToggleCategory(category, noneEnabled ? true : false);
+              <AccordionSummary
+                expandIcon={<ExpandMore />}
+                sx={{ minHeight: 48, '& .MuiAccordionSummary-content': { my: 0.5 } }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', pr: 1 }}>
+                  <Box sx={{ color: noneEnabled ? 'text.disabled' : category.color, display: 'flex', transition: 'color 0.2s' }}>
+                    {category.icon}
+                  </Box>
+                  <Typography
+                    variant="body2"
+                    fontWeight={600}
+                    sx={{
+                      flex: 1,
+                      color: noneEnabled ? 'text.disabled' : 'text.primary',
+                      transition: 'color 0.2s',
                     }}
-                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                    color={allEnabled ? 'success' : 'warning'}
-                    sx={{ ml: 0.5 }}
+                  >
+                    {category.label}
+                  </Typography>
+                  <Chip
+                    label={`${stats.enabled}/${stats.total}`}
+                    size="small"
+                    color={allEnabled ? 'success' : noneEnabled ? 'default' : 'warning'}
+                    variant="outlined"
+                    sx={{ fontSize: '0.7rem', height: 22 }}
                   />
-                </Tooltip>
-              </Box>
-            </AccordionSummary>
-            <AccordionDetails sx={{ pt: 0, pb: 1, opacity: noneEnabled ? 0.45 : 1, transition: 'opacity 0.2s' }}>
-              <List dense disablePadding>
-                {category.keys.map((nKey) => (
-                  <ListItem key={nKey.key} sx={{ py: 0.25, px: 1 }}>
-                    <ListItemText
-                      primary={
-                        <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                          {nKey.title}
-                        </Typography>
-                      }
-                      secondary={
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
-                          {nKey.description}
-                        </Typography>
-                      }
+                  <Tooltip title={allEnabled ? 'Desactiver toute la section' : noneEnabled ? 'Activer toute la section' : 'Tout activer'}>
+                    <Switch
+                      size="small"
+                      checked={!noneEnabled}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        e.stopPropagation();
+                        handleToggleCategory(category, noneEnabled ? true : false);
+                      }}
+                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                      color={allEnabled ? 'success' : 'warning'}
+                      sx={{ ml: 0.5 }}
                     />
-                    <ListItemSecondaryAction>
-                      <Switch
-                        edge="end"
-                        size="small"
-                        checked={preferences[nKey.key] !== false}
-                        onChange={(_, checked) => handleToggle(nKey.key, checked)}
+                  </Tooltip>
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails sx={{ pt: 0, pb: 1, opacity: noneEnabled ? 0.45 : 1, transition: 'opacity 0.2s' }}>
+                <List dense disablePadding>
+                  {category.keys.map((nKey) => (
+                    <ListItem key={nKey.key} sx={{ py: 0.25, px: 1 }}>
+                      <ListItemText
+                        primary={
+                          <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                            {nKey.title}
+                          </Typography>
+                        }
+                        secondary={
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                            {nKey.description}
+                          </Typography>
+                        }
                       />
-                    </ListItemSecondaryAction>
-                  </ListItem>
-                ))}
-              </List>
-            </AccordionDetails>
-          </Accordion>
-        );
-      })}
+                      <ListItemSecondaryAction>
+                        <Switch
+                          edge="end"
+                          size="small"
+                          checked={preferences[nKey.key] !== false}
+                          onChange={(_, checked) => handleToggle(nKey.key, checked)}
+                        />
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+              </AccordionDetails>
+            </Accordion>
+          );
+        })}
+      </Box>
 
       {/* Snackbar */}
       <Snackbar

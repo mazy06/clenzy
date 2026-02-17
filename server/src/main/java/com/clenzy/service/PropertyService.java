@@ -17,8 +17,12 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -31,6 +35,7 @@ public class PropertyService {
     private final PortfolioClientRepository portfolioClientRepository;
     private final PortfolioRepository portfolioRepository;
     private final NotificationService notificationService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public PropertyService(PropertyRepository propertyRepository, UserRepository userRepository,
                           ManagerPropertyRepository managerPropertyRepository,
@@ -184,6 +189,29 @@ public class PropertyService {
         property.setEmergencyPhone(dto.emergencyPhone);
         property.setAccessInstructions(dto.accessInstructions);
         property.setSpecialRequirements(dto.specialRequirements);
+        property.setCleaningBasePrice(dto.cleaningBasePrice);
+        property.setNumberOfFloors(dto.numberOfFloors);
+        if (dto.hasExterior != null) property.setHasExterior(dto.hasExterior);
+        if (dto.hasLaundry != null) property.setHasLaundry(dto.hasLaundry);
+        // Prestations à la carte
+        if (dto.windowCount != null) property.setWindowCount(dto.windowCount);
+        if (dto.frenchDoorCount != null) property.setFrenchDoorCount(dto.frenchDoorCount);
+        if (dto.slidingDoorCount != null) property.setSlidingDoorCount(dto.slidingDoorCount);
+        if (dto.hasIroning != null) property.setHasIroning(dto.hasIroning);
+        if (dto.hasDeepKitchen != null) property.setHasDeepKitchen(dto.hasDeepKitchen);
+        if (dto.hasDisinfection != null) property.setHasDisinfection(dto.hasDisinfection);
+        // Amenities serialization
+        if (dto.amenities != null) {
+            try {
+                property.setAmenities(objectMapper.writeValueAsString(dto.amenities));
+            } catch (Exception e) {
+                System.err.println("⚠️ PropertyService.apply - Error serializing amenities: " + e.getMessage());
+                property.setAmenities(null);
+            }
+        }
+        property.setCleaningNotes(dto.cleaningNotes);
+        // Durée calculée automatiquement
+        property.setCleaningDurationMinutes(computeCleaningDuration(property));
         if (dto.ownerId != null) {
             User owner = userRepository.findById(dto.ownerId).orElseThrow(() -> new NotFoundException("Owner not found"));
             property.setOwner(owner);
@@ -217,7 +245,30 @@ public class PropertyService {
             dto.emergencyPhone = p.getEmergencyPhone();
             dto.accessInstructions = p.getAccessInstructions();
             dto.specialRequirements = p.getSpecialRequirements();
-            
+            dto.cleaningBasePrice = p.getCleaningBasePrice();
+            dto.cleaningDurationMinutes = p.getCleaningDurationMinutes();
+            dto.numberOfFloors = p.getNumberOfFloors();
+            dto.hasExterior = p.getHasExterior();
+            dto.hasLaundry = p.getHasLaundry();
+            dto.windowCount = p.getWindowCount();
+            dto.frenchDoorCount = p.getFrenchDoorCount();
+            dto.slidingDoorCount = p.getSlidingDoorCount();
+            dto.hasIroning = p.getHasIroning();
+            dto.hasDeepKitchen = p.getHasDeepKitchen();
+            dto.hasDisinfection = p.getHasDisinfection();
+            // Amenities deserialization
+            if (p.getAmenities() != null && !p.getAmenities().isEmpty()) {
+                try {
+                    dto.amenities = objectMapper.readValue(p.getAmenities(), new TypeReference<List<String>>(){});
+                } catch (Exception e) {
+                    System.err.println("⚠️ PropertyService.toDto - Error deserializing amenities: " + e.getMessage());
+                    dto.amenities = new ArrayList<>();
+                }
+            } else {
+                dto.amenities = new ArrayList<>();
+            }
+            dto.cleaningNotes = p.getCleaningNotes();
+
             // Gestion sécurisée de la relation owner (lazy loading)
             try {
                 if (p.getOwner() != null) {
@@ -245,6 +296,52 @@ public class PropertyService {
             e.printStackTrace();
             throw new RuntimeException("Erreur lors de la conversion de la propriété: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Calcule la durée de ménage estimée en minutes,
+     * basée sur les caractéristiques du logement et les prestations à la carte.
+     */
+    private int computeCleaningDuration(Property property) {
+        // Base selon le nombre de chambres (type T)
+        int bedrooms = property.getBedroomCount() != null ? property.getBedroomCount() : 1;
+        int baseMins;
+        if (bedrooms <= 1)      baseMins = 90;   // T1 : 1h30
+        else if (bedrooms == 2) baseMins = 120;  // T2 : 2h00
+        else if (bedrooms == 3) baseMins = 150;  // T3 : 2h30
+        else if (bedrooms == 4) baseMins = 180;  // T4 : 3h00
+        else                    baseMins = 210;  // T5+ : 3h30
+
+        // SDB supplémentaires : +15 min par SDB au-delà de 1
+        int bathrooms = property.getBathroomCount() != null ? property.getBathroomCount() : 1;
+        baseMins += Math.max(0, bathrooms - 1) * 15;
+
+        // Surface > 80m² : +1 min par tranche de 5m²
+        int sqm = property.getSquareMeters() != null ? property.getSquareMeters() : 0;
+        if (sqm > 80) {
+            baseMins += (sqm - 80) / 5;
+        }
+
+        // Vitres
+        int windowCount = property.getWindowCount() != null ? property.getWindowCount() : 0;
+        int frenchDoorCount = property.getFrenchDoorCount() != null ? property.getFrenchDoorCount() : 0;
+        int slidingDoorCount = property.getSlidingDoorCount() != null ? property.getSlidingDoorCount() : 0;
+        baseMins += windowCount * 5;
+        baseMins += frenchDoorCount * 8;
+        baseMins += slidingDoorCount * 12;
+
+        // Prestations booléennes
+        if (Boolean.TRUE.equals(property.getHasLaundry()))       baseMins += 10;
+        if (Boolean.TRUE.equals(property.getHasIroning()))       baseMins += 20;
+        if (Boolean.TRUE.equals(property.getHasDeepKitchen()))   baseMins += 30;
+        if (Boolean.TRUE.equals(property.getHasExterior()))      baseMins += 25;
+        if (Boolean.TRUE.equals(property.getHasDisinfection()))  baseMins += 40;
+
+        // Étages supplémentaires : +15 min par étage au-delà de 1
+        int floors = property.getNumberOfFloors() != null ? property.getNumberOfFloors() : 1;
+        baseMins += Math.max(0, floors - 1) * 15;
+
+        return baseMins;
     }
 
     private PropertyDto toDtoWithManager(Property p) {

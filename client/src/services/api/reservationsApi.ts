@@ -80,7 +80,7 @@ export const RESERVATION_SOURCE_LABELS: Record<ReservationSource, string> = {
 
 export const INTERVENTION_TYPE_COLORS: Record<PlanningInterventionType, string> = {
   cleaning: '#9B7FC4',    // violet doux — distinct du bleu-gris checked_in
-  maintenance: '#D49B5A', // ambre/ocre chaud — distinct du warning et de l'error
+  maintenance: '#7EBAD0', // bleu ciel clair — distinct de pending (#D4A574)
 };
 
 export const INTERVENTION_TYPE_LABELS: Record<PlanningInterventionType, string> = {

@@ -1,19 +1,12 @@
 import React, { useCallback, useMemo } from 'react';
-import {
-  Box,
-  AppBar,
-  Toolbar,
-  Typography,
-} from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { Box, IconButton } from '@mui/material';
+import { Menu as MenuIcon } from '@mui/icons-material';
 import { useLayoutState } from '../../hooks/useLayoutState';
 import { useNavigationMenu } from '../../hooks/useNavigationMenu';
-import { TopNavigation } from '../../components/TopNavigation';
-import { UserProfile } from '../../components/UserProfile';
+import { useSidebarState } from '../../hooks/useSidebarState';
+import Sidebar from '../../components/Sidebar';
 import { LoadingStates } from '../../components/LoadingStates';
-import NotificationBell from '../../components/NotificationBell';
 import OfflineBanner from '../../components/OfflineBanner';
-import clenzyLogo from '../../assets/Clenzy_logo.png';
 import PWAInstallBanner from '../../components/PWAInstallBanner';
 
 interface MainLayoutFullProps {
@@ -21,17 +14,19 @@ interface MainLayoutFullProps {
 }
 
 export default function MainLayoutFull({ children }: MainLayoutFullProps) {
-  const navigate = useNavigate();
-  // Hooks personnalisés pour la gestion d'état
   const layoutState = useLayoutState();
   const { menuItems, loading: menuLoading, error: menuError, refreshMenu } = useNavigationMenu();
+  const {
+    isCollapsed,
+    isMobileOpen,
+    isMobile,
+    sidebarWidth,
+    toggleCollapsed,
+    openMobile,
+    closeMobile,
+  } = useSidebarState();
 
-  // Gestionnaires d'événements mémorisés
-  const handleLogout = useCallback(() => {
-    // La logique de déconnexion est gérée dans UserProfile
-    }, []);
-
-  // Déterminer l'état de chargement
+  // Determiner l'etat de chargement
   const loadingState = useMemo(() => {
     if (layoutState.loading) return 'loading';
     if (!layoutState.user) return 'user-loading';
@@ -51,7 +46,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
     layoutState.clearError();
   }, [layoutState.clearError]);
 
-  // Afficher les états de chargement
+  // Afficher les etats de chargement
   if (loadingState !== 'ready') {
     return (
       <LoadingStates
@@ -62,105 +57,75 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
       />
     );
   }
-  // Rendu principal de l'interface
+
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-      {/* Bannière hors ligne */}
+    <Box sx={{ display: 'flex', minHeight: '100vh', overflow: 'hidden' }}>
+      {/* Banniere hors ligne */}
       <OfflineBanner />
 
-      {/* AppBar avec logo et navigation */}
-      <AppBar
-        position="fixed"
+      {/* Sidebar */}
+      <Sidebar
+        menuItems={menuItems}
+        isCollapsed={isCollapsed}
+        isMobileOpen={isMobileOpen}
+        isMobile={isMobile}
+        onToggleCollapsed={toggleCollapsed}
+        onCloseMobile={closeMobile}
+      />
+
+      {/* Zone principale — le Drawer permanent reserve deja son espace dans le flex */}
+      <Box
         sx={{
-          width: '100%',
-          backgroundColor: (theme) => theme.palette.background.paper,
-          color: '#A6C0CE',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          borderRadius: 0,
-          zIndex: 1200,
+          display: 'flex',
+          flexDirection: 'column',
+          flexGrow: 1,
+          minWidth: 0,
+          height: '100vh',
+          overflow: 'hidden',
         }}
       >
-        <Toolbar 
-          sx={{ 
-            px: { xs: 1, sm: 1.5, md: 2 },
-            minHeight: '56px !important', // 64px → 56px
-            gap: 0.75, // 1 → 0.75
-            position: 'relative', // Pour permettre le positionnement absolu des enfants
-          }}
-        >
-          {/* Logo et tagline */}
+        {/* Hamburger mobile — barre minimale visible uniquement sur mobile */}
+        {isMobile && (
           <Box
             sx={{
+              flexShrink: 0,
               display: 'flex',
               alignItems: 'center',
-              gap: { xs: 1, sm: 2 },
-              cursor: 'pointer',
-              flexShrink: 0,
-              position: 'absolute',
-              left: { xs: 1, sm: 1.5, md: 2 },
-              '&:hover': {
-                opacity: 0.8,
-              },
-              transition: 'opacity 0.2s ease',
+              height: 48,
+              px: 1.5,
+              backgroundColor: 'background.paper',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
             }}
-            onClick={() => navigate('/dashboard')}
           >
-            <img
-              src={clenzyLogo}
-              alt="Clenzy Logo"
-              style={{
-                height: '32px', // 36px → 32px
-                width: 'auto',
-                maxWidth: '120px', // 140px → 120px
-              }}
-            />
+            <IconButton
+              onClick={openMobile}
+              size="small"
+              sx={{ color: 'text.secondary' }}
+            >
+              <MenuIcon />
+            </IconButton>
           </Box>
+        )}
 
-          {/* Navigation horizontale - centrée */}
-          <Box sx={{ 
-            position: 'absolute',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '100%',
+        {/* Contenu principal — flex container pour que les enfants puissent remplir l'espace */}
+        <Box
+          component="main"
+          sx={{
             display: 'flex',
-            justifyContent: 'center',
-            pointerEvents: 'none',
-            '& > *': {
-              pointerEvents: 'auto',
-            }
-          }}>
-            <TopNavigation menuItems={menuItems} />
-          </Box>
-
-          {/* Espace flexible pour équilibrer */}
-          <Box sx={{ flexGrow: 1, minWidth: { xs: 0, sm: 16 } }} />
-
-          {/* Notifications et profil utilisateur */}
-          <Box sx={{
-            flexShrink: 0,
-            position: 'absolute',
-            right: { xs: 1, sm: 1.5, md: 2 },
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-          }}>
-            <NotificationBell />
-            <UserProfile onLogout={handleLogout} menuItems={menuItems} />
-          </Box>
-        </Toolbar>
-      </AppBar>
-
-      {/* Contenu principal */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 2, // 3 → 2
-          width: '100%',
-          mt: '56px', // 64px → 56px
-        }}
-      >
-        {children}
+            flexDirection: 'column',
+            flexGrow: 1,
+            minHeight: 0,
+            p: { xs: 1.5, md: 2 },
+            backgroundColor: 'background.default',
+            // Les pages qui gèrent leur propre scroll (ex: Dashboard Planning)
+            // utilisent flex: 1 + overflow interne.
+            // Les pages classiques débordent et scrollent via ce container.
+            overflow: 'hidden',
+          }}
+        >
+          {children}
+        </Box>
       </Box>
 
       {/* PWA install prompt */}

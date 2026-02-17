@@ -21,12 +21,43 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useDashboardData } from '../../hooks/useDashboardData';
+import type { AlertItem } from '../../hooks/useDashboardOverview';
 
-const AlertsWidget: React.FC = React.memo(() => {
+// ─── Props ───────────────────────────────────────────────────────────────────
+
+interface AlertsWidgetProps {
+  alerts: AlertItem[];
+  loading: boolean;
+}
+
+// ─── Stable sx constants ────────────────────────────────────────────────────
+
+const CARD_CONTENT_SX = {
+  p: 1.25, '&:last-child': { pb: 1.25 },
+  flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+} as const;
+
+const SECTION_TITLE_SX = {
+  fontSize: '0.75rem',
+  fontWeight: 700,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.04em',
+  color: 'text.secondary',
+  mb: 0.75,
+  flexShrink: 0,
+} as const;
+
+const CHIP_SX = {
+  fontSize: '0.625rem',
+  height: 22,
+  borderWidth: 1,
+  letterSpacing: '0.02em',
+  '& .MuiChip-label': { px: 0.625 },
+} as const;
+
+const AlertsWidget: React.FC<AlertsWidgetProps> = React.memo(({ alerts, loading }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { alerts, loading } = useDashboardData();
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -48,18 +79,18 @@ const AlertsWidget: React.FC = React.memo(() => {
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 }, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Typography variant="subtitle2" sx={{ fontSize: '0.8125rem', fontWeight: 600, mb: 1, flexShrink: 0 }}>
+      <CardContent sx={CARD_CONTENT_SX}>
+        <Typography variant="subtitle2" sx={SECTION_TITLE_SX}>
           {t('dashboard.alerts')}
         </Typography>
 
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-            <CircularProgress size={20} />
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 1.5 }}>
+            <CircularProgress size={18} />
           </Box>
         ) : alerts.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 1 }}>
-            <CheckCircle color="success" sx={{ fontSize: 20, mb: 0.5, opacity: 0.5 }} />
+            <CheckCircle color="success" sx={{ fontSize: 18, mb: 0.5, opacity: 0.5 }} />
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
               {t('dashboard.noAlerts')}
             </Typography>
@@ -71,21 +102,19 @@ const AlertsWidget: React.FC = React.memo(() => {
                 <ListItem
                   sx={{
                     px: 0,
-                    py: 0.5,
+                    py: 0.375,
                     cursor: 'pointer',
-                    '&:hover': {
-                      bgcolor: 'action.hover'
-                    }
+                    '&:hover': { bgcolor: 'action.hover' },
                   }}
                   onClick={() => navigate(alert.route)}
                 >
-                  <ListItemIcon sx={{ minWidth: 30 }}>
+                  <ListItemIcon sx={{ minWidth: 28 }}>
                     {getIcon(alert.type)}
                   </ListItemIcon>
                   <ListItemText
                     primary={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Typography variant="body2" sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
+                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: 500, letterSpacing: '-0.01em' }}>
                           {alert.title}
                         </Typography>
                         {alert.count !== undefined && (
@@ -93,19 +122,19 @@ const AlertsWidget: React.FC = React.memo(() => {
                             label={alert.count}
                             size="small"
                             variant="outlined"
-                            sx={{ fontSize: '0.625rem', height: 22, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                            sx={CHIP_SX}
                             color={getColor(alert.type)}
                           />
                         )}
                       </Box>
                     }
                     secondary={
-                      <Typography variant="caption" sx={{ fontSize: '0.625rem' }}>
+                      <Typography variant="caption" sx={{ fontSize: '0.6875rem', letterSpacing: '0.01em' }}>
                         {alert.description}
                       </Typography>
                     }
                   />
-                  <ArrowForward sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  <ArrowForward sx={{ fontSize: 12, color: 'text.secondary' }} />
                 </ListItem>
                 {index < alerts.length - 1 && <Divider />}
               </React.Fragment>

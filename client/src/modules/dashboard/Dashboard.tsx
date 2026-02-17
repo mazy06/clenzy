@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Tabs,
   Tab,
   Paper,
-  Button,
+  Chip,
   Tooltip,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   CalendarMonth,
@@ -14,7 +16,6 @@ import {
   CalendarToday as CalendarTodayIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
-import { DashboardDataProvider } from '../../hooks/useDashboardData';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import DashboardPlanning from './DashboardPlanning';
@@ -22,7 +23,8 @@ import DashboardOverviewContent from './DashboardOverviewContent';
 import DashboardDateFilter from './DashboardDateFilter';
 import ICalImportModal from './ICalImportModal';
 import UpgradeBanner from './UpgradeBanner';
-import type { DashboardPeriod } from './DashboardDateFilter';
+import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';
+import type { ZoomLevel } from './PlanningToolbar';
 
 // ─── Tab helpers ────────────────────────────────────────────────────────────
 
@@ -33,12 +35,31 @@ function a11yProps(index: number) {
   };
 }
 
+// ─── Filter option configs ──────────────────────────────────────────────────
+
+const ZOOM_OPTIONS: DateFilterOption<ZoomLevel>[] = [
+  { value: 'compact', label: '1j' },
+  { value: 'standard', label: '1h' },
+  { value: 'detailed', label: '30min' },
+];
+
+const PERIOD_OPTIONS: DateFilterOption<DashboardPeriod>[] = [
+  { value: 'week', label: '7j' },
+  { value: 'month', label: '30j' },
+  { value: 'quarter', label: '90j' },
+  { value: 'year', label: '1 an' },
+];
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   const [period, setPeriod] = useState<DashboardPeriod>('month');
+  const [zoomLevel, setZoomLevel] = useState<ZoomLevel>(isMobile ? 'compact' : 'standard');
   const [tabValue, setTabValue] = useState(0);
   const [icalModalOpen, setIcalModalOpen] = useState(false);
 
@@ -82,81 +103,127 @@ const Dashboard: React.FC = () => {
     return t('dashboard.subtitle');
   };
 
-  return (
-    <Box>
-      {/* ─── Header ────────────────────────────────────────────────────── */}
-      <PageHeader
-        title={getDashboardTitle()}
-        subtitle={getDashboardDescription()}
-        backPath="/"
-        showBackButton={false}
-        actions={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Tooltip title="Channel Manager — Ce service sera bientot disponible. Restez connecte !" arrow>
-              <span>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  disabled
-                  startIcon={<SyncIcon sx={{ fontSize: 16 }} />}
-                  sx={{
-                    textTransform: 'none',
-                    fontSize: '0.75rem',
-                    py: 0.5,
-                    px: 1.5,
-                  }}
-                >
-                  Channel Manager
-                </Button>
-              </span>
-            </Tooltip>
-            <Tooltip title="Importer les reservations via un lien iCal (.ics)" arrow>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<CalendarTodayIcon sx={{ fontSize: 16 }} />}
-                onClick={() => setIcalModalOpen(true)}
-                sx={{
-                  textTransform: 'none',
-                  fontSize: '0.75rem',
-                  py: 0.5,
-                  px: 1.5,
-                  borderColor: 'primary.main',
-                  color: 'primary.main',
-                  '&:hover': { borderColor: 'primary.dark', backgroundColor: 'primary.50' },
-                }}
-              >
-                Import iCal
-              </Button>
-            </Tooltip>
-            <DashboardDateFilter period={period} onPeriodChange={setPeriod} />
-          </Box>
-        }
+  // ─── Date filter: shows zoom chips on Planning tab, period chips on Overview
+  const dateFilterElement = useMemo(() => {
+    if (tabValue === 0) {
+      return (
+        <DashboardDateFilter<ZoomLevel>
+          value={zoomLevel}
+          onChange={setZoomLevel}
+          options={ZOOM_OPTIONS}
+        />
+      );
+    }
+    return (
+      <DashboardDateFilter<DashboardPeriod>
+        value={period}
+        onChange={setPeriod}
+        options={PERIOD_OPTIONS}
       />
+    );
+  }, [tabValue, zoomLevel, period]);
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        minHeight: 0,
+      }}
+    >
+      {/* ─── Header ────────────────────────────────────────────────────── */}
+      <Box sx={{ flexShrink: 0 }}>
+        <PageHeader
+          title={getDashboardTitle()}
+          subtitle={getDashboardDescription()}
+          backPath="/"
+          showBackButton={false}
+          actions={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Tooltip title="Channel Manager — Ce service sera bientôt disponible. Restez connecté !" arrow>
+                <span>
+                  <Chip
+                    icon={<SyncIcon sx={{ fontSize: 14 }} />}
+                    label="Channel Manager"
+                    size="small"
+                    variant="outlined"
+                    disabled
+                    sx={{
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
+                      height: 28,
+                      borderColor: 'divider',
+                      color: 'text.disabled',
+                      '& .MuiChip-icon': { fontSize: 14, color: 'text.disabled' },
+                    }}
+                  />
+                </span>
+              </Tooltip>
+              <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
+                <Chip
+                  icon={<CalendarTodayIcon sx={{ fontSize: 14 }} />}
+                  label="Import iCal"
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setIcalModalOpen(true)}
+                  sx={{
+                    fontSize: '0.6875rem',
+                    fontWeight: 600,
+                    height: 28,
+                    cursor: 'pointer',
+                    borderColor: 'primary.main',
+                    color: 'primary.main',
+                    '& .MuiChip-icon': { fontSize: 14, color: 'primary.main' },
+                    '&:hover': {
+                      backgroundColor: 'rgba(107, 138, 154, 0.08)',
+                      borderColor: 'primary.dark',
+                    },
+                  }}
+                />
+              </Tooltip>
+              <Box sx={{ width: '1px', height: 20, backgroundColor: 'divider', mx: 0.25 }} />
+              {dateFilterElement}
+            </Box>
+          }
+        />
+      </Box>
 
       {/* ─── Tabs (2 onglets seulement : Planning / Vue d'ensemble) ──── */}
-      <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0 }}>
+      <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0, flexShrink: 0 }}>
         <Tabs
           value={tabValue}
           onChange={(_, v) => setTabValue(v)}
           sx={{
-            minHeight: 38,
+            minHeight: 36,
             '& .MuiTab-root': {
-              minHeight: 38,
+              minHeight: 36,
               py: 0.5,
-              fontSize: '0.8125rem',
+              px: 2,
+              fontSize: '0.75rem',
+              fontWeight: 600,
               textTransform: 'none',
+              letterSpacing: '0.01em',
+              color: 'text.secondary',
+              '&.Mui-selected': {
+                fontWeight: 700,
+                color: 'primary.main',
+              },
+            },
+            '& .MuiTabs-indicator': {
+              height: 2,
+              borderRadius: 1,
             },
           }}
         >
           <Tab
-            icon={<CalendarMonth sx={{ fontSize: 18 }} />}
+            icon={<CalendarMonth sx={{ fontSize: 16 }} />}
             iconPosition="start"
             label={t('dashboard.tabs.planning') || 'Planning'}
             {...a11yProps(0)}
           />
           <Tab
-            icon={<DashboardIcon sx={{ fontSize: 18 }} />}
+            icon={<DashboardIcon sx={{ fontSize: 16 }} />}
             iconPosition="start"
             label={t('dashboard.tabs.overview') || "Vue d'ensemble"}
             {...a11yProps(1)}
@@ -171,9 +238,9 @@ const Dashboard: React.FC = () => {
           id="dashboard-tabpanel-0"
           aria-labelledby="dashboard-tab-0"
           sx={{
-            py: 1,
-            height: 'calc(100vh - 220px)',
-            minHeight: 400,
+            pt: 1,
+            flex: 1,
+            minHeight: 0,
             display: 'flex',
             flexDirection: 'column',
           }}
@@ -181,27 +248,23 @@ const Dashboard: React.FC = () => {
           {isHost && user?.forfait?.toLowerCase() === 'essentiel' && (
             <UpgradeBanner currentForfait={user.forfait} />
           )}
-          <DashboardPlanning forfait={user?.forfait} />
+          <DashboardPlanning
+            forfait={user?.forfait}
+            zoomLevel={zoomLevel}
+            onZoomChange={setZoomLevel}
+          />
         </Box>
       )}
 
-      {/* ─── Tab 1: Vue d'ensemble (wrapped with DashboardDataProvider) ── */}
+      {/* ─── Tab 1: Vue d'ensemble ─────────────────────────────────────── */}
       {tabValue === 1 && (
         <Box
           role="tabpanel"
           id="dashboard-tabpanel-1"
           aria-labelledby="dashboard-tab-1"
+          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
         >
-          <DashboardDataProvider
-            userRole={userRole}
-            user={user}
-            t={t}
-            isAdmin={isAdmin}
-            isManager={isManager}
-            isHost={isHost}
-          >
-            <DashboardOverviewContent />
-          </DashboardDataProvider>
+          <DashboardOverviewContent period={period} />
         </Box>
       )}
 

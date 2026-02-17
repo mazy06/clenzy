@@ -18,6 +18,21 @@ export const propertySchema = z.object({
   ownerId: z.number().min(1, 'Le propriétaire est requis'),
   defaultCheckInTime: z.string().default('15:00'),
   defaultCheckOutTime: z.string().default('11:00'),
+  // Tarification ménage
+  cleaningBasePrice: z.number().min(0, 'Doit être positif').optional(),
+  numberOfFloors: z.number().int().min(0, 'Doit être positif').optional(),
+  hasExterior: z.boolean().default(false),
+  hasLaundry: z.boolean().default(true),
+  // Prestations à la carte
+  windowCount: z.number().int().min(0).default(0),
+  frenchDoorCount: z.number().int().min(0).default(0),
+  slidingDoorCount: z.number().int().min(0).default(0),
+  hasIroning: z.boolean().default(false),
+  hasDeepKitchen: z.boolean().default(false),
+  hasDisinfection: z.boolean().default(false),
+  // Équipements
+  amenities: z.array(z.string()).default([]),
+  cleaningNotes: z.string().optional(),
 });
 
 export type PropertyFormValues = z.infer<typeof propertySchema>;

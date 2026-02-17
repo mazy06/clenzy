@@ -22,6 +22,21 @@ export interface Property {
   ownerName?: string;
   defaultCheckInTime?: string;
   defaultCheckOutTime?: string;
+  // Tarification ménage
+  cleaningBasePrice?: number;
+  cleaningDurationMinutes?: number;
+  numberOfFloors?: number;
+  hasExterior?: boolean;
+  hasLaundry?: boolean;
+  // Prestations à la carte
+  windowCount?: number;
+  frenchDoorCount?: number;
+  slidingDoorCount?: number;
+  hasIroning?: boolean;
+  hasDeepKitchen?: boolean;
+  hasDisinfection?: boolean;
+  amenities?: string[];
+  cleaningNotes?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -42,6 +57,22 @@ export interface PropertyFormData {
   maxGuests: number;
   cleaningFrequency: string;
   ownerId: number;
+  defaultCheckInTime?: string;
+  defaultCheckOutTime?: string;
+  // Tarification ménage
+  cleaningBasePrice?: number;
+  numberOfFloors?: number;
+  hasExterior?: boolean;
+  hasLaundry?: boolean;
+  // Prestations à la carte
+  windowCount?: number;
+  frenchDoorCount?: number;
+  slidingDoorCount?: number;
+  hasIroning?: boolean;
+  hasDeepKitchen?: boolean;
+  hasDisinfection?: boolean;
+  amenities?: string[];
+  cleaningNotes?: string;
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────

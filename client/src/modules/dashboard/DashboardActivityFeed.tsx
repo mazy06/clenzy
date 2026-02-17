@@ -20,36 +20,106 @@ import {
   ArrowForward
 } from '@mui/icons-material';
 import type { NavigateFunction } from 'react-router-dom';
-import { useDashboardData } from '../../hooks/useDashboardData';
-import type { ActivityItem } from '../../hooks/useDashboardData';
+import type { ActivityItem } from '../../hooks/useDashboardOverview';
 
 type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
 
 interface DashboardActivityFeedProps {
+  activities: ActivityItem[];
+  loading: boolean;
   navigate: NavigateFunction;
   t: TranslationFn;
 }
+
+// ─── Stable sx constants ────────────────────────────────────────────────────
+
+const CARD_CONTENT_SX = {
+  p: 1.25, '&:last-child': { pb: 1.25 },
+  flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+} as const;
+
+const SECTION_TITLE_SX = {
+  fontSize: '0.75rem',
+  fontWeight: 700,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.04em',
+  color: 'text.secondary',
+} as const;
+
+const VIEW_ALL_SX = {
+  textTransform: 'none',
+  fontSize: '0.75rem',
+  fontWeight: 600,
+  py: 0.25,
+  px: 0.75,
+  minWidth: 'auto',
+  letterSpacing: '0.01em',
+} as const;
+
+const ICON_SIZE = 16;
+
+const TIMELINE_DOT_SX = {
+  width: 28,
+  height: 28,
+  borderRadius: '50%',
+  bgcolor: 'background.paper',
+  border: '1px solid',
+  borderColor: 'divider',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 1,
+} as const;
+
+const ITEM_TITLE_SX = {
+  fontSize: '0.8125rem',
+  fontWeight: 500,
+  lineHeight: 1.4,
+  letterSpacing: '-0.01em',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+} as const;
+
+const ITEM_SUB_SX = {
+  fontSize: '0.6875rem',
+  display: 'block',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  letterSpacing: '0.01em',
+} as const;
+
+const STATUS_CHIP_SX = {
+  fontSize: '0.625rem',
+  height: 22,
+  flexShrink: 0,
+  borderWidth: 1,
+  letterSpacing: '0.02em',
+  textTransform: 'uppercase' as const,
+  '& .MuiChip-label': { px: 0.625 },
+} as const;
 
 /** Get icon component based on the activity category and status */
 const getActivityIcon = (activity: ActivityItem) => {
   switch (activity.category) {
     case 'property':
-      return <HomeWork sx={{ fontSize: 16, color: 'primary.main' }} />;
+      return <HomeWork sx={{ fontSize: ICON_SIZE, color: 'primary.main' }} />;
     case 'service-request':
-      return <RequestQuote sx={{ fontSize: 16, color: 'secondary.main' }} />;
+      return <RequestQuote sx={{ fontSize: ICON_SIZE, color: 'secondary.main' }} />;
     case 'intervention':
       if (activity.status === 'completed') {
-        return <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />;
+        return <CheckCircle sx={{ fontSize: ICON_SIZE, color: 'success.main' }} />;
       } else if (activity.status === 'urgent' || activity.status === 'in_progress') {
-        return <Build sx={{ fontSize: 16, color: 'warning.main' }} />;
+        return <Build sx={{ fontSize: ICON_SIZE, color: 'warning.main' }} />;
       }
-      return <Assignment sx={{ fontSize: 16, color: 'info.main' }} />;
+      return <Assignment sx={{ fontSize: ICON_SIZE, color: 'info.main' }} />;
     case 'user':
-      return <PersonAdd sx={{ fontSize: 16, color: 'primary.main' }} />;
+      return <PersonAdd sx={{ fontSize: ICON_SIZE, color: 'primary.main' }} />;
     case 'team':
-      return <GroupAdd sx={{ fontSize: 16, color: 'secondary.main' }} />;
+      return <GroupAdd sx={{ fontSize: ICON_SIZE, color: 'secondary.main' }} />;
     default:
-      return <Notifications sx={{ fontSize: 16, color: 'primary.main' }} />;
+      return <Notifications sx={{ fontSize: ICON_SIZE, color: 'primary.main' }} />;
   }
 };
 
@@ -73,30 +143,24 @@ const getStatusColor = (status: ActivityItem['status']): 'success' | 'error' | '
 };
 
 const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = React.memo(({
+  activities,
+  loading,
   navigate,
   t
 }) => {
-  const { activities, loading } = useDashboardData();
-
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 }, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexShrink: 0 }}>
-          <Typography variant="subtitle2" sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+      <CardContent sx={CARD_CONTENT_SX}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75, flexShrink: 0 }}>
+          <Typography variant="subtitle2" sx={SECTION_TITLE_SX}>
             {t('dashboard.activityFeed.title')}
           </Typography>
           <Button
             variant="text"
             size="small"
-            endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+            endIcon={<ArrowForward sx={{ fontSize: 12 }} />}
             onClick={() => navigate('/dashboard/activities')}
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.75rem',
-              py: 0.25,
-              px: 0.75,
-              minWidth: 'auto',
-            }}
+            sx={VIEW_ALL_SX}
           >
             {t('dashboard.activityFeed.viewAll')}
           </Button>
@@ -104,11 +168,11 @@ const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = React.memo((
 
         {loading ? (
           Array.from({ length: 4 }).map((_, index) => (
-            <Box key={index} sx={{ display: 'flex', gap: 1, mb: 1 }}>
-              <Skeleton variant="circular" width={28} height={28} />
+            <Box key={index} sx={{ display: 'flex', gap: 0.75, mb: 0.75 }}>
+              <Skeleton variant="circular" width={26} height={26} />
               <Box sx={{ flex: 1 }}>
-                <Skeleton variant="text" width="70%" height={16} />
-                <Skeleton variant="text" width="50%" height={12} />
+                <Skeleton variant="text" width="70%" height={14} />
+                <Skeleton variant="text" width="50%" height={10} />
               </Box>
             </Box>
           ))
@@ -121,46 +185,15 @@ const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = React.memo((
             {activities.slice(0, 4).map((activity, index, arr) => (
               <Box
                 key={`${activity.id}-${index}`}
-                sx={{
-                  display: 'flex',
-                  gap: 1,
-                  position: 'relative',
-                }}
+                sx={{ display: 'flex', gap: 0.75, position: 'relative' }}
               >
                 {/* Timeline connector and icon */}
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      bgcolor: 'background.paper',
-                      border: '1.5px solid',
-                      borderColor: 'divider',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 1,
-                    }}
-                  >
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                  <Box sx={TIMELINE_DOT_SX}>
                     {getActivityIcon(activity)}
                   </Box>
                   {index < arr.length - 1 && (
-                    <Box
-                      sx={{
-                        width: 1.5,
-                        flex: 1,
-                        bgcolor: 'divider',
-                        minHeight: 12,
-                      }}
-                    />
+                    <Box sx={{ width: 1, flex: 1, bgcolor: 'divider', minHeight: 10 }} />
                   )}
                 </Box>
 
@@ -168,30 +201,10 @@ const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = React.memo((
                 <Box sx={{ flex: 1, pb: index < arr.length - 1 ? 0.5 : 0, minWidth: 0 }}>
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 0.5 }}>
                     <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontSize: '0.75rem',
-                          fontWeight: 500,
-                          lineHeight: 1.4,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      <Typography variant="body2" sx={ITEM_TITLE_SX}>
                         {activity.type}
                       </Typography>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{
-                          fontSize: '0.625rem',
-                          display: 'block',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      <Typography variant="caption" color="text.secondary" sx={ITEM_SUB_SX}>
                         {activity.property} &bull; {activity.time}
                       </Typography>
                     </Box>
@@ -200,7 +213,7 @@ const DashboardActivityFeed: React.FC<DashboardActivityFeedProps> = React.memo((
                       size="small"
                       variant="outlined"
                       color={getStatusColor(activity.status)}
-                      sx={{ fontSize: '0.625rem', height: 22, flexShrink: 0, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                      sx={STATUS_CHIP_SX}
                     />
                   </Box>
                 </Box>
