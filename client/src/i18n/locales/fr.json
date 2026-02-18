@@ -416,6 +416,7 @@
     "cleaningEstimate": "Estimation ménage",
     "cleaningEstimateTooltip": "Estimation indicative du coût de l'intervention ménage. Le tarif définitif est soumis à l'acceptation du prestataire.",
     "cleaningDurationTooltip": "Durée estimée de l'intervention ménage basée sur les caractéristiques du logement. La durée réelle peut varier.",
+    "defaultTimesTooltip": "Horaires par défaut — Départ : {{checkOut}} / Arrivée : {{checkIn}}",
     "activeFeatures": "Options actives"
   },
   "serviceRequests": {
@@ -461,10 +462,12 @@
       "detailedDescription": "Description détaillée",
       "descriptionPlaceholder": "Décrivez en détail la demande de service...",
       "property": "Propriété",
+      "selectProperty": "Sélectionner un logement...",
       "priority": "Priorité",
       "estimatedDuration": "Durée estimée",
       "dueDate": "Date d'échéance",
       "requestor": "Demandeur",
+      "selectRequestor": "Sélectionner un demandeur...",
       "requestorHelper": "Le demandeur est automatiquement défini selon votre rôle",
       "assignmentType": "Type d'assignation",
       "noAssignment": "Aucune assignation",
@@ -554,7 +557,10 @@
     "planning": "Planification",
     "peopleInvolved": "Personnes impliquées",
     "noDate": "Non définie",
-    "invalidDate": "Date invalide"
+    "invalidDate": "Date invalide",
+    "notFound": "Demande de service non trouvée",
+    "team": "Équipe",
+    "approvedDateShort": "Approuvé le"
   },
   "interventions": {
     "title": "Interventions",
@@ -1309,6 +1315,20 @@
       "full": "Automatisation complète",
       "basicHelp": "Notifications et rappels automatiques",
       "fullHelp": "Gestion complète automatisée (check-in/out, facturation, etc.)"
+    },
+    "forfaits": {
+      "CLEANING": {
+        "title": "Forfait Standard",
+        "subtitle": "Configuration du forfait nettoyage standard"
+      },
+      "EXPRESS_CLEANING": {
+        "title": "Forfait Express",
+        "subtitle": "Configuration du forfait nettoyage express"
+      },
+      "DEEP_CLEANING": {
+        "title": "Forfait En profondeur",
+        "subtitle": "Configuration du forfait nettoyage en profondeur"
+      }
     }
   }
 }

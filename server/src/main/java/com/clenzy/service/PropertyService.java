@@ -210,6 +210,9 @@ public class PropertyService {
             }
         }
         property.setCleaningNotes(dto.cleaningNotes);
+        // Horaires par défaut
+        if (dto.defaultCheckInTime != null) property.setDefaultCheckInTime(dto.defaultCheckInTime);
+        if (dto.defaultCheckOutTime != null) property.setDefaultCheckOutTime(dto.defaultCheckOutTime);
         // Durée calculée automatiquement
         property.setCleaningDurationMinutes(computeCleaningDuration(property));
         if (dto.ownerId != null) {
@@ -268,6 +271,8 @@ public class PropertyService {
                 dto.amenities = new ArrayList<>();
             }
             dto.cleaningNotes = p.getCleaningNotes();
+            dto.defaultCheckInTime = p.getDefaultCheckInTime();
+            dto.defaultCheckOutTime = p.getDefaultCheckOutTime();
 
             // Gestion sécurisée de la relation owner (lazy loading)
             try {

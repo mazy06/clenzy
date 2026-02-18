@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
+  Paper,
   Typography,
   Button,
   Alert,
@@ -11,9 +10,12 @@ import {
 import { ArrowBack } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { serviceRequestsApi, propertiesApi, usersApi, teamsApi } from '../../services/api';
+import { serviceRequestsApi, propertiesApi, usersApi, teamsApi, reservationsApi } from '../../services/api';
+import type { Reservation } from '../../services/api';
 import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
+import { pricingConfigApi, DEFAULT_FORFAIT_CONFIGS } from '../../services/api/pricingConfigApi';
+import type { ForfaitConfig } from '../../services/api/pricingConfigApi';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { serviceRequestSchema } from '../../schemas';
@@ -23,6 +25,7 @@ import ServiceRequestFormInfo from './ServiceRequestFormInfo';
 import ServiceRequestFormProperty from './ServiceRequestFormProperty';
 import ServiceRequestFormPlanning from './ServiceRequestFormPlanning';
 import ServiceRequestFormAssignment from './ServiceRequestFormAssignment';
+import ServiceRequestPriceEstimate from './ServiceRequestPriceEstimate';
 
 // Types pour les demandes de service
 export interface ServiceRequestFormData {
@@ -38,14 +41,38 @@ export interface ServiceRequestFormData {
   assignedToType?: 'user' | 'team';
 }
 
-// Type pour les propriétés
+// Type pour les propriétés (tous les champs utiles pour auto-fill + estimation)
 interface Property {
   id: number;
   name: string;
   address: string;
   city: string;
   type: string;
-  ownerId?: number; // Added ownerId
+  description?: string;
+  ownerId?: number;
+  // Caractéristiques logement
+  bedroomCount?: number;
+  bathroomCount?: number;
+  squareMeters?: number;
+  maxGuests?: number;
+  // Tarification ménage
+  cleaningDurationMinutes?: number;
+  cleaningBasePrice?: number;
+  cleaningNotes?: string;
+  cleaningFrequency?: string;
+  numberOfFloors?: number;
+  hasExterior?: boolean;
+  hasLaundry?: boolean;
+  // Prestations à la carte
+  windowCount?: number;
+  frenchDoorCount?: number;
+  slidingDoorCount?: number;
+  hasIroning?: boolean;
+  hasDeepKitchen?: boolean;
+  hasDisinfection?: boolean;
+  // Check-in/out
+  defaultCheckInTime?: string;
+  defaultCheckOutTime?: string;
 }
 
 // Type pour les utilisateurs
@@ -97,6 +124,8 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   const [approvedStatus, setApprovedStatus] = useState(false);
   const [teams, setTeams] = useState<Team[]>([]);
   const [hasPermission, setHasPermission] = useState(false);
+  const [propertyReservations, setPropertyReservations] = useState<Reservation[]>([]);
+  const [forfaitConfigs, setForfaitConfigs] = useState<ForfaitConfig[]>(DEFAULT_FORFAIT_CONFIGS);
 
   // react-hook-form with Zod validation
   const { control, handleSubmit: rhfHandleSubmit, watch, setValue, reset, formState: { errors } } = useForm<ServiceRequestFormValues>({
@@ -118,6 +147,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
   // Watch fields that are needed for conditional logic
   const watchedPropertyId = watch('propertyId');
+  const watchedServiceType = watch('serviceType');
   const watchedAssignedToType = watch('assignedToType');
   const watchedAssignedToId = watch('assignedToId');
   const watchedStatus = watch('status');
@@ -219,7 +249,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     const loadProperties = async () => {
       setLoadingData(true);
       try {
-        const data = await propertiesApi.getAll();
+        const data = await propertiesApi.getAll({ size: 1000 });
         const propertiesList = ((data as unknown as { content?: Property[] }).content || data) as unknown as Property[];
         setProperties(propertiesList);
 
@@ -276,6 +306,40 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
     loadTeams();
   }, []);
+
+  // Charger la configuration des forfaits
+  useEffect(() => {
+    const loadPricingConfig = async () => {
+      try {
+        const data = await pricingConfigApi.get();
+        if (data.forfaitConfigs?.length) {
+          setForfaitConfigs(data.forfaitConfigs);
+        }
+      } catch {
+        // Fallback to defaults silently
+      }
+    };
+    loadPricingConfig();
+  }, []);
+
+  // Charger les réservations de la propriété sélectionnée
+  useEffect(() => {
+    if (!watchedPropertyId || watchedPropertyId === 0) {
+      setPropertyReservations([]);
+      return;
+    }
+
+    const loadReservations = async () => {
+      try {
+        const data = await reservationsApi.getByProperty(watchedPropertyId);
+        setPropertyReservations(data);
+      } catch (err) {
+        setPropertyReservations([]);
+      }
+    };
+
+    loadReservations();
+  }, [watchedPropertyId]);
 
   // Définir l'utilisateur par défaut selon le rôle (only in create mode)
   useEffect(() => {
@@ -394,7 +458,91 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     };
   });
 
+  // Propriété sélectionnée (pour auto-fill + coût estimé)
+  const selectedProperty = properties.find(p => p.id === watchedPropertyId) || null;
+
+  // Auto-fill form fields from selected property (create mode only)
+  // Stocke la durée exacte en fractional hours (ex: 290 min → 4.833h) pour s'aligner avec PriceEstimate
+  useEffect(() => {
+    if (isEditMode || !watchedPropertyId || watchedPropertyId === 0) return;
+
+    const prop = properties.find(p => p.id === watchedPropertyId);
+    if (!prop) return;
+
+    /** Convertir minutes → fractional hours (arrondi au millième) */
+    const minsToHours = (mins: number) => Math.round((mins / 60) * 1000) / 1000;
+
+    // Durée estimée : utiliser cleaningDurationMinutes, ou calculer depuis les caractéristiques
+    if (prop.cleaningDurationMinutes) {
+      setValue('estimatedDurationHours', minsToHours(prop.cleaningDurationMinutes));
+    } else if ((prop.bedroomCount ?? 0) > 0 || (prop.squareMeters ?? 0) > 0) {
+      // Calcul depuis les caractéristiques du logement (même algorithme que CleaningPriceEstimator / PriceEstimate)
+      const bedrooms = prop.bedroomCount ?? 1;
+      let baseMins: number;
+      if (bedrooms <= 1)      baseMins = 90;
+      else if (bedrooms === 2) baseMins = 120;
+      else if (bedrooms === 3) baseMins = 150;
+      else if (bedrooms === 4) baseMins = 180;
+      else                      baseMins = 210;
+
+      if ((prop.bathroomCount ?? 1) > 1) baseMins += ((prop.bathroomCount ?? 1) - 1) * 15;
+      if ((prop.squareMeters ?? 0) > 80) baseMins += Math.floor(((prop.squareMeters ?? 0) - 80) / 5);
+      if (prop.numberOfFloors != null && prop.numberOfFloors > 1) baseMins += (prop.numberOfFloors - 1) * 15;
+      baseMins += (prop.windowCount ?? 0) * 5;
+      baseMins += (prop.frenchDoorCount ?? 0) * 8;
+      baseMins += (prop.slidingDoorCount ?? 0) * 12;
+      if (prop.hasLaundry)      baseMins += 10;
+      if (prop.hasIroning)      baseMins += 20;
+      if (prop.hasDeepKitchen)  baseMins += 30;
+      if (prop.hasExterior)     baseMins += 25;
+      if (prop.hasDisinfection) baseMins += 40;
+
+      setValue('estimatedDurationHours', minsToHours(baseMins));
+    }
+
+  }, [watchedPropertyId, properties, isEditMode, setValue]);
+
+  // Auto-fill demandeur (userId) avec le propriétaire de la propriété sélectionnée
+  // Pour un admin/manager, on pré-sélectionne le owner de la propriété
+  // Pour un host, c'est déjà géré par le useEffect "Définir l'utilisateur par défaut selon le rôle"
+  useEffect(() => {
+    if (isEditMode || !watchedPropertyId || watchedPropertyId === 0) return;
+
+    const prop = properties.find(p => p.id === watchedPropertyId);
+    if (!prop?.ownerId) return;
+
+    // Trouver le propriétaire dans la liste des utilisateurs
+    const owner = users.find(u => u.id.toString() === prop.ownerId?.toString());
+    if (owner) {
+      setValue('userId', owner.id);
+    }
+  }, [watchedPropertyId, properties, users, isEditMode, setValue]);
+
+  // Déterminer le forfait sélectionné en fonction du type de service
+  const selectedForfaitKey = useMemo(() => {
+    if (!watchedServiceType) return undefined;
+    const match = forfaitConfigs.find((f) =>
+      (f.serviceTypes || []).includes(watchedServiceType)
+    );
+    return match?.key;
+  }, [watchedServiceType, forfaitConfigs]);
+
+  // Équipes éligibles selon le forfait sélectionné
+  const eligibleTeamIds = useMemo(() => {
+    if (!selectedForfaitKey) return undefined;
+    const forfait = forfaitConfigs.find((f) => f.key === selectedForfaitKey);
+    if (!forfait || !forfait.eligibleTeamIds?.length) return undefined;
+    return forfait.eligibleTeamIds;
+  }, [selectedForfaitKey, forfaitConfigs]);
+
+  // Prestations incluses / en supplément du forfait sélectionné
+  const selectedForfait = useMemo(() => {
+    if (!selectedForfaitKey) return undefined;
+    return forfaitConfigs.find((f) => f.key === selectedForfaitKey);
+  }, [selectedForfaitKey, forfaitConfigs]);
+
   const isAdminOrManager = isAdmin() || isManager();
+  const isPropertySelected = !!watchedPropertyId && watchedPropertyId !== 0;
 
   // ─── Guards (all hooks are above this line) ──────────────────────────────
 
@@ -432,67 +580,106 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     <Box>
       {/* Messages d'erreur/succès */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
+        <Alert severity="error" sx={{ mb: 1.5, py: 0.75, fontSize: '0.8125rem' }}>
           {error}
         </Alert>
       )}
 
       {isEditMode && success && (
-        <Alert severity="success" sx={{ mb: 2, py: 1 }}>
+        <Alert severity="success" sx={{ mb: 1.5, py: 0.75, fontSize: '0.8125rem' }}>
           {t('serviceRequests.updateRequestSuccess')}
         </Alert>
       )}
 
+      {/* Estimation prix — tout en haut, toujours visible */}
+      <Box sx={{ flexShrink: 0, mb: 1.5 }}>
+        <ServiceRequestPriceEstimate
+          property={selectedProperty}
+          forfaitConfigs={forfaitConfigs}
+          selectedForfaitKey={selectedForfaitKey}
+        />
+      </Box>
+
       {/* Formulaire */}
-      <Card sx={{ mt: 2 }}>
-        <CardContent sx={{ p: 2 }}>
-          <form onSubmit={rhfHandleSubmit(onSubmit)}>
-            <ServiceRequestFormInfo
-              control={control}
-              errors={errors}
-            />
+      <form onSubmit={rhfHandleSubmit(onSubmit)}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+          {/* ─── Colonne gauche (7) : Propriété + Infos ─── */}
+          <Box sx={{ flex: 7, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0 }}>
+            {/* 1. Propriété — en premier pour auto-fill */}
+            <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2 }}>
+              <ServiceRequestFormProperty
+                control={control}
+                errors={errors}
+                properties={properties}
+                users={users}
+                isAdminOrManager={isAdminOrManager}
+                selectedProperty={selectedProperty}
+              />
+            </Paper>
 
-            <ServiceRequestFormProperty
-              control={control}
-              errors={errors}
-              properties={properties}
-              users={users}
-              isAdminOrManager={isAdminOrManager}
-            />
+            {/* 2. Informations de base */}
+            <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2, opacity: isPropertySelected ? 1 : 0.5, pointerEvents: isPropertySelected ? 'auto' : 'none', transition: 'opacity 0.2s ease' }}>
+              <ServiceRequestFormInfo
+                control={control}
+                errors={errors}
+                setValue={setValue}
+                watchedServiceType={watchedServiceType}
+                disabled={!isPropertySelected}
+                propertyDescription={selectedProperty?.description}
+                cleaningNotes={selectedProperty?.cleaningNotes}
+                selectedProperty={selectedProperty}
+                includedPrestations={selectedForfait?.includedPrestations}
+                extraPrestations={selectedForfait?.extraPrestations}
+              />
+            </Paper>
+          </Box>
 
-            <ServiceRequestFormPlanning
-              control={control}
-              errors={errors}
-            />
+          {/* ─── Colonne droite (5) : Planification + Assignation ─── */}
+          <Box sx={{ flex: 5, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0, opacity: isPropertySelected ? 1 : 0.5, pointerEvents: isPropertySelected ? 'auto' : 'none', transition: 'opacity 0.2s ease' }}>
+            {/* 3. Planification */}
+            <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2 }}>
+              <ServiceRequestFormPlanning
+                control={control}
+                errors={errors}
+                setValue={setValue}
+                disabled={!isPropertySelected}
+                isAdminOrManager={isAdminOrManager}
+                reservations={propertyReservations}
+              />
+            </Paper>
 
-            {/* Assignation et statut */}
-            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
-              {t('serviceRequests.sections.requestorAssignment')}
-            </Typography>
+            {/* 4. Assignation et statut */}
+            <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2 }}>
+              <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary', mb: 1.5 }}>
+                {t('serviceRequests.sections.requestorAssignment')}
+              </Typography>
 
-            <ServiceRequestFormAssignment
-              control={control}
-              errors={errors}
-              setValue={setValue}
-              users={users}
-              teams={teams}
-              canAssignForProperty={canAssignForProperty}
-              watchedAssignedToType={watchedAssignedToType}
-              isEditMode={isEditMode}
-            />
+              <ServiceRequestFormAssignment
+                control={control}
+                errors={errors}
+                setValue={setValue}
+                users={users}
+                teams={teams}
+                canAssignForProperty={canAssignForProperty}
+                watchedAssignedToType={watchedAssignedToType}
+                watchedServiceType={watchedServiceType}
+                isEditMode={isEditMode}
+                disabled={!isPropertySelected}
+                eligibleTeamIds={eligibleTeamIds}
+              />
+            </Paper>
+          </Box>
+        </Box>
+      </form>
 
-          </form>
-
-          {/* Bouton de soumission caché pour le PageHeader */}
-          <Button
-            type="submit"
-            sx={{ display: 'none' }}
-            data-submit-service-request
-          >
-            Soumettre
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Bouton de soumission caché pour le PageHeader */}
+      <Button
+        type="submit"
+        sx={{ display: 'none' }}
+        data-submit-service-request
+      >
+        Soumettre
+      </Button>
     </Box>
   );
 };

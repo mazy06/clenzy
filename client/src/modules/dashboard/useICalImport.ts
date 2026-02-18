@@ -4,7 +4,7 @@ import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
 import { usersApi } from '../../services/api/usersApi';
 import { planningKeys } from '../../hooks/useDashboardPlanning';
-import type { ICalPreviewRequest, ICalImportRequest } from '../../services/api/iCalApi';
+import type { ICalPreviewRequest, ICalImportRequest, ICalFeed } from '../../services/api/iCalApi';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -20,6 +20,7 @@ export interface ICalOwner {
 export const iCalKeys = {
   all: ['ical'] as const,
   access: () => [...iCalKeys.all, 'access'] as const,
+  feeds: () => [...iCalKeys.all, 'feeds'] as const,
   properties: () => [...iCalKeys.all, 'properties'] as const,
   owners: () => [...iCalKeys.all, 'owners'] as const,
 };
@@ -33,6 +34,15 @@ export function useICalAccess(enabled: boolean) {
     queryFn: () => iCalApi.checkAccess(),
     enabled,
     staleTime: 5 * 60 * 1000, // 5 min — forfait doesn't change often
+  });
+}
+
+/** Load existing iCal feeds to display connected source icons */
+export function useICalFeeds() {
+  return useQuery<ICalFeed[]>({
+    queryKey: iCalKeys.feeds(),
+    queryFn: () => iCalApi.getFeeds(),
+    staleTime: 2 * 60 * 1000,
   });
 }
 

@@ -77,6 +77,39 @@ export function formatRelativeDate(
   }
 }
 
+/**
+ * Format a date to a short localised format (dd MMM.).
+ * Example: "14 fev." — used by PropertyCard & ServiceRequestCard badge bars.
+ */
+export function formatShortDate(dateString: string | undefined | null): string {
+  if (!dateString) return '';
+  try {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+    });
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Extract the time part from a datetime string → "14h30" or "9h".
+ * Returns '' if the time is midnight (00:00) or the input is falsy.
+ */
+export function formatTimeFromDate(dateString: string | undefined | null): string {
+  if (!dateString) return '';
+  try {
+    const d = new Date(dateString);
+    const h = d.getHours();
+    const m = d.getMinutes();
+    if (h === 0 && m === 0) return ''; // midnight = no meaningful time
+    return m > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`;
+  } catch {
+    return '';
+  }
+}
+
 // ─── Duration formatting ────────────────────────────────────────────────────
 
 /**

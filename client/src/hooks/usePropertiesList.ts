@@ -38,6 +38,8 @@ export interface PropertyListItem {
   numberOfFloors?: number;
   hasExterior?: boolean;
   hasLaundry?: boolean;
+  defaultCheckInTime?: string;
+  defaultCheckOutTime?: string;
 }
 
 // ============================================================================
@@ -84,6 +86,8 @@ function convertProperty(raw: ApiProperty): PropertyListItem {
     numberOfFloors: raw.numberOfFloors,
     hasExterior: raw.hasExterior,
     hasLaundry: raw.hasLaundry,
+    defaultCheckInTime: raw.defaultCheckInTime,
+    defaultCheckOutTime: raw.defaultCheckOutTime,
   };
 }
 

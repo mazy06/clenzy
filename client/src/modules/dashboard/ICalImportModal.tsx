@@ -48,6 +48,13 @@ import {
   useICalImport,
 } from './useICalImport';
 
+// ─── Source logos ─────────────────────────────────────────────────────────────
+import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.png';
+import bookingLogoSmall from '../../assets/logo/booking-logo-small.svg';
+import homeAwayLogo from '../../assets/logo/HomeAway-logo.png';
+import expediaLogo from '../../assets/logo/expedia-logo.png';
+import leboncoinLogo from '../../assets/logo/Leboncoin-logo.png';
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface ICalImportModalProps {
@@ -56,13 +63,56 @@ interface ICalImportModalProps {
   onImportSuccess?: () => void;
 }
 
-const SOURCES = [
-  { value: 'Airbnb', label: 'Airbnb' },
-  { value: 'Booking.com', label: 'Booking.com' },
-  { value: 'Vrbo', label: 'Vrbo' },
-  { value: 'Google Calendar', label: 'Google Calendar' },
-  { value: 'Autre', label: 'Autre' },
+interface SourceDef {
+  value: string;
+  label: string;
+  logo?: string;
+  patterns: string[];
+}
+
+const SOURCES: SourceDef[] = [
+  { value: 'Airbnb', label: 'Airbnb', logo: airbnbLogoSmall, patterns: ['airbnb.fr', 'airbnb.com', 'airbnb.co'] },
+  { value: 'Booking.com', label: 'Booking.com', logo: bookingLogoSmall, patterns: ['booking.com', 'admin.booking'] },
+  { value: 'Vrbo', label: 'Vrbo', logo: homeAwayLogo, patterns: ['vrbo.com', 'homeaway.com', 'abritel.fr'] },
+  { value: 'Expedia', label: 'Expedia', logo: expediaLogo, patterns: ['expedia.com', 'expedia.fr'] },
+  { value: 'Leboncoin', label: 'Leboncoin', logo: leboncoinLogo, patterns: ['leboncoin.fr'] },
+  { value: 'Google Calendar', label: 'Google Calendar', logo: undefined, patterns: ['google.com/calendar', 'calendar.google'] },
+  { value: 'Autre', label: 'Autre', logo: undefined, patterns: [] },
 ];
+
+/** Detect the source platform from an iCal URL */
+function detectSourceFromUrl(url: string): SourceDef {
+  const lower = url.toLowerCase();
+  for (const source of SOURCES) {
+    if (source.patterns.some(p => lower.includes(p))) return source;
+  }
+  return SOURCES[SOURCES.length - 1]; // 'Autre'
+}
+
+/** Small circular logo for source display */
+const SourceLogoIcon: React.FC<{ logo?: string; label: string; size?: number }> = ({ logo, label, size = 20 }) => {
+  if (!logo) return null;
+  const imgSize = size * 0.7;
+  return (
+    <Box
+      sx={{
+        width: size,
+        height: size,
+        minWidth: size,
+        borderRadius: '50%',
+        border: '1.5px solid',
+        borderColor: 'divider',
+        backgroundColor: '#fff',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      <img src={logo} alt={label} width={imgSize} height={imgSize} style={{ objectFit: 'contain', borderRadius: '50%' }} />
+    </Box>
+  );
+};
 
 const STEPS = ['Configuration', 'Aperçu', 'Résultat'];
 
@@ -172,8 +222,11 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
   const [url, setUrl] = useState('');
   const [ownerId, setOwnerId] = useState<number | ''>('');
   const [propertyId, setPropertyId] = useState<number | ''>('');
-  const [sourceName, setSourceName] = useState('Airbnb');
   const [autoCreateInterventions, setAutoCreateInterventions] = useState(false);
+
+  // Auto-detected source from URL
+  const detectedSource = detectSourceFromUrl(url);
+  const sourceName = detectedSource.value;
 
   // Step 2: Preview
   const [preview, setPreview] = useState<ICalPreviewResponse | null>(null);
@@ -252,7 +305,6 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
     setUrl('');
     setOwnerId(isHost() && !canChangeOwner && user?.id ? Number(user.id) : '');
     setPropertyId('');
-    setSourceName('Airbnb');
     setAutoCreateInterventions(false);
     setPreview(null);
     setImportResult(null);
@@ -415,22 +467,29 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           />
         )}
 
-        {/* Source */}
-        <FormControl fullWidth disabled={!hasAccess} size="small" sx={SX_FIELD}>
-          <InputLabel>Source</InputLabel>
-          <Select
-            value={sourceName}
-            label="Source"
-            onChange={(e) => setSourceName(e.target.value)}
-            sx={SX_SELECT}
-          >
-            {SOURCES.map((s) => (
-              <MenuItem key={s.value} value={s.value} sx={{ fontSize: '0.8125rem' }}>
-                {s.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        {/* Source (auto-detected from URL) */}
+        <TextField
+          label="Source"
+          value={detectedSource.label}
+          fullWidth
+          disabled
+          size="small"
+          sx={{
+            ...SX_FIELD,
+            '& .MuiInputBase-input.Mui-disabled': {
+              WebkitTextFillColor: 'rgba(0,0,0,0.7)',
+              fontWeight: 600,
+            },
+          }}
+          InputProps={{
+            startAdornment: detectedSource.logo ? (
+              <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
+                <SourceLogoIcon logo={detectedSource.logo} label={detectedSource.label} size={22} />
+              </Box>
+            ) : undefined,
+          }}
+          helperText="Détecté automatiquement depuis l'URL"
+        />
 
         {/* Propriete */}
         <FormControl fullWidth required disabled={!hasAccess || (canChangeOwner && !ownerId)} size="small" sx={SX_FIELD}>
@@ -488,7 +547,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           Ménage automatique
         </Typography>
         <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
-          — Planifie un ménage le jour du checkout à 11h00
+          — Planifie un ménage le jour du checkout à l'heure de départ du voyageur
         </Typography>
       </Box>
 
@@ -602,7 +661,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             <SyncIcon sx={{ fontSize: 18, color: 'primary.main', mt: 0.25 }} />
             <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
               {totalCount} intervention{totalCount > 1 ? 's' : ''} de ménage
-              {totalCount > 1 ? ' seront' : ' sera'} automatiquement planifiée{totalCount > 1 ? 's' : ''} à 11h00 chaque jour de checkout.
+              {totalCount > 1 ? ' seront' : ' sera'} automatiquement planifiée{totalCount > 1 ? 's' : ''} à l'heure de départ du voyageur, le jour du checkout.
             </Typography>
           </Box>
         )}

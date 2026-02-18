@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  CleaningServices,
+  AutoAwesome,
   Build,
   Category,
 } from '@mui/icons-material';
@@ -27,6 +27,7 @@ export interface ServiceRequest {
   assignedToName?: string;
   assignedToType?: 'user' | 'team';
   estimatedDuration: number;
+  estimatedCost?: number;
   dueDate: string;
   createdAt: string;
   approvedAt?: string; // Date d'approbation pour calculer le delai d'annulation
@@ -63,6 +64,7 @@ export interface ServiceRequestApiResponse {
   assignedToType?: string;
   estimatedDurationHours?: number;
   estimatedDuration?: number;
+  estimatedCost?: number;
   desiredDate?: string;
   dueDate?: string;
   createdAt: string;
@@ -82,13 +84,13 @@ export const priorityColors = Object.fromEntries(
 ) as Record<Priority, string>;
 
 export const typeIcons: Record<string, React.ReactElement> = {
-  CLEANING: React.createElement(CleaningServices),
-  EXPRESS_CLEANING: React.createElement(CleaningServices),
-  DEEP_CLEANING: React.createElement(CleaningServices),
-  WINDOW_CLEANING: React.createElement(CleaningServices),
-  FLOOR_CLEANING: React.createElement(CleaningServices),
-  KITCHEN_CLEANING: React.createElement(CleaningServices),
-  BATHROOM_CLEANING: React.createElement(CleaningServices),
+  CLEANING: React.createElement(AutoAwesome),
+  EXPRESS_CLEANING: React.createElement(AutoAwesome),
+  DEEP_CLEANING: React.createElement(AutoAwesome),
+  WINDOW_CLEANING: React.createElement(AutoAwesome),
+  FLOOR_CLEANING: React.createElement(AutoAwesome),
+  KITCHEN_CLEANING: React.createElement(AutoAwesome),
+  BATHROOM_CLEANING: React.createElement(AutoAwesome),
   PREVENTIVE_MAINTENANCE: React.createElement(Build),
   EMERGENCY_REPAIR: React.createElement(Build),
   ELECTRICAL_REPAIR: React.createElement(Build),
@@ -96,9 +98,9 @@ export const typeIcons: Record<string, React.ReactElement> = {
   HVAC_REPAIR: React.createElement(Build),
   APPLIANCE_REPAIR: React.createElement(Build),
   GARDENING: React.createElement(Build),
-  EXTERIOR_CLEANING: React.createElement(CleaningServices),
+  EXTERIOR_CLEANING: React.createElement(AutoAwesome),
   PEST_CONTROL: React.createElement(Build),
-  DISINFECTION: React.createElement(CleaningServices),
+  DISINFECTION: React.createElement(AutoAwesome),
   RESTORATION: React.createElement(Build),
   OTHER: React.createElement(Category),
 };

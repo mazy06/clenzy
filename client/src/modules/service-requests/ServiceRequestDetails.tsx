@@ -4,15 +4,13 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  IconButton,
   Button,
-  Card,
-  CardContent,
   Grid,
   Chip,
+  Paper,
+  Divider,
 } from '@mui/material';
 import {
-  ArrowBack,
   Edit,
   LocationOn,
   Person,
@@ -22,14 +20,21 @@ import {
   CalendarToday,
   AccessTime,
   Assignment,
-  CleaningServices,
+  AutoAwesome,
   Build,
   Group,
   CheckCircle,
+  Flag,
+  CalendarMonth,
+  Yard,
+  BugReport,
+  AutoFixHigh,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { serviceRequestsApi } from '../../services/api';
+import { useServiceRequestDetails } from '../../hooks/useServiceRequestDetails';
+import type { ServiceRequestDetailsData } from '../../hooks/useServiceRequestDetails';
+import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatDateTime, formatDuration } from '../../utils/formatUtils';
 import {
@@ -40,225 +45,165 @@ import {
   getInterventionTypeLabel,
 } from '../../utils/statusUtils';
 
-const styles = {
-  loadingBox: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '50vh',
-  },
-  headerBar: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    mb: 2,
-  },
-  headerLeft: {
-    display: 'flex',
-    alignItems: 'center',
-  },
-  summaryHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    mb: 2,
-  },
-  titleRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 1,
-  },
-  chipRow: {
-    display: 'flex',
-    gap: 0.5,
-  },
-  chipSmall: {
-    height: 24,
-    fontSize: '0.75rem',
-    borderWidth: 1.5,
-    '& .MuiChip-label': { px: 1 },
-  },
-  propertyRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.75,
-    mb: 2,
-  },
-  metricCenter: {
-    textAlign: 'center',
-  } as const,
-  sectionTitle: {
-    mb: 1.5,
-    color: 'primary.main',
-  },
-  fieldLabel: {
-    fontSize: '0.7rem',
-    mb: 0.5,
-    display: 'block',
-  },
-  statusRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 1,
-    mb: 1,
-  },
-  statusLabel: {
-    fontSize: '0.7rem',
-    whiteSpace: 'nowrap',
-  } as const,
-  priorityChip: {
-    height: 22,
-    fontSize: '0.7rem',
-    borderWidth: 1.5,
-    '& .MuiChip-icon': { marginLeft: '4px' },
-    '& .MuiChip-label': { px: 0.75 },
-  },
-  personRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.75,
-    mb: 1,
-  },
-  teamChip: {
-    ml: 0.5,
-    height: 22,
-    fontSize: '0.7rem',
-    borderWidth: 1.5,
-    '& .MuiChip-label': { px: 0.75 },
-  },
+// ─── Stable sx constants (aligned with PropertyDetails) ──────────────────────
+
+const METRIC_CARD_SX = {
+  p: 1.5,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  textAlign: 'center',
+  border: '1px solid',
+  borderColor: 'divider',
+  borderRadius: 1.5,
+  boxShadow: 'none',
+  minHeight: 72,
+  justifyContent: 'center',
 } as const;
 
-// Interface pour les demandes de service détaillées
-export interface ServiceRequestDetailsData {
-  id: string;
-  title: string;
-  description: string;
-  type: string;
-  status: string;
-  priority: string;
-  propertyId: number;
-  propertyName: string;
-  propertyAddress: string;
-  propertyCity: string;
-  propertyPostalCode?: string;
-  propertyCountry?: string;
-  requestorId: number;
-  requestorName: string;
-  requestorEmail?: string;
-  assignedToId?: number;
-  assignedToName?: string;
-  assignedToEmail?: string;
-  assignedToType?: 'user' | 'team';
-  estimatedDuration: number;
-  dueDate: string;
-  createdAt: string;
-  updatedAt?: string;
-  completedAt?: string;
+const METRIC_ICON_SX = {
+  fontSize: 18,
+  color: 'primary.main',
+  mb: 0.25,
+} as const;
+
+const METRIC_VALUE_SX = {
+  fontSize: '0.9375rem',
+  fontWeight: 700,
+  color: 'text.primary',
+  lineHeight: 1.2,
+} as const;
+
+const METRIC_LABEL_SX = {
+  fontSize: '0.625rem',
+  fontWeight: 500,
+  color: 'text.secondary',
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  mt: 0.25,
+} as const;
+
+const SECTION_TITLE_SX = {
+  fontSize: '0.6875rem',
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  color: 'text.secondary',
+  mb: 1,
+} as const;
+
+const INFO_ROW_SX = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 1,
+  py: 0.75,
+} as const;
+
+const INFO_LABEL_SX = {
+  fontSize: '0.6875rem',
+  fontWeight: 500,
+  color: 'text.secondary',
+} as const;
+
+const INFO_VALUE_SX = {
+  fontSize: '0.8125rem',
+  fontWeight: 500,
+  color: 'text.primary',
+} as const;
+
+const STATUS_CHIP_SX = {
+  height: 22,
+  fontSize: '0.625rem',
+  fontWeight: 600,
+  borderWidth: 1.5,
+  '& .MuiChip-label': { px: 0.75 },
+} as const;
+
+const EDIT_BUTTON_SX = {
+  textTransform: 'none',
+  fontSize: '0.75rem',
+  fontWeight: 600,
+  letterSpacing: '0.01em',
+  height: 28,
+  px: 1.5,
+  '& .MuiButton-startIcon': { mr: 0.5 },
+  '& .MuiSvgIcon-root': { fontSize: 14 },
+} as const;
+
+const CARD_SX = {
+  border: '1px solid',
+  borderColor: 'divider',
+  boxShadow: 'none',
+  borderRadius: 1.5,
+  p: 1.5,
+} as const;
+
+// ─── Type icon helper ────────────────────────────────────────────────────────
+
+function getTypeIcon(type: string) {
+  const iconSx = { fontSize: 18, color: 'primary.main', mb: 0.25 };
+  const upper = type?.toUpperCase() || '';
+
+  const cleaningTypes = [
+    'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
+    'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING',
+    'EXTERIOR_CLEANING', 'DISINFECTION',
+  ];
+  const repairTypes = [
+    'EMERGENCY_REPAIR', 'ELECTRICAL_REPAIR', 'PLUMBING_REPAIR',
+    'HVAC_REPAIR', 'APPLIANCE_REPAIR',
+  ];
+
+  if (cleaningTypes.includes(upper)) return <AutoAwesome sx={iconSx} />;
+  if (repairTypes.includes(upper)) return <Build sx={iconSx} />;
+  if (upper === 'PREVENTIVE_MAINTENANCE') return <Build sx={iconSx} />;
+  if (upper === 'GARDENING') return <Yard sx={iconSx} />;
+  if (upper === 'PEST_CONTROL') return <BugReport sx={iconSx} />;
+  if (upper === 'RESTORATION') return <AutoFixHigh sx={iconSx} />;
+  return <Category sx={iconSx} />;
 }
+
+// ─── Re-export type for backward compatibility ──────────────────────────────
+
+export type { ServiceRequestDetailsData };
+
+// ─── Main component ──────────────────────────────────────────────────────────
 
 const ServiceRequestDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
-  
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [serviceRequest, setServiceRequest] = useState<ServiceRequestDetailsData | null>(null);
-  
-  // Vérifier les permissions pour l'édition - DOIT être déclaré avant tout retour conditionnel
+
+  // ─── React Query ──────────────────────────────────────────────────────────
+  const { serviceRequest, isLoading, isError, error } = useServiceRequestDetails(id);
+
   const [canEdit, setCanEdit] = useState(false);
-  const [acceptingDevis, setAcceptingDevis] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Charger les données de la demande de service
-  useEffect(() => {
-    const loadServiceRequest = async () => {
-      if (!id) return;
-      
-      setLoading(true);
-      try {
-        const data: any = await serviceRequestsApi.getById(parseInt(id));
-        // Convertir les données du backend vers le format frontend
-        const convertedServiceRequest: ServiceRequestDetailsData = {
-          id: data.id.toString(),
-          title: data.title,
-          description: data.description,
-          type: (data.serviceType || data.type)?.toString().toLowerCase() || 'other',
-          status: data.status?.toString().toLowerCase() || 'pending',
-          priority: data.priority?.toString().toLowerCase() || 'medium',
-          propertyId: data.propertyId,
-          propertyName: data.property?.name || t('serviceRequests.unknownProperty'),
-          propertyAddress: data.property?.address || '',
-          propertyCity: data.property?.city || '',
-          propertyPostalCode: data.property?.postalCode,
-          propertyCountry: data.property?.country,
-          requestorId: data.userId || data.requestorId,
-          requestorName: data.user ? `${data.user.firstName} ${data.user.lastName}` : (data.requestor ? `${data.requestor.firstName} ${data.requestor.lastName}` : t('serviceRequests.unknownRequestor')),
-          requestorEmail: data.user?.email || data.requestor?.email,
-          assignedToId: data.assignedToId,
-          assignedToName: data.assignedToUser
-            ? `${data.assignedToUser.firstName} ${data.assignedToUser.lastName}`
-            : (data.assignedToTeam ? data.assignedToTeam.name : undefined),
-          assignedToEmail: data.assignedToUser?.email,
-          assignedToType: data.assignedToType || (data.assignedToUser ? 'user' : (data.assignedToTeam ? 'team' : undefined)),
-          estimatedDuration: data.estimatedDurationHours || data.estimatedDuration || 1,
-          dueDate: data.desiredDate || data.dueDate || '',
-          createdAt: data.createdAt || '',
-          updatedAt: data.updatedAt,
-          completedAt: data.completedAt,
-        };
-
-        setServiceRequest(convertedServiceRequest);
-      } catch (err) {
-        setError(t('serviceRequests.loadError'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadServiceRequest();
-  }, [id]);
-
-  // Vérifier les permissions pour l'édition
+  // ─── Permissions ──────────────────────────────────────────────────────────
   useEffect(() => {
     const checkPermissions = async () => {
       const canEditPermission = await hasPermissionAsync('service-requests:edit');
       setCanEdit(canEditPermission);
     };
-    
     checkPermissions();
   }, [hasPermissionAsync]);
 
-  // Fonctions utilitaires
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'cleaning':
-        return <CleaningServices />;
-      case 'maintenance':
-        return <Build />;
-      case 'repair':
-        return <Build />;
-      case 'inspection':
-        return <Assignment />;
-      default:
-        return <Category />;
-    }
-  };
+  // ─── Loading / Error states ───────────────────────────────────────────────
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <Box sx={styles.loadingBox}>
-        <CircularProgress size={32} />
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <CircularProgress size={28} />
       </Box>
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <Box sx={{ p: 2 }}>
-        <Alert severity="error" sx={{ py: 1 }}>
-          {error}
+        <Alert severity="error" sx={{ py: 0.75, fontSize: '0.8125rem' }}>
+          {error || t('serviceRequests.loadError')}
         </Alert>
       </Box>
     );
@@ -267,354 +212,314 @@ const ServiceRequestDetails: React.FC = () => {
   if (!serviceRequest) {
     return (
       <Box sx={{ p: 2 }}>
-        <Alert severity="warning" sx={{ py: 1 }}>
-          Demande de service non trouvée
+        <Alert severity="warning" sx={{ py: 0.75, fontSize: '0.8125rem' }}>
+          {t('serviceRequests.notFound')}
         </Alert>
       </Box>
     );
   }
 
-  return (
-    <Box sx={{ p: 2 }}>
-      {/* Header avec bouton retour et bouton modifier */}
-      <Box sx={styles.headerBar}>
-        <Box sx={styles.headerLeft}>
-          <IconButton
-            onClick={() => navigate('/service-requests')}
-            sx={{ mr: 1.5 }}
-            size="small"
-          >
-            <ArrowBack sx={{ fontSize: 20 }} />
-          </IconButton>
-          <Typography variant="h6" fontWeight={600}>
-            {t('serviceRequests.detailsTitle')}
-          </Typography>
-        </Box>
-        
-        {canEdit && (
-          <Button
-            variant="contained"
-            startIcon={<Edit />}
-            onClick={() => navigate(`/service-requests/${id}/edit`)}
-            size="small"
-          >
-            {t('serviceRequests.modify')}
-          </Button>
-        )}
-      </Box>
+  // ─── Render ───────────────────────────────────────────────────────────────
 
-      {/* Carte principale avec résumé */}
-      <Card sx={{ mb: 2 }}>
-        <CardContent sx={{ p: 2 }}>
-          {/* En-tête de la demande */}
-          <Box sx={styles.summaryHeader}>
-            <Box sx={styles.titleRow}>
-              <Box sx={{ fontSize: 20 }}>{getTypeIcon(serviceRequest.type)}</Box>
-              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '1rem' }}>
-                {serviceRequest.title}
-              </Typography>
-            </Box>
-            <Box sx={styles.chipRow}>
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      {/* ─── Header ────────────────────────────────────────────────────────── */}
+      <Box sx={{ flexShrink: 0 }}>
+        <PageHeader
+          title={serviceRequest.title}
+          subtitle={`${getInterventionTypeLabel(serviceRequest.type, t)} · ${serviceRequest.propertyName}`}
+          backPath="/service-requests"
+          actions={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
               <Chip
                 label={getServiceRequestStatusLabel(serviceRequest.status, t)}
                 color={getServiceRequestStatusColor(serviceRequest.status)}
                 size="small"
                 variant="outlined"
-                sx={styles.chipSmall}
+                sx={STATUS_CHIP_SX}
               />
               <Chip
                 label={getServiceRequestPriorityLabel(serviceRequest.priority, t)}
                 color={getServiceRequestPriorityColor(serviceRequest.priority)}
                 size="small"
                 variant="outlined"
-                icon={<PriorityHigh sx={{ fontSize: 14 }} />}
-                sx={styles.chipSmall}
+                icon={<PriorityHigh sx={{ fontSize: 12 }} />}
+                sx={STATUS_CHIP_SX}
               />
+              {canEdit && (
+                <Button
+                  variant="outlined"
+                  startIcon={<Edit />}
+                  onClick={() => navigate(`/service-requests/${id}/edit`)}
+                  size="small"
+                  sx={EDIT_BUTTON_SX}
+                >
+                  {t('serviceRequests.modify')}
+                </Button>
+              )}
             </Box>
-          </Box>
+          }
+        />
+      </Box>
 
-          {/* Description */}
-          <Typography variant="body2" sx={{ mb: 2, fontSize: '0.85rem' }}>
-            {serviceRequest.description}
-          </Typography>
-
-          {/* Propriété */}
-          <Box sx={styles.propertyRow}>
-            <LocationOn sx={{ fontSize: 18, color: 'text.secondary' }} />
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
-              {serviceRequest.propertyName} - {serviceRequest.propertyAddress}, {serviceRequest.propertyCity}
-              {serviceRequest.propertyPostalCode && `, ${serviceRequest.propertyPostalCode}`}
-              {serviceRequest.propertyCountry && `, ${serviceRequest.propertyCountry}`}
-            </Typography>
-          </Box>
-
-          {/* Métriques principales */}
-          <Grid container spacing={2} sx={{ mb: 0 }}>
-            <Grid item xs={6} md={3}>
-              <Box sx={styles.metricCenter}>
-                <Category sx={{ fontSize: 18, color: 'text.secondary', mb: 0.25 }} />
-                <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
-                  {getInterventionTypeLabel(serviceRequest.type, t)}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  {t('common.type')}
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Box sx={styles.metricCenter}>
-                <AccessTime sx={{ fontSize: 18, color: 'text.secondary', mb: 0.25 }} />
-                <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
-                  {formatDuration(serviceRequest.estimatedDuration)}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  {t('serviceRequests.estimatedDurationLabel')}
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Box sx={styles.metricCenter}>
-                <CalendarToday sx={{ fontSize: 18, color: 'text.secondary', mb: 0.25 }} />
-                <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
-                  {formatDateTime(serviceRequest.dueDate)}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  {t('serviceRequests.dueDateShort')}
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <Box sx={styles.metricCenter}>
-                <Schedule sx={{ fontSize: 18, color: 'text.secondary', mb: 0.25 }} />
-                <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
-                  {formatDateTime(serviceRequest.createdAt)}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  {t('serviceRequests.createdDateShort')}
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-
-      {/* Détails complets */}
-      <Card>
-        <CardContent sx={{ p: 2 }}>
-          <Grid container spacing={2}>
-            {/* Informations de base */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight={600} sx={styles.sectionTitle}>
-                {t('serviceRequests.sections.basicInfo')}
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" sx={styles.fieldLabel}>
-                {t('serviceRequests.titleLabel')}
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
-                {serviceRequest.title}
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" sx={styles.fieldLabel}>
-                {t('serviceRequests.fields.serviceType')}
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
+      {/* ─── Content ───────────────────────────────────────────────────────── */}
+      <Box sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}>
+        {/* ── Key metrics grid ──────────────────────────────────────────── */}
+        <Grid container spacing={1} sx={{ mb: 1.5 }}>
+          <Grid item xs={6} sm={4} md={2}>
+            <Box sx={{ ...METRIC_CARD_SX, borderColor: 'primary.main', bgcolor: 'primary.50' }}>
+              {getTypeIcon(serviceRequest.type)}
+              <Typography sx={{ ...METRIC_VALUE_SX, color: 'primary.main', fontSize: '0.75rem' }}>
                 {getInterventionTypeLabel(serviceRequest.type, t)}
               </Typography>
-            </Grid>
-
-            {/* Description complète */}
-            <Grid item xs={12}>
-              <Typography variant="caption" color="text.secondary" sx={styles.fieldLabel}>
-                {t('serviceRequests.fields.detailedDescription')}
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
-                {serviceRequest.description}
-              </Typography>
-            </Grid>
-
-            {/* Statut et priorité */}
-            <Grid item xs={12} md={6}>
-              <Box sx={styles.statusRow}>
-                <Typography variant="caption" color="text.secondary" sx={styles.statusLabel}>
-                  {t('serviceRequests.fields.status')}
-                </Typography>
-                <Chip
-                  label={getServiceRequestStatusLabel(serviceRequest.status, t)}
-                  color={getServiceRequestStatusColor(serviceRequest.status)}
-                  size="small"
-                  variant="outlined"
-                  sx={{ height: 22, fontSize: '0.7rem', borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
-                />
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Box sx={styles.statusRow}>
-                <Typography variant="caption" color="text.secondary" sx={styles.statusLabel}>
-                  {t('serviceRequests.fields.priority')}
-                </Typography>
-                <Chip
-                  label={`${getServiceRequestPriorityLabel(serviceRequest.priority, t)}`}
-                  color={getServiceRequestPriorityColor(serviceRequest.priority)}
-                  size="small"
-                  variant="outlined"
-                  icon={<PriorityHigh sx={{ fontSize: 14, mr: 0.5 }} />}
-                  sx={styles.priorityChip}
-                />
-              </Box>
-            </Grid>
-
-            {/* Propriété */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight={600} sx={styles.sectionTitle}>
-                Propriété concernée
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" sx={styles.fieldLabel}>
-                {t('serviceRequests.propertyNameLabel')}
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
-                {serviceRequest.propertyName}
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" sx={styles.fieldLabel}>
-                {t('serviceRequests.fullAddressLabel')}
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
-                {serviceRequest.propertyAddress}, {serviceRequest.propertyCity}
-                {serviceRequest.propertyPostalCode && `, ${serviceRequest.propertyPostalCode}`}
-                {serviceRequest.propertyCountry && `, ${serviceRequest.propertyCountry}`}
-              </Typography>
-            </Grid>
-
-            {/* Planification */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight={600} sx={styles.sectionTitle}>
-                {t('serviceRequests.planning')}
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Typography variant="caption" color="text.secondary" sx={styles.fieldLabel}>
-                {t('serviceRequests.estimatedDurationLabel')}
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
+              <Typography sx={METRIC_LABEL_SX}>{t('common.type')}</Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={6} sm={4} md={2}>
+            <Box sx={METRIC_CARD_SX}>
+              <AccessTime sx={METRIC_ICON_SX} />
+              <Typography sx={METRIC_VALUE_SX}>
                 {formatDuration(serviceRequest.estimatedDuration)}
               </Typography>
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Typography variant="caption" color="text.secondary" sx={styles.fieldLabel}>
-                {t('serviceRequests.dueDateLabel')}
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
+              <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.estimatedDurationLabel')}</Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={6} sm={4} md={2}>
+            <Box sx={METRIC_CARD_SX}>
+              <CalendarToday sx={METRIC_ICON_SX} />
+              <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '0.75rem' }}>
                 {formatDateTime(serviceRequest.dueDate)}
               </Typography>
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Typography variant="caption" color="text.secondary" sx={styles.fieldLabel}>
-                {t('serviceRequests.createdDateLabel')}
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
+              <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.dueDateShort')}</Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={6} sm={4} md={2}>
+            <Box sx={METRIC_CARD_SX}>
+              <Schedule sx={METRIC_ICON_SX} />
+              <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '0.75rem' }}>
                 {formatDateTime(serviceRequest.createdAt)}
               </Typography>
-            </Grid>
-
-            {/* Personnes impliquées */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight={600} sx={styles.sectionTitle}>
-                {t('serviceRequests.peopleInvolved')}
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" sx={styles.fieldLabel}>
-                {t('serviceRequests.fields.requestor')}
-              </Typography>
-              <Box sx={styles.personRow}>
-                <Person sx={{ fontSize: 16, color: 'text.secondary' }} />
-                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                  {serviceRequest.requestorName}
-                  {serviceRequest.requestorEmail && ` (${serviceRequest.requestorEmail})`}
+              <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.createdDateShort')}</Typography>
+            </Box>
+          </Grid>
+          {serviceRequest.approvedAt && (
+            <Grid item xs={6} sm={4} md={2}>
+              <Box sx={METRIC_CARD_SX}>
+                <CheckCircle sx={{ ...METRIC_ICON_SX, color: 'success.main' }} />
+                <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '0.75rem' }}>
+                  {formatDateTime(serviceRequest.approvedAt)}
                 </Typography>
+                <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.approvedDateShort')}</Typography>
               </Box>
             </Grid>
-
-            {/* Assignation */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" sx={styles.fieldLabel}>
-                {t('serviceRequests.assignedTo')}
-              </Typography>
-              {serviceRequest.assignedToName ? (
-                <Box sx={styles.personRow}>
-                  {serviceRequest.assignedToType === 'team' ? (
-                    <Group sx={{ fontSize: 16, color: 'text.secondary' }} />
-                  ) : (
-                    <Assignment sx={{ fontSize: 16, color: 'text.secondary' }} />
-                  )}
-                  <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                    {serviceRequest.assignedToName}
-                    {serviceRequest.assignedToEmail && serviceRequest.assignedToType === 'user' && ` (${serviceRequest.assignedToEmail})`}
-                    {serviceRequest.assignedToType === 'team' && (
-                      <Chip 
-                        label="Équipe" 
-                        size="small" 
-                        variant="outlined" 
-                        sx={styles.teamChip}
-                      />
-                    )}
-                  </Typography>
-                </Box>
-              ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: '0.85rem' }}>
-                  {t('serviceRequests.fields.noAssignment')}
-                </Typography>
-              )}
-            </Grid>
-
-            {/* Métadonnées */}
-            {serviceRequest.updatedAt && (
-              <>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle1" fontWeight={600} sx={styles.sectionTitle}>
-                    {t('serviceRequests.systemInfo')}
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <Typography variant="caption" color="text.secondary" sx={styles.fieldLabel}>
-                    {t('serviceRequests.updatedDateShort')}
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
-                    {formatDateTime(serviceRequest.updatedAt)}
-                  </Typography>
-                </Grid>
-              </>
-            )}
-
-            {serviceRequest.completedAt && (
-              <Grid item xs={12} md={6}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  {t('serviceRequests.completedDateShort')}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1, fontSize: '0.85rem' }}>
+          )}
+          {serviceRequest.completedAt && (
+            <Grid item xs={6} sm={4} md={2}>
+              <Box sx={METRIC_CARD_SX}>
+                <CheckCircle sx={{ ...METRIC_ICON_SX, color: 'success.main' }} />
+                <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '0.75rem' }}>
                   {formatDateTime(serviceRequest.completedAt)}
                 </Typography>
-              </Grid>
+                <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.completedDateShort')}</Typography>
+              </Box>
+            </Grid>
+          )}
+        </Grid>
+
+        {/* ── Two-column detail layout ──────────────────────────────────── */}
+        <Box sx={{ display: 'flex', gap: 1.5, mb: 1.5 }}>
+          {/* ── Left column: Infos ─────────────────────────────────────── */}
+          <Box sx={{ flex: 7, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {/* Description */}
+            <Paper sx={CARD_SX}>
+              <Typography sx={SECTION_TITLE_SX}>
+                {t('serviceRequests.fields.detailedDescription')}
+              </Typography>
+              <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                {serviceRequest.description || '—'}
+              </Typography>
+            </Paper>
+
+            {/* Propriété */}
+            <Paper sx={CARD_SX}>
+              <Typography sx={SECTION_TITLE_SX}>
+                {t('serviceRequests.sections.property')}
+              </Typography>
+
+              <Box sx={INFO_ROW_SX}>
+                <LocationOn sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.propertyNameLabel')}</Typography>
+                  <Typography sx={INFO_VALUE_SX}>{serviceRequest.propertyName}</Typography>
+                </Box>
+              </Box>
+
+              <Divider sx={{ my: 0.5 }} />
+
+              <Box sx={INFO_ROW_SX}>
+                <LocationOn sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.fullAddressLabel')}</Typography>
+                  <Typography sx={INFO_VALUE_SX}>
+                    {serviceRequest.propertyAddress}, {serviceRequest.propertyCity}
+                    {serviceRequest.propertyPostalCode && ` ${serviceRequest.propertyPostalCode}`}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {serviceRequest.propertyCountry && (
+                <>
+                  <Divider sx={{ my: 0.5 }} />
+                  <Box sx={INFO_ROW_SX}>
+                    <Flag sx={{ fontSize: 16, color: 'text.secondary' }} />
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={INFO_LABEL_SX}>{t('properties.country')}</Typography>
+                      <Typography sx={INFO_VALUE_SX}>{serviceRequest.propertyCountry}</Typography>
+                    </Box>
+                  </Box>
+                </>
+              )}
+            </Paper>
+          </Box>
+
+          {/* ── Right column: Assignation, Planning, Système ───────────── */}
+          <Box sx={{ flex: 5, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {/* Personnes impliquées */}
+            <Paper sx={CARD_SX}>
+              <Typography sx={SECTION_TITLE_SX}>
+                {t('serviceRequests.peopleInvolved')}
+              </Typography>
+
+              {/* Demandeur */}
+              <Box sx={INFO_ROW_SX}>
+                <Person sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.fields.requestor')}</Typography>
+                  <Typography sx={INFO_VALUE_SX}>
+                    {serviceRequest.requestorName}
+                  </Typography>
+                  {serviceRequest.requestorEmail && (
+                    <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                      {serviceRequest.requestorEmail}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+
+              <Divider sx={{ my: 0.5 }} />
+
+              {/* Assignation */}
+              <Box sx={INFO_ROW_SX}>
+                {serviceRequest.assignedToType === 'team' ? (
+                  <Group sx={{ fontSize: 16, color: 'text.secondary' }} />
+                ) : (
+                  <Assignment sx={{ fontSize: 16, color: 'text.secondary' }} />
+                )}
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.assignedTo')}</Typography>
+                  {serviceRequest.assignedToName ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      <Typography sx={INFO_VALUE_SX}>
+                        {serviceRequest.assignedToName}
+                      </Typography>
+                      {serviceRequest.assignedToType === 'team' && (
+                        <Chip
+                          label={t('serviceRequests.team')}
+                          size="small"
+                          variant="outlined"
+                          color="info"
+                          sx={{ height: 20, fontSize: '0.6rem', '& .MuiChip-label': { px: 0.5 } }}
+                        />
+                      )}
+                    </Box>
+                  ) : (
+                    <Typography sx={{ ...INFO_VALUE_SX, color: 'text.disabled', fontStyle: 'italic' }}>
+                      {t('serviceRequests.fields.noAssignment')}
+                    </Typography>
+                  )}
+                  {serviceRequest.assignedToEmail && serviceRequest.assignedToType === 'user' && (
+                    <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                      {serviceRequest.assignedToEmail}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            </Paper>
+
+            {/* Planification */}
+            <Paper sx={CARD_SX}>
+              <Typography sx={SECTION_TITLE_SX}>
+                {t('serviceRequests.planning')}
+              </Typography>
+
+              <Box sx={INFO_ROW_SX}>
+                <CalendarToday sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.dueDateLabel')}</Typography>
+                  <Typography sx={INFO_VALUE_SX}>
+                    {formatDateTime(serviceRequest.dueDate) || '—'}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Divider sx={{ my: 0.5 }} />
+
+              <Box sx={INFO_ROW_SX}>
+                <AccessTime sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.estimatedDurationLabel')}</Typography>
+                  <Typography sx={INFO_VALUE_SX}>
+                    {formatDuration(serviceRequest.estimatedDuration)}
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
+
+            {/* Informations système */}
+            {(serviceRequest.updatedAt || serviceRequest.completedAt) && (
+              <Paper sx={CARD_SX}>
+                <Typography sx={SECTION_TITLE_SX}>
+                  {t('serviceRequests.systemInfo')}
+                </Typography>
+
+                <Box sx={INFO_ROW_SX}>
+                  <CalendarMonth sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.createdDateLabel')}</Typography>
+                    <Typography sx={INFO_VALUE_SX}>{formatDateTime(serviceRequest.createdAt)}</Typography>
+                  </Box>
+                </Box>
+
+                {serviceRequest.updatedAt && (
+                  <>
+                    <Divider sx={{ my: 0.5 }} />
+                    <Box sx={INFO_ROW_SX}>
+                      <Schedule sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.updatedDateShort')}</Typography>
+                        <Typography sx={INFO_VALUE_SX}>{formatDateTime(serviceRequest.updatedAt)}</Typography>
+                      </Box>
+                    </Box>
+                  </>
+                )}
+
+                {serviceRequest.completedAt && (
+                  <>
+                    <Divider sx={{ my: 0.5 }} />
+                    <Box sx={INFO_ROW_SX}>
+                      <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.completedDateShort')}</Typography>
+                        <Typography sx={INFO_VALUE_SX}>{formatDateTime(serviceRequest.completedAt)}</Typography>
+                      </Box>
+                    </Box>
+                  </>
+                )}
+              </Paper>
             )}
-          </Grid>
-        </CardContent>
-      </Card>
+          </Box>
+        </Box>
+      </Box>
     </Box>
   );
 };

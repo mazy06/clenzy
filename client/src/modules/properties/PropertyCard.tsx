@@ -78,6 +78,8 @@ export interface PropertyDetails {
   numberOfFloors?: number;
   hasExterior?: boolean;
   hasLaundry?: boolean;
+  defaultCheckInTime?: string;
+  defaultCheckOutTime?: string;
 }
 
 interface PropertyCardProps {
@@ -484,6 +486,28 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                   label={`~${formatDuration(cleaningDuration)}`}
                   size="small"
                   color="info"
+                  variant="outlined"
+                  sx={{ ...styles.priceChip, '& .MuiChip-icon': { fontSize: 12, ml: 0.5 }, cursor: 'default' }}
+                />
+              </ThemedTooltip>
+            )}
+            {(property.defaultCheckOutTime || property.defaultCheckInTime) && (
+              <ThemedTooltip
+                title={
+                  <Typography sx={{ fontSize: '0.6875rem', lineHeight: 1.5 }}>
+                    {t('properties.defaultTimesTooltip', {
+                      checkOut: property.defaultCheckOutTime || '—',
+                      checkIn: property.defaultCheckInTime || '—',
+                    })}
+                  </Typography>
+                }
+                arrow
+                placement="top"
+              >
+                <Chip
+                  icon={<Schedule sx={{ fontSize: 12 }} />}
+                  label={`${property.defaultCheckOutTime || '—'} – ${property.defaultCheckInTime || '—'}`}
+                  size="small"
                   variant="outlined"
                   sx={{ ...styles.priceChip, '& .MuiChip-icon': { fontSize: 12, ml: 0.5 }, cursor: 'default' }}
                 />

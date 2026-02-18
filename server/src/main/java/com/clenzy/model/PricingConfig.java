@@ -58,6 +58,10 @@ public class PricingConfig {
     @Column(name = "automation_full_surcharge")
     private Integer automationFullSurcharge;
 
+    // Forfait configs (JSON: Standard, Express, En profondeur)
+    @Column(name = "forfait_configs", columnDefinition = "TEXT")
+    private String forfaitConfigs;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -111,6 +115,9 @@ public class PricingConfig {
 
     public Integer getAutomationFullSurcharge() { return automationFullSurcharge; }
     public void setAutomationFullSurcharge(Integer automationFullSurcharge) { this.automationFullSurcharge = automationFullSurcharge; }
+
+    public String getForfaitConfigs() { return forfaitConfigs; }
+    public void setForfaitConfigs(String forfaitConfigs) { this.forfaitConfigs = forfaitConfigs; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

@@ -1,5 +1,5 @@
 import {
-  CleaningServices,
+  AutoAwesome,
   Build,
   ElectricalServices,
   Plumbing,
@@ -62,13 +62,13 @@ export interface InterventionTypeOption {
  */
 export const INTERVENTION_TYPE_OPTIONS: InterventionTypeOption[] = [
   // Nettoyage
-  { value: InterventionType.CLEANING, label: 'Nettoyage', category: 'cleaning', color: 'success.main', icon: CleaningServices },
-  { value: InterventionType.EXPRESS_CLEANING, label: 'Nettoyage Express', category: 'cleaning', color: 'success.main', icon: CleaningServices },
-  { value: InterventionType.DEEP_CLEANING, label: 'Nettoyage en Profondeur', category: 'cleaning', color: 'success.main', icon: CleaningServices },
-  { value: InterventionType.WINDOW_CLEANING, label: 'Nettoyage des Vitres', category: 'cleaning', color: 'success.main', icon: CleaningServices },
-  { value: InterventionType.FLOOR_CLEANING, label: 'Nettoyage des Sols', category: 'cleaning', color: 'success.main', icon: CleaningServices },
+  { value: InterventionType.CLEANING, label: 'Nettoyage', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
+  { value: InterventionType.EXPRESS_CLEANING, label: 'Nettoyage Express', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
+  { value: InterventionType.DEEP_CLEANING, label: 'Nettoyage en Profondeur', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
+  { value: InterventionType.WINDOW_CLEANING, label: 'Nettoyage des Vitres', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
+  { value: InterventionType.FLOOR_CLEANING, label: 'Nettoyage des Sols', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
   { value: InterventionType.KITCHEN_CLEANING, label: 'Nettoyage de la Cuisine', category: 'cleaning', color: 'success.main', icon: Kitchen },
-  { value: InterventionType.BATHROOM_CLEANING, label: 'Nettoyage des Sanitaires', category: 'cleaning', color: 'success.main', icon: CleaningServices },
+  { value: InterventionType.BATHROOM_CLEANING, label: 'Nettoyage des Sanitaires', category: 'cleaning', color: 'success.main', icon: AutoAwesome },
   
   // Maintenance et réparation
   { value: InterventionType.PREVENTIVE_MAINTENANCE, label: 'Maintenance Préventive', category: 'maintenance', color: 'warning.main', icon: Build },
@@ -80,7 +80,7 @@ export const INTERVENTION_TYPE_OPTIONS: InterventionTypeOption[] = [
   
   // Services spécialisés
   { value: InterventionType.GARDENING, label: 'Jardinage', category: 'specialized', color: 'purple', icon: Yard },
-  { value: InterventionType.EXTERIOR_CLEANING, label: 'Nettoyage Extérieur', category: 'specialized', color: 'purple', icon: CleaningServices },
+  { value: InterventionType.EXTERIOR_CLEANING, label: 'Nettoyage Extérieur', category: 'specialized', color: 'purple', icon: AutoAwesome },
   { value: InterventionType.PEST_CONTROL, label: 'Désinsectisation', category: 'specialized', color: 'purple', icon: BugReport },
   { value: InterventionType.DISINFECTION, label: 'Désinfection', category: 'specialized', color: 'purple', icon: Sanitizer },
   { value: InterventionType.RESTORATION, label: 'Remise en État', category: 'specialized', color: 'purple', icon: Restore },
