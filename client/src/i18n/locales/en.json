@@ -1251,6 +1251,13 @@
     "loadError": "Error loading pricing configuration",
     "resetConfirm": "Reset all values to defaults?",
     "readOnly": "You have read-only access",
+    "tabs": {
+      "pms": "PMS Subscription",
+      "entretien": "Cleaning",
+      "travaux": "Maintenance",
+      "exterieur": "Outdoor",
+      "blanchisserie": "Laundry"
+    },
     "basePrices": {
       "title": "Base Package Prices",
       "subtitle": "Starting rate per intervention for each package",
@@ -1298,6 +1305,64 @@
       "title": "Surface Tiers",
       "subtitle": "Weighting based on property area"
     },
+    "tableHeaders": {
+      "type": "Type",
+      "coefficient": "Coefficient",
+      "count": "Count",
+      "capacity": "Capacity",
+      "frequency": "Frequency",
+      "tier": "Tier",
+      "maxThreshold": "Max threshold (m²)"
+    },
+    "forfaitSection": {
+      "priceCoefficients": "Price coefficients",
+      "coeffMin": "Coeff. min",
+      "coeffMax": "Coeff. max",
+      "serviceTypes": "Associated service types",
+      "prestations": "Services",
+      "includedInPrice": "Included in price",
+      "extraCharge": "Extra charge",
+      "eligibleTeams": "Eligible teams",
+      "eligibleTeamsHint": "(empty = all teams)",
+      "noTeamsAvailable": "No teams available",
+      "surfacePricing": "Surface-based pricing",
+      "maxThreshold": "Max threshold (m²)",
+      "basePrice": "Base price (€)",
+      "unlimited": "Unlimited",
+      "addTier": "Add tier",
+      "surcharges": "Surcharges",
+      "surchargePerBedroom": "Per extra bedroom",
+      "surchargePerBathroom": "Per extra bathroom",
+      "surchargePerFloor": "Per extra floor",
+      "surchargeExterior": "Exterior",
+      "surchargeLaundry": "Laundry",
+      "surchargePerGuestAbove4": "Per guest (>4)",
+      "surcharge_perBedroom": "Per extra bedroom",
+      "surcharge_perBathroom": "Per extra bathroom",
+      "surcharge_perFloor": "Per extra floor",
+      "surcharge_exterior": "Exterior",
+      "surcharge_laundry": "Laundry",
+      "surcharge_perGuestAbove4": "Per guest (>4)",
+      "cleaningTypes": {
+        "CLEANING": "Cleaning",
+        "EXPRESS_CLEANING": "Express Cleaning",
+        "DEEP_CLEANING": "Deep Cleaning",
+        "WINDOW_CLEANING": "Window Cleaning",
+        "FLOOR_CLEANING": "Floor Cleaning",
+        "KITCHEN_CLEANING": "Kitchen Cleaning",
+        "BATHROOM_CLEANING": "Bathroom Cleaning"
+      },
+      "prestationTypes": {
+        "laundry": "Laundry",
+        "exterior": "Exterior",
+        "ironing": "Ironing",
+        "deepKitchen": "Deep kitchen",
+        "disinfection": "Disinfection",
+        "windows": "Windows",
+        "frenchDoors": "French doors",
+        "slidingDoors": "Sliding doors"
+      }
+    },
     "pms": {
       "title": "PMS Subscription",
       "subtitle": "Monthly platform subscription rates",
@@ -1327,6 +1392,69 @@
         "title": "Deep Cleaning Plan",
         "subtitle": "Deep cleaning plan configuration"
       }
+    },
+    "travaux": {
+      "title": "Maintenance Pricing",
+      "subtitle": "Base price per maintenance and repair service type",
+      "prestation": "Service",
+      "enabled": "Active",
+      "basePrice": "Base Price",
+      "types": {
+        "PREVENTIVE_MAINTENANCE": "Preventive Maintenance",
+        "EMERGENCY_REPAIR": "Emergency Repair",
+        "ELECTRICAL_REPAIR": "Electrical Repair",
+        "PLUMBING_REPAIR": "Plumbing Repair",
+        "HVAC_REPAIR": "HVAC Repair",
+        "APPLIANCE_REPAIR": "Appliance Repair"
+      }
+    },
+    "exterieur": {
+      "title": "Outdoor Pricing",
+      "subtitle": "Base price per outdoor service type",
+      "prestation": "Service",
+      "enabled": "Active",
+      "basePrice": "Base Price",
+      "types": {
+        "GARDENING": "Gardening",
+        "EXTERIOR_CLEANING": "Exterior Cleaning",
+        "PEST_CONTROL": "Pest Control",
+        "DISINFECTION": "Disinfection",
+        "RESTORATION": "Restoration"
+      }
+    },
+    "blanchisserie": {
+      "title": "Laundry Pricing",
+      "subtitle": "Fixed prices per laundry item",
+      "article": "Item",
+      "enabled": "Active",
+      "price": "Price",
+      "items": {
+        "draps_1place": "Single Sheets",
+        "draps_2places": "Double Sheets",
+        "serviettes": "Towels",
+        "housse_couette": "Duvet Cover",
+        "taie_oreiller": "Pillowcase",
+        "peignoir": "Bathrobe",
+        "nappe": "Tablecloth"
+      }
+    },
+    "commission": {
+      "title": "Commission",
+      "subtitle": "Configure the commission taken on services in this category",
+      "enable": "Enable commission",
+      "rate": "Commission rate"
+    },
+    "addPrestation": "Add a service",
+    "addArticle": "Add an item",
+    "addSurcharge": "Add a surcharge",
+    "add": "Add",
+    "cancel": "Cancel",
+    "newItem": {
+      "name": "Name",
+      "label": "Label",
+      "price": "Price",
+      "key": "Identifier",
+      "keyHelp": "Unique identifier (e.g., deep_cleaning, custom_service)"
     }
   }
 }

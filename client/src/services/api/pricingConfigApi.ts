@@ -26,6 +26,36 @@ export interface ForfaitConfig {
   surfaceBasePrices: SurfaceBasePrice[];
 }
 
+export interface ServicePriceConfig {
+  interventionType: string;           // ex: "ELECTRICAL_REPAIR"
+  basePrice: number;                  // prix fixe de base en €
+  enabled: boolean;
+}
+
+export interface BlanchisserieItem {
+  key: string;                        // ex: "draps_1place"
+  label: string;                      // ex: "Draps 1 place"
+  price: number;                      // prix fixe en €
+  enabled: boolean;
+}
+
+export interface CommissionConfig {
+  category: string;                   // "entretien" | "travaux" | "exterieur" | "blanchisserie"
+  enabled: boolean;
+  rate: number;                       // pourcentage (ex: 15.0 = 15%)
+}
+
+export interface PrestationOption {
+  key: string;                        // ex: "laundry", "ironing", "custom_xyz"
+  label: string;                      // ex: "Linge", "Repassage"
+}
+
+export interface SurchargeOption {
+  key: string;                        // ex: "perBedroom", "custom_surcharge_xyz"
+  label: string;                      // ex: "Par chambre supplémentaire"
+  unit: string;                       // ex: "€"
+}
+
 export interface PricingConfig {
   id: number | null;
   propertyTypeCoeffs: Record<string, number>;
@@ -42,69 +72,20 @@ export interface PricingConfig {
   automationBasicSurcharge: number;
   automationFullSurcharge: number;
   forfaitConfigs: ForfaitConfig[];
+  travauxConfig: ServicePriceConfig[];
+  exterieurConfig: ServicePriceConfig[];
+  blanchisserieConfig: BlanchisserieItem[];
+  commissionConfigs: CommissionConfig[];
+  availablePrestations: PrestationOption[];
+  availableSurcharges: SurchargeOption[];
   updatedAt: string | null;
 }
 
 export type PricingConfigUpdate = Omit<PricingConfig, 'id' | 'updatedAt'>;
 
-// ─── Default forfait configs (fallback if backend has no data) ───────────────
-
-const DEFAULT_SURFACE_BASE_PRICES: SurfaceBasePrice[] = [
-  { maxSurface: 30,   base: 35 },
-  { maxSurface: 50,   base: 45 },
-  { maxSurface: 70,   base: 55 },
-  { maxSurface: 100,  base: 70 },
-  { maxSurface: 150,  base: 90 },
-  { maxSurface: null,  base: 110 },
-];
-
-const DEFAULT_SURCHARGES: Record<string, number> = {
-  perBedroom: 5,
-  perBathroom: 4,
-  perFloor: 8,
-  exterior: 12,
-  laundry: 8,
-  perGuestAbove4: 3,
-};
-
-export const DEFAULT_FORFAIT_CONFIGS: ForfaitConfig[] = [
-  {
-    key: 'CLEANING',
-    label: 'Standard',
-    coeffMin: 1.0,
-    coeffMax: 1.0,
-    serviceTypes: ['CLEANING', 'FLOOR_CLEANING', 'BATHROOM_CLEANING', 'KITCHEN_CLEANING'],
-    includedPrestations: ['laundry', 'exterior'],
-    extraPrestations: ['ironing', 'deepKitchen', 'disinfection', 'windows', 'frenchDoors', 'slidingDoors'],
-    eligibleTeamIds: [],
-    surcharges: { ...DEFAULT_SURCHARGES },
-    surfaceBasePrices: [...DEFAULT_SURFACE_BASE_PRICES],
-  },
-  {
-    key: 'EXPRESS_CLEANING',
-    label: 'Express',
-    coeffMin: 0.7,
-    coeffMax: 0.85,
-    serviceTypes: ['EXPRESS_CLEANING'],
-    includedPrestations: [],
-    extraPrestations: ['laundry', 'exterior', 'ironing', 'deepKitchen', 'disinfection', 'windows', 'frenchDoors', 'slidingDoors'],
-    eligibleTeamIds: [],
-    surcharges: { ...DEFAULT_SURCHARGES },
-    surfaceBasePrices: [...DEFAULT_SURFACE_BASE_PRICES],
-  },
-  {
-    key: 'DEEP_CLEANING',
-    label: 'En profondeur',
-    coeffMin: 1.4,
-    coeffMax: 1.7,
-    serviceTypes: ['DEEP_CLEANING', 'WINDOW_CLEANING'],
-    includedPrestations: ['laundry', 'exterior', 'ironing', 'deepKitchen', 'windows', 'frenchDoors', 'slidingDoors'],
-    extraPrestations: ['disinfection'],
-    eligibleTeamIds: [],
-    surcharges: { ...DEFAULT_SURCHARGES },
-    surfaceBasePrices: [...DEFAULT_SURFACE_BASE_PRICES],
-  },
-];
+// NOTE: All DEFAULT_* constants have been removed.
+// Default data is now seeded directly in the database via V36 migration.
+// The backend returns empty arrays [] when no data exists.
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 

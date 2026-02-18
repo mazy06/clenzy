@@ -9,7 +9,6 @@ import {
   Star,
 } from '@mui/icons-material';
 import type { ForfaitConfig } from '../../services/api/pricingConfigApi';
-import { DEFAULT_FORFAIT_CONFIGS } from '../../services/api/pricingConfigApi';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -216,7 +215,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
   ({ property, forfaitConfigs, selectedForfaitKey }) => {
     // Use provided configs or fall back to defaults
     const forfaits = useMemo(
-      () => (forfaitConfigs?.length ? forfaitConfigs : DEFAULT_FORFAIT_CONFIGS),
+      () => forfaitConfigs ?? [],
       [forfaitConfigs]
     );
 

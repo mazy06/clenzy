@@ -62,6 +62,26 @@ public class PricingConfig {
     @Column(name = "forfait_configs", columnDefinition = "TEXT")
     private String forfaitConfigs;
 
+    // Service category configs (JSON)
+    @Column(name = "travaux_config", columnDefinition = "TEXT")
+    private String travauxConfig;
+
+    @Column(name = "exterieur_config", columnDefinition = "TEXT")
+    private String exterieurConfig;
+
+    @Column(name = "blanchisserie_config", columnDefinition = "TEXT")
+    private String blanchisserieConfig;
+
+    @Column(name = "commission_configs", columnDefinition = "TEXT")
+    private String commissionConfigs;
+
+    // Forfait catalogs (available prestations and surcharges, JSON)
+    @Column(name = "available_prestations", columnDefinition = "TEXT")
+    private String availablePrestations;
+
+    @Column(name = "available_surcharges", columnDefinition = "TEXT")
+    private String availableSurcharges;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -118,6 +138,24 @@ public class PricingConfig {
 
     public String getForfaitConfigs() { return forfaitConfigs; }
     public void setForfaitConfigs(String forfaitConfigs) { this.forfaitConfigs = forfaitConfigs; }
+
+    public String getTravauxConfig() { return travauxConfig; }
+    public void setTravauxConfig(String travauxConfig) { this.travauxConfig = travauxConfig; }
+
+    public String getExterieurConfig() { return exterieurConfig; }
+    public void setExterieurConfig(String exterieurConfig) { this.exterieurConfig = exterieurConfig; }
+
+    public String getBlanchisserieConfig() { return blanchisserieConfig; }
+    public void setBlanchisserieConfig(String blanchisserieConfig) { this.blanchisserieConfig = blanchisserieConfig; }
+
+    public String getCommissionConfigs() { return commissionConfigs; }
+    public void setCommissionConfigs(String commissionConfigs) { this.commissionConfigs = commissionConfigs; }
+
+    public String getAvailablePrestations() { return availablePrestations; }
+    public void setAvailablePrestations(String availablePrestations) { this.availablePrestations = availablePrestations; }
+
+    public String getAvailableSurcharges() { return availableSurcharges; }
+    public void setAvailableSurcharges(String availableSurcharges) { this.availableSurcharges = availableSurcharges; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

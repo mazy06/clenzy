@@ -14,7 +14,7 @@ import { serviceRequestsApi, propertiesApi, usersApi, teamsApi, reservationsApi 
 import type { Reservation } from '../../services/api';
 import apiClient from '../../services/apiClient';
 import { useTranslation } from '../../hooks/useTranslation';
-import { pricingConfigApi, DEFAULT_FORFAIT_CONFIGS } from '../../services/api/pricingConfigApi';
+import { pricingConfigApi } from '../../services/api/pricingConfigApi';
 import type { ForfaitConfig } from '../../services/api/pricingConfigApi';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -125,7 +125,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
   const [teams, setTeams] = useState<Team[]>([]);
   const [hasPermission, setHasPermission] = useState(false);
   const [propertyReservations, setPropertyReservations] = useState<Reservation[]>([]);
-  const [forfaitConfigs, setForfaitConfigs] = useState<ForfaitConfig[]>(DEFAULT_FORFAIT_CONFIGS);
+  const [forfaitConfigs, setForfaitConfigs] = useState<ForfaitConfig[]>([]);
 
   // react-hook-form with Zod validation
   const { control, handleSubmit: rhfHandleSubmit, watch, setValue, reset, formState: { errors } } = useForm<ServiceRequestFormValues>({

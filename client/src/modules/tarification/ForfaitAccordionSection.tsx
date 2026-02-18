@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Box,
   Typography,
@@ -14,7 +14,11 @@ import {
   TableRow,
   InputAdornment,
   IconButton,
-  Tooltip,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   AutoAwesome,
@@ -22,43 +26,22 @@ import {
   Add,
   Delete,
 } from '@mui/icons-material';
-import type { ForfaitConfig, SurfaceBasePrice } from '../../services/api/pricingConfigApi';
+import type { ForfaitConfig, SurfaceBasePrice, PrestationOption, SurchargeOption } from '../../services/api/pricingConfigApi';
 import type { Team } from '../../services/api/teamsApi';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-/** All cleaning intervention types that can be assigned to a forfait */
-const ALL_CLEANING_SERVICE_TYPES: { value: string; label: string }[] = [
-  { value: 'CLEANING', label: 'Nettoyage' },
-  { value: 'EXPRESS_CLEANING', label: 'Nettoyage Express' },
-  { value: 'DEEP_CLEANING', label: 'Nettoyage en Profondeur' },
-  { value: 'WINDOW_CLEANING', label: 'Nettoyage des Vitres' },
-  { value: 'FLOOR_CLEANING', label: 'Nettoyage des Sols' },
-  { value: 'KITCHEN_CLEANING', label: 'Nettoyage de la Cuisine' },
-  { value: 'BATHROOM_CLEANING', label: 'Nettoyage des Sanitaires' },
-];
-
-/** All prestations that can be included or extra */
-const ALL_PRESTATIONS: { key: string; label: string }[] = [
-  { key: 'laundry', label: 'Linge' },
-  { key: 'exterior', label: 'Extérieur' },
-  { key: 'ironing', label: 'Repassage' },
-  { key: 'deepKitchen', label: 'Cuisine profonde' },
-  { key: 'disinfection', label: 'Désinfection' },
-  { key: 'windows', label: 'Fenêtres' },
-  { key: 'frenchDoors', label: 'Portes-fenêtres' },
-  { key: 'slidingDoors', label: 'Baies vitrées' },
-];
-
-/** Surcharge keys and labels */
-const SURCHARGE_KEYS: { key: string; label: string; unit: string }[] = [
-  { key: 'perBedroom', label: 'Par chambre sup.', unit: '€' },
-  { key: 'perBathroom', label: 'Par salle de bain sup.', unit: '€' },
-  { key: 'perFloor', label: 'Par étage sup.', unit: '€' },
-  { key: 'exterior', label: 'Extérieur', unit: '€' },
-  { key: 'laundry', label: 'Linge', unit: '€' },
-  { key: 'perGuestAbove4', label: 'Par voyageur (>4)', unit: '€' },
-];
+/** All cleaning intervention type keys (system enum — stays hardcoded) */
+const ALL_CLEANING_SERVICE_TYPE_KEYS = [
+  'CLEANING',
+  'EXPRESS_CLEANING',
+  'DEEP_CLEANING',
+  'WINDOW_CLEANING',
+  'FLOOR_CLEANING',
+  'KITCHEN_CLEANING',
+  'BATHROOM_CLEANING',
+] as const;
 
 // ─── Shared SX ────────────────────────────────────────────────────────────────
 
@@ -87,13 +70,28 @@ interface ForfaitAccordionSectionProps {
   teams: Team[];
   canEdit: boolean;
   onChange: (updated: ForfaitConfig) => void;
+  availablePrestations: PrestationOption[];
+  availableSurcharges: SurchargeOption[];
+  onAddPrestation: (prestation: PrestationOption) => void;
+  onAddSurcharge: (surcharge: SurchargeOption) => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.memo(
-  ({ forfait, teams, canEdit, onChange }) => {
+  ({ forfait, teams, canEdit, onChange, availablePrestations, availableSurcharges, onAddPrestation, onAddSurcharge }) => {
+    const { t } = useTranslation();
     const primaryColor = '#6B8A9A';
+
+    // ─── Add prestation dialog ─────────────────────────────────────────
+    const [addPrestationOpen, setAddPrestationOpen] = useState(false);
+    const [newPrestationKey, setNewPrestationKey] = useState('');
+    const [newPrestationLabel, setNewPrestationLabel] = useState('');
+
+    // ─── Add surcharge dialog ──────────────────────────────────────────
+    const [addSurchargeOpen, setAddSurchargeOpen] = useState(false);
+    const [newSurchargeKey, setNewSurchargeKey] = useState('');
+    const [newSurchargeLabel, setNewSurchargeLabel] = useState('');
 
     // ─── Toggle helpers ───────────────────────────────────────────────
 
@@ -111,13 +109,11 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
       const included = [...(forfait.includedPrestations || [])];
       const extra = [...(forfait.extraPrestations || [])];
 
-      // Remove from both columns first
       const idxInc = included.indexOf(key);
       const idxExt = extra.indexOf(key);
       if (idxInc >= 0) included.splice(idxInc, 1);
       if (idxExt >= 0) extra.splice(idxExt, 1);
 
-      // Add to the target column (toggle: if was already there, just remove = neither)
       if (column === 'included' && idxInc < 0) {
         included.push(key);
       } else if (column === 'extra' && idxExt < 0) {
@@ -177,15 +173,33 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
       onChange({ ...forfait, [field]: num });
     }, [forfait, onChange]);
 
+    // ─── Add prestation handler ───────────────────────────────────────
+    const handleAddPrestation = useCallback(() => {
+      if (!newPrestationKey.trim() || !newPrestationLabel.trim()) return;
+      onAddPrestation({ key: newPrestationKey.trim(), label: newPrestationLabel.trim() });
+      setNewPrestationKey('');
+      setNewPrestationLabel('');
+      setAddPrestationOpen(false);
+    }, [newPrestationKey, newPrestationLabel, onAddPrestation]);
+
+    // ─── Add surcharge handler ────────────────────────────────────────
+    const handleAddSurcharge = useCallback(() => {
+      if (!newSurchargeKey.trim() || !newSurchargeLabel.trim()) return;
+      onAddSurcharge({ key: newSurchargeKey.trim(), label: newSurchargeLabel.trim(), unit: '€' });
+      setNewSurchargeKey('');
+      setNewSurchargeLabel('');
+      setAddSurchargeOpen(false);
+    }, [newSurchargeKey, newSurchargeLabel, onAddSurcharge]);
+
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
         {/* ─── Coefficients ─────────────────────────────────────────────── */}
         <Box>
-          <Typography sx={SECTION_TITLE_SX}>Coefficients de prix</Typography>
+          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.priceCoefficients')}</Typography>
           <Grid container spacing={1.5}>
             <Grid item xs={6}>
               <TextField
-                label="Coeff. min"
+                label={t('tarification.forfaitSection.coeffMin')}
                 type="number"
                 size="small"
                 fullWidth
@@ -197,7 +211,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
             </Grid>
             <Grid item xs={6}>
               <TextField
-                label="Coeff. max"
+                label={t('tarification.forfaitSection.coeffMax')}
                 type="number"
                 size="small"
                 fullWidth
@@ -212,16 +226,16 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
 
         {/* ─── Types de service associés ────────────────────────────────── */}
         <Box>
-          <Typography sx={SECTION_TITLE_SX}>Types de service associés</Typography>
+          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.serviceTypes')}</Typography>
           <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
-            {ALL_CLEANING_SERVICE_TYPES.map((st) => {
-              const isSelected = (forfait.serviceTypes || []).includes(st.value);
+            {ALL_CLEANING_SERVICE_TYPE_KEYS.map((stKey) => {
+              const isSelected = (forfait.serviceTypes || []).includes(stKey);
               return (
                 <Chip
-                  key={st.value}
+                  key={stKey}
                   icon={<AutoAwesome sx={{ fontSize: 14 }} />}
-                  label={st.label}
-                  onClick={canEdit ? () => toggleServiceType(st.value) : undefined}
+                  label={t(`tarification.forfaitSection.cleaningTypes.${stKey}`)}
+                  onClick={canEdit ? () => toggleServiceType(stKey) : undefined}
                   variant={isSelected ? 'filled' : 'outlined'}
                   size="small"
                   sx={{
@@ -249,20 +263,20 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
 
         {/* ─── Prestations incluses / en supplément ─────────────────────── */}
         <Box>
-          <Typography sx={SECTION_TITLE_SX}>Prestations</Typography>
+          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.prestations')}</Typography>
           <Box sx={{ display: 'flex', gap: 3 }}>
             {/* Incluses */}
             <Box sx={{ flex: 1 }}>
               <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, color: 'success.main', mb: 0.5 }}>
-                Incluses dans le prix
+                {t('tarification.forfaitSection.includedInPrice')}
               </Typography>
               <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                {ALL_PRESTATIONS.map((p) => {
+                {availablePrestations.map((p) => {
                   const isIncluded = (forfait.includedPrestations || []).includes(p.key);
                   return (
                     <Chip
                       key={p.key}
-                      label={p.label}
+                      label={t(`tarification.forfaitSection.prestationTypes.${p.key}`, p.label)}
                       onClick={canEdit ? () => togglePrestation(p.key, 'included') : undefined}
                       variant={isIncluded ? 'filled' : 'outlined'}
                       size="small"
@@ -282,15 +296,15 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
             {/* En supplément */}
             <Box sx={{ flex: 1 }}>
               <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, color: 'warning.main', mb: 0.5 }}>
-                En supplément
+                {t('tarification.forfaitSection.extraCharge')}
               </Typography>
               <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                {ALL_PRESTATIONS.map((p) => {
+                {availablePrestations.map((p) => {
                   const isExtra = (forfait.extraPrestations || []).includes(p.key);
                   return (
                     <Chip
                       key={p.key}
-                      label={p.label}
+                      label={t(`tarification.forfaitSection.prestationTypes.${p.key}`, p.label)}
                       onClick={canEdit ? () => togglePrestation(p.key, 'extra') : undefined}
                       variant={isExtra ? 'filled' : 'outlined'}
                       size="small"
@@ -308,20 +322,34 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
               </Box>
             </Box>
           </Box>
+          {/* Add prestation button */}
+          {canEdit && (
+            <Box sx={{ mt: 1 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<Add />}
+                onClick={() => setAddPrestationOpen(true)}
+                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+              >
+                {t('tarification.addPrestation')}
+              </Button>
+            </Box>
+          )}
         </Box>
 
         {/* ─── Équipes éligibles ────────────────────────────────────────── */}
         <Box>
           <Typography sx={SECTION_TITLE_SX}>
-            Équipes éligibles
+            {t('tarification.forfaitSection.eligibleTeams')}
             <Typography component="span" sx={{ fontSize: '0.5625rem', fontWeight: 400, color: 'text.disabled', ml: 1 }}>
-              (vide = toutes les équipes)
+              {t('tarification.forfaitSection.eligibleTeamsHint')}
             </Typography>
           </Typography>
           <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
             {teams.length === 0 ? (
               <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', fontStyle: 'italic' }}>
-                Aucune équipe disponible
+                {t('tarification.forfaitSection.noTeamsAvailable')}
               </Typography>
             ) : (
               teams.map((team) => {
@@ -360,13 +388,13 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
 
         {/* ─── Tarification par surface ─────────────────────────────────── */}
         <Box>
-          <Typography sx={SECTION_TITLE_SX}>Tarification par surface</Typography>
+          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.surfacePricing')}</Typography>
           <TableContainer>
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontSize: '0.6875rem' }}>Seuil max (m²)</TableCell>
-                  <TableCell align="right" sx={{ fontSize: '0.6875rem' }}>Prix de base (€)</TableCell>
+                  <TableCell sx={{ fontSize: '0.6875rem' }}>{t('tarification.forfaitSection.maxThreshold')}</TableCell>
+                  <TableCell align="right" sx={{ fontSize: '0.6875rem' }}>{t('tarification.forfaitSection.basePrice')}</TableCell>
                   {canEdit && <TableCell align="center" sx={{ width: 48 }} />}
                 </TableRow>
               </TableHead>
@@ -386,7 +414,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                           InputProps={{ endAdornment: <InputAdornment position="end">m²</InputAdornment> }}
                         />
                       ) : (
-                        <Chip label="Illimité" size="small" variant="outlined" color="default" sx={{ height: 24 }} />
+                        <Chip label={t('tarification.forfaitSection.unlimited')} size="small" variant="outlined" color="default" sx={{ height: 24 }} />
                       )}
                     </TableCell>
                     <TableCell align="right">
@@ -417,7 +445,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
             <Box sx={{ mt: 0.5 }}>
               <Chip
                 icon={<Add sx={{ fontSize: 14 }} />}
-                label="Ajouter un palier"
+                label={t('tarification.forfaitSection.addTier')}
                 onClick={addSurfaceTier}
                 variant="outlined"
                 size="small"
@@ -429,25 +457,97 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
 
         {/* ─── Surcharges ───────────────────────────────────────────────── */}
         <Box>
-          <Typography sx={SECTION_TITLE_SX}>Surcharges</Typography>
+          <Typography sx={SECTION_TITLE_SX}>{t('tarification.forfaitSection.surcharges')}</Typography>
           <Grid container spacing={1}>
-            {SURCHARGE_KEYS.map((sk) => (
-              <Grid item xs={6} sm={4} key={sk.key}>
+            {availableSurcharges.map((s) => (
+              <Grid item xs={6} sm={4} key={s.key}>
                 <TextField
-                  label={sk.label}
+                  label={t(`tarification.forfaitSection.surcharge_${s.key}`, s.label)}
                   type="number"
                   size="small"
                   fullWidth
-                  value={(forfait.surcharges || {})[sk.key] ?? 0}
-                  onChange={(e) => updateSurcharge(sk.key, e.target.value)}
+                  value={(forfait.surcharges || {})[s.key] ?? 0}
+                  onChange={(e) => updateSurcharge(s.key, e.target.value)}
                   disabled={!canEdit}
                   inputProps={{ step: 1, min: 0 }}
-                  InputProps={{ endAdornment: <InputAdornment position="end">{sk.unit}</InputAdornment> }}
+                  InputProps={{ endAdornment: <InputAdornment position="end">{s.unit}</InputAdornment> }}
                 />
               </Grid>
             ))}
           </Grid>
+          {/* Add surcharge button */}
+          {canEdit && (
+            <Box sx={{ mt: 1 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<Add />}
+                onClick={() => setAddSurchargeOpen(true)}
+                sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+              >
+                {t('tarification.addSurcharge')}
+              </Button>
+            </Box>
+          )}
         </Box>
+
+        {/* ─── Add prestation dialog ───────────────────────────────────── */}
+        <Dialog open={addPrestationOpen} onClose={() => setAddPrestationOpen(false)} maxWidth="xs" fullWidth>
+          <DialogTitle>{t('tarification.addPrestation')}</DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
+            <TextField
+              label={t('tarification.newItem.key')}
+              value={newPrestationKey}
+              onChange={(e) => setNewPrestationKey(e.target.value)}
+              size="small"
+              fullWidth
+              autoFocus
+              helperText={t('tarification.newItem.keyHelp')}
+            />
+            <TextField
+              label={t('tarification.newItem.label')}
+              value={newPrestationLabel}
+              onChange={(e) => setNewPrestationLabel(e.target.value)}
+              size="small"
+              fullWidth
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAddPrestationOpen(false)}>{t('tarification.cancel')}</Button>
+            <Button onClick={handleAddPrestation} variant="contained" disabled={!newPrestationKey.trim() || !newPrestationLabel.trim()}>
+              {t('tarification.add')}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* ─── Add surcharge dialog ────────────────────────────────────── */}
+        <Dialog open={addSurchargeOpen} onClose={() => setAddSurchargeOpen(false)} maxWidth="xs" fullWidth>
+          <DialogTitle>{t('tarification.addSurcharge')}</DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
+            <TextField
+              label={t('tarification.newItem.key')}
+              value={newSurchargeKey}
+              onChange={(e) => setNewSurchargeKey(e.target.value)}
+              size="small"
+              fullWidth
+              autoFocus
+              helperText={t('tarification.newItem.keyHelp')}
+            />
+            <TextField
+              label={t('tarification.newItem.label')}
+              value={newSurchargeLabel}
+              onChange={(e) => setNewSurchargeLabel(e.target.value)}
+              size="small"
+              fullWidth
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAddSurchargeOpen(false)}>{t('tarification.cancel')}</Button>
+            <Button onClick={handleAddSurcharge} variant="contained" disabled={!newSurchargeKey.trim() || !newSurchargeLabel.trim()}>
+              {t('tarification.add')}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     );
   }
