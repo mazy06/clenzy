@@ -33,6 +33,16 @@ public class PricingConfigDto {
     // Forfait configs (Standard, Express, En profondeur)
     private List<ForfaitConfig> forfaitConfigs;
 
+    // Service category configs
+    private List<ServicePriceConfig> travauxConfig;
+    private List<ServicePriceConfig> exterieurConfig;
+    private List<BlanchisserieItem> blanchisserieConfig;
+    private List<CommissionConfig> commissionConfigs;
+
+    // Forfait catalogs (dynamic prestations and surcharges)
+    private List<PrestationOption> availablePrestations;
+    private List<SurchargeOption> availableSurcharges;
+
     // ─── Inner class for forfait configuration ──────────────────────
 
     public static class ForfaitConfig {
@@ -98,6 +108,131 @@ public class PricingConfigDto {
 
         public Integer getBase() { return base; }
         public void setBase(Integer base) { this.base = base; }
+    }
+
+    // ─── Inner class for service price config (Travaux & Extérieur) ──
+
+    public static class ServicePriceConfig {
+        private String interventionType;
+        private Double basePrice;
+        private boolean enabled;
+
+        public ServicePriceConfig() {}
+
+        public ServicePriceConfig(String interventionType, Double basePrice, boolean enabled) {
+            this.interventionType = interventionType;
+            this.basePrice = basePrice;
+            this.enabled = enabled;
+        }
+
+        public String getInterventionType() { return interventionType; }
+        public void setInterventionType(String interventionType) { this.interventionType = interventionType; }
+
+        public Double getBasePrice() { return basePrice; }
+        public void setBasePrice(Double basePrice) { this.basePrice = basePrice; }
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    }
+
+    // ─── Inner class for blanchisserie items ──────────────────────────
+
+    public static class BlanchisserieItem {
+        private String key;
+        private String label;
+        private Double price;
+        private boolean enabled;
+
+        public BlanchisserieItem() {}
+
+        public BlanchisserieItem(String key, String label, Double price, boolean enabled) {
+            this.key = key;
+            this.label = label;
+            this.price = price;
+            this.enabled = enabled;
+        }
+
+        public String getKey() { return key; }
+        public void setKey(String key) { this.key = key; }
+
+        public String getLabel() { return label; }
+        public void setLabel(String label) { this.label = label; }
+
+        public Double getPrice() { return price; }
+        public void setPrice(Double price) { this.price = price; }
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    }
+
+    // ─── Inner class for commission config ────────────────────────────
+
+    public static class CommissionConfig {
+        private String category;
+        private boolean enabled;
+        private Double rate;
+
+        public CommissionConfig() {}
+
+        public CommissionConfig(String category, boolean enabled, Double rate) {
+            this.category = category;
+            this.enabled = enabled;
+            this.rate = rate;
+        }
+
+        public String getCategory() { return category; }
+        public void setCategory(String category) { this.category = category; }
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+        public Double getRate() { return rate; }
+        public void setRate(Double rate) { this.rate = rate; }
+    }
+
+    // ─── Inner class for prestation option (forfait catalog) ──────────
+
+    public static class PrestationOption {
+        private String key;
+        private String label;
+
+        public PrestationOption() {}
+
+        public PrestationOption(String key, String label) {
+            this.key = key;
+            this.label = label;
+        }
+
+        public String getKey() { return key; }
+        public void setKey(String key) { this.key = key; }
+
+        public String getLabel() { return label; }
+        public void setLabel(String label) { this.label = label; }
+    }
+
+    // ─── Inner class for surcharge option (forfait catalog) ──────────
+
+    public static class SurchargeOption {
+        private String key;
+        private String label;
+        private String unit;
+
+        public SurchargeOption() {}
+
+        public SurchargeOption(String key, String label, String unit) {
+            this.key = key;
+            this.label = label;
+            this.unit = unit;
+        }
+
+        public String getKey() { return key; }
+        public void setKey(String key) { this.key = key; }
+
+        public String getLabel() { return label; }
+        public void setLabel(String label) { this.label = label; }
+
+        public String getUnit() { return unit; }
+        public void setUnit(String unit) { this.unit = unit; }
     }
 
     // ─── Inner class for surface tiers ──────────────────────────────
@@ -171,6 +306,24 @@ public class PricingConfigDto {
 
     public List<ForfaitConfig> getForfaitConfigs() { return forfaitConfigs; }
     public void setForfaitConfigs(List<ForfaitConfig> forfaitConfigs) { this.forfaitConfigs = forfaitConfigs; }
+
+    public List<ServicePriceConfig> getTravauxConfig() { return travauxConfig; }
+    public void setTravauxConfig(List<ServicePriceConfig> travauxConfig) { this.travauxConfig = travauxConfig; }
+
+    public List<ServicePriceConfig> getExterieurConfig() { return exterieurConfig; }
+    public void setExterieurConfig(List<ServicePriceConfig> exterieurConfig) { this.exterieurConfig = exterieurConfig; }
+
+    public List<BlanchisserieItem> getBlanchisserieConfig() { return blanchisserieConfig; }
+    public void setBlanchisserieConfig(List<BlanchisserieItem> blanchisserieConfig) { this.blanchisserieConfig = blanchisserieConfig; }
+
+    public List<CommissionConfig> getCommissionConfigs() { return commissionConfigs; }
+    public void setCommissionConfigs(List<CommissionConfig> commissionConfigs) { this.commissionConfigs = commissionConfigs; }
+
+    public List<PrestationOption> getAvailablePrestations() { return availablePrestations; }
+    public void setAvailablePrestations(List<PrestationOption> availablePrestations) { this.availablePrestations = availablePrestations; }
+
+    public List<SurchargeOption> getAvailableSurcharges() { return availableSurcharges; }
+    public void setAvailableSurcharges(List<SurchargeOption> availableSurcharges) { this.availableSurcharges = availableSurcharges; }
 
     public String getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }
