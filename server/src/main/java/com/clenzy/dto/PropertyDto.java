@@ -92,6 +92,10 @@ public class PropertyDto {
 
     public String cleaningNotes;
 
+    // Horaires par défaut (check-in / check-out)
+    public String defaultCheckInTime;
+    public String defaultCheckOutTime;
+
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
 }

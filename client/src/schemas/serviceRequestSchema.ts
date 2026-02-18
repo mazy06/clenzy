@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 
 export const serviceRequestSchema = z.object({
   title: z.string().min(1, 'Le titre est requis'),
-  description: z.string().min(1, 'La description est requise'),
+  description: z.string(),
   propertyId: z.number().min(1, 'La propriété est requise'),
   serviceType: z.string().min(1, 'Le type de service est requis'),
   priority: z.string().min(1, 'La priorité est requise'),

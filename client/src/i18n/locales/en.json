@@ -414,6 +414,7 @@
     "cleaningEstimate": "Cleaning estimate",
     "cleaningEstimateTooltip": "Indicative estimate for the cleaning intervention cost. Final pricing is subject to the service provider's acceptance.",
     "cleaningDurationTooltip": "Estimated cleaning intervention duration based on property characteristics. Actual duration may vary.",
+    "defaultTimesTooltip": "Default schedule — Check-out: {{checkOut}} / Check-in: {{checkIn}}",
     "activeFeatures": "Active options"
   },
   "serviceRequests": {
@@ -459,10 +460,12 @@
       "detailedDescription": "Detailed description",
       "descriptionPlaceholder": "Describe in detail the service request...",
       "property": "Property",
+      "selectProperty": "Select a property...",
       "priority": "Priority",
       "estimatedDuration": "Estimated duration",
       "dueDate": "Due date",
       "requestor": "Requester",
+      "selectRequestor": "Select a requester...",
       "requestorHelper": "The requester is automatically set according to your role",
       "assignmentType": "Assignment type",
       "noAssignment": "No assignment",
@@ -552,7 +555,10 @@
     "planning": "Planning",
     "peopleInvolved": "People involved",
     "noDate": "Not defined",
-    "invalidDate": "Invalid date"
+    "invalidDate": "Invalid date",
+    "notFound": "Service request not found",
+    "team": "Team",
+    "approvedDateShort": "Approved on"
   },
   "interventions": {
     "title": "Interventions",
@@ -1307,6 +1313,20 @@
       "full": "Full automation",
       "basicHelp": "Automatic notifications and reminders",
       "fullHelp": "Fully automated management (check-in/out, billing, etc.)"
+    },
+    "forfaits": {
+      "CLEANING": {
+        "title": "Standard Plan",
+        "subtitle": "Standard cleaning plan configuration"
+      },
+      "EXPRESS_CLEANING": {
+        "title": "Express Plan",
+        "subtitle": "Express cleaning plan configuration"
+      },
+      "DEEP_CLEANING": {
+        "title": "Deep Cleaning Plan",
+        "subtitle": "Deep cleaning plan configuration"
+      }
     }
   }
 }

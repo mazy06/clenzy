@@ -59,6 +59,86 @@ public class PricingConfigService {
     private static final int DEFAULT_PMS_MONTHLY_CENTS = 500;
     private static final int DEFAULT_PMS_SYNC_CENTS = 1000;
 
+    // ─── Default forfait configs (mirrors current hardcoded values in frontend) ──
+
+    private static final List<PricingConfigDto.ForfaitConfig> DEFAULT_FORFAIT_CONFIGS;
+
+    static {
+        DEFAULT_FORFAIT_CONFIGS = new ArrayList<>();
+
+        // Forfait Standard
+        PricingConfigDto.ForfaitConfig standard = new PricingConfigDto.ForfaitConfig();
+        standard.setKey("CLEANING");
+        standard.setLabel("Standard");
+        standard.setCoeffMin(1.0);
+        standard.setCoeffMax(1.0);
+        standard.setServiceTypes(List.of("CLEANING", "FLOOR_CLEANING", "BATHROOM_CLEANING", "KITCHEN_CLEANING"));
+        standard.setIncludedPrestations(List.of("laundry", "exterior"));
+        standard.setExtraPrestations(List.of("ironing", "deepKitchen", "disinfection", "windows", "frenchDoors", "slidingDoors"));
+        standard.setEligibleTeamIds(List.of());
+        standard.setSurcharges(new LinkedHashMap<>(Map.of(
+                "perBedroom", 5.0, "perBathroom", 4.0, "perFloor", 8.0,
+                "exterior", 12.0, "laundry", 8.0, "perGuestAbove4", 3.0
+        )));
+        standard.setSurfaceBasePrices(List.of(
+                new PricingConfigDto.SurfaceBasePrice(30, 35),
+                new PricingConfigDto.SurfaceBasePrice(50, 45),
+                new PricingConfigDto.SurfaceBasePrice(70, 55),
+                new PricingConfigDto.SurfaceBasePrice(100, 70),
+                new PricingConfigDto.SurfaceBasePrice(150, 90),
+                new PricingConfigDto.SurfaceBasePrice(null, 110)
+        ));
+        DEFAULT_FORFAIT_CONFIGS.add(standard);
+
+        // Forfait Express
+        PricingConfigDto.ForfaitConfig express = new PricingConfigDto.ForfaitConfig();
+        express.setKey("EXPRESS_CLEANING");
+        express.setLabel("Express");
+        express.setCoeffMin(0.7);
+        express.setCoeffMax(0.85);
+        express.setServiceTypes(List.of("EXPRESS_CLEANING"));
+        express.setIncludedPrestations(List.of());
+        express.setExtraPrestations(List.of("laundry", "exterior", "ironing", "deepKitchen", "disinfection", "windows", "frenchDoors", "slidingDoors"));
+        express.setEligibleTeamIds(List.of());
+        express.setSurcharges(new LinkedHashMap<>(Map.of(
+                "perBedroom", 5.0, "perBathroom", 4.0, "perFloor", 8.0,
+                "exterior", 12.0, "laundry", 8.0, "perGuestAbove4", 3.0
+        )));
+        express.setSurfaceBasePrices(List.of(
+                new PricingConfigDto.SurfaceBasePrice(30, 35),
+                new PricingConfigDto.SurfaceBasePrice(50, 45),
+                new PricingConfigDto.SurfaceBasePrice(70, 55),
+                new PricingConfigDto.SurfaceBasePrice(100, 70),
+                new PricingConfigDto.SurfaceBasePrice(150, 90),
+                new PricingConfigDto.SurfaceBasePrice(null, 110)
+        ));
+        DEFAULT_FORFAIT_CONFIGS.add(express);
+
+        // Forfait En profondeur
+        PricingConfigDto.ForfaitConfig deep = new PricingConfigDto.ForfaitConfig();
+        deep.setKey("DEEP_CLEANING");
+        deep.setLabel("En profondeur");
+        deep.setCoeffMin(1.4);
+        deep.setCoeffMax(1.7);
+        deep.setServiceTypes(List.of("DEEP_CLEANING", "WINDOW_CLEANING"));
+        deep.setIncludedPrestations(List.of("laundry", "exterior", "ironing", "deepKitchen", "windows", "frenchDoors", "slidingDoors"));
+        deep.setExtraPrestations(List.of("disinfection"));
+        deep.setEligibleTeamIds(List.of());
+        deep.setSurcharges(new LinkedHashMap<>(Map.of(
+                "perBedroom", 5.0, "perBathroom", 4.0, "perFloor", 8.0,
+                "exterior", 12.0, "laundry", 8.0, "perGuestAbove4", 3.0
+        )));
+        deep.setSurfaceBasePrices(List.of(
+                new PricingConfigDto.SurfaceBasePrice(30, 35),
+                new PricingConfigDto.SurfaceBasePrice(50, 45),
+                new PricingConfigDto.SurfaceBasePrice(70, 55),
+                new PricingConfigDto.SurfaceBasePrice(100, 70),
+                new PricingConfigDto.SurfaceBasePrice(150, 90),
+                new PricingConfigDto.SurfaceBasePrice(null, 110)
+        ));
+        DEFAULT_FORFAIT_CONFIGS.add(deep);
+    }
+
     public PricingConfigService(PricingConfigRepository repository, ObjectMapper objectMapper) {
         this.repository = repository;
         this.objectMapper = objectMapper;
@@ -165,6 +245,8 @@ public class PricingConfigService {
         dto.setAutomationBasicSurcharge(entity.getAutomationBasicSurcharge() != null ? entity.getAutomationBasicSurcharge() : 0);
         dto.setAutomationFullSurcharge(entity.getAutomationFullSurcharge() != null ? entity.getAutomationFullSurcharge() : 0);
 
+        dto.setForfaitConfigs(parseForfaitJson(entity.getForfaitConfigs(), DEFAULT_FORFAIT_CONFIGS));
+
         dto.setUpdatedAt(entity.getUpdatedAt() != null ? entity.getUpdatedAt().toString() : null);
 
         return dto;
@@ -199,6 +281,10 @@ public class PricingConfigService {
 
         if (dto.getAutomationBasicSurcharge() != null) entity.setAutomationBasicSurcharge(dto.getAutomationBasicSurcharge());
         if (dto.getAutomationFullSurcharge() != null) entity.setAutomationFullSurcharge(dto.getAutomationFullSurcharge());
+
+        if (dto.getForfaitConfigs() != null) {
+            entity.setForfaitConfigs(toJson(dto.getForfaitConfigs()));
+        }
     }
 
     // ─── Default DTO ───────────────────────────────────────────────
@@ -218,6 +304,7 @@ public class PricingConfigService {
         dto.setPmsSyncPriceCents(DEFAULT_PMS_SYNC_CENTS);
         dto.setAutomationBasicSurcharge(0);
         dto.setAutomationFullSurcharge(0);
+        dto.setForfaitConfigs(new ArrayList<>(DEFAULT_FORFAIT_CONFIGS));
         return dto;
     }
 
@@ -230,6 +317,16 @@ public class PricingConfigService {
         } catch (JsonProcessingException e) {
             log.warn("Erreur parsing JSON coefficients, fallback aux defaults: {}", e.getMessage());
             return new LinkedHashMap<>(fallback);
+        }
+    }
+
+    private List<PricingConfigDto.ForfaitConfig> parseForfaitJson(String json, List<PricingConfigDto.ForfaitConfig> fallback) {
+        if (json == null || json.isBlank()) return new ArrayList<>(fallback);
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<PricingConfigDto.ForfaitConfig>>() {});
+        } catch (JsonProcessingException e) {
+            log.warn("Erreur parsing JSON forfait configs, fallback aux defaults: {}", e.getMessage());
+            return new ArrayList<>(fallback);
         }
     }
 

@@ -14,10 +14,10 @@ Configurer au minimum :
 MAIL_PROVIDER=brevo
 MAIL_HOST=smtp-relay.brevo.com
 MAIL_PORT=587
-MAIL_USERNAME=<login SMTP Brevo>
-MAIL_PASSWORD=<SMTP Key Brevo>
-MAIL_FROM=contact@votre-domaine.tld
-MAIL_NOTIFICATION_TO=info@votre-domaine.tld
+MAIL_USERNAME=a27b10001@smtp-brevo.com
+MAIL_PASSWORD=xsmtpsib-a63c9b8a8a2ea993515c9d273cb60c1c42e2b494a049de40a4eff67083ace3b8-TaxVcGnOHQuywuEp
+MAIL_FROM=info@clenzy.fr
+MAIL_NOTIFICATION_TO=info@clenzy.fr
 ```
 
 Pour la robustesse SMTP :

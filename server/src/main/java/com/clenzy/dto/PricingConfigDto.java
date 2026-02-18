@@ -30,6 +30,76 @@ public class PricingConfigDto {
 
     private String updatedAt;
 
+    // Forfait configs (Standard, Express, En profondeur)
+    private List<ForfaitConfig> forfaitConfigs;
+
+    // ─── Inner class for forfait configuration ──────────────────────
+
+    public static class ForfaitConfig {
+        private String key;                        // "CLEANING", "EXPRESS_CLEANING", "DEEP_CLEANING"
+        private String label;                      // "Standard", "Express", "En profondeur"
+        private Double coeffMin;
+        private Double coeffMax;
+        private List<String> serviceTypes;         // intervention types associated
+        private List<String> includedPrestations;  // prestations included in base price
+        private List<String> extraPrestations;     // prestations billed as extras
+        private List<Long> eligibleTeamIds;        // eligible teams (empty = all)
+        private Map<String, Double> surcharges;    // perBedroom, perBathroom, etc.
+        private List<SurfaceBasePrice> surfaceBasePrices;
+
+        public ForfaitConfig() {}
+
+        public String getKey() { return key; }
+        public void setKey(String key) { this.key = key; }
+
+        public String getLabel() { return label; }
+        public void setLabel(String label) { this.label = label; }
+
+        public Double getCoeffMin() { return coeffMin; }
+        public void setCoeffMin(Double coeffMin) { this.coeffMin = coeffMin; }
+
+        public Double getCoeffMax() { return coeffMax; }
+        public void setCoeffMax(Double coeffMax) { this.coeffMax = coeffMax; }
+
+        public List<String> getServiceTypes() { return serviceTypes; }
+        public void setServiceTypes(List<String> serviceTypes) { this.serviceTypes = serviceTypes; }
+
+        public List<String> getIncludedPrestations() { return includedPrestations; }
+        public void setIncludedPrestations(List<String> includedPrestations) { this.includedPrestations = includedPrestations; }
+
+        public List<String> getExtraPrestations() { return extraPrestations; }
+        public void setExtraPrestations(List<String> extraPrestations) { this.extraPrestations = extraPrestations; }
+
+        public List<Long> getEligibleTeamIds() { return eligibleTeamIds; }
+        public void setEligibleTeamIds(List<Long> eligibleTeamIds) { this.eligibleTeamIds = eligibleTeamIds; }
+
+        public Map<String, Double> getSurcharges() { return surcharges; }
+        public void setSurcharges(Map<String, Double> surcharges) { this.surcharges = surcharges; }
+
+        public List<SurfaceBasePrice> getSurfaceBasePrices() { return surfaceBasePrices; }
+        public void setSurfaceBasePrices(List<SurfaceBasePrice> surfaceBasePrices) { this.surfaceBasePrices = surfaceBasePrices; }
+    }
+
+    // ─── Inner class for surface base prices in forfaits ────────────
+
+    public static class SurfaceBasePrice {
+        private Integer maxSurface;
+        private Integer base;
+
+        public SurfaceBasePrice() {}
+
+        public SurfaceBasePrice(Integer maxSurface, Integer base) {
+            this.maxSurface = maxSurface;
+            this.base = base;
+        }
+
+        public Integer getMaxSurface() { return maxSurface; }
+        public void setMaxSurface(Integer maxSurface) { this.maxSurface = maxSurface; }
+
+        public Integer getBase() { return base; }
+        public void setBase(Integer base) { this.base = base; }
+    }
+
     // ─── Inner class for surface tiers ──────────────────────────────
 
     public static class SurfaceTier {
@@ -98,6 +168,9 @@ public class PricingConfigDto {
 
     public Integer getAutomationFullSurcharge() { return automationFullSurcharge; }
     public void setAutomationFullSurcharge(Integer automationFullSurcharge) { this.automationFullSurcharge = automationFullSurcharge; }
+
+    public List<ForfaitConfig> getForfaitConfigs() { return forfaitConfigs; }
+    public void setForfaitConfigs(List<ForfaitConfig> forfaitConfigs) { this.forfaitConfigs = forfaitConfigs; }
 
     public String getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(String updatedAt) { this.updatedAt = updatedAt; }

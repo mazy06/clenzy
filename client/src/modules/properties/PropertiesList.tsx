@@ -155,6 +155,8 @@ export default function PropertiesList() {
     numberOfFloors: property.numberOfFloors,
     hasExterior: property.hasExterior,
     hasLaundry: property.hasLaundry,
+    defaultCheckInTime: property.defaultCheckInTime,
+    defaultCheckOutTime: property.defaultCheckOutTime,
   }), []);
 
   // ─── Filter options ───────────────────────────────────────────────

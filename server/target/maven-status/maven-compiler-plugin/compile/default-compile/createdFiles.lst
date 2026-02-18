@@ -79,6 +79,7 @@ com/clenzy/repository/PermissionRepository.class
 com/clenzy/service/ReportService.class
 com/clenzy/dto/ServiceRequestValidationRequest.class
 com/clenzy/service/NewUserService.class
+com/clenzy/service/PropertyService$1.class
 com/clenzy/dto/PaymentHistoryDto.class
 com/clenzy/dto/PropertyDto.class
 com/clenzy/integration/airbnb/model/AirbnbListingMapping.class

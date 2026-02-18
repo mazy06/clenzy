@@ -14,22 +14,51 @@ import {
   MoreVert,
   LocationOn,
   CalendarToday,
-  AccessTime,
+  Timer,
   Person as PersonIcon,
   Group as GroupIcon,
-  CleaningServices,
+  AutoAwesome,
   Build,
   Category,
-  Schedule,
   Yard,
   BugReport,
   AutoFixHigh,
   Edit,
+  Payments,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { getServiceTypeBannerUrl } from '../utils/serviceTypeBanner';
 import { useTranslation } from '../hooks/useTranslation';
-import { formatDate, formatDuration } from '../utils/formatUtils';
+import ThemedTooltip from './ThemedTooltip';
+import { formatShortDate, formatTimeFromDate, formatDuration } from '../utils/formatUtils';
+// ─── Source logos ─────────────────────────────────────────────────────────────
+import airbnbLogoSmall from '../assets/logo/airbnb-logo-small.png';
+import bookingLogoSmall from '../assets/logo/booking-logo-small.svg';
+import homeAwayLogo from '../assets/logo/HomeAway-logo.png';
+import expediaLogo from '../assets/logo/expedia-logo.png';
+import leboncoinLogo from '../assets/logo/Leboncoin-logo.png';
+import clenzyLogo from '../assets/logo/clenzy-logo.png';
+
+const ICAL_SOURCE_LOGOS: Record<string, string> = {
+  airbnb: airbnbLogoSmall,
+  'booking.com': bookingLogoSmall,
+  booking: bookingLogoSmall,
+  vrbo: homeAwayLogo,
+  homeaway: homeAwayLogo,
+  expedia: expediaLogo,
+  leboncoin: leboncoinLogo,
+  direct: clenzyLogo,
+};
+
+/** Detect iCal source logo from description like "Import iCal Airbnb — Guest: ..." */
+function getICalSourceLogo(description: string): string | null {
+  if (!description) return null;
+  const match = description.match(/^Import iCal\s+(\S+)/i);
+  if (!match) return null;
+  const sourceKey = match[1].toLowerCase().replace(/[.,;:]$/, '');
+  return ICAL_SOURCE_LOGOS[sourceKey] || null;
+}
+
 import {
   getServiceRequestStatusColor,
   getServiceRequestStatusLabel,
@@ -55,6 +84,7 @@ interface ServiceRequest {
   assignedToName?: string;
   assignedToType?: 'user' | 'team';
   estimatedDuration: number;
+  estimatedCost?: number;
   dueDate: string;
   createdAt: string;
   approvedAt?: string;
@@ -112,7 +142,7 @@ const getTypeIcon = (type: string, size: number = 48) => {
     'HVAC_REPAIR', 'APPLIANCE_REPAIR',
   ];
 
-  if (cleaningTypes.includes(type)) return <CleaningServices {...iconProps} />;
+  if (cleaningTypes.includes(type)) return <AutoAwesome {...iconProps} />;
   if (repairTypes.includes(type)) return <Build {...iconProps} />;
   if (type === 'PREVENTIVE_MAINTENANCE') return <Build {...iconProps} />;
   if (type === 'GARDENING') return <Yard {...iconProps} />;
@@ -134,7 +164,7 @@ const getTypeSmallIcon = (type: string) => {
     'HVAC_REPAIR', 'APPLIANCE_REPAIR',
   ];
 
-  if (cleaningTypes.includes(type)) return <CleaningServices {...iconProps} />;
+  if (cleaningTypes.includes(type)) return <AutoAwesome {...iconProps} />;
   if (repairTypes.includes(type)) return <Build {...iconProps} />;
   if (type === 'PREVENTIVE_MAINTENANCE') return <Build {...iconProps} />;
   if (type === 'GARDENING') return <Yard {...iconProps} />;
@@ -252,31 +282,39 @@ const styles = {
     flex: 1,
     fontSize: '0.7rem',
   },
+  bottomRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 1,
+    mb: 0.5,
+  },
   metricsRow: {
     display: 'flex',
     gap: 0.75,
-    mb: 1.25,
-    flexWrap: 'wrap',
-  },
-  metricBox: {
-    display: 'flex',
+    flexShrink: 0,
     alignItems: 'center',
-    gap: 0.4,
-    bgcolor: 'grey.100',
-    borderRadius: 1,
-    px: 0.75,
-    py: 0.35,
   },
-  assignRow: {
+  metricChip: {
+    height: 22,
+    fontSize: '0.62rem',
+    fontWeight: 600,
+    borderWidth: 1.5,
+    '& .MuiChip-label': { px: 0.75 },
+    '& .MuiChip-icon': { fontSize: 12, ml: 0.5 },
+  },
+  peopleCol: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    minWidth: 0,
+    flexShrink: 1,
+  },
+  personRow: {
     display: 'flex',
     alignItems: 'center',
     gap: 0.5,
-    mb: 0.5,
-  },
-  requestorRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.5,
+    minWidth: 0,
   },
   actionBar: {
     px: 1.75,
@@ -376,102 +414,136 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
           />
         </Box>
 
-        {/* Droite : date d'échéance */}
-        <Box
-          sx={styles.dateBox}
-        >
-          <Schedule sx={{ fontSize: 13, color: 'text.secondary' }} />
-          <Typography
-            variant="caption"
-            sx={styles.dateText}
-          >
-            {formatDate(request.dueDate)}
-          </Typography>
+        {/* Droite : type + date d'échéance */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+          <Chip
+            label={getInterventionTypeLabel(request.type, t)}
+            size="small"
+            color="info"
+            variant="outlined"
+            sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+          />
+          <Box sx={styles.dateBox}>
+            <CalendarToday sx={{ fontSize: 13, color: 'text.secondary' }} />
+            <Typography variant="caption" sx={styles.dateText}>
+              {formatShortDate(request.dueDate)}
+              {formatTimeFromDate(request.dueDate) && ` · ${formatTimeFromDate(request.dueDate)}`}
+            </Typography>
+          </Box>
         </Box>
       </Box>
 
       {/* ─── Zone info ─── */}
       <CardContent sx={styles.infoContent}>
         {/* Titre */}
-        <Typography
-          variant="subtitle1"
-          fontWeight={700}
-          sx={styles.titleText}
-          title={request.title}
-        >
-          {request.title}
-        </Typography>
+        <ThemedTooltip title={request.title} arrow placement="top" disableHoverListener={request.title.length < 35}>
+          <Typography
+            variant="subtitle1"
+            fontWeight={700}
+            sx={styles.titleText}
+          >
+            {request.title}
+          </Typography>
+        </ThemedTooltip>
 
-        {/* Description */}
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={styles.descriptionText}
-          title={request.description}
-        >
-          {request.description}
-        </Typography>
+        {/* Description (with iCal source logo if applicable) */}
+        <ThemedTooltip title={request.description} arrow placement="top" disableHoverListener={request.description.length < 60}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1, minWidth: 0 }}>
+            {(() => {
+              const logo = getICalSourceLogo(request.description);
+              return logo ? (
+                <Box
+                  sx={{
+                    width: 18,
+                    height: 18,
+                    minWidth: 18,
+                    borderRadius: '50%',
+                    border: '1.5px solid',
+                    borderColor: 'divider',
+                    backgroundColor: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <img src={logo} alt="" width={12} height={12} style={{ objectFit: 'contain', borderRadius: '50%' }} />
+                </Box>
+              ) : null;
+            })()}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ ...styles.descriptionText, mb: 0, flex: 1 }}
+            >
+              {request.description}
+            </Typography>
+          </Box>
+        </ThemedTooltip>
 
         {/* Propriété */}
         <Box sx={styles.propertyRow}>
           <LocationOn sx={styles.locationIcon} />
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={styles.propertyText}
-            title={request.propertyName}
-          >
-            {request.propertyName}
-          </Typography>
+          <ThemedTooltip title={`${request.propertyName} — ${request.propertyAddress}, ${request.propertyCity}`} arrow placement="top">
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={styles.propertyText}
+            >
+              {request.propertyName}
+            </Typography>
+          </ThemedTooltip>
         </Box>
 
-        {/* Métriques — ligne horizontale compacte */}
-        <Box
-          sx={styles.metricsRow}
-        >
-          <Box
-            sx={styles.metricBox}
-          >
-            <AccessTime sx={{ fontSize: 14, color: 'text.secondary' }} />
-            <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.72rem', color: 'text.primary' }}>
-              {formatDuration(request.estimatedDuration)}
-            </Typography>
-          </Box>
-          <Box
-            sx={styles.metricBox}
-          >
-            <Schedule sx={{ fontSize: 14, color: 'text.secondary' }} />
-            <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.72rem', color: 'text.primary' }}>
-              {formatDate(request.createdAt)}
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Assignation */}
-        {request.assignedToName && (
-          <Box sx={styles.assignRow}>
-            {request.assignedToType === 'team' ? (
-              <GroupIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+        {/* Personnes + Métriques — deux colonnes sur une ligne */}
+        <Box sx={styles.bottomRow}>
+          {/* Colonne gauche : demandeur / assigné */}
+          <Box sx={styles.peopleCol}>
+            {request.assignedToName ? (
+              <Box sx={styles.personRow}>
+                {request.assignedToType === 'team' ? (
+                  <GroupIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+                ) : (
+                  <PersonIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+                )}
+                <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {request.assignedToName}
+                  {request.assignedToType === 'team' && (
+                    <Box component="span" sx={styles.teamBadge}>(Équipe)</Box>
+                  )}
+                </Typography>
+              </Box>
             ) : (
-              <PersonIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+              <Box sx={styles.personRow}>
+                <PersonIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
+                <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {request.requestorName}
+                </Typography>
+              </Box>
             )}
-            <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
-              {request.assignedToName}
-              {request.assignedToType === 'team' && (
-                <Box component="span" sx={styles.teamBadge}>
-                  (Équipe)
-                </Box>
-              )}
-            </Typography>
           </Box>
-        )}
 
-        {/* Demandeur */}
-        <Box sx={styles.requestorRow}>
-          <PersonIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
-          <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
-            {request.requestorName}
-          </Typography>
+          {/* Colonne droite : chips métriques */}
+          <Box sx={styles.metricsRow}>
+            {request.estimatedCost != null && request.estimatedCost > 0 && (
+              <Chip
+                icon={<Payments sx={{ fontSize: 12 }} />}
+                label={`${request.estimatedCost}€ estimé / intervention`}
+                size="small"
+                color="primary"
+                variant="outlined"
+                sx={{ ...styles.metricChip, cursor: 'default' }}
+              />
+            )}
+            <Chip
+              icon={<Timer sx={{ fontSize: 12 }} />}
+              label={`~${formatDuration(request.estimatedDuration)}`}
+              size="small"
+              color="info"
+              variant="outlined"
+              sx={{ ...styles.metricChip, '& .MuiChip-icon': { fontSize: 12, ml: 0.5 }, cursor: 'default' }}
+            />
+          </Box>
         </Box>
       </CardContent>
 

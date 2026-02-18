@@ -33,12 +33,18 @@ import {
   Computer,
   Devices,
   ExpandMore,
+  AutoAwesome,
+  Bolt,
+  CleaningServices,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
-import { pricingConfigApi } from '../../services/api/pricingConfigApi';
-import type { PricingConfig, PricingConfigUpdate, SurfaceTier } from '../../services/api/pricingConfigApi';
+import { pricingConfigApi, DEFAULT_FORFAIT_CONFIGS } from '../../services/api/pricingConfigApi';
+import type { PricingConfig, PricingConfigUpdate, SurfaceTier, ForfaitConfig } from '../../services/api/pricingConfigApi';
+import { teamsApi } from '../../services/api/teamsApi';
+import type { Team } from '../../services/api/teamsApi';
 import PageHeader from '../../components/PageHeader';
+import ForfaitAccordionSection from './ForfaitAccordionSection';
 
 // ─── Default values (matching backend defaults) ────────────────────────────
 
@@ -63,6 +69,7 @@ const DEFAULT_CONFIG: PricingConfig = {
   pmsSyncPriceCents: 1000,
   automationBasicSurcharge: 0,
   automationFullSurcharge: 0,
+  forfaitConfigs: DEFAULT_FORFAIT_CONFIGS,
   updatedAt: null,
 };
 
@@ -73,6 +80,7 @@ export default function Tarification() {
   const { t } = useTranslation();
 
   const [config, setConfig] = useState<PricingConfig>(DEFAULT_CONFIG);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
@@ -86,12 +94,19 @@ export default function Tarification() {
     setExpandedSection(isExpanded ? panel : false);
   };
 
-  // Load config
+  // Load config + teams
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await pricingConfigApi.get();
-        setConfig(data);
+        const [data, teamData] = await Promise.all([
+          pricingConfigApi.get(),
+          teamsApi.getAll().catch(() => [] as Team[]),
+        ]);
+        setConfig({
+          ...data,
+          forfaitConfigs: data.forfaitConfigs?.length ? data.forfaitConfigs : DEFAULT_FORFAIT_CONFIGS,
+        });
+        setTeams(teamData);
       } catch {
         setSnackbar({ open: true, message: t('tarification.loadError'), severity: 'error' });
       } finally {
@@ -152,6 +167,14 @@ export default function Tarification() {
     setConfig((prev) => ({ ...prev, [field]: num }));
   };
 
+  const updateForfait = useCallback((index: number, updated: ForfaitConfig) => {
+    setConfig((prev) => {
+      const forfaits = [...(prev.forfaitConfigs || [])];
+      forfaits[index] = updated;
+      return { ...prev, forfaitConfigs: forfaits };
+    });
+  }, []);
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
@@ -203,6 +226,46 @@ export default function Tarification() {
             </Grid>
           </AccordionDetails>
         </Accordion>
+
+        {/* ─── Sections Forfaits nettoyage ──────────────────────────── */}
+        {(config.forfaitConfigs || []).map((forfait, index) => {
+          const panelKey = `forfait-${forfait.key}`;
+          const icons = [
+            <AutoAwesome key="s" sx={{ color: 'primary.main', fontSize: 20 }} />,
+            <Bolt key="e" sx={{ color: 'warning.main', fontSize: 20 }} />,
+            <CleaningServices key="d" sx={{ color: 'secondary.main', fontSize: 20 }} />,
+          ];
+          return (
+            <Accordion
+              key={forfait.key}
+              expanded={expandedSection === panelKey}
+              onChange={handleAccordionChange(panelKey)}
+              sx={{ '&:before': { display: 'none' } }}
+            >
+              <AccordionSummary expandIcon={<ExpandMore />}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {icons[index] || icons[0]}
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      {t(`tarification.forfaits.${forfait.key}.title`, `Forfait ${forfait.label}`)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {t(`tarification.forfaits.${forfait.key}.subtitle`, `Configuration du forfait ${forfait.label.toLowerCase()}`)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails>
+                <ForfaitAccordionSection
+                  forfait={forfait}
+                  teams={teams}
+                  canEdit={canEdit}
+                  onChange={(updated) => updateForfait(index, updated)}
+                />
+              </AccordionDetails>
+            </Accordion>
+          );
+        })}
 
         {/* ─── Section 2: Abonnement PMS + Automation ──────────────── */}
         <Accordion expanded={expandedSection === 'subscription'} onChange={handleAccordionChange('subscription')} sx={{ '&:before': { display: 'none' } }}>

@@ -10,25 +10,29 @@ import type { TooltipProps } from '@mui/material';
  */
 const ThemedTooltip = styled(({ className, ...props }: TooltipProps) => (
   <Tooltip {...props} classes={{ popper: className }} />
-))(({ theme }) => ({
-  [`& .${tooltipClasses.tooltip}`]: {
-    backgroundColor: theme.palette.mode === 'light' ? '#fff' : theme.palette.grey[800],
-    color: theme.palette.text.primary,
-    border: `1px solid ${theme.palette.divider}`,
-    borderRadius: 10,
-    padding: '10px 12px',
-    maxWidth: 360,
-    boxShadow:
-      theme.palette.mode === 'light'
-        ? '0 4px 16px rgba(0,0,0,0.10)'
-        : '0 4px 16px rgba(0,0,0,0.35)',
-  },
-  [`& .${tooltipClasses.arrow}`]: {
-    color: theme.palette.mode === 'light' ? '#fff' : theme.palette.grey[800],
-    '&::before': {
-      border: `1px solid ${theme.palette.divider}`,
+))(({ theme }) => {
+  const isLight = theme.palette.mode === 'light';
+  const bg = isLight ? '#fff' : theme.palette.grey[800];
+
+  return {
+    [`& .${tooltipClasses.tooltip}`]: {
+      backgroundColor: `${bg} !important`,
+      color: `${theme.palette.text.primary} !important`,
+      border: `1px solid ${theme.palette.divider} !important`,
+      borderRadius: '10px !important',
+      padding: '10px 12px !important',
+      maxWidth: '360px !important',
+      boxShadow: isLight
+        ? '0 4px 16px rgba(0,0,0,0.10) !important'
+        : '0 4px 16px rgba(0,0,0,0.35) !important',
     },
-  },
-}));
+    [`& .${tooltipClasses.arrow}`]: {
+      color: `${bg} !important`,
+      '&::before': {
+        border: `1px solid ${theme.palette.divider} !important`,
+      },
+    },
+  };
+});
 
 export default ThemedTooltip;

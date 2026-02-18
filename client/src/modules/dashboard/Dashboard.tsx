@@ -23,8 +23,29 @@ import DashboardOverviewContent from './DashboardOverviewContent';
 import DashboardDateFilter from './DashboardDateFilter';
 import ICalImportModal from './ICalImportModal';
 import UpgradeBanner from './UpgradeBanner';
+import { useICalFeeds } from './useICalImport';
 import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';
 import type { ZoomLevel } from './PlanningToolbar';
+
+// ─── Source logos for connected iCal feeds ──────────────────────────────────
+import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.png';
+import bookingLogoSmall from '../../assets/logo/booking-logo-small.svg';
+import clenzyLogo from '../../assets/logo/clenzy-logo.png';
+import homeAwayLogo from '../../assets/logo/HomeAway-logo.png';
+import expediaLogo from '../../assets/logo/expedia-logo.png';
+import leboncoinLogo from '../../assets/logo/Leboncoin-logo.png';
+
+const SOURCE_LOGO_MAP: Record<string, { logo: string; label: string }> = {
+  airbnb:            { logo: airbnbLogoSmall, label: 'Airbnb' },
+  'booking.com':     { logo: bookingLogoSmall, label: 'Booking.com' },
+  booking:           { logo: bookingLogoSmall, label: 'Booking.com' },
+  vrbo:              { logo: homeAwayLogo, label: 'Vrbo' },
+  homeaway:          { logo: homeAwayLogo, label: 'HomeAway' },
+  expedia:           { logo: expediaLogo, label: 'Expedia' },
+  leboncoin:         { logo: leboncoinLogo, label: 'Leboncoin' },
+  direct:            { logo: clenzyLogo, label: 'Direct' },
+  'google calendar': { logo: '', label: 'Google Calendar' },
+};
 
 // ─── Tab helpers ────────────────────────────────────────────────────────────
 
@@ -62,6 +83,18 @@ const Dashboard: React.FC = () => {
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>(isMobile ? 'compact' : 'standard');
   const [tabValue, setTabValue] = useState(0);
   const [icalModalOpen, setIcalModalOpen] = useState(false);
+
+  // Connected iCal feeds → unique source icons
+  const { data: icalFeeds } = useICalFeeds();
+  const connectedSources = useMemo(() => {
+    if (!icalFeeds?.length) return [];
+    const seen = new Set<string>();
+    return icalFeeds
+      .map(f => f.sourceName?.toLowerCase().trim())
+      .filter((s): s is string => !!s && !seen.has(s) && (seen.add(s), true))
+      .map(key => SOURCE_LOGO_MAP[key])
+      .filter((entry): entry is { logo: string; label: string } => !!entry && !!entry.logo);
+  }, [icalFeeds]);
 
   // Roles
   const isAdmin = user?.roles?.includes('ADMIN') || false;
@@ -160,6 +193,38 @@ const Dashboard: React.FC = () => {
                   />
                 </span>
               </Tooltip>
+              {/* Icônes des sources OTA connectées */}
+              {connectedSources.length > 0 && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                  {connectedSources.map((src) => (
+                    <Tooltip key={src.label} title={src.label} arrow>
+                      <Box
+                        sx={{
+                          width: 22,
+                          height: 22,
+                          minWidth: 22,
+                          borderRadius: '50%',
+                          border: '1.5px solid',
+                          borderColor: 'divider',
+                          backgroundColor: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <img
+                          src={src.logo}
+                          alt={src.label}
+                          width={14}
+                          height={14}
+                          style={{ objectFit: 'contain', borderRadius: '50%' }}
+                        />
+                      </Box>
+                    </Tooltip>
+                  ))}
+                </Box>
+              )}
               <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
                 <Chip
                   icon={<CalendarTodayIcon sx={{ fontSize: 14 }} />}
