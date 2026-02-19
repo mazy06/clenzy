@@ -1,5 +1,5 @@
 # ====== Build stage ======
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
 # 1. Copier le pom.xml seul pour cacher les dependances
@@ -16,7 +16,7 @@ RUN mvn -B -DskipTests clean package && \
     rm -rf ~/.m2/repository
 
 # ====== Runtime stage ======
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 ENV JAVA_OPTS=""

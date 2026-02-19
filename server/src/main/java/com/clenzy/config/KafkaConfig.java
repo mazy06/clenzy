@@ -97,6 +97,9 @@ public class KafkaConfig {
         factory.setConsumerFactory(consumerFactory());
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
 
+        // Concurrence : 1 consumer par partition (max 3 partitions)
+        factory.setConcurrency(3);
+
         // Retry : 5 tentatives avec 2s d'intervalle, puis DLQ
         factory.setCommonErrorHandler(new DefaultErrorHandler(
                 new FixedBackOff(2000L, 5)
