@@ -49,6 +49,14 @@ const DEFAULT_CONFIG: PricingConfig = {
   commissionConfigs: [],
   availablePrestations: [],
   availableSurcharges: [],
+  // Monitoring sonore
+  monitoringMinutEnabled: false,
+  monitoringMinutMonthlyPriceCents: 0,
+  monitoringClenzyEnabled: false,
+  monitoringClenzyDevicePriceCents: 0,
+  monitoringClenzyInstallationPriceCents: 0,
+  monitoringClenzyConfigPriceCents: 0,
+  monitoringClenzySupportPriceCents: 0,
   updatedAt: null,
 };
 

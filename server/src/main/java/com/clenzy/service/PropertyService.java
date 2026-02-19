@@ -174,6 +174,8 @@ public class PropertyService {
         property.setCountry(dto.country);
         property.setLatitude(dto.latitude);
         property.setLongitude(dto.longitude);
+        property.setDepartment(dto.department);
+        property.setArrondissement(dto.arrondissement);
         property.setBedroomCount(dto.bedroomCount);
         property.setBathroomCount(dto.bathroomCount);
         property.setMaxGuests(dto.maxGuests);
@@ -233,6 +235,8 @@ public class PropertyService {
             dto.country = p.getCountry();
             dto.latitude = p.getLatitude();
             dto.longitude = p.getLongitude();
+            dto.department = p.getDepartment();
+            dto.arrondissement = p.getArrondissement();
             dto.bedroomCount = p.getBedroomCount();
             dto.bathroomCount = p.getBathroomCount();
             dto.maxGuests = p.getMaxGuests();

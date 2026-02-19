@@ -49,6 +49,12 @@ public class Property {
     
     @Column(name = "longitude")
     private BigDecimal longitude;
+
+    @Column(name = "department", length = 3)
+    private String department;
+
+    @Column(name = "arrondissement", length = 5)
+    private String arrondissement;
     
     @NotNull(message = "Le nombre de chambres est obligatoire")
     @Column(name = "bedroom_count", nullable = false)
@@ -253,7 +259,23 @@ public class Property {
     public void setLongitude(BigDecimal longitude) {
         this.longitude = longitude;
     }
-    
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
+    public String getArrondissement() {
+        return arrondissement;
+    }
+
+    public void setArrondissement(String arrondissement) {
+        this.arrondissement = arrondissement;
+    }
+
     public Integer getBedroomCount() {
         return bedroomCount;
     }

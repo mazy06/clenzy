@@ -10,6 +10,7 @@ import {
   MenuItem,
   FormHelperText,
 } from '@mui/material';
+import { Description } from '@mui/icons-material';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -91,17 +92,44 @@ const PropertyFormBasicInfo: React.FC<PropertyFormBasicInfoProps> = React.memo(
               name="description"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label={t('properties.description')}
-                  multiline
-                  rows={2}
-                  placeholder={t('properties.descriptionPlaceholder')}
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                />
+                <Box sx={{
+                  display: 'flex',
+                  gap: 1,
+                  py: 1.25,
+                  px: 1.5,
+                  borderRadius: 1.5,
+                  bgcolor: 'grey.50',
+                  border: '1px solid',
+                  borderColor: fieldState.error ? 'error.main' : 'grey.200',
+                  minHeight: 80,
+                  transition: 'border-color 0.15s ease',
+                }}>
+                  <Description sx={{ fontSize: 16, color: 'text.disabled', mt: 0.125, flexShrink: 0 }} />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.disabled', mb: 0.5 }}>
+                      {t('properties.description')}
+                    </Typography>
+                    <TextField
+                      {...field}
+                      value={field.value ?? ''}
+                      fullWidth
+                      multiline
+                      minRows={2}
+                      maxRows={6}
+                      placeholder={t('properties.descriptionPlaceholder')}
+                      size="small"
+                      variant="standard"
+                      InputProps={{ disableUnderline: true }}
+                      sx={{
+                        '& .MuiInputBase-root': { fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.4, p: 0 },
+                        '& .MuiInputBase-input::placeholder': { fontSize: '0.75rem', color: 'text.disabled' },
+                      }}
+                    />
+                    {fieldState.error && (
+                      <FormHelperText error sx={{ mx: 0, mt: 0.5 }}>{fieldState.error.message}</FormHelperText>
+                    )}
+                  </Box>
+                </Box>
               )}
             />
           </Grid>

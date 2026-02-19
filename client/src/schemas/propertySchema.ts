@@ -33,6 +33,11 @@ export const propertySchema = z.object({
   // Équipements
   amenities: z.array(z.string()).default([]),
   cleaningNotes: z.string().optional(),
+  // Geolocalisation
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
+  department: z.string().optional().nullable(),
+  arrondissement: z.string().optional().nullable(),
 });
 
 export type PropertyFormValues = z.infer<typeof propertySchema>;

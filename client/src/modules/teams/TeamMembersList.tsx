@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -20,9 +20,12 @@ import {
   SortByAlpha,
   Badge,
 } from '@mui/icons-material';
+import { useQuery } from '@tanstack/react-query';
 import { interventionsApi } from '../../services/api';
 import type { Intervention, TeamMember } from '../../services/api';
+import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { teamsKeys } from './useTeamsList';
 
 interface TeamMembersListProps {
   members: TeamMember[];
@@ -43,26 +46,23 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
 }) => {
   const { t } = useTranslation();
   const [sortBy, setSortBy] = useState<SortBy>('name');
-  const [interventions, setInterventions] = useState<Intervention[]>([]);
 
-  useEffect(() => {
-    const loadInterventions = async () => {
-      try {
-        const data = await interventionsApi.getAll();
-        const list = Array.isArray(data) ? data : (data as any).content || [];
-        const teamInterventions = list.filter(
-          (i: Intervention) => i.assignedToType === 'team' && i.assignedToName === teamName
-        );
-        setInterventions(teamInterventions);
-      } catch {
-        setInterventions([]);
-      }
-    };
+  // ─── Team interventions query (shared key for caching) ──────────────────
+  const interventionsQuery = useQuery({
+    queryKey: teamsKeys.workload(teamName),
+    queryFn: async () => {
+      const data = await interventionsApi.getAll();
+      const list = extractApiList<Intervention>(data);
+      return list.filter(
+        (i) => i.assignedToType === 'team' && i.assignedToName === teamName
+      );
+    },
+    staleTime: 30_000,
+  });
 
-    loadInterventions();
-  }, [teamId, teamName]);
+  const interventions = interventionsQuery.data ?? [];
 
-  // Count interventions per member (approximate: check if assignedToName contains member name)
+  // Count interventions per member
   const memberInterventionCounts = useMemo(() => {
     const counts: Record<number, number> = {};
     const activeCounts: Record<number, number> = {};
@@ -101,7 +101,6 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
     }
   };
 
-  // Role labels
   const getRoleLabel = (role: string) => {
     const roleLabels: Record<string, string> = {
       housekeeper: t('teams.roles.housekeeper'),
@@ -127,17 +126,11 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
   return (
     <Card>
       <CardContent sx={{ p: 3 }}>
-        {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600 }}>
             {t('teams.members.title')} ({members.length})
           </Typography>
-          <ToggleButtonGroup
-            value={sortBy}
-            exclusive
-            onChange={handleSortChange}
-            size="small"
-          >
+          <ToggleButtonGroup value={sortBy} exclusive onChange={handleSortChange} size="small">
             <ToggleButton value="name" sx={{ px: 1.5, py: 0.5 }}>
               <SortByAlpha sx={{ fontSize: 16, mr: 0.5 }} />
               <Typography variant="caption">{t('teams.members.sortByName')}</Typography>
@@ -149,7 +142,6 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
           </ToggleButtonGroup>
         </Box>
 
-        {/* Member list */}
         {sortedMembers.length > 0 ? (
           <List>
             {sortedMembers.map((member, index) => {
@@ -164,12 +156,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
                     sx={{ px: 1, py: 1.5 }}
                     secondaryAction={
                       canEdit && onRemoveMember ? (
-                        <IconButton
-                          edge="end"
-                          color="error"
-                          size="small"
-                          onClick={() => onRemoveMember(memberId)}
-                        >
+                        <IconButton edge="end" color="error" size="small" onClick={() => onRemoveMember(memberId)}>
                           <Delete sx={{ fontSize: 18 }} />
                         </IconButton>
                       ) : undefined
@@ -177,8 +164,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
                   >
                     <ListItemAvatar>
                       <Avatar sx={{ bgcolor: 'primary.main', width: 36, height: 36 }}>
-                        {member.firstName?.charAt(0)}
-                        {member.lastName?.charAt(0)}
+                        {member.firstName?.charAt(0)}{member.lastName?.charAt(0)}
                       </Avatar>
                     </ListItemAvatar>
                     <ListItemText
@@ -199,13 +185,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
                             size="small"
                             variant="outlined"
                             color={isAvailable ? 'success' : 'warning'}
-                            sx={{
-                              height: 22,
-                              fontSize: '0.7rem',
-                              fontWeight: 600,
-                              borderWidth: 1.5,
-                              '& .MuiChip-label': { px: 0.75 },
-                            }}
+                            sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
                           />
                         </Box>
                       }

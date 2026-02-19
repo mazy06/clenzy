@@ -12,6 +12,12 @@ export interface TeamMember {
   roleInTeam?: string;
 }
 
+export interface CoverageZone {
+  id?: number;
+  department: string;
+  arrondissement?: string;
+}
+
 export interface Team {
   id: number;
   name: string;
@@ -19,6 +25,7 @@ export interface Team {
   interventionType: string;
   memberCount: number;
   members?: TeamMember[];
+  coverageZones?: CoverageZone[];
   isActive?: boolean;
   status?: 'active' | 'inactive' | 'maintenance';
   createdAt?: string;
@@ -32,6 +39,7 @@ export interface TeamFormData {
   description: string;
   interventionType: string;
   members: { userId: number; roleInTeam: string }[];
+  coverageZones?: CoverageZone[];
 }
 
 export const teamsApi = {

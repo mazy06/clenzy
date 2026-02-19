@@ -72,11 +72,15 @@ public class SecurityConfig {
                     "/api/managers/*/teams/*",
                     "/api/managers/*/users/*",
                     "/api/managers/*/properties/*",
+                    "/api/portfolios/**",
+                    "/api/property-teams/**",
                     "/api/properties/with-managers",
                     "/api/sync/**",
                     "/api/webhooks/stripe",
                     "/api/webhooks/airbnb",
+                    "/api/webhooks/minut",
                     "/api/airbnb/callback",
+                    "/api/minut/callback",
                     "/api/public/**"
                 ).permitAll()
                 .anyRequest().authenticated()

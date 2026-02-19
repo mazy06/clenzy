@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -34,14 +34,17 @@ import {
   LightMode,
   DarkMode,
   SettingsBrightness,
+  VolumeUp,
 } from '@mui/icons-material';
 import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
+import { useNoiseMonitoring } from '../../hooks/useNoiseMonitoring';
 import { useAuth } from '../../hooks/useAuth';
 import { useThemeMode } from '../../hooks/useThemeMode';
-import { useNavigate } from 'react-router-dom';
 import storageService, { STORAGE_KEYS } from '../../services/storageService';
 import { reservationsApi } from '../../services/api/reservationsApi';
+import PageHeader from '../../components/PageHeader';
 import NotificationPreferencesCard from './NotificationPreferencesCard';
+import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
 
 // ─── TabPanel ─────────────────────────────────────────────────────────────────
 
@@ -79,13 +82,17 @@ export default function Settings() {
   const { user, hasPermissionAsync } = useAuth();
   const { settings: workflowSettings, updateSettings: updateWorkflowSettings } = useWorkflowSettings();
   const { mode: themeMode, setMode: setThemeMode, isDark } = useThemeMode();
-  const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
+
+  // Ref pour NotificationPreferencesCard
+  const notifRef = useRef<NotificationPreferencesHandle>(null);
+  // Force re-render quand les notifications changent pour mettre à jour le bouton
+  const [, forceUpdate] = useState(0);
 
   // Vérifier les permissions pour les paramètres
   const [canViewSettings, setCanViewSettings] = useState(false);
   const [canEditSettings, setCanEditSettings] = useState(false);
-  
+
   // TOUS les useState DOIVENT être déclarés AVANT les vérifications conditionnelles
   const [settings, setSettings] = useState({
     notifications: {
@@ -138,6 +145,9 @@ export default function Settings() {
     () => localStorage.getItem(STORAGE_KEYS.PLANNING_MOCK) === 'true'
   );
 
+  // Noise monitoring (Minut) mock
+  const { enabled: noiseMonitoringEnabled, setEnabled: setNoiseMonitoringEnabled } = useNoiseMonitoring();
+
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
@@ -146,11 +156,11 @@ export default function Settings() {
     const checkPermissions = async () => {
       const viewPermission = await hasPermissionAsync('settings:view');
       const editPermission = await hasPermissionAsync('settings:edit');
-      
+
       setCanViewSettings(viewPermission);
       setCanEditSettings(editPermission);
     };
-    
+
     checkPermissions();
   }, [hasPermissionAsync]);
 
@@ -219,17 +229,59 @@ export default function Settings() {
     setTabValue(newValue);
   };
 
+  const handleNotifSave = async () => {
+    if (notifRef.current) {
+      await notifRef.current.save();
+      forceUpdate(n => n + 1);
+    }
+  };
+
+  // ─── Actions dynamiques selon l'onglet ────────────────────────────────────
+
+  const headerActions = tabValue === 0 ? (
+    <>
+      <Button
+        variant="outlined"
+        startIcon={<Refresh />}
+        onClick={handleReset}
+        size="small"
+        title="Réinitialiser"
+      >
+        Réinitialiser
+      </Button>
+      <Button
+        variant="contained"
+        startIcon={<Save />}
+        onClick={handleSave}
+        size="small"
+        title="Sauvegarder"
+      >
+        Sauvegarder
+      </Button>
+    </>
+  ) : tabValue === 1 && notifRef.current?.hasChanges() ? (
+    <Button
+      variant="contained"
+      startIcon={notifRef.current?.isSaving ? <CircularProgress size={16} color="inherit" /> : <Save />}
+      onClick={handleNotifSave}
+      disabled={notifRef.current?.isSaving}
+      size="small"
+      title="Sauvegarder"
+    >
+      {notifRef.current?.isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+    </Button>
+  ) : undefined;
+
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ mb: 1 }}>
-        <Typography variant="h6" fontWeight={700} gutterBottom sx={{ fontSize: '1.25rem' }}>
-          Paramètres
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
-          Configurez votre application selon vos préférences
-        </Typography>
-      </Box>
+      {/* Header avec actions */}
+      <PageHeader
+        title="Paramètres"
+        subtitle="Configurez votre application selon vos préférences"
+        backPath="/"
+        showBackButton={false}
+        actions={headerActions}
+      />
 
       {/* Onglets */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -586,36 +638,36 @@ export default function Settings() {
                       />
                     </ListItemSecondaryAction>
                   </ListItem>
+
+                  <ListItem>
+                    <ListItemIcon>
+                      <VolumeUp />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Monitoring sonore Minut (démo)"
+                      secondary="Simuler les données de capteurs de bruit dans le dashboard Analytics"
+                    />
+                    <ListItemSecondaryAction>
+                      <Switch
+                        edge="end"
+                        checked={noiseMonitoringEnabled}
+                        onChange={(e) => setNoiseMonitoringEnabled(e.target.checked)}
+                      />
+                    </ListItemSecondaryAction>
+                  </ListItem>
                 </List>
               </Paper>
             </Grid>
           )}
         </Grid>
-
-        {/* Actions onglet Général */}
-        <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-          <Button
-            variant="outlined"
-            startIcon={<Refresh />}
-            onClick={handleReset}
-            size="small"
-          >
-            Réinitialiser
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Save />}
-            onClick={handleSave}
-            size="small"
-          >
-            Sauvegarder
-          </Button>
-        </Box>
       </TabPanel>
 
       {/* ─── Onglet Notifications ───────────────────────────────────────── */}
       <TabPanel value={tabValue} index={1}>
-        <NotificationPreferencesCard />
+        <NotificationPreferencesCard
+          ref={notifRef}
+          onChangeState={() => forceUpdate(n => n + 1)}
+        />
       </TabPanel>
 
       {/* Snackbar de confirmation */}

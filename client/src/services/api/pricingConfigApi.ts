@@ -78,6 +78,14 @@ export interface PricingConfig {
   commissionConfigs: CommissionConfig[];
   availablePrestations: PrestationOption[];
   availableSurcharges: SurchargeOption[];
+  // Monitoring sonore
+  monitoringMinutEnabled: boolean;
+  monitoringMinutMonthlyPriceCents: number;
+  monitoringClenzyEnabled: boolean;
+  monitoringClenzyDevicePriceCents: number;
+  monitoringClenzyInstallationPriceCents: number;
+  monitoringClenzyConfigPriceCents: number;
+  monitoringClenzySupportPriceCents: number;
   updatedAt: string | null;
 }
 

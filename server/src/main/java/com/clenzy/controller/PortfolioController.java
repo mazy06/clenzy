@@ -2,9 +2,12 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.PortfolioDto;
 import com.clenzy.dto.PortfolioClientDto;
+import com.clenzy.dto.PortfolioStatsDto;
 import com.clenzy.dto.PortfolioTeamDto;
 import com.clenzy.model.TeamRole;
+import com.clenzy.model.User;
 import com.clenzy.service.PortfolioService;
+import com.clenzy.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/portfolios")
@@ -20,6 +24,22 @@ public class PortfolioController {
 
     @Autowired
     private PortfolioService portfolioService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    /**
+     * Resout un managerId qui peut etre un Long (ID numerique) ou un UUID Keycloak.
+     */
+    private Long resolveManagerId(String managerId) {
+        try {
+            return Long.parseLong(managerId);
+        } catch (NumberFormatException e) {
+            return userRepository.findByKeycloakId(managerId)
+                    .map(User::getId)
+                    .orElseThrow(() -> new IllegalArgumentException("Manager non trouve: " + managerId));
+        }
+    }
 
     /**
      * Créer un nouveau portefeuille
@@ -71,10 +91,25 @@ public class PortfolioController {
      * Récupérer tous les portefeuilles d'un manager
      */
     @GetMapping("/manager/{managerId}")
-    public ResponseEntity<List<PortfolioDto>> getPortfoliosByManager(@PathVariable Long managerId) {
+    public ResponseEntity<List<PortfolioDto>> getPortfoliosByManager(@PathVariable String managerId) {
         try {
-            List<PortfolioDto> portfolios = portfolioService.getPortfoliosByManager(managerId);
+            Long resolvedId = resolveManagerId(managerId);
+            List<PortfolioDto> portfolios = portfolioService.getPortfoliosByManager(resolvedId);
             return ResponseEntity.ok(portfolios);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Statistiques des portefeuilles d'un manager
+     */
+    @GetMapping("/manager/{managerId}/stats")
+    public ResponseEntity<PortfolioStatsDto> getStatsByManager(@PathVariable String managerId) {
+        try {
+            Long resolvedId = resolveManagerId(managerId);
+            PortfolioStatsDto stats = portfolioService.getStatsByManager(resolvedId);
+            return ResponseEntity.ok(stats);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }

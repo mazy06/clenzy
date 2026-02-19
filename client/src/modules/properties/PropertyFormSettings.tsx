@@ -18,6 +18,7 @@ import {
   Schedule,
   CleaningServices,
   Window,
+  Checklist,
 } from '@mui/icons-material';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
@@ -304,18 +305,44 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                 name="cleaningNotes"
                 control={control}
                 render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? ''}
-                    fullWidth
-                    label={t('properties.cleaningNotes')}
-                    multiline
-                    rows={2}
-                    placeholder={t('properties.cleaningNotesPlaceholder')}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                  />
+                  <Box sx={{
+                    display: 'flex',
+                    gap: 1,
+                    py: 1.25,
+                    px: 1.5,
+                    borderRadius: 1.5,
+                    bgcolor: 'primary.50',
+                    border: '1px solid',
+                    borderColor: fieldState.error ? 'error.main' : 'primary.100',
+                    minHeight: 80,
+                    transition: 'border-color 0.15s ease',
+                  }}>
+                    <Checklist sx={{ fontSize: 16, color: 'primary.main', mt: 0.125, flexShrink: 0 }} />
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'primary.main', mb: 0.5 }}>
+                        {t('properties.cleaningNotes')}
+                      </Typography>
+                      <TextField
+                        {...field}
+                        value={field.value ?? ''}
+                        fullWidth
+                        multiline
+                        minRows={2}
+                        maxRows={6}
+                        placeholder={t('properties.cleaningNotesPlaceholder')}
+                        size="small"
+                        variant="standard"
+                        InputProps={{ disableUnderline: true }}
+                        sx={{
+                          '& .MuiInputBase-root': { fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.4, p: 0 },
+                          '& .MuiInputBase-input::placeholder': { fontSize: '0.75rem', color: 'text.disabled' },
+                        }}
+                      />
+                      {fieldState.error && (
+                        <FormHelperText error sx={{ mx: 0, mt: 0.5 }}>{fieldState.error.message}</FormHelperText>
+                      )}
+                    </Box>
+                  </Box>
                 )}
               />
             </Grid>

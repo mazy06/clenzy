@@ -238,12 +238,13 @@ function formatTimeAgo(date: Date, translationFn?: TranslationFn): string {
 const CHART_COLORS = ['#2196f3', '#4caf50', '#ff9800', '#f44336', '#9c27b0', '#00bcd4', '#795548', '#607d8b'];
 
 const STATUS_COLORS: Record<string, string> = {
-  PENDING: '#ff9800',
-  IN_PROGRESS: '#2196f3',
-  COMPLETED: '#4caf50',
-  CANCELLED: '#f44336',
-  SCHEDULED: '#9c27b0',
-  ON_HOLD: '#607d8b',
+  PENDING: '#D4A574',
+  AWAITING_PAYMENT: '#E8B87A',
+  IN_PROGRESS: '#6B8A9A',
+  COMPLETED: '#4A9B8E',
+  CANCELLED: '#C97A7A',
+  SCHEDULED: '#8B7EC8',
+  ON_HOLD: '#94A3B8',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {

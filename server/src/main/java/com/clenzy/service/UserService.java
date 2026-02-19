@@ -38,29 +38,25 @@ public class UserService {
 
     public UserDto create(UserDto dto) {
         try {
-            // Créer l'utilisateur dans Keycloak via NewUserService
+            // 1. Créer l'utilisateur dans Keycloak + base métier via NewUserService
             CreateUserDto createUserDto = new CreateUserDto();
             createUserDto.setEmail(dto.email);
             createUserDto.setFirstName(dto.firstName);
             createUserDto.setLastName(dto.lastName);
             createUserDto.setPassword(dto.password);
             createUserDto.setRole(dto.role != null ? dto.role.name() : "HOST");
-            
+
             UserProfileDto userProfile = newUserService.createUser(createUserDto);
-            
-            // Créer l'utilisateur dans la base métier avec le keycloakId
-            User user = new User();
-            user.setFirstName(dto.firstName);
-            user.setLastName(dto.lastName);
-            user.setEmail(dto.email);
-            user.setPassword(dto.password);
-            user.setPhoneNumber(dto.phoneNumber);
-            user.setRole(dto.role != null ? dto.role : com.clenzy.model.UserRole.HOST);
-            user.setStatus(dto.status != null ? dto.status : com.clenzy.model.UserStatus.ACTIVE);
-            user.setKeycloakId(userProfile.getId());
-            
+
+            // 2. Récupérer l'utilisateur créé par NewUserService et compléter les champs métier
+            User user = userRepository.findByKeycloakId(userProfile.getId())
+                    .orElseThrow(() -> new RuntimeException("Utilisateur créé mais non trouvé en base"));
+
+            // Compléter les champs métier additionnels non gérés par NewUserService
+            if (dto.phoneNumber != null) user.setPhoneNumber(dto.phoneNumber);
+            if (dto.status != null) user.setStatus(dto.status);
             user = userRepository.save(user);
-            
+
             System.out.println("✅ Utilisateur créé dans Keycloak et base métier: " + user.getEmail() + " (Keycloak ID: " + userProfile.getId() + ")");
 
             try {
@@ -75,7 +71,7 @@ public class UserService {
             }
 
             return toDto(user);
-            
+
         } catch (Exception e) {
             System.err.println("❌ Erreur lors de la création de l'utilisateur: " + e.getMessage());
             throw new RuntimeException("Impossible de créer l'utilisateur: " + e.getMessage(), e);

@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAccessToken } from '../../services/storageService';
 import { interventionsApi } from '../../services/api';
 import { buildApiUrl } from '../../config/api';
+import { interventionsKeys } from './useInterventionsList';
 import {
   InterventionDetailsData,
   PropertyDetails,
@@ -44,6 +46,8 @@ export function useInterventionProgress({
   setCompletedSteps,
   saveCompletedSteps,
 }: UseInterventionProgressArgs) {
+  const queryClient = useQueryClient();
+
   const [updatingProgress, setUpdatingProgress] = useState(false);
   const [progressDialogOpen, setProgressDialogOpen] = useState(false);
   const [progressValue, setProgressValue] = useState(0);
@@ -112,69 +116,31 @@ export function useInterventionProgress({
   };
 
   // ------------------------------------------------------------------
-  // Server sync helpers
+  // Mutations
   // ------------------------------------------------------------------
 
-  const handleUpdateProgressValue = async (progress: number) => {
-    if (!id || !intervention) return;
-    try {
-      const updated = await interventionsApi.updateProgress(Number(id), progress) as unknown as InterventionDetailsData;
+  const updateProgressMutation = useMutation({
+    mutationFn: ({ interventionId, progress }: { interventionId: number; progress: number }) =>
+      interventionsApi.updateProgress(interventionId, progress) as unknown as Promise<InterventionDetailsData>,
+    onSuccess: (updated) => {
       setIntervention(updated);
-    } catch {
-      // silent
-    }
-  };
+    },
+  });
 
-  // ------------------------------------------------------------------
-  // Handlers
-  // ------------------------------------------------------------------
-
-  const handleUpdateProgress = async () => {
-    if (!id || !intervention) return;
-    setUpdatingProgress(true);
-    try {
-      const updated = await interventionsApi.updateProgress(Number(id), progressValue) as unknown as InterventionDetailsData;
+  const updateRoomsMutation = useMutation({
+    mutationFn: ({ interventionId, rooms }: { interventionId: number; rooms: string }) =>
+      interventionsApi.updateValidatedRooms(interventionId, rooms) as unknown as Promise<InterventionDetailsData>,
+    onSuccess: (updated) => {
       setIntervention(updated);
-      setProgressDialogOpen(false);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de la mise \u00e0 jour de la progression');
-    } finally {
-      setUpdatingProgress(false);
-    }
-  };
+    },
+  });
 
-  const handleRoomValidation = async (roomIndex: number) => {
-    const newValidatedRooms = new Set(validatedRooms);
-    newValidatedRooms.add(roomIndex);
-    setValidatedRooms(newValidatedRooms);
-
-    const totalRooms = getTotalRooms();
-    if (newValidatedRooms.size === totalRooms && totalRooms > 0) {
-      setAllRoomsValidated(true);
-    }
-
-    if (id) {
-      try {
-        const arr = Array.from(newValidatedRooms).sort((a, b) => a - b);
-        const json = JSON.stringify(arr);
-        const updated = await interventionsApi.updateValidatedRooms(Number(id), json) as unknown as InterventionDetailsData;
-        setIntervention(updated);
-      } catch {
-        // silent
-      }
-    }
-
-    const newProgress = calculateProgress();
-    handleUpdateProgressValue(newProgress);
-  };
-
-  const handleReopenIntervention = async () => {
-    if (!id || !intervention) return;
-    setCompleting(true);
-    try {
-      const updated = await interventionsApi.reopen(Number(id)) as unknown as InterventionDetailsData;
+  const reopenMutation = useMutation({
+    mutationFn: (interventionId: number) =>
+      interventionsApi.reopen(interventionId) as unknown as Promise<InterventionDetailsData>,
+    onSuccess: (updated) => {
       setIntervention(updated);
+      queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
 
       let shouldKeepRoomsValidated = false;
       if (updated.validatedRooms) {
@@ -221,11 +187,69 @@ export function useInterventionProgress({
 
       setError(null);
       isInitialLoadRef.current = false;
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de la r\u00e9ouverture de l\'intervention');
-    } finally {
-      setCompleting(false);
+    },
+    onError: (err: any) => {
+      setError(err.message || 'Erreur lors de la réouverture de l\'intervention');
+    },
+  });
+
+  // ------------------------------------------------------------------
+  // Server sync helpers
+  // ------------------------------------------------------------------
+
+  const handleUpdateProgressValue = async (progress: number) => {
+    if (!id || !intervention) return;
+    updateProgressMutation.mutate({ interventionId: Number(id), progress });
+  };
+
+  // ------------------------------------------------------------------
+  // Handlers
+  // ------------------------------------------------------------------
+
+  const handleUpdateProgress = async () => {
+    if (!id || !intervention) return;
+    setUpdatingProgress(true);
+    updateProgressMutation.mutate(
+      { interventionId: Number(id), progress: progressValue },
+      {
+        onSuccess: () => {
+          setProgressDialogOpen(false);
+          setError(null);
+        },
+        onError: (err: any) => {
+          setError(err.message || 'Erreur lors de la mise à jour de la progression');
+        },
+        onSettled: () => setUpdatingProgress(false),
+      },
+    );
+  };
+
+  const handleRoomValidation = async (roomIndex: number) => {
+    const newValidatedRooms = new Set(validatedRooms);
+    newValidatedRooms.add(roomIndex);
+    setValidatedRooms(newValidatedRooms);
+
+    const totalRooms = getTotalRooms();
+    if (newValidatedRooms.size === totalRooms && totalRooms > 0) {
+      setAllRoomsValidated(true);
     }
+
+    if (id) {
+      const arr = Array.from(newValidatedRooms).sort((a, b) => a - b);
+      const json = JSON.stringify(arr);
+      updateRoomsMutation.mutate({ interventionId: Number(id), rooms: json });
+    }
+
+    const newProgress = calculateProgress();
+    handleUpdateProgressValue(newProgress);
+  };
+
+  const handleReopenIntervention = async () => {
+    if (!id || !intervention) return;
+    setCompleting(true);
+    reopenMutation.mutate(Number(id), {
+      onSettled: () => setCompleting(false),
+    });
   };
 
   // ------------------------------------------------------------------
@@ -262,11 +286,7 @@ export function useInterventionProgress({
       const timeoutId = setTimeout(() => {
         const arr = Array.from(validatedRooms).sort((a, b) => a - b);
         const json = JSON.stringify(arr);
-        interventionsApi.updateValidatedRooms(Number(id), json)
-          .then(updated => {
-            setIntervention(updated as unknown as InterventionDetailsData);
-          })
-          .catch(() => { /* silent */ });
+        updateRoomsMutation.mutate({ interventionId: Number(id), rooms: json });
       }, 1000);
       return () => clearTimeout(timeoutId);
     }

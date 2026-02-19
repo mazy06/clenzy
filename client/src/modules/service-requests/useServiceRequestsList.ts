@@ -7,6 +7,7 @@ import apiClient from '../../services/apiClient';
 import { REQUEST_STATUS_OPTIONS, PRIORITY_OPTIONS } from '../../types/statusEnums';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useServiceRequestsListQuery, serviceRequestsListKeys } from '../../hooks/useServiceRequestsList';
+import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
 import type { ServiceRequest, AssignTeam, AssignUser } from './serviceRequestsUtils';
 
 export function useServiceRequestsList() {
@@ -30,14 +31,12 @@ export function useServiceRequestsList() {
   const { user, isAdmin, isManager, isHost, hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
 
-  // Fonctions temporaires simplifiees
-  const canCancelByWorkflow = (date: string | null | undefined): boolean => {
-    return true;
-  };
-
-  const getRemainingCancellationTime = (date: string | null | undefined): number => {
-    return 24;
-  };
+  // Workflow settings pour le décompte d'annulation et auto-assignation
+  const {
+    settings: workflowSettings,
+    canCancelServiceRequest: canCancelByWorkflow,
+    getRemainingCancellationTime,
+  } = useWorkflowSettings();
 
   // Etats pour le changement de statut rapide
   const [statusChangeDialogOpen, setStatusChangeDialogOpen] = useState(false);
@@ -145,7 +144,7 @@ export function useServiceRequestsList() {
   };
 
   const handleValidateAndCreateIntervention = (request: ServiceRequest) => {
-    if (!request.assignedToId) {
+    if (!request.assignedToId && !workflowSettings.autoAssignInterventions) {
       setErrorMessage(t('serviceRequests.mustAssignBeforeValidation'));
       setErrorDialogOpen(true);
       return;
@@ -244,18 +243,31 @@ export function useServiceRequestsList() {
     if (!selectedRequestForValidation) return;
     setValidating(true);
     try {
-      const requestBody: Record<string, number | undefined> = {};
+      const requestBody: Record<string, number | boolean | undefined> = {};
       if (selectedRequestForValidation.assignedToType === 'team') {
         requestBody.teamId = selectedRequestForValidation.assignedToId;
       } else if (selectedRequestForValidation.assignedToType === 'user') {
         requestBody.userId = selectedRequestForValidation.assignedToId;
       }
-      await apiClient.post(`/service-requests/${selectedRequestForValidation.id}/validate`, requestBody);
+      // Auto-assign si aucune equipe/user et toggle active
+      if (!selectedRequestForValidation.assignedToId && workflowSettings.autoAssignInterventions) {
+        requestBody.autoAssign = true;
+      }
+      const result = await apiClient.post(`/service-requests/${selectedRequestForValidation.id}/validate`, requestBody);
       const requestTitle = selectedRequestForValidation.title;
       invalidateList();
       setValidateDialogOpen(false);
       setSelectedRequestForValidation(null);
-      setSuccessMessage(t('serviceRequests.validateSuccess', { title: requestTitle }));
+
+      // Verifier si l'auto-assignation a fonctionne
+      const intervention = result as Record<string, unknown>;
+      if (requestBody.autoAssign && intervention?.teamId) {
+        setSuccessMessage(t('serviceRequests.autoAssignedTeam'));
+      } else if (requestBody.autoAssign && !intervention?.teamId) {
+        setSuccessMessage(t('serviceRequests.autoAssignNoTeamAvailable'));
+      } else {
+        setSuccessMessage(t('serviceRequests.validateSuccess', { title: requestTitle }));
+      }
       setSuccessDialogOpen(true);
     } catch (error) {
       setErrorMessage(t('serviceRequests.validateError'));

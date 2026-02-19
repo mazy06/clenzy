@@ -21,19 +21,15 @@ import {
   Person as PersonIcon,
   Group as GroupIcon,
   MoreVert,
-  TrendingUp,
   Category,
-  Warning,
-  Bolt,
   Yard,
   BugReport,
   AutoFixHigh,
-  FiberManualRecord,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import LiveDashboardPulse from './LiveDashboardPulse';
 import { useTranslation } from '../../hooks/useTranslation';
-import { formatDate, formatDuration } from '../../utils/formatUtils';
+import { formatShortDate, formatTimeFromDate, formatDuration } from '../../utils/formatUtils';
 import {
   getInterventionStatusColor,
   getInterventionStatusLabel,
@@ -224,26 +220,6 @@ const styles = {
     flex: 1,
     fontSize: '0.7rem',
   },
-  metricsRow: {
-    display: 'flex',
-    gap: 0.75,
-    mb: 1.25,
-    flexWrap: 'wrap',
-  },
-  metricBox: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 0.4,
-    bgcolor: 'grey.100',
-    borderRadius: 1,
-    px: 0.75,
-    py: 0.35,
-  },
-  metricIconBox: {
-    color: 'text.secondary',
-    display: 'flex',
-    alignItems: 'center',
-  },
   progressBar: {
     height: 5,
     borderRadius: 3,
@@ -330,9 +306,7 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
       </LiveDashboardPulse>
 
       {/* ─── Barre de badges (entre bandeau et contenu) ─── */}
-      <Box
-        sx={styles.badgeBar}
-      >
+      <Box sx={styles.badgeBar}>
         {/* Gauche : statut + priorité */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
           <Chip
@@ -351,18 +325,27 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
           />
         </Box>
 
-        {/* Droite : date planifiée */}
-        <Box
-          sx={styles.dateBox}
-        >
+        {/* Droite : date planifiée (short + heure) */}
+        <Box sx={styles.dateBox}>
           <Schedule sx={{ fontSize: 13, color: 'text.secondary' }} />
-          <Typography
-            variant="caption"
-            sx={styles.dateText}
-          >
-            {formatDate(intervention.scheduledDate)}
+          <Typography variant="caption" sx={styles.dateText}>
+            {formatShortDate(intervention.scheduledDate)}
+            {formatTimeFromDate(intervention.scheduledDate) && ` · ${formatTimeFromDate(intervention.scheduledDate)}`}
           </Typography>
         </Box>
+      </Box>
+
+      {/* ─── Barre de progression (dans la même zone badges) ─── */}
+      <Box sx={{ px: 1.5, py: 0.5, bgcolor: 'grey.50', borderBottom: '1px solid', borderColor: 'grey.100', display: 'flex', alignItems: 'center', gap: 0.75 }}>
+        <LinearProgress
+          variant="determinate"
+          value={intervention.progressPercentage}
+          color={getProgressColor(intervention.progressPercentage)}
+          sx={{ ...styles.progressBar, flex: 1 }}
+        />
+        <Typography variant="caption" sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'text.secondary', flexShrink: 0 }}>
+          {intervention.progressPercentage}%
+        </Typography>
       </Box>
 
       {/* ─── Zone info ─── */}
@@ -400,66 +383,42 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
           </Typography>
         </Box>
 
-        {/* Métriques — ligne horizontale compacte */}
-        <Box
-          sx={styles.metricsRow}
-        >
-          {[
-            { icon: <AccessTime sx={{ fontSize: 14 }} />, value: formatDuration(intervention.estimatedDurationHours), label: '' },
-            { icon: <TrendingUp sx={{ fontSize: 14 }} />, value: `${intervention.progressPercentage}%`, label: '' },
-          ].map((metric, idx) => (
-            <Box
-              key={idx}
-              sx={styles.metricBox}
-            >
-              <Box sx={styles.metricIconBox}>
-                {metric.icon}
-              </Box>
-              <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.72rem', color: 'text.primary' }}>
-                {metric.value}
-              </Typography>
-              {metric.label && (
-                <Typography variant="caption" sx={{ fontSize: '0.62rem', color: 'text.secondary' }}>
-                  {metric.label}
-                </Typography>
-              )}
-            </Box>
-          ))}
-        </Box>
-
-        {/* Barre de progression */}
-        <Box sx={{ mb: 1.25 }}>
-          <LinearProgress
-            variant="determinate"
-            value={intervention.progressPercentage}
-            color={getProgressColor(intervention.progressPercentage)}
-            sx={styles.progressBar}
-          />
-        </Box>
-
-        {/* Assignation */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-          {intervention.assignedToType === 'team' ? (
-            <GroupIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
-          ) : (
-            <PersonIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
-          )}
-          <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
-            {intervention.assignedToName || 'Non assigné'}
-            {intervention.assignedToType === 'team' && (
-              <Box component="span" sx={{ ml: 0.5, color: 'info.main', fontSize: '0.6rem' }}>
-                (Équipe)
-              </Box>
-            )}
-          </Typography>
-        </Box>
-
-        {/* Demandeur */}
+        {/* Assignation · Demandeur · Durée — sur une seule ligne */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <PersonIcon sx={{ fontSize: 13, color: 'text.disabled' }} />
-          <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.65rem' }}>
-            {intervention.requestorName}
-          </Typography>
+          {/* Assignation */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, minWidth: 0 }}>
+            {intervention.assignedToType === 'team' ? (
+              <GroupIcon sx={{ fontSize: 12, color: 'text.disabled', flexShrink: 0 }} />
+            ) : (
+              <PersonIcon sx={{ fontSize: 12, color: 'text.disabled', flexShrink: 0 }} />
+            )}
+            <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.62rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {intervention.assignedToName || 'Non assigné'}
+            </Typography>
+          </Box>
+
+          <Typography variant="caption" sx={{ fontSize: '0.55rem', color: 'text.disabled', lineHeight: 1 }}>·</Typography>
+
+          {/* Demandeur */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, minWidth: 0 }}>
+            <PersonIcon sx={{ fontSize: 12, color: 'text.disabled', flexShrink: 0 }} />
+            <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.62rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {intervention.requestorName}
+            </Typography>
+          </Box>
+
+          {/* Spacer */}
+          <Box sx={{ flex: 1 }} />
+
+          {/* Durée — chip style ServiceRequestCard */}
+          <Chip
+            icon={<AccessTime sx={{ fontSize: 12 }} />}
+            label={`~${formatDuration(intervention.estimatedDurationHours)}`}
+            size="small"
+            color="info"
+            variant="outlined"
+            sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 }, '& .MuiChip-icon': { fontSize: 12, ml: 0.5 }, flexShrink: 0 }}
+          />
         </Box>
       </CardContent>
 

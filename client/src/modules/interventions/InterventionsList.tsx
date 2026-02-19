@@ -218,14 +218,16 @@ export default function InterventionsList() {
               disabled={loading}
               size="small"
               sx={{ textTransform: 'none' }}
+              title={t('common.refresh')}
             >
               {t('common.refresh')}
             </Button>
             {(isManager() || isAdmin()) && (
               <Button
                 variant="outlined"
+                size="small"
                 onClick={() => navigate('/interventions/pending-validation')}
-                sx={{ textTransform: 'none' }}
+                title={t('interventions.pendingValidation.title')}
               >
                 {t('interventions.pendingValidation.title')}
               </Button>
@@ -233,9 +235,9 @@ export default function InterventionsList() {
             {isHost() && (
               <Button
                 variant="outlined"
-                color="primary"
+                size="small"
                 onClick={() => navigate('/interventions/pending-payment')}
-                sx={{ textTransform: 'none' }}
+                title={t('interventions.pendingPayment.title')}
               >
                 {t('interventions.pendingPayment.title')}
               </Button>
@@ -244,10 +246,10 @@ export default function InterventionsList() {
             {canCreateInterventions && (isAdmin() || isManager()) && (
               <Button
                 variant="contained"
-                color="primary"
+                size="small"
                 startIcon={<AddIcon />}
                 onClick={() => navigate('/interventions/new')}
-                size="small"
+                title={t('interventions.create')}
               >
                 {t('interventions.create')}
               </Button>

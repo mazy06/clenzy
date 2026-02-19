@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Card,
@@ -14,9 +14,12 @@ import {
   HourglassEmpty,
 } from '@mui/icons-material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
 import { interventionsApi } from '../../services/api';
 import type { Intervention } from '../../services/api';
+import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { teamsKeys } from './useTeamsList';
 
 interface TeamWorkloadCardProps {
   teamId: number;
@@ -25,29 +28,22 @@ interface TeamWorkloadCardProps {
 
 const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName }) => {
   const { t } = useTranslation();
-  const [interventions, setInterventions] = useState<Intervention[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadInterventions = async () => {
-      setLoading(true);
-      try {
-        const data = await interventionsApi.getAll();
-        const list = Array.isArray(data) ? data : (data as any).content || [];
-        // Filter interventions assigned to this team
-        const teamInterventions = list.filter(
-          (i: Intervention) => i.assignedToType === 'team' && i.assignedToName === teamName
-        );
-        setInterventions(teamInterventions);
-      } catch {
-        setInterventions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // ─── Team interventions query ───────────────────────────────────────────
+  const interventionsQuery = useQuery({
+    queryKey: teamsKeys.workload(teamName),
+    queryFn: async () => {
+      const data = await interventionsApi.getAll();
+      const list = extractApiList<Intervention>(data);
+      return list.filter(
+        (i) => i.assignedToType === 'team' && i.assignedToName === teamName
+      );
+    },
+    staleTime: 30_000,
+  });
 
-    loadInterventions();
-  }, [teamId, teamName]);
+  const interventions = interventionsQuery.data ?? [];
+  const loading = interventionsQuery.isLoading;
 
   if (loading) {
     return (
@@ -64,16 +60,12 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  const activeInterventions = interventions.filter(
-    (i) => i.status === 'IN_PROGRESS'
-  );
-  const completedThisMonth = interventions.filter(
-    (i) => {
-      if (i.status !== 'COMPLETED') return false;
-      const updatedDate = i.updatedAt ? new Date(i.updatedAt) : new Date(i.createdAt);
-      return updatedDate.getMonth() === currentMonth && updatedDate.getFullYear() === currentYear;
-    }
-  );
+  const activeInterventions = interventions.filter((i) => i.status === 'IN_PROGRESS');
+  const completedThisMonth = interventions.filter((i) => {
+    if (i.status !== 'COMPLETED') return false;
+    const updatedDate = i.updatedAt ? new Date(i.updatedAt) : new Date(i.createdAt);
+    return updatedDate.getMonth() === currentMonth && updatedDate.getFullYear() === currentYear;
+  });
   const pendingInterventions = interventions.filter(
     (i) => i.status === 'PENDING' || i.status === 'AWAITING_VALIDATION' || i.status === 'AWAITING_PAYMENT'
   );
@@ -82,7 +74,6 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
   const completedTotal = interventions.filter((i) => i.status === 'COMPLETED').length;
   const capacityPercent = total > 0 ? Math.round((completedTotal / total) * 100) : 0;
 
-  // Workload color: based on active / total ratio
   const activeRatio = total > 0 ? (activeInterventions.length / total) * 100 : 0;
   const getWorkloadColor = () => {
     if (activeRatio > 80) return 'error.main';
@@ -96,7 +87,7 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
     return t('teams.workload.available');
   };
 
-  // Chart data: interventions by status
+  // Chart data
   const statusCounts: Record<string, number> = {};
   interventions.forEach((i) => {
     statusCounts[i.status] = (statusCounts[i.status] || 0) + 1;
@@ -150,40 +141,19 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
   return (
     <Card sx={{ height: '100%' }}>
       <CardContent sx={{ p: 3 }}>
-        {/* Title */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600 }}>
             {t('teams.workload.title')}
           </Typography>
-          <Box
-            sx={{
-              px: 1.5,
-              py: 0.5,
-              borderRadius: 1,
-              bgcolor: getWorkloadColor(),
-              color: 'white',
-            }}
-          >
-            <Typography variant="caption" fontWeight={600}>
-              {getWorkloadLabel()}
-            </Typography>
+          <Box sx={{ px: 1.5, py: 0.5, borderRadius: 1, bgcolor: getWorkloadColor(), color: 'white' }}>
+            <Typography variant="caption" fontWeight={600}>{getWorkloadLabel()}</Typography>
           </Box>
         </Box>
 
-        {/* Metric cards */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {metrics.map((metric, index) => (
             <Grid item xs={4} key={index}>
-              <Box
-                sx={{
-                  textAlign: 'center',
-                  p: 1.5,
-                  borderRadius: 1,
-                  bgcolor: 'grey.50',
-                  border: '1px solid',
-                  borderColor: 'grey.200',
-                }}
-              >
+              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 1, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
                 {metric.icon}
                 <Typography variant="h5" fontWeight={700} sx={{ color: metric.color, mt: 0.5 }}>
                   {metric.value}
@@ -196,15 +166,10 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
           ))}
         </Grid>
 
-        {/* Capacity progress bar */}
         <Box sx={{ mb: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-            <Typography variant="body2" fontWeight={500}>
-              {t('teams.workload.capacity')}
-            </Typography>
-            <Typography variant="body2" fontWeight={600} color={getWorkloadColor()}>
-              {capacityPercent}%
-            </Typography>
+            <Typography variant="body2" fontWeight={500}>{t('teams.workload.capacity')}</Typography>
+            <Typography variant="body2" fontWeight={600} color={getWorkloadColor()}>{capacityPercent}%</Typography>
           </Box>
           <LinearProgress
             variant="determinate"
@@ -213,15 +178,11 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
               height: 8,
               borderRadius: 4,
               bgcolor: 'grey.200',
-              '& .MuiLinearProgress-bar': {
-                borderRadius: 4,
-                bgcolor: getWorkloadColor(),
-              },
+              '& .MuiLinearProgress-bar': { borderRadius: 4, bgcolor: getWorkloadColor() },
             }}
           />
         </Box>
 
-        {/* Bar chart */}
         {chartData.length > 0 ? (
           <Box sx={{ height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -240,9 +201,7 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
           </Box>
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="body2" color="text.secondary">
-              {t('dashboard.noData')}
-            </Typography>
+            <Typography variant="body2" color="text.secondary">{t('dashboard.noData')}</Typography>
           </Box>
         )}
       </CardContent>

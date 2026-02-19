@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   Box,
   Grid,
@@ -7,8 +7,10 @@ import {
 } from '@mui/material';
 import { LocationOn } from '@mui/icons-material';
 import { Controller } from 'react-hook-form';
-import type { Control, FieldErrors } from 'react-hook-form';
+import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
+import { AddressAutocomplete } from '../../components/AddressAutocomplete';
+import type { BanAddress } from '../../services/banApi';
 import type { PropertyFormValues } from '../../schemas';
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
@@ -30,13 +32,32 @@ const SECTION_TITLE_SX = {
 export interface PropertyFormAddressProps {
   control: Control<PropertyFormValues>;
   errors: FieldErrors<PropertyFormValues>;
+  setValue: UseFormSetValue<PropertyFormValues>;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
-  ({ control, errors }) => {
+  ({ control, errors, setValue }) => {
     const { t } = useTranslation();
+
+    const handleAddressSelect = useCallback(
+      (address: BanAddress) => {
+        // Construire l'adresse a partir du numero + rue
+        const streetAddress = address.housenumber
+          ? `${address.housenumber} ${address.street}`
+          : address.street || address.label;
+
+        setValue('address', streetAddress, { shouldValidate: true });
+        setValue('city', address.city, { shouldValidate: true });
+        setValue('postalCode', address.postcode, { shouldValidate: true });
+        setValue('latitude', address.latitude);
+        setValue('longitude', address.longitude);
+        setValue('department', address.department);
+        setValue('arrondissement', address.arrondissement || null);
+      },
+      [setValue]
+    );
 
     return (
       <Box>
@@ -51,15 +72,16 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
               name="address"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
+                <AddressAutocomplete
+                  value={field.value || ''}
+                  onSelect={handleAddressSelect}
+                  onChange={(val) => field.onChange(val)}
                   label={t('properties.fullAddress')}
+                  placeholder={t('properties.addressAutocomplete') || t('properties.fullAddressPlaceholder')}
                   required
-                  placeholder={t('properties.fullAddressPlaceholder')}
-                  size="small"
                   error={!!fieldState.error}
                   helperText={fieldState.error?.message}
+                  size="small"
                 />
               )}
             />

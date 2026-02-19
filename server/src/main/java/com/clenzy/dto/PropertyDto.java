@@ -32,6 +32,8 @@ public class PropertyDto {
     public String country;
     public BigDecimal latitude;
     public BigDecimal longitude;
+    public String department;
+    public String arrondissement;
 
     @NotNull(groups = Create.class)
     @Min(0)

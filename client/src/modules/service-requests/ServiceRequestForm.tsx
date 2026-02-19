@@ -6,6 +6,7 @@ import {
   Button,
   Alert,
   CircularProgress,
+  Collapse,
 } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -591,22 +592,24 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
         </Alert>
       )}
 
-      {/* Estimation prix — tout en haut, toujours visible */}
-      <Box sx={{ flexShrink: 0, mb: 1.5 }}>
-        <ServiceRequestPriceEstimate
-          property={selectedProperty}
-          forfaitConfigs={forfaitConfigs}
-          selectedForfaitKey={selectedForfaitKey}
-        />
-      </Box>
+      {/* Estimation prix — visible uniquement quand une propriété est sélectionnée */}
+      <Collapse in={isPropertySelected} timeout={400}>
+        <Box sx={{ flexShrink: 0, mb: 1.5 }}>
+          <ServiceRequestPriceEstimate
+            property={selectedProperty}
+            forfaitConfigs={forfaitConfigs}
+            selectedForfaitKey={selectedForfaitKey}
+          />
+        </Box>
+      </Collapse>
 
       {/* Formulaire */}
       <form onSubmit={rhfHandleSubmit(onSubmit)}>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-          {/* ─── Colonne gauche (7) : Propriété + Infos ─── */}
-          <Box sx={{ flex: 7, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0 }}>
+          {/* ─── Colonne gauche : Propriété + Infos ─── */}
+          <Box sx={{ flex: isPropertySelected ? 7 : 1, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0, transition: 'flex 0.4s ease' }}>
             {/* 1. Propriété — en premier pour auto-fill */}
-            <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2 }}>
+            <Paper sx={{ border: '1px solid', borderColor: isPropertySelected ? 'divider' : 'primary.main', boxShadow: isPropertySelected ? 'none' : '0 0 0 1px rgba(107,138,154,0.2)', borderRadius: 1.5, p: 2, transition: 'border-color 0.3s ease, box-shadow 0.3s ease' }}>
               <ServiceRequestFormProperty
                 control={control}
                 errors={errors}
@@ -617,58 +620,77 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
               />
             </Paper>
 
-            {/* 2. Informations de base */}
-            <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2, opacity: isPropertySelected ? 1 : 0.5, pointerEvents: isPropertySelected ? 'auto' : 'none', transition: 'opacity 0.2s ease' }}>
-              <ServiceRequestFormInfo
-                control={control}
-                errors={errors}
-                setValue={setValue}
-                watchedServiceType={watchedServiceType}
-                disabled={!isPropertySelected}
-                propertyDescription={selectedProperty?.description}
-                cleaningNotes={selectedProperty?.cleaningNotes}
-                selectedProperty={selectedProperty}
-                includedPrestations={selectedForfait?.includedPrestations}
-                extraPrestations={selectedForfait?.extraPrestations}
-              />
-            </Paper>
+            {/* Message d'aide quand aucune propriété n'est sélectionnée */}
+            <Collapse in={!isPropertySelected} timeout={300}>
+              <Alert
+                severity="info"
+                sx={{
+                  py: 0.75,
+                  fontSize: '0.8125rem',
+                  borderRadius: 1.5,
+                  '& .MuiAlert-icon': { fontSize: 18 },
+                }}
+              >
+                {t('serviceRequests.selectPropertyFirst')}
+              </Alert>
+            </Collapse>
+
+            {/* 2. Informations de base — révélé quand propriété sélectionnée */}
+            <Collapse in={isPropertySelected} timeout={400}>
+              <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2 }}>
+                <ServiceRequestFormInfo
+                  control={control}
+                  errors={errors}
+                  setValue={setValue}
+                  watchedServiceType={watchedServiceType}
+                  disabled={!isPropertySelected}
+                  propertyDescription={selectedProperty?.description}
+                  cleaningNotes={selectedProperty?.cleaningNotes}
+                  selectedProperty={selectedProperty}
+                  includedPrestations={selectedForfait?.includedPrestations}
+                  extraPrestations={selectedForfait?.extraPrestations}
+                />
+              </Paper>
+            </Collapse>
           </Box>
 
-          {/* ─── Colonne droite (5) : Planification + Assignation ─── */}
-          <Box sx={{ flex: 5, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0, opacity: isPropertySelected ? 1 : 0.5, pointerEvents: isPropertySelected ? 'auto' : 'none', transition: 'opacity 0.2s ease' }}>
-            {/* 3. Planification */}
-            <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2 }}>
-              <ServiceRequestFormPlanning
-                control={control}
-                errors={errors}
-                setValue={setValue}
-                disabled={!isPropertySelected}
-                isAdminOrManager={isAdminOrManager}
-                reservations={propertyReservations}
-              />
-            </Paper>
+          {/* ─── Colonne droite : Planification + Assignation — révélée quand propriété sélectionnée ─── */}
+          {isPropertySelected && (
+            <Box sx={{ flex: 5, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 0, animation: 'fadeSlideIn 0.4s ease-out', '@keyframes fadeSlideIn': { from: { opacity: 0, transform: 'translateX(20px)' }, to: { opacity: 1, transform: 'translateX(0)' } } }}>
+              {/* 3. Planification */}
+              <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2 }}>
+                <ServiceRequestFormPlanning
+                  control={control}
+                  errors={errors}
+                  setValue={setValue}
+                  disabled={!isPropertySelected}
+                  isAdminOrManager={isAdminOrManager}
+                  reservations={propertyReservations}
+                />
+              </Paper>
 
-            {/* 4. Assignation et statut */}
-            <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2 }}>
-              <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary', mb: 1.5 }}>
-                {t('serviceRequests.sections.requestorAssignment')}
-              </Typography>
+              {/* 4. Assignation et statut */}
+              <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2 }}>
+                <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary', mb: 1.5 }}>
+                  {t('serviceRequests.sections.requestorAssignment')}
+                </Typography>
 
-              <ServiceRequestFormAssignment
-                control={control}
-                errors={errors}
-                setValue={setValue}
-                users={users}
-                teams={teams}
-                canAssignForProperty={canAssignForProperty}
-                watchedAssignedToType={watchedAssignedToType}
-                watchedServiceType={watchedServiceType}
-                isEditMode={isEditMode}
-                disabled={!isPropertySelected}
-                eligibleTeamIds={eligibleTeamIds}
-              />
-            </Paper>
-          </Box>
+                <ServiceRequestFormAssignment
+                  control={control}
+                  errors={errors}
+                  setValue={setValue}
+                  users={users}
+                  teams={teams}
+                  canAssignForProperty={canAssignForProperty}
+                  watchedAssignedToType={watchedAssignedToType}
+                  watchedServiceType={watchedServiceType}
+                  isEditMode={isEditMode}
+                  disabled={!isPropertySelected}
+                  eligibleTeamIds={eligibleTeamIds}
+                />
+              </Paper>
+            </Box>
+          )}
         </Box>
       </form>
 

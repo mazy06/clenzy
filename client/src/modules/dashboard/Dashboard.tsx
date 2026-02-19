@@ -11,7 +11,9 @@ import {
 } from '@mui/material';
 import {
   CalendarMonth,
-  Dashboard as DashboardIcon,
+  Timeline as TimelineIcon,
+  BarChart as BarChartIcon,
+  VolumeUp as VolumeUpIcon,
   Sync as SyncIcon,
   CalendarToday as CalendarTodayIcon,
 } from '@mui/icons-material';
@@ -19,7 +21,9 @@ import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import DashboardPlanning from './DashboardPlanning';
-import DashboardOverviewContent from './DashboardOverviewContent';
+import DashboardActivityContent from './DashboardActivityContent';
+import DashboardAnalyticsContent from './DashboardAnalyticsContent';
+import DashboardNoiseTab from './DashboardNoiseTab';
 import DashboardDateFilter from './DashboardDateFilter';
 import ICalImportModal from './ICalImportModal';
 import UpgradeBanner from './UpgradeBanner';
@@ -136,7 +140,7 @@ const Dashboard: React.FC = () => {
     return t('dashboard.subtitle');
   };
 
-  // ─── Date filter: shows zoom chips on Planning tab, period chips on Overview
+  // ─── Date filter: zoom chips on Planning (tab 0), period chips on Analytics (tab 2), none on Activité (tab 1)
   const dateFilterElement = useMemo(() => {
     if (tabValue === 0) {
       return (
@@ -147,13 +151,16 @@ const Dashboard: React.FC = () => {
         />
       );
     }
-    return (
-      <DashboardDateFilter<DashboardPeriod>
-        value={period}
-        onChange={setPeriod}
-        options={PERIOD_OPTIONS}
-      />
-    );
+    if (tabValue === 2) {
+      return (
+        <DashboardDateFilter<DashboardPeriod>
+          value={period}
+          onChange={setPeriod}
+          options={PERIOD_OPTIONS}
+        />
+      );
+    }
+    return null;
   }, [tabValue, zoomLevel, period]);
 
   return (
@@ -254,7 +261,7 @@ const Dashboard: React.FC = () => {
         />
       </Box>
 
-      {/* ─── Tabs (2 onglets seulement : Planning / Vue d'ensemble) ──── */}
+      {/* ─── Tabs (3 onglets : Planning / Activité / Analytics) ──────── */}
       <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0, flexShrink: 0 }}>
         <Tabs
           value={tabValue}
@@ -288,10 +295,22 @@ const Dashboard: React.FC = () => {
             {...a11yProps(0)}
           />
           <Tab
-            icon={<DashboardIcon sx={{ fontSize: 16 }} />}
+            icon={<TimelineIcon sx={{ fontSize: 16 }} />}
             iconPosition="start"
-            label={t('dashboard.tabs.overview') || "Vue d'ensemble"}
+            label={t('dashboard.tabs.activity') || 'Activité'}
             {...a11yProps(1)}
+          />
+          <Tab
+            icon={<BarChartIcon sx={{ fontSize: 16 }} />}
+            iconPosition="start"
+            label={t('dashboard.tabs.analytics') || 'Analytics'}
+            {...a11yProps(2)}
+          />
+          <Tab
+            icon={<VolumeUpIcon sx={{ fontSize: 16 }} />}
+            iconPosition="start"
+            label={t('dashboard.tabs.noise') || 'Nuisance sonore'}
+            {...a11yProps(3)}
           />
         </Tabs>
       </Paper>
@@ -321,7 +340,7 @@ const Dashboard: React.FC = () => {
         </Box>
       )}
 
-      {/* ─── Tab 1: Vue d'ensemble ─────────────────────────────────────── */}
+      {/* ─── Tab 1: Activité ──────────────────────────────────────────── */}
       {tabValue === 1 && (
         <Box
           role="tabpanel"
@@ -329,7 +348,31 @@ const Dashboard: React.FC = () => {
           aria-labelledby="dashboard-tab-1"
           sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
         >
-          <DashboardOverviewContent period={period} />
+          <DashboardActivityContent />
+        </Box>
+      )}
+
+      {/* ─── Tab 2: Analytics ──────────────────────────────────────────── */}
+      {tabValue === 2 && (
+        <Box
+          role="tabpanel"
+          id="dashboard-tabpanel-2"
+          aria-labelledby="dashboard-tab-2"
+          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+        >
+          <DashboardAnalyticsContent period={period} />
+        </Box>
+      )}
+
+      {/* ─── Tab 3: Nuisance sonore ──────────────────────────────────────── */}
+      {tabValue === 3 && (
+        <Box
+          role="tabpanel"
+          id="dashboard-tabpanel-3"
+          aria-labelledby="dashboard-tab-3"
+          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
+        >
+          <DashboardNoiseTab />
         </Box>
       )}
 

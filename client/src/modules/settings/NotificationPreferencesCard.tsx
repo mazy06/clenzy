@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
 import {
   Box,
   Paper,
@@ -14,7 +14,6 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
-  Button,
   Chip,
   Tooltip,
 } from '@mui/material';
@@ -31,7 +30,6 @@ import {
   Shield,
   Home,
   Email,
-  Save,
 } from '@mui/icons-material';
 import { notificationPreferencesApi, type NotificationPreferencesMap } from '../../services/api';
 
@@ -230,9 +228,21 @@ const CATEGORIES: CategoryGroup[] = [
   },
 ];
 
+// ─── Handle exposé au parent ──────────────────────────────────────────────────
+
+export interface NotificationPreferencesHandle {
+  save: () => Promise<void>;
+  hasChanges: () => boolean;
+  isSaving: boolean;
+}
+
 // ─── Composant ────────────────────────────────────────────────────────────────
 
-export default function NotificationPreferencesCard() {
+interface NotificationPreferencesCardProps {
+  onChangeState?: () => void;
+}
+
+const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, NotificationPreferencesCardProps>(function NotificationPreferencesCard({ onChangeState }, ref) {
   const [preferences, setPreferences] = useState<NotificationPreferencesMap>({});
   const [originalPrefs, setOriginalPrefs] = useState<NotificationPreferencesMap>({});
   const [loading, setLoading] = useState(true);
@@ -258,6 +268,18 @@ export default function NotificationPreferencesCard() {
   useEffect(() => {
     loadPreferences();
   }, [loadPreferences]);
+
+  // Notifier le parent APRÈS que le state a été mis à jour (via useEffect)
+  useEffect(() => {
+    onChangeState?.();
+  }, [preferences, saving]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Exposer les méthodes au parent via ref
+  useImperativeHandle(ref, () => ({
+    save: handleSave,
+    hasChanges,
+    isSaving: saving,
+  }));
 
   const handleToggle = (key: string, enabled: boolean) => {
     setPreferences(prev => ({ ...prev, [key]: enabled }));
@@ -330,25 +352,11 @@ export default function NotificationPreferencesCard() {
   return (
     <Paper sx={{ p: 2 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Notifications sx={{ color: 'secondary.main', fontSize: 20 }} />
-          <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-            Preferences de notifications
-          </Typography>
-        </Box>
-        {hasChanges() && (
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <Save />}
-            onClick={handleSave}
-            disabled={saving}
-            sx={{ textTransform: 'none' }}
-          >
-            {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-          </Button>
-        )}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <Notifications sx={{ color: 'secondary.main', fontSize: 20 }} />
+        <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+          Preferences de notifications
+        </Typography>
       </Box>
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: '0.8rem' }}>
@@ -473,4 +481,6 @@ export default function NotificationPreferencesCard() {
       </Snackbar>
     </Paper>
   );
-}
+});
+
+export default NotificationPreferencesCard;

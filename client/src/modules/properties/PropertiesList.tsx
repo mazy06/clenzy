@@ -213,6 +213,7 @@ export default function PropertiesList() {
               onClick={() => navigate('/properties/new')}
               size="small"
               sx={ACTION_BUTTON_SX}
+              title={t('properties.create')}
             >
               {t('properties.create')}
             </Button>

@@ -221,9 +221,10 @@ const PermissionConfig: React.FC = () => {
         showBackButton={false}
         actions={
           selectedRole && rolePermissions && (
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <Button
                 variant="outlined"
+                size="small"
                 color="warning"
                 startIcon={<RefreshIcon sx={{ color: 'text.secondary' }} />}
                 onClick={async () => {
@@ -237,22 +238,19 @@ const PermissionConfig: React.FC = () => {
               </Button>
               <Button
                 variant="outlined"
+                size="small"
                 color="error"
                 startIcon={<StorageIcon sx={{ color: 'text.secondary' }} />}
                 onClick={async () => {
                   try {
                     await resetToInitialPermissions(selectedRole);
-                    // Déclencher le rafraîchissement global des permissions
                     triggerGlobalRefresh();
-
-                    // Afficher une notification de succès
                     setSaveNotification({
                       open: true,
                       message: 'Permissions réinitialisées aux valeurs initiales !',
                       severity: 'success'
                     });
                   } catch (error) {
-                    // Afficher une notification d'erreur
                     setSaveNotification({
                       open: true,
                       message: 'Erreur lors de la réinitialisation aux valeurs initiales',
@@ -267,32 +265,23 @@ const PermissionConfig: React.FC = () => {
               </Button>
               <Button
                 variant="contained"
+                size="small"
                 color="primary"
                 startIcon={<SaveIcon sx={{ color: 'text.secondary' }} />}
                 onClick={async () => {
                   try {
                     await applyLocalChanges(selectedRole);
-                    
-                    // Recharger les permissions depuis la base de données après la sauvegarde
-                    // pour s'assurer qu'on a les vraies valeurs persistées
                     if (selectedRole) {
                       await loadRolePermissions(selectedRole);
                     }
-                    
-                    // Déclencher le rafraîchissement global des permissions
                     triggerGlobalRefresh();
-                    
-                    // Forcer le rechargement de l'utilisateur pour obtenir les nouvelles permissions
                     window.dispatchEvent(new CustomEvent('force-user-reload'));
-
-                    // Afficher une notification de succès
                     setSaveNotification({
                       open: true,
                       message: 'Permissions sauvegardées avec succès !',
                       severity: 'success'
                     });
                   } catch (error) {
-                    // Afficher une notification d'erreur
                     setSaveNotification({
                       open: true,
                       message: 'Erreur lors de la sauvegarde des permissions',
@@ -301,6 +290,7 @@ const PermissionConfig: React.FC = () => {
                   }
                 }}
                 disabled={loading || rolePermissions?.isDefault}
+                title="Sauvegarder"
               >
                 Sauvegarder
               </Button>

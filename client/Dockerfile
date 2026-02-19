@@ -21,9 +21,24 @@ ENV VITE_APP_NAME=$VITE_APP_NAME
 ENV VITE_APP_VERSION=$VITE_APP_VERSION
 
 COPY package.json package-lock.json* yarn.lock* pnpm-lock.yaml* ./
-RUN npm ci || yarn install || pnpm install
+
+# Installer les dépendances avec le bon gestionnaire de paquets
+# Note: ETXTBSY fix — on supprime le binaire esbuild potentiellement corrompu
+# avant la validation post-install (bug Docker + Alpine + npm ci + esbuild)
+RUN if [ -f package-lock.json ]; then \
+      npm ci --ignore-scripts && \
+      node node_modules/esbuild/install.js && \
+      npm cache clean --force; \
+    elif [ -f yarn.lock ]; then \
+      yarn install --frozen-lockfile && yarn cache clean; \
+    elif [ -f pnpm-lock.yaml ]; then \
+      pnpm install --frozen-lockfile && pnpm store prune; \
+    else \
+      npm install && npm cache clean --force; \
+    fi
+
 COPY . .
-RUN npm run build || yarn build || pnpm build
+RUN npm run build
 
 # Run stage
 FROM nginx:alpine

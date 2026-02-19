@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
   Card,
   CardContent,
-  Grid,
   Button,
   Alert,
   CircularProgress,
@@ -26,10 +25,10 @@ import {
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
   Refresh as RefreshIcon,
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi } from '../../services/api';
 import apiClient from '../../services/apiClient';
@@ -37,6 +36,7 @@ import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
+import { interventionsKeys } from './useInterventionsList';
 
 interface Intervention {
   id: number;
@@ -55,39 +55,55 @@ interface Intervention {
 }
 
 const InterventionsPendingValidation: React.FC = () => {
-  const { user, isManager, isAdmin } = useAuth();
+  const { isManager, isAdmin } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [interventions, setInterventions] = useState<Intervention[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  // UI state
   const [validationDialogOpen, setValidationDialogOpen] = useState(false);
   const [selectedIntervention, setSelectedIntervention] = useState<Intervention | null>(null);
   const [estimatedCost, setEstimatedCost] = useState<string>('');
-  const [validating, setValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isManager() && !isAdmin()) {
-      setError('Vous n\'avez pas accès à cette page');
-      setLoading(false);
-      return;
-    }
-    loadInterventions();
-  }, [isManager, isAdmin]);
+  const hasAccess = isManager() || isAdmin();
 
-  const loadInterventions = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // ─── React Query: list pending validation ──────────────────────────────────
 
+  const interventionsQuery = useQuery({
+    queryKey: interventionsKeys.pendingValidation(),
+    queryFn: async () => {
       const data = await interventionsApi.getAll({ status: 'AWAITING_VALIDATION' });
-      setInterventions(extractApiList(data));
-    } catch (err) {
-      setError('Erreur de connexion');
-    } finally {
-      setLoading(false);
-    }
+      return extractApiList<Intervention>(data);
+    },
+    enabled: hasAccess,
+    staleTime: 30_000,
+  });
+
+  const interventions = interventionsQuery.data ?? [];
+  const loading = interventionsQuery.isLoading;
+  const error = interventionsQuery.isError
+    ? 'Erreur de connexion'
+    : (!hasAccess ? 'Vous n\'avez pas accès à cette page' : null);
+
+  // ─── Mutation: validate intervention ───────────────────────────────────────
+
+  const validateMutation = useMutation({
+    mutationFn: ({ interventionId, cost }: { interventionId: number; cost: number }) =>
+      apiClient.post(`/interventions/${interventionId}/validate`, { estimatedCost: cost }),
+    onSuccess: () => {
+      handleCloseValidationDialog();
+      queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
+    },
+    onError: (err: any) => {
+      setValidationError(err.message || 'Erreur de connexion');
+    },
+  });
+
+  // ─── Handlers ───────────────────────────────────────────────────────────────
+
+  const loadInterventions = () => {
+    queryClient.invalidateQueries({ queryKey: interventionsKeys.pendingValidation() });
   };
 
   const handleOpenValidationDialog = (intervention: Intervention) => {
@@ -104,30 +120,17 @@ const InterventionsPendingValidation: React.FC = () => {
     setValidationError(null);
   };
 
-  const handleValidate = async () => {
+  const handleValidate = () => {
     if (!selectedIntervention) return;
-    
+
     const cost = parseFloat(estimatedCost);
     if (isNaN(cost) || cost <= 0) {
       setValidationError('Veuillez entrer un montant valide');
       return;
     }
 
-    try {
-      setValidating(true);
-      setValidationError(null);
-
-      await apiClient.post(`/interventions/${selectedIntervention.id}/validate`, {
-        estimatedCost: cost
-      });
-
-      handleCloseValidationDialog();
-      loadInterventions(); // Recharger la liste
-    } catch (err: any) {
-      setValidationError(err.message || 'Erreur de connexion');
-    } finally {
-      setValidating(false);
-    }
+    setValidationError(null);
+    validateMutation.mutate({ interventionId: selectedIntervention.id, cost });
   };
 
   if (loading) {
@@ -148,8 +151,10 @@ const InterventionsPendingValidation: React.FC = () => {
         actions={
           <Button
             variant="outlined"
+            size="small"
             startIcon={<RefreshIcon />}
             onClick={loadInterventions}
+            title={t('common.refresh')}
           >
             {t('common.refresh')}
           </Button>
@@ -202,7 +207,7 @@ const InterventionsPendingValidation: React.FC = () => {
                     <Chip label={intervention.type} size="small" />
                   </TableCell>
                   <TableCell>
-                    {intervention.scheduledDate 
+                    {intervention.scheduledDate
                       ? new Date(intervention.scheduledDate).toLocaleDateString('fr-FR')
                       : '-'}
                   </TableCell>
@@ -248,7 +253,7 @@ const InterventionsPendingValidation: React.FC = () => {
               </Typography>
             </Box>
           )}
-          
+
           <TextField
             fullWidth
             label={t('interventions.fields.estimatedCost')}
@@ -262,16 +267,16 @@ const InterventionsPendingValidation: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseValidationDialog} disabled={validating}>
+          <Button onClick={handleCloseValidationDialog} disabled={validateMutation.isPending}>
             {t('common.cancel')}
           </Button>
           <Button
             onClick={handleValidate}
             variant="contained"
-            disabled={validating || !estimatedCost}
-            startIcon={validating ? <CircularProgress size={20} /> : <CheckCircleIcon />}
+            disabled={validateMutation.isPending || !estimatedCost}
+            startIcon={validateMutation.isPending ? <CircularProgress size={20} /> : <CheckCircleIcon />}
           >
-            {validating ? t('common.loading') : t('interventions.pendingValidation.validate')}
+            {validateMutation.isPending ? t('common.loading') : t('interventions.pendingValidation.validate')}
           </Button>
         </DialogActions>
       </Dialog>

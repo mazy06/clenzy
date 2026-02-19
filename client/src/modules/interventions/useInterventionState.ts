@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi, propertiesApi } from '../../services/api';
+import { interventionsKeys } from './useInterventionsList';
 import {
   InterventionDetailsData,
   PropertyDetails,
@@ -25,26 +27,28 @@ export interface InitialLoadData {
   lastSavedNotes: string;
 }
 
+// ─── Query keys for detail view ──────────────────────────────────────────────
+
+const detailKeys = {
+  property: (interventionId: string) => [...interventionsKeys.detail(interventionId), 'property'] as const,
+};
+
 export function useInterventionState(id: string | undefined) {
   const { user, hasPermissionAsync, isTechnician, isHousekeeper, isSupervisor } = useAuth();
+  const queryClient = useQueryClient();
 
-  // Core state
-  const [intervention, setIntervention] = useState<InterventionDetailsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // UI-only state
   const [starting, setStarting] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Property details for room counts
-  const [propertyDetails, setPropertyDetails] = useState<PropertyDetails | null>(null);
+  // Local intervention state (updated by mutations in child hooks)
+  const [intervention, setIntervention] = useState<InterventionDetailsData | null>(null);
 
   // Permission states
   const [canViewInterventions, setCanViewInterventions] = useState(false);
   const [canEditInterventions, setCanEditInterventions] = useState(false);
-
-  // Initial load data passed to sibling hooks — set once after the fetch
-  const [initialLoadData, setInitialLoadData] = useState<InitialLoadData | null>(null);
 
   // ------------------------------------------------------------------
   // Permission checks
@@ -65,6 +69,159 @@ export function useInterventionState(id: string | undefined) {
     };
     checkPermissions();
   }, [hasPermissionAsync]);
+
+  // ------------------------------------------------------------------
+  // React Query: load intervention
+  // ------------------------------------------------------------------
+
+  const interventionQuery = useQuery({
+    queryKey: interventionsKeys.detail(id ?? ''),
+    queryFn: () => interventionsApi.getById(Number(id)) as unknown as Promise<InterventionDetailsData>,
+    enabled: !!id,
+    staleTime: 30_000,
+  });
+
+  // Sync query data → local state
+  useEffect(() => {
+    if (interventionQuery.data) {
+      setIntervention(interventionQuery.data);
+    }
+  }, [interventionQuery.data]);
+
+  useEffect(() => {
+    if (interventionQuery.error) {
+      setError('Erreur lors du chargement de l\'intervention');
+    }
+  }, [interventionQuery.error]);
+
+  // ------------------------------------------------------------------
+  // React Query: load property details
+  // ------------------------------------------------------------------
+
+  const propertyQuery = useQuery({
+    queryKey: detailKeys.property(id ?? ''),
+    queryFn: async (): Promise<PropertyDetails | null> => {
+      if (!interventionQuery.data?.propertyId) return null;
+      try {
+        const rawProperty = await propertiesApi.getById(interventionQuery.data.propertyId);
+        return {
+          bedroomCount: rawProperty.bedroomCount,
+          bathroomCount: rawProperty.bathroomCount,
+          bedrooms: rawProperty.bedroomCount,
+          bathrooms: rawProperty.bathroomCount,
+        };
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!interventionQuery.data?.propertyId,
+    staleTime: 60_000,
+  });
+
+  const propertyDetails = propertyQuery.data ?? null;
+
+  // ------------------------------------------------------------------
+  // Derived initial load data for sibling hooks (memoized)
+  // ------------------------------------------------------------------
+
+  const initialLoadData = useMemo<InitialLoadData | null>(() => {
+    const data = interventionQuery.data;
+    if (!data) return null;
+
+    const loadedPropertyDetails = propertyDetails;
+    const computedCompletedSteps = new Set<string>();
+    let computedInspectionComplete = false;
+    let computedAllRoomsValidated = false;
+
+    // ---- Completed steps from DB ----
+    if (data.completedSteps) {
+      try {
+        const parsedSteps = JSON.parse(data.completedSteps);
+        if (Array.isArray(parsedSteps)) {
+          parsedSteps.forEach((s: string) => computedCompletedSteps.add(s));
+          if (parsedSteps.includes('inspection')) {
+            computedInspectionComplete = true;
+          }
+        }
+      } catch {
+        // silent
+      }
+    }
+
+    // ---- Before photos ----
+    let loadedBeforePhotos: string[] = [];
+    if (data.beforePhotosUrls) {
+      loadedBeforePhotos = parsePhotos(data.beforePhotosUrls);
+      if (loadedBeforePhotos.length > 0) {
+        computedInspectionComplete = true;
+        computedCompletedSteps.add('inspection');
+      }
+    }
+
+    // ---- After photos ----
+    let loadedAfterPhotos: string[] = [];
+    if (data.afterPhotosUrls) {
+      loadedAfterPhotos = parsePhotos(data.afterPhotosUrls);
+      if (loadedAfterPhotos.length > 0) {
+        computedCompletedSteps.add('after_photos');
+      }
+    }
+
+    // ---- Notes ----
+    let loadedStepNotes: StepNotes = {};
+    let lastSavedNotes = '';
+    if (data.notes) {
+      try {
+        const parsedNotes = JSON.parse(data.notes);
+        if (typeof parsedNotes === 'object' && parsedNotes !== null) {
+          loadedStepNotes = parsedNotes;
+          lastSavedNotes = data.notes;
+        } else {
+          loadedStepNotes = { inspection: data.notes };
+          lastSavedNotes = JSON.stringify(loadedStepNotes);
+        }
+      } catch {
+        loadedStepNotes = { inspection: data.notes };
+        lastSavedNotes = JSON.stringify(loadedStepNotes);
+      }
+    }
+
+    // ---- Validated rooms ----
+    let loadedValidatedRooms = new Set<number>();
+    if (data.validatedRooms) {
+      try {
+        const parsedRooms = JSON.parse(data.validatedRooms);
+        if (Array.isArray(parsedRooms)) {
+          loadedValidatedRooms = new Set(parsedRooms);
+          if (loadedPropertyDetails) {
+            const totalRooms = (loadedPropertyDetails.bedrooms || 0) +
+              (loadedPropertyDetails.bathrooms || 0) +
+              (loadedPropertyDetails.livingRooms || 0) +
+              (loadedPropertyDetails.kitchens || 0);
+            if (parsedRooms.length === totalRooms && totalRooms > 0) {
+              computedAllRoomsValidated = true;
+              computedCompletedSteps.add('rooms');
+            }
+          }
+        }
+      } catch {
+        // silent
+      }
+    }
+
+    return {
+      intervention: data,
+      propertyDetails: loadedPropertyDetails,
+      beforePhotos: loadedBeforePhotos,
+      afterPhotos: loadedAfterPhotos,
+      completedSteps: computedCompletedSteps,
+      inspectionComplete: computedInspectionComplete,
+      validatedRooms: loadedValidatedRooms,
+      allRoomsValidated: computedAllRoomsValidated,
+      stepNotes: loadedStepNotes,
+      lastSavedNotes,
+    };
+  }, [interventionQuery.data, propertyDetails]);
 
   // ------------------------------------------------------------------
   // Computed permission helpers
@@ -98,189 +255,48 @@ export function useInterventionState(id: string | undefined) {
   };
 
   // ------------------------------------------------------------------
-  // Action handlers
+  // Mutations: start & complete
   // ------------------------------------------------------------------
+
+  const startMutation = useMutation({
+    mutationFn: () => interventionsApi.start(Number(id)) as unknown as Promise<InterventionDetailsData>,
+    onSuccess: (updated) => {
+      setIntervention(updated);
+      setError(null);
+      queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
+    },
+    onError: (err: any) => {
+      setError(err.message || 'Erreur lors du démarrage de l\'intervention');
+    },
+  });
+
+  const completeMutation = useMutation({
+    mutationFn: () => interventionsApi.updateProgress(Number(id), 100) as unknown as Promise<InterventionDetailsData>,
+    onSuccess: (updated) => {
+      setIntervention(updated);
+      setError(null);
+      queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
+    },
+    onError: (err: any) => {
+      setError(err.message || 'Erreur lors de la finalisation de l\'intervention');
+    },
+  });
 
   const handleStartIntervention = async () => {
     if (!id || !intervention) return;
     setStarting(true);
-    try {
-      const updated = await interventionsApi.start(Number(id)) as unknown as InterventionDetailsData;
-      setIntervention(updated);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors du d\u00e9marrage de l\'intervention');
-    } finally {
-      setStarting(false);
-    }
+    startMutation.mutate(undefined, {
+      onSettled: () => setStarting(false),
+    });
   };
 
   const handleCompleteIntervention = async () => {
     if (!id || !intervention) return;
     setCompleting(true);
-    try {
-      const updated = await interventionsApi.updateProgress(Number(id), 100) as unknown as InterventionDetailsData;
-      setIntervention(updated);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de la finalisation de l\'intervention');
-    } finally {
-      setCompleting(false);
-    }
+    completeMutation.mutate(undefined, {
+      onSettled: () => setCompleting(false),
+    });
   };
-
-  // ------------------------------------------------------------------
-  // Load intervention + property data
-  // ------------------------------------------------------------------
-
-  useEffect(() => {
-    const loadIntervention = async () => {
-      if (!id) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const data = await interventionsApi.getById(Number(id)) as unknown as InterventionDetailsData;
-        setIntervention(data);
-
-        // ---- Property details ----
-        let loadedPropertyDetails: PropertyDetails | null = null;
-        let computedAllRoomsValidated = false;
-        const computedCompletedSteps = new Set<string>();
-        let computedInspectionComplete = false;
-
-        if (data.propertyId) {
-          try {
-            const rawProperty = await propertiesApi.getById(data.propertyId);
-            loadedPropertyDetails = {
-              bedroomCount: rawProperty.bedroomCount,
-              bathroomCount: rawProperty.bathroomCount,
-              bedrooms: rawProperty.bedroomCount,
-              bathrooms: rawProperty.bathroomCount,
-            };
-            setPropertyDetails(loadedPropertyDetails);
-
-            if (data.validatedRooms) {
-              try {
-                const parsedRooms = JSON.parse(data.validatedRooms);
-                if (Array.isArray(parsedRooms)) {
-                  const totalRooms = (loadedPropertyDetails.bedrooms || 0) +
-                    (loadedPropertyDetails.bathrooms || 0) +
-                    (loadedPropertyDetails.livingRooms || 0) +
-                    (loadedPropertyDetails.kitchens || 0);
-                  if (parsedRooms.length === totalRooms && totalRooms > 0) {
-                    computedAllRoomsValidated = true;
-                    computedCompletedSteps.add('rooms');
-                  }
-                }
-              } catch {
-                // silent
-              }
-            }
-          } catch {
-            // silent
-          }
-        }
-
-        // ---- Completed steps from DB ----
-        if (data.completedSteps) {
-          try {
-            const parsedSteps = JSON.parse(data.completedSteps);
-            if (Array.isArray(parsedSteps)) {
-              parsedSteps.forEach((s: string) => computedCompletedSteps.add(s));
-              if (parsedSteps.includes('inspection')) {
-                computedInspectionComplete = true;
-              }
-            }
-          } catch {
-            // silent
-          }
-        }
-
-        // ---- Before photos ----
-        let loadedBeforePhotos: string[] = [];
-        if (data.beforePhotosUrls) {
-          loadedBeforePhotos = parsePhotos(data.beforePhotosUrls);
-          if (loadedBeforePhotos.length > 0) {
-            computedInspectionComplete = true;
-            computedCompletedSteps.add('inspection');
-          }
-        }
-
-        // ---- After photos ----
-        let loadedAfterPhotos: string[] = [];
-        if (data.afterPhotosUrls) {
-          loadedAfterPhotos = parsePhotos(data.afterPhotosUrls);
-          if (loadedAfterPhotos.length > 0) {
-            computedCompletedSteps.add('after_photos');
-          }
-        }
-
-        // ---- Notes ----
-        let loadedStepNotes: StepNotes = {};
-        let lastSavedNotes = '';
-        if (data.notes) {
-          try {
-            const parsedNotes = JSON.parse(data.notes);
-            if (typeof parsedNotes === 'object' && parsedNotes !== null) {
-              loadedStepNotes = parsedNotes;
-              lastSavedNotes = data.notes;
-            } else {
-              loadedStepNotes = { inspection: data.notes };
-              lastSavedNotes = JSON.stringify(loadedStepNotes);
-            }
-          } catch {
-            loadedStepNotes = { inspection: data.notes };
-            lastSavedNotes = JSON.stringify(loadedStepNotes);
-          }
-        }
-
-        // ---- Validated rooms ----
-        let loadedValidatedRooms = new Set<number>();
-        if (data.validatedRooms) {
-          try {
-            const parsedRooms = JSON.parse(data.validatedRooms);
-            if (Array.isArray(parsedRooms)) {
-              loadedValidatedRooms = new Set(parsedRooms);
-              if (loadedPropertyDetails) {
-                const totalRooms = (loadedPropertyDetails.bedrooms || 0) +
-                  (loadedPropertyDetails.bathrooms || 0) +
-                  (loadedPropertyDetails.livingRooms || 0) +
-                  (loadedPropertyDetails.kitchens || 0);
-                if (parsedRooms.length === totalRooms && totalRooms > 0) {
-                  computedAllRoomsValidated = true;
-                  computedCompletedSteps.add('rooms');
-                }
-              }
-            }
-          } catch {
-            // silent
-          }
-        }
-
-        // Publish initial load data for sibling hooks
-        setInitialLoadData({
-          intervention: data,
-          propertyDetails: loadedPropertyDetails,
-          beforePhotos: loadedBeforePhotos,
-          afterPhotos: loadedAfterPhotos,
-          completedSteps: computedCompletedSteps,
-          inspectionComplete: computedInspectionComplete,
-          validatedRooms: loadedValidatedRooms,
-          allRoomsValidated: computedAllRoomsValidated,
-          stepNotes: loadedStepNotes,
-          lastSavedNotes,
-        });
-      } catch {
-        setError('Erreur lors du chargement de l\'intervention');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadIntervention();
-  }, [id]);
 
   return {
     // Auth-derived
@@ -292,7 +308,7 @@ export function useInterventionState(id: string | undefined) {
     // Core state
     intervention,
     setIntervention,
-    loading,
+    loading: interventionQuery.isLoading,
     error,
     setError,
     starting,

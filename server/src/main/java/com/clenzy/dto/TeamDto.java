@@ -27,9 +27,17 @@ public class TeamDto {
     @NotNull(groups = Create.class)
     public List<TeamMemberDto> members;
 
+    public List<CoverageZoneDto> coverageZones;
+
     public Integer memberCount;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
+
+    public static class CoverageZoneDto {
+        public Long id;
+        public String department;
+        public String arrondissement;
+    }
 
     public static class TeamMemberDto {
         @NotNull(groups = Create.class)

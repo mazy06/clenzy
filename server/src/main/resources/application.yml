@@ -2,7 +2,7 @@ spring:
   application:
     name: clenzy
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE:dev,local}
 
 # Configuration Keycloak
 keycloak:
@@ -23,10 +23,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus,metrics
   endpoint:
     health:
       show-details: WHEN_AUTHORIZED
+  metrics:
+    tags:
+      application: clenzy
 
 springdoc:
   api-docs:

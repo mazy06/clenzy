@@ -48,6 +48,7 @@ import type { PropertyDetailsData } from '../../hooks/usePropertyDetails';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatDate } from '../../utils/formatUtils';
+import DescriptionNotesDisplay from '../../components/DescriptionNotesDisplay';
 import {
   getPropertyStatusColor,
   getPropertyStatusLabel,
@@ -406,6 +407,7 @@ const PropertyDetails: React.FC = () => {
                   onClick={() => navigate(`/properties/${id}/edit`)}
                   size="small"
                   sx={EDIT_BUTTON_SX}
+                  title={t('properties.modify')}
                 >
                   {t('properties.modify')}
                 </Button>
@@ -571,14 +573,13 @@ const PropertyDetails: React.FC = () => {
                 )}
               </Paper>
 
-              {/* Description */}
-              {property.description && (
-                <Paper sx={CARD_SX}>
-                  <Typography sx={SECTION_TITLE_SX}>{t('properties.description')}</Typography>
-                  <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
-                    {property.description}
-                  </Typography>
-                </Paper>
+              {/* Description du logement & Consignes de ménage */}
+              {(property.description || property.cleaningNotes) && (
+                <DescriptionNotesDisplay
+                  description={property.description}
+                  notes={property.cleaningNotes}
+                  variant="cleaning"
+                />
               )}
 
               {/* Amenities */}
@@ -696,7 +697,7 @@ const PropertyDetails: React.FC = () => {
               </Paper>
 
               {/* Tarification ménage */}
-              {(property.cleaningBasePrice != null || property.cleaningDurationMinutes != null || property.numberOfFloors != null || property.hasExterior || property.hasLaundry || property.cleaningNotes) && (
+              {(property.cleaningBasePrice != null || property.cleaningDurationMinutes != null || property.numberOfFloors != null || property.hasExterior || property.hasLaundry) && (
                 <Paper sx={CARD_SX}>
                   <Typography sx={SECTION_TITLE_SX}>
                     {t('properties.cleaningPricing')}
@@ -752,14 +753,6 @@ const PropertyDetails: React.FC = () => {
                     )}
                   </Box>
 
-                  {property.cleaningNotes && (
-                    <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
-                      <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningNotes')}</Typography>
-                      <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', lineHeight: 1.5, whiteSpace: 'pre-line', mt: 0.25 }}>
-                        {property.cleaningNotes}
-                      </Typography>
-                    </Box>
-                  )}
                 </Paper>
               )}
 

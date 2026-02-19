@@ -78,7 +78,8 @@ public class ServiceRequestController {
             @AuthenticationPrincipal Jwt jwt) {
         Long teamId = request != null ? request.getTeamId() : null;
         Long userId = request != null ? request.getUserId() : null;
-        InterventionDto intervention = service.validateAndCreateIntervention(id, teamId, userId, jwt);
+        boolean autoAssign = request != null && Boolean.TRUE.equals(request.getAutoAssign());
+        InterventionDto intervention = service.validateAndCreateIntervention(id, teamId, userId, autoAssign, jwt);
         return ResponseEntity.status(HttpStatus.CREATED).body(intervention);
     }
 

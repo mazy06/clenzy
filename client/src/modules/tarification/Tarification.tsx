@@ -17,6 +17,7 @@ import {
   Build,
   Yard,
   LocalLaundryService,
+  VolumeUp,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useTarification } from '../../hooks/useTarification';
@@ -26,6 +27,7 @@ import TabEntretien from './TabEntretien';
 import TabTravaux from './TabTravaux';
 import TabExterieur from './TabExterieur';
 import TabBlanchisserie from './TabBlanchisserie';
+import TabMonitoring from './TabMonitoring';
 
 // ─── Tab config ──────────────────────────────────────────────────────────────
 
@@ -35,6 +37,7 @@ const TAB_DEFS = [
   { key: 'travaux',       icon: <Build fontSize="small" /> },
   { key: 'exterieur',     icon: <Yard fontSize="small" /> },
   { key: 'blanchisserie', icon: <LocalLaundryService fontSize="small" /> },
+  { key: 'monitoring',    icon: <VolumeUp fontSize="small" /> },
 ] as const;
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -80,6 +83,7 @@ export default function Tarification() {
                 onClick={resetConfig}
                 disabled={isSaving}
                 sx={{ fontSize: '0.8125rem', py: 0.5, borderWidth: 1.5 }}
+                title={t('tarification.reset')}
               >
                 {t('tarification.reset')}
               </Button>
@@ -90,6 +94,7 @@ export default function Tarification() {
                 onClick={saveConfig}
                 disabled={isSaving}
                 sx={{ fontSize: '0.8125rem', py: 0.5 }}
+                title={t('tarification.save')}
               >
                 {t('tarification.save')}
               </Button>
@@ -148,6 +153,9 @@ export default function Tarification() {
           )}
           {activeTab === 4 && (
             <TabBlanchisserie config={config} canEdit={canEdit} onUpdate={updateConfig} />
+          )}
+          {activeTab === 5 && (
+            <TabMonitoring config={config} canEdit={canEdit} onUpdate={updateConfig} />
           )}
         </Box>
       </Paper>

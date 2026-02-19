@@ -278,6 +278,7 @@ const UserEdit: React.FC = () => {
               startIcon={<Cancel sx={{ fontSize: 16 }} />}
               disabled={saving}
               sx={{ fontSize: '0.8125rem' }}
+              title="Annuler"
             >
               Annuler
             </Button>
@@ -288,6 +289,7 @@ const UserEdit: React.FC = () => {
               startIcon={<Save sx={{ fontSize: 16 }} />}
               disabled={saving}
               sx={{ ml: 1, fontSize: '0.8125rem' }}
+              title="Sauvegarder"
             >
               {saving ? 'Sauvegarde...' : 'Sauvegarder'}
             </Button>

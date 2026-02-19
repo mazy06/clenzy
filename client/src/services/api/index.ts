@@ -19,8 +19,17 @@ export type { PaymentSession, PaymentSessionStatus, PaymentRecord, PaymentSummar
 export { permissionsApi } from './permissionsApi';
 export type { RolePermissions } from './permissionsApi';
 
-export { portfoliosApi, managersApi } from './portfoliosApi';
-export type { PortfolioStats, ManagerAssociations } from './portfoliosApi';
+export { portfoliosApi, managersApi, portfoliosKeys } from './portfoliosApi';
+export type {
+  PortfolioStats,
+  ManagerAssociations,
+  Manager,
+  HostClient,
+  PortfolioTeam,
+  OperationalUser,
+  AssignmentProperty,
+  AssignResult,
+} from './portfoliosApi';
 
 export { propertiesApi } from './propertiesApi';
 export type { Property, PropertyFormData } from './propertiesApi';
@@ -29,7 +38,10 @@ export { serviceRequestsApi } from './serviceRequestsApi';
 export type { ServiceRequest, ServiceRequestFormData } from './serviceRequestsApi';
 
 export { teamsApi } from './teamsApi';
-export type { TeamMember, Team, TeamFormData } from './teamsApi';
+export type { TeamMember, Team, TeamFormData, CoverageZone } from './teamsApi';
+
+export { banApi } from '../banApi';
+export type { BanAddress, BanFeature, BanResponse } from '../banApi';
 
 export { usersApi } from './usersApi';
 export type { User, UserFormData } from './usersApi';
@@ -95,3 +107,17 @@ export type {
   DocumentTypeOption,
   TagCategoryOption,
 } from './documentsApi';
+
+export { propertyTeamsApi, propertyTeamsKeys } from './propertyTeamsApi';
+export type { PropertyTeamMapping } from './propertyTeamsApi';
+
+export { noiseDevicesApi, minutApi, tuyaApi } from './noiseApi';
+export type {
+  NoiseDeviceDto,
+  CreateNoiseDeviceDto,
+  NoiseDataPointDto,
+  DeviceSummary,
+  NoiseChartDataDto,
+  MinutConnectionStatus,
+  TuyaConnectionStatus,
+} from './noiseApi';

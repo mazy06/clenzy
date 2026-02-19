@@ -48,6 +48,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useNotification } from '../../hooks/useNotification';
 import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import { usersApi } from '../../services/api';
@@ -103,6 +104,7 @@ const UsersList: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const navigate = useNavigate();
   const { user, hasPermissionAsync } = useAuth();
+  const { notify } = useNotification();
 
   // Vérifier la permission de gestion des utilisateurs
   const [canManageUsers, setCanManageUsers] = useState(false);
@@ -160,7 +162,7 @@ const UsersList: React.FC = () => {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setSelectedUser(null);
+    // Ne PAS reset selectedUser ici — il est utilisé par les dialogs edit/delete
   };
 
   const handleEdit = () => {
@@ -174,7 +176,7 @@ const UsersList: React.FC = () => {
         status: selectedUser.status,
       });
       setEditDialogOpen(true);
-      handleMenuClose();
+      setAnchorEl(null);
     }
   };
 
@@ -187,7 +189,7 @@ const UsersList: React.FC = () => {
 
   const handleDelete = () => {
     setDeleteDialogOpen(true);
-    handleMenuClose();
+    setAnchorEl(null);
   };
 
   const handleSyncUsers = async () => {
@@ -208,6 +210,7 @@ const UsersList: React.FC = () => {
 
   const handleEditSave = async () => {
     if (!selectedUser || !editFormData.firstName || !editFormData.lastName || !editFormData.email) {
+      notify.warning('Veuillez remplir tous les champs obligatoires');
       return;
     }
 
@@ -220,7 +223,10 @@ const UsersList: React.FC = () => {
       ));
       setEditDialogOpen(false);
       setEditFormData({});
-    } catch (err) {
+      setSelectedUser(null);
+      notify.success('Utilisateur mis à jour avec succès');
+    } catch (err: any) {
+      notify.error(err?.message || 'Erreur lors de la mise à jour de l\'utilisateur');
     } finally {
       setSaving(false);
     }
@@ -231,10 +237,15 @@ const UsersList: React.FC = () => {
       try {
         await usersApi.delete(selectedUser.id);
         setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
-      } catch (err) {
+        setDeleteDialogOpen(false);
+        notify.success('Utilisateur supprimé avec succès');
+      } catch (err: any) {
+        notify.error(err?.message || 'Erreur lors de la suppression de l\'utilisateur');
+        setDeleteDialogOpen(false);
       }
+    } else {
+      setDeleteDialogOpen(false);
     }
-    setDeleteDialogOpen(false);
   };
 
   const getRoleInfo = (role: string) => {
@@ -311,6 +322,7 @@ const UsersList: React.FC = () => {
               onClick={handleSyncUsers}
               disabled={syncing}
               sx={{ fontSize: '0.8125rem' }}
+              title="Synchroniser"
             >
               {syncing ? 'Synchronisation...' : 'Synchroniser'}
             </Button>
@@ -321,6 +333,7 @@ const UsersList: React.FC = () => {
               startIcon={<Add sx={{ fontSize: 18 }} />}
               onClick={() => navigate('/users/new')}
               sx={{ fontSize: '0.8125rem' }}
+              title="Nouvel utilisateur"
             >
               Nouvel utilisateur
             </Button>
@@ -562,7 +575,7 @@ const UsersList: React.FC = () => {
       </Menu>
 
       {/* Dialog de modification */}
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={editDialogOpen} onClose={() => { setEditDialogOpen(false); setSelectedUser(null); }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ pb: 1 }}>Modifier l'utilisateur</DialogTitle>
         <DialogContent sx={{ pt: 1.5 }}>
           <Grid container spacing={2}>
@@ -644,7 +657,7 @@ const UsersList: React.FC = () => {
           </Grid>
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 1.5 }}>
-          <Button onClick={() => setEditDialogOpen(false)} size="small">Annuler</Button>
+          <Button onClick={() => { setEditDialogOpen(false); setSelectedUser(null); }} size="small">Annuler</Button>
           <Button 
             onClick={handleEditSave} 
             variant="contained"

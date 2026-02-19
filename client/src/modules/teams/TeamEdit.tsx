@@ -11,7 +11,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  FormHelperText,
   Alert,
   CircularProgress,
   List,
@@ -21,14 +20,32 @@ import {
   Avatar,
 } from '@mui/material';
 import {
-  Group,
+  Autocomplete,
+  IconButton,
+  Chip,
+} from '@mui/material';
+import {
   Save,
   Cancel,
+  AutoAwesome,
+  Build,
+  Category,
+  Map as MapIcon,
+  DeleteOutlined,
+  Add,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { teamsApi, usersApi } from '../../services/api';
+import type { CoverageZone } from '../../services/api/teamsApi';
 import PageHeader from '../../components/PageHeader';
+import { teamsKeys } from './useTeamsList';
+import {
+  FRENCH_DEPARTMENTS,
+  hasArrondissements,
+  getArrondissementsForDepartment,
+} from '../../data/frenchDepartments';
 
 interface TeamMember {
   userId: number;
@@ -43,150 +60,173 @@ interface TeamFormData {
   description: string;
   interventionType: string;
   members: TeamMember[];
+  coverageZones: CoverageZone[];
 }
 
 const TeamEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
-  
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  
+  const queryClient = useQueryClient();
+
+  // ─── Permissions (useEffect — NOT React Query) ──────────────────────────
+  const [canEdit, setCanEdit] = useState(false);
+
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canEditPermission = await hasPermissionAsync('teams:edit');
+      setCanEdit(canEditPermission);
+    };
+    checkPermissions();
+  }, [hasPermissionAsync]);
+
+  // ─── Form state ─────────────────────────────────────────────────────────
   const [formData, setFormData] = useState<TeamFormData>({
     name: '',
     description: '',
     interventionType: 'CLEANING',
-    members: []
+    members: [],
+    coverageZones: [],
   });
-  
-  const [availableUsers, setAvailableUsers] = useState<TeamMember[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>('');
-  const [selectedRole, setSelectedRole] = useState<string>('technician');
+  const [selectedRole, setSelectedRole] = useState<string>('HOUSEKEEPER');
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
-  // Charger les données de l'équipe et les utilisateurs disponibles
+  // ─── Team + Users queries ───────────────────────────────────────────────
+  const teamQuery = useQuery({
+    queryKey: teamsKeys.detail(id ?? ''),
+    queryFn: async () => {
+      const data = await teamsApi.getById(Number(id));
+      return data;
+    },
+    enabled: !!id,
+    staleTime: 30_000,
+  });
+
+  const usersQuery = useQuery({
+    queryKey: ['edit-available-users'],
+    queryFn: async () => {
+      const data = await usersApi.getAll();
+      return Array.isArray(data) ? data : (data as any).content || [];
+    },
+    staleTime: 60_000,
+  });
+
+  // Populate form when team data loads
   useEffect(() => {
-    const loadTeam = async () => {
-      if (!id) return;
-      
-      setLoading(true);
-      try {
-        const [teamData, usersData] = await Promise.all([
-          teamsApi.getById(Number(id)),
-          usersApi.getAll()
-        ]);
+    if (teamQuery.data) {
+      const teamData = teamQuery.data;
+      setFormData({
+        name: teamData.name || '',
+        description: teamData.description || '',
+        interventionType: teamData.interventionType || 'CLEANING',
+        members: (teamData as any).members || [],
+        coverageZones: teamData.coverageZones?.map((z) => ({
+          id: z.id,
+          department: z.department,
+          arrondissement: z.arrondissement,
+        })) || [],
+      });
+    }
+  }, [teamQuery.data]);
 
-        setFormData({
-          name: teamData.name || '',
-          description: teamData.description || '',
-          interventionType: teamData.interventionType || 'CLEANING',
-          members: (teamData as any).members || []
-        });
+  const availableUsers = usersQuery.data ?? [];
+  const loading = teamQuery.isLoading || usersQuery.isLoading;
 
-        setAvailableUsers(usersData as any);
-      } catch (err) {
-        setError('Erreur lors du chargement des données');
-      } finally {
-        setLoading(false);
-      }
-    };
+  // ─── Update mutation ──────────────────────────────────────────────────
+  const updateMutation = useMutation({
+    mutationFn: (data: TeamFormData) => teamsApi.update(Number(id), data as any),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: teamsKeys.all });
+      setSuccess(true);
+      setTimeout(() => {
+        navigate(`/teams/${id}`);
+      }, 1500);
+    },
+    onError: (err: any) => {
+      setError(err?.message || 'Erreur lors de la mise à jour');
+    },
+  });
 
-    loadTeam();
-  }, [id]);
-
-  // Gestionnaires de changement
+  // ─── Handlers ─────────────────────────────────────────────────────────
   const handleInputChange = (field: keyof TeamFormData, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Gestion des membres
   const addMember = () => {
     if (!selectedUser || !selectedRole) return;
-    
-    const user = availableUsers?.find(u => u.userId.toString() === selectedUser);
+    const user = (availableUsers as TeamMember[])?.find(u => u.userId?.toString() === selectedUser);
     if (!user) return;
-    
-    // Vérifier si l'utilisateur n'est pas déjà dans l'équipe
     if ((formData.members || []).some(m => m.userId === user.userId)) {
       setError('Cet utilisateur est déjà dans l\'équipe');
       return;
     }
-    
     const newMember: TeamMember = {
       userId: user.userId,
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      role: selectedRole
+      role: selectedRole,
     };
-    
-    setFormData(prev => ({
-      ...prev,
-      members: [...prev.members, newMember]
-    }));
-    
-    // Réinitialiser les sélections
+    setFormData(prev => ({ ...prev, members: [...prev.members, newMember] }));
     setSelectedUser('');
-    setSelectedRole('technician');
+    setSelectedRole('HOUSEKEEPER');
     setError(null);
   };
 
   const removeMember = (userId: number) => {
-    setFormData(prev => ({
-      ...prev,
-      members: prev.members.filter(m => m.userId !== userId)
-    }));
+    setFormData(prev => ({ ...prev, members: prev.members.filter(m => m.userId !== userId) }));
   };
 
   const updateMemberRole = (userId: number, newRole: string) => {
     setFormData(prev => ({
       ...prev,
-      members: prev.members.map(m => 
-        m.userId === userId ? { ...m, role: newRole } : m
-      )
+      members: prev.members.map(m => m.userId === userId ? { ...m, role: newRole } : m),
     }));
   };
 
-  // Soumission du formulaire
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    setSaving(true);
-    setError(null);
-    
-    try {
-      await teamsApi.update(Number(id), formData as any);
-      setSuccess(true);
-
-      // Redirection après un délai
-      setTimeout(() => {
-        navigate(`/teams/${id}`);
-      }, 1500);
-    } catch (err: any) {
-      setError(err?.message || 'Erreur lors de la mise à jour');
-    } finally {
-      setSaving(false);
-    }
+  // ─── Coverage zones handlers ───────────────────────────────────────────
+  const addCoverageZone = () => {
+    setFormData(prev => ({
+      ...prev,
+      coverageZones: [...prev.coverageZones, { department: '', arrondissement: undefined }],
+    }));
   };
 
-  // Constantes pour les options
-  const interventionTypes = [
-    { value: 'CLEANING', label: 'Nettoyage' },
-    { value: 'MAINTENANCE', label: 'Maintenance' },
-    { value: 'REPAIR', label: 'Réparation' },
-    { value: 'OTHER', label: 'Autre' }
+  const removeCoverageZone = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      coverageZones: prev.coverageZones.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateCoverageZone = (index: number, field: keyof CoverageZone, value: string | undefined) => {
+    setFormData(prev => ({
+      ...prev,
+      coverageZones: prev.coverageZones.map((z, i) =>
+        i === index ? { ...z, [field]: value } : z
+      ),
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    updateMutation.mutate(formData);
+  };
+
+  const teamServiceCategories = [
+    { value: 'CLEANING', label: 'Nettoyage', icon: <AutoAwesome sx={{ fontSize: 18 }} /> },
+    { value: 'MAINTENANCE', label: 'Maintenance', icon: <Build sx={{ fontSize: 18 }} /> },
+    { value: 'OTHER', label: 'Autre', icon: <Category sx={{ fontSize: 18 }} /> },
   ];
 
   const roleOptions = [
-    { value: 'technician', label: 'Technicien' },
-    { value: 'housekeeper', label: 'Agent de ménage' },
-    { value: 'supervisor', label: 'Superviseur' },
-    { value: 'manager', label: 'Manager' }
+    { value: 'HOUSEKEEPER', label: 'Agent de ménage' },
+    { value: 'TECHNICIAN', label: 'Technicien' },
+    { value: 'SUPERVISOR', label: 'Superviseur' },
+    { value: 'MANAGER', label: 'Manager' },
   ];
 
   if (loading) {
@@ -197,28 +237,12 @@ const TeamEdit: React.FC = () => {
     );
   }
 
-  // Vérifier les permissions pour l'édition
-  const [canEdit, setCanEdit] = useState(false);
-  
-  useEffect(() => {
-    const checkPermissions = async () => {
-      const canEditPermission = await hasPermissionAsync('teams:edit');
-      setCanEdit(canEditPermission);
-    };
-    
-    checkPermissions();
-  }, [hasPermissionAsync]);;
-
   if (!canEdit) {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
-          <Typography variant="h6" gutterBottom>
-            Accès non autorisé
-          </Typography>
-          <Typography variant="body1">
-            Vous n'avez pas les permissions nécessaires pour modifier des équipes.
-          </Typography>
+          <Typography variant="h6" gutterBottom>Accès non autorisé</Typography>
+          <Typography variant="body1">Vous n'avez pas les permissions nécessaires pour modifier des équipes.</Typography>
         </Alert>
       </Box>
     );
@@ -226,7 +250,6 @@ const TeamEdit: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* PageHeader avec titre, sous-titre, bouton retour et bouton modifier */}
       <PageHeader
         title="Modifier l'équipe"
         subtitle="Modifiez les détails de l'équipe"
@@ -234,29 +257,32 @@ const TeamEdit: React.FC = () => {
         backLabel="Retour aux détails"
         showBackButton={true}
         actions={
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
               variant="outlined"
+              size="small"
               onClick={() => navigate(`/teams/${id}`)}
               startIcon={<Cancel />}
-              disabled={saving}
+              disabled={updateMutation.isPending}
+              title="Annuler"
             >
               Annuler
             </Button>
             <Button
               type="submit"
               variant="contained"
+              size="small"
               startIcon={<Save />}
-              disabled={saving}
+              disabled={updateMutation.isPending}
               onClick={handleSubmit}
+              title="Mettre à jour"
             >
-              {saving ? 'Mise à jour...' : 'Mettre à jour'}
+              {updateMutation.isPending ? 'Mise à jour...' : 'Mettre à jour'}
             </Button>
           </Box>
         }
       />
 
-      {/* Messages d'erreur/succès */}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
           {error}
@@ -269,11 +295,9 @@ const TeamEdit: React.FC = () => {
         </Alert>
       )}
 
-      {/* Formulaire */}
       <Card>
         <CardContent sx={{ p: 4 }}>
           <form onSubmit={handleSubmit}>
-            {/* Informations de base */}
             <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
               Informations de base
             </Typography>
@@ -289,18 +313,20 @@ const TeamEdit: React.FC = () => {
                   placeholder="Ex: Équipe Nettoyage Premium"
                 />
               </Grid>
-
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth required>
-                  <InputLabel>Type d'intervention *</InputLabel>
+                  <InputLabel>Type de service *</InputLabel>
                   <Select
                     value={formData.interventionType}
                     onChange={(e) => handleInputChange('interventionType', e.target.value)}
-                    label="Type d'intervention *"
+                    label="Type de service *"
                   >
-                    {interventionTypes.map((type) => (
-                      <MenuItem key={type.value} value={type.value}>
-                        {type.label}
+                    {teamServiceCategories.map((cat) => (
+                      <MenuItem key={cat.value} value={cat.value}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          {cat.icon}
+                          <Typography variant="body2">{cat.label}</Typography>
+                        </Box>
                       </MenuItem>
                     ))}
                   </Select>
@@ -308,10 +334,7 @@ const TeamEdit: React.FC = () => {
               </Grid>
             </Grid>
 
-            {/* Description */}
-            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-              Description
-            </Typography>
+            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>Description</Typography>
 
             <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={12}>
@@ -327,12 +350,96 @@ const TeamEdit: React.FC = () => {
               </Grid>
             </Grid>
 
-            {/* Gestion des membres */}
-            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
-              Membres de l'équipe
-            </Typography>
+            {/* ─── Coverage Zones ─────────────────────────────────────── */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h6" sx={{ color: 'primary.main', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <MapIcon sx={{ fontSize: 20 }} />
+                Zones de couverture
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<Add />}
+                onClick={addCoverageZone}
+              >
+                Ajouter une zone
+              </Button>
+            </Box>
 
-            {/* Ajouter un membre */}
+            {formData.coverageZones.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 3, mb: 4, border: '1px dashed', borderColor: 'divider', borderRadius: 2 }}>
+                <MapIcon sx={{ fontSize: 32, color: 'text.disabled', mb: 1 }} />
+                <Typography variant="body2" color="text.secondary">
+                  Aucune zone de couverture definie
+                </Typography>
+              </Box>
+            ) : (
+              <Box sx={{ mb: 4 }}>
+                {formData.coverageZones.map((zone, index) => {
+                  const deptObj = FRENCH_DEPARTMENTS.find(d => d.code === zone.department);
+                  const showArr = hasArrondissements(zone.department);
+                  const arrOptions = showArr ? getArrondissementsForDepartment(zone.department) : [];
+
+                  return (
+                    <Grid container spacing={2} key={index} sx={{ mb: 1.5, alignItems: 'center' }}>
+                      <Grid item xs={12} md={5}>
+                        <Autocomplete
+                          size="small"
+                          options={FRENCH_DEPARTMENTS}
+                          getOptionLabel={(opt) => `${opt.code} - ${opt.name}`}
+                          value={deptObj || null}
+                          onChange={(_e, val) => {
+                            updateCoverageZone(index, 'department', val?.code || '');
+                            // Reset arrondissement when department changes
+                            if (!val || !hasArrondissements(val.code)) {
+                              updateCoverageZone(index, 'arrondissement', undefined);
+                            }
+                          }}
+                          renderInput={(params) => (
+                            <TextField {...params} label="Departement" placeholder="Selectionner un departement" />
+                          )}
+                        />
+                      </Grid>
+                      {showArr && (
+                        <Grid item xs={12} md={5}>
+                          <Autocomplete
+                            size="small"
+                            options={arrOptions}
+                            getOptionLabel={(opt) => opt.name}
+                            value={arrOptions.find(a => a.code === zone.arrondissement) || null}
+                            onChange={(_e, val) => {
+                              updateCoverageZone(index, 'arrondissement', val?.code || undefined);
+                            }}
+                            renderInput={(params) => (
+                              <TextField {...params} label="Arrondissement" placeholder="Tous les arrondissements" />
+                            )}
+                          />
+                        </Grid>
+                      )}
+                      <Grid item xs={12} md={showArr ? 2 : 7} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {deptObj && (
+                          <Chip
+                            size="small"
+                            label={deptObj.code}
+                            sx={{ fontSize: '0.72rem' }}
+                          />
+                        )}
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => removeCoverageZone(index)}
+                        >
+                          <DeleteOutlined sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Grid>
+                    </Grid>
+                  );
+                })}
+              </Box>
+            )}
+
+            <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>Membres de l'équipe</Typography>
+
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth>
@@ -342,18 +449,16 @@ const TeamEdit: React.FC = () => {
                     onChange={(e) => setSelectedUser(e.target.value)}
                     label="Utilisateur"
                   >
-                    {availableUsers && availableUsers.length > 0 ? (
-                      availableUsers
-                        .filter(user => !(formData.members || []).some(m => m.userId === user.userId))
-                        .map((user) => (
+                    {availableUsers && (availableUsers as TeamMember[]).length > 0 ? (
+                      (availableUsers as TeamMember[])
+                        .filter((user: TeamMember) => !(formData.members || []).some(m => m.userId === user.userId))
+                        .map((user: TeamMember) => (
                           <MenuItem key={user.userId} value={user.userId.toString()}>
                             {user.firstName} {user.lastName} ({user.email})
                           </MenuItem>
                         ))
                     ) : (
-                      <MenuItem disabled>
-                        Aucun utilisateur disponible
-                      </MenuItem>
+                      <MenuItem disabled>Aucun utilisateur disponible</MenuItem>
                     )}
                   </Select>
                 </FormControl>
@@ -367,9 +472,7 @@ const TeamEdit: React.FC = () => {
                     label="Rôle"
                   >
                     {roleOptions.map((role) => (
-                      <MenuItem key={role.value} value={role.value}>
-                        {role.label}
-                      </MenuItem>
+                      <MenuItem key={role.value} value={role.value}>{role.label}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
@@ -386,14 +489,13 @@ const TeamEdit: React.FC = () => {
               </Grid>
             </Grid>
 
-            {/* Liste des membres actuels */}
             {(formData.members || []).length > 0 && (
               <Box sx={{ mb: 4 }}>
                 <Typography variant="subtitle1" sx={{ mb: 2 }}>
                   Membres actuels ({(formData.members || []).length})
                 </Typography>
                 <List>
-                  {(formData.members || []).map((member, index) => (
+                  {(formData.members || []).map((member) => (
                     <React.Fragment key={member.userId}>
                       <ListItem sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 1 }}>
                         <ListItemAvatar>
@@ -412,9 +514,7 @@ const TeamEdit: React.FC = () => {
                               onChange={(e) => updateMemberRole(member.userId, e.target.value)}
                             >
                               {roleOptions.map((role) => (
-                                <MenuItem key={role.value} value={role.value}>
-                                  {role.label}
-                                </MenuItem>
+                                <MenuItem key={role.value} value={role.value}>{role.label}</MenuItem>
                               ))}
                             </Select>
                           </FormControl>

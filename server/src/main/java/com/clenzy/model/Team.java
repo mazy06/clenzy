@@ -24,6 +24,9 @@ public class Team {
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<TeamMember> members = new ArrayList<>();
 
+    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<TeamCoverageZone> coverageZones = new ArrayList<>();
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -81,6 +84,14 @@ public class Team {
 
     public void setMembers(List<TeamMember> members) {
         this.members = members;
+    }
+
+    public List<TeamCoverageZone> getCoverageZones() {
+        return coverageZones;
+    }
+
+    public void setCoverageZones(List<TeamCoverageZone> coverageZones) {
+        this.coverageZones = coverageZones;
     }
 
     public LocalDateTime getCreatedAt() {

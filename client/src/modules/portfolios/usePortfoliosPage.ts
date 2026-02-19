@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../../hooks/useAuth';
-import { usePermissions } from '../../hooks/usePermissions';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { managersApi } from '../../services/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../hooks/useAuth';
+import { managersApi, portfoliosKeys, propertyTeamsApi, propertyTeamsKeys } from '../../services/api';
+import type { ManagerAssociations, PropertyTeamMapping } from '../../services/api';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification } from '../../hooks/useNotification';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -64,27 +66,18 @@ export interface ConfirmationModalState {
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
 export function usePortfoliosPage() {
-  const { user } = useAuth();
+  const { user, hasPermissionAsync } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const { hasPermission } = usePermissions();
+  const { notify } = useNotification();
 
-  // Tab state
+  // ── UI state ─────────────────────────────────────────────────────────────
   const [tabValue, setTabValue] = useState(0);
-
-  // Data states
-  const [clients, setClients] = useState<PortfolioClient[]>([]);
-  const [properties, setProperties] = useState<PortfolioProperty[]>([]);
-  const [teams, setTeams] = useState<PortfolioTeam[]>([]);
-  const [users, setUsers] = useState<PortfolioUser[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [editingClient, setEditingClient] = useState<PortfolioClient | null>(null);
-  const [managers, setManagers] = useState<Manager[]>([]);
-  const [reassignLoading, setReassignLoading] = useState(false);
   const [expandedClients, setExpandedClients] = useState<Set<number>>(new Set());
+  const [editingClient, setEditingClient] = useState<PortfolioClient | null>(null);
 
-  // Confirmation modal state
+  // ── Confirmation modal ───────────────────────────────────────────────────
   const [confirmationModal, setConfirmationModal] = useState<ConfirmationModalState>({
     open: false,
     title: '',
@@ -92,16 +85,168 @@ export function usePortfoliosPage() {
     onConfirm: () => {},
   });
 
-  // ── Permission check ────────────────────────────────────────────────────
-  const canView = !!user && hasPermission('portfolios:view');
+  // ── Permissions (useEffect + hasPermissionAsync — NOT useQuery) ──────────
+  const [canView, setCanView] = useState(false);
+  const [permissionsLoading, setPermissionsLoading] = useState(true);
 
-  // ── Tab handler ─────────────────────────────────────────────────────────
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const [view] = await Promise.all([
+        hasPermissionAsync('portfolios:view'),
+      ]);
+      setCanView(view);
+      setPermissionsLoading(false);
+    };
+    checkPermissions();
+  }, [hasPermissionAsync]);
+
+  // ── Associations query (main data) ───────────────────────────────────────
+  const associationsQuery = useQuery({
+    queryKey: portfoliosKeys.associations(user?.id ?? ''),
+    queryFn: () => managersApi.getAssociations(user!.id),
+    enabled: !!user?.id,
+    staleTime: 30_000,
+  });
+
+  const associations = associationsQuery.data;
+  const clients = useMemo(() => (associations?.clients ?? []) as PortfolioClient[], [associations]);
+  const properties = useMemo(() => (associations?.properties ?? []) as PortfolioProperty[], [associations]);
+  const teams = useMemo(() => (associations?.teams ?? []) as PortfolioTeam[], [associations]);
+  const users = useMemo(() => (associations?.users ?? []) as PortfolioUser[], [associations]);
+
+  const loading = associationsQuery.isLoading || permissionsLoading;
+  const error = associationsQuery.isError
+    ? ((associationsQuery.error as { status?: number })?.status === 401
+        ? t('portfolios.errors.authError')
+        : (associationsQuery.error as { status?: number })?.status === 403
+          ? t('portfolios.errors.forbiddenError')
+          : t('portfolios.errors.connectionError'))
+    : null;
+
+  // ── Managers query (for reassignment dialog) ────────────────────────────
+  const managersQuery = useQuery({
+    queryKey: portfoliosKeys.managers(),
+    queryFn: () => managersApi.getAll(),
+    staleTime: 60_000,
+  });
+
+  const managers = useMemo(
+    () => (managersQuery.data ?? []) as Manager[],
+    [managersQuery.data],
+  );
+
+  // ── Property-Team mappings query ──────────────────────────────────────
+  const propertyIds = useMemo(
+    () => properties.map(p => p.id),
+    [properties],
+  );
+
+  const propertyTeamsQuery = useQuery({
+    queryKey: propertyTeamsKeys.byProperties(propertyIds),
+    queryFn: () => propertyTeamsApi.getByProperties(propertyIds),
+    enabled: propertyIds.length > 0,
+    staleTime: 30_000,
+  });
+
+  const propertyTeamMap = useMemo(() => {
+    const map = new Map<number, PropertyTeamMapping>();
+    if (propertyTeamsQuery.data) {
+      for (const mapping of propertyTeamsQuery.data) {
+        map.set(mapping.propertyId, mapping);
+      }
+    }
+    return map;
+  }, [propertyTeamsQuery.data]);
+
+  // ── Mutations ────────────────────────────────────────────────────────────
+
+  const reassignClientMutation = useMutation({
+    mutationFn: ({ clientId, newManagerId }: { clientId: number; newManagerId: number }) =>
+      managersApi.reassignClient(clientId, { newManagerId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portfoliosKeys.all });
+      setEditingClient(null);
+      notify.success(t('portfolios.notifications.clientReassigned'));
+    },
+    onError: (err: any) => {
+      notify.error(err?.message || t('portfolios.errors.reassignConnectionError'));
+    },
+  });
+
+  const unassignClientMutation = useMutation({
+    mutationFn: (clientId: number) => managersApi.removeClient(user!.id, clientId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portfoliosKeys.all });
+      notify.success(t('portfolios.notifications.clientUnassigned'));
+    },
+    onError: (err: any) => {
+      notify.error(err?.message || t('portfolios.errors.connectionError'));
+    },
+  });
+
+  const unassignTeamMutation = useMutation({
+    mutationFn: (teamId: number) => managersApi.removeTeam(user!.id, teamId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portfoliosKeys.all });
+      notify.success(t('portfolios.notifications.teamUnassigned'));
+    },
+    onError: (err: any) => {
+      notify.error(err?.message || t('portfolios.errors.connectionError'));
+    },
+  });
+
+  const unassignUserMutation = useMutation({
+    mutationFn: (userId: number) => managersApi.removeUser(user!.id, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portfoliosKeys.all });
+      notify.success(t('portfolios.notifications.userUnassigned'));
+    },
+    onError: (err: any) => {
+      notify.error(err?.message || t('portfolios.errors.connectionError'));
+    },
+  });
+
+  const unassignPropertyMutation = useMutation({
+    mutationFn: (propertyId: number) => managersApi.removeProperty(user!.id, propertyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portfoliosKeys.all });
+      notify.success(t('portfolios.notifications.propertyUnassigned'));
+    },
+    onError: (err: any) => {
+      notify.error(err?.message || t('portfolios.errors.connectionError'));
+    },
+  });
+
+  const assignTeamToPropertyMutation = useMutation({
+    mutationFn: ({ propertyId, teamId }: { propertyId: number; teamId: number }) =>
+      propertyTeamsApi.assign(propertyId, teamId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: propertyTeamsKeys.all });
+      notify.success(t('portfolios.notifications.teamAssignedToProperty'));
+    },
+    onError: (err: any) => {
+      notify.error(err?.message || t('portfolios.errors.connectionError'));
+    },
+  });
+
+  const removeTeamFromPropertyMutation = useMutation({
+    mutationFn: (propertyId: number) => propertyTeamsApi.remove(propertyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: propertyTeamsKeys.all });
+      notify.success(t('portfolios.notifications.teamRemovedFromProperty'));
+    },
+    onError: (err: any) => {
+      notify.error(err?.message || t('portfolios.errors.connectionError'));
+    },
+  });
+
+  // ── Tab handler ──────────────────────────────────────────────────────────
+  const handleTabChange = useCallback((_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
-  };
+  }, []);
 
-  // ── Client expansion toggle ─────────────────────────────────────────────
-  const toggleClientExpansion = (clientId: number) => {
+  // ── Client expansion toggle ──────────────────────────────────────────────
+  const toggleClientExpansion = useCallback((clientId: number) => {
     setExpandedClients(prev => {
       const newSet = new Set(prev);
       if (newSet.has(clientId)) {
@@ -111,191 +256,133 @@ export function usePortfoliosPage() {
       }
       return newSet;
     });
-  };
+  }, []);
 
-  // ── Navigation handlers ─────────────────────────────────────────────────
-  const handleClientAssignment = () => {
+  // ── Navigation handlers ──────────────────────────────────────────────────
+  const handleClientAssignment = useCallback(() => {
     navigate('/portfolios/client-assignment');
-  };
+  }, [navigate]);
 
-  const handleTeamAssignment = () => {
+  const handleTeamAssignment = useCallback(() => {
     navigate('/portfolios/team-assignment');
-  };
+  }, [navigate]);
 
-  // ── Data loading ────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (user?.id) {
-      loadAssociations();
-      loadManagers();
-    }
-  }, [user?.id]);
+  // ── Reassignment handler ─────────────────────────────────────────────────
+  const handleReassignClient = useCallback(
+    (clientId: number, newManagerId: number, _notes: string) => {
+      reassignClientMutation.mutate({ clientId, newManagerId });
+    },
+    [reassignClientMutation],
+  );
 
-  const loadManagers = async () => {
-    try {
-      const data = await managersApi.getAll();
-      setManagers(data as Manager[]);
-    } catch (error) {
-      // Silent fail
-    }
-  };
+  // ── Unassign handlers (with confirmation modal) ──────────────────────────
+  const handleUnassignClient = useCallback(
+    (clientId: number) => {
+      if (!user?.id) return;
+      setConfirmationModal({
+        open: true,
+        title: t('portfolios.confirmations.unassignClientTitle'),
+        message: t('portfolios.confirmations.unassignClientMessage'),
+        severity: 'warning',
+        onConfirm: () => {
+          setConfirmationModal(prev => ({ ...prev, open: false }));
+          unassignClientMutation.mutate(clientId);
+        },
+      });
+    },
+    [user?.id, t, unassignClientMutation],
+  );
 
-  const loadAssociations = async () => {
-    if (!user?.id) return;
+  const handleUnassignTeam = useCallback(
+    (teamId: number) => {
+      if (!user?.id) return;
+      setConfirmationModal({
+        open: true,
+        title: t('portfolios.confirmations.unassignTeamTitle'),
+        message: t('portfolios.confirmations.unassignTeamMessage'),
+        severity: 'warning',
+        onConfirm: () => {
+          setConfirmationModal(prev => ({ ...prev, open: false }));
+          unassignTeamMutation.mutate(teamId);
+        },
+      });
+    },
+    [user?.id, t, unassignTeamMutation],
+  );
 
-    setLoading(true);
-    setError(null);
+  const handleUnassignUser = useCallback(
+    (userId: number) => {
+      if (!user?.id) return;
+      setConfirmationModal({
+        open: true,
+        title: t('portfolios.confirmations.unassignUserTitle'),
+        message: t('portfolios.confirmations.unassignUserMessage'),
+        severity: 'warning',
+        onConfirm: () => {
+          setConfirmationModal(prev => ({ ...prev, open: false }));
+          unassignUserMutation.mutate(userId);
+        },
+      });
+    },
+    [user?.id, t, unassignUserMutation],
+  );
 
-    try {
-      const associationsData = await managersApi.getAssociations(user.id);
-      setClients((associationsData.clients || []) as unknown as PortfolioClient[]);
-      setProperties((associationsData.properties || []) as unknown as PortfolioProperty[]);
-      setTeams((associationsData.teams || []) as unknown as PortfolioTeam[]);
-      setUsers((associationsData.users || []) as unknown as PortfolioUser[]);
-    } catch (err: any) {
-      setError(err?.message || t('portfolios.errors.connectionError'));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleUnassignProperty = useCallback(
+    (propertyId: number) => {
+      if (!user?.id) return;
+      setConfirmationModal({
+        open: true,
+        title: t('portfolios.confirmations.unassignPropertyTitle'),
+        message: t('portfolios.confirmations.unassignPropertyMessage'),
+        severity: 'warning',
+        onConfirm: () => {
+          setConfirmationModal(prev => ({ ...prev, open: false }));
+          unassignPropertyMutation.mutate(propertyId);
+        },
+      });
+    },
+    [user?.id, t, unassignPropertyMutation],
+  );
 
-  // ── Reassignment ───────────────────────────────────────────────────────
-  const handleReassignClient = async (clientId: number, newManagerId: number, _notes: string) => {
-    setReassignLoading(true);
-    try {
-      await managersApi.reassignClient(clientId, { newManagerId });
-      loadAssociations();
-      setEditingClient(null);
-    } catch (error: any) {
-      setError(error?.message || t('portfolios.errors.reassignConnectionError'));
-    } finally {
-      setReassignLoading(false);
-    }
-  };
+  // ── Property-team handlers ─────────────────────────────────────────────
+  const handleAssignTeamToProperty = useCallback(
+    (propertyId: number, teamId: number) => {
+      assignTeamToPropertyMutation.mutate({ propertyId, teamId });
+    },
+    [assignTeamToPropertyMutation],
+  );
 
-  // ── Unassign client ────────────────────────────────────────────────────
-  const handleUnassignClient = (clientId: number) => {
-    if (!user?.id) return;
+  const handleRemoveTeamFromProperty = useCallback(
+    (propertyId: number) => {
+      setConfirmationModal({
+        open: true,
+        title: t('portfolios.confirmations.removeTeamFromPropertyTitle'),
+        message: t('portfolios.confirmations.removeTeamFromPropertyMessage'),
+        severity: 'warning',
+        onConfirm: () => {
+          setConfirmationModal(prev => ({ ...prev, open: false }));
+          removeTeamFromPropertyMutation.mutate(propertyId);
+        },
+      });
+    },
+    [t, removeTeamFromPropertyMutation],
+  );
 
-    setConfirmationModal({
-      open: true,
-      title: t('portfolios.confirmations.unassignClientTitle'),
-      message: t('portfolios.confirmations.unassignClientMessage'),
-      severity: 'warning',
-      onConfirm: () => {
-        setConfirmationModal(prev => ({ ...prev, open: false }));
-        performUnassignClient(clientId);
-      },
-    });
-  };
+  // ── Close confirmation modal ─────────────────────────────────────────────
+  const closeConfirmationModal = useCallback(() => {
+    setConfirmationModal(prev => ({ ...prev, open: false }));
+  }, []);
 
-  const performUnassignClient = async (clientId: number) => {
-    if (!user?.id) return;
-    try {
-      await managersApi.removeClient(user.id, clientId);
-      loadAssociations();
-    } catch (error: any) {
-      setError(error?.message || t('portfolios.errors.connectionError'));
-    }
-  };
-
-  // ── Unassign team ──────────────────────────────────────────────────────
-  const handleUnassignTeam = (teamId: number) => {
-    if (!user?.id) return;
-
-    setConfirmationModal({
-      open: true,
-      title: t('teams.delete'),
-      message: 'Êtes-vous sûr de vouloir désassigner cette équipe ?',
-      severity: 'warning',
-      onConfirm: () => {
-        setConfirmationModal(prev => ({ ...prev, open: false }));
-        performUnassignTeam(teamId);
-      },
-    });
-  };
-
-  const performUnassignTeam = async (teamId: number) => {
-    if (!user?.id) return;
-    try {
-      await managersApi.removeTeam(user.id, teamId);
-      loadAssociations();
-    } catch (error: any) {
-      setError(error?.message || 'Erreur de connexion lors de la désassignation');
-    }
-  };
-
-  // ── Unassign user ──────────────────────────────────────────────────────
-  const handleUnassignUser = (userId: number) => {
-    if (!user?.id) return;
-
-    setConfirmationModal({
-      open: true,
-      title: t('portfolios.confirmations.unassignClientTitle'),
-      message: t('portfolios.confirmations.unassignClientMessage'),
-      severity: 'warning',
-      onConfirm: () => {
-        setConfirmationModal(prev => ({ ...prev, open: false }));
-        performUnassignUser(userId);
-      },
-    });
-  };
-
-  const performUnassignUser = async (userId: number) => {
-    if (!user?.id) return;
-    try {
-      await managersApi.removeUser(user.id, userId);
-      loadAssociations();
-    } catch (error: any) {
-      setError(error?.message || t('portfolios.errors.connectionError'));
-    }
-  };
-
-  // ── Property actions ───────────────────────────────────────────────────
-  const handleReassignProperty = async (propertyId: number) => {
-    if (!user?.id) return;
-    try {
-      await managersApi.assignProperty(user.id, propertyId);
-      loadAssociations();
-    } catch (error: any) {
-      setError(error?.message || t('portfolios.errors.reassignConnectionError'));
-    }
-  };
-
-  const handleUnassignProperty = (propertyId: number) => {
-    if (!user?.id) return;
-
-    setConfirmationModal({
-      open: true,
-      title: 'Désassigner la propriété',
-      message: 'Êtes-vous sûr de vouloir désassigner cette propriété ? Le client restera assigné mais cette propriété ne sera plus gérée par vous.',
-      severity: 'warning',
-      onConfirm: () => {
-        setConfirmationModal(prev => ({ ...prev, open: false }));
-        performUnassignProperty(propertyId);
-      },
-    });
-  };
-
-  const performUnassignProperty = async (propertyId: number) => {
-    if (!user?.id) return;
-    try {
-      await managersApi.removeProperty(user.id, propertyId);
-      loadAssociations();
-    } catch (error: any) {
-      setError(error?.message || t('portfolios.errors.connectionError'));
-    }
-  };
-
-  // ── Utility functions ──────────────────────────────────────────────────
-  const formatDate = (dateString: string): string => {
+  // ── Utility functions ────────────────────────────────────────────────────
+  const formatDate = useCallback((dateString: string): string => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     });
-  };
+  }, []);
 
-  const getRoleColor = (role: string): ChipColor => {
+  const getRoleColor = useCallback((role: string): ChipColor => {
     switch (role) {
       case 'HOST': return 'primary';
       case 'TECHNICIAN': return 'secondary';
@@ -303,9 +390,9 @@ export function usePortfoliosPage() {
       case 'SUPERVISOR': return 'warning';
       default: return 'default';
     }
-  };
+  }, []);
 
-  const getRoleLabel = (role: string) => {
+  const getRoleLabel = useCallback((role: string) => {
     switch (role) {
       case 'HOST': return t('portfolios.roles.owner');
       case 'TECHNICIAN': return t('portfolios.roles.technician');
@@ -313,16 +400,13 @@ export function usePortfoliosPage() {
       case 'SUPERVISOR': return t('portfolios.roles.supervisor');
       default: return role;
     }
-  };
+  }, [t]);
 
-  // ── Close confirmation modal ───────────────────────────────────────────
-  const closeConfirmationModal = () => {
-    setConfirmationModal(prev => ({ ...prev, open: false }));
-  };
-
+  // ── Return ───────────────────────────────────────────────────────────────
   return {
     // Permission
     canView,
+    permissionsLoading,
     // Translation
     t,
     // Tab
@@ -336,7 +420,7 @@ export function usePortfoliosPage() {
     loading,
     error,
     managers,
-    reassignLoading,
+    reassignLoading: reassignClientMutation.isPending,
     expandedClients,
     // Editing
     editingClient,
@@ -349,8 +433,11 @@ export function usePortfoliosPage() {
     handleUnassignClient,
     handleUnassignTeam,
     handleUnassignUser,
-    handleReassignProperty,
     handleUnassignProperty,
+    // Property-team
+    propertyTeamMap,
+    handleAssignTeamToProperty,
+    handleRemoveTeamFromProperty,
     // Confirmation modal
     confirmationModal,
     closeConfirmationModal,
@@ -358,5 +445,7 @@ export function usePortfoliosPage() {
     formatDate,
     getRoleColor,
     getRoleLabel,
+    // Pass-through
+    navigate,
   };
 }

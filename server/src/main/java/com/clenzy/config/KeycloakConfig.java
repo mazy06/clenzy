@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,51 +14,41 @@ public class KeycloakConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(KeycloakConfig.class);
 
-    @Value("${KEYCLOAK_AUTH_SERVER_URL:http://localhost:8080}")
+    @Value("${KEYCLOAK_AUTH_SERVER_URL:${keycloak.auth-server-url:http://clenzy-keycloak:8080}}")
     private String keycloakUrl;
-
-    @Value("${keycloak.realm:clenzy}")
-    private String realm;
 
     @Value("${KEYCLOAK_MASTER_REALM:master}")
     private String masterRealm;
 
-    @Value("${keycloak.admin-realm:clenzy}")
-    private String adminRealm;
-
-    @Value("${KEYCLOAK_ADMIN_USERNAME:admin}")
+    @Value("${KEYCLOAK_ADMIN_USERNAME:${keycloak.admin.username:admin}}")
     private String adminUsername;
 
-    @Value("${KEYCLOAK_ADMIN_PASSWORD:admin}")
+    @Value("${KEYCLOAK_ADMIN_PASSWORD:${keycloak.admin.password:admin}}")
     private String adminPassword;
 
-    @Value("${KEYCLOAK_ADMIN_CLIENT_ID:admin-cli}")
+    @Value("${KEYCLOAK_ADMIN_CLIENT_ID:${keycloak.admin.client-id:admin-cli}}")
     private String adminClientId;
 
     @Bean
     @Primary
     public Keycloak keycloak() {
-        logger.info("🔧 Configuration Keycloak - Création du bean Keycloak");
+        logger.info("🔧 Configuration Keycloak Admin Client");
         logger.info("🔧 URL: {}", keycloakUrl);
-        logger.info("🔧 Master Realm (Auth): {}", masterRealm);
-        logger.info("🔧 Target Realm (Users): {}", realm);
+        logger.info("🔧 Master Realm: {}", masterRealm);
         logger.info("🔧 Username: {}", adminUsername);
         logger.info("🔧 Client ID: {}", adminClientId);
-        
-        try {
-            Keycloak keycloak = KeycloakBuilder.builder()
-                    .serverUrl(keycloakUrl)
-                    .realm(masterRealm)
-                    .username(adminUsername)
-                    .password(adminPassword)
-                    .clientId(adminClientId)
-                    .build();
-            
-            logger.info("✅ Bean Keycloak créé avec succès");
-            return keycloak;
-        } catch (Exception e) {
-            logger.error("❌ Erreur lors de la création du bean Keycloak: {}", e.getMessage(), e);
-            throw new RuntimeException("Impossible de créer le bean Keycloak", e);
-        }
+
+        // Construction lazy — pas de validation au démarrage.
+        // Le token sera obtenu lors du premier appel API Keycloak.
+        Keycloak keycloak = KeycloakBuilder.builder()
+                .serverUrl(keycloakUrl)
+                .realm(masterRealm)
+                .username(adminUsername)
+                .password(adminPassword)
+                .clientId(adminClientId)
+                .build();
+
+        logger.info("✅ Bean Keycloak Admin Client créé (validation lazy au premier appel)");
+        return keycloak;
     }
 }
