@@ -14,70 +14,70 @@ import java.util.List;
 
 @Repository
 public interface PortfolioRepository extends JpaRepository<Portfolio, Long> {
-    
+
     /**
      * Requêtes optimisées avec cache
      */
-    @Query("SELECT p FROM Portfolio p WHERE p.manager.id = :managerId")
+    @Query("SELECT p FROM Portfolio p WHERE p.manager.id = :managerId AND p.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
-    List<Portfolio> findByManagerId(@Param("managerId") Long managerId);
-    
-    @Query("SELECT p FROM Portfolio p WHERE p.isActive = true")
+    List<Portfolio> findByManagerId(@Param("managerId") Long managerId, @Param("orgId") Long orgId);
+
+    @Query("SELECT p FROM Portfolio p WHERE p.isActive = true AND p.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
-    List<Portfolio> findByIsActiveTrue();
-    
-    @Query("SELECT p FROM Portfolio p WHERE p.manager.id = :managerId AND p.isActive = true")
+    List<Portfolio> findByIsActiveTrue(@Param("orgId") Long orgId);
+
+    @Query("SELECT p FROM Portfolio p WHERE p.manager.id = :managerId AND p.isActive = true AND p.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
-    List<Portfolio> findByManagerIdAndIsActiveTrue(@Param("managerId") Long managerId);
-    
+    List<Portfolio> findByManagerIdAndIsActiveTrue(@Param("managerId") Long managerId, @Param("orgId") Long orgId);
+
     /**
      * Requêtes avec pagination optimisée
      */
-    @Query("SELECT p FROM Portfolio p WHERE p.manager.id = :managerId")
+    @Query("SELECT p FROM Portfolio p WHERE p.manager.id = :managerId AND p.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
-    Page<Portfolio> findByManagerIdWithPagination(@Param("managerId") Long managerId, Pageable pageable);
-    
-    @Query("SELECT p FROM Portfolio p WHERE p.isActive = true")
+    Page<Portfolio> findByManagerIdWithPagination(@Param("managerId") Long managerId, Pageable pageable, @Param("orgId") Long orgId);
+
+    @Query("SELECT p FROM Portfolio p WHERE p.isActive = true AND p.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
-    Page<Portfolio> findByIsActiveTrueWithPagination(Pageable pageable);
-    
-    @Query("SELECT p FROM Portfolio p WHERE p.manager.id = :managerId AND p.isActive = true")
+    Page<Portfolio> findByIsActiveTrueWithPagination(Pageable pageable, @Param("orgId") Long orgId);
+
+    @Query("SELECT p FROM Portfolio p WHERE p.manager.id = :managerId AND p.isActive = true AND p.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
-    Page<Portfolio> findByManagerIdAndIsActiveTrueWithPagination(@Param("managerId") Long managerId, Pageable pageable);
-    
+    Page<Portfolio> findByManagerIdAndIsActiveTrueWithPagination(@Param("managerId") Long managerId, Pageable pageable, @Param("orgId") Long orgId);
+
     /**
      * Requêtes de comptage optimisées
      */
-    @Query("SELECT COUNT(p) FROM Portfolio p WHERE p.manager.id = :managerId")
-    long countByManagerId(@Param("managerId") Long managerId);
-    
-    @Query("SELECT COUNT(p) FROM Portfolio p WHERE p.isActive = true")
-    long countByIsActiveTrue();
-    
-    @Query("SELECT COUNT(p) FROM Portfolio p WHERE p.manager.id = :managerId AND p.isActive = true")
-    long countByManagerIdAndIsActiveTrue(@Param("managerId") Long managerId);
-    
+    @Query("SELECT COUNT(p) FROM Portfolio p WHERE p.manager.id = :managerId AND p.organizationId = :orgId")
+    long countByManagerId(@Param("managerId") Long managerId, @Param("orgId") Long orgId);
+
+    @Query("SELECT COUNT(p) FROM Portfolio p WHERE p.isActive = true AND p.organizationId = :orgId")
+    long countByIsActiveTrue(@Param("orgId") Long orgId);
+
+    @Query("SELECT COUNT(p) FROM Portfolio p WHERE p.manager.id = :managerId AND p.isActive = true AND p.organizationId = :orgId")
+    long countByManagerIdAndIsActiveTrue(@Param("managerId") Long managerId, @Param("orgId") Long orgId);
+
     /**
      * Vérifications d'existence optimisées
      */
-    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Portfolio p WHERE p.manager.id = :managerId AND p.isActive = true")
-    boolean existsByManagerIdAndIsActiveTrue(@Param("managerId") Long managerId);
-    
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Portfolio p WHERE p.manager.id = :managerId AND p.isActive = true AND p.organizationId = :orgId")
+    boolean existsByManagerIdAndIsActiveTrue(@Param("managerId") Long managerId, @Param("orgId") Long orgId);
+
     /**
      * Requêtes pour les IDs seulement
      */
-    @Query("SELECT p.id FROM Portfolio p WHERE p.manager.id = :managerId AND p.isActive = true")
-    List<Long> findIdsByManagerIdAndIsActiveTrue(@Param("managerId") Long managerId);
+    @Query("SELECT p.id FROM Portfolio p WHERE p.manager.id = :managerId AND p.isActive = true AND p.organizationId = :orgId")
+    List<Long> findIdsByManagerIdAndIsActiveTrue(@Param("managerId") Long managerId, @Param("orgId") Long orgId);
 }

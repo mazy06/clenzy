@@ -7,7 +7,7 @@ public class MinutConnectionStatusDto {
     private boolean connected;
     private String status;
     private String minutUserId;
-    private String organizationId;
+    private String minutOrganizationId;
     private LocalDateTime connectedAt;
     private LocalDateTime lastSyncAt;
     private String errorMessage;
@@ -24,8 +24,8 @@ public class MinutConnectionStatusDto {
     public String getMinutUserId() { return minutUserId; }
     public void setMinutUserId(String minutUserId) { this.minutUserId = minutUserId; }
 
-    public String getOrganizationId() { return organizationId; }
-    public void setOrganizationId(String organizationId) { this.organizationId = organizationId; }
+    public String getMinutOrganizationId() { return minutOrganizationId; }
+    public void setMinutOrganizationId(String minutOrganizationId) { this.minutOrganizationId = minutOrganizationId; }
 
     public LocalDateTime getConnectedAt() { return connectedAt; }
     public void setConnectedAt(LocalDateTime connectedAt) { this.connectedAt = connectedAt; }

@@ -20,6 +20,7 @@ import com.clenzy.repository.TeamRepository;
 import com.clenzy.model.Team;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.config.KafkaConfig;
+import com.clenzy.tenant.TenantContext;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,8 +49,9 @@ public class ServiceRequestService {
     private final NotificationService notificationService;
     private final PropertyTeamService propertyTeamService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final TenantContext tenantContext;
 
-    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository, TeamRepository teamRepository, NotificationService notificationService, PropertyTeamService propertyTeamService, KafkaTemplate<String, Object> kafkaTemplate) {
+    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository, TeamRepository teamRepository, NotificationService notificationService, PropertyTeamService propertyTeamService, KafkaTemplate<String, Object> kafkaTemplate, TenantContext tenantContext) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
@@ -58,11 +60,13 @@ public class ServiceRequestService {
         this.notificationService = notificationService;
         this.propertyTeamService = propertyTeamService;
         this.kafkaTemplate = kafkaTemplate;
+        this.tenantContext = tenantContext;
     }
 
     public ServiceRequestDto create(ServiceRequestDto dto) {
         ServiceRequest entity = new ServiceRequest();
         apply(dto, entity);
+        entity.setOrganizationId(tenantContext.getRequiredOrganizationId());
         entity = serviceRequestRepository.save(entity);
         ServiceRequestDto result = toDto(entity);
 
@@ -111,14 +115,14 @@ public class ServiceRequestService {
 
     @Transactional(readOnly = true)
     public List<ServiceRequestDto> list() {
-        return serviceRequestRepository.findAllWithRelations().stream().map(this::toDto).collect(Collectors.toList());
+        return serviceRequestRepository.findAllWithRelations(tenantContext.getRequiredOrganizationId()).stream().map(this::toDto).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public Page<ServiceRequestDto> list(Pageable pageable) {
         // Pour la pagination, on doit d'abord récupérer les IDs puis charger avec relations
         Page<ServiceRequest> page = serviceRequestRepository.findAll(pageable);
-        List<ServiceRequest> withRelations = serviceRequestRepository.findAllWithRelations();
+        List<ServiceRequest> withRelations = serviceRequestRepository.findAllWithRelations(tenantContext.getRequiredOrganizationId());
         
         // Filtrer selon la pagination
         int start = (int) pageable.getOffset();
@@ -131,7 +135,7 @@ public class ServiceRequestService {
     @Transactional(readOnly = true)
     public Page<ServiceRequestDto> search(Pageable pageable, Long userId, Long propertyId, com.clenzy.model.RequestStatus status, com.clenzy.model.ServiceType serviceType) {
         // Utiliser la méthode avec relations et filtrer ensuite
-        List<ServiceRequest> allWithRelations = serviceRequestRepository.findAllWithRelations();
+        List<ServiceRequest> allWithRelations = serviceRequestRepository.findAllWithRelations(tenantContext.getRequiredOrganizationId());
         
         // Filtrer selon les critères
         List<ServiceRequest> filtered = allWithRelations.stream()
@@ -163,7 +167,7 @@ public class ServiceRequestService {
         System.out.println("🔍 ServiceRequestService.searchWithRoleBasedAccess - Rôle: " + userRole);
 
         // Utiliser la méthode avec relations et filtrer ensuite
-        List<ServiceRequest> allWithRelations = serviceRequestRepository.findAllWithRelations();
+        List<ServiceRequest> allWithRelations = serviceRequestRepository.findAllWithRelations(tenantContext.getRequiredOrganizationId());
 
         // Filtrer selon le rôle
         List<ServiceRequest> filtered = allWithRelations.stream()
@@ -334,6 +338,7 @@ public class ServiceRequestService {
             System.out.println("🔍 DEBUG - Utilisateur assigné: " + assignedUser.getFullName());
         }
 
+        intervention.setOrganizationId(tenantContext.getRequiredOrganizationId());
         System.out.println("🔍 DEBUG - Sauvegarde de l'intervention...");
         intervention = interventionRepository.save(intervention);
         System.out.println("🔍 DEBUG - Intervention sauvegardée avec succès, ID: " + intervention.getId());

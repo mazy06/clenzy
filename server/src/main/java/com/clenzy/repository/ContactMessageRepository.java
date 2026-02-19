@@ -29,23 +29,26 @@ public interface ContactMessageRepository extends JpaRepository<ContactMessage, 
             FROM ContactMessage m
             WHERE m.archived = true
               AND (m.senderKeycloakId = :userId OR m.recipientKeycloakId = :userId)
+              AND m.organizationId = :orgId
             ORDER BY m.createdAt DESC
             """)
-    Page<ContactMessage> findArchivedForUser(@Param("userId") String userId, Pageable pageable);
+    Page<ContactMessage> findArchivedForUser(@Param("userId") String userId, Pageable pageable, @Param("orgId") Long orgId);
 
     @Query("""
             SELECT m
             FROM ContactMessage m
             WHERE m.id = :id
               AND (m.senderKeycloakId = :userId OR m.recipientKeycloakId = :userId)
+              AND m.organizationId = :orgId
             """)
-    Optional<ContactMessage> findByIdForUser(@Param("id") Long id, @Param("userId") String userId);
+    Optional<ContactMessage> findByIdForUser(@Param("id") Long id, @Param("userId") String userId, @Param("orgId") Long orgId);
 
     @Query("""
             SELECT m
             FROM ContactMessage m
             WHERE m.id IN :ids
               AND (m.senderKeycloakId = :userId OR m.recipientKeycloakId = :userId)
+              AND m.organizationId = :orgId
             """)
-    List<ContactMessage> findByIdsForUser(@Param("ids") List<Long> ids, @Param("userId") String userId);
+    List<ContactMessage> findByIdsForUser(@Param("ids") List<Long> ids, @Param("userId") String userId, @Param("orgId") Long orgId);
 }

@@ -14,11 +14,22 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "received_forms")
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class ReceivedForm {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "organization_id")
+    private Long organizationId;
 
     @Column(name = "form_type", nullable = false, length = 20)
     private String formType; // DEVIS, MAINTENANCE, SUPPORT
@@ -69,6 +80,9 @@ public class ReceivedForm {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
 
     public String getFormType() { return formType; }
     public void setFormType(String formType) { this.formType = formType; }

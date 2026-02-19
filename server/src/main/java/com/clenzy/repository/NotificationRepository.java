@@ -31,8 +31,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     /** Marquer toutes les notifications comme lues pour un utilisateur */
     @Modifying
-    @Query("UPDATE Notification n SET n.read = true, n.updatedAt = CURRENT_TIMESTAMP WHERE n.userId = :userId AND n.read = false")
-    int markAllAsReadByUserId(@Param("userId") String userId);
+    @Query("UPDATE Notification n SET n.read = true, n.updatedAt = CURRENT_TIMESTAMP WHERE n.userId = :userId AND n.read = false AND n.organizationId = :orgId")
+    int markAllAsReadByUserId(@Param("userId") String userId, @Param("orgId") Long orgId);
 
     /** Supprimer une notification par ID et userId (securite) */
     void deleteByIdAndUserId(Long id, String userId);

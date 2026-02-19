@@ -12,6 +12,7 @@ import com.stripe.model.Refund;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.RefundCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
+import com.clenzy.tenant.TenantContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class StripeService {
     private final InterventionRepository interventionRepository;
     private final NotificationService notificationService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final TenantContext tenantContext;
 
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
@@ -41,10 +43,11 @@ public class StripeService {
     @Value("${stripe.cancel-url}")
     private String cancelUrl;
 
-    public StripeService(InterventionRepository interventionRepository, NotificationService notificationService, KafkaTemplate<String, Object> kafkaTemplate) {
+    public StripeService(InterventionRepository interventionRepository, NotificationService notificationService, KafkaTemplate<String, Object> kafkaTemplate, TenantContext tenantContext) {
         this.interventionRepository = interventionRepository;
         this.notificationService = notificationService;
         this.kafkaTemplate = kafkaTemplate;
+        this.tenantContext = tenantContext;
     }
     
     /**
@@ -103,7 +106,7 @@ public class StripeService {
      * Confirme le paiement d'une intervention après réception du webhook
      */
     public void confirmPayment(String sessionId) {
-        Intervention intervention = interventionRepository.findByStripeSessionId(sessionId)
+        Intervention intervention = interventionRepository.findByStripeSessionId(sessionId, tenantContext.getRequiredOrganizationId())
             .orElseThrow(() -> new RuntimeException("Intervention non trouvée pour la session: " + sessionId));
 
         intervention.setPaymentStatus(PaymentStatus.PAID);
@@ -180,7 +183,7 @@ public class StripeService {
      * Marque un paiement comme échoué
      */
     public void markPaymentAsFailed(String sessionId) {
-        Intervention intervention = interventionRepository.findByStripeSessionId(sessionId)
+        Intervention intervention = interventionRepository.findByStripeSessionId(sessionId, tenantContext.getRequiredOrganizationId())
             .orElse(null);
 
         if (intervention != null) {

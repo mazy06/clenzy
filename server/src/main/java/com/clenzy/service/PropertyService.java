@@ -10,6 +10,7 @@ import com.clenzy.repository.ManagerPropertyRepository;
 import com.clenzy.repository.PortfolioClientRepository;
 import com.clenzy.repository.PortfolioRepository;
 import com.clenzy.model.Portfolio;
+import com.clenzy.tenant.TenantContext;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.NotificationKey;
 import org.springframework.cache.annotation.Cacheable;
@@ -35,25 +36,29 @@ public class PropertyService {
     private final PortfolioClientRepository portfolioClientRepository;
     private final PortfolioRepository portfolioRepository;
     private final NotificationService notificationService;
+    private final TenantContext tenantContext;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public PropertyService(PropertyRepository propertyRepository, UserRepository userRepository,
                           ManagerPropertyRepository managerPropertyRepository,
                           PortfolioClientRepository portfolioClientRepository,
                           PortfolioRepository portfolioRepository,
-                          NotificationService notificationService) {
+                          NotificationService notificationService,
+                          TenantContext tenantContext) {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.managerPropertyRepository = managerPropertyRepository;
         this.portfolioClientRepository = portfolioClientRepository;
         this.portfolioRepository = portfolioRepository;
         this.notificationService = notificationService;
+        this.tenantContext = tenantContext;
     }
 
     @CacheEvict(value = "properties", allEntries = true)
     public PropertyDto create(PropertyDto dto) {
         Property property = new Property();
         apply(dto, property);
+        property.setOrganizationId(tenantContext.getRequiredOrganizationId());
         property = propertyRepository.save(property);
         PropertyDto result = toDto(property);
 
@@ -100,7 +105,7 @@ public class PropertyService {
     public PropertyDto getById(Long id) {
         try {
             // Utiliser la méthode avec JOIN FETCH pour charger la relation owner
-            Property entity = propertyRepository.findByIdWithOwner(id)
+            Property entity = propertyRepository.findByIdWithOwner(id, tenantContext.getRequiredOrganizationId())
                 .orElseThrow(() -> new NotFoundException("Property not found with id: " + id));
             
             return toDto(entity);
@@ -118,7 +123,7 @@ public class PropertyService {
      */
     @Transactional(readOnly = true)
     public Property getPropertyEntityById(Long id) {
-        return propertyRepository.findByIdWithOwner(id)
+        return propertyRepository.findByIdWithOwner(id, tenantContext.getRequiredOrganizationId())
             .orElseThrow(() -> new NotFoundException("Property not found with id: " + id));
     }
 
@@ -357,7 +362,7 @@ public class PropertyService {
         PropertyDto dto = toDto(p);
         
         // Récupérer le manager associé à cette propriété
-        List<com.clenzy.model.ManagerProperty> managerProperties = managerPropertyRepository.findByPropertyId(p.getId());
+        List<com.clenzy.model.ManagerProperty> managerProperties = managerPropertyRepository.findByPropertyId(p.getId(), tenantContext.getRequiredOrganizationId());
         if (!managerProperties.isEmpty()) {
             com.clenzy.model.ManagerProperty managerProperty = managerProperties.get(0); // Prendre le premier
             User manager = managerProperty.getManager();
@@ -383,7 +388,7 @@ public class PropertyService {
     @Transactional(readOnly = true)
     public boolean canUserAssignForProperty(Long userId, Long propertyId) {
         // Récupérer la propriété avec son propriétaire
-        Property property = propertyRepository.findByIdWithOwner(propertyId)
+        Property property = propertyRepository.findByIdWithOwner(propertyId, tenantContext.getRequiredOrganizationId())
             .orElseThrow(() -> new NotFoundException("Property not found"));
         
         if (property.getOwner() == null) {
@@ -402,14 +407,14 @@ public class PropertyService {
         }
         
         // 2. Vérifier si l'utilisateur est directement assigné à la propriété via ManagerProperty
-        if (managerPropertyRepository.existsByManagerIdAndPropertyId(userId, propertyId)) {
+        if (managerPropertyRepository.existsByManagerIdAndPropertyId(userId, propertyId, tenantContext.getRequiredOrganizationId())) {
             return true;
         }
         
         // 3. Vérifier si l'utilisateur est le manager d'un portefeuille qui contient le client propriétaire
-        List<Portfolio> portfolios = portfolioRepository.findByManagerId(userId);
+        List<Portfolio> portfolios = portfolioRepository.findByManagerId(userId, tenantContext.getRequiredOrganizationId());
         for (Portfolio portfolio : portfolios) {
-            if (portfolioClientRepository.existsByPortfolioIdAndClientIdAndIsActiveTrue(portfolio.getId(), ownerId)) {
+            if (portfolioClientRepository.existsByPortfolioIdAndClientIdAndIsActiveTrue(portfolio.getId(), ownerId, tenantContext.getRequiredOrganizationId())) {
                 return true;
             }
         }

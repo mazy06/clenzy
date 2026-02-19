@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import java.util.Arrays;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.NotificationKey;
+import com.clenzy.tenant.TenantContext;
 
 @Service
 public class PermissionService {
@@ -38,6 +39,9 @@ public class PermissionService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private TenantContext tenantContext;
 
     @Autowired(required = false)
     private NotificationService notificationService;
@@ -126,7 +130,7 @@ public class PermissionService {
         // Invalider le cache de tous les utilisateurs ayant ce rôle
         try {
             UserRole userRole = UserRole.valueOf(role);
-            List<User> usersWithRole = userRepository.findByRoleIn(Arrays.asList(userRole));
+            List<User> usersWithRole = userRepository.findByRoleIn(Arrays.asList(userRole), tenantContext.getRequiredOrganizationId());
             for (User user : usersWithRole) {
                 if (user.getKeycloakId() != null) {
                     invalidateUserPermissionsCache(user.getKeycloakId());
@@ -220,7 +224,7 @@ public class PermissionService {
         // Invalider le cache de tous les utilisateurs ayant ce rôle
         try {
             UserRole userRole = UserRole.valueOf(role);
-            List<User> usersWithRole = userRepository.findByRoleIn(Arrays.asList(userRole));
+            List<User> usersWithRole = userRepository.findByRoleIn(Arrays.asList(userRole), tenantContext.getRequiredOrganizationId());
             for (User user : usersWithRole) {
                 if (user.getKeycloakId() != null) {
                     invalidateUserPermissionsCache(user.getKeycloakId());
@@ -478,7 +482,7 @@ public class PermissionService {
         // Invalider le cache de tous les utilisateurs ayant ce rôle
         try {
             UserRole userRole = UserRole.valueOf(role);
-            List<User> usersWithRole = userRepository.findByRoleIn(Arrays.asList(userRole));
+            List<User> usersWithRole = userRepository.findByRoleIn(Arrays.asList(userRole), tenantContext.getRequiredOrganizationId());
             for (User user : usersWithRole) {
                 if (user.getKeycloakId() != null) {
                     invalidateUserPermissionsCache(user.getKeycloakId());

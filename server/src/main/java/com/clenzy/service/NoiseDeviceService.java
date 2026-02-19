@@ -7,6 +7,7 @@ import com.clenzy.dto.noise.NoiseDeviceDto;
 import com.clenzy.integration.minut.service.MinutApiService;
 import com.clenzy.integration.tuya.service.TuyaApiService;
 import com.clenzy.model.NoiseDevice;
+import com.clenzy.tenant.TenantContext;
 import com.clenzy.model.NoiseDevice.DeviceStatus;
 import com.clenzy.model.NoiseDevice.DeviceType;
 import com.clenzy.model.Property;
@@ -32,15 +33,18 @@ public class NoiseDeviceService {
     private final PropertyRepository propertyRepository;
     private final MinutApiService minutApiService;
     private final TuyaApiService tuyaApiService;
+    private final TenantContext tenantContext;
 
     public NoiseDeviceService(NoiseDeviceRepository noiseDeviceRepository,
                               PropertyRepository propertyRepository,
                               MinutApiService minutApiService,
-                              TuyaApiService tuyaApiService) {
+                              TuyaApiService tuyaApiService,
+                              TenantContext tenantContext) {
         this.noiseDeviceRepository = noiseDeviceRepository;
         this.propertyRepository = propertyRepository;
         this.minutApiService = minutApiService;
         this.tuyaApiService = tuyaApiService;
+        this.tenantContext = tenantContext;
     }
 
     // ─── CRUD ───────────────────────────────────────────────────
@@ -71,6 +75,7 @@ public class NoiseDeviceService {
         device.setExternalDeviceId(dto.getExternalDeviceId());
         device.setExternalHomeId(dto.getExternalHomeId());
         device.setStatus(DeviceStatus.ACTIVE);
+        device.setOrganizationId(tenantContext.getRequiredOrganizationId());
 
         NoiseDevice saved = noiseDeviceRepository.save(device);
         log.info("Capteur cree: {} (type={}, property={}) pour user={}",

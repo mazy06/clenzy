@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import com.clenzy.tenant.TenantContext;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,13 +41,16 @@ public class InterventionController {
     private final InterventionService interventionService;
     private final InterventionRepository interventionRepository;
     private final UserRepository userRepository;
+    private final TenantContext tenantContext;
 
     public InterventionController(InterventionService interventionService,
                                   InterventionRepository interventionRepository,
-                                  UserRepository userRepository) {
+                                  UserRepository userRepository,
+                                  TenantContext tenantContext) {
         this.interventionService = interventionService;
         this.interventionRepository = interventionRepository;
         this.userRepository = userRepository;
+        this.tenantContext = tenantContext;
     }
     
     @GetMapping("/planning")
@@ -76,12 +80,12 @@ public class InterventionController {
         List<Intervention> interventions;
 
         if (propertyIds != null && !propertyIds.isEmpty()) {
-            interventions = interventionRepository.findByPropertyIdsAndDateRange(propertyIds, fromDateTime, toDateTime);
+            interventions = interventionRepository.findByPropertyIdsAndDateRange(propertyIds, fromDateTime, toDateTime, tenantContext.getRequiredOrganizationId());
         } else if (isAdminOrManager) {
-            interventions = interventionRepository.findAllByDateRange(fromDateTime, toDateTime);
+            interventions = interventionRepository.findAllByDateRange(fromDateTime, toDateTime, tenantContext.getRequiredOrganizationId());
         } else {
             // Host / operational : ses propres proprietes
-            interventions = interventionRepository.findByOwnerKeycloakIdAndDateRange(jwt.getSubject(), fromDateTime, toDateTime);
+            interventions = interventionRepository.findByOwnerKeycloakIdAndDateRange(jwt.getSubject(), fromDateTime, toDateTime, tenantContext.getRequiredOrganizationId());
         }
 
         // Filtre optionnel par type

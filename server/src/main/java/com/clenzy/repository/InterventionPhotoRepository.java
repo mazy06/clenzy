@@ -13,14 +13,16 @@ public interface InterventionPhotoRepository extends JpaRepository<InterventionP
     
     List<InterventionPhoto> findByInterventionIdOrderByCreatedAtAsc(Long interventionId);
     
-    @Query("SELECT ip FROM InterventionPhoto ip WHERE ip.intervention.id = :interventionId ORDER BY ip.createdAt ASC")
-    List<InterventionPhoto> findAllByInterventionId(@Param("interventionId") Long interventionId);
-    
-    @Query("SELECT ip FROM InterventionPhoto ip WHERE ip.intervention.id = :interventionId AND ip.photoType = :photoType ORDER BY ip.createdAt ASC")
+    @Query("SELECT ip FROM InterventionPhoto ip WHERE ip.intervention.id = :interventionId AND ip.intervention.organizationId = :orgId ORDER BY ip.createdAt ASC")
+    List<InterventionPhoto> findAllByInterventionId(@Param("interventionId") Long interventionId, @Param("orgId") Long orgId);
+
+    @Query("SELECT ip FROM InterventionPhoto ip WHERE ip.intervention.id = :interventionId AND ip.photoType = :photoType AND ip.intervention.organizationId = :orgId ORDER BY ip.createdAt ASC")
     List<InterventionPhoto> findByInterventionIdAndPhotoTypeOrderByCreatedAtAsc(
-        @Param("interventionId") Long interventionId, 
-        @Param("photoType") String photoType
+        @Param("interventionId") Long interventionId,
+        @Param("photoType") String photoType,
+        @Param("orgId") Long orgId
     );
     
+    // SAFE: parent intervention is always validated with orgId before calling this delete
     void deleteByInterventionId(Long interventionId);
 }

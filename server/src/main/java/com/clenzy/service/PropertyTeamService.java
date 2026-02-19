@@ -11,6 +11,7 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.PropertyTeamRepository;
 import com.clenzy.repository.TeamCoverageZoneRepository;
 import com.clenzy.repository.TeamRepository;
+import com.clenzy.tenant.TenantContext;
 import com.clenzy.util.InterventionTypeMatcher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,9 @@ public class PropertyTeamService {
     @Autowired
     private PropertyRepository propertyRepository;
 
+    @Autowired
+    private TenantContext tenantContext;
+
     /**
      * Assigner une equipe a une propriete (upsert)
      */
@@ -58,10 +62,11 @@ public class PropertyTeamService {
 
         // Upsert : supprimer l'ancien mapping si existant
         if (propertyTeamRepository.existsByPropertyId(request.getPropertyId())) {
-            propertyTeamRepository.deleteByPropertyId(request.getPropertyId());
+            propertyTeamRepository.deleteByPropertyIdAndOrganizationId(request.getPropertyId(), tenantContext.getRequiredOrganizationId());
         }
 
         PropertyTeam propertyTeam = new PropertyTeam(request.getPropertyId(), request.getTeamId());
+        propertyTeam.setOrganizationId(tenantContext.getRequiredOrganizationId());
         PropertyTeam saved = propertyTeamRepository.save(propertyTeam);
 
         return convertToDto(saved, team);
@@ -74,7 +79,7 @@ public class PropertyTeamService {
         if (!propertyTeamRepository.existsByPropertyId(propertyId)) {
             throw new RuntimeException("Aucune equipe assignee a cette propriete");
         }
-        propertyTeamRepository.deleteByPropertyId(propertyId);
+        propertyTeamRepository.deleteByPropertyIdAndOrganizationId(propertyId, tenantContext.getRequiredOrganizationId());
     }
 
     /**
@@ -82,7 +87,7 @@ public class PropertyTeamService {
      */
     @Transactional(readOnly = true)
     public Optional<PropertyTeamDto> getByProperty(Long propertyId) {
-        return propertyTeamRepository.findByPropertyId(propertyId)
+        return propertyTeamRepository.findByPropertyId(propertyId, tenantContext.getRequiredOrganizationId())
             .map(pt -> convertToDto(pt, pt.getTeam()));
     }
 
@@ -94,7 +99,7 @@ public class PropertyTeamService {
         if (propertyIds == null || propertyIds.isEmpty()) {
             return List.of();
         }
-        return propertyTeamRepository.findByPropertyIdIn(propertyIds).stream()
+        return propertyTeamRepository.findByPropertyIdIn(propertyIds, tenantContext.getRequiredOrganizationId()).stream()
             .map(pt -> convertToDto(pt, pt.getTeam()))
             .collect(Collectors.toList());
     }
@@ -122,7 +127,7 @@ public class PropertyTeamService {
         LocalDateTime rangeEnd = scheduledDate.plusHours(duration);
 
         // 1. Essayer l'equipe par defaut (property_teams)
-        Optional<PropertyTeam> mapping = propertyTeamRepository.findByPropertyId(propertyId);
+        Optional<PropertyTeam> mapping = propertyTeamRepository.findByPropertyId(propertyId, tenantContext.getRequiredOrganizationId());
         if (mapping.isPresent()) {
             Long defaultTeamId = mapping.get().getTeamId();
             Team defaultTeam = teamRepository.findById(defaultTeamId).orElse(null);
@@ -133,7 +138,7 @@ public class PropertyTeamService {
                 if (typeOk) {
                     // Verifier disponibilite
                     long conflictCount = interventionRepository.countActiveByTeamIdAndDateRange(
-                        defaultTeamId, ACTIVE_STATUSES, rangeStart, rangeEnd
+                        defaultTeamId, ACTIVE_STATUSES, rangeStart, rangeEnd, tenantContext.getRequiredOrganizationId()
                     );
                     if (conflictCount == 0) {
                         System.out.println("Auto-assignation: equipe par defaut " + defaultTeamId + " (type OK, disponible)");
@@ -159,9 +164,9 @@ public class PropertyTeamService {
         // Chercher les equipes couvrant cette zone
         List<Long> candidateTeamIds;
         if (arrondissement != null && !arrondissement.isEmpty()) {
-            candidateTeamIds = teamCoverageZoneRepository.findTeamIdsByDepartmentAndArrondissement(department, arrondissement);
+            candidateTeamIds = teamCoverageZoneRepository.findTeamIdsByDepartmentAndArrondissement(department, arrondissement, tenantContext.getRequiredOrganizationId());
         } else {
-            candidateTeamIds = teamCoverageZoneRepository.findTeamIdsByDepartment(department);
+            candidateTeamIds = teamCoverageZoneRepository.findTeamIdsByDepartment(department, tenantContext.getRequiredOrganizationId());
         }
 
         if (candidateTeamIds.isEmpty()) {
@@ -186,7 +191,7 @@ public class PropertyTeamService {
 
             // Verifier disponibilite
             long conflictCount = interventionRepository.countActiveByTeamIdAndDateRange(
-                candidateId, ACTIVE_STATUSES, rangeStart, rangeEnd
+                candidateId, ACTIVE_STATUSES, rangeStart, rangeEnd, tenantContext.getRequiredOrganizationId()
             );
             if (conflictCount == 0) {
                 System.out.println("Auto-assignation fallback: equipe " + candidateId + " (zone " + department + ", type OK, disponible)");

@@ -13,11 +13,22 @@ import java.time.LocalDateTime;
     @Index(name = "idx_listing_map_property_id", columnList = "property_id"),
     @Index(name = "idx_listing_map_airbnb_listing_id", columnList = "airbnb_listing_id", unique = true)
 })
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class AirbnbListingMapping {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "organization_id")
+    private Long organizationId;
 
     @Column(name = "property_id", nullable = false, insertable = false, updatable = false)
     private Long propertyId;
@@ -79,6 +90,14 @@ public class AirbnbListingMapping {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 
     public Long getPropertyId() {

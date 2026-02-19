@@ -6,12 +6,23 @@ import java.util.List;
 
 @Entity
 @Table(name = "portfolios")
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class Portfolio {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    @Column(name = "organization_id")
+    private Long organizationId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manager_id", nullable = false)
     private User manager;
@@ -74,7 +85,10 @@ public class Portfolio {
     
     public List<PortfolioTeam> getTeamMembers() { return teamMembers; }
     public void setTeamMembers(List<PortfolioTeam> teamMembers) { this.teamMembers = teamMembers; }
-    
+
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
+
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();

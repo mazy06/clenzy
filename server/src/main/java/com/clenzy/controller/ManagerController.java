@@ -30,6 +30,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.jdbc.core.JdbcTemplate;
+import com.clenzy.tenant.TenantContext;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
@@ -70,7 +71,10 @@ public class ManagerController {
     
     @Autowired
     private ManagerPropertyRepository managerPropertyRepository;
-    
+
+    @Autowired
+    private TenantContext tenantContext;
+
 
     /**
      * Récupérer tous les managers et admins pour les formulaires d'association
@@ -268,10 +272,10 @@ public class ManagerController {
             }
             
             // 2. Créer un portefeuille pour ce manager s'il n'en a pas
-            Portfolio portfolio = portfolioRepository.findByManagerId(managerId).stream()
+            Portfolio portfolio = portfolioRepository.findByManagerId(managerId, tenantContext.getRequiredOrganizationId()).stream()
                 .findFirst()
                 .orElse(null);
-            
+
             if (portfolio == null) {
                 portfolio = new Portfolio();
                 portfolio.setName("Portefeuille Manager " + managerId);
@@ -289,7 +293,7 @@ public class ManagerController {
             if (request.getClientIds() != null && !request.getClientIds().isEmpty()) {
                 for (Long clientId : request.getClientIds()) {
                     // Vérifier si le client est déjà assigné à ce portefeuille
-                    if (!portfolioClientRepository.existsByPortfolioIdAndClientId(portfolio.getId(), clientId)) {
+                    if (!portfolioClientRepository.existsByPortfolioIdAndClientId(portfolio.getId(), clientId, tenantContext.getRequiredOrganizationId())) {
                         User client = userRepository.findById(clientId).orElse(null);
                         if (client != null) {
                             PortfolioClient portfolioClient = new PortfolioClient(portfolio, client);
@@ -314,7 +318,7 @@ public class ManagerController {
                         boolean isClientAssigned = request.getClientIds().contains(property.getOwner().getId());
                         if (isClientAssigned) {
                             // Créer l'association spécifique manager-propriété
-                            if (!managerPropertyRepository.existsByManagerIdAndPropertyId(managerId, propertyId)) {
+                            if (!managerPropertyRepository.existsByManagerIdAndPropertyId(managerId, propertyId, tenantContext.getRequiredOrganizationId())) {
                                 ManagerProperty managerProperty = new ManagerProperty(managerId, propertyId, "Assignée via formulaire");
                                 managerPropertyRepository.save(managerProperty);
                                 propertiesAssigned++;
@@ -351,7 +355,7 @@ public class ManagerController {
      */
     private boolean isClientAssignedToAnotherManager(Long clientId, Long currentManagerId) {
         // Vérifier dans tous les portefeuilles sauf ceux du manager actuel
-        List<PortfolioClient> existingAssignments = portfolioClientRepository.findByClientIdAndIsActiveTrue(clientId);
+        List<PortfolioClient> existingAssignments = portfolioClientRepository.findByClientIdAndIsActiveTrue(clientId, tenantContext.getRequiredOrganizationId());
         return existingAssignments.stream()
             .anyMatch(pc -> !pc.getPortfolio().getManager().getId().equals(currentManagerId));
     }
@@ -373,7 +377,7 @@ public class ManagerController {
      * Créer ou récupérer le portefeuille principal d'un manager
      */
     private Portfolio getOrCreateManagerPortfolio(Long managerId) {
-        List<Portfolio> existingPortfolios = portfolioRepository.findByManagerId(managerId);
+        List<Portfolio> existingPortfolios = portfolioRepository.findByManagerId(managerId, tenantContext.getRequiredOrganizationId());
         if (!existingPortfolios.isEmpty()) {
             return existingPortfolios.get(0); // Retourner le premier portefeuille
         }
@@ -430,7 +434,7 @@ public class ManagerController {
             List<UserRole> roles = Arrays.asList(UserRole.TECHNICIAN, UserRole.HOUSEKEEPER, UserRole.SUPERVISOR);
             System.out.println("🔍 ManagerController - Recherche des utilisateurs avec les rôles: " + roles);
             
-            List<User> operationalUsers = userRepository.findByRoleIn(roles);
+            List<User> operationalUsers = userRepository.findByRoleIn(roles, tenantContext.getRequiredOrganizationId());
             System.out.println("📊 ManagerController - Nombre d'utilisateurs trouvés: " + operationalUsers.size());
             
             for (User user : operationalUsers) {
@@ -540,7 +544,7 @@ public class ManagerController {
             if (request.getTeamIds() != null && !request.getTeamIds().isEmpty()) {
                 for (Long teamId : request.getTeamIds()) {
                     // Vérifier si l'association existe déjà
-                    if (!managerTeamRepository.existsByManagerIdAndTeamIdAndIsActiveTrue(managerId, teamId)) {
+                    if (!managerTeamRepository.existsByManagerIdAndTeamIdAndIsActiveTrue(managerId, teamId, tenantContext.getRequiredOrganizationId())) {
                         ManagerTeam managerTeam = new ManagerTeam(managerId, teamId);
                         managerTeamRepository.save(managerTeam);
                         teamsAssigned++;
@@ -555,7 +559,7 @@ public class ManagerController {
             if (request.getUserIds() != null && !request.getUserIds().isEmpty()) {
                 for (Long userId : request.getUserIds()) {
                     // Vérifier si l'association existe déjà
-                    if (!managerUserRepository.existsByManagerIdAndUserIdAndIsActiveTrue(managerId, userId)) {
+                    if (!managerUserRepository.existsByManagerIdAndUserIdAndIsActiveTrue(managerId, userId, tenantContext.getRequiredOrganizationId())) {
                         ManagerUser managerUser = new ManagerUser(managerId, userId);
                         managerUserRepository.save(managerUser);
                         usersAssigned++;
@@ -660,16 +664,16 @@ public class ManagerController {
             }
             
             // 1. Récupérer le portefeuille du manager
-            Portfolio portfolio = portfolioRepository.findByManagerId(userId).stream()
+            Portfolio portfolio = portfolioRepository.findByManagerId(userId, tenantContext.getRequiredOrganizationId()).stream()
                 .findFirst()
                 .orElse(null);
-            
+
             if (portfolio == null) {
                 return ResponseEntity.badRequest().body("{\"error\":\"Portefeuille non trouvé\"}");
             }
-            
+
             // 2. Supprimer l'association client-portefeuille
-            Optional<PortfolioClient> portfolioClientOpt = portfolioClientRepository.findByPortfolioIdAndClientId(portfolio.getId(), clientId);
+            Optional<PortfolioClient> portfolioClientOpt = portfolioClientRepository.findByPortfolioIdAndClientId(portfolio.getId(), clientId, tenantContext.getRequiredOrganizationId());
             int removedCount = 0;
             if (portfolioClientOpt.isPresent()) {
                 portfolioClientRepository.delete(portfolioClientOpt.get());
@@ -718,7 +722,7 @@ public class ManagerController {
             }
             
             // Supprimer l'association manager-équipe
-            List<ManagerTeam> managerTeams = managerTeamRepository.findAllByManagerIdAndTeamId(userId, teamId);
+            List<ManagerTeam> managerTeams = managerTeamRepository.findAllByManagerIdAndTeamId(userId, teamId, tenantContext.getRequiredOrganizationId());
             int removedCount = 0;
             for (ManagerTeam mt : managerTeams) {
                 mt.setIsActive(false); // Soft delete
@@ -766,7 +770,7 @@ public class ManagerController {
             }
             
             // Supprimer l'association manager-utilisateur
-            List<ManagerUser> managerUsers = managerUserRepository.findAllByManagerIdAndUserId(managerUserId, userId);
+            List<ManagerUser> managerUsers = managerUserRepository.findAllByManagerIdAndUserId(managerUserId, userId, tenantContext.getRequiredOrganizationId());
             int removedCount = 0;
             for (ManagerUser mu : managerUsers) {
                 mu.setIsActive(false); // Soft delete
@@ -821,17 +825,17 @@ public class ManagerController {
             
             // 2. Vérifier que le propriétaire de la propriété (HOST) est assigné à ce manager
             Long hostId = property.getOwner().getId();
-            Portfolio portfolio = portfolioRepository.findByManagerId(userId).stream()
+            Portfolio portfolio = portfolioRepository.findByManagerId(userId, tenantContext.getRequiredOrganizationId()).stream()
                 .filter(p -> p.getClients().stream().anyMatch(pc -> pc.getClient().getId().equals(hostId)))
                 .findFirst()
                 .orElse(null);
-            
+
             if (portfolio == null) {
                 return ResponseEntity.badRequest().body("{\"error\":\"Le propriétaire de cette propriété n'est pas assigné à ce manager\"}");
             }
-            
+
             // 3. Recréer l'association spécifique manager-propriété (si elle n'existe pas déjà)
-            ManagerProperty existingAssociation = managerPropertyRepository.findByManagerIdAndPropertyId(userId, propertyId);
+            ManagerProperty existingAssociation = managerPropertyRepository.findByManagerIdAndPropertyId(userId, propertyId, tenantContext.getRequiredOrganizationId());
             if (existingAssociation == null) {
                 ManagerProperty managerProperty = new ManagerProperty(userId, propertyId, "Réassignée par le manager");
                 managerPropertyRepository.save(managerProperty);
@@ -885,17 +889,17 @@ public class ManagerController {
             
             // 2. Vérifier que le propriétaire de la propriété (HOST) est assigné à ce manager
             Long hostId = property.getOwner().getId();
-            Portfolio portfolio = portfolioRepository.findByManagerId(userId).stream()
+            Portfolio portfolio = portfolioRepository.findByManagerId(userId, tenantContext.getRequiredOrganizationId()).stream()
                 .filter(p -> p.getClients().stream().anyMatch(pc -> pc.getClient().getId().equals(hostId)))
                 .findFirst()
                 .orElse(null);
-            
+
             if (portfolio == null) {
                 return ResponseEntity.badRequest().body("{\"error\":\"Cette propriété n'est pas assignée à ce manager\"}");
             }
-            
+
             // 3. Supprimer l'association spécifique manager-propriété
-            ManagerProperty managerProperty = managerPropertyRepository.findByManagerIdAndPropertyId(userId, propertyId);
+            ManagerProperty managerProperty = managerPropertyRepository.findByManagerIdAndPropertyId(userId, propertyId, tenantContext.getRequiredOrganizationId());
             if (managerProperty != null) {
                 System.out.println("🔍 ManagerController - Association manager-propriété trouvée: ManagerProperty ID=" + managerProperty.getId() + ", Manager ID=" + userId + ", Property ID=" + propertyId);
                 
@@ -903,7 +907,7 @@ public class ManagerController {
                 System.out.println("✅ ManagerController - Propriété " + propertyId + " désassignée du manager " + userId);
                 
                 // Vérifier que l'association a bien été supprimée
-                ManagerProperty verification = managerPropertyRepository.findByManagerIdAndPropertyId(userId, propertyId);
+                ManagerProperty verification = managerPropertyRepository.findByManagerIdAndPropertyId(userId, propertyId, tenantContext.getRequiredOrganizationId());
                 if (verification != null) {
                     System.out.println("❌ ManagerController - ERREUR: L'association manager-propriété existe encore après suppression !");
                 } else {

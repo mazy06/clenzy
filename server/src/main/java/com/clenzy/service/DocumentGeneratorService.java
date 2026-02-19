@@ -7,6 +7,7 @@ import com.clenzy.exception.DocumentNotFoundException;
 import com.clenzy.exception.DocumentStorageException;
 import com.clenzy.exception.DocumentValidationException;
 import com.clenzy.model.*;
+import com.clenzy.tenant.TenantContext;
 import com.clenzy.repository.DocumentGenerationRepository;
 import com.clenzy.repository.DocumentTemplateRepository;
 import com.clenzy.repository.DocumentTemplateTagRepository;
@@ -72,6 +73,7 @@ public class DocumentGeneratorService {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final DocumentNumberingService numberingService;
     private final DocumentComplianceService complianceService;
+    private final TenantContext tenantContext;
 
     private final Counter generationSuccessCounter;
     private final Counter generationFailureCounter;
@@ -92,6 +94,7 @@ public class DocumentGeneratorService {
             KafkaTemplate<String, Object> kafkaTemplate,
             DocumentNumberingService numberingService,
             DocumentComplianceService complianceService,
+            TenantContext tenantContext,
             MeterRegistry meterRegistry
     ) {
         this.templateRepository = templateRepository;
@@ -108,6 +111,7 @@ public class DocumentGeneratorService {
         this.kafkaTemplate = kafkaTemplate;
         this.numberingService = numberingService;
         this.complianceService = complianceService;
+        this.tenantContext = tenantContext;
 
         this.generationSuccessCounter = Counter.builder("clenzy.documents.generation.success")
                 .description("Nombre de documents generes avec succes")
@@ -157,6 +161,7 @@ public class DocumentGeneratorService {
         template.setEmailBody(emailBody);
         template.setCreatedBy(extractEmail(jwt));
         template.setActive(false);
+        template.setOrganizationId(tenantContext.getOrganizationId());
 
         template = templateRepository.save(template);
 
@@ -199,7 +204,7 @@ public class DocumentGeneratorService {
     @Transactional
     public DocumentTemplate activateTemplate(Long id) {
         DocumentTemplate template = getTemplate(id);
-        templateRepository.deactivateAllByTypeExcept(template.getDocumentType(), id);
+        templateRepository.deactivateAllByTypeExcept(template.getDocumentType(), id, tenantContext.getRequiredOrganizationId());
         template.setActive(true);
         return templateRepository.save(template);
     }
@@ -282,6 +287,7 @@ public class DocumentGeneratorService {
                 .status(DocumentGenerationStatus.GENERATING)
                 .emailTo(emailTo)
                 .build();
+        generation.setOrganizationId(tenantContext.getOrganizationId());
         generation = generationRepository.save(generation);
 
         try {

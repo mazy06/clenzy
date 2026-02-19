@@ -106,6 +106,7 @@ public class AirbnbListingService {
 
         // Creer le mapping
         AirbnbListingMapping mapping = new AirbnbListingMapping();
+        mapping.setOrganizationId(property.getOrganizationId());
         mapping.setPropertyId(propertyId);
         mapping.setProperty(property);
         mapping.setAirbnbListingId(airbnbListingId);

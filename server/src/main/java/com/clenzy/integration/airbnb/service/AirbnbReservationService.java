@@ -143,9 +143,16 @@ public class AirbnbReservationService {
 
         AirbnbListingMapping mapping = mappingOpt.get();
 
+        // Resoudre l'orgId depuis la propriete (pas de TenantContext en contexte Kafka)
+        Long orgId = resolveOrganizationId(mapping);
+        if (orgId == null) {
+            log.warn("Impossible de resoudre l'organizationId pour le mapping {}", mapping.getId());
+            return;
+        }
+
         // Rechercher l'intervention existante liee a cette reservation
         List<Intervention> interventions = interventionRepository
-                .findByPropertyId(mapping.getPropertyId());
+                .findByPropertyId(mapping.getPropertyId(), orgId);
 
         // Trouver l'intervention avec le meme code de confirmation dans les notes
         for (Intervention intervention : interventions) {
@@ -203,9 +210,16 @@ public class AirbnbReservationService {
 
         AirbnbListingMapping mapping = mappingOpt.get();
 
+        // Resoudre l'orgId depuis la propriete (pas de TenantContext en contexte Kafka)
+        Long orgId = resolveOrganizationId(mapping);
+        if (orgId == null) {
+            log.warn("Impossible de resoudre l'organizationId pour le mapping {}", mapping.getId());
+            return;
+        }
+
         // Annuler les interventions liees
         List<Intervention> interventions = interventionRepository
-                .findByPropertyId(mapping.getPropertyId());
+                .findByPropertyId(mapping.getPropertyId(), orgId);
 
         for (Intervention intervention : interventions) {
             if (intervention.getSpecialInstructions() != null
@@ -246,6 +260,7 @@ public class AirbnbReservationService {
 
         // Creer l'intervention de menage
         Intervention intervention = new Intervention();
+        intervention.setOrganizationId(property.getOrganizationId());
         intervention.setTitle("Menage Airbnb — " + property.getName());
         intervention.setDescription("Menage apres depart du guest " + (guestName != null ? guestName : "")
                 + " (reservation Airbnb " + confirmationCode + ")");
@@ -272,6 +287,19 @@ public class AirbnbReservationService {
 
         log.info("Intervention de menage #{} auto-generee pour propriete {} (reservation {})",
                 intervention.getId(), property.getName(), confirmationCode);
+    }
+
+    /**
+     * Resout l'organizationId depuis un mapping Airbnb.
+     * Utilise le mapping.organizationId s'il est defini, sinon charge la propriete.
+     */
+    private Long resolveOrganizationId(AirbnbListingMapping mapping) {
+        if (mapping.getOrganizationId() != null) {
+            return mapping.getOrganizationId();
+        }
+        return propertyRepository.findById(mapping.getPropertyId())
+                .map(Property::getOrganizationId)
+                .orElse(null);
     }
 
     /**

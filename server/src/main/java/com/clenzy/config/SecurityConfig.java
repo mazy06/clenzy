@@ -13,10 +13,12 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import com.clenzy.tenant.TenantFilter;
 
 import java.util.Collection;
 import java.util.List;
@@ -28,6 +30,12 @@ import java.util.stream.Collectors;
 @EnableMethodSecurity
 @Profile("!prod")
 public class SecurityConfig {
+
+    private final TenantFilter tenantFilter;
+
+    public SecurityConfig(TenantFilter tenantFilter) {
+        this.tenantFilter = tenantFilter;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -86,6 +94,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(keycloakRoleConverter())))
+            .addFilterAfter(tenantFilter, UsernamePasswordAuthenticationFilter.class)
             .httpBasic(Customizer.withDefaults());
 
         return http.build();
@@ -134,6 +143,8 @@ public class SecurityConfig {
         config.addAllowedHeader("Authorization");
         config.addAllowedHeader("Content-Type");
         config.addAllowedHeader("Accept");
+        config.addAllowedHeader("X-Organization-Id");
+        config.addExposedHeader("X-Organization-Id");
         config.addExposedHeader("X-RateLimit-Limit");
         config.addExposedHeader("X-RateLimit-Remaining");
         config.addExposedHeader("Retry-After");

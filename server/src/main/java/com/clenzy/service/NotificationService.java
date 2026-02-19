@@ -4,6 +4,7 @@ import com.clenzy.dto.NotificationDto;
 import com.clenzy.model.*;
 import com.clenzy.repository.NotificationRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,13 +23,16 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationPreferenceService preferenceService;
     private final UserRepository userRepository;
+    private final TenantContext tenantContext;
 
     public NotificationService(NotificationRepository notificationRepository,
                                NotificationPreferenceService preferenceService,
-                               UserRepository userRepository) {
+                               UserRepository userRepository,
+                               TenantContext tenantContext) {
         this.notificationRepository = notificationRepository;
         this.preferenceService = preferenceService;
         this.userRepository = userRepository;
+        this.tenantContext = tenantContext;
     }
 
     // ─── Lecture ─────────────────────────────────────────────────────────────────
@@ -71,7 +75,7 @@ public class NotificationService {
      * Marque toutes les notifications comme lues pour un utilisateur.
      */
     public void markAllAsRead(String userId) {
-        int updated = notificationRepository.markAllAsReadByUserId(userId);
+        int updated = notificationRepository.markAllAsReadByUserId(userId, tenantContext.getRequiredOrganizationId());
         log.debug("{} notifications marquees comme lues pour l'utilisateur {}", updated, userId);
     }
 
@@ -96,6 +100,7 @@ public class NotificationService {
                                    String actionUrl) {
         Notification notification = new Notification(userId, title, message, type, category);
         notification.setActionUrl(actionUrl);
+        notification.setOrganizationId(tenantContext.getOrganizationId());
         notification = notificationRepository.save(notification);
         log.info("Notification creee: {} pour l'utilisateur {}", notification.getId(), userId);
         return NotificationDto.fromEntity(notification);
@@ -157,6 +162,7 @@ public class NotificationService {
             Notification notification = new Notification(userId, title, message, key.getDefaultType(), key.getCategory());
             notification.setNotificationKey(key);
             notification.setActionUrl(actionUrl);
+            notification.setOrganizationId(tenantContext.getOrganizationId());
             notification = notificationRepository.save(notification);
             log.info("Notification {} creee (ID: {}) pour l'utilisateur {}", key, notification.getId(), userId);
             return NotificationDto.fromEntity(notification);
@@ -175,7 +181,8 @@ public class NotificationService {
     public void notifyAdminsAndManagers(NotificationKey key, String title, String message, String actionUrl) {
         try {
             List<User> adminsManagers = userRepository.findByRoleIn(
-                    Arrays.asList(UserRole.ADMIN, UserRole.MANAGER)
+                    Arrays.asList(UserRole.ADMIN, UserRole.MANAGER),
+                    tenantContext.getRequiredOrganizationId()
             );
             for (User user : adminsManagers) {
                 if (user.getKeycloakId() != null) {

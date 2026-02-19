@@ -19,6 +19,7 @@ import net.fortuna.ical4j.model.property.DtStart;
 import net.fortuna.ical4j.model.property.Summary;
 import net.fortuna.ical4j.model.property.Uid;
 import com.clenzy.model.NotificationKey;
+import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -74,6 +75,7 @@ public class ICalImportService {
     private final AuditLogService auditLogService;
     private final NotificationService notificationService;
     private final PricingConfigService pricingConfigService;
+    private final TenantContext tenantContext;
     private final HttpClient httpClient;
 
     public ICalImportService(ICalFeedRepository icalFeedRepository,
@@ -84,7 +86,8 @@ public class ICalImportService {
                              UserRepository userRepository,
                              AuditLogService auditLogService,
                              NotificationService notificationService,
-                             PricingConfigService pricingConfigService) {
+                             PricingConfigService pricingConfigService,
+                             TenantContext tenantContext) {
         this.icalFeedRepository = icalFeedRepository;
         this.interventionRepository = interventionRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -94,6 +97,7 @@ public class ICalImportService {
         this.auditLogService = auditLogService;
         this.notificationService = notificationService;
         this.pricingConfigService = pricingConfigService;
+        this.tenantContext = tenantContext;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(15))
                 .followRedirects(HttpClient.Redirect.NORMAL)
@@ -168,9 +172,10 @@ public class ICalImportService {
         // Cela permet de recreer les reservations manquantes apres mise a jour du code.
 
         // Sauvegarder/mettre a jour le feed en premier (pour avoir le feedId)
-        ICalFeed feed = icalFeedRepository.findByPropertyIdAndUrl(property.getId(), request.getUrl());
+        ICalFeed feed = icalFeedRepository.findByPropertyIdAndUrl(property.getId(), request.getUrl(), tenantContext.getRequiredOrganizationId());
         if (feed == null) {
             feed = new ICalFeed(property, request.getUrl(), request.getSourceName());
+            feed.setOrganizationId(tenantContext.getOrganizationId());
         }
         feed.setAutoCreateInterventions(request.isAutoCreateInterventions());
         feed = icalFeedRepository.save(feed);
@@ -212,6 +217,7 @@ public class ICalImportService {
                 reservation.setExternalUid(event.getUid());
                 reservation.setIcalFeed(feed);
                 reservation.setNotes(event.getDescription());
+                reservation.setOrganizationId(tenantContext.getOrganizationId());
                 reservation = reservationRepository2.save(reservation);
 
                 // 2. Creer l'intervention de menage (si auto-create active ET pas deja existante)
@@ -219,7 +225,7 @@ public class ICalImportService {
                     // Verifier si une intervention avec ce UID existe deja (via specialInstructions)
                     boolean interventionExists = false;
                     if (event.getUid() != null) {
-                        List<Intervention> existingInterventions = interventionRepository.findByPropertyId(property.getId());
+                        List<Intervention> existingInterventions = interventionRepository.findByPropertyId(property.getId(), tenantContext.getRequiredOrganizationId());
                         interventionExists = existingInterventions.stream()
                                 .map(Intervention::getSpecialInstructions)
                                 .filter(Objects::nonNull)
@@ -474,6 +480,7 @@ public class ICalImportService {
         serviceRequest.setDescription("Import iCal " + sourceName
                 + (event.getGuestName() != null ? " — Guest: " + event.getGuestName() : "")
                 + (event.getConfirmationCode() != null ? " (" + event.getConfirmationCode() + ")" : ""));
+        serviceRequest.setOrganizationId(tenantContext.getOrganizationId());
 
         serviceRequest = serviceRequestRepository.save(serviceRequest);
 
@@ -520,6 +527,7 @@ public class ICalImportService {
             intervention.setRequestor(owner);
         }
 
+        intervention.setOrganizationId(tenantContext.getOrganizationId());
         interventionRepository.save(intervention);
 
         log.info("Intervention menage #{} creee pour propriete {} ({}, {}, auto={})",
@@ -623,7 +631,7 @@ public class ICalImportService {
         User user = userRepository.findByKeycloakId(keycloakId)
                 .orElseThrow(() -> new SecurityException("Utilisateur introuvable"));
 
-        return icalFeedRepository.findByPropertyOwnerId(user.getId()).stream()
+        return icalFeedRepository.findByPropertyOwnerId(user.getId(), tenantContext.getRequiredOrganizationId()).stream()
                 .map(this::toFeedDto)
                 .collect(Collectors.toList());
     }

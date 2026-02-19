@@ -7,6 +7,7 @@ import com.clenzy.model.NotificationKey;
 import com.clenzy.repository.AuditLogRepository;
 import com.clenzy.repository.GdprConsentRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -40,17 +41,20 @@ public class GdprService {
     private final AuditLogRepository auditLogRepository;
     private final AuditLogService auditLogService;
     private final NotificationService notificationService;
+    private final TenantContext tenantContext;
 
     public GdprService(UserRepository userRepository,
                        GdprConsentRepository gdprConsentRepository,
                        AuditLogRepository auditLogRepository,
                        AuditLogService auditLogService,
-                       NotificationService notificationService) {
+                       NotificationService notificationService,
+                       TenantContext tenantContext) {
         this.userRepository = userRepository;
         this.gdprConsentRepository = gdprConsentRepository;
         this.auditLogRepository = auditLogRepository;
         this.auditLogService = auditLogService;
         this.notificationService = notificationService;
+        this.tenantContext = tenantContext;
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -208,7 +212,7 @@ public class GdprService {
         userRepository.save(user);
 
         // Supprimer les consentements (plus necessaires)
-        gdprConsentRepository.deleteByUserId(userId);
+        gdprConsentRepository.deleteByUserIdAndOrganizationId(userId, tenantContext.getRequiredOrganizationId());
 
         // Audit (avec l'ancien email pour tracabilite juridique)
         auditLogService.logAction(AuditAction.DELETE, "User", String.valueOf(userId),
@@ -299,6 +303,7 @@ public class GdprService {
             // Creer une nouvelle entree (historique versionne)
             GdprConsent consent = new GdprConsent(user, consentType, granted, ipAddress);
             consent.setVersion(newVersion);
+            consent.setOrganizationId(tenantContext.getRequiredOrganizationId());
 
             if (!granted) {
                 consent.setRevokedAt(LocalDateTime.now());

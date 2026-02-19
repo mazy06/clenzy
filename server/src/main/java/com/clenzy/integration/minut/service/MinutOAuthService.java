@@ -5,6 +5,7 @@ import com.clenzy.integration.minut.model.MinutConnection;
 import com.clenzy.integration.minut.model.MinutConnection.MinutConnectionStatus;
 import com.clenzy.integration.minut.repository.MinutConnectionRepository;
 import com.clenzy.service.TokenEncryptionService;
+import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
@@ -29,14 +30,17 @@ public class MinutOAuthService {
     private final MinutConfig config;
     private final MinutConnectionRepository connectionRepository;
     private final TokenEncryptionService encryptionService;
+    private final TenantContext tenantContext;
     private final RestTemplate restTemplate;
 
     public MinutOAuthService(MinutConfig config,
                              MinutConnectionRepository connectionRepository,
-                             TokenEncryptionService encryptionService) {
+                             TokenEncryptionService encryptionService,
+                             TenantContext tenantContext) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
+        this.tenantContext = tenantContext;
         this.restTemplate = new RestTemplate();
     }
 
@@ -100,6 +104,9 @@ public class MinutOAuthService {
                 connection.setScopes(config.getScopes());
                 connection.setStatus(MinutConnectionStatus.ACTIVE);
                 connection.setErrorMessage(null);
+                if (connection.getOrganizationId() == null) {
+                    connection.setOrganizationId(tenantContext.getRequiredOrganizationId());
+                }
 
                 return connectionRepository.save(connection);
             }

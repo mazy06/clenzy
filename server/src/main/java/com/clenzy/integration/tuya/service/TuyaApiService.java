@@ -5,6 +5,7 @@ import com.clenzy.integration.tuya.model.TuyaConnection;
 import com.clenzy.integration.tuya.model.TuyaConnection.TuyaConnectionStatus;
 import com.clenzy.integration.tuya.repository.TuyaConnectionRepository;
 import com.clenzy.service.TokenEncryptionService;
+import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +34,7 @@ public class TuyaApiService {
     private final TuyaConfig config;
     private final TuyaConnectionRepository connectionRepository;
     private final TokenEncryptionService encryptionService;
+    private final TenantContext tenantContext;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
@@ -43,10 +45,12 @@ public class TuyaApiService {
 
     public TuyaApiService(TuyaConfig config,
                           TuyaConnectionRepository connectionRepository,
-                          TokenEncryptionService encryptionService) {
+                          TokenEncryptionService encryptionService,
+                          TenantContext tenantContext) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
+        this.tenantContext = tenantContext;
         this.restTemplate = new RestTemplate();
         this.objectMapper = new ObjectMapper();
     }
@@ -178,6 +182,9 @@ public class TuyaApiService {
         connection.setTokenExpiresAt(cachedTokenExpiry);
         connection.setStatus(TuyaConnectionStatus.ACTIVE);
         connection.setErrorMessage(null);
+        if (connection.getOrganizationId() == null) {
+            connection.setOrganizationId(tenantContext.getRequiredOrganizationId());
+        }
 
         return connectionRepository.save(connection);
     }

@@ -139,7 +139,7 @@ public class MinutController {
             statusDto.setConnected(connection.isActive());
             statusDto.setStatus(connection.getStatus().name());
             statusDto.setMinutUserId(connection.getMinutUserId());
-            statusDto.setOrganizationId(connection.getOrganizationId());
+            statusDto.setMinutOrganizationId(connection.getMinutOrganizationId());
             statusDto.setConnectedAt(connection.getConnectedAt());
             statusDto.setLastSyncAt(connection.getLastSyncAt());
             statusDto.setErrorMessage(connection.getErrorMessage());

@@ -10,6 +10,10 @@ import org.springframework.stereotype.Component;
  * Scheduler pour la synchronisation automatique des feeds iCal.
  * Execute toutes les 3 heures pour re-importer les reservations
  * avec dedoublonnage automatique par UID.
+ *
+ * Note multi-tenant : s'execute HORS contexte HTTP (pas de TenantFilter/TenantContext).
+ * Le Hibernate @Filter n'est pas actif — les queries retournent les feeds de toutes les orgs.
+ * C'est acceptable car chaque feed est traite independamment via son property.owner.
  */
 @Component
 public class ICalSyncScheduler {
