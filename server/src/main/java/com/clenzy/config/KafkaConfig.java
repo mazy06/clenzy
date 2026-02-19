@@ -33,6 +33,8 @@ import java.util.Map;
  * - notifications.send         : notifications internes (email, push)
  * - audit.events               : evenements d'audit
  * - airbnb.dlq                 : Dead Letter Queue (messages en echec)
+ * - minut.webhooks.incoming     : evenements bruts recus de Minut
+ * - minut.noise.events          : evenements bruit traites Minut
  */
 @Configuration
 @EnableKafka
@@ -48,6 +50,8 @@ public class KafkaConfig {
     public static final String TOPIC_AUDIT_EVENTS = "audit.events";
     public static final String TOPIC_DLQ = "airbnb.dlq";
     public static final String TOPIC_DOCUMENT_GENERATE = "documents.generate";
+    public static final String TOPIC_MINUT_WEBHOOKS = "minut.webhooks.incoming";
+    public static final String TOPIC_MINUT_NOISE_EVENTS = "minut.noise.events";
 
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
@@ -169,6 +173,22 @@ public class KafkaConfig {
     @Bean
     public NewTopic documentGenerateTopic() {
         return TopicBuilder.name(TOPIC_DOCUMENT_GENERATE)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic minutWebhooksTopic() {
+        return TopicBuilder.name(TOPIC_MINUT_WEBHOOKS)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic minutNoiseEventsTopic() {
+        return TopicBuilder.name(TOPIC_MINUT_NOISE_EVENTS)
                 .partitions(3)
                 .replicas(1)
                 .build();

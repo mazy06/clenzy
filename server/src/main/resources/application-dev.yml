@@ -147,6 +147,29 @@ airbnb:
     interval-minutes: 15
 
 # Jasypt (chiffrement des tokens en base)
+# Configuration Minut Integration (monitoring sonore)
+minut:
+  api:
+    base-url: https://api.minut.com/v8
+  oauth:
+    client-id: ${MINUT_CLIENT_ID:}
+    client-secret: ${MINUT_CLIENT_SECRET:}
+    redirect-uri: ${MINUT_REDIRECT_URI:http://localhost:8084/api/minut/callback}
+    authorization-url: https://api.minut.com/v8/oauth/authorize
+    token-url: https://api.minut.com/v8/oauth/token
+    scopes: read,write
+  webhook:
+    secret: ${MINUT_WEBHOOK_SECRET:}
+
+# Configuration Tuya Cloud API (capteurs Tuya OEM)
+tuya:
+  api:
+    base-url: ${TUYA_API_BASE_URL:https://openapi.tuyaeu.com}
+    region: ${TUYA_REGION:eu}
+  auth:
+    access-id: ${TUYA_ACCESS_ID:}
+    access-secret: ${TUYA_ACCESS_SECRET:}
+
 jasypt:
   encryptor:
     password: ${JASYPT_ENCRYPTOR_PASSWORD:dev-jasypt-secret-key}

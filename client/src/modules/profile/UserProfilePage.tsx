@@ -191,18 +191,22 @@ const UserProfilePage: React.FC = () => {
               <>
                 <Button
                   variant="outlined"
+                  size="small"
                   onClick={handleCancel}
                   disabled={isSaving}
                   startIcon={<CancelIcon />}
+                  title="Annuler"
                 >
                   Annuler
                 </Button>
                 <Button
                   variant="contained"
+                  size="small"
                   color="primary"
                   onClick={handleSave}
                   disabled={isSaving}
-                  startIcon={isSaving ? <CircularProgress size={20} /> : <SaveIcon />}
+                  startIcon={isSaving ? <CircularProgress size={16} /> : <SaveIcon />}
+                  title="Sauvegarder"
                 >
                   {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
                 </Button>
@@ -210,9 +214,11 @@ const UserProfilePage: React.FC = () => {
             ) : (
               <Button
                 variant="contained"
+                size="small"
                 color="primary"
                 onClick={() => setIsEditing(true)}
                 startIcon={<EditIcon />}
+                title="Modifier"
               >
                 Modifier
               </Button>

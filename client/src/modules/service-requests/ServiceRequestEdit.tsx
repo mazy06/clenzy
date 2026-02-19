@@ -47,6 +47,7 @@ const ServiceRequestEdit: React.FC = () => {
                 size="small"
                 disabled={loading}
                 sx={ACTION_BUTTON_SX}
+                title={t('common.cancel')}
               >
                 {t('common.cancel')}
               </Button>
@@ -57,6 +58,7 @@ const ServiceRequestEdit: React.FC = () => {
                 size="small"
                 disabled={loading}
                 sx={ACTION_BUTTON_SX}
+                title={t('serviceRequests.update')}
               >
                 {loading ? t('serviceRequests.updating') : t('serviceRequests.update')}
               </Button>

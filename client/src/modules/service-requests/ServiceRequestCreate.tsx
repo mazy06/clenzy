@@ -63,6 +63,7 @@ const ServiceRequestCreate: React.FC = () => {
                 size="small"
                 disabled={loading}
                 sx={ACTION_BUTTON_SX}
+                title={t('common.cancel')}
               >
                 {t('common.cancel')}
               </Button>
@@ -73,6 +74,7 @@ const ServiceRequestCreate: React.FC = () => {
                 size="small"
                 disabled={loading}
                 sx={ACTION_BUTTON_SX}
+                title={t('serviceRequests.createRequest')}
               >
                 {loading ? t('serviceRequests.creating') : t('serviceRequests.createRequest')}
               </Button>

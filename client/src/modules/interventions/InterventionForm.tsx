@@ -13,16 +13,17 @@ import {
 } from '@mui/icons-material';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { interventionSchema, type InterventionFormValues } from '../../schemas';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi, propertiesApi, usersApi, teamsApi } from '../../services/api';
 import apiClient from '../../services/apiClient';
 import { extractApiList } from '../../types';
-import type { Intervention } from '../../types';
 import { InterventionType } from '../../types/interventionTypes';
 import { InterventionStatus, Priority } from '../../types/statusEnums';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
+import { interventionsKeys } from './useInterventionsList';
 import InterventionFormMainInfo from './InterventionFormMainInfo';
 import InterventionFormPropertyRequestor from './InterventionFormPropertyRequestor';
 import InterventionFormAssignment from './InterventionFormAssignment';
@@ -84,10 +85,21 @@ interface InterventionFormProps {
   mode?: 'create' | 'edit'; // Default: 'create'
 }
 
+// ─── Query keys for form data ─────────────────────────────────────────────────
+
+const formDataKeys = {
+  all: ['intervention-form-data'] as const,
+  properties: () => [...formDataKeys.all, 'properties'] as const,
+  users: () => [...formDataKeys.all, 'users'] as const,
+  teams: () => [...formDataKeys.all, 'teams'] as const,
+  intervention: (id: number) => [...formDataKeys.all, 'intervention', id] as const,
+};
+
 const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess, setLoading, loading, interventionId, mode }) => {
   const { user, hasPermissionAsync, isAdmin, isManager, isHost } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Detect edit mode
   const isEditMode = mode === 'edit' || !!interventionId;
@@ -109,12 +121,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
     checkPermissions();
   }, [isAdmin, isManager, isEditMode, hasPermissionAsync]);
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
   // Separate date/time state for scheduled date
   const [scheduledDatePart, setScheduledDatePart] = useState('');
   const [scheduledTimePart, setScheduledTimePart] = useState('11:00');
@@ -143,6 +150,80 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
 
   const watchedAssignedToType = watch('assignedToType');
   const watchedPropertyId = watch('propertyId');
+
+  // ─── React Query: load form reference data ─────────────────────────────────
+
+  const propertiesQuery = useQuery({
+    queryKey: formDataKeys.properties(),
+    queryFn: async () => {
+      const data = await propertiesApi.getAll();
+      return extractApiList<Property>(data);
+    },
+    staleTime: 60_000,
+  });
+
+  const usersQuery = useQuery({
+    queryKey: formDataKeys.users(),
+    queryFn: async () => {
+      const data = await usersApi.getAll();
+      return extractApiList<User>(data);
+    },
+    staleTime: 60_000,
+  });
+
+  const teamsQuery = useQuery({
+    queryKey: formDataKeys.teams(),
+    queryFn: async () => {
+      const data = await teamsApi.getAll();
+      return extractApiList<Team>(data);
+    },
+    staleTime: 60_000,
+  });
+
+  const interventionQuery = useQuery({
+    queryKey: formDataKeys.intervention(interventionId!),
+    queryFn: () => interventionsApi.getById(interventionId!),
+    enabled: isEditMode && !!interventionId,
+    staleTime: 30_000,
+  });
+
+  const properties = propertiesQuery.data ?? [];
+  const users = usersQuery.data ?? [];
+  const teams = teamsQuery.data ?? [];
+  const isLoading = propertiesQuery.isLoading || usersQuery.isLoading || teamsQuery.isLoading || (isEditMode && interventionQuery.isLoading);
+
+  // Populate form with intervention data when loaded (edit mode)
+  useEffect(() => {
+    if (!isEditMode || !interventionQuery.data) return;
+    const interventionData = interventionQuery.data;
+
+    const isoDate = interventionData.scheduledDate
+      ? new Date(interventionData.scheduledDate).toISOString().slice(0, 16)
+      : '';
+    // Split scheduledDate into date and time parts
+    if (isoDate) {
+      const [datePart, timePart] = isoDate.split('T');
+      setScheduledDatePart(datePart);
+      setScheduledTimePart(timePart || '11:00');
+    }
+    reset({
+      title: interventionData.title || '',
+      description: interventionData.description || '',
+      type: interventionData.type || InterventionType.CLEANING,
+      status: interventionData.status || InterventionStatus.PENDING,
+      priority: interventionData.priority || Priority.NORMAL,
+      propertyId: interventionData.propertyId || 0,
+      requestorId: interventionData.requestorId || 0,
+      assignedToId: interventionData.assignedToId || undefined,
+      assignedToType: interventionData.assignedToType || undefined,
+      scheduledDate: isoDate,
+      estimatedDurationHours: interventionData.estimatedDurationHours || 1,
+      estimatedCost: interventionData.estimatedCost ?? undefined,
+      notes: interventionData.notes || '',
+      photos: interventionData.photosUrl || '',
+      progressPercentage: interventionData.progressPercentage || 0
+    });
+  }, [isEditMode, interventionQuery.data, reset]);
 
   // Sync separate date/time → scheduledDate hidden field
   useEffect(() => {
@@ -179,69 +260,54 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
     }
   }, [users, user, isHost, isAdmin, isManager, setValue]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+  // ─── Mutation: create/update intervention ───────────────────────────────────
 
-        // Charger les proprietes, utilisateurs et equipes en parallele
-        // En mode edit, charger aussi les donnees de l'intervention
-        const [propertiesData, usersData, teamsData] = await Promise.all([
-          propertiesApi.getAll().catch(() => []),
-          usersApi.getAll().catch(() => []),
-          teamsApi.getAll().catch(() => [])
-        ]);
-
-        // Charger l'intervention separement en mode edit
-        let interventionData: Intervention | null = null;
-        if (isEditMode && interventionId) {
-          interventionData = await interventionsApi.getById(interventionId);
-        }
-
-        setProperties(extractApiList(propertiesData));
-        setUsers(extractApiList(usersData));
-        setTeams(extractApiList(teamsData));
-
-        // In edit mode, populate the form with existing intervention data
-        if (isEditMode && interventionData) {
-          const isoDate = interventionData.scheduledDate
-            ? new Date(interventionData.scheduledDate).toISOString().slice(0, 16)
-            : '';
-          // Split scheduledDate into date and time parts
-          if (isoDate) {
-            const [datePart, timePart] = isoDate.split('T');
-            setScheduledDatePart(datePart);
-            setScheduledTimePart(timePart || '11:00');
-          }
-          reset({
-            title: interventionData.title || '',
-            description: interventionData.description || '',
-            type: interventionData.type || InterventionType.CLEANING,
-            status: interventionData.status || InterventionStatus.PENDING,
-            priority: interventionData.priority || Priority.NORMAL,
-            propertyId: interventionData.propertyId || 0,
-            requestorId: interventionData.requestorId || 0,
-            assignedToId: interventionData.assignedToId || undefined,
-            assignedToType: interventionData.assignedToType || undefined,
-            scheduledDate: isoDate,
-            estimatedDurationHours: interventionData.estimatedDurationHours || 1,
-            estimatedCost: interventionData.estimatedCost ?? undefined,
-            notes: interventionData.notes || '',
-            photos: interventionData.photosUrl || '',
-            progressPercentage: interventionData.progressPercentage || 0
-          });
-        }
-
-      } catch (err) {
-        setError(isEditMode ? 'Erreur lors du chargement de l\'intervention' : 'Erreur lors du chargement des donnees');
-      } finally {
-        setIsLoading(false);
+  const submitMutation = useMutation({
+    mutationFn: async (formData: InterventionFormValues) => {
+      if (isEditMode && interventionId) {
+        await interventionsApi.update(interventionId, formData);
+        return { type: 'update' as const, id: interventionId };
+      } else {
+        const saved = await interventionsApi.create(formData);
+        return { type: 'create' as const, id: saved.id, estimatedCost: formData.estimatedCost };
       }
-    };
+    },
+    onSuccess: async (result, formData) => {
+      // Invalidate interventions cache
+      queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
 
-    loadData();
-  }, [isEditMode, interventionId, reset]);
+      if (result.type === 'update') {
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          navigate(`/interventions/${result.id}`);
+        }
+      } else {
+        // Create mode: handle payment flow
+        if (!isHost() && formData.estimatedCost && formData.estimatedCost > 0) {
+          try {
+            const paymentData = await apiClient.post<{ url: string }>('/payments/create-session', {
+              interventionId: result.id,
+              amount: formData.estimatedCost
+            });
+            window.location.href = paymentData.url;
+            return;
+          } catch (paymentErr: any) {
+            setError(paymentErr.message || 'Erreur lors de la creation de la session de paiement');
+          }
+        }
+
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          window.location.href = `/interventions/${result.id}`;
+        }
+      }
+    },
+    onError: () => {
+      setError(isEditMode ? (t('interventions.errors.updateError') || 'Erreur lors de la mise a jour') : t('interventions.errors.createError'));
+    },
+  });
 
   // Si l'utilisateur n'a pas la permission, afficher un message ou ne rien afficher
   // ATTENTION : Cette verification doit etre APRES tous les hooks !
@@ -263,68 +329,22 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
     return null;
   }
 
-  const onSubmit = async (formData: InterventionFormValues) => {
+  const onSubmit = (formData: InterventionFormValues) => {
     if (!isEditMode && (!formData.propertyId || !formData.requestorId)) {
       setError(t('interventions.errors.selectPropertyRequestor'));
       return;
     }
 
-    if (setLoading) {
-      setLoading(true);
-    } else {
-      setSaving(true);
-    }
+    if (setLoading) setLoading(true);
     setError(null);
-
-    try {
-      if (isEditMode && interventionId) {
-        // ── Edit mode: update the existing intervention ──
-        await interventionsApi.update(interventionId, formData);
-
-        if (onSuccess) {
-          onSuccess();
-        } else {
-          navigate(`/interventions/${interventionId}`);
-        }
-      } else {
-        // ── Create mode: create a new intervention ──
-        const savedIntervention = await interventionsApi.create(formData);
-
-        // Si un cout estime est defini ET que ce n'est pas un HOST, creer une session de paiement
-        // Les HOST ne paient pas directement, ils attendent la validation du manager
-        if (!isHost() && formData.estimatedCost && formData.estimatedCost > 0) {
-          try {
-            const paymentData = await apiClient.post<{ url: string }>('/payments/create-session', {
-              interventionId: savedIntervention.id,
-              amount: formData.estimatedCost
-            });
-
-            // Rediriger vers Stripe Checkout
-            window.location.href = paymentData.url;
-            return; // Ne pas continuer, la redirection va se faire
-          } catch (paymentErr: any) {
-            setError(paymentErr.message || 'Erreur lors de la creation de la session de paiement');
-            // L'intervention a ete creee mais le paiement a echoue
-          }
-        }
-
-        // Si pas de paiement requis ou paiement echoue, continuer normalement
-        if (onSuccess) {
-          onSuccess();
-        } else {
-          window.location.href = `/interventions/${savedIntervention.id}`;
-        }
-      }
-    } catch (err) {
-      setError(isEditMode ? (t('interventions.errors.updateError') || 'Erreur lors de la mise a jour') : t('interventions.errors.createError'));
-    } finally {
-      if (setLoading) {
-        setLoading(false);
-      } else {
-        setSaving(false);
-      }
-    }
+    submitMutation.mutate(formData, {
+      onSettled: () => {
+        if (setLoading) setLoading(false);
+      },
+    });
   };
+
+  const saving = submitMutation.isPending;
 
   // Verifier les droits d'acces
   if (isLoading) {

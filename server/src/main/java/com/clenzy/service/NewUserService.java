@@ -81,16 +81,20 @@ public class NewUserService {
         try {
             // 1. Créer l'utilisateur dans Keycloak
             String externalId = keycloakService.createUser(createUserDto);
-            
-            // 2. Créer l'utilisateur dans la base métier
+
+            // 2. Créer l'utilisateur dans la base métier avec TOUS les champs obligatoires
             User businessUser = new User();
             businessUser.setKeycloakId(externalId);
+            businessUser.setEmail(createUserDto.getEmail());
+            businessUser.setFirstName(createUserDto.getFirstName());
+            businessUser.setLastName(createUserDto.getLastName());
+            businessUser.setPassword(createUserDto.getPassword());
             businessUser.setRole(UserRole.valueOf(createUserDto.getRole()));
             businessUser.setStatus(UserStatus.ACTIVE);
-            
+
             // Sauvegarder l'utilisateur métier
             businessUser = userRepository.save(businessUser);
-            
+
             // 3. Retourner le profil complet
             return getUserProfile(externalId);
         } catch (Exception e) {

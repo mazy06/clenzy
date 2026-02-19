@@ -16,16 +16,22 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.keycloak.admin.client.CreatedResponseUtil;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.core.Response;
 import java.time.LocalDateTime;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Service
 public class KeycloakService {
+
+    private static final Logger logger = LoggerFactory.getLogger(KeycloakService.class);
 
     @Autowired(required = false)
     private Keycloak keycloak;
@@ -34,16 +40,42 @@ public class KeycloakService {
     private String realm;
 
     /**
+     * Exécuter une opération Keycloak avec retry automatique en cas de 401 (token expiré).
+     * Lors du retry, on force le renouvellement du token via keycloak.tokenManager().grantToken().
+     */
+    private <T> T withTokenRetry(Supplier<T> operation, String operationName) {
+        try {
+            return operation.get();
+        } catch (NotAuthorizedException e) {
+            logger.warn("⚠️ Token Keycloak expiré pour '{}', renouvellement en cours...", operationName);
+            try {
+                // Forcer le renouvellement du token admin
+                keycloak.tokenManager().grantToken();
+                logger.info("✅ Token Keycloak renouvelé, retry de '{}'", operationName);
+                return operation.get();
+            } catch (Exception retryEx) {
+                logger.error("❌ Échec du retry pour '{}': {}", operationName, retryEx.getMessage());
+                throw retryEx;
+            }
+        }
+    }
+
+    private void withTokenRetryVoid(Runnable operation, String operationName) {
+        withTokenRetry(() -> { operation.run(); return null; }, operationName);
+    }
+
+    /**
      * Récupérer un utilisateur depuis Keycloak
      */
     public KeycloakUserDto getUser(String externalId) {
         try {
-            UserRepresentation user = keycloak.realm(realm)
-                .users()
-                .get(externalId)
-                .toRepresentation();
-
-            return mapToDto(user);
+            return withTokenRetry(() -> {
+                UserRepresentation user = keycloak.realm(realm)
+                    .users()
+                    .get(externalId)
+                    .toRepresentation();
+                return mapToDto(user);
+            }, "getUser");
         } catch (Exception e) {
             throw new UserNotFoundException("Utilisateur non trouvé dans Keycloak: " + externalId);
         }
@@ -54,12 +86,13 @@ public class KeycloakService {
      */
     public List<KeycloakUserDto> getAllUsers() {
         try {
-            UsersResource usersResource = keycloak.realm(realm).users();
-            List<UserRepresentation> users = usersResource.list();
-            
-            return users.stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
+            return withTokenRetry(() -> {
+                UsersResource usersResource = keycloak.realm(realm).users();
+                List<UserRepresentation> users = usersResource.list();
+                return users.stream()
+                    .map(this::mapToDto)
+                    .collect(Collectors.toList());
+            }, "getAllUsers");
         } catch (Exception e) {
             throw new KeycloakOperationException("Erreur lors de la récupération des utilisateurs: " + e.getMessage());
         }
@@ -70,43 +103,56 @@ public class KeycloakService {
      */
     public String createUser(CreateUserDto createUserDto) {
         try {
-            UserRepresentation user = new UserRepresentation();
-            user.setUsername(createUserDto.getEmail());
-            user.setEmail(createUserDto.getEmail());
-            user.setFirstName(createUserDto.getFirstName());
-            user.setLastName(createUserDto.getLastName());
-            user.setEnabled(true);
-            user.setEmailVerified(false);
+            // Étape 1 : Créer l'utilisateur (avec retry token)
+            String userId = withTokenRetry(() -> {
+                UserRepresentation user = new UserRepresentation();
+                user.setUsername(createUserDto.getEmail());
+                user.setEmail(createUserDto.getEmail());
+                user.setFirstName(createUserDto.getFirstName());
+                user.setLastName(createUserDto.getLastName());
+                user.setEnabled(true);
+                user.setEmailVerified(false);
 
-            // Créer l'utilisateur
-            Response response = keycloak.realm(realm)
-                .users()
-                .create(user);
+                Response response = keycloak.realm(realm)
+                    .users()
+                    .create(user);
 
-            if (response.getStatus() != 201) {
-                throw new KeycloakOperationException("Erreur lors de la création de l'utilisateur: " + response.getStatus());
-            }
+                if (response.getStatus() != 201) {
+                    String body = response.readEntity(String.class);
+                    logger.error("❌ Keycloak user creation failed: status={}, body={}", response.getStatus(), body);
+                    throw new KeycloakOperationException(
+                        "Erreur lors de la création de l'utilisateur: HTTP " + response.getStatus() + " - " + body
+                    );
+                }
 
-            String userId = CreatedResponseUtil.getCreatedId(response);
+                return CreatedResponseUtil.getCreatedId(response);
+            }, "createUser");
 
-            // Définir le mot de passe
-            CredentialRepresentation credential = new CredentialRepresentation();
-            credential.setType(CredentialRepresentation.PASSWORD);
-            credential.setValue(createUserDto.getPassword());
-            credential.setTemporary(false);
+            logger.info("✅ Utilisateur créé dans Keycloak: {}", userId);
 
-            keycloak.realm(realm)
-                .users()
-                .get(userId)
-                .resetPassword(credential);
+            // Étape 2 : Définir le mot de passe
+            withTokenRetryVoid(() -> {
+                CredentialRepresentation credential = new CredentialRepresentation();
+                credential.setType(CredentialRepresentation.PASSWORD);
+                credential.setValue(createUserDto.getPassword());
+                credential.setTemporary(false);
 
-            // Assigner le rôle par défaut
+                keycloak.realm(realm)
+                    .users()
+                    .get(userId)
+                    .resetPassword(credential);
+            }, "setPassword");
+
+            // Étape 3 : Assigner le rôle par défaut
             if (createUserDto.getRole() != null) {
                 assignRoleToUser(userId, createUserDto.getRole());
             }
 
             return userId;
+        } catch (KeycloakOperationException e) {
+            throw e;
         } catch (Exception e) {
+            logger.error("❌ Erreur inattendue lors de la création de l'utilisateur: {}", e.getMessage(), e);
             throw new KeycloakOperationException("Erreur lors de la création de l'utilisateur: " + e.getMessage());
         }
     }
@@ -116,22 +162,23 @@ public class KeycloakService {
      */
     public void updateUser(String externalId, UpdateUserDto updateUserDto) {
         try {
-            UserResource userResource = keycloak.realm(realm).users().get(externalId);
-            UserRepresentation user = userResource.toRepresentation();
+            withTokenRetryVoid(() -> {
+                UserResource userResource = keycloak.realm(realm).users().get(externalId);
+                UserRepresentation user = userResource.toRepresentation();
 
-            // Mettre à jour les champs modifiés
-            if (updateUserDto.getFirstName() != null) {
-                user.setFirstName(updateUserDto.getFirstName());
-            }
-            if (updateUserDto.getLastName() != null) {
-                user.setLastName(updateUserDto.getLastName());
-            }
-            if (updateUserDto.getEmail() != null) {
-                user.setEmail(updateUserDto.getEmail());
-                user.setUsername(updateUserDto.getEmail());
-            }
+                if (updateUserDto.getFirstName() != null) {
+                    user.setFirstName(updateUserDto.getFirstName());
+                }
+                if (updateUserDto.getLastName() != null) {
+                    user.setLastName(updateUserDto.getLastName());
+                }
+                if (updateUserDto.getEmail() != null) {
+                    user.setEmail(updateUserDto.getEmail());
+                    user.setUsername(updateUserDto.getEmail());
+                }
 
-            userResource.update(user);
+                userResource.update(user);
+            }, "updateUser");
 
             // Mettre à jour le rôle si nécessaire
             if (updateUserDto.getRole() != null) {
@@ -147,9 +194,11 @@ public class KeycloakService {
      */
     public void deleteUser(String externalId) {
         try {
-            keycloak.realm(realm)
-                .users()
-                .delete(externalId);
+            withTokenRetryVoid(() -> {
+                keycloak.realm(realm)
+                    .users()
+                    .delete(externalId);
+            }, "deleteUser");
         } catch (Exception e) {
             throw new KeycloakOperationException("Erreur lors de la suppression de l'utilisateur: " + e.getMessage());
         }
@@ -160,15 +209,17 @@ public class KeycloakService {
      */
     public void resetPassword(String externalId, String newPassword) {
         try {
-            CredentialRepresentation credential = new CredentialRepresentation();
-            credential.setType(CredentialRepresentation.PASSWORD);
-            credential.setValue(newPassword);
-            credential.setTemporary(false);
+            withTokenRetryVoid(() -> {
+                CredentialRepresentation credential = new CredentialRepresentation();
+                credential.setType(CredentialRepresentation.PASSWORD);
+                credential.setValue(newPassword);
+                credential.setTemporary(false);
 
-            keycloak.realm(realm)
-                .users()
-                .get(externalId)
-                .resetPassword(credential);
+                keycloak.realm(realm)
+                    .users()
+                    .get(externalId)
+                    .resetPassword(credential);
+            }, "resetPassword");
         } catch (Exception e) {
             throw new KeycloakOperationException("Erreur lors de la réinitialisation du mot de passe: " + e.getMessage());
         }
@@ -179,19 +230,19 @@ public class KeycloakService {
      */
     public void assignRoleToUser(String externalId, String roleName) {
         try {
-            // Récupérer le rôle
-            RoleRepresentation role = keycloak.realm(realm)
-                .roles()
-                .get(roleName)
-                .toRepresentation();
+            withTokenRetryVoid(() -> {
+                RoleRepresentation role = keycloak.realm(realm)
+                    .roles()
+                    .get(roleName)
+                    .toRepresentation();
 
-            // Assigner le rôle à l'utilisateur
-            keycloak.realm(realm)
-                .users()
-                .get(externalId)
-                .roles()
-                .realmLevel()
-                .add(List.of(role));
+                keycloak.realm(realm)
+                    .users()
+                    .get(externalId)
+                    .roles()
+                    .realmLevel()
+                    .add(List.of(role));
+            }, "assignRoleToUser");
         } catch (Exception e) {
             throw new KeycloakOperationException("Erreur lors de l'assignation du rôle: " + e.getMessage());
         }
@@ -202,25 +253,24 @@ public class KeycloakService {
      */
     public void updateUserRole(String externalId, String newRole) {
         try {
-            // Récupérer tous les rôles actuels
-            List<RoleRepresentation> currentRoles = keycloak.realm(realm)
-                .users()
-                .get(externalId)
-                .roles()
-                .realmLevel()
-                .listAll();
-
-            // Supprimer tous les rôles actuels
-            if (!currentRoles.isEmpty()) {
-                keycloak.realm(realm)
+            withTokenRetryVoid(() -> {
+                List<RoleRepresentation> currentRoles = keycloak.realm(realm)
                     .users()
                     .get(externalId)
                     .roles()
                     .realmLevel()
-                    .remove(currentRoles);
-            }
+                    .listAll();
 
-            // Assigner le nouveau rôle
+                if (!currentRoles.isEmpty()) {
+                    keycloak.realm(realm)
+                        .users()
+                        .get(externalId)
+                        .roles()
+                        .realmLevel()
+                        .remove(currentRoles);
+                }
+            }, "removeOldRoles");
+
             assignRoleToUser(externalId, newRole);
         } catch (Exception e) {
             throw new KeycloakOperationException("Erreur lors de la mise à jour du rôle: " + e.getMessage());
@@ -232,11 +282,13 @@ public class KeycloakService {
      */
     public boolean userExists(String externalId) {
         try {
-            keycloak.realm(realm)
-                .users()
-                .get(externalId)
-                .toRepresentation();
-            return true;
+            return withTokenRetry(() -> {
+                keycloak.realm(realm)
+                    .users()
+                    .get(externalId)
+                    .toRepresentation();
+                return true;
+            }, "userExists");
         } catch (Exception e) {
             return false;
         }

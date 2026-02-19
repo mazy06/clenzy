@@ -28,6 +28,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -45,15 +46,17 @@ public class ServiceRequestService {
     private final InterventionRepository interventionRepository;
     private final TeamRepository teamRepository;
     private final NotificationService notificationService;
+    private final PropertyTeamService propertyTeamService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository, TeamRepository teamRepository, NotificationService notificationService, KafkaTemplate<String, Object> kafkaTemplate) {
+    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository, TeamRepository teamRepository, NotificationService notificationService, PropertyTeamService propertyTeamService, KafkaTemplate<String, Object> kafkaTemplate) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
         this.interventionRepository = interventionRepository;
         this.teamRepository = teamRepository;
         this.notificationService = notificationService;
+        this.propertyTeamService = propertyTeamService;
         this.kafkaTemplate = kafkaTemplate;
     }
 
@@ -232,7 +235,7 @@ public class ServiceRequestService {
      * Valide une demande de service et crée automatiquement une intervention
      * Seuls les managers et admins peuvent valider les demandes
      */
-    public InterventionDto validateAndCreateIntervention(Long serviceRequestId, Long teamId, Long userId, Jwt jwt) {
+    public InterventionDto validateAndCreateIntervention(Long serviceRequestId, Long teamId, Long userId, boolean autoAssign, Jwt jwt) {
         try {
             System.out.println("🔍 DEBUG - Début de validateAndCreateIntervention pour l'ID: " + serviceRequestId);
             
@@ -299,6 +302,23 @@ public class ServiceRequestService {
         intervention.setIsUrgent(serviceRequest.isUrgent());
         intervention.setStartTime(serviceRequest.getDesiredDate());
         intervention.setRequiresFollowUp(false);
+
+        // Auto-assignation si aucune equipe/user fourni et toggle active
+        if (teamId == null && userId == null && autoAssign) {
+            String svcType = serviceRequest.getServiceType() != null ? serviceRequest.getServiceType().name() : null;
+            Optional<Long> availableTeamId = propertyTeamService.findAvailableTeamForProperty(
+                serviceRequest.getProperty().getId(),
+                serviceRequest.getDesiredDate(),
+                serviceRequest.getEstimatedDurationHours(),
+                svcType
+            );
+            if (availableTeamId.isPresent()) {
+                teamId = availableTeamId.get();
+                System.out.println("Auto-assignation: equipe " + teamId + " pour propriete " + serviceRequest.getProperty().getId());
+            } else {
+                System.out.println("Auto-assignation: aucune equipe disponible pour propriete " + serviceRequest.getProperty().getId());
+            }
+        }
 
         // Assigner l'équipe ou l'utilisateur si fourni
         if (teamId != null) {

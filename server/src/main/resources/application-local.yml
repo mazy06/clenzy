@@ -1,0 +1,49 @@
+# ===========================================
+# Profil LOCAL — Backend lancé hors Docker
+# ===========================================
+# Usage: --spring.profiles.active=local
+#        ou SPRING_PROFILES_ACTIVE=local
+#
+# Ce profil override les hostnames Docker (clenzy-keycloak, postgres, etc.)
+# par localhost avec les ports exposés dans docker-compose.dev.yml
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/clenzy_dev
+    username: clenzy
+    password: C7mN2xQ9vL4pR8sT1kW6
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8086/realms/clenzy
+          jwk-set-uri: http://localhost:8086/realms/clenzy/protocol/openid-connect/certs
+  redis:
+    host: localhost
+    port: 6379
+  kafka:
+    bootstrap-servers: localhost:9092
+  mail:
+    host: localhost
+    port: 1025
+
+# Keycloak Admin Client — pointe vers localhost:8086 (port Docker exposé)
+keycloak:
+  auth-server-url: http://localhost:8086
+  admin:
+    username: admin
+    password: admin
+
+# LibreOffice (Gotenberg)
+clenzy:
+  libreoffice:
+    url: http://localhost:8083
+
+server:
+  port: 8084
+
+logging:
+  level:
+    org.hibernate.SQL: warn
+    org.springframework.web: info
+    com.clenzy: debug

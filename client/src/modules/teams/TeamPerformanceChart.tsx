@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Card,
@@ -13,9 +13,12 @@ import {
   Speed,
 } from '@mui/icons-material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
 import { interventionsApi } from '../../services/api';
 import type { Intervention } from '../../services/api';
+import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { teamsKeys } from './useTeamsList';
 
 interface TeamPerformanceChartProps {
   teamId: number;
@@ -24,28 +27,22 @@ interface TeamPerformanceChartProps {
 
 const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, teamName }) => {
   const { t } = useTranslation();
-  const [interventions, setInterventions] = useState<Intervention[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadInterventions = async () => {
-      setLoading(true);
-      try {
-        const data = await interventionsApi.getAll();
-        const list = Array.isArray(data) ? data : (data as any).content || [];
-        const teamInterventions = list.filter(
-          (i: Intervention) => i.assignedToType === 'team' && i.assignedToName === teamName
-        );
-        setInterventions(teamInterventions);
-      } catch {
-        setInterventions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // ─── Team interventions query (shared key with workload for caching) ────
+  const interventionsQuery = useQuery({
+    queryKey: teamsKeys.workload(teamName),
+    queryFn: async () => {
+      const data = await interventionsApi.getAll();
+      const list = extractApiList<Intervention>(data);
+      return list.filter(
+        (i) => i.assignedToType === 'team' && i.assignedToName === teamName
+      );
+    },
+    staleTime: 30_000,
+  });
 
-    loadInterventions();
-  }, [teamId, teamName]);
+  const interventions = interventionsQuery.data ?? [];
+  const loading = interventionsQuery.isLoading;
 
   if (loading) {
     return (
@@ -67,7 +64,6 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
     months.push({ key: monthKey, label, month: d.getMonth(), year: d.getFullYear() });
   }
 
-  // Group completed interventions by month
   const completedByMonth: Record<string, number> = {};
   months.forEach((m) => { completedByMonth[m.key] = 0; });
 
@@ -86,7 +82,6 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
     completed: completedByMonth[m.key] || 0,
   }));
 
-  // Summary stats
   const totalCompleted = completedInterventions.length;
   const totalInterventions = interventions.length;
   const monthsWithData = chartData.filter((d) => d.completed > 0).length;
@@ -117,25 +112,14 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
   return (
     <Card sx={{ height: '100%' }}>
       <CardContent sx={{ p: 3 }}>
-        {/* Title */}
         <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600, mb: 2 }}>
           {t('teams.performance.title')}
         </Typography>
 
-        {/* Summary stats */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {summaryStats.map((stat, index) => (
             <Grid item xs={4} key={index}>
-              <Box
-                sx={{
-                  textAlign: 'center',
-                  p: 1.5,
-                  borderRadius: 1,
-                  bgcolor: 'grey.50',
-                  border: '1px solid',
-                  borderColor: 'grey.200',
-                }}
-              >
+              <Box sx={{ textAlign: 'center', p: 1.5, borderRadius: 1, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
                 {stat.icon}
                 <Typography variant="h5" fontWeight={700} sx={{ color: stat.color, mt: 0.5 }}>
                   {stat.value}
@@ -148,12 +132,10 @@ const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ teamId, tea
           ))}
         </Grid>
 
-        {/* Monthly trend label */}
         <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
           {t('teams.performance.monthlyTrend')}
         </Typography>
 
-        {/* Line chart */}
         <Box sx={{ height: 200 }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>

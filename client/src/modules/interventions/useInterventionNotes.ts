@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { getAccessToken } from '../../services/storageService';
 import { interventionsApi } from '../../services/api';
 import { buildApiUrl } from '../../config/api';
@@ -53,6 +54,18 @@ export function useInterventionNotes({
   }, [initialLoadData]);
 
   // ------------------------------------------------------------------
+  // Mutation
+  // ------------------------------------------------------------------
+
+  const updateNotesMutation = useMutation({
+    mutationFn: ({ interventionId, notes }: { interventionId: number; notes: string }) =>
+      interventionsApi.updateNotes(interventionId, notes) as unknown as Promise<InterventionDetailsData>,
+    onSuccess: (updated) => {
+      setIntervention(updated);
+    },
+  });
+
+  // ------------------------------------------------------------------
   // Internal save helper
   // ------------------------------------------------------------------
 
@@ -67,9 +80,14 @@ export function useInterventionNotes({
       try {
         const notesJson = JSON.stringify(notesToSave);
         if (notesJson === lastSavedNotesRef.current) return;
-        const updated = await interventionsApi.updateNotes(Number(id), notesJson) as unknown as InterventionDetailsData;
-        setIntervention(updated);
-        lastSavedNotesRef.current = notesJson;
+        updateNotesMutation.mutate(
+          { interventionId: Number(id), notes: notesJson },
+          {
+            onSuccess: () => {
+              lastSavedNotesRef.current = JSON.stringify(notesToSave);
+            },
+          },
+        );
       } catch {
         // silent
       }
@@ -139,7 +157,7 @@ export function useInterventionNotes({
       setCurrentStepForNotes(null);
       setError(null);
     } catch {
-      setError('Erreur lors de la mise \u00e0 jour des notes');
+      setError('Erreur lors de la mise à jour des notes');
     } finally {
       setUpdatingNotes(false);
     }

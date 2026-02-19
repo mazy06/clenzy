@@ -50,8 +50,8 @@ export const serviceRequestsApi = {
   delete(id: number) {
     return apiClient.delete(`/service-requests/${id}`);
   },
-  validate(id: number) {
-    return apiClient.post<ServiceRequest>(`/service-requests/${id}/validate`);
+  validate(id: number, options?: { teamId?: number; userId?: number; autoAssign?: boolean }) {
+    return apiClient.post<ServiceRequest>(`/service-requests/${id}/validate`, options ?? null);
   },
   acceptDevis(id: number) {
     return apiClient.post<ServiceRequest>(`/service-requests/${id}/accept-devis`);

@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import {
   Box,
   Typography,
-  Grid,
   Card,
   CardContent,
 } from '@mui/material';
@@ -19,25 +18,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useDashboardOverview, formatGrowth } from '../../hooks/useDashboardOverview';
 import { useTranslation } from '../../hooks/useTranslation';
-import UpcomingInterventions from './UpcomingInterventions';
-import AlertsWidget from './AlertsWidget';
-import PendingPaymentsWidget from './PendingPaymentsWidget';
-import ServiceRequestsWidget from './ServiceRequestsWidget';
 import DashboardStatsCards from './DashboardStatsCards';
-import DashboardQuickActions from './DashboardQuickActions';
 import DashboardCharts from './DashboardCharts';
-import DashboardActivityFeed from './DashboardActivityFeed';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
 import type { StatItem } from './DashboardStatsCards';
 import type { DashboardPeriod } from './DashboardDateFilter';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
-interface DashboardOverviewContentProps {
+interface DashboardAnalyticsContentProps {
   period?: DashboardPeriod;
 }
 
-const DashboardOverviewContent: React.FC<DashboardOverviewContentProps> = React.memo(({ period = 'month' }) => {
+const DashboardAnalyticsContent: React.FC<DashboardAnalyticsContentProps> = React.memo(({ period = 'month' }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -60,15 +53,10 @@ const DashboardOverviewContent: React.FC<DashboardOverviewContentProps> = React.
     return 'USER';
   })();
 
-  // ─── React Query hook (replaces DashboardDataProvider context) ───────────
+  // ─── React Query hook ─────────────────────────────────────────────────────
   const {
     stats,
-    activities,
     charts,
-    upcomingInterventions,
-    pendingPayments,
-    serviceRequests,
-    alerts,
     loading,
     error,
   } = useDashboardOverview({
@@ -86,8 +74,6 @@ const DashboardOverviewContent: React.FC<DashboardOverviewContentProps> = React.
   const canViewServiceRequests = user?.permissions?.includes('service-requests:view') || false;
   const canViewInterventions = user?.permissions?.includes('interventions:view') || false;
   const canViewTeams = user?.permissions?.includes('teams:view') || false;
-  const canViewUsers = user?.permissions?.includes('users:manage') || false;
-  const canViewSettings = user?.permissions?.includes('settings:view') || false;
   const canViewReports = user?.permissions?.includes('reports:view') || false;
 
   const canViewCharts = isAdmin || isManager || isSupervisor;
@@ -224,13 +210,7 @@ const DashboardOverviewContent: React.FC<DashboardOverviewContentProps> = React.
     canViewServiceRequests ||
     canViewInterventions ||
     canViewTeams ||
-    canViewUsers ||
-    canViewSettings ||
     canViewReports;
-
-  const hasOperationsContent = canViewInterventions || canViewServiceRequests;
-  const hasActivityContent =
-    canViewProperties || canViewServiceRequests || canViewInterventions || canViewTeams;
 
   return (
     <Box
@@ -244,119 +224,28 @@ const DashboardOverviewContent: React.FC<DashboardOverviewContentProps> = React.
         overflow: 'hidden',
       }}
     >
-      {/* ── Row 1 : Stats KPI (auto height) ──────────────────────── */}
-      <Box sx={{ flexShrink: 0 }}>
-        <DashboardStatsCards
-          stats={dynamicStats}
-          loading={loading}
-          error={error}
-          navigate={navigate}
-        />
-      </Box>
+      {hasAnyPermission ? (
+        <>
+          {/* ── Row 1 : Stats KPI (auto height) ──────────────────────── */}
+          <Box sx={{ flexShrink: 0 }}>
+            <DashboardStatsCards
+              stats={dynamicStats}
+              loading={loading}
+              error={error}
+              navigate={navigate}
+            />
+          </Box>
 
-      {/* ── Row 2 : Charts (fixed min height so they are visible) ── */}
-      {canViewCharts && (
-        <Box sx={{ flex: '0 0 auto', minHeight: 200, height: '30%', maxHeight: 300, mt: 0.5 }}>
-          <DashboardErrorBoundary widgetName="Graphiques">
-            <DashboardCharts charts={charts} loading={loading} />
-          </DashboardErrorBoundary>
-        </Box>
-      )}
-
-      {/* ── Row 3 : Widgets 3 columns (remaining space) ──────────── */}
-      {(hasActivityContent || hasOperationsContent) && (
-        <Box sx={{ flex: 1, minHeight: 0, mt: 0.5 }}>
-          <Grid container spacing={1} sx={{ height: '100%' }}>
-            {/* ─ Left column: Activity + Payments ─────────────────── */}
-            <Grid item xs={12} md={5} sx={{ height: '100%' }}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, height: '100%' }}>
-                {hasActivityContent && (
-                  <Box sx={{ flex: 1, minHeight: 0 }}>
-                    <DashboardErrorBoundary widgetName="Activites">
-                      <DashboardActivityFeed
-                        activities={activities}
-                        loading={loading}
-                        navigate={navigate}
-                        t={t}
-                      />
-                    </DashboardErrorBoundary>
-                  </Box>
-                )}
-                {canViewInterventions && (
-                  <Box sx={{ flex: 1, minHeight: 0 }}>
-                    <DashboardErrorBoundary widgetName="Paiements">
-                      <PendingPaymentsWidget
-                        pendingPayments={pendingPayments}
-                        loading={loading}
-                      />
-                    </DashboardErrorBoundary>
-                  </Box>
-                )}
-              </Box>
-            </Grid>
-
-            {/* ─ Center column: Operations ─────────────────────────── */}
-            <Grid item xs={12} md={4} sx={{ height: '100%' }}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, height: '100%' }}>
-                {canViewInterventions && (
-                  <Box sx={{ flex: 1, minHeight: 0 }}>
-                    <DashboardErrorBoundary widgetName="Interventions">
-                      <UpcomingInterventions
-                        upcomingInterventions={upcomingInterventions}
-                        loading={loading}
-                      />
-                    </DashboardErrorBoundary>
-                  </Box>
-                )}
-                {canViewServiceRequests && (
-                  <Box sx={{ flex: 1, minHeight: 0 }}>
-                    <DashboardErrorBoundary widgetName="Demandes">
-                      <ServiceRequestsWidget
-                        serviceRequests={serviceRequests}
-                        loading={loading}
-                      />
-                    </DashboardErrorBoundary>
-                  </Box>
-                )}
-              </Box>
-            </Grid>
-
-            {/* ─ Right column: Quick actions + Alerts ──────────────── */}
-            <Grid item xs={12} md={3} sx={{ height: '100%' }}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, height: '100%' }}>
-                <Box sx={{ flexShrink: 0 }}>
-                  <DashboardQuickActions
-                    canViewProperties={canViewProperties}
-                    canViewServiceRequests={canViewServiceRequests}
-                    canViewInterventions={canViewInterventions}
-                    canViewTeams={canViewTeams}
-                    canViewUsers={canViewUsers}
-                    canViewSettings={canViewSettings}
-                    isAdmin={isAdmin}
-                    isManager={isManager}
-                    isHost={isHost}
-                    navigate={navigate}
-                    t={t}
-                  />
-                </Box>
-                {canViewInterventions && (
-                  <Box sx={{ flex: 1, minHeight: 0 }}>
-                    <DashboardErrorBoundary widgetName="Alertes">
-                      <AlertsWidget
-                        alerts={alerts}
-                        loading={loading}
-                      />
-                    </DashboardErrorBoundary>
-                  </Box>
-                )}
-              </Box>
-            </Grid>
-          </Grid>
-        </Box>
-      )}
-
-      {/* ── No permissions ────────────────────────────────────────── */}
-      {!hasAnyPermission && (
+          {/* ── Row 2 : Charts ──────────────────────────────────────────── */}
+          {canViewCharts && (
+            <Box sx={{ flex: 1, minHeight: 200, mt: 0.5 }}>
+              <DashboardErrorBoundary widgetName="Graphiques">
+                <DashboardCharts charts={charts} loading={loading} />
+              </DashboardErrorBoundary>
+            </Box>
+          )}
+        </>
+      ) : (
         <Card>
           <CardContent sx={{ p: 2, textAlign: 'center' }}>
             <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
@@ -372,6 +261,6 @@ const DashboardOverviewContent: React.FC<DashboardOverviewContentProps> = React.
   );
 });
 
-DashboardOverviewContent.displayName = 'DashboardOverviewContent';
+DashboardAnalyticsContent.displayName = 'DashboardAnalyticsContent';
 
-export default DashboardOverviewContent;
+export default DashboardAnalyticsContent;

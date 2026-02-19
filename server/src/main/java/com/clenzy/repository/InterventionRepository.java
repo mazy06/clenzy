@@ -233,6 +233,19 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
             @Param("toDate") LocalDateTime toDate);
 
     /**
+     * Compter les interventions actives d'une equipe sur un creneau donne.
+     * Utilise pour la detection de conflits lors de l'auto-assignation.
+     */
+    @Query("SELECT COUNT(i) FROM Intervention i WHERE i.teamId = :teamId " +
+           "AND i.status IN :activeStatuses " +
+           "AND i.scheduledDate >= :rangeStart AND i.scheduledDate < :rangeEnd")
+    long countActiveByTeamIdAndDateRange(
+            @Param("teamId") Long teamId,
+            @Param("activeStatuses") List<InterventionStatus> activeStatuses,
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd);
+
+    /**
      * Méthode de compatibilité pour les services existants
      */
     @Query("SELECT i FROM Intervention i WHERE " +

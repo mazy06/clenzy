@@ -187,6 +187,7 @@ export default function ServiceRequestsList() {
               startIcon={<Add />}
               onClick={() => navigate('/service-requests/new')}
               size="small"
+              title={t('serviceRequests.create')}
             >
               {t('serviceRequests.create')}
             </Button>

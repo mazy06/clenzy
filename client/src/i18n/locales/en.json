@@ -45,6 +45,7 @@
     "tarification": "Pricing",
     "payments": "Payments",
     "monitoring": "Monitoring",
+    "documents": "Documents",
     "myProfile": "My Profile",
     "logout": "Logout",
     "menu": "Menu",
@@ -166,7 +167,59 @@
     },
     "tabs": {
       "planning": "Planning",
-      "overview": "Overview"
+      "overview": "Overview",
+      "noise": "Noise monitoring"
+    },
+    "noise": {
+      "offersTitle": "Noise monitoring",
+      "offersSubtitle": "Enable noise monitoring to track noise levels in your properties in real-time.",
+      "subscribe": "Subscribe",
+      "backToOffers": "Back to offers",
+      "myDevices": "My sensors",
+      "addDevice": "Add a sensor",
+      "removeDevice": "Remove",
+      "removeDeviceConfirm": "Confirm removal?",
+      "deviceActive": "Active",
+      "entireProperty": "Entire property",
+      "minut": {
+        "detailTitle": "Minut - Professional noise monitoring",
+        "detailDescription": "Minut offers certified noise sensors with native Airbnb integration. The monthly subscription includes access to the dedicated mobile app, automatic guest alerts and 24/7 support.",
+        "subscribeExternal": "Subscribe on Minut",
+        "configureDevice": "Configure my sensor"
+      },
+      "clenzy": {
+        "detailTitle": "Clenzy Hardware - Proprietary solution",
+        "detailDescription": "Our Tuya OEM-based solution provides noise monitoring with no monthly subscription. The CLENZY-TUYA-NM-01 sensor integrates natively into the Clenzy platform with real-time data.",
+        "articleRef": "Article ref.",
+        "orderExternal": "Order from the store",
+        "configureDevice": "Configure my sensor"
+      },
+      "config": {
+        "title": "Sensor configuration",
+        "stepProperty": "Property",
+        "stepRoom": "Room",
+        "stepName": "Name",
+        "stepConfirm": "Confirmation",
+        "selectPropertyTitle": "Select a property",
+        "selectPropertyDesc": "Choose the property where the sensor will be installed.",
+        "roomTitle": "Room (optional)",
+        "roomDesc": "If you want to monitor a specific room, enter its name. Leave empty to monitor the entire property.",
+        "roomPlaceholder": "Room name (e.g., Living Room, Bedroom 1)",
+        "roomSkip": "Entire property",
+        "roomSuggestions": "Suggestions:",
+        "nameTitle": "Sensor name",
+        "nameDesc": "Give your sensor a name to easily identify it in the dashboard.",
+        "namePlaceholder": "E.g., Living Room Sensor",
+        "confirmTitle": "Configuration summary",
+        "confirmDeviceType": "Sensor type",
+        "confirmProperty": "Property",
+        "confirmRoom": "Room",
+        "confirmDeviceName": "Sensor name",
+        "confirm": "Confirm",
+        "back": "Back",
+        "next": "Next",
+        "cancel": "Cancel"
+      }
     },
     "planning": {
       "today": "Today",
@@ -415,7 +468,10 @@
     "cleaningEstimateTooltip": "Indicative estimate for the cleaning intervention cost. Final pricing is subject to the service provider's acceptance.",
     "cleaningDurationTooltip": "Estimated cleaning intervention duration based on property characteristics. Actual duration may vary.",
     "defaultTimesTooltip": "Default schedule — Check-out: {{checkOut}} / Check-in: {{checkIn}}",
-    "activeFeatures": "Active options"
+    "activeFeatures": "Active options",
+    "department": "Department",
+    "arrondissement": "District",
+    "addressAutocomplete": "Search for an address..."
   },
   "serviceRequests": {
     "title": "Service Requests",
@@ -423,6 +479,7 @@
     "create": "New request",
     "createSubtitle": "Create a new service request in the system",
     "createFirst": "Create your first request",
+    "selectPropertyFirst": "Select a property to complete your request",
     "edit": "Edit service request",
     "details": "Request details",
     "search": "Search for a request...",
@@ -516,6 +573,11 @@
     "validateAndCreateInterventionDescription": "An intervention will be automatically created. You can optionally assign a team or user.",
     "validateSuccess": "The request \"{{title}}\" has been successfully validated and an intervention has been created.",
     "validateError": "Error during validation",
+    "autoAssignedTeam": "Team automatically assigned to the intervention.",
+    "autoAssignNoTeamAvailable": "Intervention created without a team: no team available for this property on this date.",
+    "autoAssignTeamBusy": "The default team is busy during this time slot.",
+    "autoAssignGeoMismatch": "No compatible team in this geographic area.",
+    "autoAssignTypeMismatch": "No compatible team for this intervention type.",
     "assignmentType": "Assignment type",
     "changeStatus": "Change status",
     "changeStatusMessage": "Change the status of request \"{{title}}\"",
@@ -558,7 +620,22 @@
     "invalidDate": "Invalid date",
     "notFound": "Service request not found",
     "team": "Team",
-    "approvedDateShort": "Approved on"
+    "approvedDateShort": "Approved on",
+    "details": {
+      "progression": "Progression",
+      "estimatedCost": "Estimated cost",
+      "actualCost": "Actual cost",
+      "viewProperty": "View property",
+      "notesInstructions": "Notes & instructions",
+      "specialInstructions": "Special instructions",
+      "accessNotes": "Access notes",
+      "cleaningNotes": "Cleaning notes",
+      "guestCheckout": "Guest checkout",
+      "guestCheckin": "Guest check-in",
+      "approvalDevis": "Approval & estimate",
+      "approvedBy": "Approved by",
+      "devisAcceptedBy": "Estimate accepted by"
+    }
   },
   "interventions": {
     "title": "Interventions",
@@ -719,6 +796,7 @@
     "createTeam": "Create team",
     "save": "Save",
     "cancel": "Cancel",
+    "backToList": "Back",
     "reset": "Reset",
     "hide": "Hide",
     "show": "Show",
@@ -774,6 +852,15 @@
       "sortByName": "Sort by name",
       "sortByRole": "Sort by role"
     },
+    "coverageZones": "Coverage zones",
+    "addCoverageZone": "Add a zone",
+    "removeCoverageZone": "Remove zone",
+    "department": "Department",
+    "arrondissement": "District",
+    "selectDepartment": "Select a department",
+    "selectArrondissement": "Select a district",
+    "noCoverageZones": "No coverage zone defined",
+    "allArrondissements": "All districts",
     "errors": {
       "nameRequired": "Team name is required",
       "interventionTypeRequired": "Intervention type is required",
@@ -845,7 +932,12 @@
       "selectedTeams": "Selected teams",
       "selectedUsers": "Selected users",
       "member": "member",
-      "members": "members"
+      "members": "members",
+      "assignTeam": "Assign a team",
+      "assignedTeam": "Assigned team",
+      "changeTeam": "Change team",
+      "removeTeam": "Remove team",
+      "noTeamAssigned": "No team available"
     },
     "steps": {
       "selectManager": "Select the manager",
@@ -905,18 +997,41 @@
     "errors": {
       "loadError": "Error loading associations",
       "connectionError": "Connection error",
+      "authError": "Authentication error. Please log in again.",
+      "forbiddenError": "Access denied. You do not have the necessary permissions.",
       "reassignError": "Error during reassignment",
       "reassignConnectionError": "Connection error during reassignment",
       "unassignError": "Error during unassignment",
       "assignmentError": "Error during assignment",
       "assignmentSuccess": "Assignment successful!"
     },
+    "notifications": {
+      "clientReassigned": "Client has been successfully reassigned.",
+      "clientUnassigned": "Client has been unassigned from the portfolio.",
+      "teamUnassigned": "Team has been unassigned from the portfolio.",
+      "userUnassigned": "User has been unassigned from the portfolio.",
+      "propertyUnassigned": "Property has been unassigned from the portfolio.",
+      "teamAssignedToProperty": "Team successfully assigned to property.",
+      "teamRemovedFromProperty": "Team removed from property."
+    },
     "confirmations": {
       "unassignClientTitle": "Unassign client",
       "unassignClientMessage": "Are you sure you want to unassign this client from the portfolio?",
+      "unassignTeamTitle": "Unassign team",
+      "unassignTeamMessage": "Are you sure you want to unassign this team from the portfolio?",
+      "unassignUserTitle": "Unassign user",
+      "unassignUserMessage": "Are you sure you want to unassign this user from the portfolio?",
       "unassignPropertyTitle": "Unassign property",
       "unassignPropertyMessage": "Are you sure you want to unassign this property from the portfolio?",
-      "noManagerFound": "No manager found for ID"
+      "noManagerFound": "No manager found for ID",
+      "removeTeamFromPropertyTitle": "Remove team from property",
+      "removeTeamFromPropertyMessage": "Are you sure you want to remove the default team from this property?"
+    },
+    "dialogs": {
+      "notesOptional": "Notes (optional)",
+      "notesPlaceholder": "Add notes about this reassignment...",
+      "reassigning": "Reassigning...",
+      "reassign": "Reassign"
     },
     "warnings": {
       "attention": "Attention",
@@ -1256,7 +1371,47 @@
       "entretien": "Cleaning",
       "travaux": "Maintenance",
       "exterieur": "Outdoor",
-      "blanchisserie": "Laundry"
+      "blanchisserie": "Laundry",
+      "monitoring": "Monitoring"
+    },
+    "monitoring": {
+      "title": "Property Noise Monitoring",
+      "subtitle": "Configure noise sensor offers for your clients",
+      "enable": "Enable this offer",
+      "minut": {
+        "title": "Minut",
+        "badge": "Partner",
+        "description": "Professional monitoring solution with monthly subscription. Certified sensors, native Airbnb integration and automatic alerts.",
+        "pricingModel": "Monthly subscription",
+        "monthlyPrice": "Monthly price per sensor",
+        "onQuote": "On request",
+        "onQuoteHint": "Price will be defined when Minut partnership is finalized",
+        "feature1": "Native Airbnb integration",
+        "feature2": "Automatic guest alerts",
+        "feature3": "Dedicated mobile app",
+        "feature4": "24/7 support"
+      },
+      "clenzy": {
+        "title": "Clenzy Hardware",
+        "badge": "Proprietary",
+        "description": "Proprietary solution based on Tuya OEM. One-time cost with no subscription, natively integrated into the Clenzy platform.",
+        "pricingModel": "One-time cost (no subscription)",
+        "onQuote": "On request",
+        "onQuoteHint": "Price will be communicated when your solution is configured",
+        "devicePrice": "Tuya OEM Sensor",
+        "devicePriceHelp": "Hardware cost",
+        "installationPrice": "Installation",
+        "installationPriceHelp": "Installation labor",
+        "configPrice": "Configuration",
+        "configPriceHelp": "Setup and commissioning",
+        "supportPrice": "Support (optional)",
+        "supportPriceHelp": "Extended support and warranty",
+        "total": "Total per sensor",
+        "feature1": "No monthly subscription",
+        "feature2": "Native Clenzy integration",
+        "feature3": "Real-time data",
+        "feature4": "No external dependency"
+      }
     },
     "basePrices": {
       "title": "Base Package Prices",

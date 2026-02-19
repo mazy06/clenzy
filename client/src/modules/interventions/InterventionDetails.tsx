@@ -217,6 +217,7 @@ export default function InterventionDetailsPage() {
                 startIcon={<EditIcon />}
                 onClick={() => navigate(`/interventions/${id}/edit`)}
                 size="small"
+                title="Modifier"
               >
                 Modifier
               </Button>

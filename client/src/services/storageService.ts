@@ -17,6 +17,12 @@ export const STORAGE_KEYS = {
   // Planning mock mode
   PLANNING_MOCK: 'clenzy_planning_mock',
 
+  // Noise monitoring (Minut) mock mode
+  NOISE_MONITORING_MOCK: 'clenzy_noise_monitoring_mock',
+
+  // Noise devices (configured sensors)
+  NOISE_DEVICES: 'clenzy_noise_devices',
+
   // Cross-tab sync
   TOKEN_UPDATE: 'clenzy_token_update',
 } as const;

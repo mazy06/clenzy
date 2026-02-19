@@ -21,25 +21,29 @@ const InterventionEdit: React.FC = () => {
         backLabel="Retour aux détails"
         showBackButton={true}
         actions={
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
               variant="outlined"
+              size="small"
               onClick={() => navigate(`/interventions/${id}`)}
               startIcon={<Cancel />}
               disabled={loading}
+              title={t('common.cancel')}
             >
               {t('common.cancel')}
             </Button>
             <Button
               variant="contained"
+              size="small"
               onClick={() => {
                 const submitButton = document.querySelector('[data-submit-intervention]') as HTMLButtonElement;
                 if (submitButton) {
                   submitButton.click();
                 }
               }}
-              startIcon={loading ? <CircularProgress size={20} /> : <Save />}
+              startIcon={loading ? <CircularProgress size={16} /> : <Save />}
               disabled={loading}
+              title={t('common.save')}
             >
               {loading ? t('common.loading') : t('common.save')}
             </Button>

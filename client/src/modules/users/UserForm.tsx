@@ -174,6 +174,7 @@ const UserForm: React.FC = () => {
               startIcon={<Cancel sx={{ fontSize: 16 }} />}
               disabled={saving}
               sx={{ mr: 1, fontSize: '0.8125rem' }}
+              title="Annuler"
             >
               Annuler
             </Button>
@@ -184,6 +185,7 @@ const UserForm: React.FC = () => {
               startIcon={saving ? <CircularProgress size={16} /> : <Save sx={{ fontSize: 16 }} />}
               disabled={saving}
               sx={{ fontSize: '0.8125rem' }}
+              title="Créer l'utilisateur"
             >
               {saving ? 'Création...' : 'Créer l\'utilisateur'}
             </Button>

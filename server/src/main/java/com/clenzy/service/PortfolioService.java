@@ -2,19 +2,25 @@ package com.clenzy.service;
 
 import com.clenzy.dto.PortfolioDto;
 import com.clenzy.dto.PortfolioClientDto;
+import com.clenzy.dto.PortfolioStatsDto;
 import com.clenzy.dto.PortfolioTeamDto;
 import com.clenzy.model.*;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.repository.PortfolioRepository;
 import com.clenzy.repository.PortfolioClientRepository;
 import com.clenzy.repository.PortfolioTeamRepository;
+import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +36,9 @@ public class PortfolioService {
     @Autowired
     private PortfolioTeamRepository portfolioTeamRepository;
     
+    @Autowired
+    private PropertyRepository propertyRepository;
+
     @Autowired
     private UserRepository userRepository;
 
@@ -242,6 +251,104 @@ public class PortfolioService {
             .collect(Collectors.toList());
     }
     
+    /**
+     * Statistiques des portefeuilles d'un manager
+     */
+    @Transactional(readOnly = true)
+    public PortfolioStatsDto getStatsByManager(Long managerId) {
+        List<Portfolio> portfolios = portfolioRepository.findByManagerId(managerId);
+
+        PortfolioStatsDto stats = new PortfolioStatsDto();
+        stats.setTotalPortfolios(portfolios.size());
+
+        int activeCount = 0;
+        int inactiveCount = 0;
+        Set<Long> uniqueClientIds = new HashSet<>();
+        Set<Long> uniquePropertyIds = new HashSet<>();
+        int totalTeamMembers = 0;
+
+        List<PortfolioStatsDto.PortfolioBreakdown> breakdowns = new ArrayList<>();
+        List<PortfolioStatsDto.RecentAssignment> allRecentAssignments = new ArrayList<>();
+
+        for (Portfolio portfolio : portfolios) {
+            // Count active / inactive
+            if (Boolean.TRUE.equals(portfolio.getIsActive())) {
+                activeCount++;
+            } else {
+                inactiveCount++;
+            }
+
+            // Clients for this portfolio
+            List<PortfolioClient> clients = portfolioClientRepository
+                    .findByPortfolioIdAndIsActiveTrue(portfolio.getId());
+            int clientCount = clients.size();
+
+            // Collect unique client IDs and their properties
+            for (PortfolioClient pc : clients) {
+                Long clientId = pc.getClient().getId();
+                uniqueClientIds.add(clientId);
+
+                // Count properties owned by this client
+                List<Property> clientProperties = propertyRepository.findByOwnerId(clientId);
+                for (Property prop : clientProperties) {
+                    uniquePropertyIds.add(prop.getId());
+                }
+
+                // Build recent assignment entry for this client
+                allRecentAssignments.add(new PortfolioStatsDto.RecentAssignment(
+                        pc.getId(),
+                        "CLIENT",
+                        pc.getClient().getFirstName() + " " + pc.getClient().getLastName(),
+                        portfolio.getName(),
+                        pc.getAssignedAt()
+                ));
+            }
+
+            // Team members for this portfolio
+            List<com.clenzy.model.PortfolioTeam> teamMembers = portfolioTeamRepository
+                    .findByPortfolioIdAndIsActiveTrue(portfolio.getId());
+            int teamMemberCount = teamMembers.size();
+            totalTeamMembers += teamMemberCount;
+
+            for (com.clenzy.model.PortfolioTeam pt : teamMembers) {
+                allRecentAssignments.add(new PortfolioStatsDto.RecentAssignment(
+                        pt.getId(),
+                        "TEAM",
+                        pt.getTeamMember().getFirstName() + " " + pt.getTeamMember().getLastName(),
+                        portfolio.getName(),
+                        pt.getAssignedAt()
+                ));
+            }
+
+            // Portfolio breakdown
+            breakdowns.add(new PortfolioStatsDto.PortfolioBreakdown(
+                    portfolio.getId(),
+                    portfolio.getName(),
+                    clientCount,
+                    teamMemberCount,
+                    Boolean.TRUE.equals(portfolio.getIsActive())
+            ));
+        }
+
+        stats.setActivePortfolios(activeCount);
+        stats.setInactivePortfolios(inactiveCount);
+        stats.setTotalClients(uniqueClientIds.size());
+        stats.setTotalProperties(uniquePropertyIds.size());
+        stats.setTotalTeamMembers(totalTeamMembers);
+        stats.setPortfolioBreakdown(breakdowns);
+
+        // Sort recent assignments by date desc and keep top 10
+        allRecentAssignments.sort(Comparator.comparing(
+                PortfolioStatsDto.RecentAssignment::getAssignedAt,
+                Comparator.nullsLast(Comparator.reverseOrder())
+        ));
+        stats.setRecentAssignments(
+                allRecentAssignments.stream().limit(10).collect(Collectors.toList())
+        );
+
+        return stats;
+    }
+
     /**
      * Conversion vers DTO
      */

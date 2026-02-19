@@ -1,5 +1,7 @@
 import { useState, useEffect, type Dispatch, type SetStateAction, type ChangeEvent } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { interventionsApi } from '../../services/api';
+import { interventionsKeys } from './useInterventionsList';
 import {
   InterventionDetailsData,
   parsePhotos
@@ -26,6 +28,8 @@ export function useInterventionPhotos({
   onBeforePhotosChange,
   onAfterPhotosChange,
 }: UseInterventionPhotosArgs) {
+  const queryClient = useQueryClient();
+
   const [photosDialogOpen, setPhotosDialogOpen] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
@@ -47,32 +51,25 @@ export function useInterventionPhotos({
   }, [initialLoadData]);
 
   // ------------------------------------------------------------------
-  // Save completed steps helper
+  // Mutations
   // ------------------------------------------------------------------
-  const saveCompletedSteps = async (steps: Set<string>) => {
-    if (!id || !intervention) return;
-    try {
-      const json = JSON.stringify(Array.from(steps));
-      const updated = await interventionsApi.updateCompletedSteps(Number(id), json) as unknown as InterventionDetailsData;
+
+  const saveStepsMutation = useMutation({
+    mutationFn: ({ interventionId, steps }: { interventionId: number; steps: string }) =>
+      interventionsApi.updateCompletedSteps(interventionId, steps) as unknown as Promise<InterventionDetailsData>,
+    onSuccess: (updated) => {
       setIntervention(updated);
-    } catch {
-      // silent
-    }
-  };
+    },
+  });
 
-  // ------------------------------------------------------------------
-  // Handlers
-  // ------------------------------------------------------------------
-
-  const handlePhotoUpload = async () => {
-    if (!id || !intervention || selectedPhotos.length === 0) return;
-
-    setUploadingPhotos(true);
-    try {
-      const updated = await interventionsApi.uploadPhotos(Number(id), selectedPhotos, photoType) as unknown as InterventionDetailsData;
+  const uploadPhotosMutation = useMutation({
+    mutationFn: ({ interventionId, photos, type }: { interventionId: number; photos: File[]; type: 'before' | 'after' }) =>
+      interventionsApi.uploadPhotos(interventionId, photos, type) as unknown as Promise<InterventionDetailsData>,
+    onSuccess: (updated, variables) => {
       setIntervention(updated);
+      queryClient.invalidateQueries({ queryKey: interventionsKeys.detail(id ?? '') });
 
-      if (photoType === 'before') {
+      if (variables.type === 'before') {
         const newBeforePhotos = updated.beforePhotosUrls
           ? parsePhotos(updated.beforePhotosUrls)
           : [];
@@ -104,11 +101,33 @@ export function useInterventionPhotos({
       setPhotosDialogOpen(false);
       setSelectedPhotos([]);
       setError(null);
-    } catch (err: any) {
+    },
+    onError: (err: any) => {
       setError(err.message || 'Erreur lors de l\'ajout des photos');
-    } finally {
-      setUploadingPhotos(false);
-    }
+    },
+  });
+
+  // ------------------------------------------------------------------
+  // Save completed steps helper
+  // ------------------------------------------------------------------
+  const saveCompletedSteps = async (steps: Set<string>) => {
+    if (!id || !intervention) return;
+    const json = JSON.stringify(Array.from(steps));
+    saveStepsMutation.mutate({ interventionId: Number(id), steps: json });
+  };
+
+  // ------------------------------------------------------------------
+  // Handlers
+  // ------------------------------------------------------------------
+
+  const handlePhotoUpload = async () => {
+    if (!id || !intervention || selectedPhotos.length === 0) return;
+
+    setUploadingPhotos(true);
+    uploadPhotosMutation.mutate(
+      { interventionId: Number(id), photos: selectedPhotos, type: photoType },
+      { onSettled: () => setUploadingPhotos(false) },
+    );
   };
 
   const handlePhotoSelect = (event: ChangeEvent<HTMLInputElement>) => {

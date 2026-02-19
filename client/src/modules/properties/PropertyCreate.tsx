@@ -60,6 +60,7 @@ const PropertyCreate: React.FC = () => {
                 startIcon={<Cancel />}
                 size="small"
                 sx={ACTION_BUTTON_SX}
+                title={t('common.cancel')}
               >
                 {t('common.cancel')}
               </Button>
@@ -72,6 +73,7 @@ const PropertyCreate: React.FC = () => {
                 startIcon={<Save />}
                 size="small"
                 sx={ACTION_BUTTON_SX}
+                title={t('properties.createProperty')}
               >
                 {t('properties.createProperty')}
               </Button>

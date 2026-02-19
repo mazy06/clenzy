@@ -2,10 +2,12 @@ package com.clenzy.service;
 
 import com.clenzy.dto.TeamDto;
 import com.clenzy.model.Team;
+import com.clenzy.model.TeamCoverageZone;
 import com.clenzy.model.TeamMember;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.repository.TeamRepository;
+import com.clenzy.repository.TeamCoverageZoneRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.ManagerTeamRepository;
 import com.clenzy.model.NotificationKey;
@@ -27,12 +29,14 @@ import java.util.stream.Collectors;
 @Transactional
 public class TeamService {
     private final TeamRepository teamRepository;
+    private final TeamCoverageZoneRepository teamCoverageZoneRepository;
     private final UserRepository userRepository;
     private final ManagerTeamRepository managerTeamRepository;
     private final NotificationService notificationService;
 
-    public TeamService(TeamRepository teamRepository, UserRepository userRepository, ManagerTeamRepository managerTeamRepository, NotificationService notificationService) {
+    public TeamService(TeamRepository teamRepository, TeamCoverageZoneRepository teamCoverageZoneRepository, UserRepository userRepository, ManagerTeamRepository managerTeamRepository, NotificationService notificationService) {
         this.teamRepository = teamRepository;
+        this.teamCoverageZoneRepository = teamCoverageZoneRepository;
         this.userRepository = userRepository;
         this.managerTeamRepository = managerTeamRepository;
         this.notificationService = notificationService;
@@ -76,6 +80,15 @@ public class TeamService {
         }
 
         Team savedTeam = teamRepository.save(team);
+
+        // Creer les zones de couverture
+        if (dto.coverageZones != null && !dto.coverageZones.isEmpty()) {
+            for (TeamDto.CoverageZoneDto zoneDto : dto.coverageZones) {
+                TeamCoverageZone zone = new TeamCoverageZone(savedTeam.getId(), zoneDto.department, zoneDto.arrondissement);
+                teamCoverageZoneRepository.save(zone);
+            }
+        }
+
         TeamDto result = convertToDto(savedTeam);
 
         try {
@@ -122,6 +135,17 @@ public class TeamService {
             // Remplacer complètement la liste des membres
             team.getMembers().clear();
             team.getMembers().addAll(newMembers);
+        }
+
+        // Gestion des zones de couverture
+        if (dto.coverageZones != null) {
+            team.getCoverageZones().clear();
+            teamCoverageZoneRepository.deleteByTeamId(id);
+            for (TeamDto.CoverageZoneDto zoneDto : dto.coverageZones) {
+                TeamCoverageZone zone = new TeamCoverageZone(id, zoneDto.department, zoneDto.arrondissement);
+                zone.setTeam(team);
+                team.getCoverageZones().add(zone);
+            }
         }
 
         Team updatedTeam = teamRepository.save(team);
@@ -291,6 +315,18 @@ public class TeamService {
         if (team.getMembers() != null) {
             dto.members = team.getMembers().stream()
                 .map(this::convertMemberToDto)
+                .collect(Collectors.toList());
+        }
+
+        if (team.getCoverageZones() != null) {
+            dto.coverageZones = team.getCoverageZones().stream()
+                .map(zone -> {
+                    TeamDto.CoverageZoneDto zoneDto = new TeamDto.CoverageZoneDto();
+                    zoneDto.id = zone.getId();
+                    zoneDto.department = zone.getDepartment();
+                    zoneDto.arrondissement = zone.getArrondissement();
+                    return zoneDto;
+                })
                 .collect(Collectors.toList());
         }
 

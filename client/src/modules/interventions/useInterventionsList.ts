@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi, teamsApi, usersApi } from '../../services/api';
 import type { Team } from '../../services/api';
@@ -12,6 +13,8 @@ import {
   getInterventionPriorityLabel,
   getInterventionTypeLabel,
 } from '../../utils/statusUtils';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface Intervention {
   id: number;
@@ -32,16 +35,35 @@ export interface Intervention {
   createdAt: string;
 }
 
+// ─── Query keys (exported for cross-module invalidation) ──────────────────────
+
+export const interventionsKeys = {
+  all: ['interventions'] as const,
+  lists: () => [...interventionsKeys.all, 'list'] as const,
+  list: (filters?: Record<string, unknown>) => [...interventionsKeys.lists(), filters] as const,
+  details: () => [...interventionsKeys.all, 'detail'] as const,
+  detail: (id: string | number) => [...interventionsKeys.details(), String(id)] as const,
+  pendingValidation: () => [...interventionsKeys.all, 'pending-validation'] as const,
+  pendingPayment: () => [...interventionsKeys.all, 'pending-payment'] as const,
+};
+
+// ─── Supporting data keys ─────────────────────────────────────────────────────
+
+const assignDataKeys = {
+  teams: ['assign-teams'] as const,
+  users: ['assign-users'] as const,
+};
+
+// ─── Hook ─────────────────────────────────────────────────────────────────────
+
 export function useInterventionsList() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { user, hasPermissionAsync, isHost, isManager, isAdmin } = useAuth();
   const { t } = useTranslation();
 
-  // ─── State ────────────────────────────────────────────────────────────────
-  const [interventions, setInterventions] = useState<Intervention[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // ─── UI state (non-server) ──────────────────────────────────────────────────
   const [selectedIntervention, setSelectedIntervention] = useState<Intervention | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -57,20 +79,15 @@ export function useInterventionsList() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [assignType, setAssignType] = useState<'user' | 'team'>('team');
   const [assignTargetId, setAssignTargetId] = useState<number | ''>('');
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
-  const [assignLoading, setAssignLoading] = useState(false);
 
-  // Permissions state
+  // ─── Permissions (useEffect — hasPermissionAsync depends on auth loading state) ─
+
   const [canViewInterventions, setCanViewInterventions] = useState(false);
   const [canCreateInterventions, setCanCreateInterventions] = useState(false);
   const [canEditInterventions, setCanEditInterventions] = useState(false);
   const [canDeleteInterventions, setCanDeleteInterventions] = useState(false);
   const [permissionsLoading, setPermissionsLoading] = useState(true);
 
-  // ─── Effects ──────────────────────────────────────────────────────────────
-
-  // Check all permissions at once
   useEffect(() => {
     const checkAllPermissions = async () => {
       const [canView, canCreate, canEdit, canDelete] = await Promise.all([
@@ -79,59 +96,86 @@ export function useInterventionsList() {
         hasPermissionAsync('interventions:edit'),
         hasPermissionAsync('interventions:delete'),
       ]);
-
       setCanViewInterventions(canView);
       setCanCreateInterventions(canCreate);
       setCanEditInterventions(canEdit);
       setCanDeleteInterventions(canDelete);
       setPermissionsLoading(false);
     };
-
     checkAllPermissions();
   }, [hasPermissionAsync]);
 
-  // Load interventions function
-  const loadInterventions = useCallback(async () => {
-    if (!canViewInterventions) {
-      setInterventions([]);
-      setError("Vous n'avez pas les permissions nécessaires pour voir les interventions.");
-      return;
-    }
+  // ─── Interventions list query ───────────────────────────────────────────────
 
-    try {
-      setLoading(true);
-      setError(null);
-
+  const interventionsQuery = useQuery({
+    queryKey: interventionsKeys.lists(),
+    queryFn: async () => {
       const data = await interventionsApi.getAll();
-      setInterventions(extractApiList(data));
-    } catch (err: unknown) {
-      setInterventions([]);
-      const apiErr = err as { status?: number; message?: string };
-      if (apiErr.status === 401) {
-        setError("Erreur d'authentification. Veuillez vous reconnecter.");
-      } else if (apiErr.status === 403) {
-        setError("Accès interdit. Vous n'avez pas les permissions nécessaires pour voir les interventions.");
-      } else if (apiErr.status !== 404) {
-        setError(apiErr.message || 'Erreur lors du chargement des interventions');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [canViewInterventions]);
+      return extractApiList<Intervention>(data);
+    },
+    enabled: canViewInterventions && location.pathname === '/interventions',
+    staleTime: 30_000,
+  });
 
-  // Auto-load interventions when permission is granted and on the right path
-  useEffect(() => {
-    if (canViewInterventions && location.pathname === '/interventions') {
-      loadInterventions();
-    }
-  }, [canViewInterventions, location.pathname, loadInterventions]);
+  const interventions = interventionsQuery.data ?? [];
+  const loading = interventionsQuery.isLoading;
+  const error = interventionsQuery.isError
+    ? ((interventionsQuery.error as { status?: number; message?: string })?.status === 401
+        ? "Erreur d'authentification. Veuillez vous reconnecter."
+        : (interventionsQuery.error as { status?: number; message?: string })?.status === 403
+          ? "Accès interdit. Vous n'avez pas les permissions nécessaires pour voir les interventions."
+          : (interventionsQuery.error as { message?: string })?.message || 'Erreur lors du chargement des interventions')
+    : (!canViewInterventions && !permissionsLoading
+        ? "Vous n'avez pas les permissions nécessaires pour voir les interventions."
+        : null);
 
-  // Reset page when filters change
-  useEffect(() => {
-    setPage(0);
-  }, [searchTerm, selectedType, selectedStatus, selectedPriority]);
+  // ─── Assign dialog data queries ─────────────────────────────────────────────
 
-  // ─── Handlers ─────────────────────────────────────────────────────────────
+  const teamsQuery = useQuery({
+    queryKey: assignDataKeys.teams,
+    queryFn: async () => {
+      const data = await teamsApi.getAll();
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: assignDialogOpen,
+    staleTime: 60_000,
+  });
+
+  const usersQuery = useQuery({
+    queryKey: assignDataKeys.users,
+    queryFn: async () => {
+      const data = await usersApi.getAll();
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: assignDialogOpen,
+    staleTime: 60_000,
+  });
+
+  const teams = teamsQuery.data ?? [];
+  const availableUsers = usersQuery.data ?? [];
+
+  // ─── Mutations ──────────────────────────────────────────────────────────────
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => interventionsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
+    },
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: ({ interventionId, userId, teamId }: { interventionId: number; userId?: number; teamId?: number }) =>
+      interventionsApi.assign(interventionId, userId, teamId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
+    },
+  });
+
+  // ─── Handlers ───────────────────────────────────────────────────────────────
+
+  const loadInterventions = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: interventionsKeys.lists() });
+  }, [queryClient]);
 
   const handleMenuOpen = useCallback(
     (event: React.MouseEvent<HTMLElement>, intervention: Intervention) => {
@@ -160,40 +204,20 @@ export function useInterventionsList() {
     handleMenuClose();
   }, [selectedIntervention, navigate, handleMenuClose]);
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = useCallback(() => {
     if (!selectedIntervention) return;
-
-    try {
-      await interventionsApi.delete(selectedIntervention.id);
-      loadInterventions();
-    } catch (err) {
-      // Silently fail
-    }
-
+    deleteMutation.mutate(selectedIntervention.id);
     handleMenuClose();
-  }, [selectedIntervention, loadInterventions, handleMenuClose]);
+  }, [selectedIntervention, deleteMutation, handleMenuClose]);
 
-  // ─── Assign dialog handlers ───────────────────────────────────────────────
+  // ─── Assign dialog handlers ─────────────────────────────────────────────────
 
-  const handleOpenAssignDialog = useCallback(async () => {
+  const handleOpenAssignDialog = useCallback(() => {
     setAssignDialogOpen(true);
     setAssignType('team');
     setAssignTargetId('');
     // Close the context menu but keep selectedIntervention
     setAnchorEl(null);
-
-    // Load teams and users in parallel
-    try {
-      const [fetchedTeams, fetchedUsers] = await Promise.all([
-        teamsApi.getAll(),
-        usersApi.getAll(),
-      ]);
-      setTeams(Array.isArray(fetchedTeams) ? fetchedTeams : []);
-      setAvailableUsers(Array.isArray(fetchedUsers) ? fetchedUsers : []);
-    } catch {
-      setTeams([]);
-      setAvailableUsers([]);
-    }
   }, []);
 
   const handleCloseAssignDialog = useCallback(() => {
@@ -201,73 +225,42 @@ export function useInterventionsList() {
     setSelectedIntervention(null);
   }, []);
 
-  const handleAssign = useCallback(async () => {
+  const handleAssign = useCallback(() => {
     if (!selectedIntervention || assignTargetId === '') return;
 
-    setAssignLoading(true);
-    try {
-      if (assignType === 'team') {
-        await interventionsApi.assign(selectedIntervention.id, undefined, assignTargetId as number);
-      } else {
-        await interventionsApi.assign(selectedIntervention.id, assignTargetId as number, undefined);
-      }
-      setAssignDialogOpen(false);
-      setSelectedIntervention(null);
-      loadInterventions();
-    } catch (err) {
-      // Silently fail — error will appear via API notification
-    } finally {
-      setAssignLoading(false);
-    }
-  }, [selectedIntervention, assignTargetId, assignType, loadInterventions]);
+    const payload = assignType === 'team'
+      ? { interventionId: selectedIntervention.id, teamId: assignTargetId as number }
+      : { interventionId: selectedIntervention.id, userId: assignTargetId as number };
 
-  // ─── Permission check helper ──────────────────────────────────────────────
+    assignMutation.mutate(payload, {
+      onSuccess: () => {
+        setAssignDialogOpen(false);
+        setSelectedIntervention(null);
+      },
+    });
+  }, [selectedIntervention, assignTargetId, assignType, assignMutation]);
+
+  // ─── Permission check helper ────────────────────────────────────────────────
 
   const canModifyIntervention = useCallback(
     (intervention: Intervention): boolean => {
       if (canEditInterventions) return true;
-
-      if (!intervention || !intervention.assignedToType) {
-        return false;
-      }
-
-      // Teams can modify assigned interventions
-      if (intervention.assignedToType === 'team') {
-        return true;
-      }
-
-      // Users can modify assigned interventions
-      if (intervention.assignedToType === 'user') {
-        return true;
-      }
-
+      if (!intervention || !intervention.assignedToType) return false;
+      if (intervention.assignedToType === 'team') return true;
+      if (intervention.assignedToType === 'user') return true;
       return false;
     },
     [canEditInterventions],
   );
 
-  // ─── Computed values ──────────────────────────────────────────────────────
+  // ─── Computed values ────────────────────────────────────────────────────────
 
   const filteredInterventions = useMemo(() => {
-    if (!Array.isArray(interventions) || interventions.length === 0) {
-      return [];
-    }
+    if (!Array.isArray(interventions) || interventions.length === 0) return [];
 
     return interventions.filter((intervention) => {
-      if (!intervention || typeof intervention !== 'object') {
-        return false;
-      }
-
-      if (
-        !intervention.id ||
-        !intervention.title ||
-        !intervention.description ||
-        !intervention.type ||
-        !intervention.status ||
-        !intervention.priority
-      ) {
-        return false;
-      }
+      if (!intervention || typeof intervention !== 'object') return false;
+      if (!intervention.id || !intervention.title || !intervention.description || !intervention.type || !intervention.status || !intervention.priority) return false;
 
       // Role-based filtering
       let roleFilter = true;
@@ -282,36 +275,29 @@ export function useInterventionsList() {
           roleFilter = false;
         }
       }
-
       if (!roleFilter) return false;
 
       // Search filter
-      if (
-        searchTerm &&
-        !intervention.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !intervention.description.toLowerCase().includes(searchTerm.toLowerCase())
-      ) {
-        return false;
-      }
+      if (searchTerm && !intervention.title.toLowerCase().includes(searchTerm.toLowerCase()) && !intervention.description.toLowerCase().includes(searchTerm.toLowerCase())) return false;
 
       // Type filter
-      if (selectedType !== 'all' && intervention.type !== selectedType) {
-        return false;
-      }
+      if (selectedType !== 'all' && intervention.type !== selectedType) return false;
 
       // Status filter
-      if (selectedStatus !== 'all' && intervention.status !== selectedStatus) {
-        return false;
-      }
+      if (selectedStatus !== 'all' && intervention.status !== selectedStatus) return false;
 
       // Priority filter
-      if (selectedPriority !== 'all' && intervention.priority !== selectedPriority) {
-        return false;
-      }
+      if (selectedPriority !== 'all' && intervention.priority !== selectedPriority) return false;
 
       return true;
     });
   }, [interventions, searchTerm, selectedType, selectedStatus, selectedPriority, canEditInterventions, user]);
+
+  // Reset page when filters change
+  const setSearchTermAndReset = useCallback((val: string) => { setSearchTerm(val); setPage(0); }, []);
+  const setSelectedTypeAndReset = useCallback((val: string) => { setSelectedType(val); setPage(0); }, []);
+  const setSelectedStatusAndReset = useCallback((val: string) => { setSelectedStatus(val); setPage(0); }, []);
+  const setSelectedPriorityAndReset = useCallback((val: string) => { setSelectedPriority(val); setPage(0); }, []);
 
   const paginatedInterventions = useMemo(
     () => filteredInterventions.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE),
@@ -338,7 +324,7 @@ export function useInterventionsList() {
     [t],
   );
 
-  // ─── Return ───────────────────────────────────────────────────────────────
+  // ─── Return ─────────────────────────────────────────────────────────────────
 
   return {
     // State
@@ -358,7 +344,7 @@ export function useInterventionsList() {
     assignTargetId,
     teams,
     availableUsers,
-    assignLoading,
+    assignLoading: assignMutation.isPending,
     canViewInterventions,
     canCreateInterventions,
     canEditInterventions,
@@ -366,10 +352,10 @@ export function useInterventionsList() {
     permissionsLoading,
 
     // Setters
-    setSearchTerm,
-    setSelectedType,
-    setSelectedStatus,
-    setSelectedPriority,
+    setSearchTerm: setSearchTermAndReset,
+    setSelectedType: setSelectedTypeAndReset,
+    setSelectedStatus: setSelectedStatusAndReset,
+    setSelectedPriority: setSelectedPriorityAndReset,
     setPage,
     setAssignType,
     setAssignTargetId,

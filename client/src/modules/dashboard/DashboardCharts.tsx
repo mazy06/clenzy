@@ -20,7 +20,8 @@ import {
   Cell,
   BarChart,
   Bar,
-  Legend
+  Legend,
+  Label,
 } from 'recharts';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { InterventionReportData, FinancialReportData } from '../../services/api/reportsApi';
@@ -82,6 +83,135 @@ const CHART_SUCCESS = '#4A9B8E';
 const CHART_WARNING = '#D4A574';
 const CHART_ERROR = '#C97A7A';
 
+// ─── Status label mapping (raw API status → human readable FR) ──────────────
+
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: 'En attente',
+  AWAITING_PAYMENT: 'Paiement en attente',
+  IN_PROGRESS: 'En cours',
+  COMPLETED: 'Terminé',
+  CANCELLED: 'Annulé',
+  SCHEDULED: 'Planifié',
+  ON_HOLD: 'En pause',
+};
+
+function getStatusLabel(name: string): string {
+  return STATUS_LABELS[name] || name.charAt(0) + name.slice(1).toLowerCase().replace(/_/g, ' ');
+}
+
+// ─── Center label for donut ─────────────────────────────────────────────────
+
+interface CenterLabelProps {
+  viewBox?: { cx?: number; cy?: number };
+  total: number;
+}
+
+const CenterLabel: React.FC<CenterLabelProps> = ({ viewBox, total }) => {
+  const cx = viewBox?.cx || 0;
+  const cy = viewBox?.cy || 0;
+  return (
+    <g>
+      <text x={cx} y={cy - 4} textAnchor="middle" fill="#1E293B" fontSize={18} fontWeight={800}>
+        {total}
+      </text>
+      <text x={cx} y={cy + 12} textAnchor="middle" fill="#94A3B8" fontSize={9} fontWeight={500}>
+        interventions
+      </text>
+    </g>
+  );
+};
+
+// ─── Custom tooltip for donut ───────────────────────────────────────────────
+
+interface PieTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    name: string;
+    value: number;
+    payload: { color?: string };
+  }>;
+}
+
+const StatusTooltip: React.FC<PieTooltipProps> = ({ active, payload }) => {
+  if (!active || !payload?.length) return null;
+  const entry = payload[0];
+  return (
+    <Box
+      sx={{
+        bgcolor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 1.5,
+        px: 1.25,
+        py: 0.75,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+        <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: entry.payload.color || CHART_PRIMARY, flexShrink: 0 }} />
+        <Box>
+          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'text.primary', lineHeight: 1.2 }}>
+            {getStatusLabel(entry.name)}
+          </Typography>
+          <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+            {entry.value} intervention{entry.value > 1 ? 's' : ''}
+          </Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
+};
+
+// ─── Custom legend for donut ────────────────────────────────────────────────
+
+interface StatusLegendProps {
+  data: Array<{ name: string; value: number; color?: string }>;
+  total: number;
+}
+
+const StatusLegend: React.FC<StatusLegendProps> = ({ data, total }) => (
+  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4, mt: 0.25 }}>
+    {data.map((entry) => {
+      const pct = total > 0 ? ((entry.value / total) * 100) : 0;
+      return (
+        <Box key={entry.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          <Box
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: '2px',
+              bgcolor: entry.color || CHART_PRIMARY,
+              flexShrink: 0,
+            }}
+          />
+          <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', flex: 1, lineHeight: 1.2 }}>
+            {getStatusLabel(entry.name)}
+          </Typography>
+          <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, color: 'text.primary', minWidth: 18, textAlign: 'right' }}>
+            {entry.value}
+          </Typography>
+          <Box sx={{ width: 40, height: 4, bgcolor: 'grey.100', borderRadius: 2, overflow: 'hidden', flexShrink: 0 }}>
+            <Box
+              sx={{
+                height: '100%',
+                width: `${pct}%`,
+                bgcolor: entry.color || CHART_PRIMARY,
+                borderRadius: 2,
+                transition: 'width 0.4s ease',
+              }}
+            />
+          </Box>
+          <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled', minWidth: 24, textAlign: 'right' }}>
+            {pct.toFixed(0)}%
+          </Typography>
+        </Box>
+      );
+    })}
+  </Box>
+);
+
+// ─── Main component ─────────────────────────────────────────────────────────
+
 const DashboardCharts: React.FC<DashboardChartsProps> = React.memo(({ charts, loading }) => {
   const { t } = useTranslation();
 
@@ -107,6 +237,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = React.memo(({ charts, lo
   const byMonth = interventionData?.byMonth || [];
   const byStatus = interventionData?.byStatus || [];
   const monthlyFinancials = financialData?.monthlyFinancials || [];
+  const statusTotal = byStatus.reduce((sum, s) => sum + s.value, 0);
 
   return (
     <Grid container spacing={1} sx={{ height: '100%' }}>
@@ -142,7 +273,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = React.memo(({ charts, lo
         </Card>
       </Grid>
 
-      {/* Status Distribution (Donut/Pie) */}
+      {/* Status Distribution (Donut) */}
       <Grid item xs={12} md={4} sx={{ height: '100%' }}>
         <Card sx={{ height: '100%' }}>
           <CardContent sx={CARD_CONTENT_SX}>
@@ -156,27 +287,40 @@ const DashboardCharts: React.FC<DashboardChartsProps> = React.memo(({ charts, lo
                 </Typography>
               </Box>
             ) : (
-              <Box sx={CHART_BOX_SX}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={byStatus}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius="38%"
-                      outerRadius="58%"
-                      paddingAngle={3}
-                      dataKey="value"
-                      nameKey="name"
-                    >
-                      {byStatus.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color || CHART_PRIMARY} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={TOOLTIP_STYLE} />
-                    <Legend wrapperStyle={LEGEND_STYLE} iconSize={6} />
-                  </PieChart>
-                </ResponsiveContainer>
+              <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                {/* Donut chart with center total */}
+                <Box sx={{ flex: 1, minHeight: 0 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={byStatus}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius="42%"
+                        outerRadius="66%"
+                        paddingAngle={2}
+                        dataKey="value"
+                        nameKey="name"
+                        cornerRadius={4}
+                        stroke="none"
+                      >
+                        {byStatus.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={entry.color || CHART_PRIMARY}
+                          />
+                        ))}
+                        <Label
+                          content={<CenterLabel total={statusTotal} />}
+                          position="center"
+                        />
+                      </Pie>
+                      <Tooltip content={<StatusTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Box>
+                {/* Custom legend with progress bars */}
+                <StatusLegend data={byStatus} total={statusTotal} />
               </Box>
             )}
           </CardContent>

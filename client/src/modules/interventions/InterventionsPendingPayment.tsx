@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -26,6 +26,7 @@ import {
   Euro as EuroIcon,
   HourglassEmpty as HourglassIcon
 } from '@mui/icons-material';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi } from '../../services/api';
 import apiClient from '../../services/apiClient';
@@ -33,6 +34,7 @@ import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
+import { interventionsKeys } from './useInterventionsList';
 
 interface Intervention {
   id: number;
@@ -55,6 +57,7 @@ const InterventionsPendingPayment: React.FC = () => {
   const { user, isHost } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
@@ -76,39 +79,36 @@ const InterventionsPendingPayment: React.FC = () => {
     gray200: isDark ? theme.palette.grey[300] : '#E2E8F0',
     white: isDark ? theme.palette.background.paper : '#ffffff',
   };
-  const [interventions, setInterventions] = useState<Intervention[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
   const [processingPayment, setProcessingPayment] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isHost()) {
-      setError("Vous n'avez pas acces a cette page");
-      setLoading(false);
-      return;
-    }
-    loadInterventions();
-  }, [isHost]);
+  const hasAccess = isHost();
 
-  const loadInterventions = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // ─── React Query: list pending payment ─────────────────────────────────────
 
+  const interventionsQuery = useQuery({
+    queryKey: interventionsKeys.pendingPayment(),
+    queryFn: async () => {
       const data = await interventionsApi.getAll({ status: 'AWAITING_PAYMENT' });
       const allInterventions = extractApiList<Intervention>(data);
-      const userInterventions = allInterventions.filter((intervention: Intervention) => {
-        const userFullName = user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+      // Filter to current user's interventions
+      const userFullName = user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+      return allInterventions.filter((intervention: Intervention) => {
         return intervention.requestorName === userFullName ||
                intervention.requestorName === user?.username ||
                intervention.requestorName === user?.email;
       });
-      setInterventions(userInterventions);
-    } catch (err) {
-      setError('Erreur de connexion');
-    } finally {
-      setLoading(false);
-    }
+    },
+    enabled: hasAccess,
+    staleTime: 30_000,
+  });
+
+  const interventions = interventionsQuery.data ?? [];
+  const loading = interventionsQuery.isLoading;
+
+  const loadInterventions = () => {
+    queryClient.invalidateQueries({ queryKey: interventionsKeys.pendingPayment() });
   };
 
   const handlePay = async (intervention: Intervention) => {
@@ -163,12 +163,23 @@ const InterventionsPendingPayment: React.FC = () => {
   };
 
   // Total a payer
-  const totalDue = interventions.reduce((sum, i) => sum + (i.estimatedCost || 0), 0);
+  const totalDue = useMemo(
+    () => interventions.reduce((sum, i) => sum + (i.estimatedCost || 0), 0),
+    [interventions],
+  );
 
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress sx={{ color: C.primary }} />
+      </Box>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <Box>
+        <Alert severity="error">Vous n'avez pas acces a cette page</Alert>
       </Box>
     );
   }
@@ -186,6 +197,7 @@ const InterventionsPendingPayment: React.FC = () => {
             size="small"
             startIcon={<RefreshIcon sx={{ fontSize: 16 }} />}
             onClick={loadInterventions}
+            title={t('common.refresh')}
             sx={{
               textTransform: 'none',
               fontSize: '0.8125rem',

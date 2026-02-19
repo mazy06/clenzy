@@ -161,6 +161,7 @@ export default function ExportButton({
             onClick={handleExportCSV}
             disabled={isDisabled}
             sx={BUTTON_SX}
+            title={t('export.button')}
           >
             {t('export.button')}
           </Button>

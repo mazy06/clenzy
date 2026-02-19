@@ -44,6 +44,7 @@
     "tarification": "Tarification",
     "payments": "Paiements",
     "monitoring": "Monitoring",
+    "documents": "Documents",
     "myProfile": "Mon profil",
     "logout": "Déconnexion",
     "menu": "Menu",
@@ -167,7 +168,59 @@
       "planning": "Planning",
       "overview": "Vue d'ensemble",
       "activity": "Activité",
-      "operations": "Opérations"
+      "operations": "Opérations",
+      "noise": "Nuisance sonore"
+    },
+    "noise": {
+      "offersTitle": "Monitoring sonore",
+      "offersSubtitle": "Activez le monitoring sonore pour surveiller le niveau de bruit dans vos propriétés en temps réel.",
+      "subscribe": "Souscrire",
+      "backToOffers": "Retour aux offres",
+      "myDevices": "Mes capteurs",
+      "addDevice": "Ajouter un capteur",
+      "removeDevice": "Supprimer",
+      "removeDeviceConfirm": "Confirmer la suppression ?",
+      "deviceActive": "Actif",
+      "entireProperty": "Propriété entière",
+      "minut": {
+        "detailTitle": "Minut - Monitoring sonore professionnel",
+        "detailDescription": "Minut propose des capteurs de bruit certifiés avec une intégration native Airbnb. L'abonnement mensuel inclut l'accès à l'application mobile dédiée, les alertes automatiques aux voyageurs et un support 24/7.",
+        "subscribeExternal": "S'abonner sur Minut",
+        "configureDevice": "Configurer mon capteur"
+      },
+      "clenzy": {
+        "detailTitle": "Clenzy Hardware - Solution propriétaire",
+        "detailDescription": "Notre solution basée sur Tuya OEM offre un monitoring sonore sans abonnement mensuel. Le capteur CLENZY-TUYA-NM-01 s'intègre nativement dans la plateforme Clenzy avec des données en temps réel.",
+        "articleRef": "Réf. article",
+        "orderExternal": "Commander sur la boutique",
+        "configureDevice": "Configurer mon capteur"
+      },
+      "config": {
+        "title": "Configuration du capteur",
+        "stepProperty": "Propriété",
+        "stepRoom": "Pièce",
+        "stepName": "Nom",
+        "stepConfirm": "Confirmation",
+        "selectPropertyTitle": "Sélectionnez une propriété",
+        "selectPropertyDesc": "Choisissez la propriété où sera installé le capteur.",
+        "roomTitle": "Pièce (optionnel)",
+        "roomDesc": "Si vous souhaitez surveiller une pièce spécifique, saisissez son nom. Laissez vide pour surveiller toute la propriété.",
+        "roomPlaceholder": "Nom de la pièce (ex: Salon, Chambre 1)",
+        "roomSkip": "Toute la propriété",
+        "roomSuggestions": "Suggestions :",
+        "nameTitle": "Nom du capteur",
+        "nameDesc": "Donnez un nom à votre capteur pour l'identifier facilement dans le tableau de bord.",
+        "namePlaceholder": "Ex: Capteur Salon Haussmann",
+        "confirmTitle": "Résumé de la configuration",
+        "confirmDeviceType": "Type de capteur",
+        "confirmProperty": "Propriété",
+        "confirmRoom": "Pièce",
+        "confirmDeviceName": "Nom du capteur",
+        "confirm": "Confirmer",
+        "back": "Retour",
+        "next": "Suivant",
+        "cancel": "Annuler"
+      }
     },
     "planning": {
       "today": "Aujourd'hui",
@@ -417,7 +470,10 @@
     "cleaningEstimateTooltip": "Estimation indicative du coût de l'intervention ménage. Le tarif définitif est soumis à l'acceptation du prestataire.",
     "cleaningDurationTooltip": "Durée estimée de l'intervention ménage basée sur les caractéristiques du logement. La durée réelle peut varier.",
     "defaultTimesTooltip": "Horaires par défaut — Départ : {{checkOut}} / Arrivée : {{checkIn}}",
-    "activeFeatures": "Options actives"
+    "activeFeatures": "Options actives",
+    "department": "Departement",
+    "arrondissement": "Arrondissement",
+    "addressAutocomplete": "Rechercher une adresse..."
   },
   "serviceRequests": {
     "title": "Demandes de service",
@@ -425,6 +481,7 @@
     "create": "Nouvelle demande",
     "createSubtitle": "Créer une nouvelle demande de service dans le système",
     "createFirst": "Créer votre première demande",
+    "selectPropertyFirst": "Sélectionnez un logement pour compléter votre demande",
     "edit": "Modifier la demande de service",
     "details": "Détails de la demande",
     "search": "Rechercher une demande...",
@@ -518,6 +575,11 @@
     "validateAndCreateInterventionDescription": "Une intervention sera créée automatiquement. Vous pouvez optionnellement assigner une équipe ou un utilisateur.",
     "validateSuccess": "La demande \"{{title}}\" a été validée avec succès et une intervention a été créée.",
     "validateError": "Erreur lors de la validation",
+    "autoAssignedTeam": "Equipe assignee automatiquement a l'intervention.",
+    "autoAssignNoTeamAvailable": "Intervention creee sans equipe : aucune equipe disponible pour cette propriete a cette date.",
+    "autoAssignTeamBusy": "L'equipe par defaut est occupee sur ce creneau.",
+    "autoAssignGeoMismatch": "Aucune equipe compatible dans cette zone geographique.",
+    "autoAssignTypeMismatch": "Aucune equipe compatible avec ce type d'intervention.",
     "assignmentType": "Type d'assignation",
     "changeStatus": "Changer le statut",
     "changeStatusMessage": "Changer le statut de la demande \"{{title}}\"",
@@ -560,7 +622,22 @@
     "invalidDate": "Date invalide",
     "notFound": "Demande de service non trouvée",
     "team": "Équipe",
-    "approvedDateShort": "Approuvé le"
+    "approvedDateShort": "Approuvé le",
+    "details": {
+      "progression": "Progression",
+      "estimatedCost": "Coût estimé",
+      "actualCost": "Coût réel",
+      "viewProperty": "Voir la propriété",
+      "notesInstructions": "Notes et consignes",
+      "specialInstructions": "Instructions spéciales",
+      "accessNotes": "Notes d'accès",
+      "cleaningNotes": "Consignes de ménage",
+      "guestCheckout": "Départ voyageur",
+      "guestCheckin": "Arrivée voyageur",
+      "approvalDevis": "Approbation et devis",
+      "approvedBy": "Approuvé par",
+      "devisAcceptedBy": "Devis accepté par"
+    }
   },
   "interventions": {
     "title": "Interventions",
@@ -721,6 +798,7 @@
     "createTeam": "Créer l'équipe",
     "save": "Enregistrer",
     "cancel": "Annuler",
+    "backToList": "Retour",
     "reset": "Réinitialiser",
     "hide": "Masquer",
     "show": "Afficher",
@@ -776,6 +854,15 @@
       "sortByName": "Trier par nom",
       "sortByRole": "Trier par rôle"
     },
+    "coverageZones": "Zones de couverture",
+    "addCoverageZone": "Ajouter une zone",
+    "removeCoverageZone": "Retirer la zone",
+    "department": "Departement",
+    "arrondissement": "Arrondissement",
+    "selectDepartment": "Selectionner un departement",
+    "selectArrondissement": "Selectionner un arrondissement",
+    "noCoverageZones": "Aucune zone de couverture definie",
+    "allArrondissements": "Tous les arrondissements",
     "errors": {
       "nameRequired": "Le nom de l'équipe est obligatoire",
       "interventionTypeRequired": "Le type d'intervention est obligatoire",
@@ -847,7 +934,12 @@
       "selectedTeams": "Équipes sélectionnées",
       "selectedUsers": "Utilisateurs sélectionnés",
       "member": "membre",
-      "members": "membres"
+      "members": "membres",
+      "assignTeam": "Assigner une equipe",
+      "assignedTeam": "Equipe assignee",
+      "changeTeam": "Changer d'equipe",
+      "removeTeam": "Retirer l'equipe",
+      "noTeamAssigned": "Aucune equipe disponible"
     },
     "steps": {
       "selectManager": "Sélectionner le manager",
@@ -907,18 +999,41 @@
     "errors": {
       "loadError": "Erreur lors du chargement des associations",
       "connectionError": "Erreur de connexion",
+      "authError": "Erreur d'authentification. Veuillez vous reconnecter.",
+      "forbiddenError": "Accès interdit. Vous n'avez pas les permissions nécessaires.",
       "reassignError": "Erreur lors de la réassignation",
       "reassignConnectionError": "Erreur de connexion lors de la réassignation",
       "unassignError": "Erreur lors de la désassignation",
       "assignmentError": "Erreur lors de l'assignation",
       "assignmentSuccess": "Assignation réussie !"
     },
+    "notifications": {
+      "clientReassigned": "Le client a été réassigné avec succès.",
+      "clientUnassigned": "Le client a été désassigné du portefeuille.",
+      "teamUnassigned": "L'équipe a été désassignée du portefeuille.",
+      "userUnassigned": "L'utilisateur a été désassigné du portefeuille.",
+      "propertyUnassigned": "La propriété a été désassignée du portefeuille.",
+      "teamAssignedToProperty": "Equipe assignee a la propriete avec succes.",
+      "teamRemovedFromProperty": "Equipe retiree de la propriete."
+    },
     "confirmations": {
       "unassignClientTitle": "Désassigner le client",
       "unassignClientMessage": "Êtes-vous sûr de vouloir désassigner ce client du portefeuille ?",
+      "unassignTeamTitle": "Désassigner l'équipe",
+      "unassignTeamMessage": "Êtes-vous sûr de vouloir désassigner cette équipe du portefeuille ?",
+      "unassignUserTitle": "Désassigner l'utilisateur",
+      "unassignUserMessage": "Êtes-vous sûr de vouloir désassigner cet utilisateur du portefeuille ?",
       "unassignPropertyTitle": "Désassigner la propriété",
       "unassignPropertyMessage": "Êtes-vous sûr de vouloir désassigner cette propriété du portefeuille ?",
-      "noManagerFound": "Aucun manager trouvé pour l'ID"
+      "noManagerFound": "Aucun manager trouvé pour l'ID",
+      "removeTeamFromPropertyTitle": "Retirer l'equipe de la propriete",
+      "removeTeamFromPropertyMessage": "Etes-vous sur de vouloir retirer l'equipe par defaut de cette propriete ?"
+    },
+    "dialogs": {
+      "notesOptional": "Notes (optionnel)",
+      "notesPlaceholder": "Ajoutez des notes sur cette réassignation...",
+      "reassigning": "Réassignation...",
+      "reassign": "Réassigner"
     },
     "warnings": {
       "attention": "Attention",
@@ -1258,7 +1373,47 @@
       "entretien": "Entretien",
       "travaux": "Travaux",
       "exterieur": "Extérieur",
-      "blanchisserie": "Blanchisserie"
+      "blanchisserie": "Blanchisserie",
+      "monitoring": "Monitoring"
+    },
+    "monitoring": {
+      "title": "Monitoring sonore des propriétés",
+      "subtitle": "Configurez les offres de capteurs de bruit proposées à vos clients",
+      "enable": "Activer cette offre",
+      "minut": {
+        "title": "Minut",
+        "badge": "Partenaire",
+        "description": "Solution de monitoring professionnel avec abonnement mensuel. Capteurs certifiés, intégration Airbnb native et alertes automatiques.",
+        "pricingModel": "Abonnement mensuel",
+        "monthlyPrice": "Prix mensuel par capteur",
+        "onQuote": "Sur devis",
+        "onQuoteHint": "Le tarif sera défini ultérieurement lors du partenariat avec Minut",
+        "feature1": "Intégration Airbnb native",
+        "feature2": "Alertes automatiques aux voyageurs",
+        "feature3": "Application mobile dédiée",
+        "feature4": "Support 24/7"
+      },
+      "clenzy": {
+        "title": "Clenzy Hardware",
+        "badge": "Propriétaire",
+        "description": "Solution propriétaire basée sur Tuya OEM. Coût unique sans abonnement, avec intégration native dans la plateforme Clenzy.",
+        "pricingModel": "Coût unique (sans abonnement)",
+        "onQuote": "Sur devis",
+        "onQuoteHint": "Le tarif sera communiqué lors de la configuration de votre solution",
+        "devicePrice": "Capteur Tuya OEM",
+        "devicePriceHelp": "Coût matériel du capteur",
+        "installationPrice": "Installation",
+        "installationPriceHelp": "Main d'œuvre pour la pose",
+        "configPrice": "Configuration",
+        "configPriceHelp": "Paramétrage et mise en service",
+        "supportPrice": "Support (optionnel)",
+        "supportPriceHelp": "Assistance et garantie étendue",
+        "total": "Total par capteur",
+        "feature1": "Sans abonnement mensuel",
+        "feature2": "Intégration Clenzy native",
+        "feature3": "Données en temps réel",
+        "feature4": "Aucune dépendance externe"
+      }
     },
     "basePrices": {
       "title": "Prix de base des forfaits",

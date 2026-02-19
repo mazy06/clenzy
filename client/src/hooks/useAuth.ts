@@ -68,7 +68,6 @@ export const useAuth = () => {
 
         if (response.ok) {
           const userData = await response.json();
-          console.log('useAuth - Données utilisateur reçues:', userData);
 
           // Utiliser directement les permissions depuis l'API
           const permissions = userData.permissions || [];
@@ -82,9 +81,6 @@ export const useAuth = () => {
             // Extraire depuis realm_access (Keycloak)
             roles = userData.realm_access.roles.filter((role: string) => role !== 'default-roles-clenzy' && role !== 'offline_access');
           }
-
-          console.log('useAuth - Rôles extraits:', roles);
-          console.log('useAuth - Permissions extraites:', permissions);
 
           // Créer l'objet utilisateur avec les permissions directes ET les données métier
           const user: AuthUser = {
@@ -109,7 +105,6 @@ export const useAuth = () => {
 
           // Forcer une synchronisation immédiate pour résoudre le problème d'accès
           try {
-            console.log('useAuth - Synchronisation forcée immédiate au chargement');
             await permissionSyncService.syncNow();
           } catch (error) {
             console.warn('useAuth - Erreur lors de la synchronisation forcée:', error);

@@ -52,6 +52,12 @@ export type {
 export type {
   PortfolioStats,
   ManagerAssociations,
+  Manager,
+  HostClient,
+  PortfolioTeam,
+  OperationalUser,
+  AssignmentProperty,
+  AssignResult,
 } from '../services/api/portfoliosApi';
 
 export type {

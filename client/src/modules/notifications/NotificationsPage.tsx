@@ -169,6 +169,7 @@ export default function NotificationsPage() {
               startIcon={<DoneAll sx={{ fontSize: 18 }} />}
               onClick={handleMarkAllRead}
               sx={{ fontSize: '0.8125rem', py: 0.5 }}
+              title={t('notifications.markAllRead') || 'Marquer tout comme lu'}
             >
               {t('notifications.markAllRead') || 'Marquer tout comme lu'}
             </Button>

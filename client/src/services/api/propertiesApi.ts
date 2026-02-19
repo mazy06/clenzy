@@ -37,6 +37,11 @@ export interface Property {
   hasDisinfection?: boolean;
   amenities?: string[];
   cleaningNotes?: string;
+  // Geolocalisation
+  latitude?: number;
+  longitude?: number;
+  department?: string;
+  arrondissement?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -73,6 +78,11 @@ export interface PropertyFormData {
   hasDisinfection?: boolean;
   amenities?: string[];
   cleaningNotes?: string;
+  // Geolocalisation
+  latitude?: number;
+  longitude?: number;
+  department?: string;
+  arrondissement?: string;
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────

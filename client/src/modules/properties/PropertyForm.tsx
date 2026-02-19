@@ -209,7 +209,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
           <Paper sx={{ ...FORM_PAPER_SX, flex: 7, minWidth: 0, overflow: 'auto' }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <PropertyFormBasicInfo control={control} errors={errors} propertyTypes={propertyTypes} />
-              <PropertyFormAddress control={control} errors={errors} />
+              <PropertyFormAddress control={control} errors={errors} setValue={setValue} />
               <PropertyFormDetails control={control} errors={errors} />
             </Box>
           </Paper>
