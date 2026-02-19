@@ -20,6 +20,9 @@ export const STORAGE_KEYS = {
   // Noise monitoring (Minut) mock mode
   NOISE_MONITORING_MOCK: 'clenzy_noise_monitoring_mock',
 
+  // Analytics dashboard mock mode
+  ANALYTICS_MOCK: 'clenzy_analytics_mock',
+
   // Noise devices (configured sensors)
   NOISE_DEVICES: 'clenzy_noise_devices',
 

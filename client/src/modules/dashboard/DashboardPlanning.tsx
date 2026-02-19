@@ -998,7 +998,7 @@ function ReservationBar({ reservation, days, rangeStart, today: todayOnly, topOf
     `${reservation.guestName} (${reservation.guestCount} pers.)`,
     `${checkInStr}${reservation.checkInTime ? ' ' + reservation.checkInTime : ''} \u2192 ${checkOutStr}${reservation.checkOutTime ? ' ' + reservation.checkOutTime : ''} (${nights} nuit${nights > 1 ? 's' : ''})`,
     `${statusLabel} \xB7 ${reservation.source.charAt(0).toUpperCase() + reservation.source.slice(1)}`,
-    reservation.totalPrice > 0 ? `${reservation.totalPrice.toLocaleString('fr-FR')} \u20AC` : '',
+    reservation.totalPrice > 0 ? `${reservation.totalPrice.toLocaleString('fr-FR')} €` : '',
   ].filter(Boolean).join('\n');
 
   return (

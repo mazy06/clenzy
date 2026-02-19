@@ -35,13 +35,16 @@ import {
   DarkMode,
   SettingsBrightness,
   VolumeUp,
+  BarChart,
 } from '@mui/icons-material';
 import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
 import { useNoiseMonitoring } from '../../hooks/useNoiseMonitoring';
 import { useAuth } from '../../hooks/useAuth';
 import { useThemeMode } from '../../hooks/useThemeMode';
 import storageService, { STORAGE_KEYS } from '../../services/storageService';
+import { useQueryClient } from '@tanstack/react-query';
 import { reservationsApi } from '../../services/api/reservationsApi';
+import { propertiesApi } from '../../services/api/propertiesApi';
 import PageHeader from '../../components/PageHeader';
 import NotificationPreferencesCard from './NotificationPreferencesCard';
 import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
@@ -80,6 +83,7 @@ function a11yProps(index: number) {
 
 export default function Settings() {
   const { user, hasPermissionAsync } = useAuth();
+  const queryClient = useQueryClient();
   const { settings: workflowSettings, updateSettings: updateWorkflowSettings } = useWorkflowSettings();
   const { mode: themeMode, setMode: setThemeMode, isDark } = useThemeMode();
   const [tabValue, setTabValue] = useState(0);
@@ -147,6 +151,11 @@ export default function Settings() {
 
   // Noise monitoring (Minut) mock
   const { enabled: noiseMonitoringEnabled, setEnabled: setNoiseMonitoringEnabled } = useNoiseMonitoring();
+
+  // Analytics mock
+  const [analyticsMock, setAnalyticsMock] = useState(
+    () => localStorage.getItem(STORAGE_KEYS.ANALYTICS_MOCK) === 'true'
+  );
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -652,6 +661,33 @@ export default function Settings() {
                         edge="end"
                         checked={noiseMonitoringEnabled}
                         onChange={(e) => setNoiseMonitoringEnabled(e.target.checked)}
+                      />
+                    </ListItemSecondaryAction>
+                  </ListItem>
+
+                  <ListItem>
+                    <ListItemIcon>
+                      <BarChart />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Données de démonstration (Analytics)"
+                      secondary="Afficher des KPIs, graphiques et recommandations avec des données fictives"
+                    />
+                    <ListItemSecondaryAction>
+                      <Switch
+                        edge="end"
+                        checked={analyticsMock}
+                        onChange={(e) => {
+                          const enabled = e.target.checked;
+                          setAnalyticsMock(enabled);
+                          reservationsApi.setAnalyticsMockMode(enabled);
+                          propertiesApi.setMockMode(enabled);
+                          // Invalider tous les caches analytics + overview pour refresh immédiat
+                          queryClient.invalidateQueries({ queryKey: ['analytics-reservations'] });
+                          queryClient.invalidateQueries({ queryKey: ['analytics-properties'] });
+                          queryClient.invalidateQueries({ queryKey: ['analytics-interventions'] });
+                          queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] });
+                        }}
                       />
                     </ListItemSecondaryAction>
                   </ListItem>

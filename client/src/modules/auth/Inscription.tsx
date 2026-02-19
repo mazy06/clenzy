@@ -37,9 +37,9 @@ const FORFAIT_LABELS: Record<string, string> = {
 };
 
 const FORFAIT_PRICES: Record<string, string> = {
-  essentiel: 'Interventions a partir de 35\u20AC',
-  confort: 'Interventions a partir de 55\u20AC',
-  premium: 'Interventions a partir de 80\u20AC',
+  essentiel: 'Interventions a partir de 35€',
+  confort: 'Interventions a partir de 55€',
+  premium: 'Interventions a partir de 80€',
 };
 
 type BillingPeriod = 'MONTHLY' | 'ANNUAL' | 'BIENNIAL';
@@ -67,14 +67,14 @@ const DEFAULT_PMS_MONTHLY_CENTS = 500; // 5€/mois fallback
 function getPmsDisplayPrice(period: BillingPeriod, baseCents: number): string {
   const monthlyCents = Math.round(baseCents * BILLING_PERIOD_DISCOUNT[period]);
   const monthly = (monthlyCents / 100).toFixed(0);
-  return `${monthly}\u20AC / mois`;
+  return `${monthly}€ / mois`;
 }
 
 function getPmsFirstPayment(period: BillingPeriod, baseCents: number): string {
   const monthlyCents = Math.round(baseCents * BILLING_PERIOD_DISCOUNT[period]);
-  if (period === 'MONTHLY') return `${(monthlyCents / 100).toFixed(0)}\u20AC`;
+  if (period === 'MONTHLY') return `${(monthlyCents / 100).toFixed(0)}€`;
   const total = (monthlyCents * 12 / 100).toFixed(0);
-  return `${total}\u20AC / an`;
+  return `${total}€ / an`;
 }
 
 const FORFAIT_COLORS: Record<string, string> = {
@@ -417,7 +417,7 @@ export default function Inscription() {
               Plateforme : {getPmsDisplayPrice(billingPeriod, pmsBaseCents)}
               {billingPeriod !== 'MONTHLY' && (
                 <Typography component="span" variant="caption" sx={{ ml: 0.5, textDecoration: 'line-through', color: 'text.disabled' }}>
-                  {(pmsBaseCents / 100).toFixed(0)}{'\u20AC'}/mois
+                  {(pmsBaseCents / 100).toFixed(0)}{'€'}/mois
                 </Typography>
               )}
               {billingPeriod !== 'MONTHLY' && (

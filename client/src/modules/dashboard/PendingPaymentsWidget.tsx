@@ -94,7 +94,7 @@ const PendingPaymentsWidget: React.FC<PendingPaymentsWidgetProps> = React.memo((
 
   const formatCost = (cost: number | null) => {
     if (cost === null || cost === undefined) return '--';
-    return `${cost.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} \u20AC`;
+    return `${cost.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €`;
   };
 
   return (

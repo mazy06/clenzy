@@ -6,6 +6,7 @@ import {
   Paper,
   Chip,
   Tooltip,
+  Divider,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -16,6 +17,10 @@ import {
   VolumeUp as VolumeUpIcon,
   Sync as SyncIcon,
   CalendarToday as CalendarTodayIcon,
+  Dashboard as DashboardIcon,
+  Euro as EuroIcon,
+  Groups as GroupsIcon,
+  Tune as TuneIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
@@ -86,6 +91,7 @@ const Dashboard: React.FC = () => {
   const [period, setPeriod] = useState<DashboardPeriod>('month');
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>(isMobile ? 'compact' : 'standard');
   const [tabValue, setTabValue] = useState(0);
+  const [analyticsSubTab, setAnalyticsSubTab] = useState(0);
   const [icalModalOpen, setIcalModalOpen] = useState(false);
 
   // Connected iCal feeds → unique source icons
@@ -261,7 +267,7 @@ const Dashboard: React.FC = () => {
         />
       </Box>
 
-      {/* ─── Tabs (3 onglets : Planning / Activité / Analytics) ──────── */}
+      {/* ─── Tabs (4 onglets : Planning / Activité / Analytics / Bruit) ── */}
       <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0, flexShrink: 0 }}>
         <Tabs
           value={tabValue}
@@ -313,6 +319,64 @@ const Dashboard: React.FC = () => {
             {...a11yProps(3)}
           />
         </Tabs>
+
+        {/* ─── Analytics sub-tabs (dropdown-style continuation) ───────── */}
+        {tabValue === 2 && (
+          <>
+            <Divider sx={{ borderColor: 'divider' }} />
+            <Box sx={{ bgcolor: 'rgba(107, 138, 154, 0.03)' }}>
+              <Tabs
+                value={analyticsSubTab}
+                onChange={(_, v) => setAnalyticsSubTab(v)}
+                variant="scrollable"
+                scrollButtons="auto"
+                sx={{
+                  minHeight: 30,
+                  '& .MuiTab-root': {
+                    minHeight: 30,
+                    py: 0.25,
+                    px: 1.5,
+                    fontSize: '0.6875rem',
+                    fontWeight: 500,
+                    textTransform: 'none',
+                    letterSpacing: '0.01em',
+                    color: 'text.disabled',
+                    '&.Mui-selected': {
+                      fontWeight: 700,
+                      color: '#6B8A9A',
+                    },
+                  },
+                  '& .MuiTabs-indicator': {
+                    height: 2,
+                    borderRadius: 1,
+                    bgcolor: '#6B8A9A',
+                  },
+                }}
+              >
+                <Tab
+                  icon={<DashboardIcon sx={{ fontSize: 13 }} />}
+                  iconPosition="start"
+                  label={t('dashboard.analytics.subTabs.overview')}
+                />
+                <Tab
+                  icon={<EuroIcon sx={{ fontSize: 13 }} />}
+                  iconPosition="start"
+                  label={t('dashboard.analytics.subTabs.revenueAndPricing')}
+                />
+                <Tab
+                  icon={<GroupsIcon sx={{ fontSize: 13 }} />}
+                  iconPosition="start"
+                  label={t('dashboard.analytics.subTabs.occupancyAndClients')}
+                />
+                <Tab
+                  icon={<TuneIcon sx={{ fontSize: 13 }} />}
+                  iconPosition="start"
+                  label={t('dashboard.analytics.subTabs.performanceAndTools')}
+                />
+              </Tabs>
+            </Box>
+          </>
+        )}
       </Paper>
 
       {/* ─── Tab 0: Planning ───────────────────────────────────────────── */}
@@ -360,7 +424,7 @@ const Dashboard: React.FC = () => {
           aria-labelledby="dashboard-tab-2"
           sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
         >
-          <DashboardAnalyticsContent period={period} />
+          <DashboardAnalyticsContent period={period} subTab={analyticsSubTab} />
         </Box>
       )}
 
