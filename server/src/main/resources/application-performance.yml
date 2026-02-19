@@ -1,9 +1,9 @@
-# Configuration optimisée pour la performance et la scalabilité
+# Configuration optimisée pour la performance et la scalabilité (virtual threads)
 spring:
   datasource:
     hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
+      maximum-pool-size: 50
+      minimum-idle: 10
       idle-timeout: 300000
       max-lifetime: 1200000
       connection-timeout: 20000
@@ -40,9 +40,9 @@ spring:
   redis:
     lettuce:
       pool:
-        max-active: 50
-        max-idle: 20
-        min-idle: 5
+        max-active: 100
+        max-idle: 30
+        min-idle: 10
         max-wait: 2000ms
       shutdown-timeout: 200ms
     timeout: 5000ms
@@ -82,10 +82,10 @@ management:
 server:
   tomcat:
     threads:
-      max: 200
-      min-spare: 10
-    max-connections: 8192
-    accept-count: 100
+      max: 200        # Avec virtual threads, Tomcat utilise les carrier threads
+      min-spare: 10   # Les virtual threads sont geres automatiquement
+    max-connections: 20000
+    accept-count: 200
     connection-timeout: 20000
   compression:
     enabled: true

@@ -29,7 +29,7 @@ spring:
           timeout: ${MAIL_SMTP_TIMEOUT_MS:5000}
           writetimeout: ${MAIL_SMTP_WRITE_TIMEOUT_MS:5000}
           pool: true
-          poolSize: ${MAIL_SMTP_POOL_SIZE:20}
+          poolSize: ${MAIL_SMTP_POOL_SIZE:50}
           quitwait: false
           ssl:
             enable: false

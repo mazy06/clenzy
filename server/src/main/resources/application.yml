@@ -3,6 +3,9 @@ spring:
     name: clenzy
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev,local}
+  threads:
+    virtual:
+      enabled: true
 
 # Configuration Keycloak
 keycloak:
