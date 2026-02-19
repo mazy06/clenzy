@@ -347,7 +347,7 @@ const DashboardCharts: React.FC<DashboardChartsProps> = React.memo(({ charts, lo
                     <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
                     <XAxis dataKey="month" tick={AXIS_TICK} />
                     <YAxis tick={AXIS_TICK} />
-                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value) => `${value} \u20AC`} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value) => `${value} €`} />
                     <Legend wrapperStyle={LEGEND_STYLE} iconSize={6} />
                     <Bar dataKey="revenue" name={t('dashboard.charts.revenue')} fill={CHART_SUCCESS} radius={[3, 3, 0, 0]} />
                     <Bar dataKey="expenses" name={t('dashboard.charts.expenses')} fill={CHART_ERROR} radius={[3, 3, 0, 0]} />

@@ -107,6 +107,7 @@ export const INTERVENTION_STATUS_LABELS: Record<PlanningInterventionStatus, stri
 // L'admin peut l'activer/désactiver depuis Paramètres → Développement.
 
 const MOCK_STORAGE_KEY = 'clenzy_planning_mock';
+const ANALYTICS_MOCK_KEY = 'clenzy_analytics_mock';
 
 function isoDate(year: number, month: number, day: number): string {
   return new Date(year, month, day).toISOString().split('T')[0];
@@ -458,14 +459,24 @@ function getMockPropertiesFromReservations(): MockPlanningProperty[] {
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 export const reservationsApi = {
-  /** Indique si on est en mode mock (data hardcodées). */
+  /** Indique si on est en mode mock planning (data hardcodées). */
   isMockMode(): boolean {
     return localStorage.getItem(MOCK_STORAGE_KEY) === 'true';
   },
 
-  /** Active ou désactive le mode mock (persisté en localStorage). */
+  /** Active ou désactive le mode mock planning (persisté en localStorage). */
   setMockMode(enabled: boolean): void {
     localStorage.setItem(MOCK_STORAGE_KEY, enabled ? 'true' : 'false');
+  },
+
+  /** Indique si le mode mock analytics est actif. */
+  isAnalyticsMockMode(): boolean {
+    return localStorage.getItem(ANALYTICS_MOCK_KEY) === 'true';
+  },
+
+  /** Active ou désactive le mode mock analytics (persisté en localStorage). */
+  setAnalyticsMockMode(enabled: boolean): void {
+    localStorage.setItem(ANALYTICS_MOCK_KEY, enabled ? 'true' : 'false');
   },
 
   /** Retourne les propriétés mock pour le planning (uniquement en mode mock). */
@@ -474,7 +485,7 @@ export const reservationsApi = {
   },
 
   async getAll(filters?: ReservationFilters): Promise<Reservation[]> {
-    if (localStorage.getItem(MOCK_STORAGE_KEY) === 'true') {
+    if (localStorage.getItem(MOCK_STORAGE_KEY) === 'true' || localStorage.getItem(ANALYTICS_MOCK_KEY) === 'true') {
       let data = generateMockReservations();
 
       if (filters?.propertyIds && filters.propertyIds.length > 0) {

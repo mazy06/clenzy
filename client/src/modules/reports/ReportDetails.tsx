@@ -384,7 +384,7 @@ const PropertiesReport: React.FC = () => {
                       yAxisId="right"
                       orientation="right"
                       tick={{ fontSize: 12 }}
-                      tickFormatter={(value: number) => `${value}\u00A0\u20AC`}
+                      tickFormatter={(value: number) => `${value}\u00A0€`}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend verticalAlign="bottom" height={36} />
@@ -446,7 +446,7 @@ const FinancialReport: React.FC = () => {
                     <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                     <YAxis
                       tick={{ fontSize: 12 }}
-                      tickFormatter={(value: number) => `${value}\u00A0\u20AC`}
+                      tickFormatter={(value: number) => `${value}\u00A0€`}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend verticalAlign="bottom" height={36} />

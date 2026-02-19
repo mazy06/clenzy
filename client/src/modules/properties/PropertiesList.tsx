@@ -176,7 +176,7 @@ export default function PropertiesList() {
     { key: 'address', label: 'Adresse' },
     { key: 'city', label: 'Ville' },
     { key: 'status', label: 'Statut' },
-    { key: 'nightlyPrice', label: 'Prix/nuit (\u20AC)' },
+    { key: 'nightlyPrice', label: 'Prix/nuit (€)' },
     { key: 'bedrooms', label: 'Chambres' },
     { key: 'bathrooms', label: 'Salles de bain' },
     { key: 'squareMeters', label: 'Surface (m\u00b2)' },
