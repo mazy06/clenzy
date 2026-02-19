@@ -14,11 +14,26 @@ import java.util.Set;
 
 @Entity
 @Table(name = "users")
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class User {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "organization_id")
+    private Long organizationId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id", insertable = false, updatable = false)
+    private Organization organization;
     
     @NotBlank(message = "Le prénom est obligatoire")
     @Size(min = 2, max = 50, message = "Le prénom doit contenir entre 2 et 50 caractères")
@@ -432,6 +447,18 @@ public class User {
     
 
     
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
+    }
+
+    public Organization getOrganization() {
+        return organization;
+    }
+
     // Méthodes utilitaires
     public String getFullName() {
         return firstName + " " + lastName;

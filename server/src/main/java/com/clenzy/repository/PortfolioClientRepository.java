@@ -15,79 +15,79 @@ import java.util.Optional;
 
 @Repository
 public interface PortfolioClientRepository extends JpaRepository<PortfolioClient, Long> {
-    
+
     /**
      * Requêtes optimisées avec cache
      */
-    @Query("SELECT pc FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.isActive = true")
+    @Query("SELECT pc FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.isActive = true AND pc.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
-    List<PortfolioClient> findByPortfolioIdAndIsActiveTrue(@Param("portfolioId") Long portfolioId);
-    
-    @Query("SELECT pc FROM PortfolioClient pc WHERE pc.client.id = :clientId AND pc.isActive = true")
+    List<PortfolioClient> findByPortfolioIdAndIsActiveTrue(@Param("portfolioId") Long portfolioId, @Param("orgId") Long orgId);
+
+    @Query("SELECT pc FROM PortfolioClient pc WHERE pc.client.id = :clientId AND pc.isActive = true AND pc.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
-    List<PortfolioClient> findByClientIdAndIsActiveTrue(@Param("clientId") Long clientId);
-    
-    @Query("SELECT pc FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.client.id = :clientId AND pc.isActive = true")
+    List<PortfolioClient> findByClientIdAndIsActiveTrue(@Param("clientId") Long clientId, @Param("orgId") Long orgId);
+
+    @Query("SELECT pc FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.client.id = :clientId AND pc.isActive = true AND pc.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
-    Optional<PortfolioClient> findByPortfolioIdAndClientIdAndIsActiveTrue(@Param("portfolioId") Long portfolioId, @Param("clientId") Long clientId);
-    
-    @Query("SELECT pc FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.client.id = :clientId")
+    Optional<PortfolioClient> findByPortfolioIdAndClientIdAndIsActiveTrue(@Param("portfolioId") Long portfolioId, @Param("clientId") Long clientId, @Param("orgId") Long orgId);
+
+    @Query("SELECT pc FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.client.id = :clientId AND pc.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
-    Optional<PortfolioClient> findByPortfolioIdAndClientId(@Param("portfolioId") Long portfolioId, @Param("clientId") Long clientId);
-    
+    Optional<PortfolioClient> findByPortfolioIdAndClientId(@Param("portfolioId") Long portfolioId, @Param("clientId") Long clientId, @Param("orgId") Long orgId);
+
     /**
      * Requêtes avec pagination optimisée
      */
-    @Query("SELECT pc FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.isActive = true")
+    @Query("SELECT pc FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.isActive = true AND pc.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
-    Page<PortfolioClient> findByPortfolioIdAndIsActiveTrueWithPagination(@Param("portfolioId") Long portfolioId, Pageable pageable);
-    
-    @Query("SELECT pc FROM PortfolioClient pc WHERE pc.client.id = :clientId AND pc.isActive = true")
+    Page<PortfolioClient> findByPortfolioIdAndIsActiveTrueWithPagination(@Param("portfolioId") Long portfolioId, Pageable pageable, @Param("orgId") Long orgId);
+
+    @Query("SELECT pc FROM PortfolioClient pc WHERE pc.client.id = :clientId AND pc.isActive = true AND pc.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
-    Page<PortfolioClient> findByClientIdAndIsActiveTrueWithPagination(@Param("clientId") Long clientId, Pageable pageable);
-    
+    Page<PortfolioClient> findByClientIdAndIsActiveTrueWithPagination(@Param("clientId") Long clientId, Pageable pageable, @Param("orgId") Long orgId);
+
     /**
      * Requêtes de comptage optimisées
      */
-    @Query("SELECT COUNT(pc) FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.isActive = true")
-    long countByPortfolioIdAndIsActiveTrue(@Param("portfolioId") Long portfolioId);
-    
-    @Query("SELECT COUNT(pc) FROM PortfolioClient pc WHERE pc.client.id = :clientId AND pc.isActive = true")
-    long countByClientIdAndIsActiveTrue(@Param("clientId") Long clientId);
-    
-    @Query("SELECT COUNT(pc) FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId")
-    long countByPortfolioId(@Param("portfolioId") Long portfolioId);
-    
-    @Query("SELECT COUNT(pc) FROM PortfolioClient pc WHERE pc.client.id = :clientId")
-    long countByClientId(@Param("clientId") Long clientId);
-    
+    @Query("SELECT COUNT(pc) FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.isActive = true AND pc.organizationId = :orgId")
+    long countByPortfolioIdAndIsActiveTrue(@Param("portfolioId") Long portfolioId, @Param("orgId") Long orgId);
+
+    @Query("SELECT COUNT(pc) FROM PortfolioClient pc WHERE pc.client.id = :clientId AND pc.isActive = true AND pc.organizationId = :orgId")
+    long countByClientIdAndIsActiveTrue(@Param("clientId") Long clientId, @Param("orgId") Long orgId);
+
+    @Query("SELECT COUNT(pc) FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.organizationId = :orgId")
+    long countByPortfolioId(@Param("portfolioId") Long portfolioId, @Param("orgId") Long orgId);
+
+    @Query("SELECT COUNT(pc) FROM PortfolioClient pc WHERE pc.client.id = :clientId AND pc.organizationId = :orgId")
+    long countByClientId(@Param("clientId") Long clientId, @Param("orgId") Long orgId);
+
     /**
      * Vérifications d'existence optimisées
      */
-    @Query("SELECT CASE WHEN COUNT(pc) > 0 THEN true ELSE false END FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.client.id = :clientId AND pc.isActive = true")
-    boolean existsByPortfolioIdAndClientIdAndIsActiveTrue(@Param("portfolioId") Long portfolioId, @Param("clientId") Long clientId);
-    
-    @Query("SELECT CASE WHEN COUNT(pc) > 0 THEN true ELSE false END FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.client.id = :clientId")
-    boolean existsByPortfolioIdAndClientId(@Param("portfolioId") Long portfolioId, @Param("clientId") Long clientId);
-    
+    @Query("SELECT CASE WHEN COUNT(pc) > 0 THEN true ELSE false END FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.client.id = :clientId AND pc.isActive = true AND pc.organizationId = :orgId")
+    boolean existsByPortfolioIdAndClientIdAndIsActiveTrue(@Param("portfolioId") Long portfolioId, @Param("clientId") Long clientId, @Param("orgId") Long orgId);
+
+    @Query("SELECT CASE WHEN COUNT(pc) > 0 THEN true ELSE false END FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.client.id = :clientId AND pc.organizationId = :orgId")
+    boolean existsByPortfolioIdAndClientId(@Param("portfolioId") Long portfolioId, @Param("clientId") Long clientId, @Param("orgId") Long orgId);
+
     /**
      * Requêtes pour les IDs seulement
      */
-    @Query("SELECT pc.client.id FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.isActive = true")
-    List<Long> findClientIdsByPortfolioIdAndIsActiveTrue(@Param("portfolioId") Long portfolioId);
-    
-    @Query("SELECT pc.portfolio.id FROM PortfolioClient pc WHERE pc.client.id = :clientId AND pc.isActive = true")
-    List<Long> findPortfolioIdsByClientIdAndIsActiveTrue(@Param("clientId") Long clientId);
+    @Query("SELECT pc.client.id FROM PortfolioClient pc WHERE pc.portfolio.id = :portfolioId AND pc.isActive = true AND pc.organizationId = :orgId")
+    List<Long> findClientIdsByPortfolioIdAndIsActiveTrue(@Param("portfolioId") Long portfolioId, @Param("orgId") Long orgId);
+
+    @Query("SELECT pc.portfolio.id FROM PortfolioClient pc WHERE pc.client.id = :clientId AND pc.isActive = true AND pc.organizationId = :orgId")
+    List<Long> findPortfolioIdsByClientIdAndIsActiveTrue(@Param("clientId") Long clientId, @Param("orgId") Long orgId);
 }

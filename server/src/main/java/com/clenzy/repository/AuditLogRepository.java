@@ -29,11 +29,12 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     List<AuditLog> findByTimestampBetweenOrderByTimestampDesc(Instant from, Instant to);
 
     @Query("SELECT a FROM AuditLog a WHERE a.entityType = :entityType " +
-           "AND a.timestamp >= :from ORDER BY a.timestamp DESC")
+           "AND a.timestamp >= :from AND a.organizationId = :orgId ORDER BY a.timestamp DESC")
     Page<AuditLog> findByEntityTypeAfter(
         @Param("entityType") String entityType,
         @Param("from") Instant from,
-        Pageable pageable);
+        Pageable pageable,
+        @Param("orgId") Long orgId);
 
     long countByAction(AuditAction action);
 

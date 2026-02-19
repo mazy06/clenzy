@@ -13,11 +13,22 @@ import java.time.Instant;
     @Index(name = "idx_audit_log_user_id", columnList = "userId"),
     @Index(name = "idx_audit_log_entity", columnList = "entityType, entityId")
 })
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class AuditLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "organization_id")
+    private Long organizationId;
 
     @Column(nullable = false)
     private Instant timestamp = Instant.now();
@@ -70,6 +81,9 @@ public class AuditLog {
     // Getters et Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
 
     public Instant getTimestamp() { return timestamp; }
     public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }

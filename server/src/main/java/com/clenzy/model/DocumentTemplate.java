@@ -14,11 +14,22 @@ import java.util.List;
  */
 @Entity
 @Table(name = "document_templates")
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class DocumentTemplate {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "organization_id")
+    private Long organizationId;
 
     @Column(nullable = false, length = 200)
     private String name;
@@ -69,6 +80,9 @@ public class DocumentTemplate {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }

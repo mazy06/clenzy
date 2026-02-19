@@ -21,6 +21,10 @@ import java.util.List;
  * - Sync periodique des reservations (polling complementaire aux webhooks)
  * - Sync periodique du calendrier
  * - Nettoyage des evenements webhook anciens
+ *
+ * Note multi-tenant : s'execute HORS contexte HTTP (pas de TenantFilter/TenantContext).
+ * Le Hibernate @Filter n'est pas actif — les queries retournent les donnees de toutes les orgs.
+ * C'est acceptable car chaque connection/mapping est traite independamment par user/property.
  */
 @Service
 public class AirbnbSyncScheduler {

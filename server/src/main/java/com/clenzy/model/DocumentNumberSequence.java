@@ -10,11 +10,22 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "document_number_sequences",
        uniqueConstraints = @UniqueConstraint(columnNames = {"document_type", "year"}))
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class DocumentNumberSequence {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "organization_id")
+    private Long organizationId;
 
     @Column(name = "document_type", nullable = false, length = 50)
     private String documentType;
@@ -47,6 +58,9 @@ public class DocumentNumberSequence {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
 
     public String getDocumentType() { return documentType; }
     public void setDocumentType(String documentType) { this.documentType = documentType; }

@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.model.DocumentNumberSequence;
 import com.clenzy.model.DocumentType;
 import com.clenzy.repository.DocumentNumberSequenceRepository;
+import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -33,9 +34,12 @@ public class DocumentNumberingService {
     );
 
     private final DocumentNumberSequenceRepository sequenceRepository;
+    private final TenantContext tenantContext;
 
-    public DocumentNumberingService(DocumentNumberSequenceRepository sequenceRepository) {
+    public DocumentNumberingService(DocumentNumberSequenceRepository sequenceRepository,
+                                    TenantContext tenantContext) {
         this.sequenceRepository = sequenceRepository;
+        this.tenantContext = tenantContext;
     }
 
     /**
@@ -57,7 +61,7 @@ public class DocumentNumberingService {
 
         // Verrouillage pessimiste : SELECT ... FOR UPDATE
         DocumentNumberSequence sequence = sequenceRepository
-                .findByDocumentTypeAndYearForUpdate(type.name(), currentYear)
+                .findByDocumentTypeAndYearForUpdate(type.name(), currentYear, tenantContext.getRequiredOrganizationId())
                 .orElseGet(() -> {
                     // Creer la sequence si elle n'existe pas encore pour cette annee
                     log.info("Creation de la sequence {} pour l'annee {}", type.name(), currentYear);

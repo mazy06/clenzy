@@ -4,6 +4,7 @@ import com.clenzy.model.AuditAction;
 import com.clenzy.model.AuditLog;
 import com.clenzy.model.AuditSource;
 import com.clenzy.repository.AuditLogRepository;
+import com.clenzy.tenant.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,9 +32,12 @@ public class AuditLogService {
     private static final Logger log = LoggerFactory.getLogger(AuditLogService.class);
 
     private final AuditLogRepository auditLogRepository;
+    private final TenantContext tenantContext;
 
-    public AuditLogService(AuditLogRepository auditLogRepository) {
+    public AuditLogService(AuditLogRepository auditLogRepository,
+                           TenantContext tenantContext) {
         this.auditLogRepository = auditLogRepository;
+        this.tenantContext = tenantContext;
     }
 
     // ─── Methodes principales de logging ──────────────────────────────────────
@@ -69,6 +73,7 @@ public class AuditLogService {
         entry.setDetails("Connexion reussie");
         entry.setSource(AuditSource.WEB);
         enrichWithRequestInfo(entry);
+        entry.setOrganizationId(tenantContext.getOrganizationId());
         saveAsync(entry);
     }
 
@@ -81,6 +86,7 @@ public class AuditLogService {
         entry.setDetails("Tentative de connexion echouee: " + reason);
         entry.setSource(AuditSource.WEB);
         enrichWithRequestInfo(entry);
+        entry.setOrganizationId(tenantContext.getOrganizationId());
         saveAsync(entry);
     }
 
@@ -94,6 +100,7 @@ public class AuditLogService {
         entry.setDetails("Deconnexion");
         entry.setSource(AuditSource.WEB);
         enrichWithRequestInfo(entry);
+        entry.setOrganizationId(tenantContext.getOrganizationId());
         saveAsync(entry);
     }
 
@@ -139,6 +146,7 @@ public class AuditLogService {
         // Enrichir avec les infos utilisateur depuis le SecurityContext
         enrichWithUserInfo(entry);
         enrichWithRequestInfo(entry);
+        entry.setOrganizationId(tenantContext.getOrganizationId());
 
         saveAsync(entry);
     }

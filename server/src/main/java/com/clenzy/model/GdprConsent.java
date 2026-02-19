@@ -13,6 +13,14 @@ import java.time.LocalDateTime;
     @Index(name = "idx_gdpr_consent_user_id", columnList = "user_id"),
     @Index(name = "idx_gdpr_consent_type", columnList = "consent_type")
 })
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class GdprConsent {
 
     public enum ConsentType {
@@ -26,6 +34,9 @@ public class GdprConsent {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "organization_id")
+    private Long organizationId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -85,6 +96,9 @@ public class GdprConsent {
     public void setId(Long id) {
         this.id = id;
     }
+
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
 
     public User getUser() {
         return user;

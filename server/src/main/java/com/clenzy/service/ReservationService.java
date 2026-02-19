@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.clenzy.tenant.TenantContext;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -20,11 +21,14 @@ public class ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
+    private final TenantContext tenantContext;
 
     public ReservationService(ReservationRepository reservationRepository,
-                              UserRepository userRepository) {
+                              UserRepository userRepository,
+                              TenantContext tenantContext) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
+        this.tenantContext = tenantContext;
     }
 
     /**
@@ -41,22 +45,22 @@ public class ReservationService {
         boolean isAdminOrManager = role.contains("ADMIN") || role.contains("MANAGER");
 
         if (propertyIds != null && !propertyIds.isEmpty()) {
-            return reservationRepository.findByPropertyIdsAndDateRange(propertyIds, from, to);
+            return reservationRepository.findByPropertyIdsAndDateRange(propertyIds, from, to, tenantContext.getRequiredOrganizationId());
         }
 
         if (isAdminOrManager) {
-            return reservationRepository.findAllByDateRange(from, to);
+            return reservationRepository.findAllByDateRange(from, to, tenantContext.getRequiredOrganizationId());
         }
 
         // Host : ses propres proprietes
-        return reservationRepository.findByOwnerKeycloakIdAndDateRange(keycloakId, from, to);
+        return reservationRepository.findByOwnerKeycloakIdAndDateRange(keycloakId, from, to, tenantContext.getRequiredOrganizationId());
     }
 
     /**
      * Retourne les reservations d'une propriete specifique.
      */
     public List<Reservation> getByProperty(Long propertyId) {
-        return reservationRepository.findByPropertyId(propertyId);
+        return reservationRepository.findByPropertyId(propertyId, tenantContext.getRequiredOrganizationId());
     }
 
     /**
@@ -64,6 +68,9 @@ public class ReservationService {
      */
     @Transactional
     public Reservation save(Reservation reservation) {
+        if (reservation.getOrganizationId() == null && tenantContext.getOrganizationId() != null) {
+            reservation.setOrganizationId(tenantContext.getOrganizationId());
+        }
         return reservationRepository.save(reservation);
     }
 

@@ -14,12 +14,23 @@ import java.util.Set;
 
 @Entity
 @Table(name = "properties")
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class Property {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    @Column(name = "organization_id")
+    private Long organizationId;
+
     @NotBlank(message = "Le nom du logement est obligatoire")
     @Size(min = 3, max = 100, message = "Le nom doit contenir entre 3 et 100 caractères")
     @Column(name = "name", nullable = false)
@@ -557,7 +568,10 @@ public class Property {
     public void setCleaningNotes(String cleaningNotes) {
         this.cleaningNotes = cleaningNotes;
     }
-    
+
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
+
     // Méthodes utilitaires
     public String getFullAddress() {
         StringBuilder address = new StringBuilder(this.address);

@@ -8,6 +8,14 @@ import java.time.LocalDateTime;
     @Index(name = "idx_minut_conn_user_id", columnList = "user_id", unique = true),
     @Index(name = "idx_minut_conn_status", columnList = "status")
 })
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class MinutConnection {
 
     public enum MinutConnectionStatus {
@@ -25,7 +33,10 @@ public class MinutConnection {
     private String minutUserId;
 
     @Column(name = "organization_id")
-    private String organizationId;
+    private Long organizationId;
+
+    @Column(name = "minut_organization_id")
+    private String minutOrganizationId;
 
     @Column(name = "access_token_encrypted", columnDefinition = "TEXT", nullable = false)
     private String accessTokenEncrypted;
@@ -90,8 +101,11 @@ public class MinutConnection {
     public String getMinutUserId() { return minutUserId; }
     public void setMinutUserId(String minutUserId) { this.minutUserId = minutUserId; }
 
-    public String getOrganizationId() { return organizationId; }
-    public void setOrganizationId(String organizationId) { this.organizationId = organizationId; }
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
+
+    public String getMinutOrganizationId() { return minutOrganizationId; }
+    public void setMinutOrganizationId(String minutOrganizationId) { this.minutOrganizationId = minutOrganizationId; }
 
     public String getAccessTokenEncrypted() { return accessTokenEncrypted; }
     public void setAccessTokenEncrypted(String accessTokenEncrypted) { this.accessTokenEncrypted = accessTokenEncrypted; }

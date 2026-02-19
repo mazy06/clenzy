@@ -33,6 +33,7 @@ public class InscriptionService {
     private final PendingInscriptionRepository pendingInscriptionRepository;
     private final UserRepository userRepository;
     private final KeycloakService keycloakService;
+    private final OrganizationService organizationService;
 
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
@@ -49,10 +50,12 @@ public class InscriptionService {
     public InscriptionService(
             PendingInscriptionRepository pendingInscriptionRepository,
             UserRepository userRepository,
-            KeycloakService keycloakService) {
+            KeycloakService keycloakService,
+            OrganizationService organizationService) {
         this.pendingInscriptionRepository = pendingInscriptionRepository;
         this.userRepository = userRepository;
         this.keycloakService = keycloakService;
+        this.organizationService = organizationService;
     }
 
     /**
@@ -262,6 +265,16 @@ public class InscriptionService {
 
             userRepository.save(user);
             logger.info("Utilisateur DB cree avec ID: {} pour email: {}, subscription: {}", user.getId(), user.getEmail(), stripeSubscriptionId);
+
+            // 2b. Creer l'organisation (INDIVIDUAL par defaut) + membership OWNER
+            String orgName = pending.getCompanyName() != null && !pending.getCompanyName().isBlank()
+                    ? pending.getCompanyName()
+                    : pending.getFirstName() + " " + pending.getLastName();
+            organizationService.createForUserWithBilling(
+                    user, orgName, OrganizationType.INDIVIDUAL,
+                    stripeCustomerId, stripeSubscriptionId, pending.getForfait(),
+                    pending.getBillingPeriod());
+            logger.info("Organisation creee pour l'utilisateur: {}", user.getEmail());
 
             // 3. Marquer l'inscription comme terminee
             pending.setStatus(PendingInscriptionStatus.COMPLETED);

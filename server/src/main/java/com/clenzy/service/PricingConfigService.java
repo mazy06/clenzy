@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.PricingConfigDto;
 import com.clenzy.model.PricingConfig;
 import com.clenzy.repository.PricingConfigRepository;
+import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +24,7 @@ public class PricingConfigService {
 
     private final PricingConfigRepository repository;
     private final ObjectMapper objectMapper;
+    private final TenantContext tenantContext;
 
     // ─── Scalar defaults (kept for QuoteController helper methods) ────────────
 
@@ -64,9 +66,11 @@ public class PricingConfigService {
     // These are now seeded directly in the database via V36 migration.
     // JSON parse methods now fall back to empty lists when data is null.
 
-    public PricingConfigService(PricingConfigRepository repository, ObjectMapper objectMapper) {
+    public PricingConfigService(PricingConfigRepository repository, ObjectMapper objectMapper,
+                               TenantContext tenantContext) {
         this.repository = repository;
         this.objectMapper = objectMapper;
+        this.tenantContext = tenantContext;
     }
 
     // ─── Public API ────────────────────────────────────────────────
@@ -84,6 +88,7 @@ public class PricingConfigService {
         PricingConfig config = repository.findTopByOrderByIdDesc()
                 .orElse(new PricingConfig());
         applyFromDto(config, dto);
+        config.setOrganizationId(tenantContext.getRequiredOrganizationId());
         config = repository.save(config);
         log.info("Configuration tarifaire mise a jour (id={})", config.getId());
         return toDto(config);

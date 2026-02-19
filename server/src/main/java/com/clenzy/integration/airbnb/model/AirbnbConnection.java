@@ -12,6 +12,14 @@ import java.time.LocalDateTime;
     @Index(name = "idx_airbnb_conn_user_id", columnList = "user_id", unique = true),
     @Index(name = "idx_airbnb_conn_airbnb_user_id", columnList = "airbnb_user_id")
 })
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class AirbnbConnection {
 
     public enum AirbnbConnectionStatus {
@@ -24,6 +32,9 @@ public class AirbnbConnection {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "organization_id")
+    private Long organizationId;
 
     @Column(name = "user_id", nullable = false)
     private String userId;
@@ -94,6 +105,14 @@ public class AirbnbConnection {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 
     public String getUserId() {

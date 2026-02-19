@@ -19,6 +19,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import com.clenzy.tenant.TenantContext;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
@@ -33,13 +34,15 @@ public class TeamService {
     private final UserRepository userRepository;
     private final ManagerTeamRepository managerTeamRepository;
     private final NotificationService notificationService;
+    private final TenantContext tenantContext;
 
-    public TeamService(TeamRepository teamRepository, TeamCoverageZoneRepository teamCoverageZoneRepository, UserRepository userRepository, ManagerTeamRepository managerTeamRepository, NotificationService notificationService) {
+    public TeamService(TeamRepository teamRepository, TeamCoverageZoneRepository teamCoverageZoneRepository, UserRepository userRepository, ManagerTeamRepository managerTeamRepository, NotificationService notificationService, TenantContext tenantContext) {
         this.teamRepository = teamRepository;
         this.teamCoverageZoneRepository = teamCoverageZoneRepository;
         this.userRepository = userRepository;
         this.managerTeamRepository = managerTeamRepository;
         this.notificationService = notificationService;
+        this.tenantContext = tenantContext;
     }
 
     public TeamDto create(TeamDto dto, Jwt jwt) {
@@ -54,6 +57,7 @@ public class TeamService {
         }
         
         Team team = new Team();
+        team.setOrganizationId(tenantContext.getRequiredOrganizationId());
         team.setName(dto.name);
         team.setDescription(dto.description);
         team.setInterventionType(dto.interventionType);
@@ -67,11 +71,12 @@ public class TeamService {
                         .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé avec l'ID: " + memberDto.userId));
                     
                     TeamMember member = new TeamMember();
+                    member.setOrganizationId(tenantContext.getRequiredOrganizationId());
                     member.setTeam(team);
                     member.setUser(user);
                     member.setRole(memberDto.role);
                     member.setCreatedAt(LocalDateTime.now());
-                    
+
                     return member;
                 })
                 .collect(Collectors.toList());
@@ -85,6 +90,7 @@ public class TeamService {
         if (dto.coverageZones != null && !dto.coverageZones.isEmpty()) {
             for (TeamDto.CoverageZoneDto zoneDto : dto.coverageZones) {
                 TeamCoverageZone zone = new TeamCoverageZone(savedTeam.getId(), zoneDto.department, zoneDto.arrondissement);
+                zone.setOrganizationId(tenantContext.getRequiredOrganizationId());
                 teamCoverageZoneRepository.save(zone);
             }
         }
@@ -123,8 +129,9 @@ public class TeamService {
             for (TeamDto.TeamMemberDto memberDto : dto.members) {
                 User user = userRepository.findById(memberDto.userId)
                     .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé avec l'ID: " + memberDto.userId));
-                
+
                 TeamMember member = new TeamMember();
+                member.setOrganizationId(tenantContext.getRequiredOrganizationId());
                 member.setTeam(team);
                 member.setUser(user);
                 member.setRole(memberDto.role);
@@ -140,9 +147,10 @@ public class TeamService {
         // Gestion des zones de couverture
         if (dto.coverageZones != null) {
             team.getCoverageZones().clear();
-            teamCoverageZoneRepository.deleteByTeamId(id);
+            teamCoverageZoneRepository.deleteByTeamIdAndOrganizationId(id, tenantContext.getRequiredOrganizationId());
             for (TeamDto.CoverageZoneDto zoneDto : dto.coverageZones) {
                 TeamCoverageZone zone = new TeamCoverageZone(id, zoneDto.department, zoneDto.arrondissement);
+                zone.setOrganizationId(tenantContext.getRequiredOrganizationId());
                 zone.setTeam(team);
                 team.getCoverageZones().add(zone);
             }
@@ -193,7 +201,7 @@ public class TeamService {
             String keycloakId = jwt.getSubject();
             User managerUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
             if (managerUser != null) {
-                List<Long> teamIds = managerTeamRepository.findTeamIdsByManagerIdAndIsActiveTrue(managerUser.getId());
+                List<Long> teamIds = managerTeamRepository.findTeamIdsByManagerIdAndIsActiveTrue(managerUser.getId(), tenantContext.getRequiredOrganizationId());
                 filteredTeams = teamIds.stream()
                     .map(teamId -> teamRepository.findById(teamId).orElse(null))
                     .filter(team -> team != null)
@@ -206,7 +214,7 @@ public class TeamService {
             String keycloakId = jwt.getSubject();
             User currentUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
             if (currentUser != null) {
-                filteredTeams = teamRepository.findByUserId(currentUser.getId());
+                filteredTeams = teamRepository.findByUserId(currentUser.getId(), tenantContext.getRequiredOrganizationId());
             } else {
                 filteredTeams = new ArrayList<>();
             }

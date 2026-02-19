@@ -22,6 +22,7 @@ import com.clenzy.model.ManagerTeam;
 import com.clenzy.model.ManagerUser;
 import com.clenzy.model.ManagerProperty;
 import com.clenzy.model.UserRole;
+import com.clenzy.tenant.TenantContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +53,9 @@ public class ManagerService {
     
     @Autowired
     private ManagerPropertyRepository managerPropertyRepository;
+
+    @Autowired
+    private TenantContext tenantContext;
     
     /**
      * Récupérer les HOSTs qui ont au moins une propriété non assignée
@@ -59,7 +63,7 @@ public class ManagerService {
     @Transactional(readOnly = true)
     public List<User> getAvailableHosts() {
         System.out.println("🔄 ManagerService - Récupération des HOSTs disponibles...");
-        List<User> allHosts = userRepository.findByRoleIn(java.util.Arrays.asList(UserRole.HOST));
+        List<User> allHosts = userRepository.findByRoleIn(java.util.Arrays.asList(UserRole.HOST), tenantContext.getRequiredOrganizationId());
         List<User> availableHosts = new java.util.ArrayList<>();
 
         for (User host : allHosts) {
@@ -76,7 +80,7 @@ public class ManagerService {
             boolean hasUnassignedProperty = false;
             for (Property property : hostProperties) {
                 // Vérifier si cette propriété n'est assignée à AUCUN manager
-                if (!managerPropertyRepository.existsByPropertyId(property.getId())) {
+                if (!managerPropertyRepository.existsByPropertyId(property.getId(), tenantContext.getRequiredOrganizationId())) {
                     hasUnassignedProperty = true;
                     System.out.println("📊 ManagerService - Propriété " + property.getId() + " du Host " + host.getId() + " est non assignée. Host disponible.");
                     break; // Trouvé une propriété non assignée, ce host est disponible
@@ -104,18 +108,18 @@ public class ManagerService {
 
         for (Property property : allHostProperties) {
             // Vérifier si cette propriété n'est assignée à AUCUN manager
-            if (!managerPropertyRepository.existsByPropertyId(property.getId())) {
+            if (!managerPropertyRepository.existsByPropertyId(property.getId(), tenantContext.getRequiredOrganizationId())) {
                 availableProperties.add(property);
                 System.out.println("📊 ManagerService - Propriété " + property.getId() + " (" + property.getName() + ") est disponible");
             } else {
                 System.out.println("📊 ManagerService - Propriété " + property.getId() + " (" + property.getName() + ") est déjà assignée");
             }
         }
-        
+
         System.out.println("✅ ManagerService - " + availableProperties.size() + " propriétés disponibles trouvées pour le HOST " + hostId);
         return availableProperties;
     }
-    
+
     /**
      * Récupérer les propriétés non assignées d'un HOST avec les informations de l'owner
      */
@@ -127,7 +131,7 @@ public class ManagerService {
 
         for (Property property : allHostProperties) {
             // Vérifier si cette propriété n'est assignée à AUCUN manager
-            if (!managerPropertyRepository.existsByPropertyId(property.getId())) {
+            if (!managerPropertyRepository.existsByPropertyId(property.getId(), tenantContext.getRequiredOrganizationId())) {
                 java.util.Map<String, Object> propertyData = new java.util.HashMap<>();
                 propertyData.put("id", property.getId());
                 propertyData.put("name", property.getName() != null ? property.getName() : "");
@@ -160,7 +164,7 @@ public class ManagerService {
         System.out.println("🔄 ManagerService.getManagerAssociations() - Récupération des associations pour le manager: " + managerId);
 
         // 1. Récupérer les portefeuilles du manager
-        List<Portfolio> portfolios = portfolioRepository.findByManagerId(managerId);
+        List<Portfolio> portfolios = portfolioRepository.findByManagerId(managerId, tenantContext.getRequiredOrganizationId());
         System.out.println("📊 ManagerService - " + portfolios.size() + " portefeuilles trouvés");
 
         // 2. Récupérer les clients associés via les portefeuilles
@@ -176,7 +180,7 @@ public class ManagerService {
             .collect(Collectors.toList());
 
         // 4. Récupérer les utilisateurs associés directement via manager_users
-        List<ManagerUser> managerUsers = managerUserRepository.findByManagerIdAndIsActiveTrue(managerId);
+        List<ManagerUser> managerUsers = managerUserRepository.findByManagerIdAndIsActiveTrue(managerId, tenantContext.getRequiredOrganizationId());
         List<UserAssociationDto> usersFromDirect = managerUsers.stream()
             .map(mu -> {
                 User user = userRepository.findById(mu.getUserId()).orElse(null);
@@ -195,7 +199,7 @@ public class ManagerService {
 
         // 5. Récupérer les propriétés spécifiquement assignées au manager
         List<PropertyAssociationDto> properties = new java.util.ArrayList<>();
-        List<ManagerProperty> managerProperties = managerPropertyRepository.findByManagerId(managerId);
+        List<ManagerProperty> managerProperties = managerPropertyRepository.findByManagerId(managerId, tenantContext.getRequiredOrganizationId());
         System.out.println("🔍 ManagerService - " + managerProperties.size() + " propriétés spécifiquement assignées au manager " + managerId);
         
         for (ManagerProperty managerProperty : managerProperties) {
@@ -213,7 +217,7 @@ public class ManagerService {
         }
 
         // 6. Récupérer les équipes associées directement via manager_teams
-        List<ManagerTeam> managerTeams = managerTeamRepository.findByManagerIdAndIsActiveTrue(managerId);
+        List<ManagerTeam> managerTeams = managerTeamRepository.findByManagerIdAndIsActiveTrue(managerId, tenantContext.getRequiredOrganizationId());
         List<TeamAssociationDto> teams = managerTeams.stream()
             .map(mt -> {
                 Team team = teamRepository.findById(mt.getTeamId()).orElse(null);

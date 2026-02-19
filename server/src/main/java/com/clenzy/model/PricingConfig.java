@@ -8,11 +8,22 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "pricing_configs")
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class PricingConfig {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "organization_id")
+    private Long organizationId;
 
     // Coefficient maps stored as JSON TEXT
     @Column(name = "property_type_coeffs", columnDefinition = "TEXT")
@@ -96,6 +107,9 @@ public class PricingConfig {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
 
     public String getPropertyTypeCoeffs() { return propertyTypeCoeffs; }
     public void setPropertyTypeCoeffs(String propertyTypeCoeffs) { this.propertyTypeCoeffs = propertyTypeCoeffs; }

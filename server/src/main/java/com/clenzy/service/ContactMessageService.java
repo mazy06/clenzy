@@ -6,6 +6,7 @@ import com.clenzy.dto.ContactUserDto;
 import com.clenzy.model.*;
 import com.clenzy.repository.ContactMessageRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.tenant.TenantContext;
 import com.clenzy.util.AttachmentValidator;
 import com.clenzy.util.StringUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,6 +39,7 @@ public class ContactMessageService {
     private final ObjectMapper objectMapper;
     private final ContactFileStorageService fileStorageService;
     private final NotificationService notificationService;
+    private final TenantContext tenantContext;
 
     @Value("${clenzy.mail.contact.max-attachments:10}")
     private int maxAttachments;
@@ -51,7 +53,8 @@ public class ContactMessageService {
             EmailService emailService,
             ObjectMapper objectMapper,
             ContactFileStorageService fileStorageService,
-            NotificationService notificationService
+            NotificationService notificationService,
+            TenantContext tenantContext
     ) {
         this.contactMessageRepository = contactMessageRepository;
         this.userRepository = userRepository;
@@ -59,6 +62,7 @@ public class ContactMessageService {
         this.objectMapper = objectMapper;
         this.fileStorageService = fileStorageService;
         this.notificationService = notificationService;
+        this.tenantContext = tenantContext;
     }
 
     // ─── Lecture ─────────────────────────────────────────────────────────────
@@ -73,7 +77,7 @@ public class ContactMessageService {
                     .findByRecipientKeycloakIdAndArchivedFalseOrderByCreatedAtDesc(userId, pageable);
             case "sent" -> contactMessageRepository
                     .findBySenderKeycloakIdAndArchivedFalseOrderByCreatedAtDesc(userId, pageable);
-            case "archived" -> contactMessageRepository.findArchivedForUser(userId, pageable);
+            case "archived" -> contactMessageRepository.findArchivedForUser(userId, pageable, tenantContext.getRequiredOrganizationId());
             default -> throw new IllegalArgumentException("Boite de messages invalide: " + box);
         };
 
@@ -113,7 +117,7 @@ public class ContactMessageService {
     @Transactional(readOnly = true)
     public ContactMessage getMessageForUser(Long messageId, Jwt jwt) {
         String userId = requireUserId(jwt);
-        return contactMessageRepository.findByIdForUser(messageId, userId)
+        return contactMessageRepository.findByIdForUser(messageId, userId, tenantContext.getRequiredOrganizationId())
                 .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
     }
 
@@ -161,6 +165,7 @@ public class ContactMessageService {
         contactMessage.setStatus(ContactMessageStatus.SENT);
         List<ContactAttachmentDto> attachmentMetadata = buildAttachmentMetadata(sanitizedAttachments);
         contactMessage.setAttachments(serializeAttachments(attachmentMetadata));
+        contactMessage.setOrganizationId(tenantContext.getRequiredOrganizationId());
 
         contactMessage = contactMessageRepository.save(contactMessage);
         dispatchEmail(contactMessage, actor, sanitizedAttachments);
@@ -192,7 +197,7 @@ public class ContactMessageService {
             List<MultipartFile> attachments
     ) {
         AuthActor actor = resolveActor(jwt);
-        ContactMessage original = contactMessageRepository.findByIdForUser(messageId, actor.userId())
+        ContactMessage original = contactMessageRepository.findByIdForUser(messageId, actor.userId(), tenantContext.getRequiredOrganizationId())
                 .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
 
         String normalizedMessage = normalizeMessage(messageText);
@@ -224,6 +229,7 @@ public class ContactMessageService {
         reply.setStatus(ContactMessageStatus.SENT);
         List<ContactAttachmentDto> attachmentMetadata = buildAttachmentMetadata(sanitizedAttachments);
         reply.setAttachments(serializeAttachments(attachmentMetadata));
+        reply.setOrganizationId(tenantContext.getRequiredOrganizationId());
 
         reply = contactMessageRepository.save(reply);
         dispatchEmail(reply, actor, sanitizedAttachments);
@@ -255,7 +261,7 @@ public class ContactMessageService {
     public ContactMessageDto updateStatus(Jwt jwt, Long id, String statusValue) {
         String userId = requireUserId(jwt);
         ContactMessageStatus status = parseStatus(statusValue);
-        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId)
+        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId, tenantContext.getRequiredOrganizationId())
                 .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
 
         if (status == ContactMessageStatus.READ && !userId.equals(message.getRecipientKeycloakId())) {
@@ -269,7 +275,7 @@ public class ContactMessageService {
     @Transactional
     public void deleteMessage(Jwt jwt, Long id) {
         String userId = requireUserId(jwt);
-        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId)
+        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId, tenantContext.getRequiredOrganizationId())
                 .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
         contactMessageRepository.delete(message);
     }
@@ -283,7 +289,7 @@ public class ContactMessageService {
             return Map.of("updatedCount", 0);
         }
 
-        List<ContactMessage> messages = contactMessageRepository.findByIdsForUser(sanitizedIds, userId);
+        List<ContactMessage> messages = contactMessageRepository.findByIdsForUser(sanitizedIds, userId, tenantContext.getRequiredOrganizationId());
         int updatedCount = 0;
         for (ContactMessage message : messages) {
             if (status == ContactMessageStatus.READ && !userId.equals(message.getRecipientKeycloakId())) {
@@ -305,7 +311,7 @@ public class ContactMessageService {
             return Map.of("deletedCount", 0);
         }
 
-        List<ContactMessage> messages = contactMessageRepository.findByIdsForUser(sanitizedIds, userId);
+        List<ContactMessage> messages = contactMessageRepository.findByIdsForUser(sanitizedIds, userId, tenantContext.getRequiredOrganizationId());
         int deletedCount = messages.size();
         contactMessageRepository.deleteAll(messages);
         return Map.of("deletedCount", deletedCount);
@@ -314,7 +320,7 @@ public class ContactMessageService {
     @Transactional
     public ContactMessageDto archiveMessage(Jwt jwt, Long id) {
         String userId = requireUserId(jwt);
-        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId)
+        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId, tenantContext.getRequiredOrganizationId())
                 .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
         message.setArchived(true);
         message.setArchivedAt(LocalDateTime.now());
@@ -331,7 +337,7 @@ public class ContactMessageService {
     @Transactional
     public ContactMessageDto unarchiveMessage(Jwt jwt, Long id) {
         String userId = requireUserId(jwt);
-        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId)
+        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId, tenantContext.getRequiredOrganizationId())
                 .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
         message.setArchived(false);
         message.setArchivedAt(null);

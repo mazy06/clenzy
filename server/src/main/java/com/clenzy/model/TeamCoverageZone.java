@@ -5,11 +5,22 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "team_coverage_zones")
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class TeamCoverageZone {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "organization_id")
+    private Long organizationId;
 
     @Column(name = "team_id", nullable = false)
     private Long teamId;
@@ -86,5 +97,13 @@ public class TeamCoverageZone {
 
     public void setTeam(Team team) {
         this.team = team;
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
+    public void setOrganizationId(Long organizationId) {
+        this.organizationId = organizationId;
     }
 }

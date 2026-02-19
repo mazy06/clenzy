@@ -44,6 +44,9 @@ public class PortfolioService {
 
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+    private com.clenzy.tenant.TenantContext tenantContext;
     
     /**
      * Créer un nouveau portefeuille
@@ -53,6 +56,7 @@ public class PortfolioService {
             .orElseThrow(() -> new RuntimeException("Manager non trouvé"));
         
         Portfolio portfolio = new Portfolio(manager, portfolioDto.getName(), portfolioDto.getDescription());
+        portfolio.setOrganizationId(tenantContext.getRequiredOrganizationId());
         Portfolio savedPortfolio = portfolioRepository.save(portfolio);
 
         try {
@@ -98,17 +102,17 @@ public class PortfolioService {
      * Récupérer tous les portefeuilles d'un manager
      */
     public List<PortfolioDto> getPortfoliosByManager(Long managerId) {
-        List<Portfolio> portfolios = portfolioRepository.findByManagerId(managerId);
+        List<Portfolio> portfolios = portfolioRepository.findByManagerId(managerId, tenantContext.getRequiredOrganizationId());
         return portfolios.stream()
             .map(this::convertToDto)
             .collect(Collectors.toList());
     }
-    
+
     /**
      * Récupérer tous les portefeuilles actifs
      */
     public List<PortfolioDto> getAllActivePortfolios() {
-        List<Portfolio> portfolios = portfolioRepository.findByIsActiveTrue();
+        List<Portfolio> portfolios = portfolioRepository.findByIsActiveTrue(tenantContext.getRequiredOrganizationId());
         return portfolios.stream()
             .map(this::convertToDto)
             .collect(Collectors.toList());
@@ -125,11 +129,12 @@ public class PortfolioService {
             .orElseThrow(() -> new RuntimeException("Client non trouvé"));
         
         // Vérifier que le client n'est pas déjà dans ce portefeuille
-        if (portfolioClientRepository.existsByPortfolioIdAndClientId(portfolioId, clientId)) {
+        if (portfolioClientRepository.existsByPortfolioIdAndClientId(portfolioId, clientId, tenantContext.getRequiredOrganizationId())) {
             throw new RuntimeException("Ce client est déjà dans ce portefeuille");
         }
         
         PortfolioClient portfolioClient = new PortfolioClient(portfolio, client);
+        portfolioClient.setOrganizationId(tenantContext.getRequiredOrganizationId());
         portfolioClient.setNotes(notes);
         
         PortfolioClient savedClient = portfolioClientRepository.save(portfolioClient);
@@ -153,7 +158,7 @@ public class PortfolioService {
      */
     public void removeClientFromPortfolio(Long portfolioId, Long clientId) {
         PortfolioClient portfolioClient = portfolioClientRepository
-            .findByPortfolioIdAndClientId(portfolioId, clientId)
+            .findByPortfolioIdAndClientId(portfolioId, clientId, tenantContext.getRequiredOrganizationId())
             .orElseThrow(() -> new RuntimeException("Client non trouvé dans ce portefeuille"));
 
         portfolioClientRepository.delete(portfolioClient);
@@ -181,11 +186,12 @@ public class PortfolioService {
             .orElseThrow(() -> new RuntimeException("Membre d'équipe non trouvé"));
         
         // Vérifier que le membre n'est pas déjà dans ce portefeuille
-        if (portfolioTeamRepository.existsByPortfolioIdAndTeamMemberId(portfolioId, teamMemberId)) {
+        if (portfolioTeamRepository.existsByPortfolioIdAndTeamMemberId(portfolioId, teamMemberId, tenantContext.getRequiredOrganizationId())) {
             throw new RuntimeException("Ce membre d'équipe est déjà dans ce portefeuille");
         }
         
         PortfolioTeam portfolioTeam = new PortfolioTeam(portfolio, teamMember, roleInTeam);
+        portfolioTeam.setOrganizationId(tenantContext.getRequiredOrganizationId());
         portfolioTeam.setNotes(notes);
         
         PortfolioTeam savedTeamMember = portfolioTeamRepository.save(portfolioTeam);
@@ -197,7 +203,7 @@ public class PortfolioService {
      */
     public void removeTeamMemberFromPortfolio(Long portfolioId, Long teamMemberId) {
         PortfolioTeam portfolioTeam = portfolioTeamRepository
-            .findByPortfolioIdAndTeamMemberId(portfolioId, teamMemberId)
+            .findByPortfolioIdAndTeamMemberId(portfolioId, teamMemberId, tenantContext.getRequiredOrganizationId())
             .orElseThrow(() -> new RuntimeException("Membre d'équipe non trouvé dans ce portefeuille"));
         
         portfolioTeamRepository.delete(portfolioTeam);
@@ -208,7 +214,7 @@ public class PortfolioService {
      */
     public User findManagerForHost(User host) {
         List<PortfolioClient> portfolioClients = portfolioClientRepository
-            .findByClientIdAndIsActiveTrue(host.getId());
+            .findByClientIdAndIsActiveTrue(host.getId(), tenantContext.getRequiredOrganizationId());
         
         if (!portfolioClients.isEmpty()) {
             return portfolioClients.get(0).getPortfolio().getManager();
@@ -222,7 +228,7 @@ public class PortfolioService {
      */
     public User findManagerForTeamMember(User teamMember) {
         Optional<PortfolioTeam> portfolioTeam = portfolioTeamRepository
-            .findByTeamMemberIdAndIsActiveTrue(teamMember.getId());
+            .findByTeamMemberIdAndIsActiveTrue(teamMember.getId(), tenantContext.getRequiredOrganizationId());
         
         if (portfolioTeam.isPresent()) {
             return portfolioTeam.get().getPortfolio().getManager();
@@ -235,7 +241,7 @@ public class PortfolioService {
      * Récupérer les clients d'un portefeuille
      */
     public List<PortfolioClientDto> getPortfolioClients(Long portfolioId) {
-        List<PortfolioClient> clients = portfolioClientRepository.findByPortfolioIdAndIsActiveTrue(portfolioId);
+        List<PortfolioClient> clients = portfolioClientRepository.findByPortfolioIdAndIsActiveTrue(portfolioId, tenantContext.getRequiredOrganizationId());
         return clients.stream()
             .map(this::convertClientToDto)
             .collect(Collectors.toList());
@@ -245,7 +251,7 @@ public class PortfolioService {
      * Récupérer les membres d'équipe d'un portefeuille
      */
     public List<PortfolioTeamDto> getPortfolioTeamMembers(Long portfolioId) {
-        List<PortfolioTeam> teamMembers = portfolioTeamRepository.findByPortfolioIdAndIsActiveTrue(portfolioId);
+        List<PortfolioTeam> teamMembers = portfolioTeamRepository.findByPortfolioIdAndIsActiveTrue(portfolioId, tenantContext.getRequiredOrganizationId());
         return teamMembers.stream()
             .map(this::convertTeamToDto)
             .collect(Collectors.toList());
@@ -256,7 +262,7 @@ public class PortfolioService {
      */
     @Transactional(readOnly = true)
     public PortfolioStatsDto getStatsByManager(Long managerId) {
-        List<Portfolio> portfolios = portfolioRepository.findByManagerId(managerId);
+        List<Portfolio> portfolios = portfolioRepository.findByManagerId(managerId, tenantContext.getRequiredOrganizationId());
 
         PortfolioStatsDto stats = new PortfolioStatsDto();
         stats.setTotalPortfolios(portfolios.size());
@@ -280,7 +286,7 @@ public class PortfolioService {
 
             // Clients for this portfolio
             List<PortfolioClient> clients = portfolioClientRepository
-                    .findByPortfolioIdAndIsActiveTrue(portfolio.getId());
+                    .findByPortfolioIdAndIsActiveTrue(portfolio.getId(), tenantContext.getRequiredOrganizationId());
             int clientCount = clients.size();
 
             // Collect unique client IDs and their properties
@@ -306,7 +312,7 @@ public class PortfolioService {
 
             // Team members for this portfolio
             List<com.clenzy.model.PortfolioTeam> teamMembers = portfolioTeamRepository
-                    .findByPortfolioIdAndIsActiveTrue(portfolio.getId());
+                    .findByPortfolioIdAndIsActiveTrue(portfolio.getId(), tenantContext.getRequiredOrganizationId());
             int teamMemberCount = teamMembers.size();
             totalTeamMembers += teamMemberCount;
 

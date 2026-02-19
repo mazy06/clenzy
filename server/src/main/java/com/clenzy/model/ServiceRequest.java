@@ -14,12 +14,23 @@ import java.util.Set;
 
 @Entity
 @Table(name = "service_requests")
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class ServiceRequest {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    @Column(name = "organization_id")
+    private Long organizationId;
+
     @NotBlank(message = "Le titre de la demande est obligatoire")
     @Size(min = 5, max = 100, message = "Le titre doit contenir entre 5 et 100 caractères")
     @Column(nullable = false)
@@ -374,7 +385,10 @@ public class ServiceRequest {
     public void setComments(Set<RequestComment> comments) {
         this.comments = comments;
     }
-    
+
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
+
     // Méthodes utilitaires
     public boolean isPending() {
         return RequestStatus.PENDING.equals(status);

@@ -9,12 +9,23 @@ import java.util.HashSet;
 @Entity
 @Table(name = "interventions")
 @org.hibernate.annotations.DynamicUpdate
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class Intervention {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    @Column(name = "organization_id")
+    private Long organizationId;
+
     @Column(nullable = false, length = 100)
     private String title;
     
@@ -539,6 +550,9 @@ public class Intervention {
     public void setCompletedSteps(String completedSteps) {
         this.completedSteps = completedSteps;
     }
+
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
 
     // Méthodes utilitaires
     public String getAssignedToType() {

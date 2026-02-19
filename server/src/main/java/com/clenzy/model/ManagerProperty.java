@@ -5,12 +5,23 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "manager_properties")
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class ManagerProperty {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    @Column(name = "organization_id")
+    private Long organizationId;
+
     @Column(name = "manager_id", nullable = false)
     private Long managerId;
     
@@ -116,4 +127,7 @@ public class ManagerProperty {
     public void setProperty(Property property) {
         this.property = property;
     }
+
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
 }

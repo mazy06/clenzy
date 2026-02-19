@@ -12,6 +12,7 @@ import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
+import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,6 +39,7 @@ public class DeferredPaymentService {
 
     private final InterventionRepository interventionRepository;
     private final UserRepository userRepository;
+    private final TenantContext tenantContext;
 
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
@@ -52,9 +54,11 @@ public class DeferredPaymentService {
     private String cancelUrl;
 
     public DeferredPaymentService(InterventionRepository interventionRepository,
-                                   UserRepository userRepository) {
+                                   UserRepository userRepository,
+                                   TenantContext tenantContext) {
         this.interventionRepository = interventionRepository;
         this.userRepository = userRepository;
+        this.tenantContext = tenantContext;
     }
 
     /**
@@ -65,8 +69,8 @@ public class DeferredPaymentService {
         User host = userRepository.findById(hostId)
                 .orElseThrow(() -> new RuntimeException("Host non trouve: " + hostId));
 
-        List<Intervention> unpaidInterventions = interventionRepository.findUnpaidByHostId(hostId);
-        BigDecimal totalUnpaid = interventionRepository.sumUnpaidByHostId(hostId);
+        List<Intervention> unpaidInterventions = interventionRepository.findUnpaidByHostId(hostId, tenantContext.getRequiredOrganizationId());
+        BigDecimal totalUnpaid = interventionRepository.sumUnpaidByHostId(hostId, tenantContext.getRequiredOrganizationId());
 
         // Grouper par propriete (LinkedHashMap pour garder l'ordre)
         Map<Long, List<Intervention>> byProperty = new LinkedHashMap<>();
@@ -129,12 +133,12 @@ public class DeferredPaymentService {
         User host = userRepository.findById(hostId)
                 .orElseThrow(() -> new RuntimeException("Host non trouve: " + hostId));
 
-        List<Intervention> unpaidInterventions = interventionRepository.findUnpaidByHostId(hostId);
+        List<Intervention> unpaidInterventions = interventionRepository.findUnpaidByHostId(hostId, tenantContext.getRequiredOrganizationId());
         if (unpaidInterventions.isEmpty()) {
             throw new RuntimeException("Aucune intervention impayee pour ce host");
         }
 
-        BigDecimal totalUnpaid = interventionRepository.sumUnpaidByHostId(hostId);
+        BigDecimal totalUnpaid = interventionRepository.sumUnpaidByHostId(hostId, tenantContext.getRequiredOrganizationId());
         long amountInCents = totalUnpaid.multiply(BigDecimal.valueOf(100)).longValue();
 
         // Construire la liste d'IDs pour les metadata

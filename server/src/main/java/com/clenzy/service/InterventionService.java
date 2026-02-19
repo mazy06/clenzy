@@ -29,6 +29,7 @@ import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.UserRole;
 import com.clenzy.config.KafkaConfig;
+import com.clenzy.tenant.TenantContext;
 import org.springframework.kafka.core.KafkaTemplate;
 import java.util.Arrays;
 import org.springframework.web.multipart.MultipartFile;
@@ -45,6 +46,7 @@ public class InterventionService {
     private final TeamRepository teamRepository;
     private final NotificationService notificationService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final TenantContext tenantContext;
 
     public InterventionService(InterventionRepository interventionRepository,
                               InterventionPhotoRepository interventionPhotoRepository,
@@ -52,7 +54,8 @@ public class InterventionService {
                              UserRepository userRepository,
                              TeamRepository teamRepository,
                              NotificationService notificationService,
-                             KafkaTemplate<String, Object> kafkaTemplate) {
+                             KafkaTemplate<String, Object> kafkaTemplate,
+                             TenantContext tenantContext) {
         this.interventionRepository = interventionRepository;
         this.interventionPhotoRepository = interventionPhotoRepository;
         this.propertyRepository = propertyRepository;
@@ -60,6 +63,7 @@ public class InterventionService {
         this.teamRepository = teamRepository;
         this.notificationService = notificationService;
         this.kafkaTemplate = kafkaTemplate;
+        this.tenantContext = tenantContext;
     }
     
     public InterventionDto create(InterventionDto dto, Jwt jwt) {
@@ -67,6 +71,7 @@ public class InterventionService {
         UserRole userRole = extractUserRole(jwt);
         
         Intervention intervention = new Intervention();
+        intervention.setOrganizationId(tenantContext.getRequiredOrganizationId());
         apply(dto, intervention);
         
         // Si c'est un HOST (owner), mettre le statut en AWAITING_VALIDATION et ne pas permettre de coût estimé
@@ -233,12 +238,12 @@ public class InterventionService {
                 
                 // Filtrer les interventions assignées à cet utilisateur (individuellement ou via équipe)
                 interventionPage = interventionRepository.findByAssignedUserOrTeamWithFilters(
-                        currentUser.getId(), propertyId, type, statusEnum, priority, pageable);
+                        currentUser.getId(), propertyId, type, statusEnum, priority, pageable, tenantContext.getRequiredOrganizationId());
             } else {
                 // Pour les admins et managers, voir toutes les interventions
                 System.out.println("🔍 Pas de filtre pour rôle: " + userRole);
                 interventionPage = interventionRepository.findByFiltersWithRelations(
-                        propertyId, type, statusEnum, priority, pageable);
+                        propertyId, type, statusEnum, priority, pageable, tenantContext.getRequiredOrganizationId());
             }
             
             System.out.println("🔍 Interventions trouvées: " + interventionPage.getTotalElements());
@@ -607,7 +612,7 @@ public class InterventionService {
      * Récupère toutes les photos (avant et après)
      */
     private String convertPhotosToBase64Urls(Intervention intervention) {
-        List<InterventionPhoto> photos = interventionPhotoRepository.findByInterventionIdOrderByCreatedAtAsc(intervention.getId());
+        List<InterventionPhoto> photos = interventionPhotoRepository.findAllByInterventionId(intervention.getId(), tenantContext.getRequiredOrganizationId());
         
         if (photos.isEmpty()) {
             // Si pas de photos dans la nouvelle table, vérifier l'ancien champ (compatibilité)
@@ -635,8 +640,9 @@ public class InterventionService {
     private String convertPhotosToBase64UrlsByType(Intervention intervention, String photoType) {
         String photoTypeUpper = "before".equals(photoType) ? "BEFORE" : "AFTER";
         List<InterventionPhoto> photos = interventionPhotoRepository.findByInterventionIdAndPhotoTypeOrderByCreatedAtAsc(
-            intervention.getId(), 
-            photoTypeUpper
+            intervention.getId(),
+            photoTypeUpper,
+            tenantContext.getRequiredOrganizationId()
         );
         
         if (photos.isEmpty()) {

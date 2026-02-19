@@ -28,6 +28,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import com.clenzy.tenant.TenantContext;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -45,6 +46,7 @@ public class PaymentController {
     private final StripeService stripeService;
     private final InterventionRepository interventionRepository;
     private final UserRepository userRepository;
+    private final TenantContext tenantContext;
 
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
@@ -52,10 +54,12 @@ public class PaymentController {
     @Autowired
     public PaymentController(StripeService stripeService,
                               InterventionRepository interventionRepository,
-                              UserRepository userRepository) {
+                              UserRepository userRepository,
+                              TenantContext tenantContext) {
         this.stripeService = stripeService;
         this.interventionRepository = interventionRepository;
         this.userRepository = userRepository;
+        this.tenantContext = tenantContext;
     }
     
     /**
@@ -130,7 +134,7 @@ public class PaymentController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'HOST')")
     public ResponseEntity<?> getSessionStatus(@PathVariable String sessionId) {
         try {
-            Intervention intervention = interventionRepository.findByStripeSessionId(sessionId)
+            Intervention intervention = interventionRepository.findByStripeSessionId(sessionId, tenantContext.getRequiredOrganizationId())
                 .orElseThrow(() -> new RuntimeException("Intervention non trouvée pour cette session"));
 
             // Si encore en PROCESSING, vérifier directement auprès de Stripe
@@ -143,7 +147,7 @@ public class PaymentController {
                         logger.info("Fallback: confirmation manuelle du paiement pour session {}", sessionId);
                         stripeService.confirmPayment(sessionId);
                         // Recharger l'intervention après confirmation
-                        intervention = interventionRepository.findByStripeSessionId(sessionId)
+                        intervention = interventionRepository.findByStripeSessionId(sessionId, tenantContext.getRequiredOrganizationId())
                             .orElse(intervention);
                     }
                 } catch (StripeException e) {
@@ -200,11 +204,11 @@ public class PaymentController {
             if (currentUser.getRole() == UserRole.HOST) {
                 // HOST : force ses propres interventions
                 interventionPage = interventionRepository.findPaymentHistoryByRequestor(
-                        currentUser.getId(), paymentStatus, pageable);
+                        currentUser.getId(), paymentStatus, pageable, tenantContext.getRequiredOrganizationId());
             } else {
                 // ADMIN / MANAGER : toutes, optionnellement filtrees par host
                 interventionPage = interventionRepository.findPaymentHistory(
-                        paymentStatus, hostId, pageable);
+                        paymentStatus, hostId, pageable, tenantContext.getRequiredOrganizationId());
             }
 
             // Mapper vers DTOs
@@ -239,9 +243,9 @@ public class PaymentController {
             Pageable all = PageRequest.of(0, 10000);
             Page<Intervention> interventions;
             if (effectiveHostId != null) {
-                interventions = interventionRepository.findPaymentHistoryByRequestor(effectiveHostId, null, all);
+                interventions = interventionRepository.findPaymentHistoryByRequestor(effectiveHostId, null, all, tenantContext.getRequiredOrganizationId());
             } else {
-                interventions = interventionRepository.findPaymentHistory(null, null, all);
+                interventions = interventionRepository.findPaymentHistory(null, null, all, tenantContext.getRequiredOrganizationId());
             }
 
             PaymentSummaryDto summary = new PaymentSummaryDto();
@@ -275,7 +279,7 @@ public class PaymentController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<?> getHostsWithPayments() {
         try {
-            List<Object[]> rows = interventionRepository.findDistinctHostsWithPayments();
+            List<Object[]> rows = interventionRepository.findDistinctHostsWithPayments(tenantContext.getRequiredOrganizationId());
             List<Map<String, Object>> hosts = rows.stream().map(row -> Map.<String, Object>of(
                     "id", row[0],
                     "fullName", row[1] + " " + row[2]

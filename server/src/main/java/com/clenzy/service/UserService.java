@@ -10,6 +10,7 @@ import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.UserStatus;
 import com.clenzy.model.NotificationKey;
+import com.clenzy.tenant.TenantContext;
 import java.util.UUID;
 import com.clenzy.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -28,12 +29,14 @@ public class UserService {
     private final PermissionService permissionService;
     private final NewUserService newUserService;
     private final NotificationService notificationService;
+    private final TenantContext tenantContext;
 
-    public UserService(UserRepository userRepository, PermissionService permissionService, NewUserService newUserService, NotificationService notificationService) {
+    public UserService(UserRepository userRepository, PermissionService permissionService, NewUserService newUserService, NotificationService notificationService, TenantContext tenantContext) {
         this.userRepository = userRepository;
         this.permissionService = permissionService;
         this.newUserService = newUserService;
         this.notificationService = notificationService;
+        this.tenantContext = tenantContext;
     }
 
     public UserDto create(UserDto dto) {
@@ -55,6 +58,7 @@ public class UserService {
             // Compléter les champs métier additionnels non gérés par NewUserService
             if (dto.phoneNumber != null) user.setPhoneNumber(dto.phoneNumber);
             if (dto.status != null) user.setStatus(dto.status);
+            user.setOrganizationId(tenantContext.getOrganizationId());
             user = userRepository.save(user);
 
             System.out.println("✅ Utilisateur créé dans Keycloak et base métier: " + user.getEmail() + " (Keycloak ID: " + userProfile.getId() + ")");
@@ -167,6 +171,7 @@ public class UserService {
             user.setEmailVerified(true);
             // Mot de passe aleatoire — l'utilisateur se connecte via Keycloak, pas via ce password
             user.setPassword(UUID.randomUUID().toString().replace("-", "") + "Aa1!");
+            user.setOrganizationId(tenantContext.getOrganizationId());
             user = userRepository.save(user);
             userRepository.flush(); // Force le flush pour detecter les erreurs de contrainte
             System.out.println("Auto-provisioning: utilisateur cree en base - ID=" + user.getId() +

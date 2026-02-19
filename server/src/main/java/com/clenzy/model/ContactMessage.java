@@ -10,11 +10,22 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "contact_messages")
+@org.hibernate.annotations.FilterDef(
+    name = "organizationFilter",
+    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
+)
+@org.hibernate.annotations.Filter(
+    name = "organizationFilter",
+    condition = "organization_id = :orgId"
+)
 public class ContactMessage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "organization_id")
+    private Long organizationId;
 
     @Column(name = "sender_keycloak_id", nullable = false, length = 100)
     private String senderKeycloakId;
@@ -90,6 +101,9 @@ public class ContactMessage {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
 
     public String getSenderKeycloakId() { return senderKeycloakId; }
     public void setSenderKeycloakId(String senderKeycloakId) { this.senderKeycloakId = senderKeycloakId; }
