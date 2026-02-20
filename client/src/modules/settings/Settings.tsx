@@ -45,6 +45,7 @@ import storageService, { STORAGE_KEYS } from '../../services/storageService';
 import { useQueryClient } from '@tanstack/react-query';
 import { reservationsApi } from '../../services/api/reservationsApi';
 import { propertiesApi } from '../../services/api/propertiesApi';
+import { planningKeys } from '../../hooks/useDashboardPlanning';
 import PageHeader from '../../components/PageHeader';
 import NotificationPreferencesCard from './NotificationPreferencesCard';
 import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
@@ -643,6 +644,8 @@ export default function Settings() {
                           const enabled = e.target.checked;
                           setPlanningMock(enabled);
                           reservationsApi.setMockMode(enabled);
+                          // Invalider tout le cache planning pour refresh immédiat
+                          queryClient.invalidateQueries({ queryKey: planningKeys.all });
                         }}
                       />
                     </ListItemSecondaryAction>
@@ -682,11 +685,12 @@ export default function Settings() {
                           setAnalyticsMock(enabled);
                           reservationsApi.setAnalyticsMockMode(enabled);
                           propertiesApi.setMockMode(enabled);
-                          // Invalider tous les caches analytics + overview pour refresh immédiat
+                          // Invalider tous les caches analytics + overview + planning pour refresh immédiat
                           queryClient.invalidateQueries({ queryKey: ['analytics-reservations'] });
                           queryClient.invalidateQueries({ queryKey: ['analytics-properties'] });
                           queryClient.invalidateQueries({ queryKey: ['analytics-interventions'] });
                           queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] });
+                          queryClient.invalidateQueries({ queryKey: planningKeys.all });
                         }}
                       />
                     </ListItemSecondaryAction>
