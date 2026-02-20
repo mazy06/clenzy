@@ -61,7 +61,7 @@ public class SecurityConfigProd {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .headers(headers -> headers
-                    .frameOptions(frame -> frame.deny())                              // X-Frame-Options: DENY
+                    .frameOptions(frame -> frame.sameOrigin())                         // X-Frame-Options: SAMEORIGIN (cohérent avec frame-ancestors 'self')
                     .contentTypeOptions(Customizer.withDefaults())                     // X-Content-Type-Options: nosniff
                     .httpStrictTransportSecurity(hsts -> hsts
                         .includeSubDomains(true)
@@ -77,7 +77,7 @@ public class SecurityConfigProd {
                 )
                 .headers(headers -> headers
                     .contentSecurityPolicy(csp -> csp
-                        .policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' https:; frame-ancestors 'none'; form-action 'self'; base-uri 'self'")
+                        .policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://auth.clenzy.fr https://api.clenzy.fr; frame-src 'self' https://auth.clenzy.fr; frame-ancestors 'self'; form-action 'self'; base-uri 'self'")
                     )
                 )
                 .authorizeHttpRequests(auth -> auth
