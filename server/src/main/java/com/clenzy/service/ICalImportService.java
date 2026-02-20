@@ -337,18 +337,38 @@ public class ICalImportService {
             throw new IllegalArgumentException("Les endpoints de metadata cloud ne sont pas autorises");
         }
 
-        // DNS resolution + private IP check
+        // DNS resolution + private IP check (RFC 1918: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
         try {
             InetAddress[] addresses = InetAddress.getAllByName(host);
             for (InetAddress addr : addresses) {
                 if (addr.isLoopbackAddress() || addr.isSiteLocalAddress()
-                        || addr.isLinkLocalAddress() || addr.isAnyLocalAddress()) {
+                        || addr.isLinkLocalAddress() || addr.isAnyLocalAddress()
+                        || isRfc1918Private(addr)) {
                     throw new IllegalArgumentException("L'URL iCal pointe vers une adresse IP privee ou locale");
                 }
             }
         } catch (UnknownHostException e) {
             throw new IllegalArgumentException("Impossible de resoudre le nom d'hote : " + host);
         }
+    }
+
+    /**
+     * Verifie explicitement si une adresse IP est dans un range prive RFC 1918.
+     * Couvre 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 — isSiteLocalAddress() ne couvre
+     * que 192.168.x.x en Java, donc on doit verifier 10.x et 172.16-31.x manuellement.
+     */
+    private boolean isRfc1918Private(InetAddress addr) {
+        byte[] bytes = addr.getAddress();
+        if (bytes == null || bytes.length != 4) return false;
+        int b0 = bytes[0] & 0xFF;
+        int b1 = bytes[1] & 0xFF;
+        // 10.0.0.0/8
+        if (b0 == 10) return true;
+        // 172.16.0.0/12 (172.16.x.x - 172.31.x.x)
+        if (b0 == 172 && b1 >= 16 && b1 <= 31) return true;
+        // 192.168.0.0/16
+        if (b0 == 192 && b1 == 168) return true;
+        return false;
     }
 
     /**

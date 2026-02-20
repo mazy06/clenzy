@@ -13,6 +13,8 @@ import com.clenzy.model.NotificationKey;
 import com.clenzy.tenant.TenantContext;
 import java.util.UUID;
 import com.clenzy.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Service
 @Transactional
 public class UserService {
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
+
     private final UserRepository userRepository;
     private final PermissionService permissionService;
     private final NewUserService newUserService;
@@ -61,7 +65,7 @@ public class UserService {
             user.setOrganizationId(tenantContext.getOrganizationId());
             user = userRepository.save(user);
 
-            System.out.println("✅ Utilisateur créé dans Keycloak et base métier: " + user.getEmail() + " (Keycloak ID: " + userProfile.getId() + ")");
+            log.debug("Utilisateur cree dans Keycloak et base metier: {} (Keycloak ID: {})", user.getEmail(), userProfile.getId());
 
             try {
                 notificationService.notifyAdminsAndManagers(
@@ -71,13 +75,13 @@ public class UserService {
                     "/users/" + user.getId()
                 );
             } catch (Exception notifEx) {
-                System.err.println("Erreur notification USER_CREATED: " + notifEx.getMessage());
+                log.warn("Erreur notification USER_CREATED: {}", notifEx.getMessage());
             }
 
             return toDto(user);
 
         } catch (Exception e) {
-            System.err.println("❌ Erreur lors de la création de l'utilisateur: " + e.getMessage());
+            log.error("Erreur lors de la creation de l'utilisateur: {}", e.getMessage());
             throw new RuntimeException("Impossible de créer l'utilisateur: " + e.getMessage(), e);
         }
     }
@@ -106,17 +110,17 @@ public class UserService {
                 );
             }
         } catch (Exception notifEx) {
-            System.err.println("Erreur notification USER_UPDATED: " + notifEx.getMessage());
+            log.warn("Erreur notification USER_UPDATED: {}", notifEx.getMessage());
         }
 
         // Mise à jour du mot de passe dans Keycloak si fourni
         if (dto.newPassword != null && !dto.newPassword.trim().isEmpty()) {
             try {
-                System.out.println("🔄 Mise à jour du mot de passe dans Keycloak pour l'utilisateur: " + user.getEmail());
+                log.debug("Mise a jour du mot de passe dans Keycloak pour l'utilisateur: {}", user.getEmail());
                 newUserService.resetPassword(user.getKeycloakId(), dto.newPassword);
-                System.out.println("✅ Mot de passe mis à jour dans Keycloak");
+                log.debug("Mot de passe mis a jour dans Keycloak");
             } catch (Exception e) {
-                System.err.println("⚠️ Erreur lors de la mise à jour du mot de passe dans Keycloak: " + e.getMessage());
+                log.warn("Erreur lors de la mise a jour du mot de passe dans Keycloak: {}", e.getMessage());
                 // L'utilisateur est mis à jour dans la base métier même si la mise à jour Keycloak échoue
             }
         }
@@ -174,12 +178,10 @@ public class UserService {
             user.setOrganizationId(tenantContext.getOrganizationId());
             user = userRepository.save(user);
             userRepository.flush(); // Force le flush pour detecter les erreurs de contrainte
-            System.out.println("Auto-provisioning: utilisateur cree en base - ID=" + user.getId() +
-                    ", email=" + email + ", role=" + role.name() + ", keycloakId=" + keycloakId);
+            log.debug("Auto-provisioning: utilisateur cree en base - ID={}, email={}, role={}, keycloakId={}", user.getId(), email, role.name(), keycloakId);
             return user;
         } catch (Exception e) {
-            System.err.println("Erreur auto-provisioning: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Erreur auto-provisioning: {}", e.getMessage(), e);
             return null;
         }
     }
@@ -190,18 +192,18 @@ public class UserService {
         // Supprimer l'utilisateur de Keycloak s'il a un keycloakId
         if (user.getKeycloakId() != null && !user.getKeycloakId().trim().isEmpty()) {
             try {
-                System.out.println("🔄 Suppression de l'utilisateur de Keycloak: " + user.getEmail());
+                log.debug("Suppression de l'utilisateur de Keycloak: {}", user.getEmail());
                 newUserService.deleteUser(user.getKeycloakId());
-                System.out.println("✅ Utilisateur supprimé de Keycloak");
+                log.debug("Utilisateur supprime de Keycloak");
             } catch (Exception e) {
-                System.err.println("⚠️ Erreur lors de la suppression de Keycloak: " + e.getMessage());
+                log.warn("Erreur lors de la suppression de Keycloak: {}", e.getMessage());
                 // Continuer avec la suppression de la base métier même si Keycloak échoue
             }
         }
         
         // Supprimer de la base métier
         userRepository.deleteById(id);
-        System.out.println("✅ Utilisateur supprimé de la base métier: " + user.getEmail());
+        log.debug("Utilisateur supprime de la base metier: {}", user.getEmail());
 
         try {
             notificationService.notifyAdminsAndManagers(
@@ -211,7 +213,7 @@ public class UserService {
                 "/users"
             );
         } catch (Exception notifEx) {
-            System.err.println("Erreur notification USER_DELETED: " + notifEx.getMessage());
+            log.warn("Erreur notification USER_DELETED: {}", notifEx.getMessage());
         }
     }
     

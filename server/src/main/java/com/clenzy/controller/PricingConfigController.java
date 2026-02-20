@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/pricing-config")
+@PreAuthorize("isAuthenticated()")
 public class PricingConfigController {
 
     private static final Logger log = LoggerFactory.getLogger(PricingConfigController.class);

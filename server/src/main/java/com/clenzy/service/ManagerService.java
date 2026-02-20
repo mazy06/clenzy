@@ -23,6 +23,8 @@ import com.clenzy.model.ManagerUser;
 import com.clenzy.model.ManagerProperty;
 import com.clenzy.model.UserRole;
 import com.clenzy.tenant.TenantContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +34,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class ManagerService {
+
+    private static final Logger log = LoggerFactory.getLogger(ManagerService.class);
 
     @Autowired
     private PortfolioRepository portfolioRepository;
@@ -62,17 +66,17 @@ public class ManagerService {
      */
     @Transactional(readOnly = true)
     public List<User> getAvailableHosts() {
-        System.out.println("🔄 ManagerService - Récupération des HOSTs disponibles...");
+        log.debug("ManagerService - Recuperation des HOSTs disponibles...");
         List<User> allHosts = userRepository.findByRoleIn(java.util.Arrays.asList(UserRole.HOST), tenantContext.getRequiredOrganizationId());
         List<User> availableHosts = new java.util.ArrayList<>();
 
         for (User host : allHosts) {
             List<Property> hostProperties = propertyRepository.findByOwnerId(host.getId());
-            System.out.println("🔍 ManagerService - Host " + host.getId() + " (" + host.getFirstName() + ") a " + hostProperties.size() + " propriétés");
+            log.debug("ManagerService - Host {} ({}) a {} proprietes", host.getId(), host.getFirstName(), hostProperties.size());
 
             // Si un host n'a pas de propriétés, il est considéré comme disponible
             if (hostProperties.isEmpty()) {
-                System.out.println("📊 ManagerService - Host " + host.getId() + " a 0 propriétés, donc disponible.");
+                log.debug("ManagerService - Host {} a 0 proprietes, donc disponible.", host.getId());
                 availableHosts.add(host);
                 continue;
             }
@@ -82,7 +86,7 @@ public class ManagerService {
                 // Vérifier si cette propriété n'est assignée à AUCUN manager
                 if (!managerPropertyRepository.existsByPropertyId(property.getId(), tenantContext.getRequiredOrganizationId())) {
                     hasUnassignedProperty = true;
-                    System.out.println("📊 ManagerService - Propriété " + property.getId() + " du Host " + host.getId() + " est non assignée. Host disponible.");
+                    log.debug("ManagerService - Propriete {} du Host {} est non assignee. Host disponible.", property.getId(), host.getId());
                     break; // Trouvé une propriété non assignée, ce host est disponible
                 }
             }
@@ -90,10 +94,10 @@ public class ManagerService {
             if (hasUnassignedProperty) {
                 availableHosts.add(host);
             } else {
-                System.out.println("📊 ManagerService - Host " + host.getId() + " (" + host.getFirstName() + ") a toutes ses propriétés assignées. Non disponible.");
+                log.debug("ManagerService - Host {} ({}) a toutes ses proprietes assignees. Non disponible.", host.getId(), host.getFirstName());
             }
         }
-        System.out.println("✅ ManagerService - " + availableHosts.size() + " HOSTs disponibles trouvés.");
+        log.debug("ManagerService - {} HOSTs disponibles trouves.", availableHosts.size());
         return availableHosts;
     }
     
@@ -102,7 +106,7 @@ public class ManagerService {
      */
     @Transactional(readOnly = true)
     public List<Property> getAvailablePropertiesForHost(Long hostId) {
-        System.out.println("🔄 ManagerService - Récupération des propriétés disponibles pour le HOST " + hostId);
+        log.debug("ManagerService - Recuperation des proprietes disponibles pour le HOST {}", hostId);
         List<Property> allHostProperties = propertyRepository.findByOwnerId(hostId);
         List<Property> availableProperties = new java.util.ArrayList<>();
 
@@ -110,13 +114,13 @@ public class ManagerService {
             // Vérifier si cette propriété n'est assignée à AUCUN manager
             if (!managerPropertyRepository.existsByPropertyId(property.getId(), tenantContext.getRequiredOrganizationId())) {
                 availableProperties.add(property);
-                System.out.println("📊 ManagerService - Propriété " + property.getId() + " (" + property.getName() + ") est disponible");
+                log.debug("ManagerService - Propriete {} ({}) est disponible", property.getId(), property.getName());
             } else {
-                System.out.println("📊 ManagerService - Propriété " + property.getId() + " (" + property.getName() + ") est déjà assignée");
+                log.debug("ManagerService - Propriete {} ({}) est deja assignee", property.getId(), property.getName());
             }
         }
 
-        System.out.println("✅ ManagerService - " + availableProperties.size() + " propriétés disponibles trouvées pour le HOST " + hostId);
+        log.debug("ManagerService - {} proprietes disponibles trouvees pour le HOST {}", availableProperties.size(), hostId);
         return availableProperties;
     }
 
@@ -125,7 +129,7 @@ public class ManagerService {
      */
     @Transactional(readOnly = true)
     public List<java.util.Map<String, Object>> getAvailablePropertiesForHostWithOwner(Long hostId) {
-        System.out.println("🔄 ManagerService - Récupération des propriétés disponibles avec owner pour le HOST " + hostId);
+        log.debug("ManagerService - Recuperation des proprietes disponibles avec owner pour le HOST {}", hostId);
         List<Property> allHostProperties = propertyRepository.findByOwnerId(hostId);
         List<java.util.Map<String, Object>> availableProperties = new java.util.ArrayList<>();
 
@@ -145,13 +149,13 @@ public class ManagerService {
                 propertyData.put("isActive", property.getStatus() != null ? property.getStatus().name().equals("ACTIVE") : true);
                 
                 availableProperties.add(propertyData);
-                System.out.println("📊 ManagerService - Propriété " + property.getId() + " (" + property.getName() + ") est disponible");
+                log.debug("ManagerService - Propriete {} ({}) est disponible", property.getId(), property.getName());
             } else {
-                System.out.println("📊 ManagerService - Propriété " + property.getId() + " (" + property.getName() + ") est déjà assignée");
+                log.debug("ManagerService - Propriete {} ({}) est deja assignee", property.getId(), property.getName());
             }
         }
-        
-        System.out.println("✅ ManagerService - " + availableProperties.size() + " propriétés disponibles trouvées pour le HOST " + hostId);
+
+        log.debug("ManagerService - {} proprietes disponibles trouvees pour le HOST {}", availableProperties.size(), hostId);
         return availableProperties;
     }
     
@@ -161,11 +165,11 @@ public class ManagerService {
      */
     @Transactional(readOnly = true)
     public ManagerAssociationsDto getManagerAssociations(Long managerId) {
-        System.out.println("🔄 ManagerService.getManagerAssociations() - Récupération des associations pour le manager: " + managerId);
+        log.debug("ManagerService.getManagerAssociations() - Recuperation des associations pour le manager: {}", managerId);
 
         // 1. Récupérer les portefeuilles du manager
         List<Portfolio> portfolios = portfolioRepository.findByManagerId(managerId, tenantContext.getRequiredOrganizationId());
-        System.out.println("📊 ManagerService - " + portfolios.size() + " portefeuilles trouvés");
+        log.debug("ManagerService - {} portefeuilles trouves", portfolios.size());
 
         // 2. Récupérer les clients associés via les portefeuilles
         List<ClientAssociationDto> clients = portfolios.stream()
@@ -200,7 +204,7 @@ public class ManagerService {
         // 5. Récupérer les propriétés spécifiquement assignées au manager
         List<PropertyAssociationDto> properties = new java.util.ArrayList<>();
         List<ManagerProperty> managerProperties = managerPropertyRepository.findByManagerId(managerId, tenantContext.getRequiredOrganizationId());
-        System.out.println("🔍 ManagerService - " + managerProperties.size() + " propriétés spécifiquement assignées au manager " + managerId);
+        log.debug("ManagerService - {} proprietes specifiquement assignees au manager {}", managerProperties.size(), managerId);
         
         for (ManagerProperty managerProperty : managerProperties) {
             Property property = propertyRepository.findById(managerProperty.getPropertyId()).orElse(null);
@@ -210,9 +214,9 @@ public class ManagerService {
                     managerProperty.getAssignedAt().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME) : "N/A");
                 dto.setNotes(managerProperty.getNotes() != null ? managerProperty.getNotes() : "Assignée spécifiquement");
                 properties.add(dto);
-                System.out.println("🔍 ManagerService - Propriété " + property.getId() + " ajoutée à la liste (assignée spécifiquement)");
+                log.debug("ManagerService - Propriete {} ajoutee a la liste (assignee specifiquement)", property.getId());
             } else {
-                System.out.println("⚠️ ManagerService - Propriété " + managerProperty.getPropertyId() + " non trouvée en base");
+                log.warn("ManagerService - Propriete {} non trouvee en base", managerProperty.getPropertyId());
             }
         }
 
@@ -229,11 +233,7 @@ public class ManagerService {
             .filter(dto -> dto != null)
             .collect(Collectors.toList());
 
-        System.out.println("📊 ManagerService - Associations récupérées:");
-        System.out.println("  - Clients: " + clients.size());
-        System.out.println("  - Propriétés: " + properties.size());
-        System.out.println("  - Équipes: " + teams.size());
-        System.out.println("  - Utilisateurs: " + users.size());
+        log.debug("ManagerService - Associations recuperees: Clients={}, Proprietes={}, Equipes={}, Utilisateurs={}", clients.size(), properties.size(), teams.size(), users.size());
 
         return new ManagerAssociationsDto(clients, properties, teams, users);
     }

@@ -11,6 +11,8 @@ import com.clenzy.repository.PortfolioClientRepository;
 import com.clenzy.repository.PortfolioTeamRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +28,9 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class PortfolioService {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(PortfolioService.class);
+
     @Autowired
     private PortfolioRepository portfolioRepository;
     
@@ -67,7 +71,7 @@ public class PortfolioService {
                 "/portfolios/" + savedPortfolio.getId()
             );
         } catch (Exception e) {
-            System.err.println("Erreur notification PORTFOLIO_CREATED: " + e.getMessage());
+            log.warn("Erreur notification PORTFOLIO_CREATED: {}", e.getMessage());
         }
 
         return convertToDto(savedPortfolio);
@@ -147,7 +151,7 @@ public class PortfolioService {
                 "/portfolios/" + portfolioId
             );
         } catch (Exception e) {
-            System.err.println("Erreur notification PORTFOLIO_CLIENT_ADDED: " + e.getMessage());
+            log.warn("Erreur notification PORTFOLIO_CLIENT_ADDED: {}", e.getMessage());
         }
 
         return convertClientToDto(savedClient);
@@ -171,7 +175,7 @@ public class PortfolioService {
                 "/portfolios/" + portfolioId
             );
         } catch (Exception e) {
-            System.err.println("Erreur notification PORTFOLIO_CLIENT_REMOVED: " + e.getMessage());
+            log.warn("Erreur notification PORTFOLIO_CLIENT_REMOVED: {}", e.getMessage());
         }
     }
     
