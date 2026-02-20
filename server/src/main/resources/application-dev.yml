@@ -3,7 +3,7 @@ spring:
     url: jdbc:postgresql://postgres:5432/clenzy_dev
     driver-class-name: org.postgresql.Driver
     username: ${SPRING_DATASOURCE_USERNAME:clenzy}
-    password: ${SPRING_DATASOURCE_PASSWORD:clenzy123}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     # Configuration HikariCP optimisée pour faible charge
     hikari:
       maximum-pool-size: 10
@@ -88,8 +88,8 @@ keycloak:
     secret: ${KEYCLOAK_CLIENT_SECRET:}
   # Configuration pour le client admin
   admin:
-    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
-    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+    username: ${KEYCLOAK_ADMIN_USERNAME}
+    password: ${KEYCLOAK_ADMIN_PASSWORD}
     client-id: admin-cli
 
 logging:
@@ -172,12 +172,12 @@ tuya:
 
 jasypt:
   encryptor:
-    password: ${JASYPT_ENCRYPTOR_PASSWORD:dev-jasypt-secret-key}
+    password: ${JASYPT_ENCRYPTOR_PASSWORD}
 
 stripe:
-  secret-key: ${STRIPE_SECRET_KEY:sk_test_your_secret_key_here}
-  publishable-key: ${STRIPE_PUBLISHABLE_KEY:pk_test_your_publishable_key_here}
-  webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_your_webhook_secret_here}
+  secret-key: ${STRIPE_SECRET_KEY}
+  publishable-key: ${STRIPE_PUBLISHABLE_KEY}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET}
   currency: eur
   success-url: ${FRONTEND_URL:http://localhost:3000}/interventions/payment/success?session_id={CHECKOUT_SESSION_ID}
   cancel-url: ${FRONTEND_URL:http://localhost:3000}/interventions/payment/cancel

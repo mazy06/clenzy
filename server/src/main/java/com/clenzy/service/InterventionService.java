@@ -30,6 +30,8 @@ import com.clenzy.model.NotificationKey;
 import com.clenzy.model.UserRole;
 import com.clenzy.config.KafkaConfig;
 import com.clenzy.tenant.TenantContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import java.util.Arrays;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,6 +40,8 @@ import java.util.Base64;
 @Service
 @Transactional
 public class InterventionService {
+
+    private static final Logger log = LoggerFactory.getLogger(InterventionService.class);
 
     private final InterventionRepository interventionRepository;
     private final InterventionPhotoRepository interventionPhotoRepository;
@@ -826,24 +830,26 @@ public class InterventionService {
     }
 
     private void checkAccessRights(Intervention intervention, Jwt jwt) {
-        System.out.println("🔍 InterventionService.checkAccessRights - Début de la vérification");
-        
         UserRole userRole = extractUserRole(jwt);
-        System.out.println("🔍 InterventionService.checkAccessRights - Rôle utilisateur: " + userRole);
-        
-        // Pour les admins et managers, accès complet sans vérification d'ID
+
+        // Tenant isolation: always verify the intervention belongs to the caller's organization
+        Long callerOrgId = tenantContext.getRequiredOrganizationId();
+        if (intervention.getOrganizationId() != null
+                && !intervention.getOrganizationId().equals(callerOrgId)) {
+            log.warn("Cross-tenant access attempt: intervention orgId={} vs caller orgId={}",
+                    intervention.getOrganizationId(), callerOrgId);
+            throw new UnauthorizedException("Acces refuse : intervention hors de votre organisation");
+        }
+
+        // Pour les admins et managers, acces complet au sein de leur organisation
         if (userRole == UserRole.ADMIN || userRole == UserRole.MANAGER) {
-            System.out.println("🔍 InterventionService.checkAccessRights - Admin/Manager - accès autorisé");
-            return; // Accès complet
+            return;
         }
         
-        // Pour les autres rôles, identifier l'utilisateur depuis le JWT
+        // Pour les autres roles, identifier l'utilisateur depuis le JWT
         String keycloakId = jwt.getSubject();
         String email = jwt.getClaimAsString("email");
-        System.out.println("🔍 InterventionService.checkAccessRights - Subject JWT (keycloakId): " + keycloakId);
-        System.out.println("🔍 InterventionService.checkAccessRights - Email JWT: " + email);
-        
-        // Récupérer l'utilisateur depuis la base de données
+
         User currentUser = null;
         if (keycloakId != null) {
             currentUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
@@ -851,49 +857,36 @@ public class InterventionService {
         if (currentUser == null && email != null) {
             currentUser = userRepository.findByEmail(email).orElse(null);
         }
-        
+
         if (currentUser == null) {
-            System.out.println("🔍 InterventionService.checkAccessRights - Utilisateur non trouvé dans la base de données");
             throw new UnauthorizedException("Impossible d'identifier l'utilisateur depuis le JWT");
         }
-        
+
         Long userId = currentUser.getId();
-        System.out.println("🔍 InterventionService.checkAccessRights - ID utilisateur trouvé: " + userId);
-        
+
         if (userRole == UserRole.HOST) {
-            System.out.println("🔍 InterventionService.checkAccessRights - Vérification des droits HOST");
-            // Host peut voir les interventions de ses propriétés
             if (intervention.getProperty().getOwner().getId().equals(userId)) {
-                System.out.println("🔍 InterventionService.checkAccessRights - HOST - propriétaire de la propriété, accès autorisé");
                 return;
             }
-            System.out.println("🔍 InterventionService.checkAccessRights - HOST - pas propriétaire de la propriété");
         } else {
-            System.out.println("🔍 InterventionService.checkAccessRights - Vérification des droits utilisateur standard");
-            // Autres utilisateurs peuvent voir les interventions assignées
-            if (intervention.getAssignedUser() != null && 
-                intervention.getAssignedUser().getId().equals(userId)) {
-                System.out.println("🔍 InterventionService.checkAccessRights - Utilisateur assigné, accès autorisé");
+            if (intervention.getAssignedUser() != null
+                    && intervention.getAssignedUser().getId().equals(userId)) {
                 return;
             }
             if (intervention.getTeamId() != null) {
-                System.out.println("🔍 InterventionService.checkAccessRights - Vérification de l'équipe");
-                // Vérifier si l'utilisateur fait partie de l'équipe
                 Team team = teamRepository.findById(intervention.getTeamId())
                         .orElse(null);
                 if (team != null) {
                     boolean isTeamMember = team.getMembers().stream()
                             .anyMatch(member -> member.getUser().getId().equals(userId));
                     if (isTeamMember) {
-                        System.out.println("🔍 InterventionService.checkAccessRights - Membre de l'équipe, accès autorisé");
                         return;
                     }
                 }
             }
         }
-        
-        System.out.println("🔍 InterventionService.checkAccessRights - Aucun droit d'accès trouvé, accès refusé");
-        throw new UnauthorizedException("Accès non autorisé à cette intervention");
+
+        throw new UnauthorizedException("Acces non autorise a cette intervention");
     }
     
     private void apply(InterventionDto dto, Intervention intervention) {

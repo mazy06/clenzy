@@ -56,12 +56,14 @@ public class AirbnbWebhookService {
      */
     public boolean processWebhook(String payload, String signature) {
         try {
-            // 1. Valider la signature
-            if (config.getWebhookSecret() != null && !config.getWebhookSecret().isEmpty()) {
-                if (!validateSignature(payload, signature)) {
-                    log.warn("Signature webhook Airbnb invalide");
-                    return false;
-                }
+            // 1. Valider la signature — OBLIGATOIRE
+            if (config.getWebhookSecret() == null || config.getWebhookSecret().isEmpty()) {
+                log.error("AIRBNB_WEBHOOK_SECRET non configure — webhook rejete par securite");
+                return false;
+            }
+            if (!validateSignature(payload, signature)) {
+                log.warn("Signature webhook Airbnb invalide");
+                return false;
             }
 
             // 2. Parser le payload
@@ -129,8 +131,10 @@ public class AirbnbWebhookService {
             byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
             String expectedSignature = HexFormat.of().formatHex(hash);
 
-            // Comparaison constante pour eviter les timing attacks
-            return signature.equalsIgnoreCase(expectedSignature);
+            // Constant-time comparison to prevent timing attacks
+            return java.security.MessageDigest.isEqual(
+                    expectedSignature.toLowerCase().getBytes(StandardCharsets.UTF_8),
+                    signature.toLowerCase().getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             log.error("Erreur validation signature webhook: {}", e.getMessage());
             return false;

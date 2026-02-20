@@ -15,8 +15,8 @@ keycloak:
   credentials:
     secret: ${KEYCLOAK_CLIENT_SECRET:}
   admin:
-    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
-    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+    username: ${KEYCLOAK_ADMIN_USERNAME}
+    password: ${KEYCLOAK_ADMIN_PASSWORD}
     client-id: admin-cli
 
 server:
