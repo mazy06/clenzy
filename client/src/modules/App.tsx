@@ -9,12 +9,13 @@ import { CustomPermissionsProvider } from '../hooks/useCustomPermissions';
 import Login from './auth/Login';
 import Inscription from './auth/Inscription';
 import Support from './auth/Support';
+import AcceptInvitationPage from './invitations/AcceptInvitationPage';
 import MainLayoutFull from './layout/MainLayoutFull';
 import AuthenticatedApp from './AuthenticatedApp';
 import { clearTokens, setItem, STORAGE_KEYS } from '../services/storageService';
 
 // Routes publiques accessibles sans authentification
-const PUBLIC_ROUTES = ['/login', '/inscription', '/support'];
+const PUBLIC_ROUTES = ['/login', '/inscription', '/support', '/accept-invitation'];
 
 const App: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -222,6 +223,9 @@ const App: React.FC = () => {
 
           {/* Route publique pour le support */}
           <Route path="/support" element={<Support />} />
+
+          {/* Route publique/semi-publique pour accepter une invitation */}
+          <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
         
         {/* Routes protégées */}
         <Route 

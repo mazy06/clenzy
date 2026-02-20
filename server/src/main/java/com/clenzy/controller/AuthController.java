@@ -25,7 +25,10 @@ import com.clenzy.service.PermissionService;
 import com.clenzy.service.AuditLogService;
 import com.clenzy.service.LoginProtectionService;
 import com.clenzy.service.LoginProtectionService.LoginStatus;
+import com.clenzy.service.OrganizationInvitationService;
 import com.clenzy.model.UserRole;
+import com.clenzy.model.Organization;
+import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.dto.RolePermissionsDto;
 
 @RestController
@@ -52,13 +55,19 @@ public class AuthController {
     private final PermissionService permissionService;
     private final AuditLogService auditLogService;
     private final LoginProtectionService loginProtectionService;
+    private final OrganizationInvitationService invitationService;
+    private final OrganizationRepository organizationRepository;
 
     public AuthController(UserService userService, PermissionService permissionService,
-                          AuditLogService auditLogService, LoginProtectionService loginProtectionService) {
+                          AuditLogService auditLogService, LoginProtectionService loginProtectionService,
+                          OrganizationInvitationService invitationService,
+                          OrganizationRepository organizationRepository) {
         this.userService = userService;
         this.permissionService = permissionService;
         this.auditLogService = auditLogService;
         this.loginProtectionService = loginProtectionService;
+        this.invitationService = invitationService;
+        this.organizationRepository = organizationRepository;
     }
 
     @PostMapping("/auth/login")
@@ -256,8 +265,26 @@ public class AuthController {
                         );
                         if (user != null) {
                             log.info("/me - Auto-provisioning reussi: {} (role: {})", email, user.getRole().name());
+                            // Auto-accepter les invitations pending pour cet email
+                            try {
+                                invitationService.autoAcceptPendingInvitations(email, user);
+                            } catch (Exception invEx) {
+                                log.warn("/me - Erreur auto-acceptation invitations: {}", invEx.getMessage());
+                            }
                         }
                     }
+                }
+            }
+
+            // Verifier les invitations pending meme pour les utilisateurs existants sans org
+            if (user != null && user.getOrganizationId() == null) {
+                try {
+                    String userEmail = user.getEmail();
+                    if (userEmail != null) {
+                        invitationService.autoAcceptPendingInvitations(userEmail, user);
+                    }
+                } catch (Exception invEx) {
+                    log.warn("/me - Erreur auto-acceptation invitations pour user existant: {}", invEx.getMessage());
                 }
             }
 
@@ -267,6 +294,12 @@ public class AuthController {
                 claims.put("lastName", user.getLastName());
                 claims.put("role", user.getRole().name());
                 claims.put("status", user.getStatus().name());
+                if (user.getOrganizationId() != null) {
+                    claims.put("organizationId", user.getOrganizationId());
+                    organizationRepository.findById(user.getOrganizationId()).ifPresent(org ->
+                        claims.put("organizationName", org.getName())
+                    );
+                }
                 claims.put("emailVerified", user.isEmailVerified() != null ? user.isEmailVerified() : false);
                 claims.put("phoneVerified", user.isPhoneVerified() != null ? user.isPhoneVerified() : false);
                 claims.put("lastLogin", user.getLastLogin());

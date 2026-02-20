@@ -16,6 +16,8 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -501,6 +503,77 @@ public class EmailService {
     private String sanitizeHeaderValue(String value) {
         if (value == null) return "";
         return value.replaceAll("[\\r\\n]+", " ").trim();
+    }
+
+    /**
+     * Envoie un email d'invitation a rejoindre une organisation.
+     */
+    public void sendInvitationEmail(String toEmail, String orgName, String inviterName,
+                                      String roleName, String invitationLink, LocalDateTime expiresAt) {
+        try {
+            JavaMailSender ms = requireMailSender();
+            MimeMessage message = ms.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromAddress);
+            helper.setTo(toEmail);
+            helper.setSubject(sanitizeHeaderValue("Invitation a rejoindre " + orgName + " sur Clenzy"));
+            helper.setText(buildInvitationHtmlBody(orgName, inviterName, roleName, invitationLink, expiresAt), true);
+            ms.send(message);
+            log.info("Email d'invitation envoye a {} pour l'organisation {}", toEmail, orgName);
+        } catch (MessagingException e) {
+            log.error("Erreur d'envoi email d'invitation a {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi de l'email d'invitation", e);
+        }
+    }
+
+    private String buildInvitationHtmlBody(String orgName, String inviterName,
+                                            String roleName, String invitationLink, LocalDateTime expiresAt) {
+        String safeOrgName = StringUtils.escapeHtml(orgName);
+        String safeInviterName = StringUtils.escapeHtml(inviterName);
+        String safeRoleName = StringUtils.escapeHtml(formatRoleName(roleName));
+        String safeLink = StringUtils.escapeHtml(invitationLink);
+        String expiresStr = expiresAt != null
+                ? expiresAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy a HH:mm"))
+                : "7 jours";
+
+        return "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>"
+                + "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;'>"
+                // Header
+                + "<div style='background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:30px;border-radius:10px 10px 0 0;text-align:center;'>"
+                + "<h1 style='color:white;margin:0;font-size:22px;'>Invitation a rejoindre une organisation</h1>"
+                + "</div>"
+                // Body
+                + "<div style='background:#ffffff;padding:30px;border:1px solid #e2e8f0;'>"
+                + "<p style='font-size:16px;color:#334155;'>Bonjour,</p>"
+                + "<p style='font-size:15px;color:#475569;'><strong>" + safeInviterName + "</strong> vous invite a rejoindre "
+                + "l'organisation <strong>" + safeOrgName + "</strong> en tant que <strong>" + safeRoleName + "</strong>.</p>"
+                // CTA Button
+                + "<div style='text-align:center;margin:30px 0;'>"
+                + "<a href='" + safeLink + "' style='display:inline-block;padding:14px 32px;"
+                + "background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;"
+                + "text-decoration:none;border-radius:8px;font-size:16px;font-weight:bold;'>"
+                + "Accepter l'invitation</a>"
+                + "</div>"
+                + "<p style='font-size:13px;color:#94a3b8;'>Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :</p>"
+                + "<p style='font-size:12px;color:#667eea;word-break:break-all;'>" + safeLink + "</p>"
+                + "</div>"
+                // Footer
+                + "<div style='background:#f8fafc;padding:20px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;text-align:center;'>"
+                + "<p style='margin:0;color:#94a3b8;font-size:12px;'>Cette invitation expire le " + StringUtils.escapeHtml(expiresStr) + ".</p>"
+                + "<p style='margin:5px 0 0;color:#94a3b8;font-size:12px;'>Si vous n'avez pas demande cette invitation, vous pouvez ignorer ce message.</p>"
+                + "</div>"
+                + "</div></body></html>";
+    }
+
+    private String formatRoleName(String role) {
+        if (role == null) return "Membre";
+        return switch (role.toUpperCase()) {
+            case "OWNER" -> "Proprietaire";
+            case "ADMIN" -> "Administrateur";
+            case "MEMBER" -> "Membre";
+            default -> role;
+        };
     }
 
     private String buildContactHtmlBody(String toName, String replyToName, String messageText) {

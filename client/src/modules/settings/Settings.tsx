@@ -36,6 +36,7 @@ import {
   SettingsBrightness,
   VolumeUp,
   BarChart,
+  GroupAdd,
 } from '@mui/icons-material';
 import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
 import { useNoiseMonitoring } from '../../hooks/useNoiseMonitoring';
@@ -49,6 +50,7 @@ import { planningKeys } from '../../hooks/useDashboardPlanning';
 import PageHeader from '../../components/PageHeader';
 import NotificationPreferencesCard from './NotificationPreferencesCard';
 import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
+import OrganizationSection from '../organization/OrganizationSection';
 
 // ─── TabPanel ─────────────────────────────────────────────────────────────────
 
@@ -83,7 +85,7 @@ function a11yProps(index: number) {
 }
 
 export default function Settings() {
-  const { user, hasPermissionAsync } = useAuth();
+  const { user, hasPermissionAsync, hasAnyRole } = useAuth();
   const queryClient = useQueryClient();
   const { settings: workflowSettings, updateSettings: updateWorkflowSettings } = useWorkflowSettings();
   const { mode: themeMode, setMode: setThemeMode, isDark } = useThemeMode();
@@ -321,6 +323,14 @@ export default function Settings() {
             label="Notifications"
             {...a11yProps(1)}
           />
+          {hasAnyRole(['ADMIN', 'MANAGER']) && user?.organizationId && (
+            <Tab
+              icon={<GroupAdd sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label="Organisation"
+              {...a11yProps(2)}
+            />
+          )}
         </Tabs>
       </Box>
 
@@ -709,6 +719,16 @@ export default function Settings() {
           onChangeState={() => forceUpdate(n => n + 1)}
         />
       </TabPanel>
+
+      {/* ─── Onglet Organisation (ADMIN/MANAGER) ─────────────────────── */}
+      {hasAnyRole(['ADMIN', 'MANAGER']) && user?.organizationId && (
+        <TabPanel value={tabValue} index={2}>
+          <OrganizationSection
+            organizationId={user.organizationId}
+            organizationName={user.organizationName}
+          />
+        </TabPanel>
+      )}
 
       {/* Snackbar de confirmation */}
       <Snackbar
