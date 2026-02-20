@@ -57,11 +57,13 @@ import {
   ExpandLess,
   ContentCopy,
   Warning,
+  Lock,
+  LockOpen,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { usersApi, deferredPaymentsApi } from '../../services/api';
-import type { HostBalanceSummary } from '../../services/api';
+import type { HostBalanceSummary, LockoutStatus } from '../../services/api';
 
 type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
@@ -189,6 +191,45 @@ const UserDetails: React.FC = () => {
   const [expandedProperty, setExpandedProperty] = useState<number | null>(null);
 
   const isAdminOrManager = canManageUsers; // users:manage = ADMIN ou MANAGER
+
+  // ─── Lockout status ──────────────────────────────────────────
+  const [lockoutStatus, setLockoutStatus] = useState<LockoutStatus | null>(null);
+  const [lockoutLoading, setLockoutLoading] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
+
+  const loadLockoutStatus = useCallback(async () => {
+    if (!user) return;
+    setLockoutLoading(true);
+    try {
+      const data = await usersApi.getLockoutStatus(user.id);
+      setLockoutStatus(data);
+    } catch {
+      setLockoutStatus(null);
+    } finally {
+      setLockoutLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user && isAdminOrManager) {
+      loadLockoutStatus();
+    }
+  }, [user, isAdminOrManager, loadLockoutStatus]);
+
+  const handleUnlockUser = async () => {
+    if (!user) return;
+    setUnlocking(true);
+    try {
+      await usersApi.unlockUser(user.id);
+      setSnackMessage('Utilisateur debloque avec succes');
+      // Recharger le statut
+      await loadLockoutStatus();
+    } catch {
+      setSnackMessage('Erreur lors du deblocage');
+    } finally {
+      setUnlocking(false);
+    }
+  };
 
   // Charger le solde impaye quand l'utilisateur est un HOST
   const loadBalance = useCallback(async () => {
@@ -853,6 +894,52 @@ const UserDetails: React.FC = () => {
                 {user.status === 'BLOCKED' && 'L\'utilisateur est bloqué pour violation des conditions'}
               </Typography>
             </Grid>
+
+            {/* Protection anti-brute-force (admin uniquement) */}
+            {isAdminOrManager && lockoutStatus && (lockoutStatus.isLocked || lockoutStatus.failedAttempts > 0) && (
+              <Grid item xs={12}>
+                <Box sx={{
+                  border: '1px solid',
+                  borderColor: lockoutStatus.isLocked ? 'error.main' : 'warning.main',
+                  borderRadius: 1,
+                  p: 2,
+                  bgcolor: lockoutStatus.isLocked ? 'error.50' : 'warning.50',
+                }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Lock sx={{ fontSize: 20, color: lockoutStatus.isLocked ? 'error.main' : 'warning.main' }} />
+                      <Box>
+                        <Typography variant="body2" fontWeight={600}>
+                          {lockoutStatus.isLocked
+                            ? `Compte temporairement bloque`
+                            : `${lockoutStatus.failedAttempts} tentative${lockoutStatus.failedAttempts > 1 ? 's' : ''} de connexion echouee${lockoutStatus.failedAttempts > 1 ? 's' : ''}`
+                          }
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {lockoutStatus.isLocked
+                            ? `Bloque pendant encore ${Math.ceil(lockoutStatus.remainingSeconds / 60)} minute${Math.ceil(lockoutStatus.remainingSeconds / 60) > 1 ? 's' : ''} (deblocage automatique)`
+                            : lockoutStatus.captchaRequired
+                              ? 'CAPTCHA requis a la prochaine connexion'
+                              : 'Le verrouillage se declenche apres 5 tentatives'
+                          }
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={<LockOpen sx={{ fontSize: 16 }} />}
+                      onClick={handleUnlockUser}
+                      disabled={unlocking}
+                      color={lockoutStatus.isLocked ? 'error' : 'warning'}
+                      sx={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                    >
+                      {unlocking ? 'Deblocage...' : 'Debloquer'}
+                    </Button>
+                  </Box>
+                </Box>
+              </Grid>
+            )}
 
             {/* Métadonnées */}
             <Grid item xs={12}>
