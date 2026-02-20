@@ -1,7 +1,9 @@
 package com.clenzy.config;
 
 import com.clenzy.config.RateLimitInterceptor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -20,10 +22,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class RateLimitConfig implements WebMvcConfigurer {
 
     private final RateLimitInterceptor rateLimitInterceptor;
-    private final AuditLoggingInterceptor auditLoggingInterceptor;
+    private final HandlerInterceptor auditLoggingInterceptor;
 
     public RateLimitConfig(RateLimitInterceptor rateLimitInterceptor,
-                           AuditLoggingInterceptor auditLoggingInterceptor) {
+                           @Qualifier("auditLoggingInterceptor") HandlerInterceptor auditLoggingInterceptor) {
         this.rateLimitInterceptor = rateLimitInterceptor;
         this.auditLoggingInterceptor = auditLoggingInterceptor;
     }
