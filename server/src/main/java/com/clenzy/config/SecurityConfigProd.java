@@ -75,11 +75,8 @@ public class SecurityConfigProd {
                         .policy("camera=(), microphone=(), geolocation=(), payment=()")
                     )
                 )
-                .headers(headers -> headers
-                    .contentSecurityPolicy(csp -> csp
-                        .policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://auth.clenzy.fr https://api.clenzy.fr; frame-src 'self' https://auth.clenzy.fr; frame-ancestors 'self'; form-action 'self'; base-uri 'self'")
-                    )
-                )
+                // CSP retiré du backend API : les réponses JSON ne sont pas rendues dans le DOM.
+                // Le CSP doit être configuré sur nginx (app.clenzy.fr) qui sert les pages HTML.
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Endpoints publics
