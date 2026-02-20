@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Scheduler de synchronisation Airbnb.
@@ -19,12 +21,13 @@ import java.util.List;
  * Jobs planifies :
  * - Rafraichissement automatique des tokens OAuth avant expiration
  * - Sync periodique des reservations (polling complementaire aux webhooks)
- * - Sync periodique du calendrier
  * - Nettoyage des evenements webhook anciens
  *
- * Note multi-tenant : s'execute HORS contexte HTTP (pas de TenantFilter/TenantContext).
+ * Multi-tenant : s'execute HORS contexte HTTP (pas de TenantFilter/TenantContext).
  * Le Hibernate @Filter n'est pas actif — les queries retournent les donnees de toutes les orgs.
- * C'est acceptable car chaque connection/mapping est traite independamment par user/property.
+ * Le traitement est groupe par organization_id pour :
+ * - Isoler les erreurs (un echec sur une org ne bloque pas les autres)
+ * - Permettre la tracabilite par tenant dans les logs
  */
 @Service
 public class AirbnbSyncScheduler {
@@ -48,7 +51,7 @@ public class AirbnbSyncScheduler {
 
     /**
      * Rafraichit automatiquement les tokens OAuth proches de l'expiration.
-     * Toutes les 30 minutes.
+     * Toutes les 30 minutes. Groupe par org pour isoler les erreurs.
      */
     @Scheduled(fixedRate = 1800000) // 30 min
     public void refreshExpiringTokens() {
@@ -61,25 +64,38 @@ public class AirbnbSyncScheduler {
         List<AirbnbConnection> activeConnections = connectionRepository
                 .findByStatus(AirbnbConnection.AirbnbConnectionStatus.ACTIVE);
 
+        // Grouper par org pour isoler les erreurs entre tenants
+        Map<Long, List<AirbnbConnection>> connectionsByOrg = activeConnections.stream()
+                .filter(c -> c.getOrganizationId() != null)
+                .collect(Collectors.groupingBy(AirbnbConnection::getOrganizationId));
+
         LocalDateTime expirationThreshold = LocalDateTime.now().plusMinutes(60);
 
-        for (AirbnbConnection connection : activeConnections) {
-            if (connection.getTokenExpiresAt() != null
-                    && connection.getTokenExpiresAt().isBefore(expirationThreshold)) {
-                try {
-                    oAuthService.refreshToken(connection.getUserId());
-                    log.info("Token Airbnb rafraichi pour user {}", connection.getUserId());
-                } catch (Exception e) {
-                    log.error("Echec rafraichissement token Airbnb pour user {}: {}",
-                            connection.getUserId(), e.getMessage());
+        for (Map.Entry<Long, List<AirbnbConnection>> entry : connectionsByOrg.entrySet()) {
+            Long orgId = entry.getKey();
+            try {
+                for (AirbnbConnection connection : entry.getValue()) {
+                    if (connection.getTokenExpiresAt() != null
+                            && connection.getTokenExpiresAt().isBefore(expirationThreshold)) {
+                        try {
+                            oAuthService.refreshToken(connection.getUserId());
+                            log.info("Token Airbnb rafraichi pour user {} (org={})",
+                                    connection.getUserId(), orgId);
+                        } catch (Exception e) {
+                            log.error("Echec refresh token Airbnb user {} (org={}): {}",
+                                    connection.getUserId(), orgId, e.getMessage());
+                        }
+                    }
                 }
+            } catch (Exception e) {
+                log.error("Erreur refresh tokens Airbnb pour org={}: {}", orgId, e.getMessage());
             }
         }
     }
 
     /**
      * Sync periodique des reservations (complementaire aux webhooks).
-     * Toutes les 15 minutes par defaut.
+     * Toutes les 15 minutes par defaut. Groupe par org pour isoler les erreurs.
      */
     @Scheduled(fixedRateString = "${airbnb.sync.interval-minutes:15}000")
     public void syncReservations() {
@@ -91,19 +107,36 @@ public class AirbnbSyncScheduler {
 
         List<AirbnbListingMapping> activeMappings = listingMappingRepository.findBySyncEnabled(true);
 
-        for (AirbnbListingMapping mapping : activeMappings) {
+        // Grouper par org pour isoler les erreurs entre tenants
+        Map<Long, List<AirbnbListingMapping>> mappingsByOrg = activeMappings.stream()
+                .filter(m -> m.getOrganizationId() != null)
+                .collect(Collectors.groupingBy(AirbnbListingMapping::getOrganizationId));
+
+        int totalOrgs = mappingsByOrg.size();
+        int successOrgs = 0;
+
+        for (Map.Entry<Long, List<AirbnbListingMapping>> entry : mappingsByOrg.entrySet()) {
+            Long orgId = entry.getKey();
             try {
-                // TODO : Appeler l'API Airbnb pour recuperer les reservations recentes
-                // AirbnbApiClient.getReservations(listing.getAirbnbListingId(), lastSyncAt)
+                for (AirbnbListingMapping mapping : entry.getValue()) {
+                    try {
+                        // TODO : Appeler l'API Airbnb pour recuperer les reservations recentes
+                        // AirbnbApiClient.getReservations(listing.getAirbnbListingId(), lastSyncAt)
 
-                mapping.setLastSyncAt(LocalDateTime.now());
-                listingMappingRepository.save(mapping);
-
+                        mapping.setLastSyncAt(LocalDateTime.now());
+                        listingMappingRepository.save(mapping);
+                    } catch (Exception e) {
+                        log.error("Erreur sync reservations listing {} (org={}): {}",
+                                mapping.getAirbnbListingId(), orgId, e.getMessage());
+                    }
+                }
+                successOrgs++;
             } catch (Exception e) {
-                log.error("Erreur sync reservations pour listing {}: {}",
-                        mapping.getAirbnbListingId(), e.getMessage());
+                log.error("Erreur sync reservations Airbnb pour org={}: {}", orgId, e.getMessage());
             }
         }
+
+        log.debug("Sync Airbnb terminee : {}/{} orgs OK", successOrgs, totalOrgs);
     }
 
     /**
