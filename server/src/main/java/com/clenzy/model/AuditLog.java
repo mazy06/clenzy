@@ -13,10 +13,6 @@ import java.time.Instant;
     @Index(name = "idx_audit_log_user_id", columnList = "userId"),
     @Index(name = "idx_audit_log_entity", columnList = "entityType, entityId")
 })
-@org.hibernate.annotations.FilterDef(
-    name = "organizationFilter",
-    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
-)
 @org.hibernate.annotations.Filter(
     name = "organizationFilter",
     condition = "organization_id = :orgId"

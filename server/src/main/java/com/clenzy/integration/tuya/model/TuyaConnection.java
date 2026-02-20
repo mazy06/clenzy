@@ -8,10 +8,6 @@ import java.time.LocalDateTime;
     @Index(name = "idx_tuya_conn_user_id", columnList = "user_id", unique = true),
     @Index(name = "idx_tuya_conn_status", columnList = "status")
 })
-@org.hibernate.annotations.FilterDef(
-    name = "organizationFilter",
-    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
-)
 @org.hibernate.annotations.Filter(
     name = "organizationFilter",
     condition = "organization_id = :orgId"

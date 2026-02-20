@@ -14,10 +14,6 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "received_forms")
-@org.hibernate.annotations.FilterDef(
-    name = "organizationFilter",
-    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
-)
 @org.hibernate.annotations.Filter(
     name = "organizationFilter",
     condition = "organization_id = :orgId"

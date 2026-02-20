@@ -16,10 +16,6 @@ import java.time.LocalDateTime;
         @Index(name = "idx_notification_created_at", columnList = "created_at"),
         @Index(name = "idx_notification_key", columnList = "notification_key")
 })
-@org.hibernate.annotations.FilterDef(
-    name = "organizationFilter",
-    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
-)
 @org.hibernate.annotations.Filter(
     name = "organizationFilter",
     condition = "organization_id = :orgId"

@@ -10,10 +10,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "document_number_sequences",
        uniqueConstraints = @UniqueConstraint(columnNames = {"document_type", "year"}))
-@org.hibernate.annotations.FilterDef(
-    name = "organizationFilter",
-    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
-)
 @org.hibernate.annotations.Filter(
     name = "organizationFilter",
     condition = "organization_id = :orgId"
