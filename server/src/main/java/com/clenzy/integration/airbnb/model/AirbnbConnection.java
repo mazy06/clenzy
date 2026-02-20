@@ -12,10 +12,6 @@ import java.time.LocalDateTime;
     @Index(name = "idx_airbnb_conn_user_id", columnList = "user_id", unique = true),
     @Index(name = "idx_airbnb_conn_airbnb_user_id", columnList = "airbnb_user_id")
 })
-@org.hibernate.annotations.FilterDef(
-    name = "organizationFilter",
-    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
-)
 @org.hibernate.annotations.Filter(
     name = "organizationFilter",
     condition = "organization_id = :orgId"

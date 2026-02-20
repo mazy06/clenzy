@@ -10,10 +10,6 @@ import java.time.LocalDateTime;
     @Index(name = "idx_noise_device_type", columnList = "device_type"),
     @Index(name = "idx_noise_device_status", columnList = "status")
 })
-@org.hibernate.annotations.FilterDef(
-    name = "organizationFilter",
-    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
-)
 @org.hibernate.annotations.Filter(
     name = "organizationFilter",
     condition = "organization_id = :orgId"

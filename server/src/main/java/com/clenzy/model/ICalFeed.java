@@ -13,10 +13,6 @@ import java.time.LocalDateTime;
     @Index(name = "idx_ical_feed_property_id", columnList = "property_id"),
     @Index(name = "idx_ical_feed_sync_enabled", columnList = "sync_enabled")
 })
-@org.hibernate.annotations.FilterDef(
-    name = "organizationFilter",
-    parameters = @org.hibernate.annotations.ParamDef(name = "orgId", type = Long.class)
-)
 @org.hibernate.annotations.Filter(
     name = "organizationFilter",
     condition = "organization_id = :orgId"
