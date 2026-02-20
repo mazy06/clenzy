@@ -16,10 +16,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.validation.annotation.Validated;
 import com.clenzy.dto.validation.Create;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/users")
 @Tag(name = "Users", description = "Gestion des utilisateurs")
+@PreAuthorize("isAuthenticated()")
 public class UserController {
     private final UserService userService;
 

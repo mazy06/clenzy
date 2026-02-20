@@ -24,6 +24,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.validation.annotation.Validated;
 import com.clenzy.dto.validation.Create;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,8 +39,11 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/interventions")
 @Tag(name = "Interventions", description = "Gestion des interventions")
+@PreAuthorize("isAuthenticated()")
 public class InterventionController {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(InterventionController.class);
+
     private final InterventionService interventionService;
     private final InterventionRepository interventionRepository;
     private final UserRepository userRepository;
@@ -52,7 +58,7 @@ public class InterventionController {
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
     }
-    
+
     @GetMapping("/planning")
     @Operation(summary = "Interventions pour le planning",
             description = "Retourne les interventions filtrees par proprietes et plage de dates pour le planning. " +
@@ -146,39 +152,35 @@ public class InterventionController {
                                                  @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.status(HttpStatus.CREATED).body(interventionService.create(dto, jwt));
     }
-    
+
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour une intervention")
-    public InterventionDto update(@PathVariable Long id, @RequestBody InterventionDto dto, 
+    public InterventionDto update(@PathVariable Long id, @RequestBody InterventionDto dto,
                                  @AuthenticationPrincipal Jwt jwt) {
         return interventionService.update(id, dto, jwt);
     }
-    
+
     @GetMapping("/{id}")
     @Operation(summary = "Obtenir une intervention par ID")
     public InterventionDto get(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        System.out.println("🔍 InterventionController.get - Début de la méthode");
-        System.out.println("🔍 InterventionController.get - ID demandé: " + id);
-        
+        log.debug("get - ID demande: {}", id);
+
         if (jwt != null) {
-            System.out.println("🔍 InterventionController.get - JWT reçu: " + jwt.getSubject());
-            System.out.println("🔍 InterventionController.get - JWT claims: " + jwt.getClaims());
+            log.debug("get - JWT subject: {}", jwt.getSubject());
         } else {
-            System.out.println("🔍 InterventionController.get - Aucun JWT reçu");
+            log.debug("get - No JWT received");
         }
-        
+
         try {
-            System.out.println("🔍 InterventionController.get - Appel du service...");
             InterventionDto result = interventionService.getById(id, jwt);
-            System.out.println("🔍 InterventionController.get - Intervention trouvée: " + (result != null ? "OUI" : "NON"));
+            log.debug("get - Intervention found: {}", result != null);
             return result;
         } catch (Exception e) {
-            System.err.println("🔍 InterventionController.get - Erreur lors de la récupération: " + e.getMessage());
-            e.printStackTrace();
+            log.error("get - Error retrieving intervention id={}", id, e);
             throw e;
         }
     }
-    
+
     @GetMapping
     @Operation(summary = "Lister les interventions avec contrôle d'accès basé sur les rôles")
     public Page<InterventionDto> list(@PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
@@ -187,16 +189,14 @@ public class InterventionController {
                                       @RequestParam(required = false) String status,
                                       @RequestParam(required = false) String priority,
                                       @AuthenticationPrincipal Jwt jwt) {
-        // Log pour diagnostiquer l'authentification
         if (jwt != null) {
-            System.out.println("🔍 JWT reçu: " + jwt.getSubject());
-            System.out.println("🔍 JWT claims: " + jwt.getClaims());
+            log.debug("list - JWT subject: {}", jwt.getSubject());
         } else {
-            System.out.println("🔍 Aucun JWT reçu");
+            log.debug("list - No JWT received");
         }
         return interventionService.listWithRoleBasedAccess(pageable, propertyId, type, status, priority, jwt);
     }
-    
+
     // Endpoint de test temporaire pour diagnostiquer
     @GetMapping("/test")
     @Operation(summary = "Test d'authentification")
@@ -207,56 +207,56 @@ public class InterventionController {
             return ResponseEntity.status(401).body("Non authentifié");
         }
     }
-    
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Supprimer une intervention")
     public void delete(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         interventionService.delete(id, jwt);
     }
-    
+
     @PutMapping("/{id}/status")
     @Operation(summary = "Mettre à jour le statut d'une intervention")
-    public InterventionDto updateStatus(@PathVariable Long id, @RequestParam String status, 
+    public InterventionDto updateStatus(@PathVariable Long id, @RequestParam String status,
                                        @AuthenticationPrincipal Jwt jwt) {
         return interventionService.updateStatus(id, status, jwt);
     }
-    
+
     @PutMapping("/{id}/assign")
     @Operation(summary = "Assigner une intervention à un utilisateur ou une équipe")
-    public InterventionDto assign(@PathVariable Long id, @RequestParam(required = false) Long userId, 
+    public InterventionDto assign(@PathVariable Long id, @RequestParam(required = false) Long userId,
                                   @RequestParam(required = false) Long teamId, @AuthenticationPrincipal Jwt jwt) {
         return interventionService.assign(id, userId, teamId, jwt);
     }
-    
+
     @PostMapping("/{id}/validate")
     @Operation(summary = "Valider une intervention et définir le coût estimé (Manager uniquement)")
-    public InterventionDto validate(@PathVariable Long id, 
+    public InterventionDto validate(@PathVariable Long id,
                                    @RequestBody com.clenzy.dto.InterventionValidationRequest request,
                                    @AuthenticationPrincipal Jwt jwt) {
         return interventionService.validateIntervention(id, request.getEstimatedCost(), jwt);
     }
-    
+
     @PutMapping("/{id}/start")
     @Operation(summary = "Démarrer une intervention (TECHNICIAN, HOUSEKEEPER, SUPERVISOR)")
     public InterventionDto startIntervention(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         return interventionService.startIntervention(id, jwt);
     }
-    
+
     @PutMapping("/{id}/reopen")
     @Operation(summary = "Rouvrir une intervention terminée pour permettre des modifications")
     public InterventionDto reopenIntervention(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
         return interventionService.reopenIntervention(id, jwt);
     }
-    
+
     @PutMapping("/{id}/progress")
     @Operation(summary = "Mettre à jour la progression d'une intervention")
-    public InterventionDto updateProgress(@PathVariable Long id, 
+    public InterventionDto updateProgress(@PathVariable Long id,
                                          @RequestParam Integer progressPercentage,
                                          @AuthenticationPrincipal Jwt jwt) {
         return interventionService.updateProgress(id, progressPercentage, jwt);
     }
-    
+
     @PostMapping(value = "/{id}/photos", consumes = "multipart/form-data")
     @Operation(summary = "Ajouter des photos à une intervention")
     public InterventionDto addPhotos(@PathVariable Long id,
@@ -265,7 +265,7 @@ public class InterventionController {
                                    @AuthenticationPrincipal Jwt jwt) {
         return interventionService.addPhotos(id, photos, photoType, jwt);
     }
-    
+
     @PutMapping(value = "/{id}/notes", consumes = "application/x-www-form-urlencoded")
     @Operation(summary = "Mettre à jour les notes d'une intervention")
     public InterventionDto updateNotes(@PathVariable Long id,
@@ -273,7 +273,7 @@ public class InterventionController {
                                        @AuthenticationPrincipal Jwt jwt) {
         return interventionService.updateNotes(id, notes, jwt);
     }
-    
+
     @PutMapping(value = "/{id}/validated-rooms", consumes = "application/x-www-form-urlencoded")
     @Operation(summary = "Mettre à jour les pièces validées d'une intervention")
     public InterventionDto updateValidatedRooms(@PathVariable Long id,
@@ -281,7 +281,7 @@ public class InterventionController {
                                                @AuthenticationPrincipal Jwt jwt) {
         return interventionService.updateValidatedRooms(id, validatedRooms, jwt);
     }
-    
+
     @PutMapping(value = "/{id}/completed-steps", consumes = "application/x-www-form-urlencoded")
     @Operation(summary = "Mettre à jour les étapes complétées d'une intervention")
     public InterventionDto updateCompletedSteps(@PathVariable Long id,

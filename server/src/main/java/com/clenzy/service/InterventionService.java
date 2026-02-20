@@ -69,15 +69,15 @@ public class InterventionService {
         this.kafkaTemplate = kafkaTemplate;
         this.tenantContext = tenantContext;
     }
-    
+
     public InterventionDto create(InterventionDto dto, Jwt jwt) {
         // Vérifier que l'utilisateur a le droit de créer des interventions
         UserRole userRole = extractUserRole(jwt);
-        
+
         Intervention intervention = new Intervention();
         intervention.setOrganizationId(tenantContext.getRequiredOrganizationId());
         apply(dto, intervention);
-        
+
         // Si c'est un HOST (owner), mettre le statut en AWAITING_VALIDATION et ne pas permettre de coût estimé
         if (userRole == UserRole.HOST) {
             intervention.setStatus(InterventionStatus.AWAITING_VALIDATION);
@@ -90,7 +90,7 @@ public class InterventionService {
         } else {
             throw new UnauthorizedException("Vous n'avez pas le droit de créer des interventions");
         }
-        
+
         intervention = interventionRepository.save(intervention);
 
         // ─── Notifications ──────────────────────────────────────────────────
@@ -112,36 +112,28 @@ public class InterventionService {
                         actionUrl);
             }
         } catch (Exception e) {
-            System.err.println("Erreur notification create intervention: " + e.getMessage());
+            log.warn("Notification error create intervention: {}", e.getMessage());
         }
 
         return convertToDto(intervention);
     }
 
     public InterventionDto update(Long id, InterventionDto dto, Jwt jwt) {
-        System.out.println("🔍 InterventionService.update - Début de la méthode");
-        System.out.println("🔍 InterventionService.update - ID: " + id);
-        System.out.println("🔍 InterventionService.update - DTO reçu: " + dto);
-        System.out.println("🔍 InterventionService.update - assignedToType: " + dto.assignedToType);
-        System.out.println("🔍 InterventionService.update - assignedToId: " + dto.assignedToId);
-        
+        log.debug("update - id: {}, assignedToType: {}, assignedToId: {}", id, dto.assignedToType, dto.assignedToId);
+
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-        
-        System.out.println("🔍 InterventionService.update - Intervention trouvée: " + intervention.getTitle());
-        System.out.println("🔍 InterventionService.update - Avant modification - assignedTechnicianId: " + intervention.getAssignedTechnicianId());
-        System.out.println("🔍 InterventionService.update - Avant modification - teamId: " + intervention.getTeamId());
-        
+
+        log.debug("update - before: assignedTechnicianId={}, teamId={}", intervention.getAssignedTechnicianId(), intervention.getTeamId());
+
         // Vérifier les droits d'accès
         checkAccessRights(intervention, jwt);
-        
+
         apply(dto, intervention);
-        
-        System.out.println("🔍 InterventionService.update - Après modification - assignedTechnicianId: " + intervention.getAssignedTechnicianId());
-        System.out.println("🔍 InterventionService.update - Après modification - teamId: " + intervention.getTeamId());
-        
+
+        log.debug("update - after: assignedTechnicianId={}, teamId={}", intervention.getAssignedTechnicianId(), intervention.getTeamId());
+
         intervention = interventionRepository.save(intervention);
-        System.out.println("🔍 InterventionService.update - Intervention sauvegardée");
 
         // ─── Notifications ──────────────────────────────────────────────────
         try {
@@ -153,75 +145,64 @@ public class InterventionService {
                     "L'intervention '" + intervention.getTitle() + "' a ete modifiee.",
                     actionUrl);
         } catch (Exception e) {
-            System.err.println("Erreur notification update intervention: " + e.getMessage());
+            log.warn("Notification error update intervention: {}", e.getMessage());
         }
 
         return convertToDto(intervention);
     }
 
     public InterventionDto getById(Long id, Jwt jwt) {
-        System.out.println("🔍 InterventionService.getById - Début de la méthode");
-        System.out.println("🔍 InterventionService.getById - ID demandé: " + id);
-        
+        log.debug("getById - id: {}", id);
+
         try {
-            System.out.println("🔍 InterventionService.getById - Recherche de l'intervention en base...");
             Intervention intervention = interventionRepository.findById(id)
                     .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-            
-            System.out.println("🔍 InterventionService.getById - Intervention trouvée: " + intervention.getTitle());
-            System.out.println("🔍 InterventionService.getById - Statut: " + intervention.getStatus());
-            System.out.println("🔍 InterventionService.getById - Propriété ID: " + intervention.getProperty().getId());
-            
+
+            log.debug("getById - found: {}, status: {}", intervention.getTitle(), intervention.getStatus());
+
             // Vérifier les droits d'accès
-            System.out.println("🔍 InterventionService.getById - Vérification des droits d'accès...");
             checkAccessRights(intervention, jwt);
-            System.out.println("🔍 InterventionService.getById - Droits d'accès validés");
-            
-            System.out.println("🔍 InterventionService.getById - Conversion en DTO...");
-            InterventionDto result = convertToDto(intervention);
-            System.out.println("🔍 InterventionService.getById - DTO créé avec succès");
-            
-            return result;
+
+            return convertToDto(intervention);
         } catch (NotFoundException e) {
-            System.err.println("🔍 InterventionService.getById - Intervention non trouvée: " + e.getMessage());
+            log.error("getById - not found: {}", e.getMessage());
             throw e;
         } catch (UnauthorizedException e) {
-            System.err.println("🔍 InterventionService.getById - Accès non autorisé: " + e.getMessage());
+            log.error("getById - unauthorized: {}", e.getMessage());
             throw e;
         } catch (Exception e) {
-            System.err.println("🔍 InterventionService.getById - Erreur inattendue: " + e.getMessage());
-            e.printStackTrace();
+            log.error("getById - unexpected error for id={}", id, e);
             throw e;
         }
     }
-    
-    public Page<InterventionDto> listWithRoleBasedAccess(Pageable pageable, Long propertyId, 
+
+    public Page<InterventionDto> listWithRoleBasedAccess(Pageable pageable, Long propertyId,
                                                         String type, String status, String priority, Jwt jwt) {
-        System.out.println("🔍 DEBUT listWithRoleBasedAccess - JWT: " + (jwt != null ? "présent" : "null"));
-        
+        log.debug("listWithRoleBasedAccess - JWT present: {}", jwt != null);
+
         try {
             UserRole userRole = extractUserRole(jwt);
-            System.out.println("🔍 Rôle extrait: " + userRole);
-            
+            log.debug("listWithRoleBasedAccess - role: {}", userRole);
+
             // Convertir les Strings en enums si nécessaire
             InterventionStatus statusEnum = null;
             if (status != null && !status.isEmpty()) {
                 try {
                     statusEnum = InterventionStatus.fromString(status);
-                    System.out.println("🔍 Statut converti: " + status + " -> " + statusEnum);
+                    log.debug("listWithRoleBasedAccess - status converted: {} -> {}", status, statusEnum);
                 } catch (IllegalArgumentException e) {
-                    System.err.println("🔍 Statut invalide: " + status);
+                    log.warn("listWithRoleBasedAccess - invalid status: {}", status);
                     // Retourner une page vide si le statut est invalide
                     return Page.empty(pageable);
                 }
             }
-            
+
             Page<Intervention> interventionPage;
-            
+
             // Pour TECHNICIAN, HOUSEKEEPER et SUPERVISOR, filtrer par assignation
             if (userRole == UserRole.TECHNICIAN || userRole == UserRole.HOUSEKEEPER || userRole == UserRole.SUPERVISOR) {
-                System.out.println("🔍 Filtrage pour rôle opérationnel: " + userRole);
-                
+                log.debug("listWithRoleBasedAccess - filtering for operational role: {}", userRole);
+
                 // Identifier l'utilisateur depuis le JWT
                 String keycloakId = jwt.getSubject();
                 String email = jwt.getClaimAsString("email");
@@ -232,38 +213,35 @@ public class InterventionService {
                 if (currentUser == null && email != null) {
                     currentUser = userRepository.findByEmail(email).orElse(null);
                 }
-                
+
                 if (currentUser == null) {
-                    System.out.println("🔍 Utilisateur non trouvé, retour page vide");
+                    log.debug("listWithRoleBasedAccess - user not found, returning empty page");
                     return Page.empty(pageable);
                 }
-                
-                System.out.println("🔍 Utilisateur trouvé: " + currentUser.getId() + " - " + currentUser.getEmail());
-                
+
+                log.debug("listWithRoleBasedAccess - user found: id={}, email={}", currentUser.getId(), currentUser.getEmail());
+
                 // Filtrer les interventions assignées à cet utilisateur (individuellement ou via équipe)
                 interventionPage = interventionRepository.findByAssignedUserOrTeamWithFilters(
                         currentUser.getId(), propertyId, type, statusEnum, priority, pageable, tenantContext.getRequiredOrganizationId());
             } else {
                 // Pour les admins et managers, voir toutes les interventions
-                System.out.println("🔍 Pas de filtre pour rôle: " + userRole);
+                log.debug("listWithRoleBasedAccess - no filter for role: {}", userRole);
                 interventionPage = interventionRepository.findByFiltersWithRelations(
                         propertyId, type, statusEnum, priority, pageable, tenantContext.getRequiredOrganizationId());
             }
-            
-            System.out.println("🔍 Interventions trouvées: " + interventionPage.getTotalElements());
-            
+
+            log.debug("listWithRoleBasedAccess - total elements: {}", interventionPage.getTotalElements());
+
             // Convertir en DTOs avec pagination
-            Page<InterventionDto> dtoPage = interventionPage.map(this::convertToDto);
-            
-            return dtoPage;
-            
+            return interventionPage.map(this::convertToDto);
+
         } catch (Exception e) {
-            System.err.println("🔍 ERREUR dans listWithRoleBasedAccess: " + e.getMessage());
-            e.printStackTrace();
+            log.error("listWithRoleBasedAccess - error", e);
             throw e;
         }
     }
-    
+
     public void delete(Long id, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
@@ -283,12 +261,12 @@ public class InterventionService {
                     "L'intervention '" + intervention.getTitle() + "' a ete supprimee.",
                     "/interventions");
         } catch (Exception e) {
-            System.err.println("Erreur notification delete intervention: " + e.getMessage());
+            log.warn("Notification error delete intervention: {}", e.getMessage());
         }
 
         interventionRepository.deleteById(id);
     }
-    
+
     public InterventionDto updateStatus(Long id, String status, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
@@ -322,12 +300,12 @@ public class InterventionService {
                         actionUrl);
             }
         } catch (Exception e) {
-            System.err.println("Erreur notification updateStatus intervention: " + e.getMessage());
+            log.warn("Notification error updateStatus intervention: {}", e.getMessage());
         }
 
         return convertToDto(intervention);
     }
-    
+
     /**
      * Démarrer une intervention (changer le statut en IN_PROGRESS)
      * Accessible aux TECHNICIAN, HOUSEKEEPER et SUPERVISOR pour leurs interventions assignées
@@ -335,10 +313,10 @@ public class InterventionService {
     public InterventionDto startIntervention(Long id, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-        
+
         // Vérifier les droits d'accès (doit être assigné à l'utilisateur)
         checkAccessRights(intervention, jwt);
-        
+
         // Vérifier que l'intervention peut être démarrée
         if (intervention.getStatus() == InterventionStatus.COMPLETED) {
             throw new IllegalStateException("Une intervention terminée ne peut pas être démarrée. Utilisez reopenIntervention pour la rouvrir.");
@@ -346,18 +324,18 @@ public class InterventionService {
         if (intervention.getStatus() == InterventionStatus.CANCELLED) {
             throw new IllegalStateException("Une intervention annulée ne peut pas être démarrée");
         }
-        
+
         // Changer le statut en IN_PROGRESS
         intervention.setStatus(InterventionStatus.IN_PROGRESS);
         intervention.setStartTime(LocalDateTime.now());
-        
+
         // Initialiser la progression à 0% si elle n'est pas déjà définie
         if (intervention.getProgressPercentage() == null || intervention.getProgressPercentage() == 0) {
             intervention.setProgressPercentage(0);
         }
-        
+
         intervention = interventionRepository.save(intervention);
-        System.out.println("🔍 Intervention démarrée: " + intervention.getId() + " - Statut: " + intervention.getStatus());
+        log.debug("Intervention started: id={}, status={}", intervention.getId(), intervention.getStatus());
 
         // ─── Notifications ──────────────────────────────────────────────────
         try {
@@ -373,7 +351,7 @@ public class InterventionService {
                     "L'intervention '" + intervention.getTitle() + "' a ete demarree.",
                     actionUrl);
         } catch (Exception e) {
-            System.err.println("Erreur notification startIntervention: " + e.getMessage());
+            log.warn("Notification error startIntervention: {}", e.getMessage());
         }
 
         // ─── Génération automatique du BON_INTERVENTION ──────────────────────
@@ -396,9 +374,9 @@ public class InterventionService {
                     "emailTo", emailTo != null ? emailTo : ""
                 )
             );
-            System.out.println("📄 Événement BON_INTERVENTION publié sur Kafka pour l'intervention: " + intervention.getId());
+            log.debug("Kafka BON_INTERVENTION event published for intervention: {}", intervention.getId());
         } catch (Exception e) {
-            System.err.println("Erreur publication Kafka BON_INTERVENTION: " + e.getMessage());
+            log.warn("Kafka publish error BON_INTERVENTION: {}", e.getMessage());
         }
 
         return convertToDto(intervention);
@@ -411,19 +389,19 @@ public class InterventionService {
     public InterventionDto reopenIntervention(Long id, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-        
+
         // Vérifier les droits d'accès
         checkAccessRights(intervention, jwt);
-        
+
         // Vérifier que l'intervention est terminée
         if (intervention.getStatus() != InterventionStatus.COMPLETED) {
             throw new IllegalStateException("Seules les interventions terminées peuvent être rouvertes");
         }
-        
+
         // Changer le statut en IN_PROGRESS pour permettre les modifications
         intervention.setStatus(InterventionStatus.IN_PROGRESS);
         // Ne pas réinitialiser completedAt pour garder l'historique
-        
+
         // Recalculer la progression en fonction des étapes complétées
         // Si l'étape "after_photos" n'est pas dans completedSteps, la progression ne devrait pas être à 100%
         try {
@@ -431,36 +409,36 @@ public class InterventionService {
             if (completedStepsJson != null && !completedStepsJson.isEmpty()) {
                 // Vérifier simplement si "after_photos" est dans la chaîne JSON
                 // (plus simple que de parser complètement le JSON)
-                boolean hasAfterPhotos = completedStepsJson.contains("\"after_photos\"") || 
+                boolean hasAfterPhotos = completedStepsJson.contains("\"after_photos\"") ||
                                          completedStepsJson.contains("'after_photos'");
-                
+
                 // Si "after_photos" n'est pas dans les étapes complétées, recalculer la progression
                 if (!hasAfterPhotos) {
                     // La progression ne peut pas être à 100% si l'étape finale n'est pas complétée
                     // On va la mettre à environ 89% (étape 1 + étape 2 complétées, étape 3 manquante)
                     // Le frontend recalculera plus précisément
                     if (intervention.getProgressPercentage() != null && intervention.getProgressPercentage() >= 100) {
-                        intervention.setProgressPercentage(89); // Approximation, le frontend recalculera
-                        System.out.println("🔍 Progression recalculée lors de la réouverture: 89% (étape finale non complétée)");
+                        intervention.setProgressPercentage(89);
+                        log.debug("Progress recalculated on reopen: 89% (final step not completed)");
                     }
                 }
             } else {
                 // Si aucune étape complétée n'est définie, réinitialiser la progression
                 if (intervention.getProgressPercentage() != null && intervention.getProgressPercentage() >= 100) {
                     intervention.setProgressPercentage(0);
-                    System.out.println("🔍 Progression réinitialisée lors de la réouverture: 0%");
+                    log.debug("Progress reset on reopen: 0%");
                 }
             }
         } catch (Exception e) {
-            System.err.println("🔍 Erreur lors du recalcul de la progression: " + e.getMessage());
+            log.warn("Error recalculating progress on reopen: {}", e.getMessage());
             // En cas d'erreur, garder la progression actuelle mais la forcer à moins de 100%
             if (intervention.getProgressPercentage() != null && intervention.getProgressPercentage() >= 100) {
                 intervention.setProgressPercentage(89);
             }
         }
-        
+
         intervention = interventionRepository.save(intervention);
-        System.out.println("🔍 Intervention rouverte: " + intervention.getId() + " - Statut: " + intervention.getStatus() + " - Progression: " + intervention.getProgressPercentage() + "%");
+        log.debug("Intervention reopened: id={}, status={}, progress={}%", intervention.getId(), intervention.getStatus(), intervention.getProgressPercentage());
 
         // ─── Notifications ──────────────────────────────────────────────────
         try {
@@ -476,7 +454,7 @@ public class InterventionService {
                     "L'intervention '" + intervention.getTitle() + "' a ete rouverte.",
                     actionUrl);
         } catch (Exception e) {
-            System.err.println("Erreur notification reopenIntervention: " + e.getMessage());
+            log.warn("Notification error reopenIntervention: {}", e.getMessage());
         }
 
         return convertToDto(intervention);
@@ -490,16 +468,16 @@ public class InterventionService {
         if (progressPercentage < 0 || progressPercentage > 100) {
             throw new IllegalArgumentException("La progression doit être entre 0 et 100");
         }
-        
+
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-        
+
         // Vérifier les droits d'accès (doit être assigné à l'utilisateur)
         checkAccessRights(intervention, jwt);
-        
+
         // Mettre à jour la progression
         intervention.setProgressPercentage(progressPercentage);
-        
+
         // Si la progression atteint 100%, marquer comme terminée
         if (progressPercentage == 100 && intervention.getStatus() != InterventionStatus.COMPLETED) {
             intervention.setStatus(InterventionStatus.COMPLETED);
@@ -507,7 +485,7 @@ public class InterventionService {
             if (intervention.getEndTime() == null) {
                 intervention.setEndTime(LocalDateTime.now());
             }
-            
+
             // Notifier les parties concernées (managers, admins, hosts)
             notifyInterventionCompleted(intervention);
 
@@ -543,39 +521,39 @@ public class InterventionService {
                         )
                     );
                 }
-                System.out.println("📄 Événement(s) VALIDATION_FIN_MISSION publié(s) sur Kafka pour l'intervention: " + intervention.getId());
+                log.debug("Kafka VALIDATION_FIN_MISSION event(s) published for intervention: {}", intervention.getId());
             } catch (Exception e) {
-                System.err.println("Erreur publication Kafka VALIDATION_FIN_MISSION: " + e.getMessage());
+                log.warn("Kafka publish error VALIDATION_FIN_MISSION: {}", e.getMessage());
             }
         }
-        
+
         intervention = interventionRepository.save(intervention);
-        System.out.println("🔍 Progression mise à jour: " + intervention.getId() + " - " + progressPercentage + "%");
-        
+        log.debug("Progress updated: id={}, progress={}%", intervention.getId(), progressPercentage);
+
         return convertToDto(intervention);
     }
-    
+
     public InterventionDto addPhotos(Long id, List<MultipartFile> photos, String photoType, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-        
+
         // Vérifier les droits d'accès (doit être assigné à l'utilisateur)
         checkAccessRights(intervention, jwt);
-        
+
         // Vérifier que l'intervention est en cours
         if (intervention.getStatus() != InterventionStatus.IN_PROGRESS) {
             throw new IllegalArgumentException("Seules les interventions en cours peuvent recevoir des photos");
         }
-        
+
         // Valider le photoType
         if (!"before".equals(photoType) && !"after".equals(photoType)) {
             throw new IllegalArgumentException("photoType doit être 'before' ou 'after'");
         }
-        
+
         try {
             // Convertir le photoType en majuscules pour la base de données
             String photoTypeUpper = "before".equals(photoType) ? "BEFORE" : "AFTER";
-            
+
             // Stocker les photos directement en BYTEA dans la table intervention_photos avec le type
             for (MultipartFile photo : photos) {
                 if (!photo.isEmpty()) {
@@ -584,45 +562,45 @@ public class InterventionService {
                     if (contentType == null) {
                         contentType = "image/jpeg"; // Par défaut
                     }
-                    
+
                     InterventionPhoto interventionPhoto = new InterventionPhoto();
                     interventionPhoto.setIntervention(intervention);
                     interventionPhoto.setPhotoData(photoData);
                     interventionPhoto.setContentType(contentType);
                     interventionPhoto.setFileName(photo.getOriginalFilename());
                     interventionPhoto.setPhotoType(photoTypeUpper); // Stocker le type de photo
-                    
+
                     interventionPhotoRepository.save(interventionPhoto);
                 }
             }
-            
+
             // Ne plus stocker les URLs base64 dans before_photos_urls/after_photos_urls
             // Les photos sont maintenant uniquement dans intervention_photos avec le type
-            
-            System.out.println("🔍 Photos " + photoType + " ajoutées à l'intervention: " + intervention.getId() + " (" + photos.size() + " photos)");
-            
+
+            log.debug("Photos {} added to intervention: id={}, count={}", photoType, intervention.getId(), photos.size());
+
             // Recharger l'intervention pour avoir les photos dans le DTO
             intervention = interventionRepository.findById(id)
                     .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-            
+
             return convertToDto(intervention);
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors de l'ajout des photos: " + e.getMessage(), e);
         }
     }
-    
+
     /**
      * Convertit les photos BYTEA en base64 data URLs pour le DTO (compatibilité frontend)
      * Récupère toutes les photos (avant et après)
      */
     private String convertPhotosToBase64Urls(Intervention intervention) {
         List<InterventionPhoto> photos = interventionPhotoRepository.findAllByInterventionId(intervention.getId(), tenantContext.getRequiredOrganizationId());
-        
+
         if (photos.isEmpty()) {
             // Si pas de photos dans la nouvelle table, vérifier l'ancien champ (compatibilité)
             return intervention.getPhotos();
         }
-        
+
         List<String> base64Urls = new ArrayList<>();
         for (InterventionPhoto photo : photos) {
             byte[] photoData = photo.getPhotoData();
@@ -631,13 +609,13 @@ public class InterventionService {
             String dataUrl = "data:" + contentType + ";base64," + base64;
             base64Urls.add(dataUrl);
         }
-        
+
         // Retourner comme JSON array pour compatibilité avec le frontend
         return "[" + base64Urls.stream()
                 .map(url -> "\"" + url.replace("\"", "\\\"") + "\"")
                 .collect(Collectors.joining(",")) + "]";
     }
-    
+
     /**
      * Convertit les photos BYTEA en base64 data URLs pour un type spécifique (BEFORE ou AFTER)
      */
@@ -648,15 +626,15 @@ public class InterventionService {
             photoTypeUpper,
             tenantContext.getRequiredOrganizationId()
         );
-        
+
         if (photos.isEmpty()) {
             // Si pas de photos dans la nouvelle table, vérifier l'ancien champ (compatibilité)
-            String legacyUrls = "before".equals(photoType) 
-                ? intervention.getBeforePhotosUrls() 
+            String legacyUrls = "before".equals(photoType)
+                ? intervention.getBeforePhotosUrls()
                 : intervention.getAfterPhotosUrls();
             return legacyUrls;
         }
-        
+
         List<String> base64Urls = new ArrayList<>();
         for (InterventionPhoto photo : photos) {
             byte[] photoData = photo.getPhotoData();
@@ -665,83 +643,83 @@ public class InterventionService {
             String dataUrl = "data:" + contentType + ";base64," + base64;
             base64Urls.add(dataUrl);
         }
-        
+
         // Retourner comme JSON array pour compatibilité avec le frontend
         return "[" + base64Urls.stream()
                 .map(url -> "\"" + url.replace("\"", "\\\"") + "\"")
                 .collect(Collectors.joining(",")) + "]";
     }
-    
+
     public InterventionDto updateNotes(Long id, String notes, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-        
+
         // Vérifier les droits d'accès (doit être assigné à l'utilisateur)
         checkAccessRights(intervention, jwt);
-        
+
         // Vérifier que l'intervention est en cours
         if (intervention.getStatus() != InterventionStatus.IN_PROGRESS) {
             throw new IllegalArgumentException("Seules les interventions en cours peuvent être commentées");
         }
-        
+
         intervention.setNotes(notes);
         intervention = interventionRepository.save(intervention);
-        
-        System.out.println("🔍 Notes mises à jour pour l'intervention: " + intervention.getId());
-        
+
+        log.debug("Notes updated for intervention: {}", intervention.getId());
+
         return convertToDto(intervention);
     }
-    
+
     public InterventionDto updateValidatedRooms(Long id, String validatedRooms, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-        
+
         // Vérifier les droits d'accès (doit être assigné à l'utilisateur)
         checkAccessRights(intervention, jwt);
-        
+
         // Vérifier que l'intervention est en cours
         if (intervention.getStatus() != InterventionStatus.IN_PROGRESS) {
             throw new IllegalArgumentException("Seules les interventions en cours peuvent avoir leurs pièces validées");
         }
-        
+
         intervention.setValidatedRooms(validatedRooms);
         intervention = interventionRepository.save(intervention);
-        
-        System.out.println("🔍 Pièces validées mises à jour pour l'intervention: " + intervention.getId());
-        
+
+        log.debug("Validated rooms updated for intervention: {}", intervention.getId());
+
         return convertToDto(intervention);
     }
-    
+
     public InterventionDto updateCompletedSteps(Long id, String completedSteps, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-        
+
         // Vérifier les droits d'accès (doit être assigné à l'utilisateur)
         checkAccessRights(intervention, jwt);
-        
+
         // Vérifier que l'intervention est en cours
         if (intervention.getStatus() != InterventionStatus.IN_PROGRESS) {
             throw new IllegalArgumentException("Seules les interventions en cours peuvent avoir leurs étapes complétées mises à jour");
         }
-        
+
         intervention.setCompletedSteps(completedSteps);
         intervention = interventionRepository.save(intervention);
-        
-        System.out.println("🔍 Étapes complétées mises à jour pour l'intervention: " + intervention.getId());
-        
+
+        log.debug("Completed steps updated for intervention: {}", intervention.getId());
+
         return convertToDto(intervention);
     }
-    
+
     public InterventionDto assign(Long id, Long userId, Long teamId, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-        
+
         // Seuls les managers et admins peuvent assigner
         UserRole userRole = extractUserRole(jwt);
         if (userRole != UserRole.ADMIN && userRole != UserRole.MANAGER) {
             throw new UnauthorizedException("Seuls les administrateurs et managers peuvent assigner des interventions");
         }
-        
+
         if (userId != null) {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé"));
@@ -779,7 +757,7 @@ public class InterventionService {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Erreur notification assign intervention: " + e.getMessage());
+            log.warn("Notification error assign intervention: {}", e.getMessage());
         }
 
         return convertToDto(intervention);
@@ -792,18 +770,18 @@ public class InterventionService {
     public InterventionDto validateIntervention(Long id, java.math.BigDecimal estimatedCost, Jwt jwt) {
         Intervention intervention = interventionRepository.findById(id)
             .orElseThrow(() -> new NotFoundException("Intervention non trouvée"));
-        
+
         // Vérifier que seul un manager peut valider
         UserRole userRole = extractUserRole(jwt);
         if (userRole != UserRole.ADMIN && userRole != UserRole.MANAGER) {
             throw new UnauthorizedException("Seuls les administrateurs et managers peuvent valider des interventions");
         }
-        
+
         // Vérifier que l'intervention est en attente de validation
         if (intervention.getStatus() != InterventionStatus.AWAITING_VALIDATION) {
             throw new RuntimeException("Cette intervention n'est pas en attente de validation");
         }
-        
+
         // Définir le coût estimé et changer le statut
         intervention.setEstimatedCost(estimatedCost);
         intervention.setStatus(InterventionStatus.AWAITING_PAYMENT);
@@ -823,7 +801,7 @@ public class InterventionService {
                     "Un paiement est requis pour l'intervention '" + intervention.getTitle() + "'. Montant: " + estimatedCost + " EUR.",
                     actionUrl);
         } catch (Exception e) {
-            System.err.println("Erreur notification validateIntervention: " + e.getMessage());
+            log.warn("Notification error validateIntervention: {}", e.getMessage());
         }
 
         return convertToDto(intervention);
@@ -845,7 +823,7 @@ public class InterventionService {
         if (userRole == UserRole.ADMIN || userRole == UserRole.MANAGER) {
             return;
         }
-        
+
         // Pour les autres roles, identifier l'utilisateur depuis le JWT
         String keycloakId = jwt.getSubject();
         String email = jwt.getClaimAsString("email");
@@ -888,7 +866,7 @@ public class InterventionService {
 
         throw new UnauthorizedException("Acces non autorise a cette intervention");
     }
-    
+
     private void apply(InterventionDto dto, Intervention intervention) {
         if (dto.title != null) intervention.setTitle(dto.title);
         if (dto.description != null) intervention.setDescription(dto.description);
@@ -897,10 +875,10 @@ public class InterventionService {
             try {
                 InterventionStatus status = InterventionStatus.fromString(dto.status);
                 intervention.setStatus(status);
-                System.out.println("🔍 InterventionService.apply - Statut mis à jour: " + status);
+                log.debug("apply - status updated: {}", status);
             } catch (IllegalArgumentException e) {
-                System.err.println("🔍 InterventionService.apply - Statut invalide: " + dto.status);
-                throw new IllegalArgumentException("Statut invalide: " + dto.status + ". Valeurs autorisées: " + 
+                log.warn("apply - invalid status: {}", dto.status);
+                throw new IllegalArgumentException("Statut invalide: " + dto.status + ". Valeurs autorisées: " +
                     Arrays.stream(InterventionStatus.values()).map(InterventionStatus::name).collect(Collectors.joining(", ")));
             }
         }
@@ -911,62 +889,60 @@ public class InterventionService {
         // Ne plus mettre à jour le champ photos (déprécié, utiliser intervention_photos)
         // if (dto.photos != null) intervention.setPhotos(dto.photos);
         if (dto.progressPercentage != null) intervention.setProgressPercentage(dto.progressPercentage);
-        
+
         // Gestion de l'assignation
         if (dto.assignedToType != null && dto.assignedToId != null) {
             if ("user".equals(dto.assignedToType)) {
                 // Assigner à un utilisateur
                 intervention.setAssignedTechnicianId(dto.assignedToId);
                 intervention.setTeamId(null); // Réinitialiser l'équipe
-                
+
                 // Mettre à jour l'utilisateur assigné
                 User assignedUser = userRepository.findById(dto.assignedToId)
                         .orElse(null);
                 if (assignedUser != null) {
                     intervention.setAssignedUser(assignedUser);
-                    System.out.println("🔍 InterventionService.apply - Utilisateur assigné: " + assignedUser.getFullName());
+                    log.debug("apply - user assigned: {}", assignedUser.getFullName());
                 }
             } else if ("team".equals(dto.assignedToType)) {
                 // Assigner à une équipe
                 intervention.setTeamId(dto.assignedToId);
                 intervention.setAssignedTechnicianId(null); // Réinitialiser l'utilisateur
                 intervention.setAssignedUser(null); // Réinitialiser l'utilisateur assigné
-                
+
                 // Vérifier que l'équipe existe
                 Team assignedTeam = teamRepository.findById(dto.assignedToId).orElse(null);
                 if (assignedTeam != null) {
-                    System.out.println("🔍 InterventionService.apply - Équipe assignée: " + assignedTeam.getName());
+                    log.debug("apply - team assigned: {}", assignedTeam.getName());
                 } else {
-                    System.out.println("🔍 InterventionService.apply - Équipe non trouvée pour l'ID: " + dto.assignedToId);
+                    log.warn("apply - team not found for id: {}", dto.assignedToId);
                 }
             }
         }
-        
+
         if (dto.propertyId != null) {
             Property property = propertyRepository.findById(dto.propertyId)
                     .orElseThrow(() -> new NotFoundException("Propriété non trouvée"));
             intervention.setProperty(property);
         }
-        
+
         if (dto.requestorId != null) {
             User requestor = userRepository.findById(dto.requestorId)
                     .orElseThrow(() -> new NotFoundException("Demandeur non trouvé"));
             intervention.setRequestor(requestor);
         }
-        
+
         if (dto.scheduledDate != null) {
-            LocalDateTime scheduledDate = LocalDateTime.parse(dto.scheduledDate, 
+            LocalDateTime scheduledDate = LocalDateTime.parse(dto.scheduledDate,
                     DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             intervention.setScheduledDate(scheduledDate);
         }
     }
-    
+
     private InterventionDto convertToDto(Intervention intervention) {
-        System.out.println("🔍 InterventionService.convertToDto - Début de la conversion");
-        
         try {
             InterventionDto dto = new InterventionDto();
-            
+
             // Propriétés de base
             dto.id = intervention.getId();
             dto.title = intervention.getTitle();
@@ -987,22 +963,20 @@ public class InterventionService {
             dto.validatedRooms = intervention.getValidatedRooms();
             dto.completedSteps = intervention.getCompletedSteps();
             dto.progressPercentage = intervention.getProgressPercentage();
-            
+
             // Dates
             if (intervention.getScheduledDate() != null) {
                 dto.scheduledDate = intervention.getScheduledDate().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-                System.out.println("🔍 InterventionService.convertToDto - Date programmée formatée: " + dto.scheduledDate);
             } else {
                 dto.scheduledDate = null;
-                System.out.println("🔍 InterventionService.convertToDto - Aucune date programmée");
             }
-            
+
             dto.createdAt = intervention.getCreatedAt();
             dto.updatedAt = intervention.getUpdatedAt();
             dto.completedAt = intervention.getCompletedAt();
             dto.startTime = intervention.getStartTime();
             dto.endTime = intervention.getEndTime();
-            
+
             // Relations
             if (intervention.getProperty() != null) {
                 dto.propertyId = intervention.getProperty().getId();
@@ -1012,48 +986,38 @@ public class InterventionService {
                     // Expose a stable machine value for the frontend (ex: apartment, guest_room, cottage)
                     dto.propertyType = intervention.getProperty().getType().name().toLowerCase();
                 }
-                System.out.println("🔍 InterventionService.convertToDto - Propriété: " + dto.propertyName + " (ID: " + dto.propertyId + ")");
-            } else {
-                System.out.println("🔍 InterventionService.convertToDto - Aucune propriété associée");
             }
-            
+
             if (intervention.getRequestor() != null) {
                 dto.requestorId = intervention.getRequestor().getId();
                 dto.requestorName = intervention.getRequestor().getFullName();
-                System.out.println("🔍 InterventionService.convertToDto - Demandeur: " + dto.requestorName + " (ID: " + dto.requestorId + ")");
-            } else {
-                System.out.println("🔍 InterventionService.convertToDto - Aucun demandeur associé");
             }
-            
+
             // Gestion de l'assignation
             if (intervention.getAssignedToType() != null) {
                 dto.assignedToType = intervention.getAssignedToType();
                 dto.assignedToId = intervention.getAssignedToId();
-                
+
                 if ("user".equals(intervention.getAssignedToType()) && intervention.getAssignedUser() != null) {
                     dto.assignedToName = intervention.getAssignedUser().getFullName();
-                    System.out.println("🔍 InterventionService.convertToDto - Utilisateur assigné: " + dto.assignedToName);
                 } else if ("team".equals(intervention.getAssignedToType()) && intervention.getTeamId() != null) {
                     // Récupérer le vrai nom de l'équipe depuis la base
                     Team assignedTeam = teamRepository.findById(intervention.getTeamId()).orElse(null);
                     if (assignedTeam != null) {
                         dto.assignedToName = assignedTeam.getName();
-                        System.out.println("🔍 InterventionService.convertToDto - Équipe assignée: " + dto.assignedToName);
                     } else {
                         dto.assignedToName = "Équipe inconnue";
-                        System.out.println("🔍 InterventionService.convertToDto - Équipe non trouvée pour l'ID: " + intervention.getTeamId());
+                        log.warn("convertToDto - team not found for id: {}", intervention.getTeamId());
                     }
                 } else {
                     dto.assignedToName = null;
-                    System.out.println("🔍 InterventionService.convertToDto - Aucun assigné");
                 }
             } else {
                 dto.assignedToType = null;
                 dto.assignedToId = null;
                 dto.assignedToName = null;
-                System.out.println("🔍 InterventionService.convertToDto - Aucune assignation");
             }
-            
+
             // Champs de paiement
             if (intervention.getPaymentStatus() != null) {
                 dto.paymentStatus = intervention.getPaymentStatus().name();
@@ -1063,78 +1027,68 @@ public class InterventionService {
             dto.paidAt = intervention.getPaidAt();
             dto.preferredTimeSlot = intervention.getPreferredTimeSlot();
 
-            System.out.println("🔍 InterventionService.convertToDto - Conversion terminée avec succès");
             return dto;
         } catch (Exception e) {
-            System.err.println("🔍 InterventionService.convertToDto - Erreur lors de la conversion: " + e.getMessage());
-            e.printStackTrace();
+            log.error("convertToDto - error converting intervention id={}", intervention.getId(), e);
             throw e;
         }
     }
-    
+
     /**
      * Extrait le rôle principal de l'utilisateur depuis le JWT
      * Les rôles sont stockés dans realm_access.roles et préfixés avec "ROLE_"
      */
     private UserRole extractUserRole(Jwt jwt) {
-        System.out.println("🔍 InterventionService.extractUserRole - Début de l'extraction");
-        
         try {
             // Essayer d'abord realm_access.roles (format Keycloak)
             Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-            System.out.println("🔍 InterventionService.extractUserRole - Realm_access: " + realmAccess);
-            
+            log.debug("extractUserRole - realm_access: {}", realmAccess);
+
             if (realmAccess != null) {
                 Object roles = realmAccess.get("roles");
-                System.out.println("🔍 InterventionService.extractUserRole - Rôles extraits: " + roles);
-                
+                log.debug("extractUserRole - roles: {}", roles);
+
                 if (roles instanceof List<?>) {
                     List<?> roleList = (List<?>) roles;
-                    System.out.println("🔍 InterventionService.extractUserRole - Liste des rôles: " + roleList);
-                    
+
                     // D'abord, chercher les rôles métier prioritaires (ADMIN, MANAGER)
                     for (Object role : roleList) {
                         if (role instanceof String) {
                             String roleStr = (String) role;
-                            System.out.println("🔍 InterventionService.extractUserRole - Rôle trouvé: " + roleStr);
 
                             // Ignorer les rôles techniques Keycloak
-                            if (roleStr.equals("offline_access") || 
-                                roleStr.equals("uma_authorization") || 
+                            if (roleStr.equals("offline_access") ||
+                                roleStr.equals("uma_authorization") ||
                                 roleStr.equals("default-roles-clenzy")) {
-                                System.out.println("🔍 InterventionService.extractUserRole - Rôle technique ignoré: " + roleStr);
                                 continue;
                             }
 
                             // Mapper "realm-admin" vers ADMIN
                             if (roleStr.equalsIgnoreCase("realm-admin")) {
-                                System.out.println("🔍 InterventionService.extractUserRole - Mapping realm-admin vers ADMIN");
                                 return UserRole.ADMIN;
                             }
 
                             // Chercher les rôles métier directs (ADMIN, MANAGER, etc.)
                             try {
                                 UserRole userRole = UserRole.valueOf(roleStr.toUpperCase());
-                                System.out.println("🔍 InterventionService.extractUserRole - Rôle métier trouvé: " + userRole);
                                 // Prioriser ADMIN et MANAGER
                                 if (userRole == UserRole.ADMIN || userRole == UserRole.MANAGER) {
                                     return userRole;
                                 }
                             } catch (IllegalArgumentException e) {
                                 // Continuer à chercher
-                                System.out.println("🔍 InterventionService.extractUserRole - Rôle non reconnu: " + roleStr);
                             }
                         }
                     }
-                    
+
                     // Si ADMIN ou MANAGER non trouvé, retourner le premier rôle métier valide
                     for (Object role : roleList) {
                         if (role instanceof String) {
                             String roleStr = (String) role;
-                            
+
                             // Ignorer les rôles techniques Keycloak
-                            if (roleStr.equals("offline_access") || 
-                                roleStr.equals("uma_authorization") || 
+                            if (roleStr.equals("offline_access") ||
+                                roleStr.equals("uma_authorization") ||
                                 roleStr.equals("default-roles-clenzy") ||
                                 roleStr.equalsIgnoreCase("realm-admin")) {
                                 continue;
@@ -1142,7 +1096,7 @@ public class InterventionService {
 
                             try {
                                 UserRole userRole = UserRole.valueOf(roleStr.toUpperCase());
-                                System.out.println("🔍 InterventionService.extractUserRole - Retour du rôle métier: " + userRole);
+                                log.debug("extractUserRole - returning business role: {}", userRole);
                                 return userRole;
                             } catch (IllegalArgumentException e) {
                                 // Continuer à chercher
@@ -1151,31 +1105,29 @@ public class InterventionService {
                     }
                 }
             }
-            
+
             // Fallback: essayer le claim "role" direct
             String directRole = jwt.getClaimAsString("role");
-            System.out.println("🔍 InterventionService.extractUserRole - Rôle direct: " + directRole);
-            
+            log.debug("extractUserRole - direct role claim: {}", directRole);
+
             if (directRole != null) {
-                System.out.println("🔍 InterventionService.extractUserRole - Retour du rôle direct: " + directRole.toUpperCase());
                 try {
                     return UserRole.valueOf(directRole.toUpperCase());
                 } catch (IllegalArgumentException e) {
-                    System.err.println("🔍 InterventionService.extractUserRole - Rôle direct inconnu: " + directRole + ", fallback vers HOST");
+                    log.warn("extractUserRole - unknown direct role: {}, falling back to HOST", directRole);
                     return UserRole.HOST;
                 }
             }
-            
+
             // Si aucun rôle trouvé, retourner HOST par défaut
-            System.out.println("🔍 InterventionService.extractUserRole - Aucun rôle trouvé, retour de HOST par défaut");
+            log.debug("extractUserRole - no role found, returning HOST default");
             return UserRole.HOST;
         } catch (Exception e) {
-            System.err.println("🔍 InterventionService.extractUserRole - Erreur lors de l'extraction: " + e.getMessage());
-            e.printStackTrace();
+            log.error("extractUserRole - error during extraction", e);
             return UserRole.HOST; // Fallback en cas d'erreur
         }
     }
-    
+
     /**
      * Notifier les parties concernees qu'une intervention est terminee.
      */
@@ -1200,7 +1152,7 @@ public class InterventionService {
                         actionUrl);
             }
         } catch (Exception e) {
-            System.err.println("Erreur notification interventionCompleted: " + e.getMessage());
+            log.warn("Notification error interventionCompleted: {}", e.getMessage());
         }
     }
 }

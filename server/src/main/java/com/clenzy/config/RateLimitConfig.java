@@ -29,6 +29,6 @@ public class RateLimitConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(rateLimitInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/health", "/api/webhooks/**");
+                .excludePathPatterns("/api/health");
     }
 }

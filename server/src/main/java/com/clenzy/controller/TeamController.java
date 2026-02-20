@@ -18,11 +18,18 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.validation.annotation.Validated;
 import com.clenzy.dto.validation.Create;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/teams")
 @Tag(name = "Teams", description = "Gestion des équipes")
+@PreAuthorize("isAuthenticated()")
 public class TeamController {
+
+    private static final Logger log = LoggerFactory.getLogger(TeamController.class);
+
     private final TeamService teamService;
 
     public TeamController(TeamService teamService) {
@@ -31,16 +38,15 @@ public class TeamController {
 
     @PostMapping
     @Operation(summary = "Créer une équipe")
-    public ResponseEntity<TeamDto> create(@Validated(Create.class) @RequestBody TeamDto dto, 
+    public ResponseEntity<TeamDto> create(@Validated(Create.class) @RequestBody TeamDto dto,
                                          @AuthenticationPrincipal Jwt jwt) {
         // Vérifier les permissions
         if (jwt == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        
-        // Log pour debug
-        System.out.println("🔍 TeamController.create - JWT reçu: " + jwt.getSubject());
-        
+
+        log.debug("create - JWT subject: {}", jwt.getSubject());
+
         return ResponseEntity.status(HttpStatus.CREATED).body(teamService.create(dto, jwt));
     }
 
@@ -64,10 +70,9 @@ public class TeamController {
         if (jwt == null) {
             throw new RuntimeException("Non authentifié");
         }
-        
-        // Log pour debug
-        System.out.println("🔍 TeamController.list - JWT reçu: " + jwt.getSubject());
-        
+
+        log.debug("list - JWT subject: {}", jwt.getSubject());
+
         return teamService.list(pageable, jwt);
     }
 

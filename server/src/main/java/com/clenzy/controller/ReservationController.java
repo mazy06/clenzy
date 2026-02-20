@@ -14,10 +14,12 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/reservations")
 @Tag(name = "Reservations", description = "Gestion des reservations (sejours voyageurs)")
+@PreAuthorize("isAuthenticated()")
 public class ReservationController {
 
     private final ReservationService reservationService;

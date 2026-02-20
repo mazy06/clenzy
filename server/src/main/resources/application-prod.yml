@@ -41,15 +41,9 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI}
-
-keycloak:
-  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL}
-  realm: ${KEYCLOAK_REALM:clenzy}
-  resource: ${KEYCLOAK_RESOURCE:clenzy-web}
-  credentials:
-    secret: ${KEYCLOAK_CLIENT_SECRET}
-
-# Kafka
+  data:
+    redis:
+      password: ${SPRING_REDIS_PASSWORD}
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:clenzy-kafka:9092}
     consumer:
@@ -57,6 +51,13 @@ keycloak:
       auto-offset-reset: earliest
     producer:
       acks: all
+
+keycloak:
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL}
+  realm: ${KEYCLOAK_REALM:clenzy}
+  resource: ${KEYCLOAK_RESOURCE:clenzy-web}
+  credentials:
+    secret: ${KEYCLOAK_CLIENT_SECRET}
 
 # Airbnb Integration
 airbnb:

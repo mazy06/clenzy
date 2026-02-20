@@ -10,10 +10,12 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/notification-preferences")
 @Tag(name = "Notification Preferences", description = "Gestion des preferences de notifications utilisateur")
+@PreAuthorize("isAuthenticated()")
 public class NotificationPreferenceController {
 
     private final NotificationPreferenceService preferenceService;

@@ -25,10 +25,15 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @Transactional
 public class TeamService {
+
+    private static final Logger log = LoggerFactory.getLogger(TeamService.class);
+
     private final TeamRepository teamRepository;
     private final TeamCoverageZoneRepository teamCoverageZoneRepository;
     private final UserRepository userRepository;
@@ -50,12 +55,12 @@ public class TeamService {
         if (jwt == null) {
             throw new com.clenzy.exception.UnauthorizedException("Non authentifié");
         }
-        
+
         UserRole userRole = extractUserRole(jwt);
         if (userRole != UserRole.ADMIN && userRole != UserRole.MANAGER) {
             throw new com.clenzy.exception.UnauthorizedException("Seuls les administrateurs et managers peuvent créer des équipes");
         }
-        
+
         Team team = new Team();
         team.setOrganizationId(tenantContext.getRequiredOrganizationId());
         team.setName(dto.name);
@@ -69,7 +74,7 @@ public class TeamService {
                 .map(memberDto -> {
                     User user = userRepository.findById(memberDto.userId)
                         .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé avec l'ID: " + memberDto.userId));
-                    
+
                     TeamMember member = new TeamMember();
                     member.setOrganizationId(tenantContext.getRequiredOrganizationId());
                     member.setTeam(team);
@@ -80,7 +85,7 @@ public class TeamService {
                     return member;
                 })
                 .collect(Collectors.toList());
-            
+
             team.setMembers(members);
         }
 
@@ -105,7 +110,7 @@ public class TeamService {
                 "/teams/" + savedTeam.getId()
             );
         } catch (Exception e) {
-            System.err.println("Erreur notification TEAM_CREATED: " + e.getMessage());
+            log.warn("Notification error TEAM_CREATED: {}", e.getMessage());
         }
 
         return result;
@@ -125,7 +130,7 @@ public class TeamService {
         if (dto.members != null) {
             // Créer une nouvelle liste de membres
             List<TeamMember> newMembers = new ArrayList<>();
-            
+
             for (TeamDto.TeamMemberDto memberDto : dto.members) {
                 User user = userRepository.findById(memberDto.userId)
                     .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé avec l'ID: " + memberDto.userId));
@@ -138,7 +143,7 @@ public class TeamService {
                 member.setCreatedAt(LocalDateTime.now());
                 newMembers.add(member);
             }
-            
+
             // Remplacer complètement la liste des membres
             team.getMembers().clear();
             team.getMembers().addAll(newMembers);
@@ -167,7 +172,7 @@ public class TeamService {
                 "/teams/" + updatedTeam.getId()
             );
         } catch (Exception e) {
-            System.err.println("Erreur notification TEAM_UPDATED: " + e.getMessage());
+            log.warn("Notification error TEAM_UPDATED: {}", e.getMessage());
         }
 
         return result;
@@ -189,7 +194,7 @@ public class TeamService {
         }
 
         UserRole userRole = extractUserRole(jwt);
-        System.out.println("🔍 TeamService.list - Rôle: " + userRole);
+        log.debug("list - Role: {}", userRole);
 
         List<Team> filteredTeams;
 
@@ -228,7 +233,7 @@ public class TeamService {
         int end = Math.min(start + pageable.getPageSize(), filteredTeams.size());
         List<Team> pageContent = filteredTeams.subList(start, end);
 
-        return new PageImpl<>(pageContent.stream().map(this::convertToDto).collect(Collectors.toList()), 
+        return new PageImpl<>(pageContent.stream().map(this::convertToDto).collect(Collectors.toList()),
                              pageable, filteredTeams.size());
     }
 
@@ -245,8 +250,8 @@ public class TeamService {
                     for (Object role : roleList) {
                         if (role instanceof String) {
                             String roleStr = (String) role;
-                            if (roleStr.equals("offline_access") || 
-                                roleStr.equals("uma_authorization") || 
+                            if (roleStr.equals("offline_access") ||
+                                roleStr.equals("uma_authorization") ||
                                 roleStr.equals("default-roles-clenzy")) {
                                 continue;
                             }
@@ -287,7 +292,7 @@ public class TeamService {
             }
             return UserRole.HOST; // Fallback par défaut
         } catch (Exception e) {
-            System.err.println("Erreur extraction rôle: " + e.getMessage());
+            log.warn("Error extracting role from JWT: {}", e.getMessage());
             return UserRole.HOST;
         }
     }
@@ -306,7 +311,7 @@ public class TeamService {
                 "/teams"
             );
         } catch (Exception e) {
-            System.err.println("Erreur notification TEAM_DELETED: " + e.getMessage());
+            log.warn("Notification error TEAM_DELETED: {}", e.getMessage());
         }
     }
 
