@@ -221,10 +221,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Force rebuild sans cache si le cache GHA est corrompu
-          # (erreur "failed to Lchown" / "failed to extract layer")
-          # Retirer no-cache une fois le premier build reussi
-          no-cache: true
 
   deploy:
     name: Trigger deploy via clenzy-infra

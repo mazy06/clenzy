@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useSearchParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import React, { useState, useCallback } from 'react';
+import { useSearchParams, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Paper,
@@ -21,10 +21,10 @@ import clenzyLogo from '../../assets/Clenzy_logo.png';
 import apiClient, { ApiError } from '../../services/apiClient';
 import { saveTokens, setSessionCookie } from '../../services/storageService';
 import lightTheme from '../../theme/theme';
+import PuzzleCaptcha from '../../components/PuzzleCaptcha';
 
 export default function Login() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   // Detecter si l'utilisateur vient de finaliser son inscription (retour Stripe)
   const inscriptionSuccess = searchParams.get('inscription') === 'success';
@@ -34,16 +34,31 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captchaRequired, setCaptchaRequired] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+  // ─── Login logic ────────────────────────────────────────────
+
+  const doLogin = useCallback(async (overrideCaptchaToken?: string) => {
     setError(null);
     setLoading(true);
 
-    try {
-      const data = await apiClient.post<any>('/auth/login', { username: email, password: password }, { skipAuth: true });
+    const tokenToSend = overrideCaptchaToken || captchaToken;
 
-      // Mettre à jour l'état de Keycloak
+    try {
+      const body: Record<string, string> = {
+        username: email,
+        password: password,
+      };
+
+      // Ajouter le token CAPTCHA si disponible
+      if (tokenToSend) {
+        body.captchaToken = tokenToSend;
+      }
+
+      const data = await apiClient.post<any>('/auth/login', body, { skipAuth: true });
+
+      // Mettre a jour l'etat de Keycloak
       keycloak.token = data.access_token;
       keycloak.refreshToken = data.refresh_token;
       keycloak.idToken = data.id_token;
@@ -58,30 +73,60 @@ export default function Login() {
         expiresIn: data.expires_in,
       });
 
-      // Sauvegarder le token dans un cookie partagé (accessible par la landing page)
+      // Sauvegarder le token dans un cookie partage (accessible par la landing page)
       setSessionCookie(data.access_token);
 
-      // Forcer la mise à jour de l'état global via l'événement personnalisé
+      // Forcer la mise a jour de l'etat global via l'evenement personnalise
       window.dispatchEvent(new CustomEvent('keycloak-auth-success'));
-      
-      // L'événement sera traité par App.tsx qui affichera automatiquement le dashboard
+
+      // L'evenement sera traite par App.tsx qui affichera automatiquement le dashboard
 
     } catch (err) {
       const apiErr = err as ApiError;
+      const details = apiErr.details as Record<string, unknown> | undefined;
+
       if (apiErr.status) {
+        // Verifier si le backend demande un CAPTCHA
+        if (details?.captchaRequired === true || details?.error === 'captcha_required') {
+          setCaptchaRequired(true);
+          setCaptchaToken(null);
+          setError('Vérification requise. Complétez le puzzle ci-dessous.');
+          setLoading(false);
+          return;
+        }
+
+        // Verifier si le compte est verrouille
+        if (details?.error === 'account_locked' || apiErr.status === 429) {
+          const retryAfter = details?.retryAfter as number;
+          const minutes = retryAfter ? Math.ceil(retryAfter / 60) : 15;
+          setError(`Trop de tentatives. Réessayez dans ${minutes} minute${minutes > 1 ? 's' : ''}.`);
+          setCaptchaRequired(false);
+          setLoading(false);
+          return;
+        }
+
         // Messages user-friendly selon le code HTTP
         switch (apiErr.status) {
           case 401:
-            setError('Email ou mot de passe incorrect.');
+            if (details?.captchaRequired === true) {
+              setCaptchaRequired(true);
+              setCaptchaToken(null);
+              setError('Mot de passe incorrect. Complétez le puzzle pour réessayer.');
+            } else {
+              setError('Email ou mot de passe incorrect.');
+            }
             break;
           case 400:
             setError('Veuillez remplir tous les champs.');
             break;
           case 403:
-            setError('Votre compte est désactivé. Contactez le support.');
-            break;
-          case 429:
-            setError('Trop de tentatives. Veuillez réessayer dans quelques minutes.');
+            if (details?.error === 'captcha_invalid') {
+              setCaptchaRequired(true);
+              setCaptchaToken(null);
+              setError('Vérification du puzzle échouée. Réessayez.');
+            } else {
+              setError('Votre compte est désactivé. Contactez le support.');
+            }
             break;
           case 500:
           case 502:
@@ -97,7 +142,26 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
+  }, [email, password, captchaToken]);
+
+  // ─── Form submit ────────────────────────────────────────────
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    doLogin();
   };
+
+  // ─── CAPTCHA verified callback ──────────────────────────────
+
+  const handleCaptchaVerified = useCallback((token: string) => {
+    setCaptchaToken(token);
+    // Auto-submit le login avec le token CAPTCHA
+    setTimeout(() => {
+      doLogin(token);
+    }, 500);
+  }, [doLogin]);
+
+  // ─── Render ─────────────────────────────────────────────────
 
   return (
     <ThemeProvider theme={lightTheme}>
@@ -107,31 +171,32 @@ export default function Login() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)', // Palette Clenzy
+      background: 'linear-gradient(135deg, #A6C0CE 0%, #8BA3B3 50%, #6B8A9A 100%)',
       p: 2
     }}>
       <Paper elevation={8} sx={{
-        p: 2.5, 
-        width: '100%', 
-        maxWidth: 400, 
+        p: 2.5,
+        width: '100%',
+        maxWidth: captchaRequired ? 420 : 400,
         borderRadius: 2,
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255, 255, 255, 0.2)'
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        transition: 'max-width 0.3s ease',
       }}>
         <Box sx={{ textAlign: 'center', mb: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
-            <img 
-              src={clenzyLogo} 
-              alt="Clenzy Logo" 
-              style={{ 
-                height: '48px', 
+            <img
+              src={clenzyLogo}
+              alt="Clenzy Logo"
+              style={{
+                height: '48px',
                 width: 'auto',
                 maxWidth: '200px'
-              }} 
+              }}
             />
           </Box>
-          <Typography variant="body2" sx={{ 
+          <Typography variant="body2" sx={{
             fontWeight: 500,
             color: 'secondary.main',
             fontSize: '0.85rem'
@@ -139,7 +204,7 @@ export default function Login() {
             Connectez-vous à votre compte
           </Typography>
         </Box>
-        
+
         {/* Message de succes apres inscription */}
         {inscriptionSuccess && (
           <Alert severity="success" sx={{ mb: 2, py: 0.75 }}>
@@ -215,21 +280,34 @@ export default function Login() {
                 },
               }}
             />
-            
+
             {error && (
-              <Alert severity="error" sx={{ mt: 1, py: 0.75 }}>
+              <Alert
+                severity={captchaRequired ? 'info' : 'error'}
+                sx={{ mt: 1, py: 0.75 }}
+              >
                 <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{error}</Typography>
               </Alert>
             )}
-            
-            <Button 
-              type="submit" 
-              variant="contained" 
-              size="medium" 
-              disabled={loading} 
-              sx={{ 
-                py: 1, 
-                fontSize: '0.9rem', 
+
+            {/* CAPTCHA puzzle slider */}
+            {captchaRequired && (
+              <Box sx={{ mt: 1 }}>
+                <PuzzleCaptcha
+                  onVerified={handleCaptchaVerified}
+                  onError={(msg) => setError(msg)}
+                />
+              </Box>
+            )}
+
+            <Button
+              type="submit"
+              variant="contained"
+              size="medium"
+              disabled={loading || (captchaRequired && !captchaToken)}
+              sx={{
+                py: 1,
+                fontSize: '0.9rem',
                 fontWeight: 600,
                 backgroundColor: 'secondary.main',
                 '&:hover': {
@@ -254,7 +332,7 @@ export default function Login() {
             </Button>
           </Stack>
         </form>
-        
+
         <Box sx={{ mt: 2, textAlign: 'center' }}>
           <Typography variant="caption" sx={{
             color: 'secondary.main',
@@ -283,5 +361,3 @@ export default function Login() {
     </ThemeProvider>
   );
 }
-
-
