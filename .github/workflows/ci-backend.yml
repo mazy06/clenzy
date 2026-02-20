@@ -132,6 +132,54 @@ jobs:
           path: server/target/dependency-check-report.html
           retention-days: 30
 
+  security-checks:
+    name: Security Code Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for System.out.println
+        run: |
+          echo "=== Checking for System.out.println in source code ==="
+          MATCHES=$(grep -rn 'System\.out\.println\|System\.err\.println\|\.printStackTrace()' \
+            server/src/main/java/ --include='*.java' || true)
+          if [ -n "$MATCHES" ]; then
+            echo "::error::Found System.out.println or printStackTrace() in source code:"
+            echo "$MATCHES"
+            exit 1
+          fi
+          echo "No System.out.println or printStackTrace() found"
+
+      - name: Check for hardcoded credentials
+        run: |
+          echo "=== Checking for hardcoded credentials ==="
+          MATCHES=$(grep -rniE 'password\s*=\s*"[^"$]+"|secret\s*=\s*"[^"$]+"' \
+            server/src/main/java/ \
+            --include='*.java' || true)
+          FILTERED=$(echo "$MATCHES" | grep -v '^\s*$' | grep -v '//' || true)
+          if [ -n "$FILTERED" ]; then
+            echo "::warning::Potential hardcoded credentials found (review manually):"
+            echo "$FILTERED"
+          fi
+          echo "Hardcoded credentials check complete"
+
+      - name: Check for missing PreAuthorize on controllers
+        run: |
+          echo "=== Checking controllers for PreAuthorize ==="
+          MISSING=""
+          for f in $(find server/src/main/java -name '*Controller.java' \
+            -not -name 'AuthProxyController.java' -not -name 'AuthController.java'); do
+            if ! grep -q '@PreAuthorize' "$f"; then
+              MISSING="$MISSING $f"
+            fi
+          done
+          if [ -n "$MISSING" ]; then
+            echo "::warning::Controllers without PreAuthorize annotation: $MISSING"
+          fi
+          echo "PreAuthorize check complete"
+
   docker-push:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest

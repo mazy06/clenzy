@@ -20,9 +20,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class RateLimitConfig implements WebMvcConfigurer {
 
     private final RateLimitInterceptor rateLimitInterceptor;
+    private final AuditLoggingInterceptor auditLoggingInterceptor;
 
-    public RateLimitConfig(RateLimitInterceptor rateLimitInterceptor) {
+    public RateLimitConfig(RateLimitInterceptor rateLimitInterceptor,
+                           AuditLoggingInterceptor auditLoggingInterceptor) {
         this.rateLimitInterceptor = rateLimitInterceptor;
+        this.auditLoggingInterceptor = auditLoggingInterceptor;
     }
 
     @Override
@@ -30,5 +33,10 @@ public class RateLimitConfig implements WebMvcConfigurer {
         registry.addInterceptor(rateLimitInterceptor)
                 .addPathPatterns("/api/**")
                 .excludePathPatterns("/api/health");
+
+        // Audit logging : trace POST/PUT/DELETE + admin access
+        registry.addInterceptor(auditLoggingInterceptor)
+                .addPathPatterns("/api/**")
+                .excludePathPatterns("/api/health", "/api/public/**");
     }
 }
