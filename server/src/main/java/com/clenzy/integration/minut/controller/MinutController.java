@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.clenzy.model.NoiseDevice;
 
 /**
  * Controller OAuth2 et API pour l'integration Minut.
@@ -32,6 +34,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/minut")
 @Tag(name = "Minut Integration", description = "Gestion de la connexion OAuth et API Minut")
+@PreAuthorize("isAuthenticated()")
 public class MinutController {
 
     private static final Logger log = LoggerFactory.getLogger(MinutController.class);
@@ -84,7 +87,9 @@ public class MinutController {
             @RequestParam("code") String code,
             @RequestParam("state") String state) {
         try {
-            MinutConnection connection = oAuthService.exchangeCodeForToken(code, state);
+            // Valider le state CSRF et recuperer le userId associe
+            String userId = oAuthService.validateAndConsumeState(state);
+            MinutConnection connection = oAuthService.exchangeCodeForToken(code, userId);
 
             Map<String, Object> response = new HashMap<>();
             response.put("status", "connected");
@@ -155,6 +160,24 @@ public class MinutController {
         return ResponseEntity.ok(statusDto);
     }
 
+    // ─── Ownership helper ────────────────────────────────────────
+
+    /**
+     * Verifie que l'utilisateur possede un device Minut avec l'externalDeviceId donne.
+     */
+    private boolean userOwnsDevice(String userId, String externalDeviceId) {
+        return noiseDeviceRepository.findByUserId(userId).stream()
+                .anyMatch(d -> externalDeviceId.equals(d.getExternalDeviceId()));
+    }
+
+    /**
+     * Verifie que l'utilisateur possede un device Minut lie au homeId donne.
+     */
+    private boolean userOwnsHome(String userId, String externalHomeId) {
+        return noiseDeviceRepository.findByUserId(userId).stream()
+                .anyMatch(d -> externalHomeId.equals(d.getExternalHomeId()));
+    }
+
     // ─── API Proxy ───────────────────────────────────────────────
 
     @GetMapping("/devices/{deviceId}")
@@ -162,6 +185,14 @@ public class MinutController {
     public ResponseEntity<?> getDevice(@AuthenticationPrincipal Jwt jwt,
                                        @PathVariable String deviceId) {
         String userId = jwt.getSubject();
+
+        // Ownership: verifier que le device appartient a l'utilisateur
+        if (!userOwnsDevice(userId, deviceId)) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "error", "access_denied",
+                    "message", "Vous n'avez pas acces a ce device"
+            ));
+        }
 
         try {
             Map<String, Object> device = apiService.getDevice(userId, deviceId);
@@ -180,6 +211,14 @@ public class MinutController {
     public ResponseEntity<?> getHome(@AuthenticationPrincipal Jwt jwt,
                                      @PathVariable String homeId) {
         String userId = jwt.getSubject();
+
+        // Ownership: verifier que l'utilisateur a un device lie a ce home
+        if (!userOwnsHome(userId, homeId)) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "error", "access_denied",
+                    "message", "Vous n'avez pas acces a ce home"
+            ));
+        }
 
         try {
             Map<String, Object> home = apiService.getHome(userId, homeId);
@@ -202,6 +241,14 @@ public class MinutController {
                                             @RequestParam(required = false) String eventTypes) {
         String userId = jwt.getSubject();
 
+        // Ownership: verifier que l'utilisateur a un device lie a ce home
+        if (!userOwnsHome(userId, homeId)) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "error", "access_denied",
+                    "message", "Vous n'avez pas acces a ce home"
+            ));
+        }
+
         try {
             Map<String, Object> events = apiService.getHomeEvents(userId, homeId, startAt, endAt, eventTypes);
             return ResponseEntity.ok(events);
@@ -219,6 +266,14 @@ public class MinutController {
     public ResponseEntity<?> getDisturbanceConfig(@AuthenticationPrincipal Jwt jwt,
                                                    @PathVariable String homeId) {
         String userId = jwt.getSubject();
+
+        // Ownership: verifier que l'utilisateur a un device lie a ce home
+        if (!userOwnsHome(userId, homeId)) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "error", "access_denied",
+                    "message", "Vous n'avez pas acces a ce home"
+            ));
+        }
 
         try {
             Map<String, Object> config = apiService.getDisturbanceConfig(userId, homeId);
@@ -238,6 +293,14 @@ public class MinutController {
                                                       @PathVariable String homeId,
                                                       @RequestBody Map<String, Object> config) {
         String userId = jwt.getSubject();
+
+        // Ownership: verifier que l'utilisateur a un device lie a ce home
+        if (!userOwnsHome(userId, homeId)) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "error", "access_denied",
+                    "message", "Vous n'avez pas acces a ce home"
+            ));
+        }
 
         try {
             Map<String, Object> result = apiService.updateDisturbanceConfig(userId, homeId, config);

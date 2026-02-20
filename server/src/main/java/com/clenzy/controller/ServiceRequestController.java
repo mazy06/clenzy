@@ -40,12 +40,14 @@ public class ServiceRequestController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @Operation(summary = "Mettre à jour une demande de service")
     public ServiceRequestDto update(@PathVariable Long id, @RequestBody ServiceRequestDto dto) {
         return service.update(id, dto);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST')")
     @Operation(summary = "Obtenir une demande de service par ID")
     public ServiceRequestDto get(@PathVariable Long id) {
         return service.getById(id);
@@ -64,13 +66,15 @@ public class ServiceRequestController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @Operation(summary = "Supprimer une demande de service")
     public void delete(@PathVariable Long id) {
         service.delete(id);
     }
 
     @PostMapping("/{id}/validate")
-    @Operation(summary = "Valider une demande de service et créer une intervention", 
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @Operation(summary = "Valider une demande de service et créer une intervention",
                description = "Seuls les managers et admins peuvent valider les demandes de service. " +
                            "Cette action change le statut de la demande à APPROVED et crée automatiquement " +
                            "une intervention correspondante. Permet d'assigner une équipe ou un utilisateur lors de la création.")

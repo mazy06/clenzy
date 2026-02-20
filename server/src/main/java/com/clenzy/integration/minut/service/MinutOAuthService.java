@@ -8,15 +8,18 @@ import com.clenzy.service.TokenEncryptionService;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Service OAuth2 pour l'integration Minut.
@@ -26,38 +29,62 @@ import java.util.Optional;
 public class MinutOAuthService {
 
     private static final Logger log = LoggerFactory.getLogger(MinutOAuthService.class);
+    private static final String OAUTH_STATE_PREFIX = "oauth:minut:state:";
+    private static final Duration OAUTH_STATE_TTL = Duration.ofMinutes(10);
 
     private final MinutConfig config;
     private final MinutConnectionRepository connectionRepository;
     private final TokenEncryptionService encryptionService;
     private final TenantContext tenantContext;
+    private final StringRedisTemplate redisTemplate;
     private final RestTemplate restTemplate;
 
     public MinutOAuthService(MinutConfig config,
                              MinutConnectionRepository connectionRepository,
                              TokenEncryptionService encryptionService,
-                             TenantContext tenantContext) {
+                             TenantContext tenantContext,
+                             StringRedisTemplate redisTemplate) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
         this.tenantContext = tenantContext;
+        this.redisTemplate = redisTemplate;
         this.restTemplate = new RestTemplate();
     }
 
     /**
      * Genere l'URL de redirection vers Minut pour l'autorisation OAuth.
+     * Utilise un state CSRF aleatoire stocke en Redis (TTL 10 min).
      */
     public String getAuthorizationUrl(String userId) {
         if (!config.isConfigured()) {
             throw new IllegalStateException("Configuration Minut incomplete. Verifiez les variables d'environnement MINUT_CLIENT_ID, MINUT_CLIENT_SECRET, MINUT_REDIRECT_URI.");
         }
 
+        // Generer un state CSRF aleatoire et stocker le mapping state->userId dans Redis
+        String state = UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set(OAUTH_STATE_PREFIX + state, userId, OAUTH_STATE_TTL);
+
         return config.getAuthorizationUrl()
                 + "?client_id=" + config.getClientId()
                 + "&redirect_uri=" + config.getRedirectUri()
                 + "&scope=" + config.getScopes()
-                + "&state=" + userId
+                + "&state=" + state
                 + "&response_type=code";
+    }
+
+    /**
+     * Valide le state OAuth et retourne le userId associe.
+     * Supprime le state de Redis apres validation (usage unique).
+     */
+    public String validateAndConsumeState(String state) {
+        String key = OAUTH_STATE_PREFIX + state;
+        String userId = redisTemplate.opsForValue().get(key);
+        if (userId == null) {
+            throw new SecurityException("Invalid or expired OAuth state parameter");
+        }
+        redisTemplate.delete(key);
+        return userId;
     }
 
     /**

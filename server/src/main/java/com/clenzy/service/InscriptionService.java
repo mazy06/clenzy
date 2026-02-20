@@ -70,8 +70,9 @@ public class InscriptionService {
         logger.info("Initiation inscription pour email: {}, forfait: {}", dto.getEmail(), dto.getForfait());
 
         // Verifier que l'email n'est pas deja utilise dans la table users
+        // Message generique pour eviter l'enumeration d'emails (AUTH-VULN-10)
         if (userRepository.existsByEmailHash(computeEmailHash(dto.getEmail()))) {
-            throw new RuntimeException("Un compte existe deja avec cet email");
+            throw new RuntimeException("Impossible de traiter cette inscription. Veuillez reessayer ou contacter le support.");
         }
 
         // Verifier s'il existe deja une inscription en attente pour cet email

@@ -63,6 +63,7 @@ public class SecurityConfigProd {
                 .headers(headers -> headers
                     .frameOptions(frame -> frame.sameOrigin())                         // X-Frame-Options: SAMEORIGIN (cohérent avec frame-ancestors 'self')
                     .contentTypeOptions(Customizer.withDefaults())                     // X-Content-Type-Options: nosniff
+                    .cacheControl(Customizer.withDefaults())                           // Cache-Control: no-cache, no-store, must-revalidate (sur toutes les reponses API)
                     .httpStrictTransportSecurity(hsts -> hsts
                         .includeSubDomains(true)
                         .maxAgeInSeconds(31536000)
@@ -84,6 +85,9 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/api/webhooks/stripe").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+                        // OAuth callbacks (appeles par les providers externes sans JWT)
+                        .requestMatchers("/api/airbnb/callback").permitAll()
+                        .requestMatchers("/api/minut/callback").permitAll()
                         // Actuator (health, info, prometheus et metrics sans auth — accès réseau Docker interne uniquement)
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/actuator/prometheus", "/actuator/metrics").hasRole("ADMIN")

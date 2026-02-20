@@ -147,12 +147,18 @@ function getCookieDomain(): string {
  * Save access token as a cookie readable by the landing page.
  * En dev : partagé entre tous les ports de localhost.
  * En prod : partagé entre tous les sous-domaines de clenzy.fr.
+ *
+ * SECURITE: Ce cookie est cree via document.cookie (client-side), donc
+ * le flag HttpOnly n'est PAS possible ici (serveur-only). SameSite=Strict
+ * reduit le risque de CSRF. Le max-age est reduit a 1h (au lieu de 24h)
+ * pour limiter la fenetre d'attaque en cas de XSS.
+ * TODO: Migrer vers un cookie HttpOnly emis par le serveur (AUTH-VULN-02/03).
  */
 export function setSessionCookie(accessToken: string): void {
   try {
     const domain = getCookieDomain();
     const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(accessToken)}; path=/${domain}; max-age=86400; SameSite=Lax${secure}`;
+    document.cookie = `${SESSION_COOKIE}=${encodeURIComponent(accessToken)}; path=/${domain}; max-age=3600; SameSite=Strict${secure}`;
   } catch {
     // Silent fail
   }

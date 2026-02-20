@@ -51,12 +51,14 @@ public class TeamController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @Operation(summary = "Mettre à jour une équipe")
     public TeamDto update(@PathVariable Long id, @RequestBody TeamDto dto) {
         return teamService.update(id, dto);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @Operation(summary = "Obtenir une équipe par ID")
     public TeamDto get(@PathVariable Long id) {
         return teamService.getById(id);
@@ -78,6 +80,7 @@ public class TeamController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Supprimer une équipe")
     public void delete(@PathVariable Long id) {
         teamService.delete(id);

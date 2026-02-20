@@ -23,6 +23,8 @@ import com.clenzy.model.User;
 import com.clenzy.service.UserService;
 import com.clenzy.service.PermissionService;
 import com.clenzy.service.AuditLogService;
+import com.clenzy.service.LoginProtectionService;
+import com.clenzy.service.LoginProtectionService.LoginStatus;
 import com.clenzy.model.UserRole;
 import com.clenzy.dto.RolePermissionsDto;
 
@@ -49,11 +51,14 @@ public class AuthController {
     private final UserService userService;
     private final PermissionService permissionService;
     private final AuditLogService auditLogService;
+    private final LoginProtectionService loginProtectionService;
 
-    public AuthController(UserService userService, PermissionService permissionService, AuditLogService auditLogService) {
+    public AuthController(UserService userService, PermissionService permissionService,
+                          AuditLogService auditLogService, LoginProtectionService loginProtectionService) {
         this.userService = userService;
         this.permissionService = permissionService;
         this.auditLogService = auditLogService;
+        this.loginProtectionService = loginProtectionService;
     }
 
     @PostMapping("/auth/login")
@@ -75,7 +80,38 @@ public class AuthController {
                 return ResponseEntity.badRequest().body(error);
             }
 
-            // Appel a Keycloak pour obtenir le token
+            // ─── Account lockout check (Redis-backed) ─────────────
+            LoginStatus loginStatus = loginProtectionService.checkLoginAllowed(username);
+            if (loginStatus.isLocked()) {
+                log.warn("Compte verrouille pour '{}', unlock dans {}s", username, loginStatus.remainingSeconds());
+                Map<String, Object> error = new HashMap<>();
+                error.put("error", "account_locked");
+                error.put("error_description", "Compte temporairement verrouille. Reessayez dans " + loginStatus.remainingSeconds() + " secondes.");
+                error.put("retryAfter", loginStatus.remainingSeconds());
+                return ResponseEntity.status(429)
+                        .header("Retry-After", String.valueOf(loginStatus.remainingSeconds()))
+                        .body(error);
+            }
+
+            // ─── CAPTCHA validation (si requis apres N tentatives) ─
+            if (loginStatus.captchaRequired()) {
+                String captchaToken = credentials.get("captchaToken");
+                if (captchaToken == null || captchaToken.isBlank()) {
+                    Map<String, Object> error = new HashMap<>();
+                    error.put("error", "captcha_required");
+                    error.put("error_description", "Verification CAPTCHA requise apres plusieurs tentatives echouees.");
+                    error.put("captchaRequired", true);
+                    return ResponseEntity.status(403).body(error);
+                }
+                if (!loginProtectionService.validateCaptchaToken(captchaToken)) {
+                    Map<String, Object> error = new HashMap<>();
+                    error.put("error", "captcha_invalid");
+                    error.put("error_description", "Verification CAPTCHA echouee. Veuillez reessayer.");
+                    return ResponseEntity.status(403).body(error);
+                }
+            }
+
+            // ─── Appel a Keycloak pour obtenir le token ───────────
             RestTemplate restTemplate = new RestTemplate();
             String tokenUrl = keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/token";
 
@@ -96,6 +132,9 @@ public class AuthController {
             if (keycloakResponse.getStatusCode().is2xxSuccessful() && keycloakResponse.getBody() != null) {
                 Map<String, Object> tokenData = keycloakResponse.getBody();
 
+                // Login successful — reset failure counter
+                loginProtectionService.recordSuccessfulLogin(username);
+
                 Map<String, Object> response = new HashMap<>();
                 response.put("access_token", tokenData.get("access_token"));
                 response.put("refresh_token", tokenData.get("refresh_token"));
@@ -108,24 +147,48 @@ public class AuthController {
 
                 return ResponseEntity.ok(response);
             } else {
+                // Login failed — increment failure counter
+                loginProtectionService.recordFailedAttempt(username);
+
                 // Audit : connexion echouee
                 auditLogService.logLoginFailed(username, "Invalid credentials");
 
                 Map<String, Object> error = new HashMap<>();
                 error.put("error", "authentication_failed");
                 error.put("error_description", "Invalid credentials");
+
+                // Verifier si le CAPTCHA est maintenant requis
+                LoginStatus updatedStatus = loginProtectionService.checkLoginAllowed(username);
+                if (updatedStatus.captchaRequired()) {
+                    error.put("captchaRequired", true);
+                }
+
                 return ResponseEntity.status(401).body(error);
             }
 
         } catch (Exception e) {
+            // Login failed — increment failure counter
+            if (username != null && !username.isBlank()) {
+                loginProtectionService.recordFailedAttempt(username);
+            }
+
             // Audit : connexion echouee
             auditLogService.logLoginFailed(username != null ? username : "unknown", e.getMessage());
 
             Map<String, Object> error = new HashMap<>();
-            error.put("error", "server_error");
-            error.put("error_description", "Internal server error");
+            error.put("error", "authentication_failed");
+            error.put("error_description", "Invalid credentials");
             log.error("Erreur lors du login: {}", e.getMessage());
-            return ResponseEntity.status(500).body(error);
+
+            // Verifier si le CAPTCHA est maintenant requis
+            if (username != null && !username.isBlank()) {
+                LoginStatus updatedStatus = loginProtectionService.checkLoginAllowed(username);
+                if (updatedStatus.captchaRequired()) {
+                    error.put("captchaRequired", true);
+                }
+            }
+
+            return ResponseEntity.status(401).body(error);
         }
     }
 

@@ -228,14 +228,15 @@ public class EmailService {
 
     private void addRow(StringBuilder sb, String label, String value) {
         sb.append("<tr>");
-        sb.append("<td style='padding: 8px 12px; font-weight: bold; color: #475569; width: 40%; vertical-align: top;'>").append(label).append("</td>");
-        sb.append("<td style='padding: 8px 12px; color: #1e293b;'>").append(value != null ? value : "Non renseigné").append("</td>");
+        sb.append("<td style='padding: 8px 12px; font-weight: bold; color: #475569; width: 40%; vertical-align: top;'>").append(StringUtils.escapeHtml(label)).append("</td>");
+        sb.append("<td style='padding: 8px 12px; color: #1e293b;'>").append(value != null ? StringUtils.escapeHtml(value) : "Non renseigné").append("</td>");
         sb.append("</tr>");
     }
 
     private String getLabel(Map<String, String> labels, String key) {
         if (key == null) return "Non renseigné";
-        return labels.getOrDefault(key, key);
+        // Toujours echapper : si la cle ne matche pas, elle contient du user input brut
+        return StringUtils.escapeHtml(labels.getOrDefault(key, key));
     }
 
     private String formatPackageName(String packageId) {
@@ -365,7 +366,7 @@ public class EmailService {
         if (dto.getSelectedWorks() != null && !dto.getSelectedWorks().isEmpty()) {
             sb.append("<ul style='margin: 0; padding-left: 20px;'>");
             for (String work : dto.getSelectedWorks()) {
-                sb.append("<li style='padding: 4px 0;'>").append(WORK_LABELS.getOrDefault(work, work)).append("</li>");
+                sb.append("<li style='padding: 4px 0;'>").append(StringUtils.escapeHtml(WORK_LABELS.getOrDefault(work, work))).append("</li>");
             }
             sb.append("</ul>");
         } else {
@@ -376,7 +377,7 @@ public class EmailService {
         if (dto.getCustomNeed() != null && !dto.getCustomNeed().isBlank()) {
             sb.append("<div style='margin-top: 15px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 12px;'>");
             sb.append("<strong style='color: #92400e;'>Besoin spécifique :</strong><br>");
-            sb.append("<span style='color: #78350f;'>").append(dto.getCustomNeed()).append("</span>");
+            sb.append("<span style='color: #78350f;'>").append(StringUtils.escapeHtml(dto.getCustomNeed())).append("</span>");
             sb.append("</div>");
         }
         sb.append("</div>");
@@ -384,7 +385,7 @@ public class EmailService {
         // Section: Description complémentaire
         if (dto.getDescription() != null && !dto.getDescription().isBlank()) {
             sb.append(sectionStart("#f8fafc", "📝 Description complémentaire"));
-            sb.append("<p style='margin: 0; color: #1e293b; white-space: pre-wrap;'>").append(dto.getDescription()).append("</p>");
+            sb.append("<p style='margin: 0; color: #1e293b; white-space: pre-wrap;'>").append(StringUtils.escapeHtml(dto.getDescription())).append("</p>");
             sb.append("</div>");
         }
 

@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +31,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/tuya")
 @Tag(name = "Tuya Integration", description = "Gestion de la connexion et API Tuya Cloud")
+@PreAuthorize("isAuthenticated()")
 public class TuyaController {
 
     private static final Logger log = LoggerFactory.getLogger(TuyaController.class);
@@ -134,7 +136,16 @@ public class TuyaController {
     @Operation(summary = "Infos d'un device Tuya")
     public ResponseEntity<?> getDeviceInfo(@AuthenticationPrincipal Jwt jwt,
                                             @PathVariable String deviceId) {
+        String userId = jwt.getSubject();
         try {
+            // Ownership: verifier que le device appartient a l'utilisateur
+            if (!noiseDeviceRepository.findByUserId(userId).stream()
+                    .anyMatch(d -> deviceId.equals(d.getExternalDeviceId()))) {
+                return ResponseEntity.status(403).body(Map.of(
+                        "error", "access_denied",
+                        "message", "Vous n'avez pas acces a ce device"
+                ));
+            }
             Map<String, Object> device = apiService.getDeviceInfo(deviceId);
             return ResponseEntity.ok(device);
         } catch (Exception e) {
@@ -151,7 +162,16 @@ public class TuyaController {
             description = "Retourne les data points actuels (dont DP12 noise_value)")
     public ResponseEntity<?> getDeviceStatus(@AuthenticationPrincipal Jwt jwt,
                                               @PathVariable String deviceId) {
+        String userId = jwt.getSubject();
         try {
+            // Ownership: verifier que le device appartient a l'utilisateur
+            if (!noiseDeviceRepository.findByUserId(userId).stream()
+                    .anyMatch(d -> deviceId.equals(d.getExternalDeviceId()))) {
+                return ResponseEntity.status(403).body(Map.of(
+                        "error", "access_denied",
+                        "message", "Vous n'avez pas acces a ce device"
+                ));
+            }
             Map<String, Object> status = apiService.getDeviceStatus(deviceId);
             return ResponseEntity.ok(status);
         } catch (Exception e) {
@@ -169,7 +189,16 @@ public class TuyaController {
                                             @PathVariable String deviceId,
                                             @RequestParam long startTime,
                                             @RequestParam long endTime) {
+        String userId = jwt.getSubject();
         try {
+            // Ownership: verifier que le device appartient a l'utilisateur
+            if (!noiseDeviceRepository.findByUserId(userId).stream()
+                    .anyMatch(d -> deviceId.equals(d.getExternalDeviceId()))) {
+                return ResponseEntity.status(403).body(Map.of(
+                        "error", "access_denied",
+                        "message", "Vous n'avez pas acces a ce device"
+                ));
+            }
             Map<String, Object> logs = apiService.getDeviceLogs(deviceId, startTime, endTime);
             return ResponseEntity.ok(logs);
         } catch (Exception e) {

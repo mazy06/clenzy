@@ -79,7 +79,9 @@ public class AirbnbOAuthController {
             @RequestParam("code") String code,
             @RequestParam("state") String state) {
         try {
-            AirbnbConnection connection = oAuthService.exchangeCodeForToken(code, state);
+            // Valider le state CSRF et recuperer le userId associe
+            String userId = oAuthService.validateAndConsumeState(state);
+            AirbnbConnection connection = oAuthService.exchangeCodeForToken(code, userId);
 
             Map<String, Object> response = new HashMap<>();
             response.put("status", "connected");

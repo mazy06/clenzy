@@ -1,12 +1,18 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.UserDto;
+import com.clenzy.model.User;
+import com.clenzy.repository.UserRepository;
 import com.clenzy.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -24,12 +30,15 @@ import org.springframework.security.access.prepost.PreAuthorize;
 @PreAuthorize("isAuthenticated()")
 public class UserController {
     private final UserService userService;
+    private final UserRepository userRepository;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, UserRepository userRepository) {
         this.userService = userService;
+        this.userRepository = userRepository;
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Créer un utilisateur")
     public ResponseEntity<UserDto> create(@Validated(Create.class) @RequestBody UserDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.create(dto));
@@ -37,27 +46,50 @@ public class UserController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour un utilisateur")
-    public UserDto update(@PathVariable Long id, @RequestBody UserDto dto) {
+    public UserDto update(@PathVariable Long id, @RequestBody UserDto dto, @AuthenticationPrincipal Jwt jwt) {
+        validateOwnershipOrAdmin(id, jwt);
         return userService.update(id, dto);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtenir un utilisateur par ID")
-    public UserDto get(@PathVariable Long id) {
+    public UserDto get(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        validateOwnershipOrAdmin(id, jwt);
         return userService.getById(id);
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Lister les utilisateurs")
     public Page<UserDto> list(@PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return userService.list(pageable);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Supprimer un utilisateur")
     public void delete(@PathVariable Long id) {
         userService.delete(id);
+    }
+
+    /**
+     * Verifie que l'utilisateur authentifie est le proprietaire de la ressource ou un ADMIN.
+     */
+    private void validateOwnershipOrAdmin(Long resourceUserId, Jwt jwt) {
+        String keycloakId = jwt.getSubject();
+        // Verifier si l'utilisateur authentifie correspond a la ressource demandee
+        User resourceUser = userRepository.findById(resourceUserId).orElse(null);
+        boolean isOwner = resourceUser != null && keycloakId.equals(resourceUser.getKeycloakId());
+        // Verifier le role ADMIN depuis le JWT Keycloak
+        boolean isAdmin = false;
+        Object realmAccess = jwt.getClaim("realm_access");
+        if (realmAccess instanceof Map<?,?> ra && ra.get("roles") instanceof List<?> roles) {
+            isAdmin = roles.contains("ADMIN");
+        }
+        if (!isOwner && !isAdmin) {
+            throw new AccessDeniedException("Acces refuse : vous ne pouvez acceder qu'a vos propres donnees");
+        }
     }
 }
 
