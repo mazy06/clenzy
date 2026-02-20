@@ -211,7 +211,7 @@ public class InterventionService {
                     currentUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
                 }
                 if (currentUser == null && email != null) {
-                    currentUser = userRepository.findByEmail(email).orElse(null);
+                    currentUser = userRepository.findByEmailHash(computeEmailHash(email)).orElse(null);
                 }
 
                 if (currentUser == null) {
@@ -275,6 +275,20 @@ public class InterventionService {
         checkAccessRights(intervention, jwt);
 
         InterventionStatus newStatus = InterventionStatus.fromString(status);
+
+        // Validate state machine transition
+        InterventionStatus currentStatus = intervention.getStatus();
+        if (!currentStatus.canTransitionTo(newStatus)) {
+            throw new IllegalStateException(
+                    "Transition invalide : " + currentStatus.name() + " → " + newStatus.name()
+                    + ". Transitions autorisees depuis " + currentStatus.name() + " : "
+                    + java.util.Arrays.toString(
+                        java.util.stream.Stream.of(InterventionStatus.values())
+                            .filter(currentStatus::canTransitionTo)
+                            .map(Enum::name)
+                            .toArray()));
+        }
+
         intervention.setStatus(newStatus);
         intervention = interventionRepository.save(intervention);
 
@@ -833,7 +847,7 @@ public class InterventionService {
             currentUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
         }
         if (currentUser == null && email != null) {
-            currentUser = userRepository.findByEmail(email).orElse(null);
+            currentUser = userRepository.findByEmailHash(computeEmailHash(email)).orElse(null);
         }
 
         if (currentUser == null) {
@@ -1153,6 +1167,20 @@ public class InterventionService {
             }
         } catch (Exception e) {
             log.warn("Notification error interventionCompleted: {}", e.getMessage());
+        }
+    }
+
+    private static String computeEmailHash(String email) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(email.toLowerCase().trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hashBytes) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 non disponible", e);
         }
     }
 }

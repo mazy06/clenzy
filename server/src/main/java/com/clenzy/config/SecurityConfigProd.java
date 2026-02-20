@@ -72,6 +72,11 @@ public class SecurityConfigProd {
                         .policy("camera=(), microphone=(), geolocation=(), payment=()")
                     )
                 )
+                .headers(headers -> headers
+                    .contentSecurityPolicy(csp -> csp
+                        .policyDirectives("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' https:; frame-ancestors 'none'; form-action 'self'; base-uri 'self'")
+                    )
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Endpoints publics
@@ -80,7 +85,8 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/webhooks/stripe").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         // Actuator (health, info, prometheus et metrics sans auth — accès réseau Docker interne uniquement)
-                        .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus", "/actuator/metrics").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/prometheus", "/actuator/metrics").hasRole("ADMIN")
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
                         // Endpoints authentifies
                         .requestMatchers("/api/me").authenticated()

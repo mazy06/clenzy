@@ -127,7 +127,7 @@ public class EmailService {
             helper.setFrom(fromAddress);
             helper.setTo(notificationTo);
             helper.setReplyTo(dto.getEmail());
-            helper.setSubject("📋 Nouvelle demande de devis — " + dto.getFullName() + " — " + dto.getCity());
+            helper.setSubject("📋 Nouvelle demande de devis — " + sanitizeHeaderValue(dto.getFullName()) + " — " + sanitizeHeaderValue(dto.getCity()));
             helper.setText(buildHtmlBody(dto, recommendedPackage, recommendedRate), true);
             ms.send(message);
             log.info("Email de notification devis envoyé pour : {} ({})", dto.getFullName(), dto.getEmail());
@@ -313,8 +313,8 @@ public class EmailService {
             helper.setReplyTo(dto.getEmail());
 
             String urgencyTag = "urgent".equals(dto.getUrgency()) ? "🔴 URGENT — " : "";
-            helper.setSubject(urgencyTag + "🔧 Demande de devis maintenance — " + dto.getFullName()
-                    + (dto.getCity() != null && !dto.getCity().isBlank() ? " — " + dto.getCity() : ""));
+            helper.setSubject(urgencyTag + "🔧 Demande de devis maintenance — " + sanitizeHeaderValue(dto.getFullName())
+                    + (dto.getCity() != null && !dto.getCity().isBlank() ? " — " + sanitizeHeaderValue(dto.getCity()) : ""));
 
             helper.setText(buildMaintenanceHtmlBody(dto), true);
             ms.send(message);
@@ -479,7 +479,7 @@ public class EmailService {
 
             helper.setFrom(fromAddress);
             helper.setTo(toEmail);
-            helper.setSubject(subject);
+            helper.setSubject(sanitizeHeaderValue(subject));
             helper.setText(htmlBody, true);
 
             // Ajouter le PDF en piece jointe
@@ -491,6 +491,15 @@ public class EmailService {
             log.error("Failed to send document email to {}: {}", toEmail, e.getMessage(), e);
             throw new RuntimeException("Erreur d'envoi de l'email avec document", e);
         }
+    }
+
+    /**
+     * Sanitise une valeur destinee a un header email pour prevenir l'injection de headers.
+     * Supprime les caracteres CR/LF qui permettraient d'injecter des headers supplementaires.
+     */
+    private String sanitizeHeaderValue(String value) {
+        if (value == null) return "";
+        return value.replaceAll("[\\r\\n]+", " ").trim();
     }
 
     private String buildContactHtmlBody(String toName, String replyToName, String messageText) {

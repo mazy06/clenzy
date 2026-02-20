@@ -70,7 +70,7 @@ public class InscriptionService {
         logger.info("Initiation inscription pour email: {}, forfait: {}", dto.getEmail(), dto.getForfait());
 
         // Verifier que l'email n'est pas deja utilise dans la table users
-        if (userRepository.existsByEmail(dto.getEmail())) {
+        if (userRepository.existsByEmailHash(computeEmailHash(dto.getEmail()))) {
             throw new RuntimeException("Un compte existe deja avec cet email");
         }
 
@@ -311,5 +311,19 @@ public class InscriptionService {
                 LocalDateTime.now()
         );
         logger.info("Nettoyage des inscriptions expirees effectue");
+    }
+
+    private static String computeEmailHash(String email) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(email.toLowerCase().trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hashBytes) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 non disponible", e);
+        }
     }
 }

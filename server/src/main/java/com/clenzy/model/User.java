@@ -38,17 +38,23 @@ public class User {
     @NotBlank(message = "Le prénom est obligatoire")
     @Size(min = 2, max = 50, message = "Le prénom doit contenir entre 2 et 50 caractères")
     @Column(name = "first_name", nullable = false)
+    @Convert(converter = EncryptedFieldConverter.class)
     private String firstName;
-    
+
     @NotBlank(message = "Le nom est obligatoire")
     @Size(min = 2, max = 50, message = "Le nom doit contenir entre 2 et 50 caractères")
     @Column(name = "last_name", nullable = false)
+    @Convert(converter = EncryptedFieldConverter.class)
     private String lastName;
-    
+
     @NotBlank(message = "L'email est obligatoire")
     @Email(message = "Format d'email invalide")
     @Column(unique = true, nullable = false)
+    @Convert(converter = EncryptedFieldConverter.class)
     private String email;
+
+    @Column(name = "email_hash", length = 64)
+    private String emailHash;
     
     @NotBlank(message = "Le mot de passe est obligatoire")
     @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caractères")
@@ -195,8 +201,31 @@ public class User {
     
     public void setEmail(String email) {
         this.email = email;
+        this.emailHash = email != null ? computeEmailHash(email) : null;
     }
-    
+
+    public String getEmailHash() {
+        return emailHash;
+    }
+
+    public void setEmailHash(String emailHash) {
+        this.emailHash = emailHash;
+    }
+
+    private static String computeEmailHash(String email) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(email.toLowerCase().trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 non disponible", e);
+        }
+    }
+
     public String getPassword() {
         return password;
     }

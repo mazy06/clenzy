@@ -19,13 +19,23 @@ RUN mvn -B -DskipTests clean package && \
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
+# Non-root user for security
+RUN groupadd -r clenzy && useradd -r -g clenzy -s /bin/false clenzy
+
 ENV JAVA_OPTS=""
 ENV SPRING_PROFILES_ACTIVE=prod
 
 COPY --from=build /workspace/target/clenzy-platform-1.0.0.jar /app/app.jar
 
+RUN chown -R clenzy:clenzy /app
+
+USER clenzy
+
 EXPOSE 8080
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD curl -sf http://localhost:8080/actuator/health || exit 1
+
+ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom $JAVA_OPTS -jar /app/app.jar"]
 
 

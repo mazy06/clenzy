@@ -333,7 +333,7 @@ public class PaymentController {
             user = userRepository.findByKeycloakId(keycloakId).orElse(null);
         }
         if (user == null && email != null) {
-            user = userRepository.findByEmail(email).orElse(null);
+            user = userRepository.findByEmailHash(computeEmailHash(email)).orElse(null);
         }
         return user;
     }
@@ -362,5 +362,19 @@ public class PaymentController {
             dto.hostName = i.getRequestor().getFullName();
         }
         return dto;
+    }
+
+    private static String computeEmailHash(String email) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(email.toLowerCase().trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hashBytes) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 non disponible", e);
+        }
     }
 }
