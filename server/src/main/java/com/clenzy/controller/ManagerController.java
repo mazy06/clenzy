@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
@@ -97,7 +98,7 @@ public class ManagerController {
         // Le manager ne peut voir que ses propres donnees
         Optional<User> userOpt = userRepository.findByKeycloakId(keycloakId);
         if (userOpt.isEmpty() || !userOpt.get().getId().equals(targetManagerId)) {
-            throw new org.springframework.security.access.AccessDeniedException(
+            throw new AccessDeniedException(
                     "Vous n'avez pas acces aux donnees de ce manager");
         }
     }
@@ -252,8 +253,13 @@ public class ManagerController {
                     userId = userOpt.get().getId();
                     log.debug("Utilisateur trouve avec ID: {}", userId);
                 } else {
-                    log.warn("Utilisateur non trouve pour UUID: {}", managerId);
-                    return ResponseEntity.badRequest().build();
+                    // Utilisateur pas encore synchronise en base — retourner des associations vides
+                    log.warn("Utilisateur non trouve pour UUID: {} — retour associations vides", managerId);
+                    return ResponseEntity.ok(new ManagerAssociationsDto(
+                            java.util.Collections.emptyList(),
+                            java.util.Collections.emptyList(),
+                            java.util.Collections.emptyList(),
+                            java.util.Collections.emptyList()));
                 }
             }
 
@@ -272,6 +278,9 @@ public class ManagerController {
                 associations.getUsers() != null ? associations.getUsers().size() : 0);
 
             return ResponseEntity.ok(associations);
+        } catch (AccessDeniedException e) {
+            log.warn("Acces refuse pour les associations du manager {}: {}", managerId, e.getMessage());
+            throw e; // Laisser Spring Security gerer le 403
         } catch (Exception e) {
             log.error("Erreur lors de la recuperation des associations", e);
             return ResponseEntity.badRequest().build();
