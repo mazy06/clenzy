@@ -3,6 +3,8 @@ package com.clenzy.controller;
 import com.clenzy.dto.UserDto;
 import com.clenzy.model.User;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.LoginProtectionService;
+import com.clenzy.service.LoginProtectionService.LoginStatus;
 import com.clenzy.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,10 +33,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 public class UserController {
     private final UserService userService;
     private final UserRepository userRepository;
+    private final LoginProtectionService loginProtectionService;
 
-    public UserController(UserService userService, UserRepository userRepository) {
+    public UserController(UserService userService, UserRepository userRepository, LoginProtectionService loginProtectionService) {
         this.userService = userService;
         this.userRepository = userRepository;
+        this.loginProtectionService = loginProtectionService;
     }
 
     @PostMapping
@@ -71,6 +75,45 @@ public class UserController {
     @Operation(summary = "Supprimer un utilisateur")
     public void delete(@PathVariable Long id) {
         userService.delete(id);
+    }
+
+    // ─── Login lockout management (admin only) ──────────────────
+
+    @GetMapping("/{id}/lockout-status")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Consulter le statut de verrouillage d'un utilisateur")
+    public ResponseEntity<?> getLockoutStatus(@PathVariable Long id) {
+        User user = userRepository.findById(id).orElse(null);
+        if (user == null || user.getEmail() == null) {
+            return ResponseEntity.ok(Map.of("isLocked", false, "failedAttempts", 0, "remainingSeconds", 0));
+        }
+
+        LoginStatus status = loginProtectionService.checkLoginAllowed(user.getEmail());
+        int failedAttempts = loginProtectionService.getFailedAttempts(user.getEmail());
+
+        return ResponseEntity.ok(Map.of(
+                "isLocked", status.isLocked(),
+                "remainingSeconds", status.remainingSeconds(),
+                "captchaRequired", status.captchaRequired(),
+                "failedAttempts", failedAttempts
+        ));
+    }
+
+    @PostMapping("/{id}/unlock")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Debloquer manuellement un utilisateur verrouille")
+    public ResponseEntity<?> unlockUser(@PathVariable Long id) {
+        User user = userRepository.findById(id).orElse(null);
+        if (user == null || user.getEmail() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Utilisateur introuvable"));
+        }
+
+        loginProtectionService.forceUnlock(user.getEmail());
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Utilisateur " + user.getFirstName() + " " + user.getLastName() + " debloque avec succes"
+        ));
     }
 
     /**

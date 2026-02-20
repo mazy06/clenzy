@@ -34,6 +34,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
   const [captchaRequired, setCaptchaRequired] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
@@ -41,6 +42,7 @@ export default function Login() {
 
   const doLogin = useCallback(async (overrideCaptchaToken?: string) => {
     setError(null);
+    setIsLocked(false);
     setLoading(true);
 
     const tokenToSend = overrideCaptchaToken || captchaToken;
@@ -99,7 +101,8 @@ export default function Login() {
         if (details?.error === 'account_locked' || apiErr.status === 429) {
           const retryAfter = details?.retryAfter as number;
           const minutes = retryAfter ? Math.ceil(retryAfter / 60) : 15;
-          setError(`Trop de tentatives. Réessayez dans ${minutes} minute${minutes > 1 ? 's' : ''}.`);
+          setError(`Compte temporairement bloqué suite à trop de tentatives échouées. Réessayez dans ${minutes} minute${minutes > 1 ? 's' : ''}. Si le problème persiste, contactez votre administrateur.`);
+          setIsLocked(true);
           setCaptchaRequired(false);
           setLoading(false);
           return;
@@ -283,7 +286,7 @@ export default function Login() {
 
             {error && (
               <Alert
-                severity={captchaRequired ? 'info' : 'error'}
+                severity={isLocked ? 'warning' : captchaRequired ? 'info' : 'error'}
                 sx={{ mt: 1, py: 0.75 }}
               >
                 <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>{error}</Typography>
@@ -304,7 +307,7 @@ export default function Login() {
               type="submit"
               variant="contained"
               size="medium"
-              disabled={loading || (captchaRequired && !captchaToken)}
+              disabled={loading || isLocked || (captchaRequired && !captchaToken)}
               sx={{
                 py: 1,
                 fontSize: '0.9rem',

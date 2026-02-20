@@ -275,6 +275,50 @@ public class LoginProtectionService {
         lockout.recordFailure();
     }
 
+    /**
+     * Deverrouille manuellement un compte (appele par un admin).
+     * Supprime le lockout ET les tentatives echouees.
+     *
+     * @param username l'email ou username du compte a debloquer
+     */
+    public void forceUnlock(String username) {
+        String normalizedUsername = normalizeUsername(username);
+
+        try {
+            if (redisTemplate != null) {
+                redisTemplate.delete(REDIS_ATTEMPTS_PREFIX + normalizedUsername);
+                redisTemplate.delete(REDIS_LOCKED_PREFIX + normalizedUsername);
+                log.info("Compte '{}' deverrouille manuellement par un administrateur", normalizedUsername);
+            }
+        } catch (Exception e) {
+            log.debug("Redis indisponible pour forceUnlock: {}", e.getMessage());
+        }
+
+        localLockouts.remove(normalizedUsername);
+    }
+
+    /**
+     * Retourne le nombre de tentatives echouees pour un compte.
+     */
+    public int getFailedAttempts(String username) {
+        String normalizedUsername = normalizeUsername(username);
+
+        try {
+            if (redisTemplate != null) {
+                String attemptsStr = redisTemplate.opsForValue().get(REDIS_ATTEMPTS_PREFIX + normalizedUsername);
+                if (attemptsStr != null) {
+                    return Integer.parseInt(attemptsStr);
+                }
+                return 0;
+            }
+        } catch (Exception e) {
+            log.debug("Redis indisponible pour getFailedAttempts: {}", e.getMessage());
+        }
+
+        LocalLockout lockout = localLockouts.get(normalizedUsername);
+        return lockout != null ? lockout.failedAttempts : 0;
+    }
+
     // ─── Helpers ───────────────────────────────────────────────
 
     private String normalizeUsername(String username) {

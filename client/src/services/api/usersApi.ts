@@ -34,6 +34,13 @@ export interface UserFormData {
   role: string;
 }
 
+export interface LockoutStatus {
+  isLocked: boolean;
+  remainingSeconds: number;
+  captchaRequired: boolean;
+  failedAttempts: number;
+}
+
 export const usersApi = {
   getAll(params?: { role?: string }) {
     return apiClient.get<User[]>('/users', { params });
@@ -49,5 +56,12 @@ export const usersApi = {
   },
   delete(id: number) {
     return apiClient.delete(`/users/${id}`);
+  },
+  // ─── Lockout management (admin) ─────────────────────
+  getLockoutStatus(userId: number) {
+    return apiClient.get<LockoutStatus>(`/users/${userId}/lockout-status`);
+  },
+  unlockUser(userId: number) {
+    return apiClient.post<{ success: boolean; message: string }>(`/users/${userId}/unlock`, {});
   },
 };

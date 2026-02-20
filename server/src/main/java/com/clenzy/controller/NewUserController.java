@@ -3,6 +3,8 @@ package com.clenzy.controller;
 import com.clenzy.dto.CreateUserDto;
 import com.clenzy.dto.UpdateUserDto;
 import com.clenzy.dto.UserProfileDto;
+import com.clenzy.service.LoginProtectionService;
+import com.clenzy.service.LoginProtectionService.LoginStatus;
 import com.clenzy.service.NewUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v2/users")
@@ -22,6 +25,9 @@ public class NewUserController {
 
     @Autowired
     private NewUserService newUserService;
+
+    @Autowired
+    private LoginProtectionService loginProtectionService;
 
     /**
      * Récupérer tous les profils utilisateurs
@@ -121,6 +127,59 @@ public class NewUserController {
             return ResponseEntity.ok(exists);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // ─── Login lockout management (admin only) ──────────────────
+
+    /**
+     * Consulter le statut de verrouillage d'un utilisateur.
+     * Utilise l'email de l'utilisateur pour interroger Redis.
+     */
+    @GetMapping("/{userId}/lockout-status")
+    public ResponseEntity<?> getLockoutStatus(@PathVariable String userId) {
+        try {
+            UserProfileDto user = newUserService.getUserProfile(userId);
+            String email = user.getEmail();
+            if (email == null || email.isBlank()) {
+                return ResponseEntity.ok(Map.of("isLocked", false, "failedAttempts", 0, "remainingSeconds", 0));
+            }
+
+            LoginStatus status = loginProtectionService.checkLoginAllowed(email);
+            int failedAttempts = loginProtectionService.getFailedAttempts(email);
+
+            return ResponseEntity.ok(Map.of(
+                    "isLocked", status.isLocked(),
+                    "remainingSeconds", status.remainingSeconds(),
+                    "captchaRequired", status.captchaRequired(),
+                    "failedAttempts", failedAttempts
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of("isLocked", false, "failedAttempts", 0, "remainingSeconds", 0));
+        }
+    }
+
+    /**
+     * Débloquer manuellement un utilisateur verrouillé.
+     * Supprime le lockout Redis et réinitialise le compteur de tentatives.
+     */
+    @PostMapping("/{userId}/unlock")
+    public ResponseEntity<?> unlockUser(@PathVariable String userId) {
+        try {
+            UserProfileDto user = newUserService.getUserProfile(userId);
+            String email = user.getEmail();
+            if (email == null || email.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Email introuvable pour cet utilisateur"));
+            }
+
+            loginProtectionService.forceUnlock(email);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Utilisateur " + user.getFirstName() + " " + user.getLastName() + " débloqué avec succès"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Impossible de débloquer l'utilisateur: " + e.getMessage()));
         }
     }
 }

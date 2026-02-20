@@ -44,7 +44,7 @@ export { banApi } from '../banApi';
 export type { BanAddress, BanFeature, BanResponse } from '../banApi';
 
 export { usersApi } from './usersApi';
-export type { User, UserFormData } from './usersApi';
+export type { User, UserFormData, LockoutStatus } from './usersApi';
 
 export { notificationsApi } from './notificationsApi';
 export type { Notification, UnreadCountResponse } from './notificationsApi';
