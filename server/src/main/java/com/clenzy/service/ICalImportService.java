@@ -851,13 +851,24 @@ public class ICalImportService {
 
     /**
      * Synchronise tous les feeds actifs (appele par le scheduler).
+     * @deprecated Utiliser {@link #syncFeeds(List)} avec groupement par org depuis le scheduler.
      */
+    @Deprecated
     @Transactional
     public void syncAllActiveFeeds() {
         List<ICalFeed> activeFeeds = icalFeedRepository.findBySyncEnabledTrue();
-        log.info("Synchro iCal planifiee : {} feeds actifs", activeFeeds.size());
+        syncFeeds(activeFeeds);
+    }
 
-        for (ICalFeed feed : activeFeeds) {
+    /**
+     * Synchronise une liste de feeds iCal (appele par le scheduler, groupe par org).
+     * Chaque feed est traite independamment — une erreur sur un feed n'arrete pas les suivants.
+     */
+    @Transactional
+    public void syncFeeds(List<ICalFeed> feeds) {
+        log.info("Synchro iCal : {} feeds a traiter", feeds.size());
+
+        for (ICalFeed feed : feeds) {
             try {
                 Property property = feed.getProperty();
                 if (property == null || property.getOwner() == null) {
@@ -877,10 +888,13 @@ public class ICalImportService {
                 request.setAutoCreateInterventions(feed.isAutoCreateInterventions());
 
                 ImportResponse result = importICalFeed(request, ownerKeycloakId);
-                log.info("Synchro feed {} : {} importees, {} doublons", feed.getId(), result.getImported(), result.getSkipped());
+                log.info("Synchro feed {} (org={}) : {} importees, {} doublons",
+                        feed.getId(),
+                        property.getOrganizationId(),
+                        result.getImported(), result.getSkipped());
 
             } catch (Exception e) {
-                log.error("Erreur synchro feed {}: {}", feed.getId(), e.getMessage());
+                log.error("Erreur synchro feed {} : {}", feed.getId(), e.getMessage());
                 feed.setLastSyncStatus("ERROR");
                 feed.setLastSyncError(e.getMessage());
                 feed.setLastSyncAt(LocalDateTime.now());
