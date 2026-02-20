@@ -85,6 +85,9 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/api/webhooks/stripe").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+                        // Invitations : info publique (sans JWT), accept authentifie
+                        .requestMatchers(HttpMethod.GET, "/api/invitations/info").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/invitations/accept").authenticated()
                         // OAuth callbacks (appeles par les providers externes sans JWT)
                         .requestMatchers("/api/airbnb/callback").permitAll()
                         .requestMatchers("/api/minut/callback").permitAll()

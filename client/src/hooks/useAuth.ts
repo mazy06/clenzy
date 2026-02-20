@@ -21,6 +21,8 @@ export interface AuthUser {
   roles: string[];
   permissions: string[];
   forfait?: string;    // Forfait abonnement: essentiel, confort, premium
+  organizationId?: number;
+  organizationName?: string;
 }
 
 export const useAuth = () => {
@@ -95,6 +97,8 @@ export const useAuth = () => {
             roles: Array.isArray(roles) ? roles : [roles].filter(Boolean),
             permissions: Array.isArray(permissions) ? permissions : [permissions].filter(Boolean),
             forfait: userData.forfait || undefined,
+            organizationId: userData.organizationId || undefined,
+            organizationName: userData.organizationName || undefined,
           };
 
           setUser(user);
