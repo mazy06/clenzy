@@ -12,6 +12,7 @@ import com.clenzy.model.UserStatus;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.tenant.TenantContext;
 import java.util.UUID;
+import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,13 +31,15 @@ public class UserService {
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     private final UserRepository userRepository;
+    private final OrganizationRepository organizationRepository;
     private final PermissionService permissionService;
     private final NewUserService newUserService;
     private final NotificationService notificationService;
     private final TenantContext tenantContext;
 
-    public UserService(UserRepository userRepository, PermissionService permissionService, NewUserService newUserService, NotificationService notificationService, TenantContext tenantContext) {
+    public UserService(UserRepository userRepository, OrganizationRepository organizationRepository, PermissionService permissionService, NewUserService newUserService, NotificationService notificationService, TenantContext tenantContext) {
         this.userRepository = userRepository;
+        this.organizationRepository = organizationRepository;
         this.permissionService = permissionService;
         this.newUserService = newUserService;
         this.notificationService = notificationService;
@@ -198,10 +201,24 @@ public class UserService {
             user.setEmailVerified(true);
             // Mot de passe aleatoire — l'utilisateur se connecte via Keycloak, pas via ce password
             user.setPassword(UUID.randomUUID().toString().replace("-", "") + "Aa1!");
-            user.setOrganizationId(tenantContext.getOrganizationId());
+
+            // Resoudre l'organizationId : tenant context d'abord, puis fallback sur la premiere org
+            Long orgId = tenantContext.getOrganizationId();
+            if (orgId == null) {
+                log.warn("Auto-provisioning: tenantContext sans organizationId, recherche d'une organisation par defaut...");
+                var allOrgs = organizationRepository.findAll();
+                if (!allOrgs.isEmpty()) {
+                    orgId = allOrgs.get(0).getId();
+                    log.info("Auto-provisioning: organisation par defaut trouvee: id={}, name={}", orgId, allOrgs.get(0).getName());
+                } else {
+                    log.error("Auto-provisioning: aucune organisation trouvee en base, l'utilisateur sera sans organisation");
+                }
+            }
+            user.setOrganizationId(orgId);
+
             user = userRepository.save(user);
             userRepository.flush(); // Force le flush pour detecter les erreurs de contrainte
-            log.debug("Auto-provisioning: utilisateur cree en base - ID={}, email={}, role={}, keycloakId={}", user.getId(), email, role.name(), keycloakId);
+            log.debug("Auto-provisioning: utilisateur cree en base - ID={}, email={}, role={}, orgId={}, keycloakId={}", user.getId(), email, role.name(), orgId, keycloakId);
             return user;
         } catch (Exception e) {
             log.error("Erreur auto-provisioning: {}", e.getMessage(), e);

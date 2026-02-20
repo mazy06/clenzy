@@ -1,6 +1,7 @@
 package com.clenzy.tenant;
 
 import com.clenzy.model.UserRole;
+import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.servlet.FilterChain;
@@ -38,15 +39,18 @@ public class TenantFilter extends OncePerRequestFilter {
     private static final long CACHE_TTL_MINUTES = 5;
 
     private final UserRepository userRepository;
+    private final OrganizationRepository organizationRepository;
     private final EntityManager entityManager;
     private final RedisTemplate<String, Object> redisTemplate;
     private final TenantContext tenantContext;
 
     public TenantFilter(UserRepository userRepository,
+                        OrganizationRepository organizationRepository,
                         EntityManager entityManager,
                         RedisTemplate<String, Object> redisTemplate,
                         TenantContext tenantContext) {
         this.userRepository = userRepository;
+        this.organizationRepository = organizationRepository;
         this.entityManager = entityManager;
         this.redisTemplate = redisTemplate;
         this.tenantContext = tenantContext;
@@ -82,7 +86,10 @@ public class TenantFilter extends OncePerRequestFilter {
                 // 2. Lookup en base
                 var userOpt = userRepository.findByKeycloakId(keycloakId);
                 if (userOpt.isEmpty()) {
-                    logger.debug("TenantFilter: utilisateur non trouve pour keycloakId={}", keycloakId);
+                    // Utilisateur pas encore en base (ex: premier login, auto-provisioning en cours)
+                    // Tenter de resoudre l'org par defaut pour eviter des 500 sur les endpoints
+                    logger.debug("TenantFilter: utilisateur non trouve pour keycloakId={}, tentative de fallback", keycloakId);
+                    resolveDefaultOrganization();
                     return;
                 }
 
@@ -91,7 +98,8 @@ public class TenantFilter extends OncePerRequestFilter {
                 isSuperAdmin = (user.getRole() == UserRole.ADMIN);
 
                 if (orgId == null) {
-                    logger.warn("TenantFilter: utilisateur {} n'a pas d'organization_id", keycloakId);
+                    logger.warn("TenantFilter: utilisateur {} n'a pas d'organization_id, tentative de fallback", keycloakId);
+                    resolveDefaultOrganization();
                     return;
                 }
 
@@ -112,6 +120,32 @@ public class TenantFilter extends OncePerRequestFilter {
 
         } catch (Exception e) {
             logger.error("TenantFilter: erreur lors de la resolution du tenant pour keycloakId={}", keycloakId, e);
+        }
+    }
+
+    /**
+     * Fallback : quand l'utilisateur n'est pas en base ou n'a pas d'org,
+     * on cherche l'organisation par defaut (la premiere/seule org existante).
+     * Cela evite des 500 sur les premiers appels API apres l'auto-provisioning.
+     */
+    private void resolveDefaultOrganization() {
+        try {
+            var allOrgs = organizationRepository.findAll();
+            if (allOrgs.size() == 1) {
+                Long orgId = allOrgs.get(0).getId();
+                tenantContext.setOrganizationId(orgId);
+                tenantContext.setSuperAdmin(false);
+
+                Session session = entityManager.unwrap(Session.class);
+                session.enableFilter("organizationFilter")
+                        .setParameter("orgId", orgId);
+
+                logger.debug("TenantFilter: fallback sur organisation par defaut id={}", orgId);
+            } else {
+                logger.warn("TenantFilter: {} organisations trouvees, impossible de choisir un fallback", allOrgs.size());
+            }
+        } catch (Exception e) {
+            logger.debug("TenantFilter: erreur lors du fallback organisation: {}", e.getMessage());
         }
     }
 

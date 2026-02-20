@@ -181,6 +181,12 @@ public class InterventionService {
         log.debug("listWithRoleBasedAccess - JWT present: {}", jwt != null);
 
         try {
+            // Verifier que le contexte d'organisation est resolu
+            if (tenantContext.getOrganizationId() == null) {
+                log.warn("listWithRoleBasedAccess - organizationId non resolu, retour page vide");
+                return Page.empty(pageable);
+            }
+
             UserRole userRole = extractUserRole(jwt);
             log.debug("listWithRoleBasedAccess - role: {}", userRole);
 
