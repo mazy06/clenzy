@@ -13,6 +13,8 @@ import com.clenzy.model.Portfolio;
 import com.clenzy.tenant.TenantContext;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.NotificationKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,8 @@ import org.springframework.data.domain.Pageable;
 @Service
 @Transactional
 public class PropertyService {
+    private static final Logger log = LoggerFactory.getLogger(PropertyService.class);
+
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final ManagerPropertyRepository managerPropertyRepository;
@@ -70,7 +74,7 @@ public class PropertyService {
                 "/properties/" + property.getId()
             );
         } catch (Exception e) {
-            System.err.println("Erreur notification PROPERTY_CREATED: " + e.getMessage());
+            log.warn("Erreur notification PROPERTY_CREATED: {}", e.getMessage());
         }
 
         return result;
@@ -94,7 +98,7 @@ public class PropertyService {
                 );
             }
         } catch (Exception e) {
-            System.err.println("Erreur notification PROPERTY_UPDATED: " + e.getMessage());
+            log.warn("Erreur notification PROPERTY_UPDATED: {}", e.getMessage());
         }
 
         return result;
@@ -112,8 +116,7 @@ public class PropertyService {
         } catch (NotFoundException e) {
             throw e;
         } catch (Exception e) {
-            System.err.println("❌ PropertyService.getById - Erreur lors de la récupération de la propriété ID: " + id);
-            e.printStackTrace();
+            log.error("PropertyService.getById - Erreur lors de la recuperation de la propriete ID: {}", id, e);
             throw new RuntimeException("Erreur lors de la récupération de la propriété: " + e.getMessage(), e);
         }
     }
@@ -166,7 +169,7 @@ public class PropertyService {
                 "/properties"
             );
         } catch (Exception e) {
-            System.err.println("Erreur notification PROPERTY_DELETED: " + e.getMessage());
+            log.warn("Erreur notification PROPERTY_DELETED: {}", e.getMessage());
         }
     }
 
@@ -212,7 +215,7 @@ public class PropertyService {
             try {
                 property.setAmenities(objectMapper.writeValueAsString(dto.amenities));
             } catch (Exception e) {
-                System.err.println("⚠️ PropertyService.apply - Error serializing amenities: " + e.getMessage());
+                log.warn("PropertyService.apply - Error serializing amenities: {}", e.getMessage());
                 property.setAmenities(null);
             }
         }
@@ -273,7 +276,7 @@ public class PropertyService {
                 try {
                     dto.amenities = objectMapper.readValue(p.getAmenities(), new TypeReference<List<String>>(){});
                 } catch (Exception e) {
-                    System.err.println("⚠️ PropertyService.toDto - Error deserializing amenities: " + e.getMessage());
+                    log.warn("PropertyService.toDto - Error deserializing amenities: {}", e.getMessage());
                     dto.amenities = new ArrayList<>();
                 }
             } else {
@@ -296,7 +299,7 @@ public class PropertyService {
                     dto.ownerName = null;
                 }
             } catch (Exception e) {
-                System.err.println("⚠️ PropertyService.toDto - Erreur lors de l'accès à owner: " + e.getMessage());
+                log.warn("PropertyService.toDto - Erreur lors de l'acces a owner: {}", e.getMessage());
                 dto.ownerId = null;
                 dto.ownerName = null;
             }
@@ -305,9 +308,7 @@ public class PropertyService {
             dto.updatedAt = p.getUpdatedAt();
             return dto;
         } catch (Exception e) {
-            System.err.println("❌ PropertyService.toDto - Erreur lors de la conversion Property -> PropertyDto");
-            System.err.println("   Property ID: " + (p != null ? p.getId() : "null"));
-            e.printStackTrace();
+            log.error("PropertyService.toDto - Erreur lors de la conversion Property -> PropertyDto, Property ID: {}", (p != null ? p.getId() : "null"), e);
             throw new RuntimeException("Erreur lors de la conversion de la propriété: " + e.getMessage(), e);
         }
     }

@@ -13,6 +13,8 @@ import com.stripe.model.checkout.Session;
 import com.stripe.param.RefundCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import com.clenzy.tenant.TenantContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -25,7 +27,9 @@ import java.util.Map;
 @Service
 @Transactional
 public class StripeService {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(StripeService.class);
+
     private final InterventionRepository interventionRepository;
     private final NotificationService notificationService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -144,7 +148,7 @@ public class StripeService {
                 "/interventions"
             );
         } catch (Exception e) {
-            System.err.println("Erreur notification PAYMENT_CONFIRMED: " + e.getMessage());
+            log.warn("Erreur notification PAYMENT_CONFIRMED: {}", e.getMessage());
         }
 
         // ─── Génération automatique FACTURE + JUSTIFICATIF_PAIEMENT ──────────
@@ -173,9 +177,9 @@ public class StripeService {
                     "emailTo", emailTo != null ? emailTo : ""
                 )
             );
-            System.out.println("📄 Événements FACTURE + JUSTIFICATIF_PAIEMENT publiés sur Kafka pour l'intervention: " + intervention.getId());
+            log.debug("Evenements FACTURE + JUSTIFICATIF_PAIEMENT publies sur Kafka pour l'intervention: {}", intervention.getId());
         } catch (Exception e) {
-            System.err.println("Erreur publication Kafka FACTURE/JUSTIFICATIF_PAIEMENT: " + e.getMessage());
+            log.error("Erreur publication Kafka FACTURE/JUSTIFICATIF_PAIEMENT: {}", e.getMessage());
         }
     }
     
@@ -210,7 +214,7 @@ public class StripeService {
                     "/interventions/" + intervention.getId()
                 );
             } catch (Exception e) {
-                System.err.println("Erreur notification PAYMENT_FAILED: " + e.getMessage());
+                log.warn("Erreur notification PAYMENT_FAILED: {}", e.getMessage());
             }
         }
     }
@@ -258,9 +262,9 @@ public class StripeService {
                                 "emailTo", emailTo != null ? emailTo : ""
                             )
                         );
-                        System.out.println("📄 Événements FACTURE + JUSTIFICATIF_PAIEMENT publiés (groupé) pour l'intervention: " + intervention.getId());
+                        log.debug("Evenements FACTURE + JUSTIFICATIF_PAIEMENT publies (groupe) pour l'intervention: {}", intervention.getId());
                     } catch (Exception e) {
-                        System.err.println("Erreur publication Kafka FACTURE/JUSTIFICATIF (groupé): " + e.getMessage());
+                        log.error("Erreur publication Kafka FACTURE/JUSTIFICATIF (groupe): {}", e.getMessage());
                     }
                 }
             } catch (NumberFormatException e) {
@@ -344,7 +348,7 @@ public class StripeService {
                 "/interventions/" + intervention.getId()
             );
         } catch (Exception e) {
-            System.err.println("Erreur notification PAYMENT_REFUND_COMPLETED: " + e.getMessage());
+            log.warn("Erreur notification PAYMENT_REFUND_COMPLETED: {}", e.getMessage());
         }
 
         // ─── Génération automatique JUSTIFICATIF_REMBOURSEMENT ───────────────
@@ -362,9 +366,9 @@ public class StripeService {
                     "emailTo", emailTo != null ? emailTo : ""
                 )
             );
-            System.out.println("📄 Événement JUSTIFICATIF_REMBOURSEMENT publié sur Kafka pour l'intervention: " + intervention.getId());
+            log.debug("Evenement JUSTIFICATIF_REMBOURSEMENT publie sur Kafka pour l'intervention: {}", intervention.getId());
         } catch (Exception e) {
-            System.err.println("Erreur publication Kafka JUSTIFICATIF_REMBOURSEMENT: " + e.getMessage());
+            log.error("Erreur publication Kafka JUSTIFICATIF_REMBOURSEMENT: {}", e.getMessage());
         }
     }
 }

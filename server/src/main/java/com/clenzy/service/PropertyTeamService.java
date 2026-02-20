@@ -13,6 +13,8 @@ import com.clenzy.repository.TeamCoverageZoneRepository;
 import com.clenzy.repository.TeamRepository;
 import com.clenzy.tenant.TenantContext;
 import com.clenzy.util.InterventionTypeMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class PropertyTeamService {
 
+    private static final Logger log = LoggerFactory.getLogger(PropertyTeamService.class);
     private static final int DEFAULT_DURATION_HOURS = 4;
     private static final List<InterventionStatus> ACTIVE_STATUSES = List.of(
         InterventionStatus.PENDING,
@@ -141,12 +144,12 @@ public class PropertyTeamService {
                         defaultTeamId, ACTIVE_STATUSES, rangeStart, rangeEnd, tenantContext.getRequiredOrganizationId()
                     );
                     if (conflictCount == 0) {
-                        System.out.println("Auto-assignation: equipe par defaut " + defaultTeamId + " (type OK, disponible)");
+                        log.debug("Auto-assignation: equipe par defaut {} (type OK, disponible)", defaultTeamId);
                         return Optional.of(defaultTeamId);
                     }
-                    System.out.println("Equipe par defaut " + defaultTeamId + " occupee (" + conflictCount + " conflits)");
+                    log.debug("Equipe par defaut {} occupee ({} conflits)", defaultTeamId, conflictCount);
                 } else {
-                    System.out.println("Equipe par defaut " + defaultTeamId + " incompatible type: " + defaultTeam.getInterventionType() + " vs " + serviceType);
+                    log.debug("Equipe par defaut {} incompatible type: {} vs {}", defaultTeamId, defaultTeam.getInterventionType(), serviceType);
                 }
             }
         }
@@ -154,7 +157,7 @@ public class PropertyTeamService {
         // 2. Fallback : recherche par zone geographique
         Property property = propertyRepository.findById(propertyId).orElse(null);
         if (property == null || property.getDepartment() == null) {
-            System.out.println("Auto-assignation: propriete " + propertyId + " sans departement, impossible de rechercher par zone");
+            log.debug("Auto-assignation: propriete {} sans departement, impossible de rechercher par zone", propertyId);
             return Optional.empty();
         }
 
@@ -170,7 +173,7 @@ public class PropertyTeamService {
         }
 
         if (candidateTeamIds.isEmpty()) {
-            System.out.println("Auto-assignation: aucune equipe couvrant le departement " + department);
+            log.debug("Auto-assignation: aucune equipe couvrant le departement {}", department);
             return Optional.empty();
         }
 
@@ -194,12 +197,12 @@ public class PropertyTeamService {
                 candidateId, ACTIVE_STATUSES, rangeStart, rangeEnd, tenantContext.getRequiredOrganizationId()
             );
             if (conflictCount == 0) {
-                System.out.println("Auto-assignation fallback: equipe " + candidateId + " (zone " + department + ", type OK, disponible)");
+                log.debug("Auto-assignation fallback: equipe {} (zone {}, type OK, disponible)", candidateId, department);
                 return Optional.of(candidateId);
             }
         }
 
-        System.out.println("Auto-assignation: aucune equipe compatible et disponible pour propriete " + propertyId);
+        log.debug("Auto-assignation: aucune equipe compatible et disponible pour propriete {}", propertyId);
         return Optional.empty();
     }
 
