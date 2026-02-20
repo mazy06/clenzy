@@ -55,6 +55,9 @@ public class SecurityConfigProd {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // CSRF disabled: architecture JWT stateless sans cookies de session.
+                // Les tokens JWT sont transmis via le header Authorization (Bearer),
+                // ce qui rend les attaques CSRF non applicables (pas de credentials automatiques).
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .headers(headers -> headers
