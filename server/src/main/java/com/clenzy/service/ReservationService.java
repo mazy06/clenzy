@@ -65,11 +65,17 @@ public class ReservationService {
 
     /**
      * Sauvegarde une reservation (creation ou mise a jour).
+     * Valide que l'organizationId correspond au tenant courant.
      */
     @Transactional
     public Reservation save(Reservation reservation) {
-        if (reservation.getOrganizationId() == null && tenantContext.getOrganizationId() != null) {
-            reservation.setOrganizationId(tenantContext.getOrganizationId());
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        if (reservation.getOrganizationId() == null) {
+            reservation.setOrganizationId(orgId);
+        } else if (!reservation.getOrganizationId().equals(orgId)) {
+            log.warn("Tentative de sauvegarde d'une reservation cross-tenant: reservation orgId={} vs caller orgId={}",
+                    reservation.getOrganizationId(), orgId);
+            throw new RuntimeException("Acces refuse : reservation hors de votre organisation");
         }
         return reservationRepository.save(reservation);
     }

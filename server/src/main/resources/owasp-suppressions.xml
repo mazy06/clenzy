@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!--
+        Fichier de suppression OWASP Dependency-Check.
+        Ajouter ici les faux positifs ou les CVE connues/acceptees.
+
+        Exemple :
+        <suppress>
+            <notes>Faux positif - non applicable a notre usage</notes>
+            <cve>CVE-2023-XXXXX</cve>
+        </suppress>
+    -->
+</suppressions>

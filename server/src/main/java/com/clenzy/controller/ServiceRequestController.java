@@ -20,10 +20,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.validation.annotation.Validated;
 import com.clenzy.dto.validation.Create;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/service-requests")
 @Tag(name = "Service Requests", description = "Gestion des demandes de service")
+@PreAuthorize("isAuthenticated()")
 public class ServiceRequestController {
     private final ServiceRequestService service;
 

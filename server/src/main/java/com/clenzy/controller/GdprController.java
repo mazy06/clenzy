@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Controller REST pour les endpoints RGPD.
@@ -28,6 +29,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/gdpr")
+@PreAuthorize("isAuthenticated()")
 public class GdprController {
 
     private static final Logger log = LoggerFactory.getLogger(GdprController.class);

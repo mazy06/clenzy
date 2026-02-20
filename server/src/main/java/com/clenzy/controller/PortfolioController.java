@@ -17,9 +17,11 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/portfolios")
+@PreAuthorize("isAuthenticated()")
 public class PortfolioController {
 
     @Autowired

@@ -6,6 +6,7 @@ import com.clenzy.model.UserStatus;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -27,10 +28,12 @@ public class UserDto {
 
     @NotBlank(groups = Create.class)
     @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caractères")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     public String password;
 
     // Champ pour le changement de mot de passe (optionnel)
     @Size(min = 8, message = "Le nouveau mot de passe doit contenir au moins 8 caractères")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     public String newPassword;
 
     public String phoneNumber;

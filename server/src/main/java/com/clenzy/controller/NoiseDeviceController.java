@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Controller unifie pour la gestion des capteurs de bruit.
@@ -31,6 +32,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/noise-devices")
 @Tag(name = "Noise Devices", description = "Gestion des capteurs de bruit (Minut + Tuya)")
+@PreAuthorize("isAuthenticated()")
 public class NoiseDeviceController {
 
     private static final Logger log = LoggerFactory.getLogger(NoiseDeviceController.class);

@@ -34,7 +34,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private static final Logger log = LoggerFactory.getLogger(RateLimitInterceptor.class);
 
     // Rate limits par type
-    private static final int AUTH_RATE_LIMIT = 30;      // 30 req/min pour auth
+    private static final int AUTH_RATE_LIMIT = 10;      // 10 req/min pour auth (protection brute-force)
     private static final int API_RATE_LIMIT = 300;       // 300 req/min pour API authentifiee
     private static final long WINDOW_MS = 60_000;        // Fenetre de 1 minute
 
@@ -91,16 +91,35 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         }
     }
 
+    /**
+     * Extrait l'IP client de maniere securisee.
+     * Ne fait confiance aux headers X-Forwarded-For / X-Real-IP que si la requete
+     * provient d'un proxy de confiance (loopback ou reseau Docker interne 172.x).
+     * Sinon, utilise l'IP directe du socket (remoteAddr).
+     */
     private String getClientIp(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
+        String remoteAddr = request.getRemoteAddr();
+        // Ne faire confiance aux headers proxy que si la requete vient d'un proxy de confiance
+        if (isTrustedProxy(remoteAddr)) {
+            String xForwardedFor = request.getHeader("X-Forwarded-For");
+            if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+                return xForwardedFor.split(",")[0].trim();
+            }
+            String xRealIp = request.getHeader("X-Real-IP");
+            if (xRealIp != null && !xRealIp.isEmpty()) {
+                return xRealIp;
+            }
         }
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty()) {
-            return xRealIp;
-        }
-        return request.getRemoteAddr();
+        return remoteAddr;
+    }
+
+    private boolean isTrustedProxy(String remoteAddr) {
+        if (remoteAddr == null) return false;
+        return remoteAddr.equals("127.0.0.1")
+                || remoteAddr.equals("0:0:0:0:0:0:0:1")
+                || remoteAddr.startsWith("172.")
+                || remoteAddr.startsWith("10.")
+                || remoteAddr.startsWith("192.168.");
     }
 
     private String getCurrentUserId() {
