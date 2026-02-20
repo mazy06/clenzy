@@ -419,9 +419,16 @@ public class ICalImportService {
             Calendar calendar = builder.build(limitedStream);
 
             List<ICalEventPreview> events = new ArrayList<>();
+
+            // Limiter le nombre d'evenements importes (protection DoS)
+            var allVEvents = calendar.getComponents(Component.VEVENT);
+            if (allVEvents.size() > 5000) {
+                throw new IllegalArgumentException("Le fichier iCal contient trop d'evenements (" + allVEvents.size() + "). Maximum autorise : 5000.");
+            }
+
             int eventCount = 0;
 
-            for (Object component : calendar.getComponents(Component.VEVENT)) {
+            for (Object component : allVEvents) {
                 if (++eventCount > MAX_EVENTS_PER_FEED) {
                     log.warn("Feed iCal {} depasse la limite de {} evenements, troncature", url, MAX_EVENTS_PER_FEED);
                     break;

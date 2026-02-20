@@ -151,7 +151,30 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public User findByEmail(String email) {
-        return userRepository.findByEmail(email).orElse(null);
+        if (email == null) return null;
+        String hash = computeEmailHash(email);
+        return userRepository.findByEmailHash(hash).orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsByEmail(String email) {
+        if (email == null) return false;
+        String hash = computeEmailHash(email);
+        return userRepository.existsByEmailHash(hash);
+    }
+
+    private static String computeEmailHash(String email) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(email.toLowerCase().trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hashBytes) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 non disponible", e);
+        }
     }
 
     @Transactional

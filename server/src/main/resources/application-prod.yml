@@ -51,6 +51,14 @@ spring:
       auto-offset-reset: earliest
     producer:
       acks: all
+    # SASL/SCRAM authentication (activate when Kafka broker supports it)
+    properties:
+      security.protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+      sasl.mechanism: ${KAFKA_SASL_MECHANISM:SCRAM-SHA-512}
+      sasl.jaas.config: ${KAFKA_SASL_JAAS_CONFIG:}
+    ssl:
+      trust-store-location: ${KAFKA_SSL_TRUSTSTORE_LOCATION:}
+      trust-store-password: ${KAFKA_SSL_TRUSTSTORE_PASSWORD:}
 
 keycloak:
   auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL}

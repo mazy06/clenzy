@@ -445,7 +445,7 @@ public class ContactMessageService {
         if (trimmed.contains("@")) {
             validateEmail(trimmed);
             // Verifier d'abord si un utilisateur interne a cet email
-            Optional<User> byEmail = userRepository.findByEmail(trimmed);
+            Optional<User> byEmail = userRepository.findByEmailHash(computeEmailHash(trimmed));
             if (byEmail.isPresent() && byEmail.get().getKeycloakId() != null) {
                 return ResolvedRecipient.fromUser(byEmail.get());
             }
@@ -635,6 +635,20 @@ public class ContactMessageService {
         static ResolvedRecipient fromEmail(String email) {
             String localPart = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
             return new ResolvedRecipient("external", localPart, "", email, true);
+        }
+    }
+
+    private static String computeEmailHash(String email) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(email.toLowerCase().trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hashBytes) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 non disponible", e);
         }
     }
 }

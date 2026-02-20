@@ -146,6 +146,11 @@ public class DocumentGeneratorService {
             throw new DocumentValidationException("Seuls les fichiers .odt sont acceptes");
         }
 
+        // Validate filename to prevent path traversal
+        if (originalFilename.contains("..") || originalFilename.contains("/") || originalFilename.contains("\\")) {
+            throw new DocumentValidationException("Nom de fichier invalide");
+        }
+
         DocumentType documentType = parseDocumentType(documentTypeStr);
 
         String filePath = templateStorageService.store(file);
@@ -426,6 +431,18 @@ public class DocumentGeneratorService {
                     is, TemplateEngineKind.Freemarker);
 
             IContext context = report.createContext();
+
+            // Sanitize string values to prevent Freemarker template injection
+            for (Map.Entry<String, Object> entry : contextMap.entrySet()) {
+                if (entry.getValue() instanceof String strVal) {
+                    // Block Freemarker directives in user-provided values
+                    if (strVal.contains("<#") || strVal.contains("${") || strVal.contains("<@")) {
+                        log.warn("Potential template injection detected in tag '{}', sanitizing", entry.getKey());
+                        entry.setValue(strVal.replace("<#", "&lt;#").replace("${", "&#36;{").replace("<@", "&lt;@"));
+                    }
+                }
+            }
+
             for (Map.Entry<String, Object> entry : contextMap.entrySet()) {
                 context.put(entry.getKey(), entry.getValue());
             }
