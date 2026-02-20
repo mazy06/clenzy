@@ -21,7 +21,7 @@ public class AirbnbTokenEncryptionService {
     private final AES256TextEncryptor encryptor;
 
     public AirbnbTokenEncryptionService(
-            @Value("${jasypt.encryptor.password:default-dev-key}") String encryptorPassword) {
+            @Value("${jasypt.encryptor.password}") String encryptorPassword) {
         this.encryptor = new AES256TextEncryptor();
         this.encryptor.setPassword(encryptorPassword);
     }

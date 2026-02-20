@@ -28,7 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -66,6 +68,11 @@ public class ICalImportService {
 
     private static final Set<String> ALLOWED_FORFAITS = Set.of("confort", "premium");
 
+    // SSRF protection: max response size (5 MB) and max events per feed
+    private static final long MAX_ICAL_RESPONSE_BYTES = 5 * 1024 * 1024;
+    private static final int MAX_EVENTS_PER_FEED = 5000;
+    private static final Set<String> ALLOWED_ICAL_SCHEMES = Set.of("https");
+
     private final ICalFeedRepository icalFeedRepository;
     private final InterventionRepository interventionRepository;
     private final ServiceRequestRepository serviceRequestRepository;
@@ -100,7 +107,7 @@ public class ICalImportService {
         this.tenantContext = tenantContext;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(15))
-                .followRedirects(HttpClient.Redirect.NORMAL)
+                .followRedirects(HttpClient.Redirect.NEVER) // SSRF: disable redirects to prevent bypass
                 .build();
     }
 
@@ -291,12 +298,69 @@ public class ICalImportService {
     }
 
     /**
+     * Valide une URL iCal contre les attaques SSRF.
+     * Bloque : schemes non-HTTPS, IPs privees/loopback/link-local, metadata endpoints.
+     */
+    private void validateICalUrl(String url) {
+        if (url == null || url.isBlank()) {
+            throw new IllegalArgumentException("L'URL du calendrier iCal ne peut pas etre vide");
+        }
+
+        URI uri;
+        try {
+            uri = URI.create(url.trim());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("URL iCal invalide : " + e.getMessage());
+        }
+
+        // Scheme check: HTTPS only
+        String scheme = uri.getScheme();
+        if (scheme == null || !ALLOWED_ICAL_SCHEMES.contains(scheme.toLowerCase())) {
+            throw new IllegalArgumentException("Seul le protocole HTTPS est autorise pour les URLs iCal (recu: " + scheme + ")");
+        }
+
+        String host = uri.getHost();
+        if (host == null || host.isBlank()) {
+            throw new IllegalArgumentException("L'URL iCal doit contenir un nom d'hote valide");
+        }
+
+        // Block localhost variants
+        String hostLower = host.toLowerCase();
+        if (hostLower.equals("localhost") || hostLower.equals("127.0.0.1")
+                || hostLower.equals("[::1]") || hostLower.equals("0.0.0.0")
+                || hostLower.endsWith(".local") || hostLower.endsWith(".internal")) {
+            throw new IllegalArgumentException("Les adresses locales ne sont pas autorisees pour les URLs iCal");
+        }
+
+        // Block cloud metadata endpoints
+        if (hostLower.equals("169.254.169.254") || hostLower.equals("metadata.google.internal")) {
+            throw new IllegalArgumentException("Les endpoints de metadata cloud ne sont pas autorises");
+        }
+
+        // DNS resolution + private IP check
+        try {
+            InetAddress[] addresses = InetAddress.getAllByName(host);
+            for (InetAddress addr : addresses) {
+                if (addr.isLoopbackAddress() || addr.isSiteLocalAddress()
+                        || addr.isLinkLocalAddress() || addr.isAnyLocalAddress()) {
+                    throw new IllegalArgumentException("L'URL iCal pointe vers une adresse IP privee ou locale");
+                }
+            }
+        } catch (UnknownHostException e) {
+            throw new IllegalArgumentException("Impossible de resoudre le nom d'hote : " + host);
+        }
+    }
+
+    /**
      * Telecharge et parse un fichier iCal depuis une URL.
+     * Inclut : validation SSRF, limite de taille, limite d'evenements.
      */
     public List<ICalEventPreview> fetchAndParseICalFeed(String url) {
+        validateICalUrl(url);
+
         try {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
+                    .uri(URI.create(url.trim()))
                     .GET()
                     .timeout(Duration.ofSeconds(30))
                     .header("User-Agent", "Clenzy-PMS/1.0")
@@ -308,12 +372,40 @@ public class ICalImportService {
                 throw new IOException("Erreur HTTP " + response.statusCode() + " lors du telechargement du calendrier");
             }
 
+            // Limit response size to prevent memory exhaustion
+            InputStream limitedStream = new java.io.FilterInputStream(response.body()) {
+                private long bytesRead = 0;
+                @Override
+                public int read() throws IOException {
+                    if (bytesRead >= MAX_ICAL_RESPONSE_BYTES) {
+                        throw new IOException("Calendrier iCal trop volumineux (limite: " + MAX_ICAL_RESPONSE_BYTES / 1024 / 1024 + " Mo)");
+                    }
+                    int b = super.read();
+                    if (b != -1) bytesRead++;
+                    return b;
+                }
+                @Override
+                public int read(byte[] buf, int off, int len) throws IOException {
+                    if (bytesRead >= MAX_ICAL_RESPONSE_BYTES) {
+                        throw new IOException("Calendrier iCal trop volumineux (limite: " + MAX_ICAL_RESPONSE_BYTES / 1024 / 1024 + " Mo)");
+                    }
+                    int n = super.read(buf, off, (int) Math.min(len, MAX_ICAL_RESPONSE_BYTES - bytesRead));
+                    if (n > 0) bytesRead += n;
+                    return n;
+                }
+            };
+
             CalendarBuilder builder = new CalendarBuilder();
-            Calendar calendar = builder.build(response.body());
+            Calendar calendar = builder.build(limitedStream);
 
             List<ICalEventPreview> events = new ArrayList<>();
+            int eventCount = 0;
 
             for (Object component : calendar.getComponents(Component.VEVENT)) {
+                if (++eventCount > MAX_EVENTS_PER_FEED) {
+                    log.warn("Feed iCal {} depasse la limite de {} evenements, troncature", url, MAX_EVENTS_PER_FEED);
+                    break;
+                }
                 VEvent vevent = (VEvent) component;
                 ICalEventPreview preview = parseVEvent(vevent);
                 if (preview != null) {

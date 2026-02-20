@@ -85,6 +85,7 @@ public class PricingConfigService {
 
     @CacheEvict(value = "pricingConfig", allEntries = true)
     public PricingConfigDto updateConfig(PricingConfigDto dto) {
+        validatePricingBounds(dto);
         PricingConfig config = repository.findTopByOrderByIdDesc()
                 .orElse(new PricingConfig());
         applyFromDto(config, dto);
@@ -92,6 +93,41 @@ public class PricingConfigService {
         config = repository.save(config);
         log.info("Configuration tarifaire mise a jour (id={})", config.getId());
         return toDto(config);
+    }
+
+    private void validatePricingBounds(PricingConfigDto dto) {
+        if (dto.getBasePriceEssentiel() != null && (dto.getBasePriceEssentiel() < 0 || dto.getBasePriceEssentiel() > 100_000)) {
+            throw new IllegalArgumentException("basePriceEssentiel hors limites (0-100000)");
+        }
+        if (dto.getBasePriceConfort() != null && (dto.getBasePriceConfort() < 0 || dto.getBasePriceConfort() > 100_000)) {
+            throw new IllegalArgumentException("basePriceConfort hors limites (0-100000)");
+        }
+        if (dto.getBasePricePremium() != null && (dto.getBasePricePremium() < 0 || dto.getBasePricePremium() > 100_000)) {
+            throw new IllegalArgumentException("basePricePremium hors limites (0-100000)");
+        }
+        if (dto.getMinPrice() != null && (dto.getMinPrice() < 0 || dto.getMinPrice() > 100_000)) {
+            throw new IllegalArgumentException("minPrice hors limites (0-100000)");
+        }
+        if (dto.getPmsMonthlyPriceCents() != null && (dto.getPmsMonthlyPriceCents() < 0 || dto.getPmsMonthlyPriceCents() > 10_000_00)) {
+            throw new IllegalArgumentException("pmsMonthlyPriceCents hors limites (0-1000000)");
+        }
+        if (dto.getPmsSyncPriceCents() != null && (dto.getPmsSyncPriceCents() < 0 || dto.getPmsSyncPriceCents() > 10_000_00)) {
+            throw new IllegalArgumentException("pmsSyncPriceCents hors limites (0-1000000)");
+        }
+        // Validate coefficients are positive and reasonable (0.01 to 100.0)
+        validateCoeffMap(dto.getPropertyTypeCoeffs(), "propertyTypeCoeffs");
+        validateCoeffMap(dto.getPropertyCountCoeffs(), "propertyCountCoeffs");
+        validateCoeffMap(dto.getGuestCapacityCoeffs(), "guestCapacityCoeffs");
+        validateCoeffMap(dto.getFrequencyCoeffs(), "frequencyCoeffs");
+    }
+
+    private void validateCoeffMap(Map<String, Double> coeffs, String fieldName) {
+        if (coeffs == null) return;
+        for (Map.Entry<String, Double> entry : coeffs.entrySet()) {
+            if (entry.getValue() == null || entry.getValue() < 0.01 || entry.getValue() > 100.0) {
+                throw new IllegalArgumentException(fieldName + " : coefficient '" + entry.getKey() + "' hors limites (0.01-100.0)");
+            }
+        }
     }
 
     // ─── Helper methods for QuoteController ────────────────────────

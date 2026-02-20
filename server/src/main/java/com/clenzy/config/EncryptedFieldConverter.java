@@ -36,7 +36,7 @@ public class EncryptedFieldConverter implements AttributeConverter<String, Strin
      * Initialisation statique du chiffreur.
      * Spring injecte la valeur via @Value sur le setter pour que le composant static fonctionne.
      */
-    @Value("${jasypt.encryptor.password:default-dev-key}")
+    @Value("${jasypt.encryptor.password}")
     public void setEncryptorPassword(String password) {
         encryptor = new AES256TextEncryptor();
         encryptor.setPassword(password);

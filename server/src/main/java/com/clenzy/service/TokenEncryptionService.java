@@ -20,7 +20,7 @@ public class TokenEncryptionService {
     private final AES256TextEncryptor encryptor;
 
     public TokenEncryptionService(
-            @Value("${jasypt.encryptor.password:default-dev-key}") String encryptorPassword) {
+            @Value("${jasypt.encryptor.password}") String encryptorPassword) {
         this.encryptor = new AES256TextEncryptor();
         this.encryptor.setPassword(encryptorPassword);
     }
