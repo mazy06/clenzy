@@ -106,9 +106,8 @@ public class PermissionController {
         }
     }
 
-    // Endpoint public pour vérifier les permissions d'un utilisateur
+    // Endpoint pour vérifier les permissions d'un utilisateur (ADMIN uniquement)
     @PostMapping("/check")
-    @PreAuthorize("permitAll()") // Permettre l'accès à tous les utilisateurs authentifiés
     public ResponseEntity<Map<String, Object>> checkUserPermission(@RequestBody Map<String, String> request) {
         try {
             String permission = request.get("permission");
@@ -180,9 +179,8 @@ public class PermissionController {
         }
     }
 
-    // Endpoint pour synchroniser les permissions d'un utilisateur
+    // Endpoint pour synchroniser les permissions d'un utilisateur (ADMIN uniquement)
     @PostMapping("/sync")
-    @PreAuthorize("permitAll()") // Permettre l'accès à tous les utilisateurs authentifiés
     public ResponseEntity<Map<String, Object>> syncUserPermissions(@RequestBody Map<String, String> request) {
         try {
             String userId = request.get("userId");
@@ -211,9 +209,8 @@ public class PermissionController {
         }
     }
 
-    // Endpoints pour le cache Redis partagé avec le frontend
+    // Endpoints pour le cache Redis (ADMIN uniquement)
     @GetMapping("/redis/{userId}")
-    @PreAuthorize("permitAll()")
     public ResponseEntity<Map<String, Object>> getPermissionsFromRedis(@PathVariable String userId) {
         try {
             List<String> permissions = permissionService.getUserPermissionsFromRedis(userId);
@@ -234,7 +231,6 @@ public class PermissionController {
     }
 
     @PutMapping("/redis/{userId}")
-    @PreAuthorize("permitAll()")
     public ResponseEntity<Map<String, Object>> updatePermissionsInRedis(
             @PathVariable String userId,
             @RequestBody Map<String, Object> request) {
@@ -266,7 +262,6 @@ public class PermissionController {
     }
 
     @PostMapping("/redis/{userId}/invalidate")
-    @PreAuthorize("permitAll()")
     public ResponseEntity<Map<String, Object>> invalidateUserCache(@PathVariable String userId) {
         try {
             permissionService.invalidateUserPermissionsCache(userId);

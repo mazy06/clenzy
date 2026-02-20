@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Service d'appels REST vers l'API Tuya Cloud.
@@ -30,6 +31,10 @@ import java.util.*;
 public class TuyaApiService {
 
     private static final Logger log = LoggerFactory.getLogger(TuyaApiService.class);
+
+    /** Regex pour valider les device IDs Tuya — alphanumerique, tirets, underscores uniquement.
+     *  Bloque les tentatives de path traversal (../, caracteres speciaux). */
+    private static final Pattern DEVICE_ID_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]{1,64}$");
 
     private final TuyaConfig config;
     private final TuyaConnectionRepository connectionRepository;
@@ -120,11 +125,22 @@ public class TuyaApiService {
     // ─── Device Operations ──────────────────────────────────────
 
     /**
+     * Valide un device ID contre les tentatives de path traversal.
+     * Autorise uniquement alphanumerique, tirets et underscores.
+     */
+    private void validateDeviceId(String deviceId) {
+        if (deviceId == null || !DEVICE_ID_PATTERN.matcher(deviceId).matches()) {
+            throw new IllegalArgumentException("Device ID invalide: caracteres non autorises");
+        }
+    }
+
+    /**
      * Recupere les infos d'un device.
      * GET /v1.0/devices/{device_id}
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> getDeviceInfo(String deviceId) {
+        validateDeviceId(deviceId);
         return doGet("/v1.0/devices/" + deviceId);
     }
 
@@ -135,6 +151,7 @@ public class TuyaApiService {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> getDeviceStatus(String deviceId) {
+        validateDeviceId(deviceId);
         return doGet("/v1.0/devices/" + deviceId + "/status");
     }
 
@@ -144,6 +161,7 @@ public class TuyaApiService {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> getDeviceLogs(String deviceId, long startTime, long endTime) {
+        validateDeviceId(deviceId);
         String path = "/v2.0/devices/" + deviceId + "/logs"
                 + "?start_time=" + startTime
                 + "&end_time=" + endTime
@@ -158,6 +176,7 @@ public class TuyaApiService {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> sendCommand(String deviceId, List<Map<String, Object>> commands) {
+        validateDeviceId(deviceId);
         Map<String, Object> body = Map.of("commands", commands);
         return doPost("/v1.0/devices/" + deviceId + "/commands", body);
     }

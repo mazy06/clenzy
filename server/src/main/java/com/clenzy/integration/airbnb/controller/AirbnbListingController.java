@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/airbnb/listings")
+@PreAuthorize("isAuthenticated()")
 @Tag(name = "Airbnb Listings", description = "Gestion des annonces Airbnb liees")
 public class AirbnbListingController {
 

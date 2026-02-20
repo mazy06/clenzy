@@ -16,8 +16,10 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.AccessDeniedException;
 
 @RestController
 @RequestMapping("/api/portfolios")
@@ -44,13 +46,44 @@ public class PortfolioController {
     }
 
     /**
-     * Créer un nouveau portefeuille
+     * Verifie si l'utilisateur authentifie a le role ADMIN ou MANAGER.
+     */
+    private boolean isAdminOrManager(Jwt jwt) {
+        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+        if (realmAccess == null) return false;
+        @SuppressWarnings("unchecked")
+        List<String> roles = (List<String>) realmAccess.get("roles");
+        return roles != null && (roles.contains("ADMIN") || roles.contains("MANAGER"));
+    }
+
+    /**
+     * Verifie que l'utilisateur authentifie est le manager concerne ou ADMIN.
+     */
+    private void validateManagerAccess(Jwt jwt, Long managerId) {
+        // ADMIN a acces a tout
+        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+        if (realmAccess != null) {
+            @SuppressWarnings("unchecked")
+            List<String> roles = (List<String>) realmAccess.get("roles");
+            if (roles != null && roles.contains("ADMIN")) return;
+        }
+        // Le manager ne peut acceder qu'a ses propres portfolios
+        String keycloakId = jwt.getSubject();
+        User user = userRepository.findByKeycloakId(keycloakId).orElse(null);
+        if (user == null || !user.getId().equals(managerId)) {
+            throw new AccessDeniedException("Vous n'avez pas acces aux portfolios de ce manager");
+        }
+    }
+
+    /**
+     * Créer un nouveau portefeuille — ADMIN ou MANAGER uniquement
      */
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<PortfolioDto> createPortfolio(
             @Valid @RequestBody PortfolioDto portfolioDto,
             @AuthenticationPrincipal Jwt jwt) {
-        
+
         try {
             PortfolioDto createdPortfolio = portfolioService.createPortfolio(portfolioDto);
             return ResponseEntity.ok(createdPortfolio);
@@ -60,14 +93,15 @@ public class PortfolioController {
     }
 
     /**
-     * Mettre à jour un portefeuille
+     * Mettre à jour un portefeuille — ADMIN ou MANAGER uniquement
      */
     @PutMapping("/{portfolioId}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<PortfolioDto> updatePortfolio(
             @PathVariable Long portfolioId,
             @Valid @RequestBody PortfolioDto portfolioDto,
             @AuthenticationPrincipal Jwt jwt) {
-        
+
         try {
             PortfolioDto updatedPortfolio = portfolioService.updatePortfolio(portfolioId, portfolioDto);
             return ResponseEntity.ok(updatedPortfolio);
@@ -77,10 +111,13 @@ public class PortfolioController {
     }
 
     /**
-     * Récupérer un portefeuille par son ID
+     * Récupérer un portefeuille par son ID — ADMIN ou MANAGER uniquement
      */
     @GetMapping("/{portfolioId}")
-    public ResponseEntity<PortfolioDto> getPortfolioById(@PathVariable Long portfolioId) {
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<PortfolioDto> getPortfolioById(
+            @PathVariable Long portfolioId,
+            @AuthenticationPrincipal Jwt jwt) {
         try {
             PortfolioDto portfolio = portfolioService.getPortfolioById(portfolioId);
             return ResponseEntity.ok(portfolio);
@@ -90,37 +127,48 @@ public class PortfolioController {
     }
 
     /**
-     * Récupérer tous les portefeuilles d'un manager
+     * Récupérer tous les portefeuilles d'un manager — ownership: son propre ID ou ADMIN
      */
     @GetMapping("/manager/{managerId}")
-    public ResponseEntity<List<PortfolioDto>> getPortfoliosByManager(@PathVariable String managerId) {
+    public ResponseEntity<List<PortfolioDto>> getPortfoliosByManager(
+            @PathVariable String managerId,
+            @AuthenticationPrincipal Jwt jwt) {
         try {
             Long resolvedId = resolveManagerId(managerId);
+            validateManagerAccess(jwt, resolvedId);
             List<PortfolioDto> portfolios = portfolioService.getPortfoliosByManager(resolvedId);
             return ResponseEntity.ok(portfolios);
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(403).build();
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
     }
 
     /**
-     * Statistiques des portefeuilles d'un manager
+     * Statistiques des portefeuilles d'un manager — ownership: son propre ID ou ADMIN
      */
     @GetMapping("/manager/{managerId}/stats")
-    public ResponseEntity<PortfolioStatsDto> getStatsByManager(@PathVariable String managerId) {
+    public ResponseEntity<PortfolioStatsDto> getStatsByManager(
+            @PathVariable String managerId,
+            @AuthenticationPrincipal Jwt jwt) {
         try {
             Long resolvedId = resolveManagerId(managerId);
+            validateManagerAccess(jwt, resolvedId);
             PortfolioStatsDto stats = portfolioService.getStatsByManager(resolvedId);
             return ResponseEntity.ok(stats);
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(403).build();
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
     }
 
     /**
-     * Récupérer tous les portefeuilles actifs
+     * Récupérer tous les portefeuilles actifs — ADMIN uniquement
      */
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<PortfolioDto>> getAllActivePortfolios() {
         try {
             List<PortfolioDto> portfolios = portfolioService.getAllActivePortfolios();
@@ -131,15 +179,16 @@ public class PortfolioController {
     }
 
     /**
-     * Ajouter un client au portefeuille
+     * Ajouter un client au portefeuille — ADMIN ou MANAGER uniquement
      */
     @PostMapping("/{portfolioId}/clients")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<PortfolioClientDto> addClientToPortfolio(
             @PathVariable Long portfolioId,
             @RequestParam Long clientId,
             @RequestParam(required = false) String notes,
             @AuthenticationPrincipal Jwt jwt) {
-        
+
         try {
             PortfolioClientDto addedClient = portfolioService.addClientToPortfolio(portfolioId, clientId, notes);
             return ResponseEntity.ok(addedClient);
@@ -149,14 +198,15 @@ public class PortfolioController {
     }
 
     /**
-     * Retirer un client du portefeuille
+     * Retirer un client du portefeuille — ADMIN ou MANAGER uniquement
      */
     @DeleteMapping("/{portfolioId}/clients/{clientId}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<Void> removeClientFromPortfolio(
             @PathVariable Long portfolioId,
             @PathVariable Long clientId,
             @AuthenticationPrincipal Jwt jwt) {
-        
+
         try {
             portfolioService.removeClientFromPortfolio(portfolioId, clientId);
             return ResponseEntity.ok().build();
@@ -166,16 +216,17 @@ public class PortfolioController {
     }
 
     /**
-     * Ajouter un membre d'équipe au portefeuille
+     * Ajouter un membre d'équipe au portefeuille — ADMIN ou MANAGER uniquement
      */
     @PostMapping("/{portfolioId}/team")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<PortfolioTeamDto> addTeamMemberToPortfolio(
             @PathVariable Long portfolioId,
             @RequestParam Long teamMemberId,
             @RequestParam TeamRole roleInTeam,
             @RequestParam(required = false) String notes,
             @AuthenticationPrincipal Jwt jwt) {
-        
+
         try {
             PortfolioTeamDto addedTeamMember = portfolioService.addTeamMemberToPortfolio(
                 portfolioId, teamMemberId, roleInTeam, notes);
@@ -186,14 +237,15 @@ public class PortfolioController {
     }
 
     /**
-     * Retirer un membre d'équipe du portefeuille
+     * Retirer un membre d'équipe du portefeuille — ADMIN ou MANAGER uniquement
      */
     @DeleteMapping("/{portfolioId}/team/{teamMemberId}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<Void> removeTeamMemberFromPortfolio(
             @PathVariable Long portfolioId,
             @PathVariable Long teamMemberId,
             @AuthenticationPrincipal Jwt jwt) {
-        
+
         try {
             portfolioService.removeTeamMemberFromPortfolio(portfolioId, teamMemberId);
             return ResponseEntity.ok().build();
@@ -203,10 +255,13 @@ public class PortfolioController {
     }
 
     /**
-     * Récupérer les clients d'un portefeuille
+     * Récupérer les clients d'un portefeuille — ADMIN ou MANAGER uniquement
      */
     @GetMapping("/{portfolioId}/clients")
-    public ResponseEntity<List<PortfolioClientDto>> getPortfolioClients(@PathVariable Long portfolioId) {
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<List<PortfolioClientDto>> getPortfolioClients(
+            @PathVariable Long portfolioId,
+            @AuthenticationPrincipal Jwt jwt) {
         try {
             List<PortfolioClientDto> clients = portfolioService.getPortfolioClients(portfolioId);
             return ResponseEntity.ok(clients);
@@ -216,10 +271,13 @@ public class PortfolioController {
     }
 
     /**
-     * Récupérer les membres d'équipe d'un portefeuille
+     * Récupérer les membres d'équipe d'un portefeuille — ADMIN ou MANAGER uniquement
      */
     @GetMapping("/{portfolioId}/team")
-    public ResponseEntity<List<PortfolioTeamDto>> getPortfolioTeamMembers(@PathVariable Long portfolioId) {
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<List<PortfolioTeamDto>> getPortfolioTeamMembers(
+            @PathVariable Long portfolioId,
+            @AuthenticationPrincipal Jwt jwt) {
         try {
             List<PortfolioTeamDto> teamMembers = portfolioService.getPortfolioTeamMembers(portfolioId);
             return ResponseEntity.ok(teamMembers);
@@ -229,9 +287,10 @@ public class PortfolioController {
     }
 
     /**
-     * Trouver le manager responsable d'un HOST
+     * Trouver le manager responsable d'un HOST — ADMIN ou MANAGER uniquement
      */
     @GetMapping("/find-manager/host/{hostId}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<Long> findManagerForHost(@PathVariable Long hostId) {
         try {
             // TODO: Extraire l'utilisateur depuis la base de données
@@ -243,9 +302,10 @@ public class PortfolioController {
     }
 
     /**
-     * Trouver le manager responsable d'un membre d'équipe
+     * Trouver le manager responsable d'un membre d'équipe — ADMIN ou MANAGER uniquement
      */
     @GetMapping("/find-manager/team-member/{teamMemberId}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<Long> findManagerForTeamMember(@PathVariable Long teamMemberId) {
         try {
             // TODO: Extraire l'utilisateur depuis la base de données

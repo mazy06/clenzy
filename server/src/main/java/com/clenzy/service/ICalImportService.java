@@ -302,6 +302,15 @@ public class ICalImportService {
      * Bloque : schemes non-HTTPS, IPs privees/loopback/link-local, metadata endpoints.
      */
     private void validateICalUrl(String url) {
+        validateICalUrlAndResolve(url);
+    }
+
+    /**
+     * Valide une URL iCal et retourne l'adresse IP resolue.
+     * L'IP retournee DOIT etre utilisee pour la requete HTTP afin d'eviter
+     * les attaques DNS rebinding (TOCTOU entre validation et requete).
+     */
+    private InetAddress validateICalUrlAndResolve(String url) {
         if (url == null || url.isBlank()) {
             throw new IllegalArgumentException("L'URL du calendrier iCal ne peut pas etre vide");
         }
@@ -338,15 +347,24 @@ public class ICalImportService {
         }
 
         // DNS resolution + private IP check (RFC 1918: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+        // On retourne la premiere adresse IP valide pour l'utiliser dans la requete (anti-rebinding)
         try {
             InetAddress[] addresses = InetAddress.getAllByName(host);
+            InetAddress validAddress = null;
             for (InetAddress addr : addresses) {
                 if (addr.isLoopbackAddress() || addr.isSiteLocalAddress()
                         || addr.isLinkLocalAddress() || addr.isAnyLocalAddress()
                         || isRfc1918Private(addr)) {
                     throw new IllegalArgumentException("L'URL iCal pointe vers une adresse IP privee ou locale");
                 }
+                if (validAddress == null) {
+                    validAddress = addr;
+                }
             }
+            if (validAddress == null) {
+                throw new IllegalArgumentException("Aucune adresse IP valide pour : " + host);
+            }
+            return validAddress;
         } catch (UnknownHostException e) {
             throw new IllegalArgumentException("Impossible de resoudre le nom d'hote : " + host);
         }
@@ -374,16 +392,32 @@ public class ICalImportService {
     /**
      * Telecharge et parse un fichier iCal depuis une URL.
      * Inclut : validation SSRF, limite de taille, limite d'evenements.
+     * Protection DNS rebinding : on resout le DNS une seule fois dans validateICalUrl(),
+     * puis on force la meme IP dans la requete HTTP pour eviter le TOCTOU.
      */
     public List<ICalEventPreview> fetchAndParseICalFeed(String url) {
-        validateICalUrl(url);
+        // Valider l'URL et recuperer l'IP resolue (protection DNS rebinding TOCTOU)
+        InetAddress resolvedAddress = validateICalUrlAndResolve(url);
 
         try {
+            // Construire l'URL avec l'IP resolue pour eviter une 2eme resolution DNS
+            URI originalUri = URI.create(url.trim());
+            URI resolvedUri = new URI(
+                    originalUri.getScheme(),
+                    null, // userInfo
+                    resolvedAddress.getHostAddress(),
+                    originalUri.getPort() == -1 ? 443 : originalUri.getPort(),
+                    originalUri.getPath(),
+                    originalUri.getQuery(),
+                    null
+            );
+
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url.trim()))
+                    .uri(resolvedUri)
                     .GET()
                     .timeout(Duration.ofSeconds(30))
                     .header("User-Agent", "Clenzy-PMS/1.0")
+                    .header("Host", originalUri.getHost()) // Garder le Host original pour le SNI/TLS
                     .build();
 
             HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
@@ -445,6 +479,9 @@ public class ICalImportService {
 
             return events;
 
+        } catch (java.net.URISyntaxException e) {
+            log.error("Erreur construction URI resolue depuis {}: {}", url, e.getMessage());
+            throw new RuntimeException("URL iCal invalide : " + e.getMessage());
         } catch (IOException | InterruptedException e) {
             log.error("Erreur telechargement iCal depuis {}: {}", url, e.getMessage());
             throw new RuntimeException("Impossible de telecharger le calendrier iCal : " + e.getMessage());

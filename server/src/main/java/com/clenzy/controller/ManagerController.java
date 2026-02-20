@@ -80,12 +80,33 @@ public class ManagerController {
     @Autowired
     private TenantContext tenantContext;
 
+    /**
+     * Valide que l'utilisateur authentifie est le manager cible ou un ADMIN.
+     * Un MANAGER ne peut acceder qu'a ses propres donnees.
+     */
+    private void validateManagerOwnership(Jwt jwt, Long targetManagerId) {
+        String keycloakId = jwt.getSubject();
+        // ADMIN a acces a tout
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+        if (realmAccess != null) {
+            @SuppressWarnings("unchecked")
+            List<String> roles = (List<String>) realmAccess.get("roles");
+            if (roles != null && roles.contains("ADMIN")) return;
+        }
+        // Le manager ne peut voir que ses propres donnees
+        Optional<User> userOpt = userRepository.findByKeycloakId(keycloakId);
+        if (userOpt.isEmpty() || !userOpt.get().getId().equals(targetManagerId)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Vous n'avez pas acces aux donnees de ce manager");
+        }
+    }
 
     /**
-     * Récupérer tous les managers et admins pour les formulaires d'association
+     * Récupérer tous les managers et admins pour les formulaires d'association — ADMIN uniquement
      */
     @GetMapping("/all")
-
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> getAllManagersAndAdmins() {
         try {
             log.debug("Recuperation de tous les managers et admins");
@@ -105,10 +126,10 @@ public class ManagerController {
     }
 
     /**
-     * Récupérer tous les utilisateurs HOST pour les formulaires d'association
+     * Récupérer tous les utilisateurs HOST pour les formulaires d'association — ADMIN/MANAGER uniquement
      */
     @GetMapping("/hosts")
-
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<String> getAllHostUsers() {
         try {
             log.debug("Recuperation des HOSTs disponibles");
@@ -149,10 +170,10 @@ public class ManagerController {
     }
 
     /**
-     * Récupérer les propriétés des clients sélectionnés
+     * Récupérer les propriétés des clients sélectionnés — ADMIN/MANAGER uniquement
      */
     @PostMapping("/properties/by-clients")
-
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<String> getPropertiesByClients(@RequestBody List<Long> clientIds) {
         try {
             log.debug("Recuperation des proprietes pour clients: {}", clientIds);
@@ -205,11 +226,13 @@ public class ManagerController {
      * Récupérer toutes les associations d'un manager (clients, propriétés, équipes, utilisateurs)
      * Endpoint optimisé avec une seule requête
      * Accepte soit un ID numérique soit un UUID Keycloak
+     * Securite: le manager ne peut voir que ses propres associations, ADMIN voit tout
      */
     @GetMapping("/{managerId}/associations")
-
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<ManagerAssociationsDto> getManagerAssociations(
-            @PathVariable String managerId) {
+            @PathVariable String managerId,
+            @AuthenticationPrincipal Jwt jwt) {
 
         try {
             log.debug("Recuperation des associations pour: {}", managerId);
@@ -234,6 +257,9 @@ public class ManagerController {
                 }
             }
 
+            // Ownership: un MANAGER ne peut voir que ses propres associations
+            validateManagerOwnership(jwt, userId);
+
             // Utiliser le ManagerService pour récupérer toutes les associations
             log.debug("Recherche des associations pour manager ID: {}", userId);
 
@@ -256,7 +282,7 @@ public class ManagerController {
      * Assigner des clients et propriétés à un manager
      */
     @PostMapping("/{managerId}/assign")
-
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public ResponseEntity<String> assignClientsAndProperties(
             @PathVariable Long managerId,
@@ -396,10 +422,11 @@ public class ManagerController {
     }
 
     /**
-     * Récupérer les clients associés à un manager
+     * Récupérer les clients associés à un manager — ownership: son propre ID ou ADMIN
      */
     @GetMapping("/{managerId}/clients")
-    public ResponseEntity<?> getManagerClients(@PathVariable Long managerId) {
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<?> getManagerClients(@PathVariable Long managerId, @AuthenticationPrincipal Jwt jwt) {
         try {
             // TODO: Implémenter la logique
             return ResponseEntity.ok().build();
@@ -409,10 +436,11 @@ public class ManagerController {
     }
 
     /**
-     * Récupérer les propriétés associées à un manager
+     * Récupérer les propriétés associées à un manager — ownership: son propre ID ou ADMIN
      */
     @GetMapping("/{managerId}/properties")
-    public ResponseEntity<?> getManagerProperties(@PathVariable Long managerId) {
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<?> getManagerProperties(@PathVariable Long managerId, @AuthenticationPrincipal Jwt jwt) {
         try {
             // TODO: Implémenter la logique
             return ResponseEntity.ok().build();
@@ -422,10 +450,10 @@ public class ManagerController {
     }
 
     /**
-     * Récupérer tous les utilisateurs opérationnels (techniciens et housekeepers)
+     * Récupérer tous les utilisateurs opérationnels (techniciens et housekeepers) — ADMIN/MANAGER uniquement
      */
     @GetMapping("/operational-users")
-
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<String> getOperationalUsers() {
         try {
             log.debug("Recuperation des utilisateurs operationnels");
@@ -475,10 +503,10 @@ public class ManagerController {
     }
 
     /**
-     * Récupérer toutes les équipes disponibles
+     * Récupérer toutes les équipes disponibles — ADMIN/MANAGER uniquement
      */
     @GetMapping("/teams")
-
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<String> getAllTeams() {
         try {
             log.debug("Recuperation de toutes les equipes depuis la base de donnees");
@@ -526,7 +554,7 @@ public class ManagerController {
      * Assigner des équipes et utilisateurs à un manager
      */
     @PostMapping("/{managerId}/assign-teams-users")
-
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public ResponseEntity<String> assignTeamsAndUsers(@PathVariable Long managerId, @RequestBody TeamUserAssignmentRequest request) {
         try {
@@ -582,10 +610,11 @@ public class ManagerController {
     }
 
     /**
-     * Récupérer les équipes associées à un manager
+     * Récupérer les équipes associées à un manager — ownership: son propre ID ou ADMIN
      */
     @GetMapping("/{managerId}/teams")
-    public ResponseEntity<?> getManagerTeams(@PathVariable Long managerId) {
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<?> getManagerTeams(@PathVariable Long managerId, @AuthenticationPrincipal Jwt jwt) {
         try {
             // TODO: Implémenter la logique
             return ResponseEntity.ok().build();
@@ -595,10 +624,11 @@ public class ManagerController {
     }
 
     /**
-     * Récupérer les utilisateurs associés à un manager
+     * Récupérer les utilisateurs associés à un manager — ownership: son propre ID ou ADMIN
      */
     @GetMapping("/{managerId}/users")
-    public ResponseEntity<?> getManagerUsers(@PathVariable Long managerId) {
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ResponseEntity<?> getManagerUsers(@PathVariable Long managerId, @AuthenticationPrincipal Jwt jwt) {
         try {
             // TODO: Implémenter la logique
             return ResponseEntity.ok().build();
@@ -611,7 +641,7 @@ public class ManagerController {
      * Modifier l'assignation d'un client vers un autre manager
      */
     @PutMapping("/{clientId}/reassign")
-
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> reassignClient(
             @PathVariable Long clientId,
             @RequestBody ReassignmentRequest request) {
@@ -632,7 +662,7 @@ public class ManagerController {
     // ===== ENDPOINTS DE DÉSASSIGNATION =====
 
     @DeleteMapping("/{managerId}/clients/{clientId}")
-
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public ResponseEntity<String> unassignClient(
             @PathVariable String managerId, // Changé de Long à String
@@ -689,7 +719,7 @@ public class ManagerController {
     }
 
     @DeleteMapping("/{managerId}/teams/{teamId}")
-
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public ResponseEntity<String> unassignTeam(
             @PathVariable String managerId, // Changé de Long à String
@@ -736,7 +766,7 @@ public class ManagerController {
     }
 
     @DeleteMapping("/{managerId}/users/{userId}")
-
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public ResponseEntity<String> unassignUser(
             @PathVariable String managerId, // Changé de Long à String
@@ -785,7 +815,7 @@ public class ManagerController {
     // ===== ENDPOINTS POUR LA GESTION DES PROPRIÉTÉS INDIVIDUELLES =====
 
     @PostMapping("/{managerId}/properties/{propertyId}/assign")
-
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public ResponseEntity<String> assignPropertyToManager(
             @PathVariable String managerId, // String pour supporter Keycloak ID
@@ -848,7 +878,7 @@ public class ManagerController {
     }
 
     @DeleteMapping("/{managerId}/properties/{propertyId}")
-
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public ResponseEntity<String> unassignPropertyFromManager(
             @PathVariable String managerId, // String pour supporter Keycloak ID
@@ -919,7 +949,7 @@ public class ManagerController {
     }
 
     @PutMapping("/{managerId}/properties/{propertyId}/reassign")
-
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public ResponseEntity<String> reassignPropertyToManager(
             @PathVariable String managerId, // String pour supporter Keycloak ID

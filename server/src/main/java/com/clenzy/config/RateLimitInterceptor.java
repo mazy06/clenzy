@@ -36,7 +36,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     private static final Logger log = LoggerFactory.getLogger(RateLimitInterceptor.class);
 
-    private static final int AUTH_RATE_LIMIT = 10;
+    private static final int AUTH_RATE_LIMIT = 10;   // par IP sur /api/auth/**
     private static final int API_RATE_LIMIT = 300;
     private static final long WINDOW_MS = 60_000;
     private static final String REDIS_PREFIX = "ratelimit:";

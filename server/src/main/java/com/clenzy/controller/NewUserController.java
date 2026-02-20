@@ -12,10 +12,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v2/users")
+@PreAuthorize("hasRole('ADMIN')")
 public class NewUserController {
 
     @Autowired
