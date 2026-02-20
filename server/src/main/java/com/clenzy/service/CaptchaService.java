@@ -46,9 +46,9 @@ public class CaptchaService {
     private static final int KNOB_RADIUS = 8;
 
     // Verification
-    private static final int TOLERANCE_PX = 7;
+    private static final int TOLERANCE_PX = 10;
     private static final Duration CAPTCHA_TTL = Duration.ofMinutes(5);
-    private static final int MAX_VERIFY_ATTEMPTS = 3;
+    private static final int MAX_VERIFY_ATTEMPTS = 5;
 
     // Redis keys
     private static final String REDIS_PREFIX = "captcha:";
