@@ -106,6 +106,9 @@ export function saveTokens(tokens: {
   idToken?: string;
   expiresIn?: string | number;
 }): void {
+  // Reinitialiser les flags mock au changement de session
+  // pour eviter qu'un non-admin herite du mode mock d'un admin
+  clearMockFlags();
   setItem(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken);
   if (tokens.refreshToken) setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken);
   if (tokens.idToken) setItem(STORAGE_KEYS.ID_TOKEN, tokens.idToken);
@@ -117,8 +120,22 @@ export function clearTokens(): void {
   removeItem(STORAGE_KEYS.REFRESH_TOKEN);
   removeItem(STORAGE_KEYS.ID_TOKEN);
   removeItem(STORAGE_KEYS.EXPIRES_IN);
+  // Reinitialiser les flags mock pour eviter que les donnees de test
+  // persistent entre les sessions/utilisateurs
+  clearMockFlags();
   // Supprimer aussi le cookie partagé avec la landing page
   clearSessionCookie();
+}
+
+/**
+ * Reinitialise tous les flags de mode mock (analytics, planning, noise).
+ * Appele au logout et au login pour eviter que les donnees mock
+ * d'un admin soient visibles par un autre utilisateur.
+ */
+export function clearMockFlags(): void {
+  removeItem(STORAGE_KEYS.ANALYTICS_MOCK);
+  removeItem(STORAGE_KEYS.PLANNING_MOCK);
+  removeItem(STORAGE_KEYS.NOISE_MONITORING_MOCK);
 }
 
 // ─── Cross-domain Cookie (shared with landing page) ────────────────────────
@@ -200,6 +217,7 @@ const storageService = {
   getRefreshToken,
   saveTokens,
   clearTokens,
+  clearMockFlags,
   setSessionCookie,
   getSessionCookie,
   clearSessionCookie,
