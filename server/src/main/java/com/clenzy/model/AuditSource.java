@@ -6,6 +6,7 @@ package com.clenzy.model;
 public enum AuditSource {
     WEB,
     API,
+    ADMIN,
     AIRBNB_SYNC,
     SYSTEM,
     WEBHOOK,
