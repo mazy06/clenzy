@@ -62,8 +62,11 @@ public abstract class AbstractFileStorageService {
             log.info("Storage directory initialized: {}", baseDir);
             updateStorageMetrics();
         } catch (IOException e) {
-            log.error("Cannot create storage directory: {}", baseDir, e);
-            throw new DocumentStorageException("Cannot create storage directory", e);
+            // Ne pas crasher le backend si le repertoire ne peut pas etre cree.
+            // Certains services de stockage sont optionnels (ex: templates).
+            // Les operations de lecture/ecriture echoueront au moment de l'appel.
+            log.warn("Cannot create storage directory {}. File operations will fail until the directory exists: {}",
+                    baseDir, e.getMessage());
         }
     }
 
