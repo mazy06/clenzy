@@ -19,6 +19,11 @@ RUN mvn -B -DskipTests clean package && \
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
+# Librairies necessaires pour java.awt (CAPTCHA puzzle generation)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libfontconfig1 libfreetype6 fontconfig fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
 # Non-root user for security
 RUN groupadd -r clenzy && useradd -r -g clenzy -s /bin/false clenzy
 
@@ -36,6 +41,6 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD curl -sf http://localhost:8080/actuator/health || exit 1
 
-ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom $JAVA_OPTS -jar /app/app.jar"]
+ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.awt.headless=true -Djava.security.egd=file:/dev/./urandom $JAVA_OPTS -jar /app/app.jar"]
 
 
