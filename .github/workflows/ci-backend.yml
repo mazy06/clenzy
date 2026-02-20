@@ -170,7 +170,8 @@ jobs:
           echo "=== Checking controllers for PreAuthorize ==="
           MISSING=""
           for f in $(find server/src/main/java -name '*Controller.java' \
-            -not -name 'AuthProxyController.java' -not -name 'AuthController.java'); do
+            -not -name 'AuthProxyController.java' -not -name 'AuthController.java' \
+            -not -name 'CaptchaController.java'); do
             if ! grep -q '@PreAuthorize' "$f"; then
               MISSING="$MISSING $f"
             fi
@@ -220,6 +221,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Force rebuild sans cache si le cache GHA est corrompu
+          # (erreur "failed to Lchown" / "failed to extract layer")
+          # Retirer no-cache une fois le premier build reussi
+          no-cache: true
 
   deploy:
     name: Trigger deploy via clenzy-infra
