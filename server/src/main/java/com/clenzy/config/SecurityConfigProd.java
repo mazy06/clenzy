@@ -74,7 +74,9 @@ public class SecurityConfigProd {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, TenantFilter tenantFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, TenantFilter tenantFilter,
+                                                    SecurityAuditAccessDeniedHandler accessDeniedHandler,
+                                                    SecurityAuditAuthEntryPoint authEntryPoint) throws Exception {
         http
                 // CSRF disabled: architecture JWT stateless sans cookies de session.
                 // Les tokens JWT sont transmis via le header Authorization (Bearer),
@@ -99,6 +101,10 @@ public class SecurityConfigProd {
                 )
                 // CSP retiré du backend API : les réponses JSON ne sont pas rendues dans le DOM.
                 // Le CSP doit être configuré sur nginx (app.clenzy.fr) qui sert les pages HTML.
+                .exceptionHandling(ex -> ex
+                    .accessDeniedHandler(accessDeniedHandler)
+                    .authenticationEntryPoint(authEntryPoint)
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Endpoints publics

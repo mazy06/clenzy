@@ -35,6 +35,7 @@ import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api/contact")
+@PreAuthorize("isAuthenticated()")
 @Tag(name = "Contact", description = "Gestion des messages de contact")
 public class ContactController {
 

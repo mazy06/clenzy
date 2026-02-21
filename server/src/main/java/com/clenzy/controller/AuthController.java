@@ -23,6 +23,7 @@ import com.clenzy.model.User;
 import com.clenzy.service.UserService;
 import com.clenzy.service.PermissionService;
 import com.clenzy.service.AuditLogService;
+import com.clenzy.service.SecurityAuditService;
 import com.clenzy.service.LoginProtectionService;
 import com.clenzy.service.LoginProtectionService.LoginStatus;
 import com.clenzy.service.OrganizationInvitationService;
@@ -56,19 +57,22 @@ public class AuthController {
     private final UserService userService;
     private final PermissionService permissionService;
     private final AuditLogService auditLogService;
+    private final SecurityAuditService securityAuditService;
     private final LoginProtectionService loginProtectionService;
     private final OrganizationInvitationService invitationService;
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
 
     public AuthController(UserService userService, PermissionService permissionService,
-                          AuditLogService auditLogService, LoginProtectionService loginProtectionService,
+                          AuditLogService auditLogService, SecurityAuditService securityAuditService,
+                          LoginProtectionService loginProtectionService,
                           OrganizationInvitationService invitationService,
                           OrganizationRepository organizationRepository,
                           OrganizationMemberRepository organizationMemberRepository) {
         this.userService = userService;
         this.permissionService = permissionService;
         this.auditLogService = auditLogService;
+        this.securityAuditService = securityAuditService;
         this.loginProtectionService = loginProtectionService;
         this.invitationService = invitationService;
         this.organizationRepository = organizationRepository;
@@ -158,6 +162,7 @@ public class AuthController {
 
                 // Audit : connexion reussie
                 auditLogService.logLogin(username, username);
+                securityAuditService.logLoginSuccess(username, username);
 
                 return ResponseEntity.ok(response);
             } else {
@@ -166,6 +171,7 @@ public class AuthController {
 
                 // Audit : connexion echouee
                 auditLogService.logLoginFailed(username, "Invalid credentials");
+                securityAuditService.logLoginFailure(username, "Invalid credentials");
 
                 Map<String, Object> error = new HashMap<>();
                 error.put("error", "authentication_failed");
@@ -188,6 +194,7 @@ public class AuthController {
 
             // Audit : connexion echouee
             auditLogService.logLoginFailed(username != null ? username : "unknown", e.getMessage());
+            securityAuditService.logLoginFailure(username != null ? username : "unknown", e.getMessage());
 
             Map<String, Object> error = new HashMap<>();
             error.put("error", "authentication_failed");
