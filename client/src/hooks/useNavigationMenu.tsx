@@ -16,6 +16,7 @@ import {
   Description,
   Mail,
   AdminPanelSettings,
+  Sync,
 } from '@mui/icons-material';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -170,6 +171,14 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.monitoring',
     group: 'admin',
   },
+  {
+    icon: <Sync />,
+    path: '/admin/sync',
+    roles: ['SUPER_ADMIN'],
+    permission: 'users:manage',
+    translationKey: 'navigation.syncDiagnostics',
+    group: 'admin',
+  },
 ];
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
@@ -210,6 +219,10 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
 
       if (item.path === '/admin/monitoring') {
         return isAdmin() || isManager();
+      }
+
+      if (item.path === '/admin/sync') {
+        return isAdmin();
       }
 
       return true;

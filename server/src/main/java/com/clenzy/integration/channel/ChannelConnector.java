@@ -1,8 +1,10 @@
 package com.clenzy.integration.channel;
 
+import com.clenzy.integration.channel.model.ChannelCalendarDay;
 import com.clenzy.integration.channel.model.ChannelMapping;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -87,6 +89,20 @@ public interface ChannelConnector {
      */
     default HealthStatus checkHealth(Long connectionId) {
         return HealthStatus.UNKNOWN;
+    }
+
+    /**
+     * Lit le calendrier cote channel pour reconciliation.
+     * Retourne une liste vide par defaut (le channel ne supporte pas la lecture).
+     *
+     * @param mapping mapping property-channel
+     * @param from    debut de la plage (inclus)
+     * @param to      fin de la plage (exclus)
+     * @return liste des jours calendrier cote channel
+     */
+    default List<ChannelCalendarDay> getChannelCalendar(ChannelMapping mapping,
+                                                         LocalDate from, LocalDate to) {
+        return List.of();
     }
 
     /**

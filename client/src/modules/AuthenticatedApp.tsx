@@ -80,6 +80,7 @@ import PaymentHistoryPage from './payments/PaymentHistoryPage';
 // Admin pages
 import TokenMonitoringPage from './admin/TokenMonitoringPage';
 import MonitoringPage from './admin/MonitoringPage';
+import SyncAdminPage from './admin/SyncAdminPage';
 
 
 const AuthenticatedApp: React.FC = () => {
@@ -338,7 +339,15 @@ const AuthenticatedApp: React.FC = () => {
             <MonitoringPage />
           </ProtectedRoute>
         } />
-        
+
+        <Route path="/admin/sync" element={
+          <ProtectedRoute requiredPermission="users:manage">
+            <ErrorBoundary>
+              <SyncAdminPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
         {/* Redirection intelligente vers la première page accessible selon les permissions */}
         <Route path="/" element={<SmartRedirect />} />
       </Routes>

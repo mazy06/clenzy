@@ -127,3 +127,21 @@ export type { OrganizationMemberDto, ChangeRoleRequest } from './organizationMem
 
 export { organizationsApi } from './organizationsApi';
 export type { OrganizationDto, CreateOrganizationData, UpdateOrganizationData } from './organizationsApi';
+
+export { syncAdminApi } from './syncAdminApi';
+export type {
+  ConnectionSummary,
+  ConnectionDetail,
+  SyncLog,
+  SyncEventStats,
+  OutboxEvent,
+  OutboxStats,
+  BulkRetryResult,
+  CalendarCommand,
+  CalendarConflict,
+  MappingSummary,
+  DiagnosticsSummary,
+  MetricsSnapshot,
+  ReconciliationRun,
+  ReconciliationStats,
+} from './syncAdminApi';

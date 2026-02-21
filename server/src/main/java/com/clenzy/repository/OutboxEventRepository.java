@@ -1,6 +1,8 @@
 package com.clenzy.repository;
 
 import com.clenzy.model.OutboxEvent;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -51,4 +53,29 @@ public interface OutboxEventRepository extends JpaRepository<OutboxEvent, Long> 
     @Modifying
     @Query("DELETE FROM OutboxEvent e WHERE e.status = 'SENT' AND e.sentAt < :before")
     int deleteSentBefore(@Param("before") LocalDateTime before);
+
+    // ── Admin queries (cross-org, SUPER_ADMIN only) ─────────────────────────
+
+    /**
+     * Tous les events outbox pagines, plus recents en premier.
+     */
+    @Query("SELECT e FROM OutboxEvent e ORDER BY e.createdAt DESC")
+    Page<OutboxEvent> findAllPaged(Pageable pageable);
+
+    /**
+     * Count par status (pour stats dashboard).
+     */
+    @Query("SELECT COUNT(e) FROM OutboxEvent e WHERE e.status = :status")
+    long countByStatusStr(@Param("status") String status);
+
+    /**
+     * Recherche filtree par status et topic.
+     */
+    @Query("SELECT e FROM OutboxEvent e " +
+           "WHERE (:status IS NULL OR e.status = :status) " +
+           "AND (:topic IS NULL OR e.topic = :topic) ORDER BY e.createdAt DESC")
+    Page<OutboxEvent> findFiltered(
+            @Param("status") String status,
+            @Param("topic") String topic,
+            Pageable pageable);
 }

@@ -89,6 +89,8 @@ jobs:
           SPRING_DATASOURCE_PASSWORD: clenzy_test_ci
           SPRING_REDIS_HOST: localhost
           SPRING_REDIS_PORT: 6379
+          # Testcontainers : desactiver Ryuk (nettoyage) en CI (containers supprimes par le runner)
+          TESTCONTAINERS_RYUK_DISABLED: true
         run: mvn clean verify -B -q
 
       - name: Upload test results
