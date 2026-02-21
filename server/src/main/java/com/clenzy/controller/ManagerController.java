@@ -87,13 +87,13 @@ public class ManagerController {
      */
     private void validateManagerOwnership(Jwt jwt, Long targetManagerId) {
         String keycloakId = jwt.getSubject();
-        // ADMIN a acces a tout
+        // Admin plateforme (SUPER_ADMIN) a acces a tout
         @SuppressWarnings("unchecked")
         java.util.Map<String, Object> realmAccess = jwt.getClaim("realm_access");
         if (realmAccess != null) {
             @SuppressWarnings("unchecked")
             List<String> roles = (List<String>) realmAccess.get("roles");
-            if (roles != null && roles.contains("ADMIN")) return;
+            if (roles != null && roles.contains("SUPER_ADMIN")) return;
         }
         // Le manager ne peut voir que ses propres donnees
         Optional<User> userOpt = userRepository.findByKeycloakId(keycloakId);
@@ -107,7 +107,7 @@ public class ManagerController {
      * Récupérer tous les managers et admins pour les formulaires d'association — ADMIN uniquement
      */
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<String> getAllManagersAndAdmins() {
         try {
             log.debug("Recuperation de tous les managers et admins");
@@ -130,7 +130,7 @@ public class ManagerController {
      * Récupérer tous les utilisateurs HOST pour les formulaires d'association — ADMIN/MANAGER uniquement
      */
     @GetMapping("/hosts")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<String> getAllHostUsers() {
         try {
             log.debug("Recuperation des HOSTs disponibles");
@@ -174,7 +174,7 @@ public class ManagerController {
      * Récupérer les propriétés des clients sélectionnés — ADMIN/MANAGER uniquement
      */
     @PostMapping("/properties/by-clients")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<String> getPropertiesByClients(@RequestBody List<Long> clientIds) {
         try {
             log.debug("Recuperation des proprietes pour clients: {}", clientIds);
@@ -230,7 +230,7 @@ public class ManagerController {
      * Securite: le manager ne peut voir que ses propres associations, ADMIN voit tout
      */
     @GetMapping("/{managerId}/associations")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<ManagerAssociationsDto> getManagerAssociations(
             @PathVariable String managerId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -291,7 +291,7 @@ public class ManagerController {
      * Assigner des clients et propriétés à un manager
      */
     @PostMapping("/{managerId}/assign")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Transactional
     public ResponseEntity<String> assignClientsAndProperties(
             @PathVariable Long managerId,
@@ -434,7 +434,7 @@ public class ManagerController {
      * Récupérer les clients associés à un manager — ownership: son propre ID ou ADMIN
      */
     @GetMapping("/{managerId}/clients")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<?> getManagerClients(@PathVariable Long managerId, @AuthenticationPrincipal Jwt jwt) {
         try {
             // TODO: Implémenter la logique
@@ -448,7 +448,7 @@ public class ManagerController {
      * Récupérer les propriétés associées à un manager — ownership: son propre ID ou ADMIN
      */
     @GetMapping("/{managerId}/properties")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<?> getManagerProperties(@PathVariable Long managerId, @AuthenticationPrincipal Jwt jwt) {
         try {
             // TODO: Implémenter la logique
@@ -462,13 +462,13 @@ public class ManagerController {
      * Récupérer tous les utilisateurs opérationnels (techniciens et housekeepers) — ADMIN/MANAGER uniquement
      */
     @GetMapping("/operational-users")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<String> getOperationalUsers() {
         try {
             log.debug("Recuperation des utilisateurs operationnels");
 
             // Récupérer les vrais utilisateurs opérationnels depuis la base de données
-            List<UserRole> roles = Arrays.asList(UserRole.TECHNICIAN, UserRole.HOUSEKEEPER, UserRole.SUPERVISOR);
+            List<UserRole> roles = Arrays.asList(UserRole.TECHNICIAN, UserRole.HOUSEKEEPER, UserRole.SUPERVISOR, UserRole.LAUNDRY, UserRole.EXTERIOR_TECH);
             log.debug("Recherche des utilisateurs avec les roles: {}", roles);
 
             List<User> operationalUsers = userRepository.findByRoleIn(roles, tenantContext.getRequiredOrganizationId());
@@ -515,7 +515,7 @@ public class ManagerController {
      * Récupérer toutes les équipes disponibles — ADMIN/MANAGER uniquement
      */
     @GetMapping("/teams")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<String> getAllTeams() {
         try {
             log.debug("Recuperation de toutes les equipes depuis la base de donnees");
@@ -563,7 +563,7 @@ public class ManagerController {
      * Assigner des équipes et utilisateurs à un manager
      */
     @PostMapping("/{managerId}/assign-teams-users")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Transactional
     public ResponseEntity<String> assignTeamsAndUsers(@PathVariable Long managerId, @RequestBody TeamUserAssignmentRequest request) {
         try {
@@ -622,7 +622,7 @@ public class ManagerController {
      * Récupérer les équipes associées à un manager — ownership: son propre ID ou ADMIN
      */
     @GetMapping("/{managerId}/teams")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<?> getManagerTeams(@PathVariable Long managerId, @AuthenticationPrincipal Jwt jwt) {
         try {
             // TODO: Implémenter la logique
@@ -636,7 +636,7 @@ public class ManagerController {
      * Récupérer les utilisateurs associés à un manager — ownership: son propre ID ou ADMIN
      */
     @GetMapping("/{managerId}/users")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<?> getManagerUsers(@PathVariable Long managerId, @AuthenticationPrincipal Jwt jwt) {
         try {
             // TODO: Implémenter la logique
@@ -650,7 +650,7 @@ public class ManagerController {
      * Modifier l'assignation d'un client vers un autre manager
      */
     @PutMapping("/{clientId}/reassign")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<String> reassignClient(
             @PathVariable Long clientId,
             @RequestBody ReassignmentRequest request) {
@@ -671,7 +671,7 @@ public class ManagerController {
     // ===== ENDPOINTS DE DÉSASSIGNATION =====
 
     @DeleteMapping("/{managerId}/clients/{clientId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Transactional
     public ResponseEntity<String> unassignClient(
             @PathVariable String managerId, // Changé de Long à String
@@ -728,7 +728,7 @@ public class ManagerController {
     }
 
     @DeleteMapping("/{managerId}/teams/{teamId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Transactional
     public ResponseEntity<String> unassignTeam(
             @PathVariable String managerId, // Changé de Long à String
@@ -775,7 +775,7 @@ public class ManagerController {
     }
 
     @DeleteMapping("/{managerId}/users/{userId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Transactional
     public ResponseEntity<String> unassignUser(
             @PathVariable String managerId, // Changé de Long à String
@@ -824,7 +824,7 @@ public class ManagerController {
     // ===== ENDPOINTS POUR LA GESTION DES PROPRIÉTÉS INDIVIDUELLES =====
 
     @PostMapping("/{managerId}/properties/{propertyId}/assign")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Transactional
     public ResponseEntity<String> assignPropertyToManager(
             @PathVariable String managerId, // String pour supporter Keycloak ID
@@ -887,7 +887,7 @@ public class ManagerController {
     }
 
     @DeleteMapping("/{managerId}/properties/{propertyId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Transactional
     public ResponseEntity<String> unassignPropertyFromManager(
             @PathVariable String managerId, // String pour supporter Keycloak ID
@@ -958,7 +958,7 @@ public class ManagerController {
     }
 
     @PutMapping("/{managerId}/properties/{propertyId}/reassign")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Transactional
     public ResponseEntity<String> reassignPropertyToManager(
             @PathVariable String managerId, // String pour supporter Keycloak ID

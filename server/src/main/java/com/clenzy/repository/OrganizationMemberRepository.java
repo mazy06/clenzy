@@ -27,4 +27,9 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
     long countByOrganizationId(Long organizationId);
 
     void deleteByOrganizationIdAndUserId(Long organizationId, Long userId);
+
+    Optional<OrganizationMember> findByIdAndOrganizationId(Long id, Long organizationId);
+
+    @Query("SELECT om FROM OrganizationMember om JOIN FETCH om.user WHERE om.organization.id = :orgId")
+    List<OrganizationMember> findByOrganizationIdWithUser(@Param("orgId") Long orgId);
 }

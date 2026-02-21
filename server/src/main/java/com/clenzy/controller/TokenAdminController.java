@@ -13,7 +13,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/tokens")
 @Tag(name = "Token Administration", description = "Administration et monitoring des tokens JWT")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('SUPER_ADMIN')")
 public class TokenAdminController {
 
     @Autowired

@@ -490,7 +490,7 @@ public class User {
     }
     
     public boolean isAdmin() {
-        return UserRole.ADMIN.equals(role);
+        return role != null && role.isPlatformAdmin();
     }
     
     public boolean isTechnician() {

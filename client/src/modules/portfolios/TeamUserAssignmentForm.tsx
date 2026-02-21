@@ -47,6 +47,8 @@ function getRoleIcon(role: string) {
   switch (role) {
     case 'HOUSEKEEPER': return <CleaningServices sx={{ fontSize: 16 }} />;
     case 'TECHNICIAN': return <Build sx={{ fontSize: 16 }} />;
+    case 'LAUNDRY': return <CleaningServices sx={{ fontSize: 16 }} />;
+    case 'EXTERIOR_TECH': return <Build sx={{ fontSize: 16 }} />;
     case 'SUPERVISOR': return <SupervisorAccount sx={{ fontSize: 16 }} />;
     default: return <Person sx={{ fontSize: 16 }} />;
   }

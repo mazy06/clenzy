@@ -530,8 +530,8 @@ public class PermissionService {
         // (ignorer le cache Redis pour être sûr d'avoir les données à jour)
         List<String> permissions = getPermissionsFromDatabase(userRole.name());
 
-        // Fallback ADMIN : si aucune permission trouvée en base, injecter toutes les permissions disponibles
-        if ((permissions == null || permissions.isEmpty()) && userRole == UserRole.ADMIN) {
+        // Fallback staff plateforme : si aucune permission trouvée en base, injecter toutes les permissions
+        if ((permissions == null || permissions.isEmpty()) && userRole.isPlatformAdmin()) {
             log.warn("PermissionService.getUserPermissionsForSync() - FALLBACK ADMIN : injection de toutes les permissions");
             permissions = getAllAvailablePermissions();
         }

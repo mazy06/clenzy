@@ -509,7 +509,7 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
           .map((p) => p.id);
       }
 
-      if (userRole === 'MANAGER' && currentUserId) {
+      if (['SUPER_MANAGER'].includes(userRole) && currentUserId) {
         try {
           const assocData = await apiClient.get<ManagerAssociations>(`/managers/${currentUserId}/associations`);
           if (assocData.teams) managerTeamIds = assocData.teams.map((team) => team.id);
@@ -599,10 +599,10 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
       const activityItems: ActivityItem[] = [];
 
       // Properties
-      if (userRole === 'ADMIN' || userRole === 'MANAGER' || userRole === 'HOST') {
+      if (['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'].includes(userRole)) {
         let filteredProps = properties;
         if (userRole === 'HOST') filteredProps = properties.filter((p) => hostPropertyIds.includes(p.id));
-        else if (userRole === 'MANAGER') filteredProps = properties.filter((p) => managerPropertyIds.includes(p.id));
+        else if (['SUPER_MANAGER'].includes(userRole)) filteredProps = properties.filter((p) => managerPropertyIds.includes(p.id));
 
         filteredProps.forEach((prop) => {
           activityItems.push({
@@ -621,7 +621,7 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
       // Service requests
       {
         let filteredReqs = requests;
-        if (userRole === 'MANAGER') {
+        if (['SUPER_MANAGER'].includes(userRole)) {
           filteredReqs = requests.filter((req) =>
             managerPropertyIds.includes(req.propertyId || 0) || managerUserIds.includes(req.userId || 0)
           );
@@ -686,7 +686,7 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
         let filteredInts = interventions;
         if (userRole === 'HOST') {
           filteredInts = interventions.filter((int) => hostPropertyIds.includes(int.propertyId || 0));
-        } else if (userRole === 'MANAGER') {
+        } else if (['SUPER_MANAGER'].includes(userRole)) {
           filteredInts = interventions.filter((int) =>
             managerPropertyIds.includes(int.propertyId || 0) ||
             (int.assignedToType === 'team' && managerTeamIds.includes(int.assignedToId || 0)) ||
@@ -710,9 +710,9 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
       }
 
       // Users (admin/manager only, not for HOST)
-      if (userRole !== 'HOST' && (userRole === 'ADMIN' || userRole === 'MANAGER')) {
+      if (userRole !== 'HOST' && (['SUPER_ADMIN', 'SUPER_MANAGER'].includes(userRole))) {
         let filteredUsers = users;
-        if (userRole === 'MANAGER') filteredUsers = users.filter((u) => managerUserIds.includes(u.id));
+        if (['SUPER_MANAGER'].includes(userRole)) filteredUsers = users.filter((u) => managerUserIds.includes(u.id));
 
         filteredUsers.forEach((apiUser) => {
           const fullName = apiUser.firstName && apiUser.lastName
@@ -742,9 +742,9 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
       }
 
       // Teams (admin/manager only, not for HOST)
-      if (userRole !== 'HOST' && (userRole === 'ADMIN' || userRole === 'MANAGER')) {
+      if (userRole !== 'HOST' && (['SUPER_ADMIN', 'SUPER_MANAGER'].includes(userRole))) {
         let filteredTeams = teams;
-        if (userRole === 'MANAGER') filteredTeams = teams.filter((teamItem) => managerTeamIds.includes(teamItem.id));
+        if (['SUPER_MANAGER'].includes(userRole)) filteredTeams = teams.filter((teamItem) => managerTeamIds.includes(teamItem.id));
 
         filteredTeams.forEach((team) => {
           activityItems.push({

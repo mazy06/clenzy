@@ -62,7 +62,7 @@ const ContactPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
-  const isAdminOrManager = user?.roles?.some((r) => ['ADMIN', 'MANAGER'].includes(r)) ?? false;
+  const isAdminOrManager = user?.roles?.some((r) => ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(r)) ?? false;
 
   // Charger le compteur de formulaires NEW pour le badge
   useEffect(() => {

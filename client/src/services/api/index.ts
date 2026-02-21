@@ -121,3 +121,9 @@ export type {
   MinutConnectionStatus,
   TuyaConnectionStatus,
 } from './noiseApi';
+
+export { organizationMembersApi } from './organizationMembersApi';
+export type { OrganizationMemberDto, ChangeRoleRequest } from './organizationMembersApi';
+
+export { organizationsApi } from './organizationsApi';
+export type { OrganizationDto, CreateOrganizationData, UpdateOrganizationData } from './organizationsApi';

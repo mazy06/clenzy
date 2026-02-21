@@ -57,7 +57,7 @@ public class TeamService {
         }
 
         UserRole userRole = extractUserRole(jwt);
-        if (userRole != UserRole.ADMIN && userRole != UserRole.MANAGER) {
+        if (!userRole.isPlatformStaff()) {
             throw new com.clenzy.exception.UnauthorizedException("Seuls les administrateurs et managers peuvent créer des équipes");
         }
 
@@ -198,10 +198,10 @@ public class TeamService {
 
         List<Team> filteredTeams;
 
-        if (userRole == UserRole.ADMIN) {
-            // ADMIN : toutes les équipes
+        if (userRole.isPlatformAdmin()) {
+            // SUPER_ADMIN/ADMIN : toutes les équipes
             filteredTeams = teamRepository.findAll();
-        } else if (userRole == UserRole.MANAGER) {
+        } else if (userRole == UserRole.SUPER_MANAGER) {
             // MANAGER : seulement les équipes qu'il gère
             String keycloakId = jwt.getSubject();
             User managerUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
@@ -214,8 +214,8 @@ public class TeamService {
             } else {
                 filteredTeams = new ArrayList<>();
             }
-        } else if (userRole == UserRole.HOUSEKEEPER || userRole == UserRole.TECHNICIAN) {
-            // HOUSEKEEPER/TECHNICIAN : seulement les équipes dont ils sont membres
+        } else if (userRole == UserRole.HOUSEKEEPER || userRole == UserRole.TECHNICIAN || userRole == UserRole.LAUNDRY || userRole == UserRole.EXTERIOR_TECH || userRole == UserRole.SUPERVISOR) {
+            // Rôles opérationnels : seulement les équipes dont ils sont membres
             String keycloakId = jwt.getSubject();
             User currentUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
             if (currentUser != null) {
@@ -256,11 +256,11 @@ public class TeamService {
                                 continue;
                             }
                             if (roleStr.equalsIgnoreCase("realm-admin")) {
-                                return UserRole.ADMIN;
+                                return UserRole.SUPER_ADMIN;
                             }
                             try {
                                 UserRole userRole = UserRole.valueOf(roleStr.toUpperCase());
-                                if (userRole == UserRole.ADMIN || userRole == UserRole.MANAGER) {
+                                if (userRole.isPlatformStaff()) {
                                     return userRole;
                                 }
                             } catch (IllegalArgumentException e) {

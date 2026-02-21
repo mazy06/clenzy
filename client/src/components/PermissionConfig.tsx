@@ -314,7 +314,7 @@ const PermissionConfig: React.FC = () => {
               {roles
                 .sort((a, b) => {
                   // Ordre spécifique des rôles
-                  const roleOrder = ['ADMIN', 'MANAGER', 'SUPERVISOR', 'TECHNICIAN', 'HOUSEKEEPER', 'HOST'];
+                  const roleOrder = ['SUPER_ADMIN', 'SUPER_MANAGER', 'SUPERVISOR', 'TECHNICIAN', 'HOUSEKEEPER', 'HOST', 'LAUNDRY', 'EXTERIOR_TECH'];
                   const indexA = roleOrder.indexOf(a);
                   const indexB = roleOrder.indexOf(b);
                   return indexA - indexB;

@@ -98,7 +98,8 @@ public class UserService {
         if (dto.status != null) user.setStatus(dto.status);
         if (dto.profilePictureUrl != null) user.setProfilePictureUrl(dto.profilePictureUrl);
         if (dto.deferredPayment != null) user.setDeferredPayment(dto.deferredPayment);
-        
+        if (dto.organizationId != null) user.setOrganizationId(dto.organizationId);
+
         // Sauvegarder d'abord dans la base métier
         user = userRepository.save(user);
         
@@ -291,6 +292,13 @@ public class UserService {
         dto.services = user.getServices();
         dto.servicesDevis = user.getServicesDevis();
         dto.deferredPayment = user.isDeferredPayment();
+        // Organisation rattachee
+        dto.organizationId = user.getOrganizationId();
+        if (user.getOrganizationId() != null) {
+            organizationRepository.findById(user.getOrganizationId()).ifPresent(org ->
+                dto.organizationName = org.getName()
+            );
+        }
         return dto;
     }
 }

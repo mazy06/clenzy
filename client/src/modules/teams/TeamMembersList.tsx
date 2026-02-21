@@ -107,6 +107,9 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
       technician: t('teams.roles.technician'),
       supervisor: t('teams.roles.supervisor'),
       manager: t('teams.roles.manager'),
+      laundry: 'Blanchisserie',
+      exterior_tech: 'Tech. Extérieur',
+      leader: "Chef d'équipe",
     };
     return roleLabels[role?.toLowerCase()] || role;
   };
@@ -119,6 +122,9 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
       technician: 'primary',
       supervisor: 'warning',
       manager: 'error',
+      laundry: 'default',
+      exterior_tech: 'primary',
+      leader: 'secondary',
     };
     return roleColors[role?.toLowerCase()] || 'default';
   };

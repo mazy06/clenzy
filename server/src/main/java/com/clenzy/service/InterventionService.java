@@ -82,7 +82,7 @@ public class InterventionService {
         if (userRole == UserRole.HOST) {
             intervention.setStatus(InterventionStatus.AWAITING_VALIDATION);
             intervention.setEstimatedCost(null); // Le manager définira le coût lors de la validation
-        } else if (userRole == UserRole.ADMIN || userRole == UserRole.MANAGER) {
+        } else if (userRole.isPlatformStaff()) {
             // Les admins et managers peuvent créer directement avec un statut PENDING
             if (intervention.getStatus() == null) {
                 intervention.setStatus(InterventionStatus.PENDING);
@@ -206,7 +206,7 @@ public class InterventionService {
             Page<Intervention> interventionPage;
 
             // Pour TECHNICIAN, HOUSEKEEPER et SUPERVISOR, filtrer par assignation
-            if (userRole == UserRole.TECHNICIAN || userRole == UserRole.HOUSEKEEPER || userRole == UserRole.SUPERVISOR) {
+            if (userRole == UserRole.TECHNICIAN || userRole == UserRole.HOUSEKEEPER || userRole == UserRole.SUPERVISOR || userRole == UserRole.LAUNDRY || userRole == UserRole.EXTERIOR_TECH) {
                 log.debug("listWithRoleBasedAccess - filtering for operational role: {}", userRole);
 
                 // Identifier l'utilisateur depuis le JWT
@@ -254,7 +254,7 @@ public class InterventionService {
 
         // Seuls les admins peuvent supprimer
         UserRole userRole = extractUserRole(jwt);
-        if (userRole != UserRole.ADMIN) {
+        if (!userRole.isPlatformAdmin()) {
             throw new UnauthorizedException("Seuls les administrateurs peuvent supprimer des interventions");
         }
 
@@ -736,7 +736,7 @@ public class InterventionService {
 
         // Seuls les managers et admins peuvent assigner
         UserRole userRole = extractUserRole(jwt);
-        if (userRole != UserRole.ADMIN && userRole != UserRole.MANAGER) {
+        if (!userRole.isPlatformStaff()) {
             throw new UnauthorizedException("Seuls les administrateurs et managers peuvent assigner des interventions");
         }
 
@@ -793,7 +793,7 @@ public class InterventionService {
 
         // Vérifier que seul un manager peut valider
         UserRole userRole = extractUserRole(jwt);
-        if (userRole != UserRole.ADMIN && userRole != UserRole.MANAGER) {
+        if (!userRole.isPlatformStaff()) {
             throw new UnauthorizedException("Seuls les administrateurs et managers peuvent valider des interventions");
         }
 
@@ -840,7 +840,7 @@ public class InterventionService {
         }
 
         // Pour les admins et managers, acces complet au sein de leur organisation
-        if (userRole == UserRole.ADMIN || userRole == UserRole.MANAGER) {
+        if (userRole.isPlatformStaff()) {
             return;
         }
 
@@ -1083,16 +1083,16 @@ public class InterventionService {
                                 continue;
                             }
 
-                            // Mapper "realm-admin" vers ADMIN
+                            // Mapper "realm-admin" vers SUPER_ADMIN
                             if (roleStr.equalsIgnoreCase("realm-admin")) {
-                                return UserRole.ADMIN;
+                                return UserRole.SUPER_ADMIN;
                             }
 
                             // Chercher les rôles métier directs (ADMIN, MANAGER, etc.)
                             try {
                                 UserRole userRole = UserRole.valueOf(roleStr.toUpperCase());
                                 // Prioriser ADMIN et MANAGER
-                                if (userRole == UserRole.ADMIN || userRole == UserRole.MANAGER) {
+                                if (userRole.isPlatformStaff()) {
                                     return userRole;
                                 }
                             } catch (IllegalArgumentException e) {

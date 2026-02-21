@@ -42,5 +42,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
     List<User> findByRoleInWithTeams(@Param("roles") List<UserRole> roles, @Param("orgId") Long orgId);
+
+    List<User> findByOrganizationId(Long organizationId);
 }
 

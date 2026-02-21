@@ -26,20 +26,26 @@ const DashboardActivityContent: React.FC = React.memo(() => {
   const { t } = useTranslation();
 
   // Roles
-  const isAdmin = user?.roles?.includes('ADMIN') || false;
-  const isManager = user?.roles?.includes('MANAGER') || false;
+  const isAdmin = user?.roles?.includes('SUPER_ADMIN') || false;
+  const isManager = user?.roles?.includes('SUPER_MANAGER') || false;
   const isHost = user?.roles?.includes('HOST') || false;
   const isTechnician = user?.roles?.includes('TECHNICIAN');
   const isHousekeeper = user?.roles?.includes('HOUSEKEEPER');
   const isSupervisor = user?.roles?.includes('SUPERVISOR');
+  const isLaundry = user?.roles?.includes('LAUNDRY');
+  const isExteriorTech = user?.roles?.includes('EXTERIOR_TECH');
 
   const userRole = (() => {
-    if (isAdmin) return 'ADMIN';
-    if (isManager) return 'MANAGER';
+    if (user?.roles?.includes('SUPER_ADMIN')) return 'SUPER_ADMIN';
+    if (isAdmin) return 'SUPER_ADMIN';
+    if (user?.roles?.includes('SUPER_MANAGER')) return 'SUPER_MANAGER';
+    if (isManager) return 'SUPER_MANAGER';
     if (isSupervisor) return 'SUPERVISOR';
     if (isTechnician) return 'TECHNICIAN';
     if (isHousekeeper) return 'HOUSEKEEPER';
     if (isHost) return 'HOST';
+    if (isLaundry) return 'LAUNDRY';
+    if (isExteriorTech) return 'EXTERIOR_TECH';
     return 'USER';
   })();
 

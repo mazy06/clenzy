@@ -53,11 +53,13 @@ export interface UserFormData {
 }
 
 const userRoles = [
-  { value: 'ADMIN', label: 'Administrateur', icon: <AdminPanelSettings />, color: 'error' },
-  { value: 'MANAGER', label: 'Manager', icon: <SupervisorAccount />, color: 'warning' },
+  { value: 'SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error' },
+  { value: 'SUPER_MANAGER', label: 'Super Manager', icon: <SupervisorAccount />, color: 'secondary' },
   { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info' },
   { value: 'TECHNICIAN', label: 'Technicien', icon: <Build />, color: 'primary' },
   { value: 'HOUSEKEEPER', label: 'Agent de ménage', icon: <CleaningServices />, color: 'default' },
+  { value: 'LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default' },
+  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', icon: <Build />, color: 'primary' },
   { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
 ];
 
@@ -405,12 +407,14 @@ const UserForm: React.FC = () => {
                   📋 Rôle sélectionné : {userRoles.find(r => r.value === watchedRole)?.label}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  {watchedRole === 'ADMIN' && 'Accès complet à toutes les fonctionnalités de la plateforme'}
-                  {watchedRole === 'MANAGER' && 'Gestion des équipes et des demandes de service'}
+                  {watchedRole === 'SUPER_ADMIN' && 'Super administrateur avec accès complet multi-organisations'}
+                  {watchedRole === 'SUPER_MANAGER' && 'Super manager avec gestion étendue multi-équipes'}
                   {watchedRole === 'SUPERVISOR' && 'Supervision des interventions et du personnel'}
                   {watchedRole === 'TECHNICIAN' && 'Exécution des interventions techniques'}
                   {watchedRole === 'HOUSEKEEPER' && 'Exécution des interventions de nettoyage'}
                   {watchedRole === 'HOST' && 'Gestion de ses propres propriétés'}
+                  {watchedRole === 'LAUNDRY' && 'Gestion du linge et de la blanchisserie'}
+                  {watchedRole === 'EXTERIOR_TECH' && 'Entretien des espaces extérieurs'}
                 </Typography>
               </Box>
             )}

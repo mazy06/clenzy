@@ -403,7 +403,7 @@ public class PropertyService {
             .orElseThrow(() -> new NotFoundException("User not found"));
         
         // 1. Vérifier si l'utilisateur est ADMIN ou MANAGER
-        if (user.getRole() != null && (user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.MANAGER)) {
+        if (user.getRole() != null && user.getRole().isPlatformStaff()) {
             return true;
         }
         

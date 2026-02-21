@@ -124,6 +124,10 @@ management:
       slo:
         http.server.requests: 50ms, 100ms, 200ms, 500ms
 
+jwt:
+  secret: ${JWT_SECRET:clenzy-dev-jwt-secret-key-minimum-32-chars-long}
+  expiration: 3600
+
 server:
   port: 8080
   address: 0.0.0.0

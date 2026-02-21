@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ASSIGNABLE_ORG_ROLES } from '../../utils/orgRoleLabels';
 import {
   Dialog,
   DialogTitle,
@@ -30,10 +31,7 @@ interface Props {
   onInvitationSent: () => void;
 }
 
-const ROLES = [
-  { value: 'MEMBER', label: 'Membre' },
-  { value: 'ADMIN', label: 'Administrateur' },
-];
+const ROLES = ASSIGNABLE_ORG_ROLES;
 
 export default function SendInvitationDialog({ open, onClose, organizationId, onInvitationSent }: Props) {
   const [email, setEmail] = useState('');

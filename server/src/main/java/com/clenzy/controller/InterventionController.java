@@ -80,8 +80,7 @@ public class InterventionController {
         User user = userRepository.findByKeycloakId(jwt.getSubject())
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
-        String role = user.getRole() != null ? user.getRole().name().toUpperCase() : "";
-        boolean isAdminOrManager = role.contains("ADMIN") || role.contains("MANAGER");
+        boolean isAdminOrManager = user.getRole() != null && user.getRole().isPlatformStaff();
 
         List<Intervention> interventions;
 

@@ -17,6 +17,7 @@ import {
   Alert,
   CircularProgress,
   Box as MuiBox,
+  Autocomplete,
 } from '@mui/material';
 import {
   Save,
@@ -32,10 +33,12 @@ import {
   Lock,
   Visibility,
   VisibilityOff,
+  Business,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { usersApi } from '../../services/api';
+import { organizationsApi, OrganizationDto } from '../../services/api/organizationsApi';
 import PageHeader from '../../components/PageHeader';
 
 type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
@@ -54,11 +57,13 @@ export interface UserEditData {
 }
 
 const userRoles = [
-  { value: 'ADMIN', label: 'Administrateur', icon: <AdminPanelSettings />, color: 'error' },
-  { value: 'MANAGER', label: 'Manager', icon: <SupervisorAccount />, color: 'warning' },
+  { value: 'SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error' },
+  { value: 'SUPER_MANAGER', label: 'Super Manager', icon: <SupervisorAccount />, color: 'secondary' },
   { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info' },
   { value: 'TECHNICIAN', label: 'Technicien', icon: <Build />, color: 'primary' },
   { value: 'HOUSEKEEPER', label: 'Agent de ménage', icon: <CleaningServices />, color: 'default' },
+  { value: 'LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default' },
+  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', icon: <Build />, color: 'primary' },
   { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
 ];
 
@@ -94,7 +99,12 @@ const UserEdit: React.FC = () => {
   const [user, setUser] = useState<UserEditData | null>(null);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
+  // Organisations (pour le selecteur)
+  const [organizations, setOrganizations] = useState<OrganizationDto[]>([]);
+  const [selectedOrg, setSelectedOrg] = useState<OrganizationDto | null>(null);
+  const [orgsLoading, setOrgsLoading] = useState(false);
+
   const [formData, setFormData] = useState<UserEditData>({
     firstName: '',
     lastName: '',
@@ -106,11 +116,27 @@ const UserEdit: React.FC = () => {
     confirmPassword: '',
   });
 
+  // Charger les organisations disponibles
+  useEffect(() => {
+    const loadOrganizations = async () => {
+      setOrgsLoading(true);
+      try {
+        const data = await organizationsApi.listAll();
+        setOrganizations(data);
+      } catch {
+        // Silencieux — le selecteur sera vide
+      } finally {
+        setOrgsLoading(false);
+      }
+    };
+    loadOrganizations();
+  }, []);
+
   // Charger les données de l'utilisateur à modifier
   useEffect(() => {
     const loadUser = async () => {
       if (!id) return;
-      
+
       setLoading(true);
       try {
         const userData = await usersApi.getById(Number(id));
@@ -125,6 +151,12 @@ const UserEdit: React.FC = () => {
           role: userData.role?.toUpperCase() || 'HOUSEKEEPER',
           status: (userData as any).status?.toUpperCase() || 'ACTIVE',
         });
+
+        // Pre-selectionner l'organisation
+        if (userData.organizationId && organizations.length > 0) {
+          const userOrg = organizations.find((o) => o.id === userData.organizationId);
+          if (userOrg) setSelectedOrg(userOrg);
+        }
       } catch (err) {
         setError('Erreur lors du chargement de l\'utilisateur');
       } finally {
@@ -133,7 +165,7 @@ const UserEdit: React.FC = () => {
     };
 
     loadUser();
-  }, [id]);
+  }, [id, organizations]);
 
   // Vérifier les permissions - accès uniquement aux utilisateurs avec la permission users:manage
   if (!canManageUsers) {
@@ -210,7 +242,7 @@ const UserEdit: React.FC = () => {
 
     try {
       // Préparer les données pour le backend
-      const backendData: Record<string, string | null> = {
+      const backendData: Record<string, string | number | null> = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim().toLowerCase(),
@@ -218,6 +250,11 @@ const UserEdit: React.FC = () => {
         role: formData.role,
         status: formData.status,
       };
+
+      // Ajouter l'organisation si selectionnee
+      if (selectedOrg) {
+        backendData.organizationId = selectedOrg.id;
+      }
 
       // Ajouter le mot de passe seulement s'il est fourni
       if (formData.newPassword && formData.confirmPassword) {
@@ -445,6 +482,58 @@ const UserEdit: React.FC = () => {
               </Grid>
             </Grid>
 
+            {/* Organisation */}
+            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
+              Organisation
+            </Typography>
+
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} md={6}>
+                <Autocomplete
+                  size="small"
+                  options={organizations}
+                  value={selectedOrg}
+                  loading={orgsLoading}
+                  onChange={(_event, newValue) => setSelectedOrg(newValue)}
+                  getOptionLabel={(option) => option.name}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  renderOption={(props, option) => (
+                    <li {...props} key={option.id}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                        <Business sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <Typography variant="body2" sx={{ flex: 1 }}>
+                          {option.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
+                        </Typography>
+                      </Box>
+                    </li>
+                  )}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Organisation"
+                      placeholder="Selectionner une organisation"
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {orgsLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
+                  noOptionsText="Aucune organisation"
+                />
+                <FormHelperText sx={{ fontSize: '0.7rem' }}>
+                  Organisation a laquelle l'utilisateur est rattache
+                </FormHelperText>
+              </Grid>
+            </Grid>
+
             {/* Aperçu du rôle sélectionné */}
             {formData.role && (
               <Box sx={{ mb: 4, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
@@ -452,12 +541,14 @@ const UserEdit: React.FC = () => {
                   📋 Rôle sélectionné : {userRoles.find(r => r.value === formData.role)?.label}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {formData.role === 'ADMIN' && 'Accès complet à toutes les fonctionnalités de la plateforme'}
-                  {formData.role === 'MANAGER' && 'Gestion des équipes et des demandes de service'}
+                  {formData.role === 'SUPER_ADMIN' && 'Super administrateur avec accès complet multi-organisations'}
+                  {formData.role === 'SUPER_MANAGER' && 'Super manager avec gestion étendue multi-équipes'}
                   {formData.role === 'SUPERVISOR' && 'Supervision des interventions et du personnel'}
                   {formData.role === 'TECHNICIAN' && 'Exécution des interventions techniques'}
                   {formData.role === 'HOUSEKEEPER' && 'Exécution des interventions de nettoyage'}
                   {formData.role === 'HOST' && 'Gestion de ses propres propriétés'}
+                  {formData.role === 'LAUNDRY' && 'Gestion du linge et de la blanchisserie'}
+                  {formData.role === 'EXTERIOR_TECH' && 'Entretien des espaces extérieurs'}
                 </Typography>
               </Box>
             )}

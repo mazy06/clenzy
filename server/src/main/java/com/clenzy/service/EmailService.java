@@ -570,7 +570,14 @@ public class EmailService {
         if (role == null) return "Membre";
         return switch (role.toUpperCase()) {
             case "OWNER" -> "Proprietaire";
-            case "ADMIN" -> "Administrateur";
+            case "SUPER_ADMIN" -> "Super Administrateur";
+            case "SUPER_MANAGER" -> "Super Manager";
+            case "SUPERVISOR" -> "Superviseur";
+            case "TECHNICIAN" -> "Technicien";
+            case "HOUSEKEEPER" -> "Agent de menage";
+            case "LAUNDRY" -> "Blanchisserie";
+            case "EXTERIOR_TECH" -> "Tech. Exterieur";
+            case "HOST" -> "Proprietaire";
             case "MEMBER" -> "Membre";
             default -> role;
         };

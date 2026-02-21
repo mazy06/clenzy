@@ -323,7 +323,7 @@ export default function Settings() {
             label="Notifications"
             {...a11yProps(1)}
           />
-          {hasAnyRole(['ADMIN', 'MANAGER']) && user?.organizationId && (
+          {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
             <Tab
               icon={<GroupAdd sx={{ fontSize: 18 }} />}
               iconPosition="start"
@@ -627,7 +627,7 @@ export default function Settings() {
           </Grid>
 
           {/* Développement (admin only) */}
-          {user.roles.includes('ADMIN') && (
+          {(user.roles.includes('SUPER_ADMIN')) && (
             <Grid item xs={12} md={6}>
               <Paper sx={{ p: 2, height: '100%' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
@@ -721,11 +721,11 @@ export default function Settings() {
       </TabPanel>
 
       {/* ─── Onglet Organisation (ADMIN/MANAGER) ─────────────────────── */}
-      {hasAnyRole(['ADMIN', 'MANAGER']) && user?.organizationId && (
+      {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
         <TabPanel value={tabValue} index={2}>
           <OrganizationSection
-            organizationId={user.organizationId}
-            organizationName={user.organizationName}
+            organizationId={user?.organizationId}
+            organizationName={user?.organizationName}
           />
         </TabPanel>
       )}

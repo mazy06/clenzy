@@ -38,7 +38,7 @@ import ReportDetails from './reports/ReportDetails';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 // Users
-import UsersList from './users/UsersList';
+import UsersAndOrganizations from './users/UsersAndOrganizations';
 import UserForm from './users/UserForm';
 import UserDetails from './users/UserDetails';
 import UserEdit from './users/UserEdit';
@@ -244,7 +244,7 @@ const AuthenticatedApp: React.FC = () => {
         
         <Route path="/users" element={
           <ProtectedRoute requiredPermission="users:manage">
-            <UsersList />
+            <UsersAndOrganizations />
           </ProtectedRoute>
         } />
         <Route path="/users/new" element={

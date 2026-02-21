@@ -61,7 +61,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   {
     icon: <Home />,
     path: '/properties',
-    roles: ['ADMIN', 'MANAGER', 'HOST'],
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
     permission: 'properties:view',
     translationKey: 'navigation.properties',
     group: 'main',
@@ -69,7 +69,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   {
     icon: <Assignment />,
     path: '/service-requests',
-    roles: ['ADMIN', 'MANAGER', 'HOST', 'SUPERVISOR'],
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
     permission: 'service-requests:view',
     translationKey: 'navigation.serviceRequests',
     group: 'main',
@@ -77,7 +77,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   {
     icon: <Build />,
     path: '/interventions',
-    roles: ['ADMIN', 'MANAGER', 'TECHNICIAN', 'HOUSEKEEPER', 'SUPERVISOR'],
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'TECHNICIAN', 'HOUSEKEEPER', 'SUPERVISOR', 'LAUNDRY', 'EXTERIOR_TECH'],
     permission: 'interventions:view',
     translationKey: 'navigation.interventions',
     group: 'main',
@@ -86,7 +86,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   {
     icon: <People />,
     path: '/teams',
-    roles: ['ADMIN', 'MANAGER', 'SUPERVISOR'],
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'SUPERVISOR'],
     permission: 'teams:view',
     translationKey: 'navigation.teams',
     group: 'management',
@@ -94,7 +94,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   {
     icon: <Business />,
     path: '/portfolios',
-    roles: ['ADMIN', 'MANAGER'],
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
     permission: 'portfolios:view',
     translationKey: 'navigation.portfolios',
     group: 'management',
@@ -110,7 +110,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   {
     icon: <Description />,
     path: '/documents',
-    roles: ['ADMIN', 'MANAGER'],
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
     permission: 'documents:view',
     translationKey: 'navigation.documents',
     group: 'management',
@@ -118,7 +118,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   {
     icon: <Assessment />,
     path: '/reports',
-    roles: ['ADMIN', 'MANAGER'],
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
     permission: 'reports:view',
     translationKey: 'navigation.reports',
     group: 'management',
@@ -126,7 +126,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   {
     icon: <Euro />,
     path: '/tarification',
-    roles: ['ADMIN', 'MANAGER'],
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
     permission: 'tarification:view',
     translationKey: 'navigation.tarification',
     group: 'management',
@@ -134,7 +134,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   {
     icon: <Payment />,
     path: '/payments/history',
-    roles: ['ADMIN', 'MANAGER', 'HOST'],
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
     permission: 'payments:view',
     translationKey: 'navigation.payments',
     group: 'management',
@@ -143,15 +143,15 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   {
     icon: <People />,
     path: '/users',
-    roles: ['ADMIN'],
+    roles: ['SUPER_ADMIN'],
     permission: 'users:manage',
-    translationKey: 'navigation.users',
+    translationKey: 'navigation.usersAndOrganizations',
     group: 'admin',
   },
   {
     icon: <Settings />,
     path: '/settings',
-    roles: ['ADMIN', 'MANAGER'],
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
     permission: 'settings:view',
     translationKey: 'navigation.settings',
     group: 'admin',
@@ -159,14 +159,14 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   {
     icon: <AdminPanelSettings />,
     path: '/permissions-test',
-    roles: ['ADMIN'],
+    roles: ['SUPER_ADMIN'],
     translationKey: 'navigation.rolesPermissions',
     group: 'admin',
   },
   {
     icon: <Security />,
     path: '/admin/monitoring',
-    roles: ['ADMIN', 'MANAGER'],
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
     translationKey: 'navigation.monitoring',
     group: 'admin',
   },

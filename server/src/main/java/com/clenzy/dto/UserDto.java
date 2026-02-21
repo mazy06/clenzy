@@ -65,6 +65,10 @@ public class UserDto {
 
     // Paiement differe (admin/manager toggle)
     public Boolean deferredPayment;
+
+    // Organisation rattachee
+    public Long organizationId;
+    public String organizationName;
 }
 
 

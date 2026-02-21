@@ -31,7 +31,7 @@ public class ContactMessageService {
     private static final Logger log = LoggerFactory.getLogger(ContactMessageService.class);
     private static final int MAX_SUBJECT_LENGTH = 255;
     private static final int MAX_MESSAGE_LENGTH = 20000;
-    private static final Set<String> RESTRICTED_ROLES = Set.of("HOST", "HOUSEKEEPER", "TECHNICIAN", "SUPERVISOR");
+    private static final Set<String> RESTRICTED_ROLES = Set.of("HOST", "HOUSEKEEPER", "TECHNICIAN", "SUPERVISOR", "LAUNDRY", "EXTERIOR_TECH");
 
     private final ContactMessageRepository contactMessageRepository;
     private final UserRepository userRepository;
@@ -94,7 +94,7 @@ public class ContactMessageService {
         List<User> users = restricted
                 ? userRepository.findByStatusAndRoleInAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(
                         UserStatus.ACTIVE,
-                        List.of(UserRole.ADMIN, UserRole.MANAGER)
+                        List.of(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER)
                 )
                 : userRepository.findByStatusAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(UserStatus.ACTIVE);
 
@@ -493,7 +493,7 @@ public class ContactMessageService {
         boolean restricted = actor.roles().stream()
                 .map(r -> r.toUpperCase(Locale.ROOT))
                 .anyMatch(RESTRICTED_ROLES::contains);
-        if (restricted && recipient.getRole() != UserRole.ADMIN && recipient.getRole() != UserRole.MANAGER) {
+        if (restricted && !recipient.getRole().isPlatformStaff()) {
             throw new SecurityException("Utilisateur non autorise comme destinataire");
         }
     }

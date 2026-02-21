@@ -64,7 +64,7 @@ interface ContactFormProps {
 const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const isRestrictedUser = user?.roles?.includes('HOST') || user?.roles?.includes('HOUSEKEEPER') || user?.roles?.includes('TECHNICIAN') || user?.roles?.includes('SUPERVISOR');
+  const isRestrictedUser = user?.roles?.includes('HOST') || user?.roles?.includes('HOUSEKEEPER') || user?.roles?.includes('TECHNICIAN') || user?.roles?.includes('SUPERVISOR') || user?.roles?.includes('LAUNDRY') || user?.roles?.includes('EXTERIOR_TECH');
 
   const {
     control,

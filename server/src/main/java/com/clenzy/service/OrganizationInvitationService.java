@@ -207,7 +207,9 @@ public class OrganizationInvitationService {
             user.setEmail(email != null ? email : invitation.getInvitedEmail());
             user.setFirstName(firstName != null ? firstName : "");
             user.setLastName(lastName != null ? lastName : "");
-            user.setRole(UserRole.HOST);
+            // Mapper le role d'org invite vers un UserRole plateforme equivalent
+            UserRole mappedRole = mapOrgRoleToUserRole(invitation.getRoleInvited());
+            user.setRole(mappedRole);
             user.setStatus(UserStatus.ACTIVE);
             user.setEmailVerified(true);
             user.setPassword(UUID.randomUUID().toString().replace("-", "") + "Aa1!");
@@ -346,11 +348,16 @@ public class OrganizationInvitationService {
     }
 
     private void validateInvitePermission(User user, Long orgId, Jwt jwt) {
-        // ADMIN global peut tout faire
-        if (hasRole(jwt, "ADMIN")) return;
+        // Plateforme : SUPER_ADMIN peut tout faire
+        if (hasRole(jwt, "SUPER_ADMIN")) return;
 
-        // MANAGER de l'org peut inviter
-        if (hasRole(jwt, "MANAGER") && user.getOrganizationId() != null && user.getOrganizationId().equals(orgId)) {
+        // Plateforme : SUPER_MANAGER peut inviter dans n'importe quelle org
+        if (hasRole(jwt, "SUPER_MANAGER")) return;
+
+        // Organisation : verifier le role d'org du membre (OWNER, ADMIN, ou MANAGER d'org)
+        OrganizationMember member = memberRepository.findByUserId(user.getId()).orElse(null);
+        if (member != null && member.getOrganization().getId().equals(orgId)
+                && member.getRoleInOrg().canInviteMembers()) {
             return;
         }
 
@@ -405,6 +412,25 @@ public class OrganizationInvitationService {
             return hex.toString();
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 non disponible", e);
+        }
+    }
+
+    /**
+     * Mappe un role d'organisation vers un UserRole plateforme pour l'auto-provisioning.
+     * Les roles operationnels ont un equivalent direct dans UserRole.
+     * Les roles de direction d'org (OWNER, ADMIN, MANAGER) → HOST par defaut
+     * car seul un SUPER_ADMIN peut attribuer des roles plateforme.
+     */
+    private UserRole mapOrgRoleToUserRole(OrgMemberRole orgRole) {
+        if (orgRole == null) return UserRole.HOST;
+        switch (orgRole) {
+            case HOUSEKEEPER:   return UserRole.HOUSEKEEPER;
+            case TECHNICIAN:    return UserRole.TECHNICIAN;
+            case SUPERVISOR:    return UserRole.SUPERVISOR;
+            case LAUNDRY:       return UserRole.LAUNDRY;
+            case EXTERIOR_TECH: return UserRole.EXTERIOR_TECH;
+            case HOST:          return UserRole.HOST;
+            default:            return UserRole.HOST; // OWNER, ADMIN, MANAGER, MEMBER → HOST par defaut
         }
     }
 }

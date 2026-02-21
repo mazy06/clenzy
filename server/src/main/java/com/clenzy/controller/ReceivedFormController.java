@@ -15,14 +15,15 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Controleur admin pour consulter les formulaires recus (devis, maintenance, support).
- * Accessible uniquement aux roles ADMIN et MANAGER.
- * Pattern de verification JWT copie de PricingConfigController.
+ * Accessible uniquement aux roles plateforme (SUPER_ADMIN, SUPER_MANAGER).
  */
 @RestController
 @RequestMapping("/api/admin/received-forms")
+@PreAuthorize("isAuthenticated()")
 public class ReceivedFormController {
 
     private static final Logger log = LoggerFactory.getLogger(ReceivedFormController.class);
@@ -44,7 +45,7 @@ public class ReceivedFormController {
             @RequestParam(required = false) String type) {
 
         if (jwt == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        if (!hasRole(jwt, "ADMIN") && !hasRole(jwt, "MANAGER")) {
+        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -72,7 +73,7 @@ public class ReceivedFormController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getForm(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         if (jwt == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        if (!hasRole(jwt, "ADMIN") && !hasRole(jwt, "MANAGER")) {
+        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -91,7 +92,7 @@ public class ReceivedFormController {
             @RequestParam String status) {
 
         if (jwt == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        if (!hasRole(jwt, "ADMIN") && !hasRole(jwt, "MANAGER")) {
+        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -120,7 +121,7 @@ public class ReceivedFormController {
     @GetMapping("/stats")
     public ResponseEntity<?> getStats(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        if (!hasRole(jwt, "ADMIN") && !hasRole(jwt, "MANAGER")) {
+        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -137,14 +138,18 @@ public class ReceivedFormController {
 
     // ─── Role check JWT (meme pattern que PricingConfigController) ───────────
 
-    private boolean hasRole(Jwt jwt, String role) {
+    private boolean hasAnyRole(Jwt jwt, String... rolesToCheck) {
         try {
             Map<String, Object> realmAccess = jwt.getClaim("realm_access");
             if (realmAccess != null) {
                 Object roles = realmAccess.get("roles");
                 if (roles instanceof List<?>) {
-                    return ((List<?>) roles).stream()
-                            .anyMatch(r -> role.equals(r.toString()));
+                    List<?> roleList = (List<?>) roles;
+                    for (String role : rolesToCheck) {
+                        if (roleList.stream().anyMatch(r -> role.equals(r.toString()))) {
+                            return true;
+                        }
+                    }
                 }
             }
         } catch (Exception e) {
