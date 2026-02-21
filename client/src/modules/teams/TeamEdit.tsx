@@ -225,7 +225,10 @@ const TeamEdit: React.FC = () => {
   const roleOptions = [
     { value: 'HOUSEKEEPER', label: 'Agent de ménage' },
     { value: 'TECHNICIAN', label: 'Technicien' },
+    { value: 'LAUNDRY', label: 'Blanchisserie' },
+    { value: 'EXTERIOR_TECH', label: 'Tech. extérieur' },
     { value: 'SUPERVISOR', label: 'Superviseur' },
+    { value: 'SUPER_MANAGER', label: 'Super Manager' },
     { value: 'MANAGER', label: 'Manager' },
   ];
 

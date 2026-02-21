@@ -121,7 +121,7 @@ export default function MainLayoutFull({ children }: MainLayoutFullProps) {
             // Les pages qui gèrent leur propre scroll (ex: Dashboard Planning)
             // utilisent flex: 1 + overflow interne.
             // Les pages classiques débordent et scrollent via ce container.
-            overflow: 'hidden',
+            overflow: 'auto',
           }}
         >
           {children}

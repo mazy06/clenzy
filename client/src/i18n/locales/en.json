@@ -40,6 +40,7 @@
     "contact": "Contact",
     "reports": "Reports",
     "users": "Users",
+    "usersAndOrganizations": "Users & Organizations",
     "settings": "Settings",
     "rolesPermissions": "Roles & Permissions",
     "tarification": "Pricing",
@@ -52,12 +53,15 @@
     "noMenuAvailable": "No menu available",
     "defaultUser": "User",
     "roles": {
-      "ADMIN": "Administrator",
-      "MANAGER": "Manager",
+      "SUPER_ADMIN": "Super Admin",
+      "SUPER_MANAGER": "Super Manager",
       "HOST": "Host",
       "SUPERVISOR": "Supervisor",
       "TECHNICIAN": "Technician",
-      "HOUSEKEEPER": "Housekeeper"
+      "HOUSEKEEPER": "Housekeeper",
+      "LAUNDRY": "Laundry",
+      "EXTERIOR_TECH": "Exterior Tech",
+      "MEMBER": "Member"
     },
     "languages": {
       "fr": "French",

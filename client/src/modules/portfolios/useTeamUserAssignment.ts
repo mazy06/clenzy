@@ -176,6 +176,8 @@ export function useTeamUserAssignment() {
     switch (role) {
       case 'HOUSEKEEPER': return 'success';
       case 'TECHNICIAN': return 'warning';
+      case 'LAUNDRY': return 'secondary';
+      case 'EXTERIOR_TECH': return 'primary';
       case 'SUPERVISOR': return 'info';
       default: return 'default';
     }
@@ -185,6 +187,8 @@ export function useTeamUserAssignment() {
     switch (role) {
       case 'HOUSEKEEPER': return t('portfolios.roles.housekeeper');
       case 'TECHNICIAN': return t('portfolios.roles.technician');
+      case 'LAUNDRY': return t('portfolios.roles.laundry', { defaultValue: 'Blanchisserie' });
+      case 'EXTERIOR_TECH': return t('portfolios.roles.exteriorTech', { defaultValue: 'Tech. extérieur' });
       case 'SUPERVISOR': return t('portfolios.roles.supervisor');
       default: return role;
     }

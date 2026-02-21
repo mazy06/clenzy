@@ -94,14 +94,19 @@ interface UserDetailsData {
   services?: string;
   servicesDevis?: string;
   deferredPayment?: boolean;
+  // Organisation
+  organizationId?: number;
+  organizationName?: string;
 }
 
 const userRoles: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor }> = [
-  { value: 'ADMIN', label: 'Administrateur', icon: <AdminPanelSettings />, color: 'error' },
-  { value: 'MANAGER', label: 'Manager', icon: <SupervisorAccount />, color: 'warning' },
+  { value: 'SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error' },
+  { value: 'SUPER_MANAGER', label: 'Super Manager', icon: <SupervisorAccount />, color: 'secondary' },
   { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info' },
   { value: 'TECHNICIAN', label: 'Technicien', icon: <Build />, color: 'primary' },
   { value: 'HOUSEKEEPER', label: 'Agent de ménage', icon: <CleaningServices />, color: 'default' },
+  { value: 'LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default' },
+  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', icon: <Build />, color: 'primary' },
   { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
 ];
 
@@ -169,6 +174,9 @@ const UserDetails: React.FC = () => {
           services: (userData as any).services,
           servicesDevis: (userData as any).servicesDevis,
           deferredPayment: (userData as any).deferredPayment,
+          // Organisation
+          organizationId: (userData as any).organizationId,
+          organizationName: (userData as any).organizationName,
         };
 
         setUser(convertedUser);
@@ -850,6 +858,22 @@ const UserDetails: React.FC = () => {
               </>
             )}
 
+            {/* Organisation */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
+                Organisation
+              </Typography>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Organisation rattachee
+              </Typography>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                {user.organizationName || 'Aucune organisation'}
+              </Typography>
+            </Grid>
+
             {/* Rôle et statut */}
             <Grid item xs={12}>
               <Typography variant="h6" sx={{ mb: 3, color: 'primary.main' }}>
@@ -868,12 +892,14 @@ const UserDetails: React.FC = () => {
                 sx={{ mb: 2 }}
               />
               <Typography variant="body2" color="text.secondary">
-                {user.role === 'ADMIN' && 'Accès complet à toutes les fonctionnalités de la plateforme'}
-                {user.role === 'MANAGER' && 'Gestion des équipes et des demandes de service'}
+                {user.role === 'SUPER_ADMIN' && 'Super administrateur avec accès complet multi-organisations'}
+                {user.role === 'SUPER_MANAGER' && 'Super manager avec gestion étendue multi-équipes'}
                 {user.role === 'SUPERVISOR' && 'Supervision des interventions et du personnel'}
                 {user.role === 'TECHNICIAN' && 'Exécution des interventions techniques'}
                 {user.role === 'HOUSEKEEPER' && 'Exécution des interventions de nettoyage'}
                 {user.role === 'HOST' && 'Gestion de ses propres propriétés'}
+                {user.role === 'LAUNDRY' && 'Gestion du linge et de la blanchisserie'}
+                {user.role === 'EXTERIOR_TECH' && 'Entretien des espaces extérieurs'}
               </Typography>
             </Grid>
 

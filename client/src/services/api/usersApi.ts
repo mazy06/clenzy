@@ -24,6 +24,9 @@ export interface User {
   services?: string;       // Séparé par virgule
   servicesDevis?: string;  // Séparé par virgule
   deferredPayment?: boolean;
+  // Organisation rattachee
+  organizationId?: number;
+  organizationName?: string;
 }
 
 export interface UserFormData {

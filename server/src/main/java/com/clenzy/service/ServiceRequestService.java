@@ -188,8 +188,8 @@ public class ServiceRequestService {
                         }
                     }
                     return false;
-                } else if (userRole == UserRole.HOUSEKEEPER || userRole == UserRole.TECHNICIAN) {
-                    // HOUSEKEEPER/TECHNICIAN : seulement les demandes assignées à eux ou leurs équipes
+                } else if (userRole == UserRole.HOUSEKEEPER || userRole == UserRole.TECHNICIAN || userRole == UserRole.LAUNDRY || userRole == UserRole.EXTERIOR_TECH || userRole == UserRole.SUPERVISOR) {
+                    // Rôles opérationnels : seulement les demandes assignées à eux ou leurs équipes
                     String keycloakId = jwt.getSubject();
                     User currentUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
                     if (currentUser != null) {
@@ -199,7 +199,7 @@ public class ServiceRequestService {
                                 sr.getAssignedToId() != null && isUserInTeam(currentUser.getId(), sr.getAssignedToId()));
                     }
                     return false;
-                } else if (userRole == UserRole.MANAGER) {
+                } else if (userRole == UserRole.SUPER_MANAGER) {
                     // MANAGER : demandes liées à ses portefeuilles ou créées par ses utilisateurs
                     // Pour simplifier, on laisse passer toutes les demandes pour les managers
                     // Le filtrage détaillé par portefeuille peut être ajouté plus tard si nécessaire
@@ -252,7 +252,7 @@ public class ServiceRequestService {
             UserRole userRole = extractUserRole(jwt);
             log.debug("validateAndCreateIntervention - role: {}", userRole);
 
-            if (userRole != UserRole.ADMIN && userRole != UserRole.MANAGER) {
+            if (!userRole.isPlatformStaff()) {
                 log.debug("validateAndCreateIntervention - insufficient role: {}", userRole);
                 throw new UnauthorizedException("Seuls les administrateurs et managers peuvent valider les demandes de service");
             }
@@ -404,7 +404,7 @@ public class ServiceRequestService {
                     || !serviceRequest.getProperty().getOwner().getId().equals(currentUser.getId())) {
                 throw new com.clenzy.exception.UnauthorizedException("Vous n'êtes pas autorisé à accepter ce devis");
             }
-        } else if (userRole != UserRole.ADMIN && userRole != UserRole.MANAGER) {
+        } else if (!userRole.isPlatformStaff()) {
             throw new com.clenzy.exception.UnauthorizedException("Seuls le propriétaire, les managers et les admins peuvent accepter un devis");
         }
 
@@ -480,16 +480,16 @@ public class ServiceRequestService {
                                 continue;
                             }
 
-                            // Mapper "realm-admin" vers ADMIN
+                            // Mapper "realm-admin" vers SUPER_ADMIN
                             if (roleStr.equalsIgnoreCase("realm-admin")) {
-                                return UserRole.ADMIN;
+                                return UserRole.SUPER_ADMIN;
                             }
 
                             // Chercher les rôles métier directs (ADMIN, MANAGER, etc.)
                             try {
                                 UserRole userRole = UserRole.valueOf(roleStr.toUpperCase());
                                 // Prioriser ADMIN et MANAGER
-                                if (userRole == UserRole.ADMIN || userRole == UserRole.MANAGER) {
+                                if (userRole.isPlatformStaff()) {
                                     return userRole;
                                 }
                             } catch (IllegalArgumentException e) {

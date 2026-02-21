@@ -1,8 +1,15 @@
 package com.clenzy.config;
 
+import com.clenzy.repository.OrganizationRepository;
+import com.clenzy.repository.UserRepository;
+import com.clenzy.tenant.TenantContext;
+import com.clenzy.tenant.TenantFilter;
+import jakarta.persistence.EntityManager;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -13,12 +20,11 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import com.clenzy.tenant.TenantFilter;
 
 import java.util.Collection;
 import java.util.List;
@@ -31,14 +37,37 @@ import java.util.stream.Collectors;
 @Profile("!prod")
 public class SecurityConfig {
 
-    private final TenantFilter tenantFilter;
+    /**
+     * Cree le TenantFilter comme @Bean Spring.
+     * IMPORTANT : doit etre accompagne du FilterRegistrationBean ci-dessous
+     * pour empecher Spring Boot de l'enregistrer automatiquement comme servlet filter.
+     * Le TenantFilter doit UNIQUEMENT s'executer dans la security chain
+     * (via addFilterAfter) pour avoir acces au JWT authentifie.
+     */
+    @Bean
+    public TenantFilter tenantFilter(UserRepository userRepository,
+                                      OrganizationRepository organizationRepository,
+                                      EntityManager entityManager,
+                                      RedisTemplate<String, Object> redisTemplate,
+                                      TenantContext tenantContext) {
+        return new TenantFilter(userRepository, organizationRepository, entityManager, redisTemplate, tenantContext);
+    }
 
-    public SecurityConfig(TenantFilter tenantFilter) {
-        this.tenantFilter = tenantFilter;
+    /**
+     * Desactive l'auto-enregistrement du TenantFilter comme servlet filter.
+     * Spring Boot enregistre automatiquement tous les beans Filter comme servlet filters.
+     * Sans cela, le TenantFilter s'execute AVANT Spring Security (pas d'auth JWT)
+     * et OncePerRequestFilter bloque la deuxieme execution dans la security chain.
+     */
+    @Bean
+    public FilterRegistrationBean<TenantFilter> tenantFilterRegistration(TenantFilter tenantFilter) {
+        FilterRegistrationBean<TenantFilter> registration = new FilterRegistrationBean<>(tenantFilter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, TenantFilter tenantFilter) throws Exception {
         http
             // CSRF disabled: architecture JWT stateless sans cookies de session (voir SecurityConfigProd)
             .csrf(csrf -> csrf.disable())
@@ -95,7 +124,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(keycloakRoleConverter())))
-            .addFilterAfter(tenantFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(tenantFilter, BearerTokenAuthenticationFilter.class)
             .httpBasic(Customizer.withDefaults());
 
         return http.build();
@@ -122,11 +151,21 @@ public class SecurityConfig {
         if (realmAccess == null) return List.of();
         Object roles = realmAccess.get("roles");
         if (!(roles instanceof List<?> list)) return List.of();
-        return list.stream()
-                .filter(String.class::isInstance)
-                .map(String.class::cast)
-                .map(r -> new SimpleGrantedAuthority("ROLE_" + r.toUpperCase()))
-                .collect(Collectors.toList());
+
+        List<GrantedAuthority> authorities = new java.util.ArrayList<>();
+        for (Object item : list) {
+            if (!(item instanceof String role)) continue;
+            String upper = role.toUpperCase();
+            // Normalisation : anciens roles Keycloak -> nouveaux noms
+            // Safety net tant que des JWT avec les anciens roles circulent
+            if ("ADMIN".equals(upper)) {
+                upper = "SUPER_ADMIN";
+            } else if ("MANAGER".equals(upper)) {
+                upper = "SUPER_MANAGER";
+            }
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + upper));
+        }
+        return authorities;
     }
 
     @Bean

@@ -55,9 +55,9 @@ interface User {
 
 // Catégories de services — une équipe est spécialisée par catégorie (pas par sous-type)
 const teamServiceCategories = [
-  { value: 'CLEANING', label: 'Nettoyage', description: 'Nettoyage, entretien ménager, désinfection', roles: ['HOUSEKEEPER', 'SUPERVISOR'], color: '#5B9BD5', gradient: 'linear-gradient(135deg, #1a3a5c 0%, #234b73 50%, #1e3d63 100%)' },
-  { value: 'MAINTENANCE', label: 'Maintenance', description: 'Réparations, maintenance préventive, travaux', roles: ['TECHNICIAN', 'SUPERVISOR'], color: '#E8A838', gradient: 'linear-gradient(135deg, #3d2e10 0%, #5c4520 50%, #4a3818 100%)' },
-  { value: 'OTHER', label: 'Autre', description: 'Services divers, jardinage, remise en état', roles: ['HOUSEKEEPER', 'TECHNICIAN', 'SUPERVISOR', 'MANAGER'], color: '#6B8A9A', gradient: 'linear-gradient(135deg, #1e2a35 0%, #2a3a4a 50%, #243242 100%)' },
+  { value: 'CLEANING', label: 'Nettoyage', description: 'Nettoyage, entretien ménager, désinfection', roles: ['HOUSEKEEPER', 'LAUNDRY', 'SUPERVISOR'], color: '#5B9BD5', gradient: 'linear-gradient(135deg, #1a3a5c 0%, #234b73 50%, #1e3d63 100%)' },
+  { value: 'MAINTENANCE', label: 'Maintenance', description: 'Réparations, maintenance préventive, travaux', roles: ['TECHNICIAN', 'EXTERIOR_TECH', 'SUPERVISOR'], color: '#E8A838', gradient: 'linear-gradient(135deg, #3d2e10 0%, #5c4520 50%, #4a3818 100%)' },
+  { value: 'OTHER', label: 'Autre', description: 'Services divers, jardinage, remise en état', roles: ['HOUSEKEEPER', 'TECHNICIAN', 'LAUNDRY', 'EXTERIOR_TECH', 'SUPERVISOR', 'SUPER_MANAGER'], color: '#6B8A9A', gradient: 'linear-gradient(135deg, #1e2a35 0%, #2a3a4a 50%, #243242 100%)' },
 ];
 
 const getCategoryIcon = (value: string, size: number = 20) => {
@@ -175,7 +175,10 @@ const TeamForm: React.FC = () => {
   const teamRoles = [
     { value: 'HOUSEKEEPER', label: t('teams.roles.housekeeper') },
     { value: 'TECHNICIAN', label: t('teams.roles.technician') },
+    { value: 'LAUNDRY', label: t('teams.roles.laundry', { defaultValue: 'Blanchisserie' }) },
+    { value: 'EXTERIOR_TECH', label: t('teams.roles.exteriorTech', { defaultValue: 'Tech. extérieur' }) },
     { value: 'SUPERVISOR', label: t('teams.roles.supervisor') },
+    { value: 'SUPER_MANAGER', label: t('teams.roles.superManager', { defaultValue: 'Super Manager' }) },
     { value: 'MANAGER', label: t('teams.roles.manager') },
   ];
 

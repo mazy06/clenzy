@@ -16,7 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
  */
 @RestController
 @RequestMapping("/api/property-teams")
-@PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
 public class PropertyTeamController {
 
     @Autowired
@@ -45,7 +45,7 @@ public class PropertyTeamController {
      * Assigner une equipe a une propriete (upsert)
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<PropertyTeamDto> assign(@RequestBody PropertyTeamRequest request) {
         PropertyTeamDto dto = propertyTeamService.assignTeamToProperty(request);
         return ResponseEntity.ok(dto);
@@ -55,7 +55,7 @@ public class PropertyTeamController {
      * Retirer l'equipe d'une propriete
      */
     @DeleteMapping("/property/{propertyId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Void> remove(@PathVariable Long propertyId) {
         propertyTeamService.removeTeamFromProperty(propertyId);
         return ResponseEntity.noContent().build();

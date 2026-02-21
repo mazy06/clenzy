@@ -28,7 +28,9 @@ import com.clenzy.service.LoginProtectionService.LoginStatus;
 import com.clenzy.service.OrganizationInvitationService;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.Organization;
+import com.clenzy.model.OrganizationMember;
 import com.clenzy.repository.OrganizationRepository;
+import com.clenzy.repository.OrganizationMemberRepository;
 import com.clenzy.dto.RolePermissionsDto;
 
 @RestController
@@ -57,17 +59,20 @@ public class AuthController {
     private final LoginProtectionService loginProtectionService;
     private final OrganizationInvitationService invitationService;
     private final OrganizationRepository organizationRepository;
+    private final OrganizationMemberRepository organizationMemberRepository;
 
     public AuthController(UserService userService, PermissionService permissionService,
                           AuditLogService auditLogService, LoginProtectionService loginProtectionService,
                           OrganizationInvitationService invitationService,
-                          OrganizationRepository organizationRepository) {
+                          OrganizationRepository organizationRepository,
+                          OrganizationMemberRepository organizationMemberRepository) {
         this.userService = userService;
         this.permissionService = permissionService;
         this.auditLogService = auditLogService;
         this.loginProtectionService = loginProtectionService;
         this.invitationService = invitationService;
         this.organizationRepository = organizationRepository;
+        this.organizationMemberRepository = organizationMemberRepository;
     }
 
     @PostMapping("/auth/login")
@@ -293,12 +298,21 @@ public class AuthController {
                 claims.put("firstName", user.getFirstName());
                 claims.put("lastName", user.getLastName());
                 claims.put("role", user.getRole().name());
+                claims.put("platformRole", user.getRole().name());
                 claims.put("status", user.getStatus().name());
                 if (user.getOrganizationId() != null) {
                     claims.put("organizationId", user.getOrganizationId());
                     organizationRepository.findById(user.getOrganizationId()).ifPresent(org ->
                         claims.put("organizationName", org.getName())
                     );
+                }
+                // Ajouter le role dans l'organisation si applicable
+                try {
+                    organizationMemberRepository.findByUserId(user.getId()).ifPresent(member ->
+                        claims.put("orgRole", member.getRoleInOrg().name())
+                    );
+                } catch (Exception e) {
+                    log.debug("/me - Erreur recuperation orgRole: {}", e.getMessage());
                 }
                 claims.put("emailVerified", user.isEmailVerified() != null ? user.isEmailVerified() : false);
                 claims.put("phoneVerified", user.isPhoneVerified() != null ? user.isPhoneVerified() : false);
@@ -317,9 +331,9 @@ public class AuthController {
                     permissions = permissionService.getUserPermissionsForSync(keycloakId);
                 }
 
-                // Fallback ultime pour ADMIN : si toujours vide, injecter toutes les permissions
-                if ((permissions == null || permissions.isEmpty()) && user.getRole() == UserRole.ADMIN) {
-                    log.warn("/me - FALLBACK ADMIN : injection de toutes les permissions disponibles");
+                // Fallback ultime pour staff plateforme : si toujours vide, injecter toutes les permissions
+                if ((permissions == null || permissions.isEmpty()) && user.getRole().isPlatformAdmin()) {
+                    log.warn("/me - FALLBACK PLATFORM ADMIN : injection de toutes les permissions disponibles");
                     permissions = permissionService.getAllAvailablePermissions();
                 }
 

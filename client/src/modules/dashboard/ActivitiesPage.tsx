@@ -41,12 +41,16 @@ export default function ActivitiesPage() {
   
   // Déterminer le rôle de l'utilisateur
   const userRole = (() => {
-    if (user?.roles?.includes('ADMIN')) return 'ADMIN';
-    if (user?.roles?.includes('MANAGER')) return 'MANAGER';
+    if (user?.roles?.includes('SUPER_ADMIN')) return 'SUPER_ADMIN';
+    if (user?.roles?.includes('SUPER_ADMIN')) return 'SUPER_ADMIN';
+    if (user?.roles?.includes('SUPER_MANAGER')) return 'SUPER_MANAGER';
+    if (user?.roles?.includes('SUPER_MANAGER')) return 'SUPER_MANAGER';
     if (user?.roles?.includes('SUPERVISOR')) return 'SUPERVISOR';
     if (user?.roles?.includes('TECHNICIAN')) return 'TECHNICIAN';
     if (user?.roles?.includes('HOUSEKEEPER')) return 'HOUSEKEEPER';
     if (user?.roles?.includes('HOST')) return 'HOST';
+    if (user?.roles?.includes('LAUNDRY')) return 'LAUNDRY';
+    if (user?.roles?.includes('EXTERIOR_TECH')) return 'EXTERIOR_TECH';
     return 'USER';
   })();
   

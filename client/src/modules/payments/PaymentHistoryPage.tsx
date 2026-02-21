@@ -74,7 +74,7 @@ const PaymentHistoryPage: React.FC = () => {
   };
 
   // Role detection
-  const isAdminOrManager = user?.roles?.some((r) => ['ADMIN', 'MANAGER'].includes(r)) ?? false;
+  const isAdminOrManager = user?.roles?.some((r) => ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(r)) ?? false;
 
   // Data state
   const [payments, setPayments] = useState<PaymentRecord[]>([]);

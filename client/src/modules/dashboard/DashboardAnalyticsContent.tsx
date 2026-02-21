@@ -29,8 +29,8 @@ const DashboardAnalyticsContent: React.FC<DashboardAnalyticsContentProps> = Reac
   const { user } = useAuth();
 
   // Roles
-  const isAdmin = user?.roles?.includes('ADMIN') || false;
-  const isManager = user?.roles?.includes('MANAGER') || false;
+  const isAdmin = user?.roles?.includes('SUPER_ADMIN') || false;
+  const isManager = user?.roles?.includes('SUPER_MANAGER') || false;
   const isSupervisor = user?.roles?.includes('SUPERVISOR');
 
   const canViewCharts = isAdmin || isManager || isSupervisor;

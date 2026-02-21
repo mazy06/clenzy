@@ -432,7 +432,7 @@ async function fetchOverviewRawData(
 
   // Fetch manager associations if needed
   let managerAssociations: ManagerAssociations | null = null;
-  if (userRole === 'MANAGER' && userId) {
+  if (['SUPER_MANAGER'].includes(userRole) && userId) {
     try {
       managerAssociations = await apiClient.get<ManagerAssociations>(`/managers/${userId}/associations`);
     } catch {
@@ -547,7 +547,7 @@ export function useDashboardOverview({
         .map((p) => p.id);
     }
 
-    if (userRole === 'MANAGER' && managerAssociations) {
+    if (['SUPER_MANAGER'].includes(userRole) && managerAssociations) {
       if (managerAssociations.teams) managerTeamIds = managerAssociations.teams.map((team) => team.id);
       if (managerAssociations.portfolios) {
         managerPropertyIds = managerAssociations.portfolios
@@ -632,10 +632,10 @@ export function useDashboardOverview({
     const activityItems: ActivityItem[] = [];
 
     // Properties
-    if (userRole === 'ADMIN' || userRole === 'MANAGER' || userRole === 'HOST') {
+    if (['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'].includes(userRole)) {
       let filteredProps = properties;
       if (userRole === 'HOST') filteredProps = properties.filter((p) => hostPropertyIds.includes(p.id));
-      else if (userRole === 'MANAGER') filteredProps = properties.filter((p) => managerPropertyIds.includes(p.id));
+      else if (['SUPER_MANAGER'].includes(userRole)) filteredProps = properties.filter((p) => managerPropertyIds.includes(p.id));
 
       filteredProps.forEach((prop) => {
         activityItems.push({
@@ -654,7 +654,7 @@ export function useDashboardOverview({
     // Service requests
     {
       let filteredReqs = requests;
-      if (userRole === 'MANAGER') {
+      if (['SUPER_MANAGER'].includes(userRole)) {
         filteredReqs = requests.filter((req) =>
           managerPropertyIds.includes(req.propertyId || 0) || managerUserIds.includes(req.userId || 0)
         );
@@ -719,7 +719,7 @@ export function useDashboardOverview({
       let filteredInts = interventions;
       if (userRole === 'HOST') {
         filteredInts = interventions.filter((int) => hostPropertyIds.includes(int.propertyId || 0));
-      } else if (userRole === 'MANAGER') {
+      } else if (['SUPER_MANAGER'].includes(userRole)) {
         filteredInts = interventions.filter((int) =>
           managerPropertyIds.includes(int.propertyId || 0) ||
           (int.assignedToType === 'team' && managerTeamIds.includes(int.assignedToId || 0)) ||
@@ -743,9 +743,9 @@ export function useDashboardOverview({
     }
 
     // Users (admin/manager only, not for HOST)
-    if (userRole !== 'HOST' && (userRole === 'ADMIN' || userRole === 'MANAGER')) {
+    if (userRole !== 'HOST' && (['SUPER_ADMIN', 'SUPER_MANAGER'].includes(userRole))) {
       let filteredUsers = users;
-      if (userRole === 'MANAGER') filteredUsers = users.filter((u) => managerUserIds.includes(u.id));
+      if (['SUPER_MANAGER'].includes(userRole)) filteredUsers = users.filter((u) => managerUserIds.includes(u.id));
 
       filteredUsers.forEach((apiUser) => {
         const fullName = apiUser.firstName && apiUser.lastName
@@ -775,9 +775,9 @@ export function useDashboardOverview({
     }
 
     // Teams (admin/manager only, not for HOST)
-    if (userRole !== 'HOST' && (userRole === 'ADMIN' || userRole === 'MANAGER')) {
+    if (userRole !== 'HOST' && (['SUPER_ADMIN', 'SUPER_MANAGER'].includes(userRole))) {
       let filteredTeams = teams;
-      if (userRole === 'MANAGER') filteredTeams = teams.filter((teamItem) => managerTeamIds.includes(teamItem.id));
+      if (['SUPER_MANAGER'].includes(userRole)) filteredTeams = teams.filter((teamItem) => managerTeamIds.includes(teamItem.id));
 
       filteredTeams.forEach((team) => {
         activityItems.push({

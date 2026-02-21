@@ -386,7 +386,9 @@ export function usePortfoliosPage() {
     switch (role) {
       case 'HOST': return 'primary';
       case 'TECHNICIAN': return 'secondary';
+      case 'EXTERIOR_TECH': return 'secondary';
       case 'HOUSEKEEPER': return 'success';
+      case 'LAUNDRY': return 'success';
       case 'SUPERVISOR': return 'warning';
       default: return 'default';
     }
@@ -396,7 +398,9 @@ export function usePortfoliosPage() {
     switch (role) {
       case 'HOST': return t('portfolios.roles.owner');
       case 'TECHNICIAN': return t('portfolios.roles.technician');
+      case 'EXTERIOR_TECH': return t('portfolios.roles.exteriorTech', { defaultValue: 'Tech. extérieur' });
       case 'HOUSEKEEPER': return t('portfolios.roles.housekeeper');
+      case 'LAUNDRY': return t('portfolios.roles.laundry', { defaultValue: 'Blanchisserie' });
       case 'SUPERVISOR': return t('portfolios.roles.supervisor');
       default: return role;
     }

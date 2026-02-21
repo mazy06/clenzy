@@ -216,13 +216,15 @@ export function useDashboardPlanning(): UseDashboardPlanningReturn {
   }, []);
 
   // ── Roles ───────────────────────────────────────────────────────────
-  const isAdmin = user?.roles?.includes('ADMIN') || false;
-  const isManager = user?.roles?.includes('MANAGER') || false;
+  const isAdmin = user?.roles?.includes('SUPER_ADMIN') || false;
+  const isManager = user?.roles?.includes('SUPER_MANAGER') || false;
   const isHost = user?.roles?.includes('HOST') || false;
   const isTechnician = user?.roles?.includes('TECHNICIAN') || false;
   const isHousekeeper = user?.roles?.includes('HOUSEKEEPER') || false;
   const isSupervisor = user?.roles?.includes('SUPERVISOR') || false;
-  const isOperational = isTechnician || isHousekeeper || isSupervisor;
+  const isLaundry = user?.roles?.includes('LAUNDRY') || false;
+  const isExteriorTech = user?.roles?.includes('EXTERIOR_TECH') || false;
+  const isOperational = isTechnician || isHousekeeper || isSupervisor || isLaundry || isExteriorTech;
 
   // ── Date ranges ─────────────────────────────────────────────────────
   const dateRange = useMemo(() => {

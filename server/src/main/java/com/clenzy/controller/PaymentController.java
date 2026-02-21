@@ -66,7 +66,7 @@ public class PaymentController {
      * Crée une session de paiement Stripe pour une intervention
      */
     @PostMapping("/create-session")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'HOST')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     public ResponseEntity<?> createPaymentSession(
             @Valid @RequestBody PaymentSessionRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -131,7 +131,7 @@ public class PaymentController {
      * pour vérifier si la session a été payée (fallback si le webhook n'a pas été reçu).
      */
     @GetMapping("/session-status/{sessionId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'HOST')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     public ResponseEntity<?> getSessionStatus(@PathVariable String sessionId) {
         try {
             Intervention intervention = interventionRepository.findByStripeSessionId(sessionId, tenantContext.getRequiredOrganizationId())
@@ -173,7 +173,7 @@ public class PaymentController {
      * ADMIN/MANAGER : voit toutes les interventions, optionnellement filtrees par hostId.
      */
     @GetMapping("/history")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'HOST')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     public ResponseEntity<?> getPaymentHistory(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -226,7 +226,7 @@ public class PaymentController {
      * Retourne un resume agrege des paiements.
      */
     @GetMapping("/summary")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'HOST')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     public ResponseEntity<?> getPaymentSummary(
             @RequestParam(required = false) Long hostId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -276,7 +276,7 @@ public class PaymentController {
      * Liste legere des hosts ayant des interventions payantes (pour le filtre admin).
      */
     @GetMapping("/hosts")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<?> getHostsWithPayments() {
         try {
             List<Object[]> rows = interventionRepository.findDistinctHostsWithPayments(tenantContext.getRequiredOrganizationId());
@@ -298,7 +298,7 @@ public class PaymentController {
      * Rembourse un paiement via Stripe. Reservé aux ADMIN et MANAGER.
      */
     @PostMapping("/{interventionId}/refund")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<?> refundPayment(@PathVariable Long interventionId) {
         try {
             Intervention intervention = interventionRepository.findById(interventionId)

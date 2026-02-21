@@ -42,12 +42,16 @@ export const usePermissions = () => {
   }, [user, hasRole]);
 
   // Fonctions de vérification de rôles spécifiques
-  const isAdmin = useCallback((): boolean => hasRole('ADMIN'), [hasRole]);
-  const isManager = useCallback((): boolean => hasRole('MANAGER'), [hasRole]);
+  const isAdmin = useCallback((): boolean => hasRole('SUPER_ADMIN'), [hasRole]);
+  const isManager = useCallback((): boolean => hasRole('SUPER_MANAGER'), [hasRole]);
   const isHost = useCallback((): boolean => hasRole('HOST'), [hasRole]);
   const isTechnician = useCallback((): boolean => hasRole('TECHNICIAN'), [hasRole]);
   const isHousekeeper = useCallback((): boolean => hasRole('HOUSEKEEPER'), [hasRole]);
   const isSupervisor = useCallback((): boolean => hasRole('SUPERVISOR'), [hasRole]);
+  const isLaundry = useCallback((): boolean => hasRole('LAUNDRY'), [hasRole]);
+  const isExteriorTech = useCallback((): boolean => hasRole('EXTERIOR_TECH'), [hasRole]);
+  const isSuperAdmin = useCallback((): boolean => hasRole('SUPER_ADMIN'), [hasRole]);
+  const isSuperManager = useCallback((): boolean => hasRole('SUPER_MANAGER'), [hasRole]);
 
   return {
     user,
@@ -60,6 +64,10 @@ export const usePermissions = () => {
     isTechnician,
     isHousekeeper,
     isSupervisor,
+    isLaundry,
+    isExteriorTech,
+    isSuperAdmin,
+    isSuperManager,
     isCustomMode,
   };
 };
