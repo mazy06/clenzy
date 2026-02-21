@@ -18,6 +18,7 @@ import org.keycloak.admin.client.CreatedResponseUtil;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.core.Response;
@@ -67,6 +68,7 @@ public class KeycloakService {
     /**
      * Récupérer un utilisateur depuis Keycloak
      */
+    @CircuitBreaker(name = "keycloak-admin")
     public KeycloakUserDto getUser(String externalId) {
         try {
             return withTokenRetry(() -> {
@@ -84,6 +86,7 @@ public class KeycloakService {
     /**
      * Récupérer tous les utilisateurs depuis Keycloak
      */
+    @CircuitBreaker(name = "keycloak-admin")
     public List<KeycloakUserDto> getAllUsers() {
         try {
             return withTokenRetry(() -> {
@@ -101,6 +104,7 @@ public class KeycloakService {
     /**
      * Créer un nouvel utilisateur dans Keycloak
      */
+    @CircuitBreaker(name = "keycloak-admin")
     public String createUser(CreateUserDto createUserDto) {
         try {
             // Étape 1 : Créer l'utilisateur (avec retry token)
@@ -160,6 +164,7 @@ public class KeycloakService {
     /**
      * Mettre à jour un utilisateur dans Keycloak
      */
+    @CircuitBreaker(name = "keycloak-admin")
     public void updateUser(String externalId, UpdateUserDto updateUserDto) {
         try {
             withTokenRetryVoid(() -> {
@@ -192,6 +197,7 @@ public class KeycloakService {
     /**
      * Supprimer un utilisateur de Keycloak
      */
+    @CircuitBreaker(name = "keycloak-admin")
     public void deleteUser(String externalId) {
         try {
             withTokenRetryVoid(() -> {
@@ -207,6 +213,7 @@ public class KeycloakService {
     /**
      * Réinitialiser le mot de passe d'un utilisateur
      */
+    @CircuitBreaker(name = "keycloak-admin")
     public void resetPassword(String externalId, String newPassword) {
         try {
             withTokenRetryVoid(() -> {
@@ -228,6 +235,7 @@ public class KeycloakService {
     /**
      * Assigner un rôle à un utilisateur
      */
+    @CircuitBreaker(name = "keycloak-admin")
     public void assignRoleToUser(String externalId, String roleName) {
         try {
             withTokenRetryVoid(() -> {
@@ -251,6 +259,7 @@ public class KeycloakService {
     /**
      * Mettre à jour le rôle d'un utilisateur
      */
+    @CircuitBreaker(name = "keycloak-admin")
     public void updateUserRole(String externalId, String newRole) {
         try {
             withTokenRetryVoid(() -> {
@@ -280,6 +289,7 @@ public class KeycloakService {
     /**
      * Vérifier si un utilisateur existe dans Keycloak
      */
+    @CircuitBreaker(name = "keycloak-admin")
     public boolean userExists(String externalId) {
         try {
             return withTokenRetry(() -> {

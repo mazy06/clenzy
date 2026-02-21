@@ -26,13 +26,84 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus,metrics
+        include: health,info,prometheus,metrics,circuitbreakers,circuitbreakerevents
   endpoint:
     health:
       show-details: WHEN_AUTHORIZED
   metrics:
     tags:
       application: clenzy
+
+# ─── Resilience4j — Circuit Breakers (Niveau 8 scalabilite) ─────────────────
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        recordExceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+      external-api:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 60s
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+      payment:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+        failureRateThreshold: 30
+        waitDurationInOpenState: 120s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+    instances:
+      minut-api:
+        baseConfig: external-api
+      tuya-api:
+        baseConfig: external-api
+      airbnb-oauth:
+        baseConfig: external-api
+      stripe-api:
+        baseConfig: payment
+      gotenberg:
+        baseConfig: default
+        waitDurationInOpenState: 15s
+      ical-import:
+        baseConfig: default
+        waitDurationInOpenState: 30s
+      keycloak-admin:
+        baseConfig: external-api
+        waitDurationInOpenState: 30s
+      email-smtp:
+        baseConfig: default
+        slidingWindowSize: 20
+        failureRateThreshold: 40
+        waitDurationInOpenState: 60s
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+    instances:
+      gotenberg:
+        baseConfig: default
+        maxAttempts: 2
+      email-smtp:
+        baseConfig: default
+        maxAttempts: 3
 
 springdoc:
   api-docs:

@@ -7,6 +7,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 import java.util.Collections;
 import java.util.List;
@@ -37,6 +38,7 @@ public class MinutApiService {
      * Recupere les details d'un device.
      * GET /devices/{device_id}
      */
+    @CircuitBreaker(name = "minut-api")
     @SuppressWarnings("unchecked")
     public Map<String, Object> getDevice(String userId, String deviceId) {
         return doGet(userId, "/devices/" + deviceId, new ParameterizedTypeReference<Map<String, Object>>() {});
@@ -48,6 +50,7 @@ public class MinutApiService {
      *
      * @param resolution en secondes (ex: 1800 pour 30min)
      */
+    @CircuitBreaker(name = "minut-api")
     @SuppressWarnings("unchecked")
     public Map<String, Object> getSoundLevels(String userId, String deviceId,
                                                String startAt, String endAt, int resolution) {
@@ -64,6 +67,7 @@ public class MinutApiService {
      * Liste les homes d'une organisation.
      * GET /organizations/{org_id}/homes
      */
+    @CircuitBreaker(name = "minut-api")
     @SuppressWarnings("unchecked")
     public Map<String, Object> getOrganizationHomes(String userId, String organizationId) {
         return doGet(userId, "/organizations/" + organizationId + "/homes",
@@ -74,6 +78,7 @@ public class MinutApiService {
      * Recupere les details d'un home.
      * GET /homes/{home_id}
      */
+    @CircuitBreaker(name = "minut-api")
     @SuppressWarnings("unchecked")
     public Map<String, Object> getHome(String userId, String homeId) {
         return doGet(userId, "/homes/" + homeId, new ParameterizedTypeReference<Map<String, Object>>() {});
@@ -85,6 +90,7 @@ public class MinutApiService {
      * Recupere les evenements d'un home.
      * GET /homes/{home_id}/events?start_at=...&end_at=...&event_type=...
      */
+    @CircuitBreaker(name = "minut-api")
     @SuppressWarnings("unchecked")
     public Map<String, Object> getHomeEvents(String userId, String homeId,
                                               String startAt, String endAt, String eventTypes) {
@@ -102,6 +108,7 @@ public class MinutApiService {
      * Recupere la configuration de monitoring bruit d'un home.
      * GET /homes/{home_id}/disturbance
      */
+    @CircuitBreaker(name = "minut-api")
     @SuppressWarnings("unchecked")
     public Map<String, Object> getDisturbanceConfig(String userId, String homeId) {
         return doGet(userId, "/homes/" + homeId + "/disturbance",
@@ -112,6 +119,7 @@ public class MinutApiService {
      * Met a jour la configuration de monitoring bruit d'un home.
      * PUT /homes/{home_id}/disturbance
      */
+    @CircuitBreaker(name = "minut-api")
     @SuppressWarnings("unchecked")
     public Map<String, Object> updateDisturbanceConfig(String userId, String homeId,
                                                         Map<String, Object> config) {
@@ -125,6 +133,7 @@ public class MinutApiService {
      * Cree un webhook Minut.
      * POST /webhooks
      */
+    @CircuitBreaker(name = "minut-api")
     @SuppressWarnings("unchecked")
     public Map<String, Object> createWebhook(String userId, String url, List<String> eventTypes) {
         Map<String, Object> body = Map.of(
