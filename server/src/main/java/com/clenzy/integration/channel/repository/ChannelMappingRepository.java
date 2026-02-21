@@ -2,6 +2,8 @@ package com.clenzy.integration.channel.repository;
 
 import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.integration.channel.model.ChannelMapping;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -54,4 +56,27 @@ public interface ChannelMappingRepository extends JpaRepository<ChannelMapping, 
             @Param("externalId") String externalId,
             @Param("channel") ChannelName channel,
             @Param("orgId") Long orgId);
+
+    // ── Admin queries (cross-org, SUPER_ADMIN only) ─────────────────────────
+
+    /**
+     * Tous les mappings cross-org avec leur connexion, pagines.
+     */
+    @Query("SELECT cm FROM ChannelMapping cm JOIN FETCH cm.connection ORDER BY cm.id")
+    Page<ChannelMapping> findAllWithConnection(Pageable pageable);
+
+    /**
+     * Nombre de mappings pour une connexion donnee.
+     */
+    @Query("SELECT COUNT(cm) FROM ChannelMapping cm WHERE cm.connection.id = :connectionId")
+    long countByConnectionId(@Param("connectionId") Long connectionId);
+
+    /**
+     * Tous les mappings actifs cross-org avec leur connexion.
+     * Utilise par la reconciliation pour iterer sur tous les mappings.
+     */
+    @Query("SELECT cm FROM ChannelMapping cm JOIN FETCH cm.connection cc " +
+           "WHERE cm.syncEnabled = true AND cc.status = 'ACTIVE' " +
+           "ORDER BY cm.internalId")
+    List<ChannelMapping> findAllActiveCrossOrg();
 }

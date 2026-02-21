@@ -122,9 +122,15 @@ public enum NotificationKey {
     DOCUMENT_GENERATED(NotificationType.SUCCESS, NotificationCategory.DOCUMENT, true),
     DOCUMENT_GENERATION_FAILED(NotificationType.ERROR, NotificationCategory.DOCUMENT, true),
     DOCUMENT_TEMPLATE_UPLOADED(NotificationType.INFO, NotificationCategory.DOCUMENT, false),
-    DOCUMENT_SENT_BY_EMAIL(NotificationType.SUCCESS, NotificationCategory.DOCUMENT, true);
+    DOCUMENT_SENT_BY_EMAIL(NotificationType.SUCCESS, NotificationCategory.DOCUMENT, true),
 
-    // Total: 18 + 8 + 10 + 6 + 8 + 6 + 5 + 3 + 2 + 4 + 6 + 4 = 80
+    // ─── RECONCILIATION (3 cles) ──────────────────────────────────────────────
+
+    RECONCILIATION_COMPLETED(NotificationType.INFO, NotificationCategory.SYSTEM, false),
+    RECONCILIATION_DIVERGENCE_HIGH(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+    RECONCILIATION_FAILED(NotificationType.ERROR, NotificationCategory.SYSTEM, true);
+
+    // Total: 18 + 8 + 10 + 6 + 8 + 6 + 5 + 3 + 2 + 4 + 6 + 4 + 3 = 83
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

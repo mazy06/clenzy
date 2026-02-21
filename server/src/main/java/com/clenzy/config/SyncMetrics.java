@@ -35,6 +35,11 @@ public class SyncMetrics {
     private final Counter lockContentionCounter;
     private final Counter doubleBookingPreventedCounter;
 
+    // ---- Reconciliation counters ----
+    private final Counter reconciliationRunCounter;
+    private final Counter reconciliationDiscrepancyCounter;
+    private final Counter reconciliationFixCounter;
+
     public SyncMetrics(MeterRegistry registry) {
         this.registry = registry;
 
@@ -57,6 +62,19 @@ public class SyncMetrics {
 
         this.doubleBookingPreventedCounter = Counter.builder("pms.reservation.double_booking.prevented")
                 .description("Double bookings prevented by conflict detection")
+                .register(registry);
+
+        // Reconciliation counters
+        this.reconciliationRunCounter = Counter.builder("pms.reconciliation.runs")
+                .description("Total reconciliation runs executed")
+                .register(registry);
+
+        this.reconciliationDiscrepancyCounter = Counter.builder("pms.reconciliation.discrepancies")
+                .description("Total calendar discrepancies detected during reconciliation")
+                .register(registry);
+
+        this.reconciliationFixCounter = Counter.builder("pms.reconciliation.fixes")
+                .description("Total calendar discrepancies auto-fixed during reconciliation")
                 .register(registry);
     }
 
@@ -177,6 +195,33 @@ public class SyncMetrics {
      */
     public void updateActiveSyncConnections(long count) {
         activeSyncConnections.set(count);
+    }
+
+    // ---- Reconciliation metrics ----
+
+    /**
+     * Incremente le compteur de runs de reconciliation.
+     */
+    public void incrementReconciliationRuns() {
+        reconciliationRunCounter.increment();
+    }
+
+    /**
+     * Incremente le compteur de divergences detectees.
+     *
+     * @param count nombre de divergences detectees
+     */
+    public void incrementReconciliationDiscrepancies(long count) {
+        reconciliationDiscrepancyCounter.increment(count);
+    }
+
+    /**
+     * Incremente le compteur de divergences corrigees.
+     *
+     * @param count nombre de divergences corrigees
+     */
+    public void incrementReconciliationFixes(long count) {
+        reconciliationFixCounter.increment(count);
     }
 
     // ---- Timer helpers ----

@@ -107,4 +107,12 @@ public interface CalendarDayRepository extends JpaRepository<CalendarDay, Long> 
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("orgId") Long orgId);
+
+    // ── Admin queries (cross-org, SUPER_ADMIN only) ─────────────────────────
+
+    /**
+     * Jours BOOKED sans reservation liee (donnee incoherente — diagnostic).
+     */
+    @Query("SELECT cd FROM CalendarDay cd WHERE cd.status = com.clenzy.model.CalendarDayStatus.BOOKED AND cd.reservation IS NULL")
+    List<CalendarDay> findOrphanedBookedDays();
 }

@@ -1,6 +1,8 @@
 package com.clenzy.repository;
 
 import com.clenzy.model.CalendarCommand;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,4 +26,18 @@ public interface CalendarCommandRepository extends JpaRepository<CalendarCommand
            "ORDER BY cc.executedAt DESC")
     List<CalendarCommand> findByReservationId(
             @Param("reservationId") Long reservationId);
+
+    // ── Admin queries (cross-org, SUPER_ADMIN only) ─────────────────────────
+
+    /**
+     * Toutes les commandes calendrier paginee, plus recentes en premier.
+     */
+    @Query("SELECT cc FROM CalendarCommand cc ORDER BY cc.executedAt DESC")
+    Page<CalendarCommand> findRecentPaged(Pageable pageable);
+
+    /**
+     * Commandes pour une propriete, paginee.
+     */
+    @Query("SELECT cc FROM CalendarCommand cc WHERE cc.propertyId = :propertyId ORDER BY cc.executedAt DESC")
+    Page<CalendarCommand> findByPropertyIdPaged(@Param("propertyId") Long propertyId, Pageable pageable);
 }

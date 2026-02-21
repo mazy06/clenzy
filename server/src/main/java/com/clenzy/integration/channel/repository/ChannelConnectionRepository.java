@@ -32,4 +32,12 @@ public interface ChannelConnectionRepository extends JpaRepository<ChannelConnec
      */
     @Query("SELECT cc FROM ChannelConnection cc WHERE cc.status = 'ACTIVE'")
     List<ChannelConnection> findAllActive();
+
+    // ── Admin queries (cross-org, SUPER_ADMIN only) ─────────────────────────
+
+    /**
+     * Toutes les connexions cross-org, ordonnees par channel.
+     */
+    @Query("SELECT cc FROM ChannelConnection cc ORDER BY cc.channel, cc.id")
+    List<ChannelConnection> findAllCrossOrg();
 }
