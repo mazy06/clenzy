@@ -1,0 +1,40 @@
+package com.clenzy.integration.channel.repository;
+
+import com.clenzy.integration.channel.model.ChannelSyncLog;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+public interface ChannelSyncLogRepository extends JpaRepository<ChannelSyncLog, Long> {
+
+    /**
+     * Derniers logs de sync pour une connexion (plus recents en premier).
+     * Filtre par orgId pour isolation multi-tenant.
+     */
+    @Query("SELECT sl FROM ChannelSyncLog sl WHERE sl.connection.id = :connectionId " +
+           "AND sl.organizationId = :orgId ORDER BY sl.createdAt DESC")
+    List<ChannelSyncLog> findByConnectionId(
+            @Param("connectionId") Long connectionId,
+            @Param("orgId") Long orgId);
+
+    /**
+     * Derniers logs de sync pour un mapping specifique.
+     * Filtre par orgId pour isolation multi-tenant.
+     */
+    @Query("SELECT sl FROM ChannelSyncLog sl WHERE sl.mapping.id = :mappingId " +
+           "AND sl.organizationId = :orgId ORDER BY sl.createdAt DESC")
+    List<ChannelSyncLog> findByMappingId(
+            @Param("mappingId") Long mappingId,
+            @Param("orgId") Long orgId);
+
+    /**
+     * Nettoyage des logs anciens (retention configurable).
+     */
+    @Modifying
+    @Query("DELETE FROM ChannelSyncLog sl WHERE sl.createdAt < :threshold")
+    int deleteOlderThan(@Param("threshold") LocalDateTime threshold);
+}
