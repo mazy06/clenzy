@@ -15,7 +15,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.stereotype.Component;
+
+import org.slf4j.MDC;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -26,12 +27,12 @@ import java.util.concurrent.TimeUnit;
  * Filtre Spring qui resout le contexte d'organisation a partir du JWT.
  * Enregistre dans la SecurityFilterChain APRES l'authentification JWT.
  *
- * Pour les utilisateurs non-ADMIN, active le filtre Hibernate
+ * Pour les utilisateurs non-staff, active le filtre Hibernate
  * "organizationFilter" pour isoler automatiquement les donnees.
  *
- * ADMIN (super-admin) ne recoit PAS le filtre Hibernate → voit toutes les orgs.
+ * Le staff plateforme (SUPER_ADMIN, SUPER_MANAGER) ne recoit PAS
+ * le filtre Hibernate → voit toutes les orgs.
  */
-@Component
 public class TenantFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(TenantFilter.class);
@@ -65,9 +66,17 @@ public class TenantFilter extends OncePerRequestFilter {
         if (auth != null && auth.getPrincipal() instanceof Jwt jwt) {
             String keycloakId = jwt.getSubject();
             resolveTenant(keycloakId);
+        } else {
+            logger.warn("TenantFilter: pas d'auth JWT (auth={}, principal={})",
+                    auth != null ? auth.getClass().getSimpleName() : "null",
+                    auth != null ? auth.getPrincipal().getClass().getSimpleName() : "null");
         }
 
-        filterChain.doFilter(request, response);
+        try {
+            filterChain.doFilter(request, response);
+        } finally {
+            MDC.remove("orgId");
+        }
     }
 
     private void resolveTenant(String keycloakId) {
@@ -82,6 +91,7 @@ public class TenantFilter extends OncePerRequestFilter {
             if (cached != null) {
                 orgId = cached.organizationId;
                 isSuperAdmin = cached.superAdmin;
+                logger.debug("TenantFilter: cache hit keycloakId={}, orgId={}, superAdmin={}", keycloakId, orgId, isSuperAdmin);
             } else {
                 // 2. Lookup en base
                 var userOpt = userRepository.findByKeycloakId(keycloakId);
@@ -95,7 +105,16 @@ public class TenantFilter extends OncePerRequestFilter {
 
                 var user = userOpt.get();
                 orgId = user.getOrganizationId();
-                isSuperAdmin = (user.getRole() == UserRole.ADMIN);
+                isSuperAdmin = user.getRole().isPlatformStaff();
+                logger.debug("TenantFilter: DB lookup keycloakId={}, userId={}, orgId={}, role={}, isPlatformStaff={}", keycloakId, user.getId(), orgId, user.getRole(), isSuperAdmin);
+
+                if (orgId == null && isSuperAdmin) {
+                    // Staff plateforme sans org : marquer superAdmin et continuer sans filtre Hibernate
+                    tenantContext.setOrganizationId(null);
+                    tenantContext.setSuperAdmin(true);
+                    logger.debug("TenantFilter: staff plateforme {} sans organization_id, bypass filtre", keycloakId);
+                    return;
+                }
 
                 if (orgId == null) {
                     logger.warn("TenantFilter: utilisateur {} n'a pas d'organization_id, tentative de fallback", keycloakId);
@@ -107,9 +126,11 @@ public class TenantFilter extends OncePerRequestFilter {
                 cacheTenantInfo(cacheKey, orgId, isSuperAdmin);
             }
 
-            // 4. Set sur TenantContext (request-scoped)
+            // 4. Set sur TenantContext (request-scoped) + MDC pour logs correlés
             tenantContext.setOrganizationId(orgId);
             tenantContext.setSuperAdmin(isSuperAdmin);
+            MDC.put("orgId", String.valueOf(orgId));
+            logger.debug("TenantFilter: context SET orgId={}, superAdmin={}", orgId, isSuperAdmin);
 
             // 5. Activer le filtre Hibernate pour les non-ADMIN
             if (!isSuperAdmin) {
@@ -135,6 +156,7 @@ public class TenantFilter extends OncePerRequestFilter {
                 Long orgId = allOrgs.get(0).getId();
                 tenantContext.setOrganizationId(orgId);
                 tenantContext.setSuperAdmin(false);
+                MDC.put("orgId", String.valueOf(orgId));
 
                 Session session = entityManager.unwrap(Session.class);
                 session.enableFilter("organizationFilter")

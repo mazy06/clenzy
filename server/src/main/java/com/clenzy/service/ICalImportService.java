@@ -121,7 +121,7 @@ public class ICalImportService {
                 .map(user -> {
                     // Admin et Manager : acces sans restriction de forfait
                     UserRole role = user.getRole();
-                    if (role == UserRole.ADMIN || role == UserRole.MANAGER) {
+                    if (role.isPlatformStaff()) {
                         return true;
                     }
                     // Host et autres roles : verification du forfait
@@ -165,7 +165,7 @@ public class ICalImportService {
         User user = userRepository.findByKeycloakId(keycloakId)
                 .orElseThrow(() -> new SecurityException("Utilisateur introuvable"));
 
-        boolean isAdminOrManager = user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.MANAGER;
+        boolean isAdminOrManager = user.getRole().isPlatformStaff();
         if (!isAdminOrManager && !property.getOwner().getId().equals(user.getId())) {
             throw new SecurityException("Vous n'etes pas proprietaire de ce logement");
         }
@@ -947,7 +947,7 @@ public class ICalImportService {
                 .orElseThrow(() -> new SecurityException("Utilisateur introuvable"));
 
         // Admin et Manager peuvent gerer tous les feeds
-        if (user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.MANAGER) {
+        if (user.getRole().isPlatformStaff()) {
             return;
         }
 

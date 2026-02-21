@@ -1,9 +1,12 @@
 package com.clenzy.service;
 
+import com.clenzy.config.SyncMetrics;
+import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.User;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,13 +25,22 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
+    private final CalendarEngine calendarEngine;
+    private final GuestService guestService;
+    private final SyncMetrics syncMetrics;
 
     public ReservationService(ReservationRepository reservationRepository,
                               UserRepository userRepository,
-                              TenantContext tenantContext) {
+                              TenantContext tenantContext,
+                              CalendarEngine calendarEngine,
+                              GuestService guestService,
+                              SyncMetrics syncMetrics) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
+        this.calendarEngine = calendarEngine;
+        this.guestService = guestService;
+        this.syncMetrics = syncMetrics;
     }
 
     /**
@@ -41,8 +53,7 @@ public class ReservationService {
         User user = userRepository.findByKeycloakId(keycloakId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
-        String role = user.getRole() != null ? user.getRole().name().toUpperCase() : "";
-        boolean isAdminOrManager = role.contains("ADMIN") || role.contains("MANAGER");
+        boolean isAdminOrManager = user.getRole() != null && user.getRole().isPlatformStaff();
 
         if (propertyIds != null && !propertyIds.isEmpty()) {
             return reservationRepository.findByPropertyIdsAndDateRange(propertyIds, from, to, tenantContext.getRequiredOrganizationId());
@@ -66,9 +77,13 @@ public class ReservationService {
     /**
      * Sauvegarde une reservation (creation ou mise a jour).
      * Valide que l'organizationId correspond au tenant courant.
+     *
+     * Pour les nouvelles reservations confirmees, reserve les jours
+     * dans le calendrier via CalendarEngine (anti-double-booking).
      */
     @Transactional
     public Reservation save(Reservation reservation) {
+        Timer.Sample sample = syncMetrics.startTimer();
         Long orgId = tenantContext.getRequiredOrganizationId();
         if (reservation.getOrganizationId() == null) {
             reservation.setOrganizationId(orgId);
@@ -77,6 +92,84 @@ public class ReservationService {
                     reservation.getOrganizationId(), orgId);
             throw new RuntimeException("Acces refuse : reservation hors de votre organisation");
         }
+
+        boolean isNewConfirmed = reservation.getId() == null && "confirmed".equals(reservation.getStatus());
+
+        try {
+            // G6 : Creer/lier le Guest si un nom est fourni et pas encore lie
+            if (reservation.getGuest() == null && reservation.getGuestName() != null
+                    && !reservation.getGuestName().isBlank()) {
+                com.clenzy.model.Guest guest = guestService.findOrCreateFromName(
+                        reservation.getGuestName(), reservation.getSource(), orgId);
+                if (guest != null) {
+                    reservation.setGuest(guest);
+                }
+            }
+
+            // Anti-double-booking : reserver les jours dans le calendrier AVANT la sauvegarde
+            if (isNewConfirmed) {
+                try {
+                    calendarEngine.book(
+                            reservation.getProperty().getId(),
+                            reservation.getCheckIn(),
+                            reservation.getCheckOut(),
+                            null,
+                            orgId,
+                            reservation.getSource(),
+                            null
+                    );
+                } catch (CalendarConflictException e) {
+                    syncMetrics.incrementDoubleBookingPrevented();
+                    throw e;
+                }
+            }
+
+            // Sauvegarder la reservation
+            Reservation saved = reservationRepository.save(reservation);
+
+            // Lier la reservation aux CalendarDays
+            if (isNewConfirmed) {
+                calendarEngine.linkReservation(
+                        saved.getProperty().getId(),
+                        saved.getCheckIn(),
+                        saved.getCheckOut(),
+                        saved.getId(),
+                        orgId
+                );
+            }
+
+            return saved;
+        } finally {
+            if (isNewConfirmed) {
+                String source = reservation.getSource() != null ? reservation.getSource() : "MANUAL";
+                syncMetrics.recordReservationCreation(source, sample);
+            }
+        }
+    }
+
+    /**
+     * Annule une reservation : met le statut a "cancelled" et libere
+     * les jours dans le calendrier.
+     *
+     * @param reservationId id de la reservation a annuler
+     * @return la reservation mise a jour
+     */
+    @Transactional
+    public Reservation cancel(Long reservationId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation introuvable: " + reservationId));
+
+        if (!reservation.getOrganizationId().equals(orgId)) {
+            throw new RuntimeException("Acces refuse : reservation hors de votre organisation");
+        }
+
+        // Liberer les jours dans le calendrier
+        calendarEngine.cancel(reservationId, orgId, null);
+
+        // Mettre a jour le statut
+        reservation.setStatus("cancelled");
         return reservationRepository.save(reservation);
     }
 

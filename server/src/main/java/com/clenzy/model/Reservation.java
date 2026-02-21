@@ -75,6 +75,10 @@ public class Reservation {
     private Intervention intervention;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "guest_id")
+    private Guest guest;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ical_feed_id")
     private ICalFeed icalFeed;
 
@@ -85,6 +89,10 @@ public class Reservation {
     @Column(name = "updated_at")
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Integer version = 0;
 
     // Constructeurs
     public Reservation() {}
@@ -148,6 +156,9 @@ public class Reservation {
     public Intervention getIntervention() { return intervention; }
     public void setIntervention(Intervention intervention) { this.intervention = intervention; }
 
+    public Guest getGuest() { return guest; }
+    public void setGuest(Guest guest) { this.guest = guest; }
+
     public ICalFeed getIcalFeed() { return icalFeed; }
     public void setIcalFeed(ICalFeed icalFeed) { this.icalFeed = icalFeed; }
 
@@ -159,6 +170,9 @@ public class Reservation {
 
     public Long getOrganizationId() { return organizationId; }
     public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
+
+    public Integer getVersion() { return version; }
+    public void setVersion(Integer version) { this.version = version; }
 
     @Override
     public String toString() {

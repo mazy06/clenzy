@@ -35,6 +35,7 @@ import java.util.Map;
  * - airbnb.dlq                 : Dead Letter Queue (messages en echec)
  * - minut.webhooks.incoming     : evenements bruts recus de Minut
  * - minut.noise.events          : evenements bruit traites Minut
+ * - calendar.updates             : propagation mutations calendrier (outbox G6)
  */
 @Configuration
 @EnableKafka
@@ -52,6 +53,7 @@ public class KafkaConfig {
     public static final String TOPIC_DOCUMENT_GENERATE = "documents.generate";
     public static final String TOPIC_MINUT_WEBHOOKS = "minut.webhooks.incoming";
     public static final String TOPIC_MINUT_NOISE_EVENTS = "minut.noise.events";
+    public static final String TOPIC_CALENDAR_UPDATES = "calendar.updates";
 
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
@@ -192,6 +194,14 @@ public class KafkaConfig {
     @Bean
     public NewTopic minutNoiseEventsTopic() {
         return TopicBuilder.name(TOPIC_MINUT_NOISE_EVENTS)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic calendarUpdatesTopic() {
+        return TopicBuilder.name(TOPIC_CALENDAR_UPDATES)
                 .partitions(3)
                 .replicas(1)
                 .build();
