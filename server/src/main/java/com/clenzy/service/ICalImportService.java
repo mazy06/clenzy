@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -395,6 +396,7 @@ public class ICalImportService {
      * Protection DNS rebinding : on resout le DNS une seule fois dans validateICalUrl(),
      * puis on force la meme IP dans la requete HTTP pour eviter le TOCTOU.
      */
+    @CircuitBreaker(name = "ical-import")
     public List<ICalEventPreview> fetchAndParseICalFeed(String url) {
         // Valider l'URL et recuperer l'IP resolue (protection DNS rebinding TOCTOU)
         InetAddress resolvedAddress = validateICalUrlAndResolve(url);

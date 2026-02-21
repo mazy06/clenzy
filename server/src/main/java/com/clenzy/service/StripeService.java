@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -57,6 +58,7 @@ public class StripeService {
     /**
      * Crée une session de paiement Stripe pour une intervention
      */
+    @CircuitBreaker(name = "stripe-api")
     public Session createCheckoutSession(Long interventionId, BigDecimal amount, String customerEmail) throws StripeException {
         // Initialiser Stripe avec la clé secrète
         Stripe.apiKey = stripeSecretKey;
@@ -297,6 +299,7 @@ public class StripeService {
     /**
      * Rembourse un paiement via Stripe et met a jour le statut de l'intervention.
      */
+    @CircuitBreaker(name = "stripe-api")
     public void refundPayment(Long interventionId) throws StripeException {
         Stripe.apiKey = stripeSecretKey;
 

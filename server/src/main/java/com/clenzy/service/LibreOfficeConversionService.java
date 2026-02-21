@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,6 +47,8 @@ public class LibreOfficeConversionService {
      * @param filename Nom du fichier (pour les logs)
      * @return Contenu du PDF genere
      */
+    @CircuitBreaker(name = "gotenberg")
+    @Retry(name = "gotenberg")
     public byte[] convertToPdf(byte[] odtBytes, String filename) {
         log.info("Converting ODT to PDF via Gotenberg: {} ({} bytes)", filename, odtBytes.length);
 

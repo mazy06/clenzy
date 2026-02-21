@@ -151,6 +151,7 @@ public class InterventionService {
         return convertToDto(intervention);
     }
 
+    @Transactional(readOnly = true)
     public InterventionDto getById(Long id, Jwt jwt) {
         log.debug("getById - id: {}", id);
 
@@ -176,6 +177,7 @@ public class InterventionService {
         }
     }
 
+    @Transactional(readOnly = true)
     public Page<InterventionDto> listWithRoleBasedAccess(Pageable pageable, Long propertyId,
                                                         String type, String status, String priority, Jwt jwt) {
         log.debug("listWithRoleBasedAccess - JWT present: {}", jwt != null);
