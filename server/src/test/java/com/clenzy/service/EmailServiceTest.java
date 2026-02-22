@@ -534,7 +534,7 @@ class EmailServiceTest {
         }
 
         @Test
-        void whenMailSenderNull_thenThrowsIllegalStateException() {
+        void whenMailSenderNull_thenThrowsRuntimeException() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
             EmailService serviceWithoutMail = new EmailService(mailSenderProvider);
             ReflectionTestUtils.setField(serviceWithoutMail, "fromAddress", "info@clenzy.fr");
@@ -542,8 +542,8 @@ class EmailServiceTest {
             assertThatThrownBy(() -> serviceWithoutMail.sendDocumentEmail(
                     "client@example.com", "Facture",
                     "<h1>Facture</h1>", "facture.pdf", "pdf".getBytes()))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("JavaMailSender absent");
+                    .isInstanceOf(RuntimeException.class)
+                    .hasCauseInstanceOf(IllegalStateException.class);
         }
 
         @Test
@@ -599,35 +599,32 @@ class EmailServiceTest {
         }
 
         @Test
-        void whenSendThrowsMailException_thenPropagatesDirectly() throws Exception {
+        void whenSendThrowsMailException_thenWrappedInRuntimeException() throws Exception {
             MimeMessage mimeMessage = createRealMimeMessage();
             when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-            // sendInvitationEmail only catches MessagingException (checked).
-            // MailSendException extends MailException (unchecked) and is not caught,
-            // so it propagates directly.
+            // sendInvitationEmail now catches Exception and wraps in RuntimeException.
             doThrow(new org.springframework.mail.MailSendException("Connection refused"))
                     .when(mailSender).send(any(MimeMessage.class));
 
             assertThatThrownBy(() -> emailService.sendInvitationEmail(
                     "invite@example.com", "Org", "Admin",
                     "MEMBER", "https://app.clenzy.fr/invite/abc", null))
-                    .isInstanceOf(org.springframework.mail.MailSendException.class)
-                    .hasMessageContaining("Connection refused");
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("Erreur d'envoi de l'email d'invitation");
         }
 
         @Test
-        void whenMailSenderNull_thenThrowsIllegalStateException() {
+        void whenMailSenderNull_thenThrowsRuntimeException() {
             when(mailSenderProvider.getIfAvailable()).thenReturn(null);
             EmailService serviceWithoutMail = new EmailService(mailSenderProvider);
             ReflectionTestUtils.setField(serviceWithoutMail, "fromAddress", "info@clenzy.fr");
 
-            // sendInvitationEmail only catches MessagingException, so IllegalStateException
-            // from requireMailSender() propagates directly (not wrapped)
+            // sendInvitationEmail now catches Exception and wraps in RuntimeException
             assertThatThrownBy(() -> serviceWithoutMail.sendInvitationEmail(
                     "invite@example.com", "Org", "Admin",
                     "MEMBER", "https://app.clenzy.fr/invite/abc", null))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("JavaMailSender absent");
+                    .isInstanceOf(RuntimeException.class)
+                    .hasCauseInstanceOf(IllegalStateException.class);
         }
     }
 

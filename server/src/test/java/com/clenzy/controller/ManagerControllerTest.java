@@ -111,11 +111,21 @@ class ManagerControllerTest {
 
     @Test
     void whenGetManagerClients_thenReturnsOk() {
-        // Act — stub endpoint, just returns empty OK
+        // Arrange
+        ManagerAssociationsDto associations = new ManagerAssociationsDto(
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), Collections.emptyList()
+        );
+        doNothing().when(managerService).validateManagerOwnership(adminJwt, 5L);
+        when(managerService.getManagerAssociations(5L)).thenReturn(associations);
+
+        // Act
         ResponseEntity<?> response = managerController.getManagerClients(5L, adminJwt);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(managerService).validateManagerOwnership(adminJwt, 5L);
+        verify(managerService).getManagerAssociations(5L);
     }
 
     @Test

@@ -11,6 +11,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -89,7 +92,8 @@ class GuestServiceTest {
             existing.setEmail("marie@test.com");
             when(guestRepository.findByChannelAndChannelGuestId(any(), any(), eq(ORG_ID)))
                     .thenReturn(Optional.empty());
-            when(guestRepository.findByOrganizationId(ORG_ID)).thenReturn(List.of(existing));
+            when(guestRepository.findByOrganizationId(eq(ORG_ID), any(Pageable.class)))
+                    .thenReturn(new PageImpl<>(List.of(existing)));
 
             Guest result = guestService.findOrCreate("Marie", "Curie", "marie@test.com",
                     null, GuestChannel.BOOKING, "bk-456", ORG_ID);
@@ -102,7 +106,8 @@ class GuestServiceTest {
             Guest existing = buildGuest(3L, "Test", "User");
             existing.setEmail("TEST@EMAIL.COM");
             // channel=DIRECT, channelGuestId=null → skips channel dedup (line 60)
-            when(guestRepository.findByOrganizationId(ORG_ID)).thenReturn(List.of(existing));
+            when(guestRepository.findByOrganizationId(eq(ORG_ID), any(Pageable.class)))
+                    .thenReturn(new PageImpl<>(List.of(existing)));
 
             Guest result = guestService.findOrCreate("Test", "User", "test@email.com",
                     null, GuestChannel.DIRECT, null, ORG_ID);
@@ -112,7 +117,8 @@ class GuestServiceTest {
 
         @Test
         void whenNoMatch_thenCreatesNewGuest() {
-            when(guestRepository.findByOrganizationId(ORG_ID)).thenReturn(List.of());
+            when(guestRepository.findByOrganizationId(eq(ORG_ID), any(Pageable.class)))
+                    .thenReturn(new PageImpl<>(List.of()));
             when(guestRepository.save(any(Guest.class))).thenAnswer(inv -> {
                 Guest g = inv.getArgument(0);
                 g.setId(10L);
@@ -148,7 +154,7 @@ class GuestServiceTest {
 
             guestService.findOrCreate("No", "Email", "  ", null, null, null, ORG_ID);
 
-            verify(guestRepository, never()).findByOrganizationId(any());
+            verify(guestRepository, never()).findByOrganizationId(any(), any(Pageable.class));
         }
     }
 
