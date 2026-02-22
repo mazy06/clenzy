@@ -22,6 +22,9 @@ spring:
           time_zone: Europe/Paris
   liquibase:
     enabled: true
+    url: ${SPRING_DATASOURCE_URL}
+    user: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
   jackson:
     time-zone: Europe/Paris
   mail:
