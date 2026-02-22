@@ -137,16 +137,22 @@ public class OrganizationInvitationService {
         // 8. Envoyer l'email
         String invitationLink = frontendUrl + "/accept-invitation?token=" + rawToken;
         String inviterName = inviter.getFirstName() + " " + inviter.getLastName();
+        boolean emailSent = true;
         try {
             emailService.sendInvitationEmail(emailLower, org.getName(), inviterName, role.name(), invitationLink, invitation.getExpiresAt());
             log.info("Invitation envoyee: email={}, org={}, role={}, by={}", emailLower, org.getName(), role, inviterName);
         } catch (Exception e) {
+            emailSent = false;
             log.error("Erreur envoi email d'invitation a {}: {}", emailLower, e.getMessage());
             // L'invitation est quand meme creee, le lien peut etre copie
         }
 
         // 9. Retourner le DTO avec le lien
-        return toDto(invitation, org, inviterName, invitationLink);
+        InvitationDto result = toDto(invitation, org, inviterName, invitationLink);
+        if (!emailSent) {
+            result.setEmailDeliveryFailed(true);
+        }
+        return result;
     }
 
     // ─── Informations publiques d'une invitation (pas de JWT) ─────────────────

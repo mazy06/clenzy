@@ -119,18 +119,24 @@ public class UserService {
         }
 
         // Mise à jour du mot de passe dans Keycloak si fourni
+        boolean passwordUpdateFailed = false;
         if (dto.newPassword != null && !dto.newPassword.trim().isEmpty()) {
             try {
                 log.debug("Mise a jour du mot de passe dans Keycloak pour l'utilisateur: {}", user.getEmail());
                 newUserService.resetPassword(user.getKeycloakId(), dto.newPassword);
                 log.debug("Mot de passe mis a jour dans Keycloak");
             } catch (Exception e) {
-                log.warn("Erreur lors de la mise a jour du mot de passe dans Keycloak: {}", e.getMessage());
-                // L'utilisateur est mis à jour dans la base métier même si la mise à jour Keycloak échoue
+                log.error("Echec de la mise a jour du mot de passe dans Keycloak pour {}: {}", user.getEmail(), e.getMessage(), e);
+                passwordUpdateFailed = true;
             }
         }
-        
-        return toDto(user);
+
+        UserDto result = toDto(user);
+        if (passwordUpdateFailed) {
+            result.passwordUpdateFailed = true;
+            log.warn("Profil mis a jour mais le mot de passe n'a PAS ete modifie dans Keycloak pour: {}", user.getEmail());
+        }
+        return result;
     }
 
     @Transactional(readOnly = true)

@@ -171,8 +171,9 @@ public class LoginProtectionService {
             log.debug("Redis indisponible pour CAPTCHA validation: {}", e.getMessage());
         }
 
-        // Fallback : accepter les tokens au format UUID (meilleur effort sans Redis)
-        return captchaToken.matches("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$");
+        // Fail closed : si Redis est indisponible, refuser le CAPTCHA pour des raisons de securite
+        log.warn("CAPTCHA validation echouee: Redis indisponible, fail closed par securite");
+        return false;
     }
 
     /**

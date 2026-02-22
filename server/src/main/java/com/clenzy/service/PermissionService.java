@@ -390,8 +390,16 @@ public class PermissionService {
     }
 
     private void removeCustomPermissionsFromDatabase(String role) {
-        // TODO: Implémenter la suppression des permissions personnalisées
-        log.debug("TODO: Suppression des permissions personnalisees pour le role: {}", role);
+        try {
+            log.debug("Suppression des permissions personnalisees pour le role: {}", role);
+            rolePermissionRepository.deleteByRoleName(role);
+            entityManager.flush();
+            entityManager.clear();
+            log.debug("Permissions personnalisees supprimees pour le role: {}", role);
+        } catch (Exception e) {
+            log.error("Erreur lors de la suppression des permissions pour le role {}: {}", role, e.getMessage(), e);
+            throw new RuntimeException("Erreur lors de la suppression des permissions du role " + role, e);
+        }
     }
 
     private List<String> getUserPermissionsFromDatabase(String userId) {
@@ -426,15 +434,33 @@ public class PermissionService {
     }
 
     private boolean hasCustomPermissions(String role) {
-        // TODO: Implémenter la vérification des permissions personnalisées
-        log.debug("TODO: Verification des permissions personnalisees pour le role: {}", role);
-        return false;
+        try {
+            long customCount = rolePermissionRepository.countByRoleNameAndIsActiveTrue(role);
+            boolean hasCustom = customCount > 0;
+            log.debug("Verification permissions personnalisees pour le role {}: {} (count={})", role, hasCustom, customCount);
+            return hasCustom;
+        } catch (Exception e) {
+            log.warn("Erreur lors de la verification des permissions personnalisees pour {}: {}", role, e.getMessage());
+            return false;
+        }
     }
 
     private void validatePermissions(List<String> permissions) {
-        // TODO: Implémenter la validation des permissions depuis la base de données
-        // Pour l'instant, on accepte toutes les permissions
-        log.debug("PermissionService.validatePermissions() - Validation des permissions: {}", permissions);
+        if (permissions == null || permissions.isEmpty()) {
+            return;
+        }
+        // Validation du format : chaque permission doit etre "module:action" avec uniquement des caracteres alphanumeriques
+        java.util.regex.Pattern validPattern = java.util.regex.Pattern.compile("^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$");
+        for (String permission : permissions) {
+            if (permission == null || permission.isBlank()) {
+                throw new IllegalArgumentException("Le nom de permission ne peut pas etre vide");
+            }
+            if (!validPattern.matcher(permission).matches()) {
+                throw new IllegalArgumentException(
+                        "Format de permission invalide: '" + permission + "'. Le format attendu est 'module:action' (ex: 'contact:view')");
+            }
+        }
+        log.debug("PermissionService.validatePermissions() - {} permissions validees", permissions.size());
     }
 
     // Méthode supprimée car remplacée par la version publique

@@ -107,8 +107,9 @@ public class ManagerController {
     @GetMapping("/{managerId}/clients")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<?> getManagerClients(@PathVariable Long managerId, @AuthenticationPrincipal Jwt jwt) {
-        // TODO: Implementer la logique
-        return ResponseEntity.ok().build();
+        managerService.validateManagerOwnership(jwt, managerId);
+        ManagerAssociationsDto associations = managerService.getManagerAssociations(managerId);
+        return ResponseEntity.ok(associations.getClients());
     }
 
     /**
@@ -117,8 +118,9 @@ public class ManagerController {
     @GetMapping("/{managerId}/properties")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<?> getManagerProperties(@PathVariable Long managerId, @AuthenticationPrincipal Jwt jwt) {
-        // TODO: Implementer la logique
-        return ResponseEntity.ok().build();
+        managerService.validateManagerOwnership(jwt, managerId);
+        ManagerAssociationsDto associations = managerService.getManagerAssociations(managerId);
+        return ResponseEntity.ok(associations.getProperties());
     }
 
     /**
@@ -156,8 +158,9 @@ public class ManagerController {
     @GetMapping("/{managerId}/teams")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<?> getManagerTeams(@PathVariable Long managerId, @AuthenticationPrincipal Jwt jwt) {
-        // TODO: Implementer la logique
-        return ResponseEntity.ok().build();
+        managerService.validateManagerOwnership(jwt, managerId);
+        ManagerAssociationsDto associations = managerService.getManagerAssociations(managerId);
+        return ResponseEntity.ok(associations.getTeams());
     }
 
     /**
@@ -166,8 +169,9 @@ public class ManagerController {
     @GetMapping("/{managerId}/users")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<?> getManagerUsers(@PathVariable Long managerId, @AuthenticationPrincipal Jwt jwt) {
-        // TODO: Implementer la logique
-        return ResponseEntity.ok().build();
+        managerService.validateManagerOwnership(jwt, managerId);
+        ManagerAssociationsDto associations = managerService.getManagerAssociations(managerId);
+        return ResponseEntity.ok(associations.getUsers());
     }
 
     /**
@@ -178,9 +182,25 @@ public class ManagerController {
     public ResponseEntity<ReassignmentResultDto> reassignClient(
             @PathVariable Long clientId,
             @RequestBody ReassignmentRequest request) {
-        // Stub: simple test response
+        if (request.getNewManagerId() == null) {
+            return ResponseEntity.badRequest().body(
+                    new ReassignmentResultDto("Le nouveau manager est requis", clientId, null, null));
+        }
+        // Desassigner de l'ancien manager (s'il y en a un) puis assigner au nouveau
+        UnassignmentResultDto unassignResult = null;
+        if (request.getNotes() != null && request.getNotes().startsWith("from:")) {
+            try {
+                Long oldManagerId = Long.parseLong(request.getNotes().substring(5));
+                unassignResult = managerService.unassignClient(oldManagerId, clientId);
+            } catch (Exception e) {
+                log.warn("Impossible de desassigner le client {} de l'ancien manager: {}", clientId, e.getMessage());
+            }
+        }
+        AssignmentRequest assignRequest = new AssignmentRequest();
+        assignRequest.setClientIds(List.of(clientId));
+        AssignmentResultDto assignResult = managerService.assignClientsAndProperties(request.getNewManagerId(), assignRequest);
         return ResponseEntity.ok(new ReassignmentResultDto(
-                "Reassignation test reussie", clientId, null, request.getNewManagerId()));
+                assignResult.message(), clientId, null, request.getNewManagerId()));
     }
 
     // ===== ENDPOINTS DE DESASSIGNATION =====
@@ -258,8 +278,22 @@ public class ManagerController {
             @PathVariable String managerId,
             @PathVariable Long propertyId,
             @RequestBody ReassignmentRequest request) {
-        // Stub: simple test response
+        if (request.getNewManagerId() == null) {
+            return ResponseEntity.badRequest().body(
+                    new ReassignmentResultDto("Le nouveau manager est requis", null, propertyId, null));
+        }
+        // Desassigner de l'ancien manager
+        Optional<Long> oldManagerIdOpt = managerService.resolveManagerId(managerId);
+        if (oldManagerIdOpt.isPresent()) {
+            try {
+                managerService.unassignPropertyFromManager(oldManagerIdOpt.get(), propertyId);
+            } catch (Exception e) {
+                log.warn("Impossible de desassigner la propriete {} de l'ancien manager: {}", propertyId, e.getMessage());
+            }
+        }
+        // Assigner au nouveau manager
+        PropertyAssignmentResultDto assignResult = managerService.assignPropertyToManager(request.getNewManagerId(), propertyId);
         return ResponseEntity.ok(new ReassignmentResultDto(
-                "Reassignation de propriete test reussie", null, propertyId, request.getNewManagerId()));
+                assignResult.message(), null, propertyId, request.getNewManagerId()));
     }
 }
