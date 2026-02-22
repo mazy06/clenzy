@@ -19,9 +19,10 @@ RUN mvn -B -DskipTests clean package && \
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
-# Librairies necessaires pour java.awt (CAPTCHA puzzle generation)
+# Librairies necessaires pour java.awt (CAPTCHA puzzle generation) + pg_dump pour backups
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libfontconfig1 libfreetype6 fontconfig fonts-dejavu-core \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Non-root user for security
