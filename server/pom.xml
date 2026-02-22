@@ -105,7 +105,13 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
-        
+
+        <!-- Liquibase — Database migration management -->
+        <dependency>
+            <groupId>org.liquibase</groupId>
+            <artifactId>liquibase-core</artifactId>
+        </dependency>
+
         <!-- H2 en test (unique) -->
 
         <!-- JWT -->
