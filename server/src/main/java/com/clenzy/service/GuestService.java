@@ -67,14 +67,23 @@ public class GuestService {
         }
 
         // 2. Dedup par email (en memoire car chiffre en base)
+        // Note: les emails sont chiffres en base → impossible de filtrer en SQL.
+        // On utilise une pagination pour eviter de charger tous les guests en memoire d'un coup.
         if (email != null && !email.isBlank()) {
-            List<Guest> orgGuests = guestRepository.findByOrganizationId(orgId);
-            Optional<Guest> byEmail = orgGuests.stream()
-                    .filter(g -> email.equalsIgnoreCase(g.getEmail()))
-                    .findFirst();
-            if (byEmail.isPresent()) {
-                log.debug("Guest deduplique par email pour org {}", orgId);
-                return updateIfNeeded(byEmail.get(), firstName, lastName, null, phone);
+            int pageSize = 500;
+            int page = 0;
+            while (true) {
+                org.springframework.data.domain.Page<Guest> guestPage = guestRepository.findByOrganizationId(
+                        orgId, org.springframework.data.domain.PageRequest.of(page, pageSize));
+                Optional<Guest> byEmail = guestPage.getContent().stream()
+                        .filter(g -> email.equalsIgnoreCase(g.getEmail()))
+                        .findFirst();
+                if (byEmail.isPresent()) {
+                    log.debug("Guest deduplique par email pour org {} (page {})", orgId, page);
+                    return updateIfNeeded(byEmail.get(), firstName, lastName, null, phone);
+                }
+                if (!guestPage.hasNext()) break;
+                page++;
             }
         }
 
