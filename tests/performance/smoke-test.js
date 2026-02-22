@@ -7,7 +7,7 @@
 
 import http from 'k6/http';
 import { check, sleep } from 'k6';
-import { API_BASE } from './config.js';
+import { BASE_URL } from './config.js';
 
 export const options = {
   vus: 1,
@@ -20,7 +20,7 @@ export const options = {
 
 export default function () {
   // Health check — endpoint public
-  const healthRes = http.get(`${API_BASE}/../actuator/health`);
+  const healthRes = http.get(`${BASE_URL}/actuator/health`);
   check(healthRes, {
     'health status 200': (r) => r.status === 200,
     'health body contains UP': (r) => r.body && r.body.includes('UP'),
@@ -29,7 +29,7 @@ export default function () {
   sleep(1);
 
   // API publique — captcha ou version
-  const apiRes = http.get(`${API_BASE}/../actuator/info`);
+  const apiRes = http.get(`${BASE_URL}/actuator/info`);
   check(apiRes, {
     'info status 200 or 404': (r) => r.status === 200 || r.status === 404,
   });
