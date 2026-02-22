@@ -22,6 +22,7 @@ import {
   TrendingUp,
   Hub,
   ChatBubbleOutline,
+  Storage,
 } from '@mui/icons-material';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -224,6 +225,14 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.kpiReadiness',
     group: 'admin',
   },
+  {
+    icon: <Storage />,
+    path: '/admin/database',
+    roles: ['SUPER_ADMIN'],
+    permission: 'users:manage',
+    translationKey: 'navigation.database',
+    group: 'admin',
+  },
 ];
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
@@ -271,6 +280,10 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       }
 
       if (item.path === '/admin/kpi') {
+        return isAdmin();
+      }
+
+      if (item.path === '/admin/database') {
         return isAdmin();
       }
 
