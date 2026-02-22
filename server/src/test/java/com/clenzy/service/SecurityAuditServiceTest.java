@@ -6,10 +6,12 @@ import com.clenzy.repository.SecurityAuditLogRepository;
 import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -17,17 +19,19 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SecurityAuditServiceTest {
 
-    @Mock private SecurityAuditLogRepository repository;
+    @Mock
+    private SecurityAuditLogRepository repository;
 
     private TenantContext tenantContext;
     private SecurityAuditService securityAuditService;
+
+    @Captor
+    private ArgumentCaptor<SecurityAuditLog> logCaptor;
 
     private static final Long ORG_ID = 1L;
 
@@ -40,20 +44,22 @@ class SecurityAuditServiceTest {
                 repository, tenantContext, new ObjectMapper());
     }
 
-    // ===== LOGIN EVENTS =====
-
     @Nested
-    class LoginEvents {
+    @DisplayName("logLoginSuccess")
+    class LogLoginSuccess {
 
         @Test
-        void logLoginSuccess_savesEntryWithCorrectType() {
+        @DisplayName("should save entry with LOGIN_SUCCESS event type and actor info")
+        void whenLoginSuccess_thenSavesCorrectEntry() {
+            // Arrange
             when(repository.save(any(SecurityAuditLog.class))).thenAnswer(inv -> inv.getArgument(0));
 
+            // Act
             securityAuditService.logLoginSuccess("actor-123", "user@test.com");
 
-            ArgumentCaptor<SecurityAuditLog> captor = ArgumentCaptor.forClass(SecurityAuditLog.class);
-            verify(repository).save(captor.capture());
-            SecurityAuditLog entry = captor.getValue();
+            // Assert
+            verify(repository).save(logCaptor.capture());
+            SecurityAuditLog entry = logCaptor.getValue();
             assertThat(entry.getEventType()).isEqualTo(SecurityAuditEventType.LOGIN_SUCCESS);
             assertThat(entry.getAction()).isEqualTo("LOGIN");
             assertThat(entry.getResult()).isEqualTo("SUCCESS");
@@ -61,147 +67,215 @@ class SecurityAuditServiceTest {
             assertThat(entry.getActorEmail()).isEqualTo("user@test.com");
             assertThat(entry.getOrganizationId()).isEqualTo(ORG_ID);
         }
+    }
+
+    @Nested
+    @DisplayName("logLoginFailure")
+    class LogLoginFailure {
 
         @Test
-        void logLoginFailure_savesEntryWithReason() {
+        @DisplayName("should save entry with LOGIN_FAILURE and reason in details")
+        void whenLoginFailure_thenSavesWithReason() {
+            // Arrange
             when(repository.save(any(SecurityAuditLog.class))).thenAnswer(inv -> inv.getArgument(0));
 
+            // Act
             securityAuditService.logLoginFailure("fail@test.com", "bad password");
 
-            ArgumentCaptor<SecurityAuditLog> captor = ArgumentCaptor.forClass(SecurityAuditLog.class);
-            verify(repository).save(captor.capture());
-            SecurityAuditLog entry = captor.getValue();
+            // Assert
+            verify(repository).save(logCaptor.capture());
+            SecurityAuditLog entry = logCaptor.getValue();
             assertThat(entry.getEventType()).isEqualTo(SecurityAuditEventType.LOGIN_FAILURE);
+            assertThat(entry.getAction()).isEqualTo("LOGIN");
             assertThat(entry.getResult()).isEqualTo("DENIED");
             assertThat(entry.getActorEmail()).isEqualTo("fail@test.com");
             assertThat(entry.getDetails()).contains("bad password");
         }
 
         @Test
-        void logLoginFailure_whenReasonIsNull_thenUsesUnknown() {
+        @DisplayName("should use 'unknown' when reason is null")
+        void whenReasonIsNull_thenUsesUnknown() {
+            // Arrange
             when(repository.save(any(SecurityAuditLog.class))).thenAnswer(inv -> inv.getArgument(0));
 
+            // Act
             securityAuditService.logLoginFailure("fail@test.com", null);
 
-            ArgumentCaptor<SecurityAuditLog> captor = ArgumentCaptor.forClass(SecurityAuditLog.class);
-            verify(repository).save(captor.capture());
-            assertThat(captor.getValue().getDetails()).contains("unknown");
+            // Assert
+            verify(repository).save(logCaptor.capture());
+            assertThat(logCaptor.getValue().getDetails()).contains("unknown");
         }
     }
 
-    // ===== PERMISSION DENIED =====
-
     @Nested
-    class PermissionDenied {
+    @DisplayName("logPermissionDenied")
+    class LogPermissionDenied {
 
         @Test
-        void logPermissionDenied_savesCorrectEntry() {
+        @DisplayName("should save entry with resource type/id and DENIED result")
+        void whenPermissionDenied_thenSavesResourceInfo() {
+            // Arrange
             when(repository.save(any(SecurityAuditLog.class))).thenAnswer(inv -> inv.getArgument(0));
 
+            // Act
             securityAuditService.logPermissionDenied("actor-1", "actor@test.com",
                     "Property", "42", "DELETE");
 
-            ArgumentCaptor<SecurityAuditLog> captor = ArgumentCaptor.forClass(SecurityAuditLog.class);
-            verify(repository).save(captor.capture());
-            SecurityAuditLog entry = captor.getValue();
+            // Assert
+            verify(repository).save(logCaptor.capture());
+            SecurityAuditLog entry = logCaptor.getValue();
             assertThat(entry.getEventType()).isEqualTo(SecurityAuditEventType.PERMISSION_DENIED);
             assertThat(entry.getAction()).isEqualTo("DELETE");
             assertThat(entry.getResult()).isEqualTo("DENIED");
+            assertThat(entry.getActorId()).isEqualTo("actor-1");
+            assertThat(entry.getActorEmail()).isEqualTo("actor@test.com");
             assertThat(entry.getResourceType()).isEqualTo("Property");
             assertThat(entry.getResourceId()).isEqualTo("42");
         }
     }
 
-    // ===== ADMIN ACTION =====
-
     @Nested
-    class AdminAction {
+    @DisplayName("logAdminAction")
+    class LogAdminAction {
 
         @Test
-        void logAdminAction_savesCorrectEntry() {
+        @DisplayName("should save entry with ADMIN_ACTION and SUCCESS result")
+        void whenAdminAction_thenSavesWithDetails() {
+            // Arrange
             when(repository.save(any(SecurityAuditLog.class))).thenAnswer(inv -> inv.getArgument(0));
 
+            // Act
             securityAuditService.logAdminAction("admin-1", "admin@test.com",
                     "USER_DELETE", "Deleted user 42");
 
-            ArgumentCaptor<SecurityAuditLog> captor = ArgumentCaptor.forClass(SecurityAuditLog.class);
-            verify(repository).save(captor.capture());
-            SecurityAuditLog entry = captor.getValue();
+            // Assert
+            verify(repository).save(logCaptor.capture());
+            SecurityAuditLog entry = logCaptor.getValue();
             assertThat(entry.getEventType()).isEqualTo(SecurityAuditEventType.ADMIN_ACTION);
             assertThat(entry.getAction()).isEqualTo("USER_DELETE");
             assertThat(entry.getResult()).isEqualTo("SUCCESS");
+            assertThat(entry.getActorId()).isEqualTo("admin-1");
+            assertThat(entry.getActorEmail()).isEqualTo("admin@test.com");
             assertThat(entry.getDetails()).isEqualTo("Deleted user 42");
         }
     }
 
-    // ===== SUSPICIOUS ACTIVITY =====
-
     @Nested
-    class SuspiciousActivity {
+    @DisplayName("logSuspiciousActivity")
+    class LogSuspiciousActivity {
 
         @Test
-        void logSuspiciousActivity_savesWithJsonContext() {
+        @DisplayName("should save entry with JSON-serialized context")
+        void whenSuspiciousActivity_thenSavesJsonContext() {
+            // Arrange
             when(repository.save(any(SecurityAuditLog.class))).thenAnswer(inv -> inv.getArgument(0));
-
             Map<String, Object> context = Map.of("attempts", 10, "ip", "192.168.1.1");
+
+            // Act
             securityAuditService.logSuspiciousActivity("suspect-1", "Brute force detected", context);
 
-            ArgumentCaptor<SecurityAuditLog> captor = ArgumentCaptor.forClass(SecurityAuditLog.class);
-            verify(repository).save(captor.capture());
-            SecurityAuditLog entry = captor.getValue();
+            // Assert
+            verify(repository).save(logCaptor.capture());
+            SecurityAuditLog entry = logCaptor.getValue();
             assertThat(entry.getEventType()).isEqualTo(SecurityAuditEventType.SUSPICIOUS_ACTIVITY);
+            assertThat(entry.getAction()).isEqualTo("Brute force detected");
             assertThat(entry.getResult()).isEqualTo("ERROR");
+            assertThat(entry.getActorId()).isEqualTo("suspect-1");
             assertThat(entry.getDetails()).contains("attempts");
             assertThat(entry.getDetails()).contains("192.168.1.1");
         }
-    }
-
-    // ===== DATA ACCESS =====
-
-    @Nested
-    class DataAccess {
 
         @Test
-        void logDataAccess_savesCorrectEntry() {
+        @DisplayName("should handle null context map gracefully")
+        void whenNullContext_thenDetailsIsNull() {
+            // Arrange
             when(repository.save(any(SecurityAuditLog.class))).thenAnswer(inv -> inv.getArgument(0));
 
+            // Act
+            securityAuditService.logSuspiciousActivity("suspect-1", "unknown event", null);
+
+            // Assert
+            verify(repository).save(logCaptor.capture());
+            assertThat(logCaptor.getValue().getDetails()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("logDataAccess")
+    class LogDataAccess {
+
+        @Test
+        @DisplayName("should save entry with DATA_ACCESS, READ action, and resource info")
+        void whenDataAccess_thenSavesResourceInfo() {
+            // Arrange
+            when(repository.save(any(SecurityAuditLog.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // Act
             securityAuditService.logDataAccess("user-1", "user@test.com", "User", "42");
 
-            ArgumentCaptor<SecurityAuditLog> captor = ArgumentCaptor.forClass(SecurityAuditLog.class);
-            verify(repository).save(captor.capture());
-            SecurityAuditLog entry = captor.getValue();
+            // Assert
+            verify(repository).save(logCaptor.capture());
+            SecurityAuditLog entry = logCaptor.getValue();
             assertThat(entry.getEventType()).isEqualTo(SecurityAuditEventType.DATA_ACCESS);
             assertThat(entry.getAction()).isEqualTo("READ");
             assertThat(entry.getResult()).isEqualTo("SUCCESS");
+            assertThat(entry.getActorId()).isEqualTo("user-1");
+            assertThat(entry.getActorEmail()).isEqualTo("user@test.com");
             assertThat(entry.getResourceType()).isEqualTo("User");
             assertThat(entry.getResourceId()).isEqualTo("42");
         }
     }
 
-    // ===== RESILIENCE =====
-
     @Nested
-    class Resilience {
+    @DisplayName("saveAsync - resilience")
+    class SaveAsync {
 
         @Test
+        @DisplayName("should not propagate exception when repository save fails")
         void whenRepositorySaveFails_thenDoesNotThrow() {
+            // Arrange
             doThrow(new RuntimeException("DB down")).when(repository).save(any());
 
-            // Should not throw — audit must never break business logic
+            // Act - should not throw
             securityAuditService.logLoginSuccess("actor-1", "test@test.com");
+
+            // Assert - verify save was attempted
+            verify(repository).save(any(SecurityAuditLog.class));
         }
+    }
+
+    @Nested
+    @DisplayName("enrichAndSave - tenant context")
+    class EnrichAndSave {
 
         @Test
-        void whenTenantContextThrows_thenStillSaves() {
-            // Simulate TenantContext unavailable by setting null org
+        @DisplayName("should save with null organizationId when tenant context has no org")
+        void whenTenantContextHasNullOrg_thenStillSaves() {
+            // Arrange
             tenantContext.setOrganizationId(null);
             when(repository.save(any(SecurityAuditLog.class))).thenAnswer(inv -> inv.getArgument(0));
 
+            // Act
             securityAuditService.logLoginSuccess("actor-1", "test@test.com");
 
-            ArgumentCaptor<SecurityAuditLog> captor = ArgumentCaptor.forClass(SecurityAuditLog.class);
-            verify(repository).save(captor.capture());
+            // Assert
+            verify(repository).save(logCaptor.capture());
             // organizationId may be null but the entry was still saved
+            assertThat(logCaptor.getValue().getActorId()).isEqualTo("actor-1");
+        }
+
+        @Test
+        @DisplayName("should set createdAt timestamp on saved entry")
+        void whenSaving_thenCreatedAtIsSet() {
+            // Arrange
+            when(repository.save(any(SecurityAuditLog.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // Act
+            securityAuditService.logLoginSuccess("actor-1", "test@test.com");
+
+            // Assert
+            verify(repository).save(logCaptor.capture());
+            assertThat(logCaptor.getValue().getCreatedAt()).isNotNull();
         }
     }
 }

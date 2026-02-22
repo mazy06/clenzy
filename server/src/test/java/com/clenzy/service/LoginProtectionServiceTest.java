@@ -200,11 +200,11 @@ class LoginProtectionServiceTest {
     }
 
     @Test
-    void validateCaptchaToken_redisUnavailable_fallbackUuidFormatCheck() {
+    void validateCaptchaToken_redisUnavailable_failsClosed() {
         String validUuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
         when(redisTemplate.opsForValue()).thenThrow(new RedisConnectionFailureException("Connection refused"));
 
-        assertTrue(service.validateCaptchaToken(validUuid));
+        assertFalse(service.validateCaptchaToken(validUuid));
     }
 
     @Test
