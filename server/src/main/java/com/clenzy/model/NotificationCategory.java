@@ -10,7 +10,8 @@ public enum NotificationCategory {
     TEAM("team"),
     CONTACT("contact"),
     DOCUMENT("document"),
-    GUEST_MESSAGING("guest_messaging");
+    GUEST_MESSAGING("guest_messaging"),
+    NOISE_ALERT("noise_alert");
 
     private final String value;
 
