@@ -18,7 +18,7 @@ export class RedisCacheService {
   public async getPermissionsFromRedis(userId: string): Promise<string[]> {
     try {
       const result = await permissionsApi.getRedisCache(userId);
-      return (result as any).permissions || [];
+      return result.permissions || [];
     } catch (error) {
       return [];
     }

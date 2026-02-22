@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/ical")
 @Tag(name = "iCal Import", description = "Import et synchronisation de calendriers iCal (Airbnb, Booking, Vrbo, etc.)")
+@PreAuthorize("isAuthenticated()")
 public class ICalImportController {
 
     private final ICalImportService iCalImportService;

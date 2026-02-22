@@ -2,144 +2,21 @@ import { useState, useEffect } from 'react';
 import apiClient from '../services/apiClient';
 import { reportsApi } from '../services/api';
 import type { AuthUser } from './useAuth';
+import type {
+  TranslationFn,
+  DashboardPaginatedResponse as PaginatedResponse,
+  ApiProperty,
+  ApiServiceRequest,
+  ApiIntervention,
+  ApiUser,
+  ApiTeam,
+  ManagerAssociations,
+  DashboardStats,
+  ActivityItem,
+} from '../types/dashboard';
 
-// ============================================================================
-// API Response Interfaces
-// ============================================================================
-
-/** Translation function type used by i18n */
-type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
-
-/** Paginated API response wrapper */
-interface PaginatedResponse<T> {
-  content?: T[];
-}
-
-/** Property entity from the API */
-interface ApiProperty {
-  id: number;
-  name?: string;
-  status: string;
-  ownerId?: number;
-  address?: string;
-  city?: string;
-  type?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-/** Service request entity from the API */
-interface ApiServiceRequest {
-  id: string;
-  title?: string;
-  status?: string;
-  serviceType?: string;
-  type?: string;
-  priority?: string;
-  urgent?: boolean;
-  desiredDate?: string;
-  propertyId?: number;
-  propertyName?: string;
-  property?: { name?: string };
-  userId?: number;
-  requestorName?: string;
-  user?: { firstName?: string; lastName?: string };
-  createdAt: string;
-}
-
-/** Intervention entity from the API */
-interface ApiIntervention {
-  id: string;
-  type: string;
-  status: string;
-  priority?: string;
-  propertyId?: number;
-  propertyName?: string;
-  assignedToType?: string;
-  assignedToId?: number;
-  assignedToName?: string;
-  scheduledDate?: string;
-  createdAt?: string;
-}
-
-/** User entity from the API */
-interface ApiUser {
-  id: number;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  role?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-/** Team entity from the API */
-interface ApiTeam {
-  id: number;
-  name?: string;
-  members?: unknown[];
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-/** Manager associations response */
-interface ManagerAssociations {
-  teams?: Array<{ id: number }>;
-  portfolios?: Array<{ id: number; properties?: Array<{ id: number }> }>;
-  users?: Array<{ id: number }>;
-}
-
-export interface DashboardStats {
-  properties: {
-    active: number;
-    total: number;
-    growth: number;
-  };
-  serviceRequests: {
-    pending: number;
-    total: number;
-    growth: number;
-  };
-  interventions: {
-    today: number;
-    total: number;
-    growth: number;
-  };
-  revenue: {
-    current: number;
-    previous: number;
-    growth: number;
-  };
-}
-
-export interface ActivityItem {
-  id: string;
-  type: string;
-  property: string;
-  time: string;
-  status: 'completed' | 'urgent' | 'scheduled' | 'pending' | 'approved' | 'created' | 'started' | 'finished' | 'in_progress';
-  timestamp: string;
-  category: 'property' | 'service-request' | 'intervention' | 'user' | 'team';
-  details?: {
-    address?: string;
-    city?: string;
-    type?: string;
-    requestor?: string;
-    priority?: string;
-    assignedTo?: string;
-    role?: string;
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    fullName?: string;
-    members?: number;
-    urgent?: boolean;
-    urgentLabel?: string;
-    serviceType?: string;
-    title?: string;
-    desiredDate?: string;
-  };
-}
+// Re-export public types for existing consumers
+export type { DashboardStats, ActivityItem } from '../types/dashboard';
 
 export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?: TranslationFn, limitActivities?: number) => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -283,7 +160,7 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
       }
 
       // Pour MANAGER : récupérer les équipes, utilisateurs et propriétés gérés
-      if (userRole === 'MANAGER' && currentUserId) {
+      if (['SUPER_MANAGER'].includes(userRole || '') && currentUserId) {
         try {
           // Récupérer les associations du manager (portefeuilles, clients, propriétés, équipes, utilisateurs)
           const assocData = await apiClient.get<ManagerAssociations>(`/managers/${currentUserId}/associations`);
@@ -305,16 +182,16 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
         }
       }
 
-      // Pour HOUSEKEEPER/TECHNICIAN : récupérer les équipes de l'utilisateur
+      // Pour HOUSEKEEPER/TECHNICIAN/LAUNDRY/EXTERIOR_TECH : récupérer les équipes de l'utilisateur
       // Note: Les interventions sont déjà filtrées par le backend selon le rôle,
       // donc on peut extraire les teamIds depuis les interventions filtrées
-      if ((userRole === 'HOUSEKEEPER' || userRole === 'TECHNICIAN') && currentUserId) {
+      if (['HOUSEKEEPER', 'TECHNICIAN', 'LAUNDRY', 'EXTERIOR_TECH'].includes(userRole || '') && currentUserId) {
         // Les équipes seront extraites depuis les interventions filtrées par le backend
         // On laisse userTeamIds vide pour l'instant, le filtrage se fera via les interventions
       }
 
       // Ajouter les propriétés récemment créées
-      if (propertiesData && (userRole === 'ADMIN' || userRole === 'MANAGER' || userRole === 'HOST')) {
+      if (propertiesData && (['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'].includes(userRole || ''))) {
         const properties: ApiProperty[] = (propertiesData as PaginatedResponse<ApiProperty>).content || (propertiesData as ApiProperty[]) || [];
 
         // Filtrer selon le rôle
@@ -324,7 +201,7 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
           filteredProperties = properties.filter((p: ApiProperty) =>
             hostPropertyIds.includes(p.id)
           );
-        } else if (userRole === 'MANAGER') {
+        } else if (['SUPER_MANAGER'].includes(userRole || '')) {
           // Manager : seulement les propriétés de ses portefeuilles
           filteredProperties = properties.filter((p: ApiProperty) =>
             managerPropertyIds.includes(p.id)
@@ -359,7 +236,7 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
 
         // Filtrer selon le rôle (filtrage supplémentaire pour MANAGER uniquement)
         let filteredRequests = requests;
-        if (userRole === 'MANAGER') {
+        if (['SUPER_MANAGER'].includes(userRole || '')) {
           // MANAGER : demandes liées à ses portefeuilles ou créées par ses utilisateurs
           filteredRequests = requests.filter((req: ApiServiceRequest) =>
             managerPropertyIds.includes(req.propertyId || 0) ||
@@ -485,15 +362,15 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
           filteredInterventions = interventions.filter((int: ApiIntervention) =>
             hostPropertyIds.includes(int.propertyId || 0)
           );
-        } else if (userRole === 'MANAGER') {
+        } else if (['SUPER_MANAGER'].includes(userRole || '')) {
           // MANAGER : interventions liées à ses portefeuilles ou assignées à ses équipes/utilisateurs
           filteredInterventions = interventions.filter((int: ApiIntervention) =>
             managerPropertyIds.includes(int.propertyId || 0) ||
             (int.assignedToType === 'team' && managerTeamIds.includes(int.assignedToId || 0)) ||
             (int.assignedToType === 'user' && managerUserIds.includes(int.assignedToId || 0))
           );
-        } else if (userRole === 'HOUSEKEEPER' || userRole === 'TECHNICIAN') {
-          // HOUSEKEEPER/TECHNICIAN : les interventions sont déjà filtrées par le backend
+        } else if (['HOUSEKEEPER', 'TECHNICIAN', 'LAUNDRY', 'EXTERIOR_TECH'].includes(userRole || '')) {
+          // HOUSEKEEPER/TECHNICIAN/LAUNDRY/EXTERIOR_TECH : les interventions sont déjà filtrées par le backend
           // selon le rôle (voir InterventionService.search), donc on utilise directement
           // les interventions retournées
           filteredInterventions = interventions;
@@ -522,12 +399,12 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
       // Pour les HOST, ne pas afficher les activités de création d'utilisateurs et d'équipes
       if (userRole !== 'HOST') {
         // Ajouter les nouveaux utilisateurs créés (seulement pour ADMIN et MANAGER)
-        if ((userRole === 'ADMIN' || userRole === 'MANAGER') && usersData) {
+        if ((['SUPER_ADMIN', 'SUPER_MANAGER'].includes(userRole || '')) && usersData) {
           const users: ApiUser[] = (usersData as PaginatedResponse<ApiUser>).content || (usersData as ApiUser[]) || [];
 
           // Pour MANAGER : filtrer seulement les utilisateurs qu'il gère
           let filteredUsers = users;
-          if (userRole === 'MANAGER') {
+          if (['SUPER_MANAGER'].includes(userRole || '')) {
             filteredUsers = users.filter((u: ApiUser) =>
               managerUserIds.includes(u.id)
             );
@@ -563,12 +440,12 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
         }
 
         // Ajouter les nouvelles équipes créées (seulement pour ADMIN et MANAGER)
-        if ((userRole === 'ADMIN' || userRole === 'MANAGER') && teamsData) {
+        if ((['SUPER_ADMIN', 'SUPER_MANAGER'].includes(userRole || '')) && teamsData) {
           const teams: ApiTeam[] = (teamsData as PaginatedResponse<ApiTeam>).content || (teamsData as ApiTeam[]) || [];
 
           // Pour MANAGER : filtrer seulement les équipes qu'il gère
           let filteredTeams = teams;
-          if (userRole === 'MANAGER') {
+          if (['SUPER_MANAGER'].includes(userRole || '')) {
             filteredTeams = teams.filter((teamItem: ApiTeam) =>
               managerTeamIds.includes(teamItem.id)
             );

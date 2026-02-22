@@ -110,6 +110,22 @@ public class AirbnbListingController {
         }
     }
 
+    @PutMapping("/{propertyId}/auto-push-pricing")
+    @Operation(summary = "Activer/desactiver le push automatique des prix vers Airbnb")
+    public ResponseEntity<?> toggleAutoPushPricing(
+            @PathVariable Long propertyId,
+            @RequestParam boolean enabled) {
+        try {
+            AirbnbListingMapping mapping = listingService.toggleAutoPushPricing(propertyId, enabled);
+            return ResponseEntity.ok(mapping);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "toggle_failed",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
     @PutMapping("/{propertyId}/auto-interventions")
     @Operation(summary = "Activer/desactiver la creation automatique d'interventions")
     public ResponseEntity<?> toggleAutoInterventions(

@@ -33,6 +33,7 @@ import java.util.Map;
  */
 @RestController
 @Tag(name = "Invitations", description = "Gestion des invitations d'organisation")
+@PreAuthorize("isAuthenticated()")
 public class OrganizationInvitationController {
 
     private static final Logger log = LoggerFactory.getLogger(OrganizationInvitationController.class);
@@ -48,7 +49,7 @@ public class OrganizationInvitationController {
     // ═══════════════════════════════════════════════════════════════════════════
 
     @PostMapping("/api/organizations/{orgId}/invitations")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     @Operation(summary = "Envoyer une invitation a rejoindre l'organisation")
     public ResponseEntity<InvitationDto> sendInvitation(
             @PathVariable Long orgId,
@@ -60,7 +61,7 @@ public class OrganizationInvitationController {
     }
 
     @GetMapping("/api/organizations/{orgId}/invitations")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     @Operation(summary = "Lister les invitations d'une organisation")
     public ResponseEntity<List<InvitationDto>> listInvitations(
             @PathVariable Long orgId,
@@ -70,7 +71,7 @@ public class OrganizationInvitationController {
     }
 
     @DeleteMapping("/api/organizations/{orgId}/invitations/{invitationId}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     @Operation(summary = "Annuler une invitation")
     public ResponseEntity<Void> cancelInvitation(
             @PathVariable Long orgId,
@@ -81,7 +82,7 @@ public class OrganizationInvitationController {
     }
 
     @PostMapping("/api/organizations/{orgId}/invitations/{invitationId}/resend")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     @Operation(summary = "Renvoyer une invitation (annule l'ancienne et cree une nouvelle)")
     public ResponseEntity<InvitationDto> resendInvitation(
             @PathVariable Long orgId,
@@ -96,6 +97,7 @@ public class OrganizationInvitationController {
     // ═══════════════════════════════════════════════════════════════════════════
 
     @GetMapping("/api/invitations/info")
+    @PreAuthorize("permitAll()")
     @Operation(summary = "Obtenir les infos d'une invitation (public, pas de JWT)")
     public ResponseEntity<?> getInvitationInfo(@RequestParam String token) {
         try {

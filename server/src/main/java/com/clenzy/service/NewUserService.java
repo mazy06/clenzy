@@ -10,7 +10,6 @@ import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.UserStatus;
 import com.clenzy.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -22,11 +21,14 @@ import java.util.stream.Collectors;
 @Service
 public class NewUserService {
 
-    @Autowired
-    private KeycloakService keycloakService;
+    private final KeycloakService keycloakService;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    public NewUserService(KeycloakService keycloakService,
+                          UserRepository userRepository) {
+        this.keycloakService = keycloakService;
+        this.userRepository = userRepository;
+    }
 
     /**
      * Récupérer le profil complet d'un utilisateur (Keycloak + données métier)

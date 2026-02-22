@@ -13,7 +13,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/admin/mailbox")
-@PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
 public class MailboxController {
 
     private final MailReceiverService mailReceiverService;

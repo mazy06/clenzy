@@ -42,8 +42,7 @@ import ContactTemplates from './ContactTemplates';
 
 type ContactFormInput = z.input<typeof contactSchema>;
 
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
-
+import type { ChipColor } from '../../types';
 import type { Recipient } from '../../services/api';
 
 const MAX_FILE_SIZE_MB = 10;
@@ -64,7 +63,7 @@ interface ContactFormProps {
 const ContactForm: React.FC<ContactFormProps> = ({ onCancel }) => {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const isRestrictedUser = user?.roles?.includes('HOST') || user?.roles?.includes('HOUSEKEEPER') || user?.roles?.includes('TECHNICIAN') || user?.roles?.includes('SUPERVISOR');
+  const isRestrictedUser = user?.roles?.includes('HOST') || user?.roles?.includes('HOUSEKEEPER') || user?.roles?.includes('TECHNICIAN') || user?.roles?.includes('SUPERVISOR') || user?.roles?.includes('LAUNDRY') || user?.roles?.includes('EXTERIOR_TECH');
 
   const {
     control,

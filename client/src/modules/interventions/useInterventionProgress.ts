@@ -188,7 +188,7 @@ export function useInterventionProgress({
       setError(null);
       isInitialLoadRef.current = false;
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setError(err.message || 'Erreur lors de la réouverture de l\'intervention');
     },
   });
@@ -216,7 +216,7 @@ export function useInterventionProgress({
           setProgressDialogOpen(false);
           setError(null);
         },
-        onError: (err: any) => {
+        onError: (err: Error) => {
           setError(err.message || 'Erreur lors de la mise à jour de la progression');
         },
         onSettled: () => setUpdatingProgress(false),

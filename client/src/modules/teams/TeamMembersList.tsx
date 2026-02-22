@@ -24,6 +24,7 @@ import { useQuery } from '@tanstack/react-query';
 import { interventionsApi } from '../../services/api';
 import type { Intervention, TeamMember } from '../../services/api';
 import { extractApiList } from '../../types';
+import type { ChipColor } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { teamsKeys } from './useTeamsList';
 
@@ -107,11 +108,12 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
       technician: t('teams.roles.technician'),
       supervisor: t('teams.roles.supervisor'),
       manager: t('teams.roles.manager'),
+      laundry: 'Blanchisserie',
+      exterior_tech: 'Tech. Extérieur',
+      leader: "Chef d'équipe",
     };
     return roleLabels[role?.toLowerCase()] || role;
   };
-
-  type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
   const getRoleColor = (role: string): ChipColor => {
     const roleColors: Record<string, ChipColor> = {
@@ -119,6 +121,9 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
       technician: 'primary',
       supervisor: 'warning',
       manager: 'error',
+      laundry: 'default',
+      exterior_tech: 'primary',
+      leader: 'secondary',
     };
     return roleColors[role?.toLowerCase()] || 'default';
   };

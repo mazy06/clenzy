@@ -13,6 +13,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -51,12 +52,13 @@ public class TuyaApiService {
     public TuyaApiService(TuyaConfig config,
                           TuyaConnectionRepository connectionRepository,
                           TokenEncryptionService encryptionService,
-                          TenantContext tenantContext) {
+                          TenantContext tenantContext,
+                          RestTemplate restTemplate) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
         this.tenantContext = tenantContext;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = restTemplate;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -66,6 +68,7 @@ public class TuyaApiService {
      * Obtient un access token depuis Tuya (grant_type=1, simple mode).
      * GET /v1.0/token?grant_type=1
      */
+    @CircuitBreaker(name = "tuya-api")
     @SuppressWarnings("unchecked")
     public String getAccessToken() {
         if (cachedAccessToken != null && cachedTokenExpiry != null
@@ -138,6 +141,7 @@ public class TuyaApiService {
      * Recupere les infos d'un device.
      * GET /v1.0/devices/{device_id}
      */
+    @CircuitBreaker(name = "tuya-api")
     @SuppressWarnings("unchecked")
     public Map<String, Object> getDeviceInfo(String deviceId) {
         validateDeviceId(deviceId);
@@ -149,6 +153,7 @@ public class TuyaApiService {
      * GET /v1.0/devices/{device_id}/status
      * Le DP 12 ("noise_value") contient le niveau de bruit en dB.
      */
+    @CircuitBreaker(name = "tuya-api")
     @SuppressWarnings("unchecked")
     public Map<String, Object> getDeviceStatus(String deviceId) {
         validateDeviceId(deviceId);
@@ -159,6 +164,7 @@ public class TuyaApiService {
      * Recupere l'historique des data points d'un device.
      * GET /v2.0/devices/{device_id}/logs?start_time=...&end_time=...&type=7&size=100
      */
+    @CircuitBreaker(name = "tuya-api")
     @SuppressWarnings("unchecked")
     public Map<String, Object> getDeviceLogs(String deviceId, long startTime, long endTime) {
         validateDeviceId(deviceId);
@@ -174,6 +180,7 @@ public class TuyaApiService {
      * Envoie des commandes a un device.
      * POST /v1.0/devices/{device_id}/commands
      */
+    @CircuitBreaker(name = "tuya-api")
     @SuppressWarnings("unchecked")
     public Map<String, Object> sendCommand(String deviceId, List<Map<String, Object>> commands) {
         validateDeviceId(deviceId);

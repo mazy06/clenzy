@@ -35,6 +35,7 @@ import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api/contact")
+@PreAuthorize("isAuthenticated()")
 @Tag(name = "Contact", description = "Gestion des messages de contact")
 public class ContactController {
 
@@ -55,7 +56,7 @@ public class ContactController {
 
     @GetMapping("/messages/inbox")
     @Operation(summary = "Recuperer les messages recus")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
     public ResponseEntity<Page<ContactMessageDto>> getInboxMessages(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
@@ -66,7 +67,7 @@ public class ContactController {
 
     @GetMapping("/messages/received")
     @Operation(summary = "Compatibilite: alias vers inbox")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
     public ResponseEntity<Page<ContactMessageDto>> getReceivedMessages(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
@@ -77,7 +78,7 @@ public class ContactController {
 
     @GetMapping("/messages/sent")
     @Operation(summary = "Recuperer les messages envoyes")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
     public ResponseEntity<Page<ContactMessageDto>> getSentMessages(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
@@ -88,7 +89,7 @@ public class ContactController {
 
     @GetMapping("/messages/archived")
     @Operation(summary = "Recuperer les messages archives")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
     public ResponseEntity<Page<ContactMessageDto>> getArchivedMessages(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
@@ -99,14 +100,14 @@ public class ContactController {
 
     @GetMapping("/recipients")
     @Operation(summary = "Recuperer la liste des destinataires autorises")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
     public ResponseEntity<?> getRecipients(@AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(contactMessageService.listRecipients(jwt));
     }
 
     @PutMapping("/messages/{id}/status")
     @Operation(summary = "Mettre a jour le statut d'un message")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
     public ResponseEntity<ContactMessageDto> updateMessageStatus(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long id,
@@ -117,14 +118,14 @@ public class ContactController {
 
     @PutMapping("/messages/{id}/archive")
     @Operation(summary = "Archiver un message")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
     public ResponseEntity<ContactMessageDto> archiveMessage(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         return ResponseEntity.ok(contactMessageService.archiveMessage(jwt, id));
     }
 
     @PutMapping("/messages/{id}/unarchive")
     @Operation(summary = "Desarchiver un message")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
     public ResponseEntity<ContactMessageDto> unarchiveMessage(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         return ResponseEntity.ok(contactMessageService.unarchiveMessage(jwt, id));
     }
@@ -133,7 +134,7 @@ public class ContactController {
 
     @GetMapping("/messages/{messageId}/attachments/{attachmentId}")
     @Operation(summary = "Telecharger une piece jointe")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
     public ResponseEntity<Resource> downloadAttachment(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long messageId,
@@ -183,7 +184,7 @@ public class ContactController {
 
     @PostMapping(value = "/messages")
     @Operation(summary = "Envoyer un message de contact (multipart)")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<ContactMessageDto> sendMessage(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam String recipientId,
@@ -201,7 +202,7 @@ public class ContactController {
 
     @PostMapping(value = "/messages/json", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Envoyer un message de contact (json)")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<ContactMessageDto> sendMessageJson(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody ContactSendRequest request
@@ -220,7 +221,7 @@ public class ContactController {
 
     @PostMapping(value = "/messages/{id}/reply")
     @Operation(summary = "Repondre a un message")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<ContactMessageDto> replyToMessage(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long id,
@@ -235,7 +236,7 @@ public class ContactController {
 
     @DeleteMapping("/messages/{id}")
     @Operation(summary = "Supprimer un message")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Void> deleteMessage(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         contactMessageService.deleteMessage(jwt, id);
         return ResponseEntity.noContent().build();
@@ -243,7 +244,7 @@ public class ContactController {
 
     @PutMapping("/messages/bulk/status")
     @Operation(summary = "Mettre a jour le statut de plusieurs messages")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> bulkUpdateStatus(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody ContactBulkStatusRequest request
@@ -253,7 +254,7 @@ public class ContactController {
 
     @PostMapping("/messages/bulk/delete")
     @Operation(summary = "Supprimer plusieurs messages")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> bulkDelete(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody ContactBulkDeleteRequest request

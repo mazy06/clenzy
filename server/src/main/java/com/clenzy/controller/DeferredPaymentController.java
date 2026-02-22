@@ -16,6 +16,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/deferred-payments")
 @Tag(name = "Deferred Payments", description = "Gestion des paiements differes et cumul des impayes par host")
+@PreAuthorize("isAuthenticated()")
 public class DeferredPaymentController {
 
     private static final Logger logger = LoggerFactory.getLogger(DeferredPaymentController.class);
@@ -30,7 +31,7 @@ public class DeferredPaymentController {
      * Retourne le cumul des impayes d'un host, groupe par propriete.
      */
     @GetMapping("/balance/{hostId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     @Operation(summary = "Consulter le solde impaye d'un host",
             description = "Retourne le cumul des interventions impayees, groupees par propriete.")
     public ResponseEntity<?> getHostBalance(@PathVariable Long hostId) {
@@ -49,7 +50,7 @@ public class DeferredPaymentController {
      * L'admin/manager peut ensuite envoyer ce lien au host.
      */
     @PostMapping("/send-payment-link/{hostId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     @Operation(summary = "Creer un lien de paiement groupe",
             description = "Cree une session Stripe regroupant toutes les interventions impayees du host. Retourne l'URL de paiement.")
     public ResponseEntity<?> createPaymentLink(@PathVariable Long hostId) {

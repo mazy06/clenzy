@@ -4,7 +4,9 @@
 # Flux :
 #   - push main/develop  → CI (typecheck + build) + push image GHCR
 #   - push production    → CI + push image GHCR (:latest) + déclenchement déploiement via clenzy-infra
-#   - PR main/develop    → CI uniquement (pas de push)
+#   - PR main/develop/production → CI obligatoire (gate de validation)
+#
+# IMPORTANT : Les merges vers production ne sont autorisées que via Pull Request.
 
 name: CI Frontend
 
@@ -15,7 +17,7 @@ on:
       - 'client/**'
       - '.github/workflows/ci-frontend.yml'
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, production]
     paths:
       - 'client/**'
       - '.github/workflows/ci-frontend.yml'

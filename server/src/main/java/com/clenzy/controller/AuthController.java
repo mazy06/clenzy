@@ -1,5 +1,6 @@
 package com.clenzy.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -23,17 +24,21 @@ import com.clenzy.model.User;
 import com.clenzy.service.UserService;
 import com.clenzy.service.PermissionService;
 import com.clenzy.service.AuditLogService;
+import com.clenzy.service.SecurityAuditService;
 import com.clenzy.service.LoginProtectionService;
 import com.clenzy.service.LoginProtectionService.LoginStatus;
 import com.clenzy.service.OrganizationInvitationService;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.Organization;
+import com.clenzy.model.OrganizationMember;
 import com.clenzy.repository.OrganizationRepository;
+import com.clenzy.repository.OrganizationMemberRepository;
 import com.clenzy.dto.RolePermissionsDto;
 
 @RestController
 @RequestMapping("/api")
 @Tag(name = "Auth", description = "Endpoints d'authentification (Keycloak JWT)")
+@PreAuthorize("isAuthenticated()")
 public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
@@ -54,23 +59,33 @@ public class AuthController {
     private final UserService userService;
     private final PermissionService permissionService;
     private final AuditLogService auditLogService;
+    private final SecurityAuditService securityAuditService;
     private final LoginProtectionService loginProtectionService;
     private final OrganizationInvitationService invitationService;
     private final OrganizationRepository organizationRepository;
+    private final OrganizationMemberRepository organizationMemberRepository;
+    private final RestTemplate restTemplate;
 
     public AuthController(UserService userService, PermissionService permissionService,
-                          AuditLogService auditLogService, LoginProtectionService loginProtectionService,
+                          AuditLogService auditLogService, SecurityAuditService securityAuditService,
+                          LoginProtectionService loginProtectionService,
                           OrganizationInvitationService invitationService,
-                          OrganizationRepository organizationRepository) {
+                          OrganizationRepository organizationRepository,
+                          OrganizationMemberRepository organizationMemberRepository,
+                          RestTemplate restTemplate) {
         this.userService = userService;
         this.permissionService = permissionService;
         this.auditLogService = auditLogService;
+        this.securityAuditService = securityAuditService;
         this.loginProtectionService = loginProtectionService;
         this.invitationService = invitationService;
         this.organizationRepository = organizationRepository;
+        this.organizationMemberRepository = organizationMemberRepository;
+        this.restTemplate = restTemplate;
     }
 
     @PostMapping("/auth/login")
+    @PreAuthorize("permitAll()")
     @Operation(summary = "Authentification utilisateur via Keycloak")
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> credentials) {
         String username = credentials.get("username");
@@ -121,7 +136,6 @@ public class AuthController {
             }
 
             // ─── Appel a Keycloak pour obtenir le token ───────────
-            RestTemplate restTemplate = new RestTemplate();
             String tokenUrl = keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/token";
 
             HttpHeaders headers = new HttpHeaders();
@@ -153,6 +167,7 @@ public class AuthController {
 
                 // Audit : connexion reussie
                 auditLogService.logLogin(username, username);
+                securityAuditService.logLoginSuccess(username, username);
 
                 return ResponseEntity.ok(response);
             } else {
@@ -161,6 +176,7 @@ public class AuthController {
 
                 // Audit : connexion echouee
                 auditLogService.logLoginFailed(username, "Invalid credentials");
+                securityAuditService.logLoginFailure(username, "Invalid credentials");
 
                 Map<String, Object> error = new HashMap<>();
                 error.put("error", "authentication_failed");
@@ -183,6 +199,7 @@ public class AuthController {
 
             // Audit : connexion echouee
             auditLogService.logLoginFailed(username != null ? username : "unknown", e.getMessage());
+            securityAuditService.logLoginFailure(username != null ? username : "unknown", e.getMessage());
 
             Map<String, Object> error = new HashMap<>();
             error.put("error", "authentication_failed");
@@ -293,12 +310,21 @@ public class AuthController {
                 claims.put("firstName", user.getFirstName());
                 claims.put("lastName", user.getLastName());
                 claims.put("role", user.getRole().name());
+                claims.put("platformRole", user.getRole().name());
                 claims.put("status", user.getStatus().name());
                 if (user.getOrganizationId() != null) {
                     claims.put("organizationId", user.getOrganizationId());
                     organizationRepository.findById(user.getOrganizationId()).ifPresent(org ->
                         claims.put("organizationName", org.getName())
                     );
+                }
+                // Ajouter le role dans l'organisation si applicable
+                try {
+                    organizationMemberRepository.findByUserId(user.getId()).ifPresent(member ->
+                        claims.put("orgRole", member.getRoleInOrg().name())
+                    );
+                } catch (Exception e) {
+                    log.debug("/me - Erreur recuperation orgRole: {}", e.getMessage());
                 }
                 claims.put("emailVerified", user.isEmailVerified() != null ? user.isEmailVerified() : false);
                 claims.put("phoneVerified", user.isPhoneVerified() != null ? user.isPhoneVerified() : false);
@@ -317,9 +343,9 @@ public class AuthController {
                     permissions = permissionService.getUserPermissionsForSync(keycloakId);
                 }
 
-                // Fallback ultime pour ADMIN : si toujours vide, injecter toutes les permissions
-                if ((permissions == null || permissions.isEmpty()) && user.getRole() == UserRole.ADMIN) {
-                    log.warn("/me - FALLBACK ADMIN : injection de toutes les permissions disponibles");
+                // Fallback ultime pour staff plateforme : si toujours vide, injecter toutes les permissions
+                if ((permissions == null || permissions.isEmpty()) && user.getRole().isPlatformAdmin()) {
+                    log.warn("/me - FALLBACK PLATFORM ADMIN : injection de toutes les permissions disponibles");
                     permissions = permissionService.getAllAvailablePermissions();
                 }
 
@@ -438,7 +464,6 @@ public class AuthController {
 
     private void revokeToken(String token) {
         try {
-            RestTemplate restTemplate = new RestTemplate();
             String revokeUrl = keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/logout";
 
             HttpHeaders headers = new HttpHeaders();

@@ -10,7 +10,8 @@ import {
 } from '@mui/material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
-import { interventionsApi } from '../../services/api';
+import { interventionsApi, Intervention } from '../../services/api';
+import { extractApiList } from '../../types';
 
 interface StatusCount {
   status: string;
@@ -46,11 +47,11 @@ export default function InterventionStatusChart() {
     const loadStatusData = async () => {
       try {
         const data = await interventionsApi.getAll({ size: 1000 });
-        const items = (data as any).content || data || [];
+        const items = extractApiList<Intervention>(data);
 
         // Compter les interventions par statut
         const statusCounts: { [key: string]: number } = {};
-        items.forEach((item: { status?: string }) => {
+        items.forEach((item) => {
           const status = item.status || 'PENDING';
           statusCounts[status] = (statusCounts[status] || 0) + 1;
         });

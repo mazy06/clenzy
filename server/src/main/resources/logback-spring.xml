@@ -11,11 +11,11 @@
         Le champ %X{requestId} est alimente par ApiGatewayFilter via MDC.
     -->
 
-    <!-- Console lisible (dev) -->
-    <springProfile name="dev">
+    <!-- Console lisible (dev, local, ci, et tout profil non-prod/staging) -->
+    <springProfile name="!prod &amp; !staging">
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
-                <pattern>%d{HH:mm:ss.SSS} [%thread] [%X{requestId:-}] %-5level %logger{36} - %msg%n</pattern>
+                <pattern>%d{HH:mm:ss.SSS} [%thread] [req:%X{requestId:-}] [org:%X{orgId:-}] [prop:%X{propertyId:-}] [ch:%X{channel:-}] %-5level %logger{36} - %msg%n</pattern>
             </encoder>
         </appender>
         <root level="INFO">

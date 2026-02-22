@@ -11,13 +11,13 @@ import com.clenzy.model.UserRole;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.StripeService;
+import com.clenzy.util.StringUtils;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/payments")
+@PreAuthorize("isAuthenticated()")
 public class PaymentController {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentController.class);
@@ -51,7 +52,6 @@ public class PaymentController {
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
 
-    @Autowired
     public PaymentController(StripeService stripeService,
                               InterventionRepository interventionRepository,
                               UserRepository userRepository,
@@ -66,7 +66,7 @@ public class PaymentController {
      * Crée une session de paiement Stripe pour une intervention
      */
     @PostMapping("/create-session")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'HOST')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     public ResponseEntity<?> createPaymentSession(
             @Valid @RequestBody PaymentSessionRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -131,7 +131,7 @@ public class PaymentController {
      * pour vérifier si la session a été payée (fallback si le webhook n'a pas été reçu).
      */
     @GetMapping("/session-status/{sessionId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'HOST')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     public ResponseEntity<?> getSessionStatus(@PathVariable String sessionId) {
         try {
             Intervention intervention = interventionRepository.findByStripeSessionId(sessionId, tenantContext.getRequiredOrganizationId())
@@ -173,7 +173,7 @@ public class PaymentController {
      * ADMIN/MANAGER : voit toutes les interventions, optionnellement filtrees par hostId.
      */
     @GetMapping("/history")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'HOST')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     public ResponseEntity<?> getPaymentHistory(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -226,7 +226,7 @@ public class PaymentController {
      * Retourne un resume agrege des paiements.
      */
     @GetMapping("/summary")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'HOST')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     public ResponseEntity<?> getPaymentSummary(
             @RequestParam(required = false) Long hostId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -276,7 +276,7 @@ public class PaymentController {
      * Liste legere des hosts ayant des interventions payantes (pour le filtre admin).
      */
     @GetMapping("/hosts")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<?> getHostsWithPayments() {
         try {
             List<Object[]> rows = interventionRepository.findDistinctHostsWithPayments(tenantContext.getRequiredOrganizationId());
@@ -298,7 +298,7 @@ public class PaymentController {
      * Rembourse un paiement via Stripe. Reservé aux ADMIN et MANAGER.
      */
     @PostMapping("/{interventionId}/refund")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<?> refundPayment(@PathVariable Long interventionId) {
         try {
             Intervention intervention = interventionRepository.findById(interventionId)
@@ -333,7 +333,7 @@ public class PaymentController {
             user = userRepository.findByKeycloakId(keycloakId).orElse(null);
         }
         if (user == null && email != null) {
-            user = userRepository.findByEmailHash(computeEmailHash(email)).orElse(null);
+            user = userRepository.findByEmailHash(StringUtils.computeEmailHash(email)).orElse(null);
         }
         return user;
     }
@@ -364,17 +364,4 @@ public class PaymentController {
         return dto;
     }
 
-    private static String computeEmailHash(String email) {
-        try {
-            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(email.toLowerCase().trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder();
-            for (byte b : hashBytes) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.toString();
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 non disponible", e);
-        }
-    }
 }

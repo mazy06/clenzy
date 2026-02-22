@@ -32,7 +32,7 @@ public class PricingConfigController {
         if (jwt == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        if (!hasRole(jwt, "ADMIN") && !hasRole(jwt, "MANAGER")) {
+        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return ResponseEntity.ok(pricingConfigService.getCurrentConfig());
@@ -45,21 +45,25 @@ public class PricingConfigController {
         if (jwt == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        if (!hasRole(jwt, "ADMIN") && !hasRole(jwt, "MANAGER")) {
+        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         log.info("Mise a jour de la configuration tarifaire par l'utilisateur {}", jwt.getSubject());
         return ResponseEntity.ok(pricingConfigService.updateConfig(dto));
     }
 
-    private boolean hasRole(Jwt jwt, String role) {
+    private boolean hasAnyRole(Jwt jwt, String... rolesToCheck) {
         try {
             Map<String, Object> realmAccess = jwt.getClaim("realm_access");
             if (realmAccess != null) {
                 Object roles = realmAccess.get("roles");
                 if (roles instanceof List<?>) {
-                    return ((List<?>) roles).stream()
-                            .anyMatch(r -> role.equals(r.toString()));
+                    List<?> roleList = (List<?>) roles;
+                    for (String role : rolesToCheck) {
+                        if (roleList.stream().anyMatch(r -> role.equals(r.toString()))) {
+                            return true;
+                        }
+                    }
                 }
             }
         } catch (Exception e) {

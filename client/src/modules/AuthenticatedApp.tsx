@@ -38,7 +38,7 @@ import ReportDetails from './reports/ReportDetails';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 // Users
-import UsersList from './users/UsersList';
+import UsersAndOrganizations from './users/UsersAndOrganizations';
 import UserForm from './users/UserForm';
 import UserDetails from './users/UserDetails';
 import UserEdit from './users/UserEdit';
@@ -77,9 +77,25 @@ import TeamUserAssignmentForm from './portfolios/TeamUserAssignmentForm';
 // Payments
 import PaymentHistoryPage from './payments/PaymentHistoryPage';
 
+// Reservations
+import ReservationsList from './reservations/ReservationsList';
+
+// Dynamic Pricing
+import DynamicPricing from './pricing/DynamicPricing';
+
 // Admin pages
 import TokenMonitoringPage from './admin/TokenMonitoringPage';
 import MonitoringPage from './admin/MonitoringPage';
+import SyncAdminPage from './admin/SyncAdminPage';
+import KpiReadinessPage from './admin/KpiReadinessPage';
+
+// Channels & Integrations
+import ChannelsPage from './channels/ChannelsPage';
+import ReviewsPage from './channels/ReviewsPage';
+
+// Messaging
+import MessageTemplatesPage from './messaging/MessageTemplatesPage';
+import MessageHistoryPage from './messaging/MessageHistoryPage';
 
 
 const AuthenticatedApp: React.FC = () => {
@@ -196,6 +212,22 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
+        <Route path="/reservations" element={
+          <ProtectedRoute requiredPermission="reservations:view">
+            <ErrorBoundary>
+              <ReservationsList />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/dynamic-pricing" element={
+          <ProtectedRoute requiredPermission="pricing:view">
+            <ErrorBoundary>
+              <DynamicPricing />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
         <Route path="/payments/history" element={
           <ProtectedRoute requiredPermission="payments:view">
             <PaymentHistoryPage />
@@ -244,7 +276,7 @@ const AuthenticatedApp: React.FC = () => {
         
         <Route path="/users" element={
           <ProtectedRoute requiredPermission="users:manage">
-            <UsersList />
+            <UsersAndOrganizations />
           </ProtectedRoute>
         } />
         <Route path="/users/new" element={
@@ -338,7 +370,55 @@ const AuthenticatedApp: React.FC = () => {
             <MonitoringPage />
           </ProtectedRoute>
         } />
-        
+
+        <Route path="/admin/sync" element={
+          <ProtectedRoute requiredPermission="users:manage">
+            <ErrorBoundary>
+              <SyncAdminPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/kpi" element={
+          <ProtectedRoute requiredPermission="users:manage">
+            <ErrorBoundary>
+              <KpiReadinessPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/channels" element={
+          <ProtectedRoute requiredPermission="properties:view">
+            <ErrorBoundary>
+              <ChannelsPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/channels/reviews" element={
+          <ProtectedRoute requiredPermission="properties:view">
+            <ErrorBoundary>
+              <ReviewsPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/messaging/templates" element={
+          <ProtectedRoute requiredPermission="settings:view">
+            <ErrorBoundary>
+              <MessageTemplatesPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/messaging/history" element={
+          <ProtectedRoute requiredPermission="settings:view">
+            <ErrorBoundary>
+              <MessageHistoryPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
         {/* Redirection intelligente vers la première page accessible selon les permissions */}
         <Route path="/" element={<SmartRedirect />} />
       </Routes>

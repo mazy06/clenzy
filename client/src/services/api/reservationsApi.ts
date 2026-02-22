@@ -10,6 +10,8 @@ export interface Reservation {
   propertyId: number;
   propertyName: string;
   guestName: string;
+  guestEmail?: string;
+  guestPhone?: string;
   guestCount: number;
   checkIn: string;      // ISO date string (YYYY-MM-DD)
   checkOut: string;     // ISO date string (YYYY-MM-DD)
@@ -17,6 +19,8 @@ export interface Reservation {
   checkOutTime?: string; // Heure check-out (HH:mm)
   status: ReservationStatus;
   source: ReservationSource;
+  sourceName?: string;
+  confirmationCode?: string;
   totalPrice: number;
   notes?: string;
 }
@@ -24,8 +28,37 @@ export interface Reservation {
 export interface ReservationFilters {
   propertyIds?: number[];
   status?: ReservationStatus;
+  source?: ReservationSource;
   from?: string;
   to?: string;
+}
+
+export interface CreateReservationData {
+  propertyId: number;
+  guestName: string;
+  guestEmail?: string;
+  guestPhone?: string;
+  guestCount: number;
+  checkIn: string;
+  checkOut: string;
+  checkInTime?: string;
+  checkOutTime?: string;
+  totalPrice?: number;
+  notes?: string;
+}
+
+export interface UpdateReservationData {
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
+  guestCount?: number;
+  checkIn?: string;
+  checkOut?: string;
+  checkInTime?: string;
+  checkOutTime?: string;
+  status?: string;
+  totalPrice?: number;
+  notes?: string;
 }
 
 // ─── Planning Intervention Types ────────────────────────────────────────────
@@ -494,6 +527,9 @@ export const reservationsApi = {
       if (filters?.status) {
         data = data.filter((r) => r.status === filters.status);
       }
+      if (filters?.source) {
+        data = data.filter((r) => r.source === filters.source);
+      }
       if (filters?.from) {
         data = data.filter((r) => r.checkOut >= filters.from!);
       }
@@ -511,6 +547,7 @@ export const reservationsApi = {
       params.propertyIds = filters.propertyIds.join(',');
     }
     if (filters?.status) params.status = filters.status;
+    if (filters?.source) params.source = filters.source;
     if (filters?.from) params.from = filters.from;
     if (filters?.to) params.to = filters.to;
 
@@ -571,5 +608,21 @@ export const reservationsApi = {
     } catch {
       return [];
     }
+  },
+
+  async getById(id: number): Promise<Reservation> {
+    return apiClient.get<Reservation>(`/reservations/${id}`);
+  },
+
+  async create(data: CreateReservationData): Promise<Reservation> {
+    return apiClient.post<Reservation>('/reservations', data);
+  },
+
+  async update(id: number, data: UpdateReservationData): Promise<Reservation> {
+    return apiClient.put<Reservation>(`/reservations/${id}`, data);
+  },
+
+  async cancel(id: number): Promise<void> {
+    return apiClient.delete(`/reservations/${id}`);
   },
 };

@@ -11,6 +11,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import com.clenzy.service.SecurityAuditService;
+
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,14 +44,17 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     private static final String REDIS_PREFIX = "ratelimit:";
 
     private final StringRedisTemplate redisTemplate;
+    private final SecurityAuditService securityAuditService;
 
     // Fallback in-memory si Redis indisponible
     private final Map<String, RateLimitBucket> localBuckets = new ConcurrentHashMap<>();
     private volatile long lastCleanup = System.currentTimeMillis();
     private static final long CLEANUP_INTERVAL_MS = 300_000;
 
-    public RateLimitInterceptor(StringRedisTemplate redisTemplate) {
+    public RateLimitInterceptor(StringRedisTemplate redisTemplate,
+                                SecurityAuditService securityAuditService) {
         this.redisTemplate = redisTemplate;
+        this.securityAuditService = securityAuditService;
     }
 
     @Override
@@ -89,6 +94,8 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             response.getWriter().write("{\"error\":\"too_many_requests\",\"message\":\"Rate limit exceeded. Retry after " + retryAfter + " seconds.\"}");
 
             log.warn("Rate limit atteint pour {} (path: {})", key, path);
+            securityAuditService.logSuspiciousActivity(getCurrentUserId(),
+                    "Rate limit exceeded", Map.of("key", key, "path", path, "limit", limit));
             return false;
         }
     }

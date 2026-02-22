@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.InvitationDto;
 import com.clenzy.model.*;
 import com.clenzy.repository.OrganizationInvitationRepository;
+import com.clenzy.util.StringUtils;
 import com.clenzy.repository.OrganizationMemberRepository;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.UserRepository;
@@ -136,16 +137,22 @@ public class OrganizationInvitationService {
         // 8. Envoyer l'email
         String invitationLink = frontendUrl + "/accept-invitation?token=" + rawToken;
         String inviterName = inviter.getFirstName() + " " + inviter.getLastName();
+        boolean emailSent = true;
         try {
             emailService.sendInvitationEmail(emailLower, org.getName(), inviterName, role.name(), invitationLink, invitation.getExpiresAt());
             log.info("Invitation envoyee: email={}, org={}, role={}, by={}", emailLower, org.getName(), role, inviterName);
         } catch (Exception e) {
+            emailSent = false;
             log.error("Erreur envoi email d'invitation a {}: {}", emailLower, e.getMessage());
             // L'invitation est quand meme creee, le lien peut etre copie
         }
 
         // 9. Retourner le DTO avec le lien
-        return toDto(invitation, org, inviterName, invitationLink);
+        InvitationDto result = toDto(invitation, org, inviterName, invitationLink);
+        if (!emailSent) {
+            result.setEmailDeliveryFailed(true);
+        }
+        return result;
     }
 
     // ─── Informations publiques d'une invitation (pas de JWT) ─────────────────
@@ -207,7 +214,9 @@ public class OrganizationInvitationService {
             user.setEmail(email != null ? email : invitation.getInvitedEmail());
             user.setFirstName(firstName != null ? firstName : "");
             user.setLastName(lastName != null ? lastName : "");
-            user.setRole(UserRole.HOST);
+            // Mapper le role d'org invite vers un UserRole plateforme equivalent
+            UserRole mappedRole = mapOrgRoleToUserRole(invitation.getRoleInvited());
+            user.setRole(mappedRole);
             user.setStatus(UserStatus.ACTIVE);
             user.setEmailVerified(true);
             user.setPassword(UUID.randomUUID().toString().replace("-", "") + "Aa1!");
@@ -346,11 +355,16 @@ public class OrganizationInvitationService {
     }
 
     private void validateInvitePermission(User user, Long orgId, Jwt jwt) {
-        // ADMIN global peut tout faire
-        if (hasRole(jwt, "ADMIN")) return;
+        // Plateforme : SUPER_ADMIN peut tout faire
+        if (hasRole(jwt, "SUPER_ADMIN")) return;
 
-        // MANAGER de l'org peut inviter
-        if (hasRole(jwt, "MANAGER") && user.getOrganizationId() != null && user.getOrganizationId().equals(orgId)) {
+        // Plateforme : SUPER_MANAGER peut inviter dans n'importe quelle org
+        if (hasRole(jwt, "SUPER_MANAGER")) return;
+
+        // Organisation : verifier le role d'org du membre (OWNER, ADMIN, ou MANAGER d'org)
+        OrganizationMember member = memberRepository.findByUserId(user.getId()).orElse(null);
+        if (member != null && member.getOrganization().getId().equals(orgId)
+                && member.getRoleInOrg().canInviteMembers()) {
             return;
         }
 
@@ -370,14 +384,10 @@ public class OrganizationInvitationService {
 
     private boolean isAlreadyMember(Long orgId, String email) {
         // Chercher par email hash en base (email est chiffre, lookup via SHA-256 hash)
-        String emailHash = computeEmailHash(email);
+        String emailHash = StringUtils.computeEmailHash(email);
         Optional<User> userOpt = userRepository.findByEmailHash(emailHash);
         if (userOpt.isEmpty()) return false;
         return memberRepository.existsByOrganizationIdAndUserId(orgId, userOpt.get().getId());
-    }
-
-    private static String computeEmailHash(String email) {
-        return sha256(email.toLowerCase().trim());
     }
 
     private InvitationDto toDto(OrganizationInvitation inv, Organization org, String inviterName, String link) {
@@ -405,6 +415,25 @@ public class OrganizationInvitationService {
             return hex.toString();
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 non disponible", e);
+        }
+    }
+
+    /**
+     * Mappe un role d'organisation vers un UserRole plateforme pour l'auto-provisioning.
+     * Les roles operationnels ont un equivalent direct dans UserRole.
+     * Les roles de direction d'org (OWNER, ADMIN, MANAGER) → HOST par defaut
+     * car seul un SUPER_ADMIN peut attribuer des roles plateforme.
+     */
+    private UserRole mapOrgRoleToUserRole(OrgMemberRole orgRole) {
+        if (orgRole == null) return UserRole.HOST;
+        switch (orgRole) {
+            case HOUSEKEEPER:   return UserRole.HOUSEKEEPER;
+            case TECHNICIAN:    return UserRole.TECHNICIAN;
+            case SUPERVISOR:    return UserRole.SUPERVISOR;
+            case LAUNDRY:       return UserRole.LAUNDRY;
+            case EXTERIOR_TECH: return UserRole.EXTERIOR_TECH;
+            case HOST:          return UserRole.HOST;
+            default:            return UserRole.HOST; // OWNER, ADMIN, MANAGER, MEMBER → HOST par defaut
         }
     }
 }

@@ -43,13 +43,14 @@ public class MinutOAuthService {
                              MinutConnectionRepository connectionRepository,
                              TokenEncryptionService encryptionService,
                              TenantContext tenantContext,
-                             StringRedisTemplate redisTemplate) {
+                             StringRedisTemplate redisTemplate,
+                             RestTemplate restTemplate) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
         this.tenantContext = tenantContext;
         this.redisTemplate = redisTemplate;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = restTemplate;
     }
 
     /**

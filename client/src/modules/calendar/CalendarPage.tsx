@@ -26,6 +26,8 @@ import CalendarEventDialog from './CalendarEventDialog';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { interventionsApi, Intervention } from '../../services/api';
+import { extractApiList } from '../../types';
+import type { ApiError } from '../../services/apiClient';
 import {
   INTERVENTION_STATUS_OPTIONS,
   PRIORITY_OPTIONS,
@@ -106,22 +108,16 @@ export default function CalendarPage() {
       setLoading(true);
       setError(null);
       const data = await interventionsApi.getAll();
-
-      if ((data as any).content && Array.isArray((data as any).content)) {
-        setInterventions((data as any).content);
-      } else if (Array.isArray(data)) {
-        setInterventions(data);
-      } else {
-        setInterventions([]);
-      }
-    } catch (err: any) {
+      setInterventions(extractApiList<Intervention>(data));
+    } catch (err: unknown) {
       setInterventions([]);
-      if (err.status === 401) {
+      const status = typeof err === 'object' && err !== null && 'status' in err ? (err as ApiError).status : undefined;
+      if (status === 401) {
         setError("Erreur d'authentification. Veuillez vous reconnecter.");
-      } else if (err.status === 403) {
+      } else if (status === 403) {
         setError("Acces interdit. Vous n'avez pas les permissions necessaires.");
       } else {
-        setError(err.message || 'Erreur lors du chargement des interventions');
+        setError(err instanceof Error ? err.message : 'Erreur lors du chargement des interventions');
       }
     } finally {
       setLoading(false);

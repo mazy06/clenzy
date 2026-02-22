@@ -40,6 +40,11 @@ import {
   Logout,
   Flag,
   Group,
+  Hub,
+  Sync,
+  CheckCircle,
+  Error as ErrorMuiIcon,
+  FlightLand,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -49,6 +54,7 @@ import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatDate } from '../../utils/formatUtils';
 import DescriptionNotesDisplay from '../../components/DescriptionNotesDisplay';
+import CheckInInstructionsForm from '../channels/CheckInInstructionsForm';
 import {
   getPropertyStatusColor,
   getPropertyStatusLabel,
@@ -58,6 +64,8 @@ import {
   getInterventionStatusLabel,
   getInterventionTypeLabel,
 } from '../../utils/statusUtils';
+import type { ChipColor } from '../../types';
+import { airbnbApi } from '../../services/api/airbnbApi';
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
@@ -195,8 +203,6 @@ const FEATURE_CHIP_SX = {
 
 // ─── Amenity → category color mapping ───────────────────────────────────────
 
-type ChipColor = 'primary' | 'success' | 'info' | 'warning' | 'secondary' | 'default';
-
 const AMENITY_CATEGORY_MAP: Record<string, ChipColor> = {
   // Confort → primary (bleu Clenzy)
   WIFI: 'primary', TV: 'primary', AIR_CONDITIONING: 'primary', HEATING: 'primary',
@@ -301,6 +307,7 @@ const PropertyDetails: React.FC = () => {
 
   const [tabValue, setTabValue] = useState(0);
   const [canEdit, setCanEdit] = useState(false);
+  const [channelStatus, setChannelStatus] = useState<{ airbnb: { linked: boolean; syncEnabled: boolean; lastSyncAt: string | null; status: string } } | null>(null);
 
   // ─── Permissions (lightweight, kept as useEffect) ───────────────────────
   useEffect(() => {
@@ -310,6 +317,14 @@ const PropertyDetails: React.FC = () => {
     };
     checkPermissions();
   }, [hasPermissionAsync]);
+
+  // ─── Channel status ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!id) return;
+    airbnbApi.getPropertyChannelStatus(Number(id))
+      .then(setChannelStatus)
+      .catch(() => { /* No channel data yet */ });
+  }, [id]);
 
   // ─── Cleaning price estimation ───────────────────────────────────────────
   const cleaningEstimate = useMemo(() => {
@@ -436,6 +451,18 @@ const PropertyDetails: React.FC = () => {
             iconPosition="start"
             label={`${t('properties.tabs.interventions')} (${interventions.length})`}
             {...a11yProps(1)}
+          />
+          <Tab
+            icon={<Hub sx={{ fontSize: 16 }} />}
+            iconPosition="start"
+            label={t('channels.title')}
+            {...a11yProps(2)}
+          />
+          <Tab
+            icon={<FlightLand sx={{ fontSize: 16 }} />}
+            iconPosition="start"
+            label={t('channels.checkIn.title')}
+            {...a11yProps(3)}
           />
         </Tabs>
       </Paper>
@@ -885,6 +912,110 @@ const PropertyDetails: React.FC = () => {
               </Typography>
             </Paper>
           )}
+        </Box>
+      )}
+
+      {/* ─── Tab 2: Channels ──────────────────────────────────────────── */}
+      {tabValue === 2 && (
+        <Box
+          role="tabpanel"
+          id="property-tabpanel-2"
+          aria-labelledby="property-tab-2"
+          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
+        >
+          <Paper sx={CARD_SX}>
+            <Typography sx={SECTION_TITLE_SX}>
+              Airbnb
+            </Typography>
+            {channelStatus?.airbnb ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={INFO_ROW_SX}>
+                  {channelStatus.airbnb.linked ? (
+                    <CheckCircle sx={{ fontSize: 16, color: '#4A9B8E' }} />
+                  ) : (
+                    <ErrorMuiIcon sx={{ fontSize: 16, color: '#9e9e9e' }} />
+                  )}
+                  <Box sx={{ flex: 1 }}>
+                    <Typography sx={INFO_LABEL_SX}>{t('common.status')}</Typography>
+                    <Typography sx={INFO_VALUE_SX}>
+                      {channelStatus.airbnb.linked ? channelStatus.airbnb.status : 'Non lié'}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {channelStatus.airbnb.linked && (
+                  <>
+                    <Divider sx={{ my: 0.25 }} />
+                    <Box sx={INFO_ROW_SX}>
+                      <Sync sx={{ fontSize: 16, color: channelStatus.airbnb.syncEnabled ? '#4A9B8E' : '#9e9e9e' }} />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.title')}</Typography>
+                        <Typography sx={INFO_VALUE_SX}>
+                          {channelStatus.airbnb.syncEnabled ? t('channels.syncStatus.syncOn') : t('channels.syncStatus.syncOff')}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {channelStatus.airbnb.lastSyncAt && (
+                      <>
+                        <Divider sx={{ my: 0.25 }} />
+                        <Box sx={INFO_ROW_SX}>
+                          <Schedule sx={{ fontSize: 16, color: 'text.secondary' }} />
+                          <Box sx={{ flex: 1 }}>
+                            <Typography sx={INFO_LABEL_SX}>{t('channels.syncStatus.lastSync')}</Typography>
+                            <Typography sx={INFO_VALUE_SX}>
+                              {new Date(channelStatus.airbnb.lastSyncAt).toLocaleString('fr-FR')}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {!channelStatus.airbnb.linked && (
+                  <Box sx={{ mt: 0.5 }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<Hub sx={{ fontSize: 14 }} />}
+                      onClick={() => navigate('/channels')}
+                      sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+                    >
+                      {t('channels.listings.linkProperty')}
+                    </Button>
+                  </Box>
+                )}
+              </Box>
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 2 }}>
+                <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', mb: 1 }}>
+                  Aucune intégration configurée
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<Hub sx={{ fontSize: 14 }} />}
+                  onClick={() => navigate('/channels')}
+                  sx={{ fontSize: '0.75rem', textTransform: 'none' }}
+                >
+                  Configurer les channels
+                </Button>
+              </Box>
+            )}
+          </Paper>
+        </Box>
+      )}
+
+      {/* ─── Tab 3: Instructions voyageur ─────────────────────────────── */}
+      {tabValue === 3 && (
+        <Box
+          role="tabpanel"
+          id="property-tabpanel-3"
+          aria-labelledby="property-tab-3"
+          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
+        >
+          <CheckInInstructionsForm propertyId={Number(id)} />
         </Box>
       )}
     </Box>

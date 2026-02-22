@@ -35,30 +35,17 @@ public class PermissionService {
 
     private static final Logger log = LoggerFactory.getLogger(PermissionService.class);
 
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
-
-    @Autowired
-    private CacheManager cacheManager;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private TenantContext tenantContext;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final CacheManager cacheManager;
+    private final UserRepository userRepository;
+    private final TenantContext tenantContext;
+    private final RolePermissionRepository rolePermissionRepository;
+    private final RoleRepository roleRepository;
+    private final PermissionRepository permissionRepository;
 
     @Autowired(required = false)
     private NotificationService notificationService;
-    
-    @Autowired
-    private RolePermissionRepository rolePermissionRepository;
-    
-    @Autowired
-    private RoleRepository roleRepository;
-    
-    @Autowired
-    private PermissionRepository permissionRepository;
-    
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -67,10 +54,20 @@ public class PermissionService {
     private static final String ROLES_KEY = "roles:all";
     private static final int CACHE_TTL_HOURS = 0; // 0 = Pas d'expiration (cache permanent)
 
-    // Permissions par défaut (hardcodées pour l'instant)
-    // Toutes les permissions viennent de la base de données
-
-    public PermissionService() {
+    public PermissionService(RedisTemplate<String, Object> redisTemplate,
+                             CacheManager cacheManager,
+                             UserRepository userRepository,
+                             TenantContext tenantContext,
+                             RolePermissionRepository rolePermissionRepository,
+                             RoleRepository roleRepository,
+                             PermissionRepository permissionRepository) {
+        this.redisTemplate = redisTemplate;
+        this.cacheManager = cacheManager;
+        this.userRepository = userRepository;
+        this.tenantContext = tenantContext;
+        this.rolePermissionRepository = rolePermissionRepository;
+        this.roleRepository = roleRepository;
+        this.permissionRepository = permissionRepository;
         log.debug("PermissionService Redis initialise - Base de donnees = Source de verite unique");
         log.debug("Ce service utilise Redis pour le cache des permissions");
         log.debug("Toutes les permissions viennent de la base de donnees");
@@ -312,7 +309,7 @@ public class PermissionService {
     
 
 
-    @Transactional
+    // Package-private would allow @Transactional, but this is called within the caller's transaction scope
     private void savePermissionsToDatabase(String role, List<String> permissions) {
         try {
             log.debug("PermissionService.savePermissionsToDatabase() - Sauvegarde pour le role: {}: {}", role, permissions);
@@ -393,8 +390,16 @@ public class PermissionService {
     }
 
     private void removeCustomPermissionsFromDatabase(String role) {
-        // TODO: Implémenter la suppression des permissions personnalisées
-        log.debug("TODO: Suppression des permissions personnalisees pour le role: {}", role);
+        try {
+            log.debug("Suppression des permissions personnalisees pour le role: {}", role);
+            rolePermissionRepository.deleteByRoleName(role);
+            entityManager.flush();
+            entityManager.clear();
+            log.debug("Permissions personnalisees supprimees pour le role: {}", role);
+        } catch (Exception e) {
+            log.error("Erreur lors de la suppression des permissions pour le role {}: {}", role, e.getMessage(), e);
+            throw new RuntimeException("Erreur lors de la suppression des permissions du role " + role, e);
+        }
     }
 
     private List<String> getUserPermissionsFromDatabase(String userId) {
@@ -429,15 +434,33 @@ public class PermissionService {
     }
 
     private boolean hasCustomPermissions(String role) {
-        // TODO: Implémenter la vérification des permissions personnalisées
-        log.debug("TODO: Verification des permissions personnalisees pour le role: {}", role);
-        return false;
+        try {
+            long customCount = rolePermissionRepository.countByRoleNameAndIsActiveTrue(role);
+            boolean hasCustom = customCount > 0;
+            log.debug("Verification permissions personnalisees pour le role {}: {} (count={})", role, hasCustom, customCount);
+            return hasCustom;
+        } catch (Exception e) {
+            log.warn("Erreur lors de la verification des permissions personnalisees pour {}: {}", role, e.getMessage());
+            return false;
+        }
     }
 
     private void validatePermissions(List<String> permissions) {
-        // TODO: Implémenter la validation des permissions depuis la base de données
-        // Pour l'instant, on accepte toutes les permissions
-        log.debug("PermissionService.validatePermissions() - Validation des permissions: {}", permissions);
+        if (permissions == null || permissions.isEmpty()) {
+            return;
+        }
+        // Validation du format : chaque permission doit etre "module:action" avec uniquement des caracteres alphanumeriques
+        java.util.regex.Pattern validPattern = java.util.regex.Pattern.compile("^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$");
+        for (String permission : permissions) {
+            if (permission == null || permission.isBlank()) {
+                throw new IllegalArgumentException("Le nom de permission ne peut pas etre vide");
+            }
+            if (!validPattern.matcher(permission).matches()) {
+                throw new IllegalArgumentException(
+                        "Format de permission invalide: '" + permission + "'. Le format attendu est 'module:action' (ex: 'contact:view')");
+            }
+        }
+        log.debug("PermissionService.validatePermissions() - {} permissions validees", permissions.size());
     }
 
     // Méthode supprimée car remplacée par la version publique
@@ -530,8 +553,8 @@ public class PermissionService {
         // (ignorer le cache Redis pour être sûr d'avoir les données à jour)
         List<String> permissions = getPermissionsFromDatabase(userRole.name());
 
-        // Fallback ADMIN : si aucune permission trouvée en base, injecter toutes les permissions disponibles
-        if ((permissions == null || permissions.isEmpty()) && userRole == UserRole.ADMIN) {
+        // Fallback staff plateforme : si aucune permission trouvée en base, injecter toutes les permissions
+        if ((permissions == null || permissions.isEmpty()) && userRole.isPlatformAdmin()) {
             log.warn("PermissionService.getUserPermissionsForSync() - FALLBACK ADMIN : injection de toutes les permissions");
             permissions = getAllAvailablePermissions();
         }

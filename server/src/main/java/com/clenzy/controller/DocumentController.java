@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/documents")
 @Tag(name = "Documents", description = "Generation et gestion de documents")
+@PreAuthorize("isAuthenticated()")
 public class DocumentController {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentController.class);
@@ -55,7 +56,7 @@ public class DocumentController {
 
     @GetMapping("/templates")
     @Operation(summary = "Lister tous les templates")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<List<DocumentTemplateDto>> listTemplates() {
         List<DocumentTemplateDto> templates = generatorService.listTemplates().stream()
                 .map(DocumentTemplateDto::fromEntity)
@@ -65,14 +66,14 @@ public class DocumentController {
 
     @GetMapping("/templates/{id}")
     @Operation(summary = "Detail d'un template avec ses tags")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<DocumentTemplateDto> getTemplate(@PathVariable Long id) {
         return ResponseEntity.ok(DocumentTemplateDto.fromEntity(generatorService.getTemplate(id)));
     }
 
     @PostMapping(value = "/templates", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Uploader un nouveau template .odt")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<DocumentTemplateDto> uploadTemplate(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam("file") MultipartFile file,
@@ -90,7 +91,7 @@ public class DocumentController {
 
     @PutMapping("/templates/{id}")
     @Operation(summary = "Modifier les metadata d'un template")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<DocumentTemplateDto> updateTemplate(
             @PathVariable Long id,
             @RequestBody UpdateTemplateRequest body
@@ -111,14 +112,14 @@ public class DocumentController {
 
     @PutMapping("/templates/{id}/activate")
     @Operation(summary = "Activer un template (desactive les autres du meme type)")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<DocumentTemplateDto> activateTemplate(@PathVariable Long id) {
         return ResponseEntity.ok(DocumentTemplateDto.fromEntity(generatorService.activateTemplate(id)));
     }
 
     @DeleteMapping("/templates/{id}")
     @Operation(summary = "Supprimer un template")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Void> deleteTemplate(@PathVariable Long id) {
         generatorService.deleteTemplate(id);
         return ResponseEntity.noContent().build();
@@ -126,7 +127,7 @@ public class DocumentController {
 
     @PostMapping("/templates/{id}/reparse")
     @Operation(summary = "Re-scanner les tags d'un template")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<DocumentTemplateDto> reparseTemplate(@PathVariable Long id) {
         return ResponseEntity.ok(DocumentTemplateDto.fromEntity(generatorService.reparseTemplate(id)));
     }
@@ -135,7 +136,7 @@ public class DocumentController {
 
     @PostMapping("/generate")
     @Operation(summary = "Generer un document manuellement")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<DocumentGenerationDto> generateDocument(
             @AuthenticationPrincipal Jwt jwt,
             @jakarta.validation.Valid @RequestBody GenerateDocumentRequest request
@@ -148,7 +149,7 @@ public class DocumentController {
 
     @GetMapping("/generations")
     @Operation(summary = "Historique des generations de documents")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<Page<DocumentGenerationDto>> listGenerations(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
@@ -159,7 +160,7 @@ public class DocumentController {
 
     @GetMapping("/generations/{id}/download")
     @Operation(summary = "Telecharger un document genere")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<Resource> downloadGeneration(@PathVariable Long id) {
         DocumentGeneration generation = generatorService.getGeneration(id);
 
@@ -183,7 +184,7 @@ public class DocumentController {
 
     @GetMapping("/types")
     @Operation(summary = "Liste des types de documents disponibles")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<List<Map<String, String>>> getDocumentTypes() {
         List<Map<String, String>> types = Arrays.stream(DocumentType.values())
                 .map(t -> Map.of("value", t.name(), "label", t.getLabel()))
@@ -193,7 +194,7 @@ public class DocumentController {
 
     @GetMapping("/tag-categories")
     @Operation(summary = "Liste des categories de tags")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<List<Map<String, String>>> getTagCategories() {
         List<Map<String, String>> categories = Arrays.stream(TagCategory.values())
                 .map(c -> Map.of("value", c.name(), "label", c.name()))
@@ -205,7 +206,7 @@ public class DocumentController {
 
     @GetMapping("/generations/{id}/verify")
     @Operation(summary = "Verifier l'integrite d'un document (hash SHA-256)")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Map<String, Object>> verifyDocumentIntegrity(@PathVariable Long id) {
         Map<String, Object> result = complianceService.verifyDocumentIntegrity(id);
         return ResponseEntity.ok(result);
@@ -213,7 +214,7 @@ public class DocumentController {
 
     @PostMapping("/templates/{id}/compliance-check")
     @Operation(summary = "Verifier la conformite NF d'un template")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<ComplianceReportDto> checkTemplateCompliance(
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt
@@ -225,14 +226,14 @@ public class DocumentController {
 
     @GetMapping("/compliance/stats")
     @Operation(summary = "Statistiques globales de conformite NF")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<ComplianceStatsDto> getComplianceStats() {
         return ResponseEntity.ok(complianceService.getComplianceStats());
     }
 
     @GetMapping("/generations/by-number/{legalNumber}")
     @Operation(summary = "Rechercher un document par numero legal")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<DocumentGenerationDto> getGenerationByLegalNumber(@PathVariable String legalNumber) {
         DocumentGeneration generation = generatorService.getGenerationByLegalNumber(legalNumber);
         return ResponseEntity.ok(DocumentGenerationDto.fromEntity(generation));
@@ -240,7 +241,7 @@ public class DocumentController {
 
     @PostMapping("/generations/{id}/correct")
     @Operation(summary = "Creer un document correctif (avoir)")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<DocumentGenerationDto> createCorrectiveDocument(
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt,

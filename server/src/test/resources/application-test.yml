@@ -1,0 +1,125 @@
+# ===========================================
+# Clenzy — Test Profile (Niveau 9)
+# ===========================================
+# PostgreSQL + Redis fournis par Testcontainers.
+# Kafka desactive (mock). Keycloak desactive (mock JWT).
+
+spring:
+  datasource:
+    # URL injectee dynamiquement par @DynamicPropertySource dans AbstractIntegrationTest
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 10000
+  jpa:
+    hibernate:
+      ddl-auto: create-drop   # Hibernate genere le schema (pas de V1 Flyway baseline)
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+  flyway:
+    enabled: false   # Pas de baseline V1 — Hibernate cree le schema
+  redis:
+    # URL injectee dynamiquement par @DynamicPropertySource
+    timeout: 2000ms
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000
+      cache-null-values: false
+  kafka:
+    bootstrap-servers: localhost:0
+    consumer:
+      group-id: clenzy-test
+      auto-offset-reset: earliest
+    producer:
+      acks: all
+    listener:
+      auto-startup: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:0/realms/test
+  mail:
+    host: localhost
+    port: 0
+
+# Desactiver les taches planifiees en test
+spring.task.scheduling.pool.size: 0
+
+logging:
+  level:
+    org.testcontainers: warn
+    org.hibernate.SQL: warn
+    com.clenzy: info
+    org.springframework.security: warn
+
+keycloak:
+  auth-server-url: http://localhost:0
+  realm: test
+  resource: test
+  credentials:
+    secret: test-secret
+  admin:
+    username: test
+    password: test
+    client-id: test
+
+jasypt:
+  encryptor:
+    password: test-encryption-key-minimum-32-chars
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+# Stripe (mock values pour les tests)
+stripe:
+  secret-key: sk_test_fake_key_for_tests
+  publishable-key: pk_test_fake_key_for_tests
+  webhook-secret: whsec_test_fake_secret
+  currency: eur
+  success-url: http://localhost:3000/payment/success?session_id={CHECKOUT_SESSION_ID}
+  cancel-url: http://localhost:3000/payment/cancel
+  inscription:
+    success-url: http://localhost:3000/login?inscription=success
+    cancel-url: http://localhost:3000/inscription?payment=cancelled
+
+# JWT (mock)
+jwt:
+  secret: test-jwt-secret-key-minimum-32-characters-long-for-hmac
+
+# Tuya (desactive en test)
+tuya:
+  api:
+    base-url: http://localhost:0
+    region: eu
+  auth:
+    access-id: test
+    access-secret: test
+
+# Desactiver les integrations externes
+airbnb:
+  sync:
+    enabled: false
+clenzy:
+  mail:
+    provider: generic
+    from: test@clenzy.test
+    notification-to: test@clenzy.test
+  imap:
+    enabled: false
+  libreoffice:
+    url: http://localhost:0
+  uploads:
+    contact-dir: ${java.io.tmpdir}/clenzy-test/uploads/contact
+    documents-dir: ${java.io.tmpdir}/clenzy-test/uploads/documents
+    templates-dir: ${java.io.tmpdir}/clenzy-test/uploads/templates

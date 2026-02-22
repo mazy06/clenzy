@@ -4,180 +4,25 @@ import apiClient from '../services/apiClient';
 import type { AuthUser } from './useAuth';
 import type { InterventionReportData, FinancialReportData } from '../services/api/reportsApi';
 import type { DashboardPeriod } from '../modules/dashboard/DashboardDateFilter';
+import type {
+  TranslationFn,
+  DashboardPaginatedResponse as PaginatedResponse,
+  ApiProperty,
+  ApiServiceRequest,
+  ApiIntervention,
+  ApiUser,
+  ApiTeam,
+  ManagerAssociations,
+  DashboardStats,
+  ActivityItem,
+  UpcomingIntervention,
+  PendingPaymentItem,
+  ServiceRequestItem,
+  AlertItem,
+} from '../types/dashboard';
 
-// ============================================================================
-// Types — API entities
-// ============================================================================
-
-type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
-
-interface PaginatedResponse<T> {
-  content?: T[];
-}
-
-interface ApiProperty {
-  id: number;
-  name?: string;
-  status: string;
-  ownerId?: number;
-  address?: string;
-  city?: string;
-  type?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-interface ApiServiceRequest {
-  id: string;
-  title?: string;
-  status?: string;
-  serviceType?: string;
-  type?: string;
-  priority?: string;
-  urgent?: boolean;
-  desiredDate?: string;
-  propertyId?: number;
-  propertyName?: string;
-  property?: { name?: string };
-  userId?: number;
-  requestorName?: string;
-  user?: { firstName?: string; lastName?: string };
-  createdAt: string;
-}
-
-interface ApiIntervention {
-  id: string;
-  title?: string;
-  type: string;
-  status: string;
-  priority?: string;
-  propertyId?: number;
-  propertyName?: string;
-  property?: { name?: string };
-  assignedToType?: string;
-  assignedToId?: number;
-  assignedToName?: string;
-  scheduledDate?: string;
-  createdAt?: string;
-  estimatedCost?: number;
-  actualCost?: number;
-}
-
-interface ApiUser {
-  id: number;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  role?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-interface ApiTeam {
-  id: number;
-  name?: string;
-  members?: unknown[];
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-interface ManagerAssociations {
-  teams?: Array<{ id: number }>;
-  portfolios?: Array<{ id: number; properties?: Array<{ id: number }> }>;
-  users?: Array<{ id: number }>;
-}
-
-// ============================================================================
-// Public types (exported for consumers)
-// ============================================================================
-
-export interface DashboardStats {
-  properties: {
-    active: number;
-    total: number;
-    growth: number;
-  };
-  serviceRequests: {
-    pending: number;
-    total: number;
-    growth: number;
-  };
-  interventions: {
-    today: number;
-    total: number;
-    growth: number;
-  };
-  revenue: {
-    current: number;
-    previous: number;
-    growth: number;
-  };
-}
-
-export interface ActivityItem {
-  id: string;
-  type: string;
-  property: string;
-  time: string;
-  status: 'completed' | 'urgent' | 'scheduled' | 'pending' | 'approved' | 'created' | 'started' | 'finished' | 'in_progress';
-  timestamp: string;
-  category: 'property' | 'service-request' | 'intervention' | 'user' | 'team';
-  details?: {
-    address?: string;
-    city?: string;
-    type?: string;
-    requestor?: string;
-    priority?: string;
-    assignedTo?: string;
-    role?: string;
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    fullName?: string;
-    members?: number;
-    urgent?: boolean;
-    urgentLabel?: string;
-    serviceType?: string;
-    title?: string;
-    desiredDate?: string;
-  };
-}
-
-export interface UpcomingIntervention {
-  id: number;
-  title: string;
-  property: string;
-  scheduledDate: string;
-  status: string;
-  priority: string;
-}
-
-export interface PendingPaymentItem {
-  id: number;
-  title: string;
-  property: string;
-  estimatedCost: number | null;
-  scheduledDate: string;
-}
-
-export interface ServiceRequestItem {
-  id: string;
-  title: string;
-  propertyName: string;
-  status: string;
-  priority: string;
-  dueDate: string;
-  createdAt: string;
-}
-
-export interface AlertItem {
-  id: number;
-  type: 'urgent' | 'payment' | 'validation' | 'overdue';
-  title: string;
-  description: string;
-  count?: number;
-  route: string;
-}
+// Re-export public types for existing consumers
+export type { DashboardStats, ActivityItem, UpcomingIntervention, PendingPaymentItem, ServiceRequestItem, AlertItem } from '../types/dashboard';
 
 // ============================================================================
 // Raw data type returned by the query
@@ -432,7 +277,7 @@ async function fetchOverviewRawData(
 
   // Fetch manager associations if needed
   let managerAssociations: ManagerAssociations | null = null;
-  if (userRole === 'MANAGER' && userId) {
+  if (['SUPER_MANAGER'].includes(userRole) && userId) {
     try {
       managerAssociations = await apiClient.get<ManagerAssociations>(`/managers/${userId}/associations`);
     } catch {
@@ -547,7 +392,7 @@ export function useDashboardOverview({
         .map((p) => p.id);
     }
 
-    if (userRole === 'MANAGER' && managerAssociations) {
+    if (['SUPER_MANAGER'].includes(userRole) && managerAssociations) {
       if (managerAssociations.teams) managerTeamIds = managerAssociations.teams.map((team) => team.id);
       if (managerAssociations.portfolios) {
         managerPropertyIds = managerAssociations.portfolios
@@ -632,10 +477,10 @@ export function useDashboardOverview({
     const activityItems: ActivityItem[] = [];
 
     // Properties
-    if (userRole === 'ADMIN' || userRole === 'MANAGER' || userRole === 'HOST') {
+    if (['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'].includes(userRole)) {
       let filteredProps = properties;
       if (userRole === 'HOST') filteredProps = properties.filter((p) => hostPropertyIds.includes(p.id));
-      else if (userRole === 'MANAGER') filteredProps = properties.filter((p) => managerPropertyIds.includes(p.id));
+      else if (['SUPER_MANAGER'].includes(userRole)) filteredProps = properties.filter((p) => managerPropertyIds.includes(p.id));
 
       filteredProps.forEach((prop) => {
         activityItems.push({
@@ -654,7 +499,7 @@ export function useDashboardOverview({
     // Service requests
     {
       let filteredReqs = requests;
-      if (userRole === 'MANAGER') {
+      if (['SUPER_MANAGER'].includes(userRole)) {
         filteredReqs = requests.filter((req) =>
           managerPropertyIds.includes(req.propertyId || 0) || managerUserIds.includes(req.userId || 0)
         );
@@ -719,7 +564,7 @@ export function useDashboardOverview({
       let filteredInts = interventions;
       if (userRole === 'HOST') {
         filteredInts = interventions.filter((int) => hostPropertyIds.includes(int.propertyId || 0));
-      } else if (userRole === 'MANAGER') {
+      } else if (['SUPER_MANAGER'].includes(userRole)) {
         filteredInts = interventions.filter((int) =>
           managerPropertyIds.includes(int.propertyId || 0) ||
           (int.assignedToType === 'team' && managerTeamIds.includes(int.assignedToId || 0)) ||
@@ -743,9 +588,9 @@ export function useDashboardOverview({
     }
 
     // Users (admin/manager only, not for HOST)
-    if (userRole !== 'HOST' && (userRole === 'ADMIN' || userRole === 'MANAGER')) {
+    if (userRole !== 'HOST' && (['SUPER_ADMIN', 'SUPER_MANAGER'].includes(userRole))) {
       let filteredUsers = users;
-      if (userRole === 'MANAGER') filteredUsers = users.filter((u) => managerUserIds.includes(u.id));
+      if (['SUPER_MANAGER'].includes(userRole)) filteredUsers = users.filter((u) => managerUserIds.includes(u.id));
 
       filteredUsers.forEach((apiUser) => {
         const fullName = apiUser.firstName && apiUser.lastName
@@ -775,9 +620,9 @@ export function useDashboardOverview({
     }
 
     // Teams (admin/manager only, not for HOST)
-    if (userRole !== 'HOST' && (userRole === 'ADMIN' || userRole === 'MANAGER')) {
+    if (userRole !== 'HOST' && (['SUPER_ADMIN', 'SUPER_MANAGER'].includes(userRole))) {
       let filteredTeams = teams;
-      if (userRole === 'MANAGER') filteredTeams = teams.filter((teamItem) => managerTeamIds.includes(teamItem.id));
+      if (['SUPER_MANAGER'].includes(userRole)) filteredTeams = teams.filter((teamItem) => managerTeamIds.includes(teamItem.id));
 
       filteredTeams.forEach((team) => {
         activityItems.push({

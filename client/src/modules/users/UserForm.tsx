@@ -35,7 +35,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../../hooks/useAuth';
-import { usersApi } from '../../services/api';
+import { usersApi, type UserFormData as ApiUserFormData } from '../../services/api';
 import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
 import { userSchema } from '../../schemas';
 import PageHeader from '../../components/PageHeader';
@@ -53,11 +53,13 @@ export interface UserFormData {
 }
 
 const userRoles = [
-  { value: 'ADMIN', label: 'Administrateur', icon: <AdminPanelSettings />, color: 'error' },
-  { value: 'MANAGER', label: 'Manager', icon: <SupervisorAccount />, color: 'warning' },
+  { value: 'SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error' },
+  { value: 'SUPER_MANAGER', label: 'Super Manager', icon: <SupervisorAccount />, color: 'secondary' },
   { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info' },
   { value: 'TECHNICIAN', label: 'Technicien', icon: <Build />, color: 'primary' },
   { value: 'HOUSEKEEPER', label: 'Agent de ménage', icon: <CleaningServices />, color: 'default' },
+  { value: 'LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default' },
+  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', icon: <Build />, color: 'primary' },
   { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
 ];
 
@@ -136,23 +138,23 @@ const UserForm: React.FC = () => {
 
     try {
       // Préparer les données pour le backend
-      const backendData = {
+      const backendData: ApiUserFormData = {
         firstName: data.firstName.trim(),
         lastName: data.lastName.trim(),
         email: data.email.trim().toLowerCase(),
-        phoneNumber: data.phoneNumber?.trim() || null,
+        phoneNumber: data.phoneNumber?.trim() || undefined,
         password: data.password,
         role: data.role,
         status: data.status,
       };
 
-      await usersApi.create(backendData as any);
+      await usersApi.create(backendData);
       setSuccess(true);
       setTimeout(() => {
         navigate('/users');
       }, 1500);
-    } catch (err: any) {
-      setError('Erreur lors de la création: ' + (err?.message || 'Erreur inconnue'));
+    } catch (err: unknown) {
+      setError('Erreur lors de la création: ' + (err instanceof Error ? err.message : 'Erreur inconnue'));
     } finally {
       setSaving(false);
     }
@@ -405,12 +407,14 @@ const UserForm: React.FC = () => {
                   📋 Rôle sélectionné : {userRoles.find(r => r.value === watchedRole)?.label}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  {watchedRole === 'ADMIN' && 'Accès complet à toutes les fonctionnalités de la plateforme'}
-                  {watchedRole === 'MANAGER' && 'Gestion des équipes et des demandes de service'}
+                  {watchedRole === 'SUPER_ADMIN' && 'Super administrateur avec accès complet multi-organisations'}
+                  {watchedRole === 'SUPER_MANAGER' && 'Super manager avec gestion étendue multi-équipes'}
                   {watchedRole === 'SUPERVISOR' && 'Supervision des interventions et du personnel'}
                   {watchedRole === 'TECHNICIAN' && 'Exécution des interventions techniques'}
                   {watchedRole === 'HOUSEKEEPER' && 'Exécution des interventions de nettoyage'}
                   {watchedRole === 'HOST' && 'Gestion de ses propres propriétés'}
+                  {watchedRole === 'LAUNDRY' && 'Gestion du linge et de la blanchisserie'}
+                  {watchedRole === 'EXTERIOR_TECH' && 'Entretien des espaces extérieurs'}
                 </Typography>
               </Box>
             )}

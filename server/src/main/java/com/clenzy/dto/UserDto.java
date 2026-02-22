@@ -65,6 +65,14 @@ public class UserDto {
 
     // Paiement differe (admin/manager toggle)
     public Boolean deferredPayment;
+
+    // Organisation rattachee
+    public Long organizationId;
+    public String organizationName;
+
+    // Flag indiquant un echec de mise a jour du mot de passe dans Keycloak
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    public Boolean passwordUpdateFailed;
 }
 
 

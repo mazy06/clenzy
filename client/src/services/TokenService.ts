@@ -1,6 +1,6 @@
 import Keycloak from 'keycloak-js';
 import keycloak from '../keycloak';
-import apiClient from './apiClient';
+import apiClient, { type ApiError } from './apiClient';
 import storageService, { STORAGE_KEYS } from './storageService';
 
 // Types pour les événements de token
@@ -350,9 +350,9 @@ class TokenService {
     try {
       const result = await apiClient.post<{ cleanedCount: number }>('/admin/tokens/cleanup');
       return { success: true, cleanedCount: result.cleanedCount };
-    } catch (error: any) {
-      if (error.status) {
-        return { success: false, error: `Erreur ${error.status}` };
+    } catch (error: unknown) {
+      if (error instanceof Error && 'status' in error) {
+        return { success: false, error: `Erreur ${(error as ApiError).status}` };
       }
       return { success: false, error: 'Erreur de connexion' };
     }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { getOrgRoleLabel } from '../../utils/orgRoleLabels';
 import {
   Box,
   Typography,
@@ -92,15 +93,7 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
     }
   };
 
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'OWNER': return 'Proprietaire';
-      case 'ADMIN': return 'Administrateur';
-      case 'MANAGER': return 'Manager';
-      case 'MEMBER': return 'Membre';
-      default: return role;
-    }
-  };
+  const getRoleLabel = getOrgRoleLabel;
 
   if (loading) {
     return (

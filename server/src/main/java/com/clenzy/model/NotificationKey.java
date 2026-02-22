@@ -122,9 +122,30 @@ public enum NotificationKey {
     DOCUMENT_GENERATED(NotificationType.SUCCESS, NotificationCategory.DOCUMENT, true),
     DOCUMENT_GENERATION_FAILED(NotificationType.ERROR, NotificationCategory.DOCUMENT, true),
     DOCUMENT_TEMPLATE_UPLOADED(NotificationType.INFO, NotificationCategory.DOCUMENT, false),
-    DOCUMENT_SENT_BY_EMAIL(NotificationType.SUCCESS, NotificationCategory.DOCUMENT, true);
+    DOCUMENT_SENT_BY_EMAIL(NotificationType.SUCCESS, NotificationCategory.DOCUMENT, true),
 
-    // Total: 18 + 8 + 10 + 6 + 8 + 6 + 5 + 3 + 2 + 4 + 6 + 4 = 80
+    // ─── RECONCILIATION (3 cles) ──────────────────────────────────────────────
+
+    RECONCILIATION_COMPLETED(NotificationType.INFO, NotificationCategory.SYSTEM, false),
+    RECONCILIATION_DIVERGENCE_HIGH(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+    RECONCILIATION_FAILED(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
+
+    // ─── KPI (2 cles) ──────────────────────────────────────────────────────
+    KPI_THRESHOLD_BREACH(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+    KPI_CRITICAL_FAILURE(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
+
+    // ─── GUEST MESSAGING (3 cles) ───────────────────────────────────────────
+    GUEST_MESSAGE_SENT(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, true),
+    GUEST_MESSAGE_FAILED(NotificationType.ERROR, NotificationCategory.GUEST_MESSAGING, true),
+    GUEST_PRICING_PUSHED(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, false),
+
+    // ─── NOISE ALERT (4 cles) ──────────────────────────────────────────────
+    NOISE_ALERT_WARNING(NotificationType.WARNING, NotificationCategory.NOISE_ALERT, true),
+    NOISE_ALERT_CRITICAL(NotificationType.ERROR, NotificationCategory.NOISE_ALERT, true),
+    NOISE_ALERT_RESOLVED(NotificationType.SUCCESS, NotificationCategory.NOISE_ALERT, true),
+    NOISE_ALERT_CONFIG_CHANGED(NotificationType.INFO, NotificationCategory.NOISE_ALERT, false);
+
+    // Total: 18 + 8 + 10 + 6 + 8 + 6 + 5 + 3 + 2 + 4 + 6 + 4 + 3 + 2 + 3 + 4 = 92
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

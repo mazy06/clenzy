@@ -3,6 +3,7 @@ import apiClient from '../apiClient';
 export interface RolePermissions {
   role: string;
   permissions: string[];
+  isDefault: boolean;
 }
 
 export const permissionsApi = {
@@ -13,25 +14,25 @@ export const permissionsApi = {
     return apiClient.get<string[]>(`/permissions/user/${role}`);
   },
   getAllRoles() {
-    return apiClient.get<RolePermissions[]>('/permissions/roles');
+    return apiClient.get<string[]>('/permissions/roles');
   },
   getRolePermissions(role: string) {
-    return apiClient.get<string[]>(`/permissions/roles/${role}`);
+    return apiClient.get<RolePermissions>(`/permissions/roles/${role}`);
   },
   sync(userId: string) {
     return apiClient.post<{ permissions: string[] }>('/permissions/sync', { userId });
   },
   updateRole(role: string, permissions: string[]) {
-    return apiClient.put(`/permissions/roles/${role}`, permissions);
+    return apiClient.put<RolePermissions>(`/permissions/roles/${role}`, permissions);
   },
   saveRole(role: string, permissions: string[]) {
     return apiClient.post(`/permissions/roles/${role}/save`, { permissions });
   },
   resetRole(role: string) {
-    return apiClient.post(`/permissions/roles/${role}/reset`);
+    return apiClient.post<RolePermissions>(`/permissions/roles/${role}/reset`);
   },
   resetRoleToInitial(role: string) {
-    return apiClient.post(`/permissions/roles/${role}/reset-to-initial`);
+    return apiClient.post<RolePermissions>(`/permissions/roles/${role}/reset-to-initial`);
   },
   getRedisCache(userId: string) {
     return apiClient.get<{ permissions: string[] }>(`/permissions/redis/${userId}`);

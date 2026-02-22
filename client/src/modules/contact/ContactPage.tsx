@@ -13,11 +13,13 @@ import {
   Inbox as InboxIcon,
   Archive as ArchiveIcon,
   Description as FormsIcon,
-  Edit as EditIcon
+  Edit as EditIcon,
+  Hub as AirbnbIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ContactMessages from './ContactMessages';
 import ReceivedFormsTab from './ReceivedFormsTab';
+import AirbnbInboxTab from '../channels/AirbnbInboxTab';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { receivedFormsApi } from '../../services/api/receivedFormsApi';
@@ -62,7 +64,7 @@ const ContactPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
-  const isAdminOrManager = user?.roles?.some((r) => ['ADMIN', 'MANAGER'].includes(r)) ?? false;
+  const isAdminOrManager = user?.roles?.some((r) => ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(r)) ?? false;
 
   // Charger le compteur de formulaires NEW pour le badge
   useEffect(() => {
@@ -123,6 +125,12 @@ const ContactPage: React.FC = () => {
                 aria-controls="contact-tabpanel-3"
               />
             )}
+            <Tab
+              icon={<AirbnbIcon />}
+              label="Airbnb"
+              id={`contact-tab-${isAdminOrManager ? 4 : 3}`}
+              aria-controls={`contact-tabpanel-${isAdminOrManager ? 4 : 3}`}
+            />
           </Tabs>
           <Button
             variant="contained"
@@ -152,6 +160,10 @@ const ContactPage: React.FC = () => {
               <ReceivedFormsTab />
             </TabPanel>
           )}
+
+          <TabPanel value={tabValue} index={isAdminOrManager ? 4 : 3}>
+            <AirbnbInboxTab />
+          </TabPanel>
         </Box>
       </Paper>
 

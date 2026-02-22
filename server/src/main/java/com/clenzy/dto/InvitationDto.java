@@ -51,4 +51,9 @@ public class InvitationDto {
 
     public String getInvitationLink() { return invitationLink; }
     public void setInvitationLink(String invitationLink) { this.invitationLink = invitationLink; }
+
+    public Boolean getEmailDeliveryFailed() { return emailDeliveryFailed; }
+    public void setEmailDeliveryFailed(Boolean emailDeliveryFailed) { this.emailDeliveryFailed = emailDeliveryFailed; }
+
+    private Boolean emailDeliveryFailed;
 }

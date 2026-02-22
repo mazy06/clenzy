@@ -3,8 +3,6 @@ package com.clenzy.model;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
 
 import java.time.LocalDateTime;
 
@@ -15,7 +13,6 @@ import java.time.LocalDateTime;
     @Index(name = "idx_invitation_email", columnList = "invited_email"),
     @Index(name = "idx_invitation_status", columnList = "status")
 })
-@FilterDef(name = "organizationFilter", parameters = @ParamDef(name = "orgId", type = Long.class))
 @Filter(name = "organizationFilter", condition = "organization_id = :orgId")
 public class OrganizationInvitation {
 
