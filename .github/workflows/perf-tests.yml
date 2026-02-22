@@ -95,24 +95,32 @@ jobs:
           SPRING_REDIS_PORT: 6379
           SERVER_PORT: 8080
         run: |
-          java -jar target/*.jar > /tmp/backend.log 2>&1 &
+          java \
+            -Djava.security.egd=file:/dev/./urandom \
+            -Xmx512m \
+            -jar target/*.jar > /tmp/backend.log 2>&1 &
           BACKEND_PID=$!
           echo "Backend PID: $BACKEND_PID"
           echo "Waiting for backend to start..."
 
-          for i in $(seq 1 90); do
+          for i in $(seq 1 120); do
             if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
               echo "Backend ready after ${i}s"
               break
             fi
             if ! kill -0 $BACKEND_PID 2>/dev/null; then
               echo "::error::Backend process crashed. Logs:"
-              tail -100 /tmp/backend.log
+              cat /tmp/backend.log
               exit 1
             fi
-            if [ "$i" -eq 90 ]; then
-              echo "::error::Backend failed to start within 90 seconds. Last logs:"
-              tail -100 /tmp/backend.log
+            # Print progress every 15s
+            if [ $((i % 15)) -eq 0 ]; then
+              echo "Still waiting... (${i}s). Last log line:"
+              tail -1 /tmp/backend.log
+            fi
+            if [ "$i" -eq 120 ]; then
+              echo "::error::Backend failed to start within 120 seconds. Full logs:"
+              cat /tmp/backend.log
               exit 1
             fi
             sleep 1

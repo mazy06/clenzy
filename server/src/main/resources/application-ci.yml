@@ -67,8 +67,16 @@ spring:
       auto-offset-reset: earliest
     listener:
       auto-startup: false
+    admin:
+      auto-create: false
     producer:
       acks: all
+    properties:
+      # Timeouts agressifs pour CI (pas de broker Kafka)
+      socket.connection.setup.timeout.ms: 1000
+      socket.connection.setup.timeout.max.ms: 1000
+      request.timeout.ms: 2000
+      default.api.timeout.ms: 3000
   servlet:
     multipart:
       enabled: true
