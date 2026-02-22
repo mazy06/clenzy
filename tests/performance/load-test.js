@@ -16,6 +16,7 @@ import http from 'k6/http';
 import { check, group, sleep } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
 import {
+  BASE_URL,
   API_BASE,
   CI_AUTH_TOKEN,
   KEYCLOAK_URL,
@@ -108,7 +109,7 @@ export default function () {
 
   // 2. Health check (public, toujours accessible)
   group('Health Check', () => {
-    const res = http.get(`${API_BASE}/../actuator/health`);
+    const res = http.get(`${BASE_URL}/actuator/health`);
     check(res, {
       'health: status 200': (r) => r.status === 200,
     });

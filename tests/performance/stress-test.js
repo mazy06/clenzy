@@ -13,6 +13,7 @@ import http from 'k6/http';
 import { check, group, sleep } from 'k6';
 import { Rate, Trend, Counter } from 'k6/metrics';
 import {
+  BASE_URL,
   API_BASE,
   CI_AUTH_TOKEN,
   KEYCLOAK_URL,
@@ -103,7 +104,7 @@ export default function () {
     const responses = http.batch([
       ['GET', `${API_BASE}/properties?size=50`, null, params],
       ['GET', `${API_BASE}/reservations`, null, params],
-      ['GET', `${API_BASE}/../actuator/health`, null, {}],
+      ['GET', `${BASE_URL}/actuator/health`, null, {}],
     ]);
 
     responses.forEach((res, i) => {
