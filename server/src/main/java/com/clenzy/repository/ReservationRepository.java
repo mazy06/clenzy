@@ -66,6 +66,19 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         @Param("orgId") Long orgId);
 
     /**
+     * Reservation active (en cours) pour une propriete a une date donnee.
+     * Utilise par NoiseAlertNotificationService pour envoyer un message au voyageur.
+     */
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
+           "WHERE r.property.id = :propertyId " +
+           "AND r.checkIn <= :date AND r.checkOut >= :date " +
+           "AND r.status = 'confirmed' AND r.organizationId = :orgId")
+    Optional<Reservation> findActiveByPropertyIdAndDate(
+        @Param("propertyId") Long propertyId,
+        @Param("date") LocalDate date,
+        @Param("orgId") Long orgId);
+
+    /**
      * Reservations confirmees avec check-out dans la plage donnee.
      */
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +

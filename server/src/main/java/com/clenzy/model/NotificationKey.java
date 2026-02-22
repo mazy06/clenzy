@@ -137,9 +137,15 @@ public enum NotificationKey {
     // ─── GUEST MESSAGING (3 cles) ───────────────────────────────────────────
     GUEST_MESSAGE_SENT(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, true),
     GUEST_MESSAGE_FAILED(NotificationType.ERROR, NotificationCategory.GUEST_MESSAGING, true),
-    GUEST_PRICING_PUSHED(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, false);
+    GUEST_PRICING_PUSHED(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, false),
 
-    // Total: 18 + 8 + 10 + 6 + 8 + 6 + 5 + 3 + 2 + 4 + 6 + 4 + 3 + 2 + 3 = 88
+    // ─── NOISE ALERT (4 cles) ──────────────────────────────────────────────
+    NOISE_ALERT_WARNING(NotificationType.WARNING, NotificationCategory.NOISE_ALERT, true),
+    NOISE_ALERT_CRITICAL(NotificationType.ERROR, NotificationCategory.NOISE_ALERT, true),
+    NOISE_ALERT_RESOLVED(NotificationType.SUCCESS, NotificationCategory.NOISE_ALERT, true),
+    NOISE_ALERT_CONFIG_CHANGED(NotificationType.INFO, NotificationCategory.NOISE_ALERT, false);
+
+    // Total: 18 + 8 + 10 + 6 + 8 + 6 + 5 + 3 + 2 + 4 + 6 + 4 + 3 + 2 + 3 + 4 = 92
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

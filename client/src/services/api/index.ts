@@ -130,6 +130,15 @@ export type {
   TuyaConnectionStatus,
 } from './noiseApi';
 
+export { noiseAlertConfigApi, noiseAlertsApi } from './noiseAlertApi';
+export type {
+  TimeWindowDto,
+  NoiseAlertConfigDto,
+  SaveNoiseAlertConfigDto,
+  NoiseAlertDto,
+  NoiseAlertPage,
+} from './noiseAlertApi';
+
 export { organizationMembersApi } from './organizationMembersApi';
 export type { OrganizationMemberDto, ChangeRoleRequest } from './organizationMembersApi';
 
@@ -178,6 +187,22 @@ export type {
   SendMessageRequest,
   TemplateVariable,
 } from './guestMessagingApi';
+
+export { monitoringApi } from './monitoringApi';
+export type {
+  HealthCheckService,
+  SystemMetrics,
+  HealthResponse,
+  UserMetrics,
+  SessionMetrics,
+  PerformanceMetrics,
+  SecurityMetrics,
+  KeycloakMetricsResponse,
+  AuditLogEntry,
+  AuditLogPage,
+  AuditLogParams,
+  TestCoverageMetrics,
+} from './monitoringApi';
 
 export { airbnbApi } from './airbnbApi';
 export type {

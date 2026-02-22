@@ -11,47 +11,23 @@ import {
   Button,
   IconButton,
   Tooltip,
+  LinearProgress,
 } from '@mui/material';
 import {
   TrendingUp,
-  TrendingDown,
   Refresh,
   Speed,
   Group,
   Security,
-  Storage,
   Wifi,
+  BugReport,
 } from '@mui/icons-material';
-
-interface KeycloakMetricsData {
-  users: {
-    total: number;
-    active: number;
-    inactive: number;
-    newThisWeek: number;
-  };
-  sessions: {
-    total: number;
-    active: number;
-    expired: number;
-    avgDuration: number;
-  };
-  performance: {
-    responseTime: number;
-    throughput: number;
-    errorRate: number;
-    uptime: number;
-  };
-  security: {
-    failedLogins: number;
-    lockouts: number;
-    suspiciousActivity: number;
-    lastIncident: string;
-  };
-}
+import { monitoringApi } from '../services/api/monitoringApi';
+import type { KeycloakMetricsResponse, TestCoverageMetrics } from '../services/api/monitoringApi';
 
 const KeycloakMetrics: React.FC = () => {
-  const [metrics, setMetrics] = useState<KeycloakMetricsData | null>(null);
+  const [metrics, setMetrics] = useState<KeycloakMetricsResponse | null>(null);
+  const [coverage, setCoverage] = useState<TestCoverageMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -60,42 +36,16 @@ const KeycloakMetrics: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      // Simulation des données Keycloak (remplacer par un vrai appel API)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockMetrics: KeycloakMetricsData = {
-        users: {
-          total: 1247,
-          active: 1189,
-          inactive: 58,
-          newThisWeek: 23,
-        },
-        sessions: {
-          total: 892,
-          active: 456,
-          expired: 436,
-          avgDuration: 45,
-        },
-        performance: {
-          responseTime: 125,
-          throughput: 1450,
-          errorRate: 0.8,
-          uptime: 99.7,
-        },
-        security: {
-          failedLogins: 12,
-          lockouts: 3,
-          suspiciousActivity: 1,
-          lastIncident: '2024-01-15 14:30',
-        },
-      };
-      
-      setMetrics(mockMetrics);
+
+      const [metricsData, coverageData] = await Promise.all([
+        monitoringApi.getKeycloakMetrics(),
+        monitoringApi.getTestCoverage().catch(() => null),
+      ]);
+      setMetrics(metricsData);
+      setCoverage(coverageData);
       setLastUpdate(new Date());
-      
     } catch (err) {
-      setError('Erreur lors de la récupération des métriques Keycloak');
+      setError('Erreur lors de la récupération des métriques plateforme');
     } finally {
       setLoading(false);
     }
@@ -150,12 +100,18 @@ const KeycloakMetrics: React.FC = () => {
     return value >= 90 ? 'success' : value >= 70 ? 'warning' : 'error';
   };
 
+  const getCoverageColor = (percent: number): 'success' | 'warning' | 'error' => {
+    if (percent >= 80) return 'success';
+    if (percent >= 60) return 'warning';
+    return 'error';
+  };
+
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
           <Speed sx={{ mr: 1, color: 'primary.main' }} />
-          Métriques Keycloak
+          Métriques Plateforme
         </Typography>
         <Box display="flex" alignItems="center" gap={1}>
           {lastUpdate && (
@@ -203,13 +159,13 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={12}>
                   <Box display="flex" gap={1} flexWrap="wrap">
-                    <Chip 
+                    <Chip
                       label={`${metrics.users.newThisWeek} nouveaux`}
                       color="info"
                       size="small"
                       icon={<TrendingUp />}
                     />
-                    <Chip 
+                    <Chip
                       label={`${metrics.users.inactive} inactifs`}
                       color="default"
                       size="small"
@@ -221,44 +177,44 @@ const KeycloakMetrics: React.FC = () => {
           </Card>
         </Grid>
 
-        {/* Sessions */}
+        {/* Sessions / Tokens */}
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
                 <Wifi sx={{ mr: 1, color: 'primary.main' }} />
-                Sessions
+                Tokens JWT
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Box textAlign="center">
                     <Typography variant="h4" color="primary.main">
-                      {metrics.sessions.total}
+                      {metrics.sessions.totalTokens}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Total
+                      Total traités
                     </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={6}>
                   <Box textAlign="center">
                     <Typography variant="h4" color="success.main">
-                      {metrics.sessions.active}
+                      {metrics.sessions.validTokens}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Actives
+                      Valides
                     </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={12}>
                   <Box display="flex" gap={1} flexWrap="wrap">
-                    <Chip 
-                      label={`${metrics.sessions.avgDuration}min moy.`}
+                    <Chip
+                      label={`${metrics.sessions.cacheHits} cache hits`}
                       color="info"
                       size="small"
                     />
-                    <Chip 
-                      label={`${metrics.sessions.expired} expirées`}
+                    <Chip
+                      label={`${metrics.sessions.revokedTokens} révoqués`}
                       color="default"
                       size="small"
                     />
@@ -275,23 +231,23 @@ const KeycloakMetrics: React.FC = () => {
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
                 <TrendingUp sx={{ mr: 1, color: 'primary.main' }} />
-                Performance
+                Performance API
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Box textAlign="center">
-                    <Typography variant="h6" color={getPerformanceColor(metrics.performance.responseTime, true)}>
-                      {metrics.performance.responseTime}ms
+                    <Typography variant="h6" color={getPerformanceColor(metrics.performance.avgResponseTimeMs, true)}>
+                      {metrics.performance.avgResponseTimeMs}ms
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Temps de réponse
+                      Temps de réponse moy.
                     </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={6}>
                   <Box textAlign="center">
-                    <Typography variant="h6" color={getPerformanceColor(metrics.performance.uptime)}>
-                      {metrics.performance.uptime}%
+                    <Typography variant="h6" color={getPerformanceColor(metrics.performance.uptimePercent)}>
+                      {metrics.performance.uptimePercent}%
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Uptime
@@ -300,12 +256,12 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={12}>
                   <Box display="flex" gap={1} flexWrap="wrap">
-                    <Chip 
-                      label={`${metrics.performance.throughput}/s`}
+                    <Chip
+                      label={`${metrics.performance.totalRequests} requêtes`}
                       color="info"
                       size="small"
                     />
-                    <Chip 
+                    <Chip
                       label={`${metrics.performance.errorRate}% erreurs`}
                       color={getPerformanceColor(100 - metrics.performance.errorRate)}
                       size="small"
@@ -323,7 +279,7 @@ const KeycloakMetrics: React.FC = () => {
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
                 <Security sx={{ mr: 1, color: 'primary.main' }} />
-                Sécurité
+                Sécurité (7 derniers jours)
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
@@ -338,32 +294,198 @@ const KeycloakMetrics: React.FC = () => {
                 </Grid>
                 <Grid item xs={6}>
                   <Box textAlign="center">
-                    <Typography variant="h6" color={getStatusColor(metrics.security.lockouts, 5)}>
-                      {metrics.security.lockouts}
+                    <Typography variant="h6" color={getStatusColor(metrics.security.permissionDenied, 10)}>
+                      {metrics.security.permissionDenied}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Comptes verrouillés
+                      Accès refusés
                     </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={12}>
                   <Box display="flex" gap={1} flexWrap="wrap">
-                    <Chip 
+                    <Chip
                       label={`${metrics.security.suspiciousActivity} activité suspecte`}
                       color={metrics.security.suspiciousActivity > 0 ? 'warning' : 'success'}
                       size="small"
                     />
-                    <Chip 
-                      label={`Dernier incident: ${metrics.security.lastIncident}`}
-                      color="default"
-                      size="small"
-                    />
+                    {metrics.security.lastIncident && (
+                      <Chip
+                        label={`Dernier incident: ${new Date(metrics.security.lastIncident).toLocaleString()}`}
+                        color="default"
+                        size="small"
+                      />
+                    )}
                   </Box>
                 </Grid>
               </Grid>
             </CardContent>
           </Card>
         </Grid>
+        {/* Couverture de tests */}
+        {coverage && coverage.available && (
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                  <BugReport sx={{ mr: 1, color: 'primary.main' }} />
+                  Couverture de Tests
+                  {coverage.reportDate && (
+                    <Chip
+                      label={`Rapport du ${new Date(coverage.reportDate).toLocaleDateString()}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{ ml: 2 }}
+                    />
+                  )}
+                </Typography>
+                <Grid container spacing={3}>
+                  {/* Lignes */}
+                  {coverage.linePercent != null && (
+                    <Grid item xs={12} sm={6} md={2}>
+                      <Box textAlign="center">
+                        <Typography variant="h4" color={`${getCoverageColor(coverage.linePercent)}.main`}>
+                          {coverage.linePercent}%
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Lignes
+                        </Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(coverage.linePercent, 100)}
+                          color={getCoverageColor(coverage.linePercent)}
+                          sx={{ height: 6, borderRadius: 3 }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          {coverage.lineCovered}/{coverage.lineTotal}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                  {/* Branches */}
+                  {coverage.branchPercent != null && (
+                    <Grid item xs={12} sm={6} md={2}>
+                      <Box textAlign="center">
+                        <Typography variant="h4" color={`${getCoverageColor(coverage.branchPercent)}.main`}>
+                          {coverage.branchPercent}%
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Branches
+                        </Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(coverage.branchPercent, 100)}
+                          color={getCoverageColor(coverage.branchPercent)}
+                          sx={{ height: 6, borderRadius: 3 }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          {coverage.branchCovered}/{coverage.branchTotal}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                  {/* Instructions */}
+                  {coverage.instructionPercent != null && (
+                    <Grid item xs={12} sm={6} md={2}>
+                      <Box textAlign="center">
+                        <Typography variant="h4" color={`${getCoverageColor(coverage.instructionPercent)}.main`}>
+                          {coverage.instructionPercent}%
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Instructions
+                        </Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(coverage.instructionPercent, 100)}
+                          color={getCoverageColor(coverage.instructionPercent)}
+                          sx={{ height: 6, borderRadius: 3 }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          {coverage.instructionCovered}/{coverage.instructionTotal}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                  {/* Méthodes */}
+                  {coverage.methodPercent != null && (
+                    <Grid item xs={12} sm={6} md={2}>
+                      <Box textAlign="center">
+                        <Typography variant="h4" color={`${getCoverageColor(coverage.methodPercent)}.main`}>
+                          {coverage.methodPercent}%
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Méthodes
+                        </Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(coverage.methodPercent, 100)}
+                          color={getCoverageColor(coverage.methodPercent)}
+                          sx={{ height: 6, borderRadius: 3 }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          {coverage.methodCovered}/{coverage.methodTotal}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                  {/* Classes */}
+                  {coverage.classPercent != null && (
+                    <Grid item xs={12} sm={6} md={2}>
+                      <Box textAlign="center">
+                        <Typography variant="h4" color={`${getCoverageColor(coverage.classPercent)}.main`}>
+                          {coverage.classPercent}%
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Classes
+                        </Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(coverage.classPercent, 100)}
+                          color={getCoverageColor(coverage.classPercent)}
+                          sx={{ height: 6, borderRadius: 3 }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          {coverage.classCovered}/{coverage.classTotal}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                  {/* Complexité */}
+                  {coverage.complexityPercent != null && (
+                    <Grid item xs={12} sm={6} md={2}>
+                      <Box textAlign="center">
+                        <Typography variant="h4" color={`${getCoverageColor(coverage.complexityPercent)}.main`}>
+                          {coverage.complexityPercent}%
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Complexité
+                        </Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(coverage.complexityPercent, 100)}
+                          color={getCoverageColor(coverage.complexityPercent)}
+                          sx={{ height: 6, borderRadius: 3 }}
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                          {coverage.complexityCovered}/{coverage.complexityTotal}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
+        {/* Message si couverture non disponible */}
+        {coverage && !coverage.available && (
+          <Grid item xs={12}>
+            <Alert severity="info" icon={<BugReport />}>
+              {coverage.message || 'Rapport de couverture non disponible. Lancez les tests pour le générer.'}
+            </Alert>
+          </Grid>
+        )}
       </Grid>
     </Box>
   );
