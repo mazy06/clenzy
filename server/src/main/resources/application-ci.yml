@@ -159,6 +159,8 @@ tuya:
 
 # Clenzy custom
 clenzy:
+  kafka:
+    enabled: false
   mail:
     provider: generic
     from: ci-test@clenzy.fr
