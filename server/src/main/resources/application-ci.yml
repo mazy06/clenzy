@@ -20,7 +20,7 @@ spring:
       pool-name: ClenzyHikariPool-CI
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     open-in-view: false
     properties:
       hibernate:
@@ -28,6 +28,8 @@ spring:
         jdbc:
           time_zone: UTC
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  liquibase:
+    enabled: false   # CI utilise Hibernate create-drop (base ephemere)
   security:
     oauth2:
       resourceserver:

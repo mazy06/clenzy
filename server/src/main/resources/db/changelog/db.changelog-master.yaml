@@ -1,0 +1,488 @@
+databaseChangeLog:
+
+  # ============================================================================
+  # Clenzy — Master Changelog
+  # ============================================================================
+  # Converti depuis les migrations Flyway V2→V58 (54 changesets).
+  # Les fichiers SQL originaux sont conserves dans db/migration/ (archive).
+  #
+  # Convention pour les nouveaux changesets :
+  #   - Fichier : db/changelog/changes/NNNN__description.sql
+  #   - ID : NNNN-description (tirets, pas underscores)
+  #   - Author : prenom-nom
+  #   - Si PL/pgSQL (DO $$) : utiliser splitStatements: false
+  # ============================================================================
+
+  # --- 0001 : Add keycloak_id to users (ex V2a) ---
+  - changeSet:
+      id: "0001-add-keycloak-id-to-users"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0001__add_keycloak_id_to_users.sql
+        relativeToChangelogFile: true
+
+  # --- 0002 : Fix intervention status constraint (ex V2b) ---
+  - changeSet:
+      id: "0002-fix-intervention-status-constraint"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0002__fix_intervention_status_constraint.sql
+        relativeToChangelogFile: true
+
+  # --- 0003 : Fix existing intervention statuses (ex V3) ---
+  - changeSet:
+      id: "0003-fix-existing-intervention-statuses"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0003__fix_existing_intervention_statuses.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0004 : Create portfolio tables (ex V6) ---
+  - changeSet:
+      id: "0004-create-portfolio-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0004__create_portfolio_tables.sql
+        relativeToChangelogFile: true
+
+  # --- 0005 : Add portfolio permissions (ex V7) ---
+  - changeSet:
+      id: "0005-add-portfolio-permissions"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0005__add_portfolio_permissions.sql
+        relativeToChangelogFile: true
+
+  # --- 0006 : Refactor users table (ex V8) ---
+  - changeSet:
+      id: "0006-refactor-users-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0006__refactor_users_table.sql
+        relativeToChangelogFile: true
+
+  # --- 0007 : Create manager team user associations (ex V10) ---
+  - changeSet:
+      id: "0007-create-manager-team-user-associations"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0007__create_manager_team_user_associations.sql
+        relativeToChangelogFile: true
+
+  # --- 0008 : Create manager properties table (ex V12) ---
+  - changeSet:
+      id: "0008-create-manager-properties-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0008__create_manager_properties_table.sql
+        relativeToChangelogFile: true
+
+  # --- 0009 : Add missing permissions (ex V13) ---
+  - changeSet:
+      id: "0009-add-missing-permissions"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0009__add_missing_permissions.sql
+        relativeToChangelogFile: true
+
+  # --- 0010 : Add report permissions (ex V14) ---
+  - changeSet:
+      id: "0010-add-report-permissions"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0010__add_report_permissions.sql
+        relativeToChangelogFile: true
+
+  # --- 0011 : Extend intervention photos notes to text (ex V15) ---
+  - changeSet:
+      id: "0011-extend-intervention-photos-notes-to-text"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0011__extend_intervention_photos_notes_to_text.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0012 : Extend before/after photos urls to text (ex V16) ---
+  - changeSet:
+      id: "0012-extend-before-after-photos-urls-to-text"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0012__extend_before_after_photos_urls_to_text.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0013 : Add photo type to intervention photos (ex V17) ---
+  - changeSet:
+      id: "0013-add-photo-type-to-intervention-photos"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0013__add_photo_type_to_intervention_photos.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0014 : Add validated rooms to interventions (ex V18) ---
+  - changeSet:
+      id: "0014-add-validated-rooms-to-interventions"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0014__add_validated_rooms_to_interventions.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0015 : Add completed steps to interventions (ex V19) ---
+  - changeSet:
+      id: "0015-add-completed-steps-to-interventions"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0015__add_completed_steps_to_interventions.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0016 : Create Airbnb integration tables (ex V20) ---
+  - changeSet:
+      id: "0016-create-airbnb-integration-tables"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0016__create_airbnb_integration_tables.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0017 : Create GDPR consents table (ex V21) ---
+  - changeSet:
+      id: "0017-create-gdpr-consents-table"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0017__create_gdpr_consents_table.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0018 : Prepare encrypted columns (ex V22) ---
+  - changeSet:
+      id: "0018-prepare-encrypted-columns"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0018__prepare_encrypted_columns.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0019 : Create notification preferences table (ex V23) ---
+  - changeSet:
+      id: "0019-create-notification-preferences-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0019__create_notification_preferences_table.sql
+        relativeToChangelogFile: true
+
+  # --- 0020 : Add billing period (ex V24) ---
+  - changeSet:
+      id: "0020-add-billing-period"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0020__add_billing_period.sql
+        relativeToChangelogFile: true
+
+  # --- 0021 : Create reservations table (ex V25) ---
+  - changeSet:
+      id: "0021-create-reservations-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0021__create_reservations_table.sql
+        relativeToChangelogFile: true
+
+  # --- 0022 : Create received forms table (ex V26) ---
+  - changeSet:
+      id: "0022-create-received-forms-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0022__create_received_forms_table.sql
+        relativeToChangelogFile: true
+
+  # --- 0023 : Add default times to properties (ex V27) ---
+  - changeSet:
+      id: "0023-add-default-times-to-properties"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0023__add_default_times_to_properties.sql
+        relativeToChangelogFile: true
+
+  # --- 0024 : Create contact messages table (ex V28) ---
+  - changeSet:
+      id: "0024-create-contact-messages-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0024__create_contact_messages_table.sql
+        relativeToChangelogFile: true
+
+  # --- 0025 : Create document templates tables (ex V29) ---
+  - changeSet:
+      id: "0025-create-document-templates-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0025__create_document_templates_tables.sql
+        relativeToChangelogFile: true
+
+  # --- 0026 : Create document generations table (ex V30) ---
+  - changeSet:
+      id: "0026-create-document-generations-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0026__create_document_generations_table.sql
+        relativeToChangelogFile: true
+
+  # --- 0027 : NF compliance (ex V31) ---
+  - changeSet:
+      id: "0027-nf-compliance"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0027__nf_compliance.sql
+        relativeToChangelogFile: true
+
+  # --- 0028 : Add addon services to properties (ex V32) ---
+  - changeSet:
+      id: "0028-add-addon-services-to-properties"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0028__add_addon_services_to_properties.sql
+        relativeToChangelogFile: true
+
+  # --- 0029 : Add amenities to properties (ex V33) ---
+  - changeSet:
+      id: "0029-add-amenities-to-properties"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0029__add_amenities_to_properties.sql
+        relativeToChangelogFile: true
+
+  # --- 0030 : Add forfait configs (ex V34) ---
+  - changeSet:
+      id: "0030-add-forfait-configs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0030__add_forfait_configs.sql
+        relativeToChangelogFile: true
+
+  # --- 0031 : Add service category configs (ex V35) ---
+  - changeSet:
+      id: "0031-add-service-category-configs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0031__add_service_category_configs.sql
+        relativeToChangelogFile: true
+
+  # --- 0032 : Seed default configs and catalogs (ex V36) ---
+  - changeSet:
+      id: "0032-seed-default-configs-and-catalogs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0032__seed_default_configs_and_catalogs.sql
+        relativeToChangelogFile: true
+
+  # --- 0033 : Create property teams table (ex V37) ---
+  - changeSet:
+      id: "0033-create-property-teams-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0033__create_property_teams_table.sql
+        relativeToChangelogFile: true
+
+  # --- 0034 : Add geo fields to properties (ex V38) ---
+  - changeSet:
+      id: "0034-add-geo-fields-to-properties"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0034__add_geo_fields_to_properties.sql
+        relativeToChangelogFile: true
+
+  # --- 0035 : Create team coverage zones table (ex V39) ---
+  - changeSet:
+      id: "0035-create-team-coverage-zones-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0035__create_team_coverage_zones_table.sql
+        relativeToChangelogFile: true
+
+  # --- 0036 : Create noise monitoring tables (ex V40) ---
+  - changeSet:
+      id: "0036-create-noise-monitoring-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0036__create_noise_monitoring_tables.sql
+        relativeToChangelogFile: true
+
+  # --- 0037 : Create organization tables (ex V41) ---
+  - changeSet:
+      id: "0037-create-organization-tables"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0037__create_organization_tables.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0038 : Add org_id to airbnb listing mappings (ex V42) ---
+  - changeSet:
+      id: "0038-add-orgid-to-airbnb-listing-mappings"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0038__add_orgid_to_airbnb_listing_mappings.sql
+        relativeToChangelogFile: true
+
+  # --- 0039 : Add email hash and encrypt PII (ex V43) ---
+  - changeSet:
+      id: "0039-add-email-hash-and-encrypt-pii"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0039__add_email_hash_and_encrypt_pii.sql
+        relativeToChangelogFile: true
+
+  # --- 0040 : Create invitations table (ex V44) ---
+  - changeSet:
+      id: "0040-create-invitations-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0040__create_invitations_table.sql
+        relativeToChangelogFile: true
+
+  # --- 0041 : Refactor role system (ex V45) ---
+  - changeSet:
+      id: "0041-refactor-role-system"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0041__refactor_role_system.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0042 : Add new team roles to portfolio teams (ex V46) ---
+  - changeSet:
+      id: "0042-add-new-team-roles-to-portfolio-teams"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0042__add_new_team_roles_to_portfolio_teams.sql
+        relativeToChangelogFile: true
+
+  # --- 0043 : Remove deprecated admin/manager roles (ex V47) ---
+  - changeSet:
+      id: "0043-remove-deprecated-admin-manager-roles"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0043__remove_deprecated_admin_manager_roles.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0044 : Add SYSTEM organization type (ex V48) ---
+  - changeSet:
+      id: "0044-add-system-organization-type"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0044__add_system_organization_type.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0045 : Create calendar tables (ex V49) ---
+  - changeSet:
+      id: "0045-create-calendar-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0045__create_calendar_tables.sql
+        relativeToChangelogFile: true
+
+  # --- 0046 : Create outbox events table (ex V50) ---
+  - changeSet:
+      id: "0046-create-outbox-events-table"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0046__create_outbox_events_table.sql
+        relativeToChangelogFile: true
+
+  # --- 0047 : Create guest/rateplan/restriction tables (ex V51) ---
+  - changeSet:
+      id: "0047-create-guest-rateplan-restriction-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0047__create_guest_rateplan_restriction_tables.sql
+        relativeToChangelogFile: true
+
+  # --- 0048 : Create channel connector tables (ex V52) ---
+  - changeSet:
+      id: "0048-create-channel-connector-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0048__create_channel_connector_tables.sql
+        relativeToChangelogFile: true
+
+  # --- 0049 : Create security audit log (ex V53) ---
+  - changeSet:
+      id: "0049-create-security-audit-log"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0049__create_security_audit_log.sql
+        relativeToChangelogFile: true
+
+  # --- 0050 : Partition calendar days by month (ex V54) ---
+  - changeSet:
+      id: "0050-partition-calendar-days-by-month"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0050__partition_calendar_days_by_month.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0051 : Create reconciliation runs (ex V55) ---
+  - changeSet:
+      id: "0051-create-reconciliation-runs"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0051__create_reconciliation_runs.sql
+        relativeToChangelogFile: true
+
+  # --- 0052 : Create KPI snapshots (ex V56) ---
+  - changeSet:
+      id: "0052-create-kpi-snapshots"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0052__create_kpi_snapshots.sql
+        relativeToChangelogFile: true
+
+  # --- 0053 : Create guest messaging tables (ex V57) ---
+  - changeSet:
+      id: "0053-create-guest-messaging-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0053__create_guest_messaging_tables.sql
+        relativeToChangelogFile: true
+
+  # --- 0054 : Create noise alert tables (ex V58) ---
+  - changeSet:
+      id: "0054-create-noise-alert-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0054__create_noise_alert_tables.sql
+        relativeToChangelogFile: true
