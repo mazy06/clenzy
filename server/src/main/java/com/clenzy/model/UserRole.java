@@ -1,84 +1,59 @@
 package com.clenzy.model;
 
 /**
- * Énumération des rôles utilisateur dans la plateforme Clenzy
+ * Role de l'utilisateur sur la PLATEFORME Clenzy.
+ *
+ * Trois niveaux :
+ *   1. Plateforme  : SUPER_ADMIN, SUPER_MANAGER  (equipe Clenzy)
+ *   2. Organisation: roles metier geres via OrgMemberRole
+ *   3. Independant : HOST utilise le catalogue Clenzy
  */
 public enum UserRole {
-    
-    /**
-     * Hôte Airbnb - Propriétaire de logements
-     */
-    HOST("Hôte", "Propriétaire de logements Airbnb"),
-    
-    /**
-     * Technicien - Intervient pour la maintenance et réparations
-     */
-    TECHNICIAN("Technicien", "Intervient pour la maintenance et réparations"),
-    
-    /**
-     * Housekeeper - Effectue le nettoyage des logements
-     */
-    HOUSEKEEPER("Housekeeper", "Effectue le nettoyage des logements"),
-    
-    /**
-     * Superviseur - Gère une équipe de techniciens/housekeepers
-     */
-    SUPERVISOR("Superviseur", "Gère une équipe de techniciens/housekeepers"),
-    
-    /**
-     * Administrateur - Accès complet à la plateforme
-     */
-    ADMIN("Administrateur", "Accès complet à la plateforme"),
-    
-    /**
-     * Manager - Gestion des opérations et des équipes
-     */
-    MANAGER("Manager", "Gestion des opérations et des équipes");
-    
+
+    // ── Plateforme (equipe Clenzy) ──────────────────────────────────────────
+    SUPER_ADMIN("Super Admin", "Acces complet a la plateforme Clenzy"),
+    SUPER_MANAGER("Super Manager", "Gestion des operations de la plateforme"),
+
+    // ── Roles metier (utilisables en org ou en independant) ─────────────────
+    HOST("Hote", "Proprietaire de logements"),
+    TECHNICIAN("Technicien", "Maintenance et reparations"),
+    HOUSEKEEPER("Housekeeper", "Nettoyage des logements"),
+    SUPERVISOR("Superviseur", "Gere une equipe de techniciens/housekeepers"),
+    LAUNDRY("Blanchisserie", "Gestion du linge et blanchisserie"),
+    EXTERIOR_TECH("Tech. Exterieur", "Entretien exterieur (jardin, piscine, etc.)");
+
     private final String displayName;
     private final String description;
-    
+
     UserRole(String displayName, String description) {
         this.displayName = displayName;
         this.description = description;
     }
-    
+
     public String getDisplayName() {
         return displayName;
     }
-    
+
     public String getDescription() {
         return description;
     }
-    
+
+    // ── Helpers plateforme ──────────────────────────────────────────────────
+
     /**
-     * Vérifie si le rôle a des permissions d'administration
+     * Vrai si le role correspond a un admin plateforme.
      */
-    public boolean isAdminRole() {
-        return this == ADMIN || this == MANAGER;
+    public boolean isPlatformAdmin() {
+        return this == SUPER_ADMIN;
     }
-    
+
     /**
-     * Vérifie si le rôle peut gérer des équipes
+     * Vrai si le role fait partie du staff plateforme (SUPER_ADMIN, SUPER_MANAGER).
      */
-    public boolean canManageTeams() {
-        return this == ADMIN || this == MANAGER || this == SUPERVISOR;
+    public boolean isPlatformStaff() {
+        return this == SUPER_ADMIN || this == SUPER_MANAGER;
     }
-    
-    /**
-     * Vérifie si le rôle peut créer des interventions
-     */
-    public boolean canCreateInterventions() {
-        return this == ADMIN || this == MANAGER || this == SUPERVISOR || this == TECHNICIAN;
-    }
-    
-    /**
-     * Vérifie si le rôle peut voir les rapports financiers
-     */
-    public boolean canViewFinancialReports() {
-        return this == ADMIN || this == MANAGER;
-    }
-    
+
     @Override
     public String toString() {
         return displayName;

@@ -23,6 +23,8 @@ export interface AuthUser {
   forfait?: string;    // Forfait abonnement: essentiel, confort, premium
   organizationId?: number;
   organizationName?: string;
+  platformRole?: string;  // Role plateforme (SUPER_ADMIN, SUPER_MANAGER, HOST, etc.)
+  orgRole?: string;       // Role dans l'organisation (OWNER, ADMIN, MANAGER, etc.)
 }
 
 export const useAuth = () => {
@@ -99,6 +101,8 @@ export const useAuth = () => {
             forfait: userData.forfait || undefined,
             organizationId: userData.organizationId || undefined,
             organizationName: userData.organizationName || undefined,
+            platformRole: userData.platformRole || userData.role || undefined,
+            orgRole: userData.orgRole || undefined,
           };
 
           setUser(user);
@@ -280,12 +284,20 @@ export const useAuth = () => {
     return roles.some(role => user.roles.includes(role));
   }, [user]);
 
-  const isAdmin = useCallback((): boolean => hasRole('ADMIN'), [hasRole]);
-  const isManager = useCallback((): boolean => hasRole('MANAGER'), [hasRole]);
+  // --- Nouveaux helpers plateforme ---
+  const isSuperAdmin = useCallback((): boolean => hasAnyRole(['SUPER_ADMIN']), [hasAnyRole]);
+  const isSuperManager = useCallback((): boolean => hasAnyRole(['SUPER_MANAGER']), [hasAnyRole]);
+  const isPlatformStaff = useCallback((): boolean => hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']), [hasAnyRole]);
+
+  // --- Helpers legacy (transition : incluent les nouveaux roles) ---
+  const isAdmin = useCallback((): boolean => hasAnyRole(['SUPER_ADMIN']), [hasAnyRole]);
+  const isManager = useCallback((): boolean => hasAnyRole(['SUPER_MANAGER']), [hasAnyRole]);
   const isHost = useCallback((): boolean => hasRole('HOST'), [hasRole]);
   const isTechnician = useCallback((): boolean => hasRole('TECHNICIAN'), [hasRole]);
   const isHousekeeper = useCallback((): boolean => hasRole('HOUSEKEEPER'), [hasRole]);
   const isSupervisor = useCallback((): boolean => hasRole('SUPERVISOR'), [hasRole]);
+  const isLaundry = useCallback((): boolean => hasRole('LAUNDRY'), [hasRole]);
+  const isExteriorTech = useCallback((): boolean => hasRole('EXTERIOR_TECH'), [hasRole]);
 
   // Fonction pour nettoyer l'état utilisateur lors de la déconnexion
   // Fonction pour restaurer l'état Keycloak depuis le localStorage
@@ -352,12 +364,17 @@ export const useAuth = () => {
     hasPermissionAsync, // Fonction pour vérifier les permissions en temps réel
     hasRole,
     hasAnyRole,
+    isSuperAdmin,
+    isSuperManager,
+    isPlatformStaff,
     isAdmin,
     isManager,
     isHost,
     isTechnician,
     isHousekeeper,
     isSupervisor,
+    isLaundry,
+    isExteriorTech,
     clearUser, // Exposer la fonction de nettoyage
     restoreKeycloakState, // Exposer la fonction de restauration
   };

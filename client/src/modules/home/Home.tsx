@@ -2,7 +2,7 @@ import { Box, Button, Stack, Typography, Paper } from '@mui/material'
 import keycloak, { isAuthenticated, getParsedAccessToken, clearTokens, getAccessToken } from '../../keycloak'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import apiClient from '../../services/apiClient'
+import apiClient, { type ApiError } from '../../services/apiClient'
 import { getRefreshToken } from '../../services/storageService'
 
 // keycloak instance is provided by src/keycloak.ts
@@ -52,14 +52,14 @@ export default function Home() {
     try {
       const token = getAccessToken()
       if (!token) {
-        alert('Token non disponible. Merci de vous reconnecter.')
+        setApiResult('Token non disponible. Merci de vous reconnecter.')
         return
       }
-      const json = await apiClient.get<any>('/me')
+      const json = await apiClient.get<unknown>('/me')
       setApiResult(JSON.stringify(json, null, 2))
-    } catch (e: any) {
-      if (e.status) {
-        setApiResult(`Erreur HTTP ${e.status}: ${e.message}`)
+    } catch (e: unknown) {
+      if (e instanceof Error && 'status' in e) {
+        setApiResult(`Erreur HTTP ${(e as ApiError).status}: ${e.message}`)
       } else {
         setApiResult(`Erreur appel API: ${e instanceof Error ? e.message : String(e)}`)
       }

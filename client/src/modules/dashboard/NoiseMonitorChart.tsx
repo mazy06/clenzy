@@ -31,7 +31,7 @@ import { NOISE_THRESHOLDS } from '../../hooks/useNoiseMonitoring';
 
 // ─── Styling constants ──────────────────────────────────────────────────────
 
-const AXIS_TICK = { fontSize: 10, fill: '#94A3B8' } as const;
+const AXIS_TICK = { fontSize: 11, fill: '#94A3B8' } as const;
 const GRID_STROKE = '#F1F5F9';
 
 const PROPERTY_COLORS = [
@@ -245,7 +245,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
         {/* Chart */}
         <Box sx={{ flex: 1, minHeight: 0 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={displayData} margin={{ top: 4, right: 6, left: -18, bottom: 4 }}>
+            <AreaChart data={displayData} margin={{ top: 8, right: 12, left: -10, bottom: 8 }}>
               <defs>
                 {displayProperties.map((name, idx) => {
                   const colorIdx = propertyNames.indexOf(name);
@@ -271,16 +271,16 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
               <ReferenceLine
                 y={NOISE_THRESHOLDS.warning}
                 stroke="#ED6C02"
-                strokeDasharray="4 4"
-                strokeWidth={1}
-                label={{ value: `${NOISE_THRESHOLDS.warning} dB`, position: 'insideRight', style: { fontSize: 9, fill: '#ED6C02' } }}
+                strokeDasharray="6 4"
+                strokeWidth={1.5}
+                label={{ value: `${NOISE_THRESHOLDS.warning} dB`, position: 'insideRight', style: { fontSize: 10, fill: '#ED6C02', fontWeight: 600 } }}
               />
               <ReferenceLine
                 y={NOISE_THRESHOLDS.critical}
                 stroke="#D32F2F"
-                strokeDasharray="4 4"
-                strokeWidth={1}
-                label={{ value: `${NOISE_THRESHOLDS.critical} dB`, position: 'insideRight', style: { fontSize: 9, fill: '#D32F2F' } }}
+                strokeDasharray="6 4"
+                strokeWidth={1.5}
+                label={{ value: `${NOISE_THRESHOLDS.critical} dB`, position: 'insideRight', style: { fontSize: 10, fill: '#D32F2F', fontWeight: 600 } }}
               />
 
               {displayProperties.map((name) => {
@@ -293,10 +293,10 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
                     dataKey={name}
                     name={name}
                     stroke={color}
-                    strokeWidth={1.5}
+                    strokeWidth={2}
                     fill={`url(#noise-gradient-${colorIdx})`}
                     dot={false}
-                    activeDot={{ r: 3, strokeWidth: 1 }}
+                    activeDot={{ r: 4, strokeWidth: 2 }}
                   />
                 );
               })}

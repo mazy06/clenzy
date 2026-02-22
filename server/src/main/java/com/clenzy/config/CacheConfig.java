@@ -90,9 +90,12 @@ public class CacheConfig {
                 .entryTtl(Duration.ZERO)
                 .prefixCacheNameWith("clenzy:roles:"));
 
-        return RedisCacheManager.builder(redisConnectionFactory)
+        RedisCacheManager redisCacheManager = RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigurations)
                 .build();
+
+        // Niveau 8 : Caffeine L1 (30s, 500 entries) devant Redis L2
+        return new TwoLayerCacheManager(redisCacheManager, Duration.ofSeconds(30), 500);
     }
 }

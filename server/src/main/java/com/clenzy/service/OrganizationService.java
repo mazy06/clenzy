@@ -162,6 +162,96 @@ public class OrganizationService {
     }
 
     /**
+     * Liste les membres d'une organisation avec les donnees utilisateur pre-chargees (JOIN FETCH).
+     * Evite les N+1 queries sur User (LAZY + champs chiffres).
+     */
+    @Transactional(readOnly = true)
+    public List<OrganizationMember> getMembersWithUser(Long orgId) {
+        return memberRepository.findByOrganizationIdWithUser(orgId);
+    }
+
+    /**
+     * Change le role d'un membre dans l'organisation.
+     * Le OWNER ne peut pas etre modifie, et le role OWNER ne peut pas etre attribue.
+     */
+    public OrganizationMember changeMemberRole(Long orgId, Long memberId, OrgMemberRole newRole) {
+        if (newRole == OrgMemberRole.OWNER) {
+            throw new IllegalStateException("Le role OWNER ne peut pas etre attribue via cette operation");
+        }
+
+        OrganizationMember member = memberRepository.findByIdAndOrganizationId(memberId, orgId)
+                .orElseThrow(() -> new RuntimeException("Membre non trouve dans cette organisation"));
+
+        if (member.isOwner()) {
+            throw new IllegalStateException("Le role du proprietaire ne peut pas etre modifie");
+        }
+
+        OrgMemberRole oldRole = member.getRoleInOrg();
+        member.setRoleInOrg(newRole);
+        memberRepository.save(member);
+
+        logger.info("Role modifie : orgId={}, memberId={}, {} -> {}", orgId, memberId, oldRole, newRole);
+        return member;
+    }
+
+    /**
+     * Retire un membre par son ID de membership.
+     * Le OWNER ne peut pas etre retire.
+     */
+    public void removeMemberById(Long orgId, Long memberId) {
+        OrganizationMember member = memberRepository.findByIdAndOrganizationId(memberId, orgId)
+                .orElseThrow(() -> new RuntimeException("Membre non trouve dans cette organisation"));
+
+        if (member.isOwner()) {
+            throw new IllegalStateException("Le proprietaire de l'organisation ne peut pas etre retire");
+        }
+
+        Long userId = member.getUserId();
+        memberRepository.delete(member);
+
+        // Retirer l'organization_id de l'utilisateur
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+            user.setOrganizationId(null);
+            userRepository.save(user);
+        }
+
+        logger.info("Membre retire : orgId={}, memberId={}, userId={}", orgId, memberId, userId);
+    }
+
+    /**
+     * Verifie que l'appelant (identifie par son keycloakId) a le droit de gerer les membres de l'organisation.
+     * Autorise : SUPER_ADMIN (bypass), ou membre de l'org avec canManageOrg() (OWNER/ADMIN).
+     *
+     * @throws org.springframework.security.access.AccessDeniedException si non autorise
+     */
+    @Transactional(readOnly = true)
+    public void validateOrgManagement(String keycloakId, Long orgId) {
+        User caller = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException("Utilisateur non trouve"));
+
+        // Platform staff bypass (SUPER_ADMIN + SUPER_MANAGER)
+        if (caller.getRole() != null && caller.getRole().isPlatformStaff()) {
+            return;
+        }
+
+        // Verifier que l'appelant est membre de l'org avec droits de gestion
+        OrganizationMember callerMember = memberRepository.findByUserId(caller.getId())
+                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException(
+                        "Vous n'etes pas membre de cette organisation"));
+
+        if (!callerMember.getOrganization().getId().equals(orgId)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Vous n'etes pas membre de cette organisation");
+        }
+
+        if (!callerMember.getRoleInOrg().canManageOrg()) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Vous n'avez pas les droits de gestion sur cette organisation");
+        }
+    }
+
+    /**
      * Change le type d'une organisation (ex: INDIVIDUAL → CONCIERGE).
      */
     public Organization upgradeType(Long orgId, OrganizationType newType) {
@@ -175,6 +265,80 @@ public class OrganizationService {
         logger.info("Organisation {} upgradee : {} → {}", orgId, oldType, newType);
         return org;
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CRUD Admin — Gestion standalone des organisations
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Cree une organisation standalone (sans utilisateur proprietaire).
+     * Utilisee par l'admin pour creer manuellement une organisation.
+     */
+    public Organization createStandalone(String name, OrganizationType type) {
+        logger.info("Creation d'organisation standalone '{}' (type={})", name, type);
+
+        Organization org = new Organization();
+        org.setName(name);
+        org.setType(type);
+        org.setSlug(generateUniqueSlug(name));
+        org = organizationRepository.save(org);
+
+        logger.info("Organisation standalone creee : id={}, slug={}", org.getId(), org.getSlug());
+        return org;
+    }
+
+    /**
+     * Met a jour une organisation (nom et/ou type).
+     * Re-genere le slug si le nom change.
+     */
+    public Organization updateOrganization(Long id, String name, OrganizationType type) {
+        Organization org = organizationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Organisation non trouvee: " + id));
+
+        boolean nameChanged = name != null && !name.equals(org.getName());
+        if (name != null) org.setName(name);
+        if (type != null) org.setType(type);
+        if (nameChanged) {
+            org.setSlug(generateUniqueSlug(name));
+        }
+
+        org = organizationRepository.save(org);
+        logger.info("Organisation mise a jour : id={}, name={}, type={}", id, org.getName(), org.getType());
+        return org;
+    }
+
+    /**
+     * Supprime une organisation.
+     * Refuse si l'organisation a des membres actifs.
+     * Dissocie les utilisateurs rattaches.
+     */
+    public void deleteOrganization(Long id) {
+        Organization org = organizationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Organisation non trouvee: " + id));
+
+        // Verifier qu'il n'y a pas de membres actifs
+        List<OrganizationMember> members = memberRepository.findByOrganizationId(id);
+        if (!members.isEmpty()) {
+            throw new IllegalStateException(
+                    "Impossible de supprimer l'organisation '" + org.getName()
+                    + "' : elle contient " + members.size() + " membre(s). "
+                    + "Retirez tous les membres avant de supprimer l'organisation.");
+        }
+
+        // Dissocier les utilisateurs qui ont cet organizationId
+        List<User> usersInOrg = userRepository.findByOrganizationId(id);
+        for (User user : usersInOrg) {
+            user.setOrganizationId(null);
+            userRepository.save(user);
+        }
+
+        organizationRepository.delete(org);
+        logger.info("Organisation supprimee : id={}, name={}", id, org.getName());
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Slug
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Genere un slug unique a partir d'un nom.

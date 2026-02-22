@@ -493,6 +493,9 @@ public class EmailService {
         } catch (MessagingException e) {
             log.error("Failed to send document email to {}: {}", toEmail, e.getMessage(), e);
             throw new RuntimeException("Erreur d'envoi de l'email avec document", e);
+        } catch (Exception e) {
+            log.error("Failed to send document email to {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi de l'email avec document", e);
         }
     }
 
@@ -522,6 +525,9 @@ public class EmailService {
             ms.send(message);
             log.info("Email d'invitation envoye a {} pour l'organisation {}", toEmail, orgName);
         } catch (MessagingException e) {
+            log.error("Erreur d'envoi email d'invitation a {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi de l'email d'invitation", e);
+        } catch (Exception e) {
             log.error("Erreur d'envoi email d'invitation a {}: {}", toEmail, e.getMessage(), e);
             throw new RuntimeException("Erreur d'envoi de l'email d'invitation", e);
         }
@@ -570,7 +576,14 @@ public class EmailService {
         if (role == null) return "Membre";
         return switch (role.toUpperCase()) {
             case "OWNER" -> "Proprietaire";
-            case "ADMIN" -> "Administrateur";
+            case "SUPER_ADMIN" -> "Super Administrateur";
+            case "SUPER_MANAGER" -> "Super Manager";
+            case "SUPERVISOR" -> "Superviseur";
+            case "TECHNICIAN" -> "Technicien";
+            case "HOUSEKEEPER" -> "Agent de menage";
+            case "LAUNDRY" -> "Blanchisserie";
+            case "EXTERIOR_TECH" -> "Tech. Exterieur";
+            case "HOST" -> "Proprietaire";
             case "MEMBER" -> "Membre";
             default -> role;
         };

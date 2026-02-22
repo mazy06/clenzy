@@ -9,6 +9,10 @@ yarn-error.log*
 build/
 dist/
 target/
+**/target/
+
+# TypeScript build info
+*.tsbuildinfo
 
 # Environment variables (secrets - ne jamais commiter)
 .env

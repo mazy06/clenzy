@@ -127,8 +127,9 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
   const [scheduledTimePart, setScheduledTimePart] = useState('11:00');
 
   const { control, handleSubmit: rhfHandleSubmit, watch, setValue, reset, formState: { errors } } = useForm<InterventionFormValues>({
+    // zodResolver v4 type mismatch with react-hook-form v7 — safe cast
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(interventionSchema) as any, // zodResolver type mismatch with react-hook-form
+    resolver: zodResolver(interventionSchema) as any,
     defaultValues: {
       title: '',
       description: '',
@@ -292,8 +293,8 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
             });
             window.location.href = paymentData.url;
             return;
-          } catch (paymentErr: any) {
-            setError(paymentErr.message || 'Erreur lors de la creation de la session de paiement');
+          } catch (paymentErr: unknown) {
+            setError(paymentErr instanceof Error ? paymentErr.message : 'Erreur lors de la creation de la session de paiement');
           }
         }
 

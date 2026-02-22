@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import {
   Box,
   Typography,
@@ -31,7 +31,6 @@ import {
   FormHelperText,
 } from '@mui/material';
 import {
-  Add,
   MoreVert,
   Edit,
   Delete,
@@ -44,19 +43,17 @@ import {
   Build,
   CleaningServices,
   Home,
-  Sync,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
-import PageHeader from '../../components/PageHeader';
 import FilterSearchBar from '../../components/FilterSearchBar';
-import { usersApi } from '../../services/api';
+import { usersApi, type UserFormData } from '../../services/api';
+import { extractApiList } from '../../types';
 import apiClient from '../../services/apiClient';
 import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
-import { createSpacing } from '../../theme/spacing';
-import ExportButton from '../../components/ExportButton';
 import type { ExportColumn } from '../../utils/exportUtils';
+import type { ChipColor } from '../../types';
 
 interface User {
   id: number;
@@ -69,14 +66,14 @@ interface User {
   createdAt: string;
 }
 
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
-
 const userRoles: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor }> = [
-  { value: 'ADMIN', label: 'Administrateur', icon: <AdminPanelSettings />, color: 'error' },
-  { value: 'MANAGER', label: 'Manager', icon: <SupervisorAccount />, color: 'warning' },
+  { value: 'SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error' },
+  { value: 'SUPER_MANAGER', label: 'Super Manager', icon: <SupervisorAccount />, color: 'secondary' },
   { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info' },
   { value: 'TECHNICIAN', label: 'Technicien', icon: <Build />, color: 'primary' },
   { value: 'HOUSEKEEPER', label: 'Agent de ménage', icon: <CleaningServices />, color: 'default' },
+  { value: 'LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default' },
+  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', icon: <Build />, color: 'primary' },
   { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
 ];
 
@@ -89,14 +86,21 @@ const userStatuses = USER_STATUS_OPTIONS.map(option => ({
 
 // Données mockées supprimées - utilisation de l'API uniquement
 
-const UsersList: React.FC = () => {
+export interface UsersListHandle {
+  sync: () => void;
+  syncing: boolean;
+  filteredUsers: User[];
+  exportColumns: ExportColumn[];
+}
+
+const UsersList = forwardRef<UsersListHandle>((_, ref) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState<Partial<User>>({});
+  const [editFormData, setEditFormData] = useState<Partial<UserFormData>>({});
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -124,7 +128,7 @@ const UsersList: React.FC = () => {
       setLoading(true);
       try {
         const data = await usersApi.getAll();
-        const usersList = (data as any).content || data;
+        const usersList = extractApiList<User>(data);
         setUsers(usersList);
       } catch (err) {
         // En cas d'erreur, tableau vide
@@ -137,32 +141,13 @@ const UsersList: React.FC = () => {
     loadUsers();
   }, []);
 
-  // Si pas de permission, afficher un message informatif
-  if (!user || !canManageUsers) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="info" sx={{ p: 2, py: 1 }}>
-          <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}>
-            Accès non autorisé
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-            Vous n'avez pas les permissions nécessaires pour gérer les utilisateurs.
-            <br />
-            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
-          </Typography>
-        </Alert>
-      </Box>
-    );
-  }
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, user: User) => {
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, u: User) => {
     setAnchorEl(event.currentTarget);
-    setSelectedUser(user);
+    setSelectedUser(u);
   };
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    // Ne PAS reset selectedUser ici — il est utilisé par les dialogs edit/delete
   };
 
   const handleEdit = () => {
@@ -195,12 +180,9 @@ const UsersList: React.FC = () => {
   const handleSyncUsers = async () => {
     setSyncing(true);
     try {
-      // Appeler l'endpoint de synchronisation forcée pour recréer complètement les utilisateurs
       await apiClient.post('/sync/force-sync-all-to-keycloak');
-
-      // Recharger la liste des utilisateurs pour voir les changements
       const data = await usersApi.getAll();
-      const usersList = (data as any).content || data;
+      const usersList = extractApiList<User>(data);
       setUsers(usersList);
     } catch (err) {
     } finally {
@@ -216,8 +198,7 @@ const UsersList: React.FC = () => {
 
     setSaving(true);
     try {
-      await usersApi.update(selectedUser.id, editFormData as any);
-      // Mettre à jour la liste locale
+      await usersApi.update(selectedUser.id, editFormData);
       setUsers(prev => prev.map(u =>
         u.id === selectedUser.id ? { ...u, ...editFormData } : u
       ));
@@ -225,8 +206,8 @@ const UsersList: React.FC = () => {
       setEditFormData({});
       setSelectedUser(null);
       notify.success('Utilisateur mis à jour avec succès');
-    } catch (err: any) {
-      notify.error(err?.message || 'Erreur lors de la mise à jour de l\'utilisateur');
+    } catch (err: unknown) {
+      notify.error(err instanceof Error ? err.message : 'Erreur lors de la mise à jour de l\'utilisateur');
     } finally {
       setSaving(false);
     }
@@ -239,8 +220,8 @@ const UsersList: React.FC = () => {
         setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
         setDeleteDialogOpen(false);
         notify.success('Utilisateur supprimé avec succès');
-      } catch (err: any) {
-        notify.error(err?.message || 'Erreur lors de la suppression de l\'utilisateur');
+      } catch (err: unknown) {
+        notify.error(err instanceof Error ? err.message : 'Erreur lors de la suppression de l\'utilisateur');
         setDeleteDialogOpen(false);
       }
     } else {
@@ -251,23 +232,6 @@ const UsersList: React.FC = () => {
   const getRoleInfo = (role: string) => {
     return userRoles.find(r => r.value === role) || userRoles[0];
   };
-
-  // Filtrer les utilisateurs selon les critères
-  const getFilteredUsers = () => {
-    return users.filter((user) => {
-      const matchesSearch = searchTerm === '' || 
-        user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesRole = selectedRole === 'all' || user.role === selectedRole;
-      const matchesStatus = selectedStatus === 'all' || user.status === selectedStatus;
-      
-      return matchesSearch && matchesRole && matchesStatus;
-    });
-  };
-
-  const filteredUsers = getFilteredUsers();
 
   const getStatusInfo = (status: string) => {
     return userStatuses.find(s => s.value === status) || userStatuses[0];
@@ -281,6 +245,16 @@ const UsersList: React.FC = () => {
     });
   };
 
+  const filteredUsers = users.filter((u) => {
+    const matchesSearch = searchTerm === '' ||
+      u.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = selectedRole === 'all' || u.role === selectedRole;
+    const matchesStatus = selectedStatus === 'all' || u.status === selectedStatus;
+    return matchesSearch && matchesRole && matchesStatus;
+  });
+
   const exportColumns: ExportColumn[] = [
     { key: 'id', label: 'ID' },
     { key: 'firstName', label: 'Prénom' },
@@ -292,6 +266,32 @@ const UsersList: React.FC = () => {
     { key: 'createdAt', label: 'Date de création', formatter: (v: string) => v ? new Date(v).toLocaleDateString('fr-FR') : '' },
   ];
 
+  // Exposer les actions au parent (UsersAndOrganizations)
+  useImperativeHandle(ref, () => ({
+    sync: handleSyncUsers,
+    syncing,
+    filteredUsers,
+    exportColumns,
+  }));
+
+  // Si pas de permission, afficher un message informatif
+  if (!user || !canManageUsers) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Alert severity="info" sx={{ p: 2, py: 1 }}>
+          <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}>
+            Accès non autorisé
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+            Vous n'avez pas les permissions nécessaires pour gérer les utilisateurs.
+            <br />
+            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+          </Typography>
+        </Alert>
+      </Box>
+    );
+  }
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
@@ -302,45 +302,6 @@ const UsersList: React.FC = () => {
 
   return (
     <Box>
-      <PageHeader
-        title="Utilisateurs"
-        subtitle="Gestion des utilisateurs de la plateforme"
-        backPath="/dashboard"
-        showBackButton={false}
-        actions={
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
-            <ExportButton
-              data={filteredUsers}
-              columns={exportColumns}
-              fileName="utilisateurs"
-            />
-            <Button
-              variant="outlined"
-              color="secondary"
-              size="small"
-              startIcon={<Sync sx={{ fontSize: 18 }} />}
-              onClick={handleSyncUsers}
-              disabled={syncing}
-              sx={{ fontSize: '0.8125rem' }}
-              title="Synchroniser"
-            >
-              {syncing ? 'Synchronisation...' : 'Synchroniser'}
-            </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              startIcon={<Add sx={{ fontSize: 18 }} />}
-              onClick={() => navigate('/users/new')}
-              sx={{ fontSize: '0.8125rem' }}
-              title="Nouvel utilisateur"
-            >
-              Nouvel utilisateur
-            </Button>
-          </Box>
-        }
-      />
-
       {/* Statistiques */}
       <Box sx={{ mb: 2 }}>
         <Grid container spacing={2}>
@@ -372,7 +333,7 @@ const UsersList: React.FC = () => {
             <Card>
               <CardContent sx={{ textAlign: 'center', py: 1.5, px: 2 }}>
                 <Typography variant="h6" color="warning.main" fontWeight={700} sx={{ fontSize: '1.5rem' }}>
-                  {users.filter(u => u.role === 'ADMIN').length}
+                  {users.filter(u => ['SUPER_ADMIN'].includes(u.role)).length}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                   Administrateurs
@@ -384,7 +345,7 @@ const UsersList: React.FC = () => {
             <Card>
               <CardContent sx={{ textAlign: 'center', py: 1.5, px: 2 }}>
                 <Typography variant="h6" color="info.main" fontWeight={700} sx={{ fontSize: '1.5rem' }}>
-                  {users.filter(u => ['TECHNICIAN', 'HOUSEKEEPER'].includes(u.role)).length}
+                  {users.filter(u => ['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'].includes(u.role)).length}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                   Personnel opérationnel
@@ -687,6 +648,8 @@ const UsersList: React.FC = () => {
       </Dialog>
     </Box>
   );
-};
+});
+
+UsersList.displayName = 'UsersList';
 
 export default UsersList;

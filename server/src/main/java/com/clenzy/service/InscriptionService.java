@@ -4,6 +4,7 @@ import com.clenzy.dto.CreateUserDto;
 import com.clenzy.dto.InscriptionDto;
 import com.clenzy.model.*;
 import com.clenzy.repository.PendingInscriptionRepository;
+import com.clenzy.util.StringUtils;
 import com.clenzy.repository.UserRepository;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
@@ -71,7 +72,7 @@ public class InscriptionService {
 
         // Verifier que l'email n'est pas deja utilise dans la table users
         // Message generique pour eviter l'enumeration d'emails (AUTH-VULN-10)
-        if (userRepository.existsByEmailHash(computeEmailHash(dto.getEmail()))) {
+        if (userRepository.existsByEmailHash(StringUtils.computeEmailHash(dto.getEmail()))) {
             throw new RuntimeException("Impossible de traiter cette inscription. Veuillez reessayer ou contacter le support.");
         }
 
@@ -314,17 +315,4 @@ public class InscriptionService {
         logger.info("Nettoyage des inscriptions expirees effectue");
     }
 
-    private static String computeEmailHash(String email) {
-        try {
-            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(email.toLowerCase().trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder();
-            for (byte b : hashBytes) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.toString();
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 non disponible", e);
-        }
-    }
 }

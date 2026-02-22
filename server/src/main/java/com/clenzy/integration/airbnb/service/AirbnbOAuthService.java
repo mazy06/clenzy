@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -47,13 +48,14 @@ public class AirbnbOAuthService {
                               AirbnbConnectionRepository connectionRepository,
                               AirbnbTokenEncryptionService encryptionService,
                               AuditLogService auditLogService,
-                              StringRedisTemplate redisTemplate) {
+                              StringRedisTemplate redisTemplate,
+                              RestTemplate restTemplate) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
         this.auditLogService = auditLogService;
         this.redisTemplate = redisTemplate;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = restTemplate;
     }
 
     /**
@@ -95,6 +97,7 @@ public class AirbnbOAuthService {
      * Echange le code d'autorisation contre un access token.
      * Stocke les tokens chiffres en base.
      */
+    @CircuitBreaker(name = "airbnb-oauth")
     public AirbnbConnection exchangeCodeForToken(String code, String userId) {
         log.info("Echange du code OAuth pour l'utilisateur: {}", userId);
 
@@ -169,6 +172,7 @@ public class AirbnbOAuthService {
     /**
      * Rafraichit le token d'acces avant expiration.
      */
+    @CircuitBreaker(name = "airbnb-oauth")
     public AirbnbConnection refreshToken(String userId) {
         log.info("Rafraichissement du token Airbnb pour l'utilisateur: {}", userId);
 
@@ -226,6 +230,7 @@ public class AirbnbOAuthService {
     /**
      * Revoque le token et deconnecte le compte Airbnb.
      */
+    @CircuitBreaker(name = "airbnb-oauth")
     public void revokeToken(String userId) {
         log.info("Revocation du token Airbnb pour l'utilisateur: {}", userId);
 

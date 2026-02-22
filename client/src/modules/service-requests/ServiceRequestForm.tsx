@@ -440,8 +440,8 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
           navigate('/service-requests?success=true');
         }
       }
-    } catch (err: any) {
-      const message = err?.message || (isEditMode ? t('serviceRequests.updateError') : t('serviceRequests.errors.createError'));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : (isEditMode ? t('serviceRequests.updateError') : t('serviceRequests.errors.createError'));
       const errorPrefix = isEditMode ? t('serviceRequests.updateErrorDetails') : t('serviceRequests.errors.createErrorDetails');
       setError(errorPrefix + ': ' + message);
     } finally {

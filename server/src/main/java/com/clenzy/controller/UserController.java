@@ -42,7 +42,7 @@ public class UserController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Créer un utilisateur")
     public ResponseEntity<UserDto> create(@Validated(Create.class) @RequestBody UserDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.create(dto));
@@ -63,14 +63,14 @@ public class UserController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Lister les utilisateurs")
     public Page<UserDto> list(@PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return userService.list(pageable);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Supprimer un utilisateur")
     public void delete(@PathVariable Long id) {
@@ -80,7 +80,7 @@ public class UserController {
     // ─── Login lockout management (admin only) ──────────────────
 
     @GetMapping("/{id}/lockout-status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Consulter le statut de verrouillage d'un utilisateur")
     public ResponseEntity<?> getLockoutStatus(@PathVariable Long id) {
         User user = userRepository.findById(id).orElse(null);
@@ -100,7 +100,7 @@ public class UserController {
     }
 
     @PostMapping("/{id}/unlock")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Debloquer manuellement un utilisateur verrouille")
     public ResponseEntity<?> unlockUser(@PathVariable Long id) {
         User user = userRepository.findById(id).orElse(null);
@@ -124,11 +124,11 @@ public class UserController {
         // Verifier si l'utilisateur authentifie correspond a la ressource demandee
         User resourceUser = userRepository.findById(resourceUserId).orElse(null);
         boolean isOwner = resourceUser != null && keycloakId.equals(resourceUser.getKeycloakId());
-        // Verifier le role ADMIN depuis le JWT Keycloak
+        // Verifier le role admin plateforme (SUPER_ADMIN) depuis le JWT Keycloak
         boolean isAdmin = false;
         Object realmAccess = jwt.getClaim("realm_access");
         if (realmAccess instanceof Map<?,?> ra && ra.get("roles") instanceof List<?> roles) {
-            isAdmin = roles.contains("ADMIN");
+            isAdmin = roles.contains("SUPER_ADMIN");
         }
         if (!isOwner && !isAdmin) {
             throw new AccessDeniedException("Acces refuse : vous ne pouvez acceder qu'a vos propres donnees");

@@ -257,8 +257,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
       const prefs = await notificationPreferencesApi.getAll();
       setPreferences(prefs);
       setOriginalPrefs(prefs);
-    } catch (err) {
-      console.error('Erreur chargement preferences:', err);
+    } catch {
       setError('Impossible de charger les preferences de notifications');
     } finally {
       setLoading(false);
@@ -319,8 +318,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
       setPreferences(updated);
       setOriginalPrefs(updated);
       setSnackbar({ open: true, message: 'Preferences sauvegardees avec succes', severity: 'success' });
-    } catch (err) {
-      console.error('Erreur sauvegarde preferences:', err);
+    } catch {
       setSnackbar({ open: true, message: 'Erreur lors de la sauvegarde', severity: 'error' });
     } finally {
       setSaving(false);

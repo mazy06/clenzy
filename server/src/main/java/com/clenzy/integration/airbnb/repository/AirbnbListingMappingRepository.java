@@ -24,4 +24,6 @@ public interface AirbnbListingMappingRepository extends JpaRepository<AirbnbList
     boolean existsByAirbnbListingId(String airbnbListingId);
 
     boolean existsByPropertyId(Long propertyId);
+
+    List<AirbnbListingMapping> findBySyncEnabledTrueAndAutoPushPricingTrue();
 }

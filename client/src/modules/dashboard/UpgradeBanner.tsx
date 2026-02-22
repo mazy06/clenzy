@@ -77,8 +77,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
       if (checkoutUrl) {
         window.location.href = checkoutUrl;
       }
-    } catch (err: unknown) {
-      console.error('Erreur upgrade:', err);
+    } catch {
       setError('Impossible de lancer la mise a niveau. Veuillez reessayer.');
       setLoading(false);
     }

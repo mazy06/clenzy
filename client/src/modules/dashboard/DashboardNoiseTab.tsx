@@ -25,6 +25,8 @@ import DashboardErrorBoundary from './DashboardErrorBoundary';
 import NoiseProductDetail from './NoiseProductDetail';
 import NoiseDeviceConfigForm from './NoiseDeviceConfigForm';
 import NoiseDeviceList from './NoiseDeviceList';
+import NoiseAlertConfigPanel from './NoiseAlertConfigPanel';
+import NoiseAlertHistory from './NoiseAlertHistory';
 
 // ─── Feature list helper ────────────────────────────────────────────────────
 
@@ -364,12 +366,17 @@ const DashboardNoiseTab: React.FC = () => {
             onAddDevice={() => setView('offers')}
           />
           {deviceNoiseData.length > 0 && (
-            <Box sx={{ flex: 1, minHeight: 180 }}>
+            <Box sx={{ flex: 1, minHeight: 400 }}>
               <DashboardErrorBoundary widgetName="Monitoring sonore">
                 <NoiseMonitorChart data={chartData} combinedChartData={deviceChartData} />
               </DashboardErrorBoundary>
             </Box>
           )}
+          {/* Alert config + history */}
+          <NoiseAlertConfigPanel
+            propertyIds={devices.map(d => d.propertyId)}
+          />
+          <NoiseAlertHistory />
         </Box>
       );
 

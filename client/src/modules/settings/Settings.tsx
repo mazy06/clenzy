@@ -37,7 +37,11 @@ import {
   VolumeUp,
   BarChart,
   GroupAdd,
+  ChatBubbleOutline,
+  TrendingUp,
 } from '@mui/icons-material';
+import { guestMessagingApi } from '../../services/api/guestMessagingApi';
+import type { MessagingAutomationConfig } from '../../services/api/guestMessagingApi';
 import { useWorkflowSettings } from '../../hooks/useWorkflowSettings';
 import { useNoiseMonitoring } from '../../hooks/useNoiseMonitoring';
 import { useAuth } from '../../hooks/useAuth';
@@ -51,6 +55,7 @@ import PageHeader from '../../components/PageHeader';
 import NotificationPreferencesCard from './NotificationPreferencesCard';
 import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
 import OrganizationSection from '../organization/OrganizationSection';
+import MessagingAutomationSection from '../messaging/MessagingAutomationSection';
 
 // ─── TabPanel ─────────────────────────────────────────────────────────────────
 
@@ -128,25 +133,24 @@ export default function Settings() {
   useEffect(() => {
     const saved = storageService.getJSON<typeof settings>(STORAGE_KEYS.SETTINGS);
     if (saved) {
-      // Synchroniser le thème affiché avec le mode réel du thème
+      // Garder la valeur brute du mode ('auto', 'dark', 'light') — ne PAS resoudre
       setSettings({
         ...saved,
         display: {
           ...saved.display,
-          theme: themeMode === 'auto' ? (isDark ? 'dark' : 'light') : themeMode,
+          theme: themeMode,
         },
       });
     } else {
-      // Synchroniser l'état par défaut avec le mode thème actuel
       setSettings(prev => ({
         ...prev,
         display: {
           ...prev.display,
-          theme: themeMode === 'auto' ? (isDark ? 'dark' : 'light') : themeMode,
+          theme: themeMode,
         },
       }));
     }
-  }, [themeMode, isDark]);
+  }, [themeMode]);
 
   const [planningMock, setPlanningMock] = useState(
     () => localStorage.getItem(STORAGE_KEYS.PLANNING_MOCK) === 'true'
@@ -159,6 +163,24 @@ export default function Settings() {
   const [analyticsMock, setAnalyticsMock] = useState(
     () => localStorage.getItem(STORAGE_KEYS.ANALYTICS_MOCK) === 'true'
   );
+
+  // Auto-push pricing global toggle
+  const [autoPushPricingEnabled, setAutoPushPricingEnabled] = useState(false);
+
+  useEffect(() => {
+    guestMessagingApi.getConfig()
+      .then((cfg) => setAutoPushPricingEnabled(cfg.autoPushPricingEnabled))
+      .catch(() => {});
+  }, []);
+
+  const handleToggleAutoPushPricing = async (enabled: boolean) => {
+    setAutoPushPricingEnabled(enabled);
+    try {
+      await guestMessagingApi.updateConfig({ autoPushPricingEnabled: enabled });
+    } catch {
+      setAutoPushPricingEnabled(!enabled); // revert on error
+    }
+  };
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -323,12 +345,18 @@ export default function Settings() {
             label="Notifications"
             {...a11yProps(1)}
           />
-          {hasAnyRole(['ADMIN', 'MANAGER']) && user?.organizationId && (
+          <Tab
+            icon={<ChatBubbleOutline sx={{ fontSize: 18 }} />}
+            iconPosition="start"
+            label="Messagerie"
+            {...a11yProps(2)}
+          />
+          {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
             <Tab
               icon={<GroupAdd sx={{ fontSize: 18 }} />}
               iconPosition="start"
               label="Organisation"
-              {...a11yProps(2)}
+              {...a11yProps(3)}
             />
           )}
         </Tabs>
@@ -531,6 +559,23 @@ export default function Settings() {
                     />
                   </ListItemSecondaryAction>
                 </ListItem>
+
+                <ListItem>
+                  <ListItemIcon>
+                    <TrendingUp />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary="Push automatique des prix"
+                    secondary="Pousser automatiquement les prix vers Airbnb (toutes les heures)"
+                  />
+                  <ListItemSecondaryAction>
+                    <Switch
+                      edge="end"
+                      checked={autoPushPricingEnabled}
+                      onChange={(e) => handleToggleAutoPushPricing(e.target.checked)}
+                    />
+                  </ListItemSecondaryAction>
+                </ListItem>
               </List>
             </Paper>
           </Grid>
@@ -627,7 +672,7 @@ export default function Settings() {
           </Grid>
 
           {/* Développement (admin only) */}
-          {user.roles.includes('ADMIN') && (
+          {(user.roles.includes('SUPER_ADMIN')) && (
             <Grid item xs={12} md={6}>
               <Paper sx={{ p: 2, height: '100%' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
@@ -720,12 +765,17 @@ export default function Settings() {
         />
       </TabPanel>
 
+      {/* ─── Onglet Messagerie ────────────────────────────────────────── */}
+      <TabPanel value={tabValue} index={2}>
+        <MessagingAutomationSection />
+      </TabPanel>
+
       {/* ─── Onglet Organisation (ADMIN/MANAGER) ─────────────────────── */}
-      {hasAnyRole(['ADMIN', 'MANAGER']) && user?.organizationId && (
-        <TabPanel value={tabValue} index={2}>
+      {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
+        <TabPanel value={tabValue} index={3}>
           <OrganizationSection
-            organizationId={user.organizationId}
-            organizationName={user.organizationName}
+            organizationId={user?.organizationId}
+            organizationName={user?.organizationName}
           />
         </TabPanel>
       )}

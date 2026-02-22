@@ -94,10 +94,11 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
       else endpoint = 'inbox';
 
       const data = await contactApi.getMessages(endpoint, { page, size: rowsPerPage });
-      const paginatedData = data as any;
-      const content: ContactMessageItem[] = paginatedData.content || [];
+      // API returns ContactMessage with sender/recipient objects at runtime,
+      // but the TS type is narrower — cast through unknown to bridge the gap
+      const content = (data.content || []) as unknown as ContactMessageItem[];
       setMessages(content);
-      setTotalElements(paginatedData.totalElements || 0);
+      setTotalElements(data.totalElements || 0);
 
       if (type === 'received' && onUnreadCountChange) {
         const unreadCount = content.filter((m: ContactMessageItem) =>

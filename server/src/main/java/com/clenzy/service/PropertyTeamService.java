@@ -15,7 +15,6 @@ import com.clenzy.tenant.TenantContext;
 import com.clenzy.util.InterventionTypeMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,23 +36,26 @@ public class PropertyTeamService {
         InterventionStatus.IN_PROGRESS
     );
 
-    @Autowired
-    private PropertyTeamRepository propertyTeamRepository;
+    private final PropertyTeamRepository propertyTeamRepository;
+    private final InterventionRepository interventionRepository;
+    private final TeamRepository teamRepository;
+    private final TeamCoverageZoneRepository teamCoverageZoneRepository;
+    private final PropertyRepository propertyRepository;
+    private final TenantContext tenantContext;
 
-    @Autowired
-    private InterventionRepository interventionRepository;
-
-    @Autowired
-    private TeamRepository teamRepository;
-
-    @Autowired
-    private TeamCoverageZoneRepository teamCoverageZoneRepository;
-
-    @Autowired
-    private PropertyRepository propertyRepository;
-
-    @Autowired
-    private TenantContext tenantContext;
+    public PropertyTeamService(PropertyTeamRepository propertyTeamRepository,
+                               InterventionRepository interventionRepository,
+                               TeamRepository teamRepository,
+                               TeamCoverageZoneRepository teamCoverageZoneRepository,
+                               PropertyRepository propertyRepository,
+                               TenantContext tenantContext) {
+        this.propertyTeamRepository = propertyTeamRepository;
+        this.interventionRepository = interventionRepository;
+        this.teamRepository = teamRepository;
+        this.teamCoverageZoneRepository = teamCoverageZoneRepository;
+        this.propertyRepository = propertyRepository;
+        this.tenantContext = tenantContext;
+    }
 
     /**
      * Assigner une equipe a une propriete (upsert)

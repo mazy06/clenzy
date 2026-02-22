@@ -3,9 +3,15 @@ server:
 
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    # Read replica routing (Niveau 8) — si REPLICA_URL non defini, fallback vers PRIMARY
+    primary:
+      url: ${SPRING_DATASOURCE_URL}
+      username: ${SPRING_DATASOURCE_USERNAME}
+      password: ${SPRING_DATASOURCE_PASSWORD}
+    replica:
+      url: ${SPRING_DATASOURCE_REPLICA_URL:${SPRING_DATASOURCE_URL}}
+      username: ${SPRING_DATASOURCE_REPLICA_USERNAME:${SPRING_DATASOURCE_USERNAME}}
+      password: ${SPRING_DATASOURCE_REPLICA_PASSWORD:${SPRING_DATASOURCE_PASSWORD}}
   jpa:
     hibernate:
       ddl-auto: validate

@@ -127,8 +127,8 @@ const InterventionsPendingPayment: React.FC = () => {
       });
 
       window.location.href = paymentData.url;
-    } catch (err: any) {
-      setError(err.message || 'Erreur de connexion');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erreur de connexion');
       setProcessingPayment(null);
     }
   };

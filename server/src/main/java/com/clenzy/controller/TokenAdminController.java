@@ -3,7 +3,6 @@ package com.clenzy.controller;
 import com.clenzy.service.JwtTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -13,11 +12,14 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/tokens")
 @Tag(name = "Token Administration", description = "Administration et monitoring des tokens JWT")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('SUPER_ADMIN')")
 public class TokenAdminController {
 
-    @Autowired
-    private JwtTokenService jwtTokenService;
+    private final JwtTokenService jwtTokenService;
+
+    public TokenAdminController(JwtTokenService jwtTokenService) {
+        this.jwtTokenService = jwtTokenService;
+    }
 
     @GetMapping("/stats")
     @Operation(summary = "Statistiques des tokens")

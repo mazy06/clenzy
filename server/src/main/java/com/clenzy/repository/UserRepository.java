@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.QueryHint;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,5 +43,11 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
     List<User> findByRoleInWithTeams(@Param("roles") List<UserRole> roles, @Param("orgId") Long orgId);
+
+    List<User> findByOrganizationId(Long organizationId);
+
+    long countByStatus(UserStatus status);
+
+    long countByCreatedAtAfter(LocalDateTime date);
 }
 

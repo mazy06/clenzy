@@ -14,6 +14,7 @@ import com.clenzy.tenant.TenantContext;
 import java.util.UUID;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -98,7 +99,8 @@ public class UserService {
         if (dto.status != null) user.setStatus(dto.status);
         if (dto.profilePictureUrl != null) user.setProfilePictureUrl(dto.profilePictureUrl);
         if (dto.deferredPayment != null) user.setDeferredPayment(dto.deferredPayment);
-        
+        if (dto.organizationId != null) user.setOrganizationId(dto.organizationId);
+
         // Sauvegarder d'abord dans la base métier
         user = userRepository.save(user);
         
@@ -117,18 +119,24 @@ public class UserService {
         }
 
         // Mise à jour du mot de passe dans Keycloak si fourni
+        boolean passwordUpdateFailed = false;
         if (dto.newPassword != null && !dto.newPassword.trim().isEmpty()) {
             try {
                 log.debug("Mise a jour du mot de passe dans Keycloak pour l'utilisateur: {}", user.getEmail());
                 newUserService.resetPassword(user.getKeycloakId(), dto.newPassword);
                 log.debug("Mot de passe mis a jour dans Keycloak");
             } catch (Exception e) {
-                log.warn("Erreur lors de la mise a jour du mot de passe dans Keycloak: {}", e.getMessage());
-                // L'utilisateur est mis à jour dans la base métier même si la mise à jour Keycloak échoue
+                log.error("Echec de la mise a jour du mot de passe dans Keycloak pour {}: {}", user.getEmail(), e.getMessage(), e);
+                passwordUpdateFailed = true;
             }
         }
-        
-        return toDto(user);
+
+        UserDto result = toDto(user);
+        if (passwordUpdateFailed) {
+            result.passwordUpdateFailed = true;
+            log.warn("Profil mis a jour mais le mot de passe n'a PAS ete modifie dans Keycloak pour: {}", user.getEmail());
+        }
+        return result;
     }
 
     @Transactional(readOnly = true)
@@ -155,29 +163,15 @@ public class UserService {
     @Transactional(readOnly = true)
     public User findByEmail(String email) {
         if (email == null) return null;
-        String hash = computeEmailHash(email);
+        String hash = StringUtils.computeEmailHash(email);
         return userRepository.findByEmailHash(hash).orElse(null);
     }
 
     @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
         if (email == null) return false;
-        String hash = computeEmailHash(email);
+        String hash = StringUtils.computeEmailHash(email);
         return userRepository.existsByEmailHash(hash);
-    }
-
-    private static String computeEmailHash(String email) {
-        try {
-            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(email.toLowerCase().trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder();
-            for (byte b : hashBytes) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.toString();
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 non disponible", e);
-        }
     }
 
     @Transactional
@@ -291,6 +285,13 @@ public class UserService {
         dto.services = user.getServices();
         dto.servicesDevis = user.getServicesDevis();
         dto.deferredPayment = user.isDeferredPayment();
+        // Organisation rattachee
+        dto.organizationId = user.getOrganizationId();
+        if (user.getOrganizationId() != null) {
+            organizationRepository.findById(user.getOrganizationId()).ifPresent(org ->
+                dto.organizationName = org.getName()
+            );
+        }
         return dto;
     }
 }

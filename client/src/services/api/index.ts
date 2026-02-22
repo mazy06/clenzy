@@ -34,6 +34,9 @@ export type {
 export { propertiesApi } from './propertiesApi';
 export type { Property, PropertyFormData } from './propertiesApi';
 
+export { receivedFormsApi } from './receivedFormsApi';
+export type { ReceivedForm, ReceivedFormsPage, ReceivedFormsStats } from './receivedFormsApi';
+
 export { serviceRequestsApi } from './serviceRequestsApi';
 export type { ServiceRequest, ServiceRequestFormData } from './serviceRequestsApi';
 
@@ -55,6 +58,8 @@ export type {
   ReservationStatus,
   ReservationSource,
   ReservationFilters,
+  CreateReservationData,
+  UpdateReservationData,
   PlanningIntervention,
   PlanningInterventionType,
   PlanningInterventionStatus,
@@ -86,6 +91,9 @@ export type {
   ICalFeed,
   ICalAccessCheck,
 } from './iCalApi';
+
+export { invitationsApi } from './invitationsApi';
+export type { InvitationDto, SendInvitationRequest, AcceptInvitationRequest } from './invitationsApi';
 
 export { notificationPreferencesApi } from './notificationPreferencesApi';
 export type { NotificationPreferencesMap } from './notificationPreferencesApi';
@@ -121,3 +129,90 @@ export type {
   MinutConnectionStatus,
   TuyaConnectionStatus,
 } from './noiseApi';
+
+export { noiseAlertConfigApi, noiseAlertsApi } from './noiseAlertApi';
+export type {
+  TimeWindowDto,
+  NoiseAlertConfigDto,
+  SaveNoiseAlertConfigDto,
+  NoiseAlertDto,
+  NoiseAlertPage,
+} from './noiseAlertApi';
+
+export { organizationMembersApi } from './organizationMembersApi';
+export type { OrganizationMemberDto, ChangeRoleRequest } from './organizationMembersApi';
+
+export { organizationsApi } from './organizationsApi';
+export type { OrganizationDto, CreateOrganizationData, UpdateOrganizationData } from './organizationsApi';
+
+export { kpiApi } from './kpiApi';
+export type { KpiItem, KpiSnapshot, KpiHistoryPoint, KpiHistory, KpiStatus } from './kpiApi';
+
+export { subscriptionApi } from './subscriptionApi';
+export type { UpgradeResponse } from './subscriptionApi';
+
+export { syncAdminApi } from './syncAdminApi';
+export type {
+  ConnectionSummary,
+  ConnectionDetail,
+  SyncLog,
+  SyncEventStats,
+  OutboxEvent,
+  OutboxStats,
+  BulkRetryResult,
+  CalendarCommand,
+  CalendarConflict,
+  MappingSummary,
+  DiagnosticsSummary,
+  MetricsSnapshot,
+  ReconciliationRun,
+  ReconciliationStats,
+} from './syncAdminApi';
+
+export { calendarPricingApi } from './calendarPricingApi';
+export type {
+  CalendarPricingDay,
+  RatePlan,
+  RateOverride,
+  CreateRatePlanData,
+  BulkRateOverrideData,
+} from './calendarPricingApi';
+
+export { guestMessagingApi } from './guestMessagingApi';
+export type {
+  MessageTemplate,
+  CreateMessageTemplateData,
+  GuestMessageLog,
+  MessagingAutomationConfig,
+  SendMessageRequest,
+  TemplateVariable,
+} from './guestMessagingApi';
+
+export { monitoringApi } from './monitoringApi';
+export type {
+  HealthCheckService,
+  SystemMetrics,
+  HealthResponse,
+  UserMetrics,
+  SessionMetrics,
+  PerformanceMetrics,
+  SecurityMetrics,
+  KeycloakMetricsResponse,
+  AuditLogEntry,
+  AuditLogPage,
+  AuditLogParams,
+  TestCoverageMetrics,
+} from './monitoringApi';
+
+export { airbnbApi } from './airbnbApi';
+export type {
+  AirbnbConnectionStatus,
+  AirbnbListingMapping,
+  LinkListingRequest,
+  AirbnbMessage,
+  AirbnbReview,
+  GuestProfile,
+  GuestReservationSummary,
+  CheckInInstructions,
+  UpdateCheckInInstructions,
+} from './airbnbApi';

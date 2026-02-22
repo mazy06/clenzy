@@ -181,7 +181,7 @@ public class NotificationService {
     public void notifyAdminsAndManagers(NotificationKey key, String title, String message, String actionUrl) {
         try {
             List<User> adminsManagers = userRepository.findByRoleIn(
-                    Arrays.asList(UserRole.ADMIN, UserRole.MANAGER),
+                    Arrays.asList(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER),
                     tenantContext.getRequiredOrganizationId()
             );
             for (User user : adminsManagers) {

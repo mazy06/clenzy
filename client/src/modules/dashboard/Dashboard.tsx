@@ -21,6 +21,7 @@ import {
   Euro as EuroIcon,
   Groups as GroupsIcon,
   Tune as TuneIcon,
+  Calculate as CalculateIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
@@ -107,21 +108,27 @@ const Dashboard: React.FC = () => {
   }, [icalFeeds]);
 
   // Roles
-  const isAdmin = user?.roles?.includes('ADMIN') || false;
-  const isManager = user?.roles?.includes('MANAGER') || false;
+  const isAdmin = user?.roles?.includes('SUPER_ADMIN') || false;
+  const isManager = user?.roles?.includes('SUPER_MANAGER') || false;
   const isHost = user?.roles?.includes('HOST') || false;
   const isTechnician = user?.roles?.includes('TECHNICIAN');
   const isHousekeeper = user?.roles?.includes('HOUSEKEEPER');
   const isSupervisor = user?.roles?.includes('SUPERVISOR');
+  const isLaundry = user?.roles?.includes('LAUNDRY');
+  const isExteriorTech = user?.roles?.includes('EXTERIOR_TECH');
 
   // User role string
   const userRole = (() => {
-    if (isAdmin) return 'ADMIN';
-    if (isManager) return 'MANAGER';
+    if (user?.roles?.includes('SUPER_ADMIN')) return 'SUPER_ADMIN';
+    if (isAdmin) return 'SUPER_ADMIN';
+    if (user?.roles?.includes('SUPER_MANAGER')) return 'SUPER_MANAGER';
+    if (isManager) return 'SUPER_MANAGER';
     if (isSupervisor) return 'SUPERVISOR';
     if (isTechnician) return 'TECHNICIAN';
     if (isHousekeeper) return 'HOUSEKEEPER';
     if (isHost) return 'HOST';
+    if (isLaundry) return 'LAUNDRY';
+    if (isExteriorTech) return 'EXTERIOR_TECH';
     return 'USER';
   })();
 
@@ -331,16 +338,16 @@ const Dashboard: React.FC = () => {
                 variant="scrollable"
                 scrollButtons="auto"
                 sx={{
-                  minHeight: 30,
+                  minHeight: 34,
                   '& .MuiTab-root': {
-                    minHeight: 30,
-                    py: 0.25,
+                    minHeight: 34,
+                    py: 0.5,
                     px: 1.5,
-                    fontSize: '0.6875rem',
+                    fontSize: '0.75rem',
                     fontWeight: 500,
                     textTransform: 'none',
                     letterSpacing: '0.01em',
-                    color: 'text.disabled',
+                    color: 'text.secondary',
                     '&.Mui-selected': {
                       fontWeight: 700,
                       color: '#6B8A9A',
@@ -354,24 +361,29 @@ const Dashboard: React.FC = () => {
                 }}
               >
                 <Tab
-                  icon={<DashboardIcon sx={{ fontSize: 13 }} />}
+                  icon={<DashboardIcon sx={{ fontSize: 15 }} />}
                   iconPosition="start"
                   label={t('dashboard.analytics.subTabs.overview')}
                 />
                 <Tab
-                  icon={<EuroIcon sx={{ fontSize: 13 }} />}
+                  icon={<EuroIcon sx={{ fontSize: 15 }} />}
                   iconPosition="start"
                   label={t('dashboard.analytics.subTabs.revenueAndPricing')}
                 />
                 <Tab
-                  icon={<GroupsIcon sx={{ fontSize: 13 }} />}
+                  icon={<GroupsIcon sx={{ fontSize: 15 }} />}
                   iconPosition="start"
                   label={t('dashboard.analytics.subTabs.occupancyAndClients')}
                 />
                 <Tab
-                  icon={<TuneIcon sx={{ fontSize: 13 }} />}
+                  icon={<TuneIcon sx={{ fontSize: 15 }} />}
                   iconPosition="start"
                   label={t('dashboard.analytics.subTabs.performanceAndTools')}
+                />
+                <Tab
+                  icon={<CalculateIcon sx={{ fontSize: 15 }} />}
+                  iconPosition="start"
+                  label={t('dashboard.analytics.subTabs.simulator')}
                 />
               </Tabs>
             </Box>

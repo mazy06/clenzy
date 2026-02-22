@@ -16,7 +16,6 @@ import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,14 +31,17 @@ import java.util.stream.Collectors;
 @Transactional
 public class ReportService {
     
-    @Autowired
-    private PropertyRepository propertyRepository;
-    
-    @Autowired
-    private InterventionRepository interventionRepository;
-    
-    @Autowired
-    private TeamRepository teamRepository;
+    private final PropertyRepository propertyRepository;
+    private final InterventionRepository interventionRepository;
+    private final TeamRepository teamRepository;
+
+    public ReportService(PropertyRepository propertyRepository,
+                         InterventionRepository interventionRepository,
+                         TeamRepository teamRepository) {
+        this.propertyRepository = propertyRepository;
+        this.interventionRepository = interventionRepository;
+        this.teamRepository = teamRepository;
+    }
     
     
     /**

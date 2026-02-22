@@ -1,6 +1,7 @@
 package com.clenzy.model;
 
 import com.clenzy.config.EncryptedFieldConverter;
+import com.clenzy.util.StringUtils;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -197,7 +198,7 @@ public class User {
     
     public void setEmail(String email) {
         this.email = email;
-        this.emailHash = email != null ? computeEmailHash(email) : null;
+        this.emailHash = email != null ? StringUtils.computeEmailHash(email) : null;
     }
 
     public String getEmailHash() {
@@ -208,19 +209,6 @@ public class User {
         this.emailHash = emailHash;
     }
 
-    private static String computeEmailHash(String email) {
-        try {
-            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(email.toLowerCase().trim().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder();
-            for (byte b : hash) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.toString();
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 non disponible", e);
-        }
-    }
 
     public String getPassword() {
         return password;
@@ -490,7 +478,7 @@ public class User {
     }
     
     public boolean isAdmin() {
-        return UserRole.ADMIN.equals(role);
+        return role != null && role.isPlatformAdmin();
     }
     
     public boolean isTechnician() {

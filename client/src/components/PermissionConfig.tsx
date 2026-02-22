@@ -32,7 +32,9 @@ import {
   Error as ErrorIcon,
   Business as BusinessIcon,
   Notifications as NotificationsIcon,
-  Description as DescriptionIcon
+  Description as DescriptionIcon,
+  EventNote as EventNoteIcon,
+  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import PageHeader from './PageHeader';
 import { useAuth } from '../hooks/useAuth';
@@ -98,6 +100,8 @@ const PermissionConfig: React.FC = () => {
       'users': 'Utilisateurs',
       'reports': 'Rapports',
       'documents': 'Documents',
+      'reservations': 'Réservations',
+      'pricing': 'Prix Dynamiques',
     };
     return moduleMap[module] || module.charAt(0).toUpperCase() + module.slice(1);
   };
@@ -143,6 +147,8 @@ const PermissionConfig: React.FC = () => {
           'users:manage',
           'reports:view', 'reports:generate', 'reports:download', 'reports:manage',
           'documents:view', 'documents:create', 'documents:edit', 'documents:delete', 'documents:compliance',
+          'reservations:view', 'reservations:create', 'reservations:edit',
+          'pricing:view', 'pricing:manage',
         ];
         setAllPermissions(defaultPermissions);
         setPermissionsByModule({
@@ -157,6 +163,8 @@ const PermissionConfig: React.FC = () => {
           'Utilisateurs': ['users:manage'],
           'Rapports': ['reports:view', 'reports:generate', 'reports:download', 'reports:manage'],
           'Documents': ['documents:view', 'documents:create', 'documents:edit', 'documents:delete', 'documents:compliance'],
+          'Réservations': ['reservations:view', 'reservations:create', 'reservations:edit'],
+          'Prix Dynamiques': ['pricing:view', 'pricing:manage'],
         });
       } finally {
         setLoadingPermissions(false);
@@ -179,7 +187,9 @@ const PermissionConfig: React.FC = () => {
       'Utilisateurs': <PersonIcon sx={{ color: 'text.secondary' }} />,
       'Paramètres': <SettingsIcon sx={{ color: 'text.secondary' }} />,
       'Rapports': <AssessmentIcon sx={{ color: 'text.secondary' }} />,
-      'Documents': <DescriptionIcon sx={{ color: 'text.secondary' }} />
+      'Documents': <DescriptionIcon sx={{ color: 'text.secondary' }} />,
+      'Réservations': <EventNoteIcon sx={{ color: 'text.secondary' }} />,
+      'Prix Dynamiques': <TrendingUpIcon sx={{ color: 'text.secondary' }} />,
     };
     return iconMap[moduleName] || <InfoIcon sx={{ color: 'text.secondary' }} />;
   };
@@ -314,7 +324,7 @@ const PermissionConfig: React.FC = () => {
               {roles
                 .sort((a, b) => {
                   // Ordre spécifique des rôles
-                  const roleOrder = ['ADMIN', 'MANAGER', 'SUPERVISOR', 'TECHNICIAN', 'HOUSEKEEPER', 'HOST'];
+                  const roleOrder = ['SUPER_ADMIN', 'SUPER_MANAGER', 'SUPERVISOR', 'TECHNICIAN', 'HOUSEKEEPER', 'HOST', 'LAUNDRY', 'EXTERIOR_TECH'];
                   const indexA = roleOrder.indexOf(a);
                   const indexB = roleOrder.indexOf(b);
                   return indexA - indexB;

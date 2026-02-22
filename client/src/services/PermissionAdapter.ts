@@ -32,7 +32,7 @@ export class PermissionAdapter {
    */
   public async syncPermissions(userId: string): Promise<string[]> {
     try {
-      const result = await permissionsApi.sync(userId) as any as SyncResponse;
+      const result = await permissionsApi.sync(userId);
       this.lastSync = Date.now();
 
       // Notifier tous les listeners

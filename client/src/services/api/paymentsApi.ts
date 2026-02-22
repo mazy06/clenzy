@@ -1,4 +1,6 @@
 import apiClient from '../apiClient';
+import { buildApiUrl } from '../../config/api';
+import { getAccessToken } from '../storageService';
 
 // ─── Existing Types ─────────────────────────────────────────────────────────
 
@@ -169,11 +171,12 @@ export const paymentsApi = {
 
   async downloadInvoice(id: number): Promise<Blob> {
     try {
+      const token = getAccessToken();
       const response = await fetch(
-        `${window.location.origin}/api/v1/payments/${id}/invoice`,
+        buildApiUrl(`/payments/${id}/invoice`),
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         }
       );

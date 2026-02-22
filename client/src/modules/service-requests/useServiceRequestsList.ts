@@ -78,7 +78,7 @@ export function useServiceRequestsList() {
         setAssignTeams(teamsList as unknown as AssignTeam[]);
         const usersList = (usersData as unknown as { content?: AssignUser[] }).content || usersData || [];
         const operationalUsers = (usersList as unknown as AssignUser[]).filter((u: AssignUser) =>
-          ['TECHNICIAN', 'HOUSEKEEPER', 'SUPERVISOR'].includes(u.role)
+          ['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH', 'SUPERVISOR'].includes(u.role)
         );
         setAssignUsers(operationalUsers);
       } catch (err) {
@@ -227,7 +227,8 @@ export function useServiceRequestsList() {
       setAssignSelectedTeamId(null);
       setAssignSelectedUserId(null);
     } catch (error) {
-      alert('Erreur lors de l\'assignation');
+      setErrorMessage(t('serviceRequests.assignError', { defaultValue: 'Erreur lors de l\'assignation' }));
+      setErrorDialogOpen(true);
     }
   };
 

@@ -25,4 +25,8 @@ public interface NoiseDeviceRepository extends JpaRepository<NoiseDevice, Long> 
     boolean existsByUserIdAndPropertyIdAndRoomName(String userId, Long propertyId, String roomName);
 
     long countByUserId(String userId);
+
+    Optional<NoiseDevice> findByExternalDeviceId(String externalDeviceId);
+
+    List<NoiseDevice> findByPropertyIdAndStatus(Long propertyId, DeviceStatus status);
 }

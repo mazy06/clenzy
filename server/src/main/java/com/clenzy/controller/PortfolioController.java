@@ -8,7 +8,6 @@ import com.clenzy.model.TeamRole;
 import com.clenzy.model.User;
 import com.clenzy.service.PortfolioService;
 import com.clenzy.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -26,11 +25,14 @@ import org.springframework.security.access.AccessDeniedException;
 @PreAuthorize("isAuthenticated()")
 public class PortfolioController {
 
-    @Autowired
-    private PortfolioService portfolioService;
+    private final PortfolioService portfolioService;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    public PortfolioController(PortfolioService portfolioService,
+                               UserRepository userRepository) {
+        this.portfolioService = portfolioService;
+        this.userRepository = userRepository;
+    }
 
     /**
      * Resout un managerId qui peut etre un Long (ID numerique) ou un UUID Keycloak.
@@ -46,26 +48,26 @@ public class PortfolioController {
     }
 
     /**
-     * Verifie si l'utilisateur authentifie a le role ADMIN ou MANAGER.
+     * Verifie si l'utilisateur authentifie a un role plateforme staff (SUPER_ADMIN, SUPER_MANAGER).
      */
     private boolean isAdminOrManager(Jwt jwt) {
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
         if (realmAccess == null) return false;
         @SuppressWarnings("unchecked")
         List<String> roles = (List<String>) realmAccess.get("roles");
-        return roles != null && (roles.contains("ADMIN") || roles.contains("MANAGER"));
+        return roles != null && (roles.contains("SUPER_ADMIN") || roles.contains("SUPER_MANAGER"));
     }
 
     /**
-     * Verifie que l'utilisateur authentifie est le manager concerne ou ADMIN.
+     * Verifie que l'utilisateur authentifie est le manager concerne ou un admin plateforme.
      */
     private void validateManagerAccess(Jwt jwt, Long managerId) {
-        // ADMIN a acces a tout
+        // Admin plateforme a acces a tout
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
         if (realmAccess != null) {
             @SuppressWarnings("unchecked")
             List<String> roles = (List<String>) realmAccess.get("roles");
-            if (roles != null && roles.contains("ADMIN")) return;
+            if (roles != null && roles.contains("SUPER_ADMIN")) return;
         }
         // Le manager ne peut acceder qu'a ses propres portfolios
         String keycloakId = jwt.getSubject();
@@ -79,7 +81,7 @@ public class PortfolioController {
      * Créer un nouveau portefeuille — ADMIN ou MANAGER uniquement
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<PortfolioDto> createPortfolio(
             @Valid @RequestBody PortfolioDto portfolioDto,
             @AuthenticationPrincipal Jwt jwt) {
@@ -96,7 +98,7 @@ public class PortfolioController {
      * Mettre à jour un portefeuille — ADMIN ou MANAGER uniquement
      */
     @PutMapping("/{portfolioId}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<PortfolioDto> updatePortfolio(
             @PathVariable Long portfolioId,
             @Valid @RequestBody PortfolioDto portfolioDto,
@@ -114,7 +116,7 @@ public class PortfolioController {
      * Récupérer un portefeuille par son ID — ADMIN ou MANAGER uniquement
      */
     @GetMapping("/{portfolioId}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<PortfolioDto> getPortfolioById(
             @PathVariable Long portfolioId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -168,7 +170,7 @@ public class PortfolioController {
      * Récupérer tous les portefeuilles actifs — ADMIN uniquement
      */
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<List<PortfolioDto>> getAllActivePortfolios() {
         try {
             List<PortfolioDto> portfolios = portfolioService.getAllActivePortfolios();
@@ -182,7 +184,7 @@ public class PortfolioController {
      * Ajouter un client au portefeuille — ADMIN ou MANAGER uniquement
      */
     @PostMapping("/{portfolioId}/clients")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<PortfolioClientDto> addClientToPortfolio(
             @PathVariable Long portfolioId,
             @RequestParam Long clientId,
@@ -201,7 +203,7 @@ public class PortfolioController {
      * Retirer un client du portefeuille — ADMIN ou MANAGER uniquement
      */
     @DeleteMapping("/{portfolioId}/clients/{clientId}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<Void> removeClientFromPortfolio(
             @PathVariable Long portfolioId,
             @PathVariable Long clientId,
@@ -219,7 +221,7 @@ public class PortfolioController {
      * Ajouter un membre d'équipe au portefeuille — ADMIN ou MANAGER uniquement
      */
     @PostMapping("/{portfolioId}/team")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<PortfolioTeamDto> addTeamMemberToPortfolio(
             @PathVariable Long portfolioId,
             @RequestParam Long teamMemberId,
@@ -240,7 +242,7 @@ public class PortfolioController {
      * Retirer un membre d'équipe du portefeuille — ADMIN ou MANAGER uniquement
      */
     @DeleteMapping("/{portfolioId}/team/{teamMemberId}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<Void> removeTeamMemberFromPortfolio(
             @PathVariable Long portfolioId,
             @PathVariable Long teamMemberId,
@@ -258,7 +260,7 @@ public class PortfolioController {
      * Récupérer les clients d'un portefeuille — ADMIN ou MANAGER uniquement
      */
     @GetMapping("/{portfolioId}/clients")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<List<PortfolioClientDto>> getPortfolioClients(
             @PathVariable Long portfolioId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -274,7 +276,7 @@ public class PortfolioController {
      * Récupérer les membres d'équipe d'un portefeuille — ADMIN ou MANAGER uniquement
      */
     @GetMapping("/{portfolioId}/team")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<List<PortfolioTeamDto>> getPortfolioTeamMembers(
             @PathVariable Long portfolioId,
             @AuthenticationPrincipal Jwt jwt) {
@@ -290,7 +292,7 @@ public class PortfolioController {
      * Trouver le manager responsable d'un HOST — ADMIN ou MANAGER uniquement
      */
     @GetMapping("/find-manager/host/{hostId}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<Long> findManagerForHost(@PathVariable Long hostId) {
         try {
             // TODO: Extraire l'utilisateur depuis la base de données
@@ -305,7 +307,7 @@ public class PortfolioController {
      * Trouver le manager responsable d'un membre d'équipe — ADMIN ou MANAGER uniquement
      */
     @GetMapping("/find-manager/team-member/{teamMemberId}")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<Long> findManagerForTeamMember(@PathVariable Long teamMemberId) {
         try {
             // TODO: Extraire l'utilisateur depuis la base de données

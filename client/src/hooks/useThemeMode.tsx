@@ -69,13 +69,23 @@ export function ThemeModeProvider({ children }: ThemeModeProviderProps) {
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
+    // Event-based detection (works in Safari, Firefox, standard Chrome)
     const handleChange = (e: MediaQueryListEvent) => {
       setSystemDark(e.matches);
     };
-
     mediaQuery.addEventListener('change', handleChange);
+
+    // Polling fallback for browsers that don't fire the change event
+    // reliably (Arc Browser, some Chromium forks).
+    // Checks every 30s — lightweight and only updates state if value changed.
+    const pollInterval = setInterval(() => {
+      const current = mediaQuery.matches;
+      setSystemDark((prev) => (prev !== current ? current : prev));
+    }, 30_000);
+
     return () => {
       mediaQuery.removeEventListener('change', handleChange);
+      clearInterval(pollInterval);
     };
   }, []);
 
