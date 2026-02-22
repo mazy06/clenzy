@@ -17,6 +17,11 @@ import {
   Mail,
   AdminPanelSettings,
   Sync,
+  Speed,
+  EventNote,
+  TrendingUp,
+  Hub,
+  ChatBubbleOutline,
 } from '@mui/icons-material';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -83,6 +88,22 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.interventions',
     group: 'main',
   },
+  {
+    icon: <EventNote />,
+    path: '/reservations',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
+    permission: 'reservations:view',
+    translationKey: 'navigation.reservations',
+    group: 'main',
+  },
+  {
+    icon: <TrendingUp />,
+    path: '/dynamic-pricing',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
+    permission: 'pricing:view',
+    translationKey: 'navigation.dynamicPricing',
+    group: 'main',
+  },
   // ── Management ──
   {
     icon: <People />,
@@ -140,6 +161,22 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.payments',
     group: 'management',
   },
+  {
+    icon: <Hub />,
+    path: '/channels',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
+    permission: 'properties:view',
+    translationKey: 'navigation.channels',
+    group: 'management',
+  },
+  {
+    icon: <ChatBubbleOutline />,
+    path: '/messaging/templates',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
+    permission: 'settings:view',
+    translationKey: 'navigation.messaging',
+    group: 'management',
+  },
   // ── Admin ──
   {
     icon: <People />,
@@ -177,6 +214,14 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     roles: ['SUPER_ADMIN'],
     permission: 'users:manage',
     translationKey: 'navigation.syncDiagnostics',
+    group: 'admin',
+  },
+  {
+    icon: <Speed />,
+    path: '/admin/kpi',
+    roles: ['SUPER_ADMIN'],
+    permission: 'users:manage',
+    translationKey: 'navigation.kpiReadiness',
     group: 'admin',
   },
 ];
@@ -222,6 +267,10 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       }
 
       if (item.path === '/admin/sync') {
+        return isAdmin();
+      }
+
+      if (item.path === '/admin/kpi') {
         return isAdmin();
       }
 

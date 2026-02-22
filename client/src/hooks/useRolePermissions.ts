@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { permissionsApi } from '../services/api';
+import type { ApiError } from '../services/apiClient';
 import PermissionSyncService from '../services/PermissionSyncService';
 
 export interface RolePermissions {
@@ -22,7 +23,7 @@ export const useRolePermissions = () => {
       setError(null);
 
       const rolesData = await permissionsApi.getAllRoles();
-      setRoles(rolesData as any);
+      setRoles(rolesData);
 
       // Ne pas sélectionner de rôle par défaut - l'utilisateur doit choisir
       // if (rolesData.length > 0 && !selectedRole) {
@@ -44,7 +45,7 @@ export const useRolePermissions = () => {
       setError(null);
 
       const permissionsData = await permissionsApi.getRolePermissions(role);
-      setRolePermissions(permissionsData as any);
+      setRolePermissions(permissionsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement des permissions');
     } finally {
@@ -59,7 +60,7 @@ export const useRolePermissions = () => {
       setError(null);
 
       const updatedRole = await permissionsApi.updateRole(role, permissions);
-      setRolePermissions(updatedRole as any);
+      setRolePermissions(updatedRole);
 
       return updatedRole;
     } catch (err) {
@@ -77,7 +78,7 @@ export const useRolePermissions = () => {
       setError(null);
 
       const resetRole = await permissionsApi.resetRole(role);
-      setRolePermissions(resetRole as any);
+      setRolePermissions(resetRole);
 
       return resetRole;
     } catch (err) {
@@ -95,7 +96,7 @@ export const useRolePermissions = () => {
       setError(null);
 
       const resetRole = await permissionsApi.resetRoleToInitial(role);
-      setRolePermissions(resetRole as any);
+      setRolePermissions(resetRole);
 
       return resetRole;
     } catch (err) {
@@ -139,7 +140,7 @@ export const useRolePermissions = () => {
       setError(null);
 
       const updatedRole = await permissionsApi.updateRole(role, rolePermissions.permissions);
-      setRolePermissions(updatedRole as any);
+      setRolePermissions(updatedRole);
 
       return updatedRole;
     } catch (err) {
@@ -156,14 +157,14 @@ export const useRolePermissions = () => {
       setLoading(true);
       setError(null);
 
-      let result: any;
+      let result: unknown;
       try {
         // Appeler l'endpoint de sauvegarde (pour l'instant, on utilise update)
         // En production, on pourrait avoir un endpoint spécifique /save
         result = await permissionsApi.saveRole(role, []);
-      } catch (saveErr: any) {
+      } catch (saveErr: unknown) {
         // Si l'endpoint n'existe pas encore, on simule la sauvegarde
-        if (saveErr.status === 404) {
+        if (typeof saveErr === 'object' && saveErr !== null && 'status' in saveErr && (saveErr as ApiError).status === 404) {
           // Déclencher la synchronisation même en mode simulation
           try {
             const permissionSyncService = PermissionSyncService.getInstance();

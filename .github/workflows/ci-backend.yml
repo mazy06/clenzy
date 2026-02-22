@@ -5,6 +5,10 @@
 #   - push main/develop  → CI (tests + build) + push image GHCR
 #   - push production    → CI + push image GHCR (:latest) + déclenchement déploiement via clenzy-infra
 #   - PR main/develop    → CI uniquement (pas de push)
+#   - PR production      → CI + tests de performance/charge (gate obligatoire)
+#
+# IMPORTANT : Les merges vers production ne sont autorisées que via Pull Request.
+# Le push direct sur production est bloqué par le pre-push hook + branch protection rules.
 
 name: CI Backend
 
@@ -16,7 +20,7 @@ on:
       - 'pom.xml'
       - '.github/workflows/ci-backend.yml'
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, production]
     paths:
       - 'server/**'
       - 'pom.xml'

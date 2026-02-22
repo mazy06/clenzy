@@ -25,9 +25,9 @@ export function getOrgRoleLabel(role: string): string {
   return ORG_ROLE_LABELS[role] || role;
 }
 
-// ─── Couleurs Chip ──────────────────────────────────────────────────────────
+import type { ChipColor } from '../types';
 
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+// ─── Couleurs Chip ──────────────────────────────────────────────────────────
 
 const ORG_ROLE_COLORS: Record<string, ChipColor> = {
   OWNER: 'secondary',

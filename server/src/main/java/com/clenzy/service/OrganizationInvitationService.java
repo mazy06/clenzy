@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.InvitationDto;
 import com.clenzy.model.*;
 import com.clenzy.repository.OrganizationInvitationRepository;
+import com.clenzy.util.StringUtils;
 import com.clenzy.repository.OrganizationMemberRepository;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.UserRepository;
@@ -377,14 +378,10 @@ public class OrganizationInvitationService {
 
     private boolean isAlreadyMember(Long orgId, String email) {
         // Chercher par email hash en base (email est chiffre, lookup via SHA-256 hash)
-        String emailHash = computeEmailHash(email);
+        String emailHash = StringUtils.computeEmailHash(email);
         Optional<User> userOpt = userRepository.findByEmailHash(emailHash);
         if (userOpt.isEmpty()) return false;
         return memberRepository.existsByOrganizationIdAndUserId(orgId, userOpt.get().getId());
-    }
-
-    private static String computeEmailHash(String email) {
-        return sha256(email.toLowerCase().trim());
     }
 
     private InvitationDto toDto(OrganizationInvitation inv, Organization org, String inviterName, String link) {

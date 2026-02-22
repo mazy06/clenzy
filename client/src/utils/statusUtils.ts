@@ -10,9 +10,9 @@
  * mapping since they use different status values.
  */
 
-type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
+import type { ChipColor } from '../types';
 
-export type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // PROPERTY — statuses, types, cleaning frequencies

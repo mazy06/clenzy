@@ -42,8 +42,7 @@ import ContactTemplates from './ContactTemplates';
 
 type ContactFormInput = z.input<typeof contactSchema>;
 
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
-
+import type { ChipColor } from '../../types';
 import type { Recipient } from '../../services/api';
 
 const MAX_FILE_SIZE_MB = 10;

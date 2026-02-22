@@ -2,144 +2,21 @@ import { useState, useEffect } from 'react';
 import apiClient from '../services/apiClient';
 import { reportsApi } from '../services/api';
 import type { AuthUser } from './useAuth';
+import type {
+  TranslationFn,
+  DashboardPaginatedResponse as PaginatedResponse,
+  ApiProperty,
+  ApiServiceRequest,
+  ApiIntervention,
+  ApiUser,
+  ApiTeam,
+  ManagerAssociations,
+  DashboardStats,
+  ActivityItem,
+} from '../types/dashboard';
 
-// ============================================================================
-// API Response Interfaces
-// ============================================================================
-
-/** Translation function type used by i18n */
-type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
-
-/** Paginated API response wrapper */
-interface PaginatedResponse<T> {
-  content?: T[];
-}
-
-/** Property entity from the API */
-interface ApiProperty {
-  id: number;
-  name?: string;
-  status: string;
-  ownerId?: number;
-  address?: string;
-  city?: string;
-  type?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-/** Service request entity from the API */
-interface ApiServiceRequest {
-  id: string;
-  title?: string;
-  status?: string;
-  serviceType?: string;
-  type?: string;
-  priority?: string;
-  urgent?: boolean;
-  desiredDate?: string;
-  propertyId?: number;
-  propertyName?: string;
-  property?: { name?: string };
-  userId?: number;
-  requestorName?: string;
-  user?: { firstName?: string; lastName?: string };
-  createdAt: string;
-}
-
-/** Intervention entity from the API */
-interface ApiIntervention {
-  id: string;
-  type: string;
-  status: string;
-  priority?: string;
-  propertyId?: number;
-  propertyName?: string;
-  assignedToType?: string;
-  assignedToId?: number;
-  assignedToName?: string;
-  scheduledDate?: string;
-  createdAt?: string;
-}
-
-/** User entity from the API */
-interface ApiUser {
-  id: number;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  role?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-/** Team entity from the API */
-interface ApiTeam {
-  id: number;
-  name?: string;
-  members?: unknown[];
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-/** Manager associations response */
-interface ManagerAssociations {
-  teams?: Array<{ id: number }>;
-  portfolios?: Array<{ id: number; properties?: Array<{ id: number }> }>;
-  users?: Array<{ id: number }>;
-}
-
-export interface DashboardStats {
-  properties: {
-    active: number;
-    total: number;
-    growth: number;
-  };
-  serviceRequests: {
-    pending: number;
-    total: number;
-    growth: number;
-  };
-  interventions: {
-    today: number;
-    total: number;
-    growth: number;
-  };
-  revenue: {
-    current: number;
-    previous: number;
-    growth: number;
-  };
-}
-
-export interface ActivityItem {
-  id: string;
-  type: string;
-  property: string;
-  time: string;
-  status: 'completed' | 'urgent' | 'scheduled' | 'pending' | 'approved' | 'created' | 'started' | 'finished' | 'in_progress';
-  timestamp: string;
-  category: 'property' | 'service-request' | 'intervention' | 'user' | 'team';
-  details?: {
-    address?: string;
-    city?: string;
-    type?: string;
-    requestor?: string;
-    priority?: string;
-    assignedTo?: string;
-    role?: string;
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    fullName?: string;
-    members?: number;
-    urgent?: boolean;
-    urgentLabel?: string;
-    serviceType?: string;
-    title?: string;
-    desiredDate?: string;
-  };
-}
+// Re-export public types for existing consumers
+export type { DashboardStats, ActivityItem } from '../types/dashboard';
 
 export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?: TranslationFn, limitActivities?: number) => {
   const [stats, setStats] = useState<DashboardStats | null>(null);

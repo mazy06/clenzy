@@ -2,85 +2,140 @@ package com.clenzy.util;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class StringUtilsTest {
 
-    // --- firstNonBlank ---
+    // ── firstNonBlank ────────────────────────────────────────────────────────
 
     @Test
-    void firstNonBlank_firstValueValid_returnsFirst() {
-        assertEquals("hello", StringUtils.firstNonBlank("hello", "world"));
+    void whenFirstValueIsValid_thenReturnsFirst() {
+        assertThat(StringUtils.firstNonBlank("hello", "world")).isEqualTo("hello");
     }
 
     @Test
-    void firstNonBlank_nullFirst_validSecond_returnsSecond() {
-        assertEquals("world", StringUtils.firstNonBlank(null, "world"));
+    void whenFirstIsNull_thenReturnsSecond() {
+        assertThat(StringUtils.firstNonBlank(null, "world")).isEqualTo("world");
     }
 
     @Test
-    void firstNonBlank_blankFirst_validSecond_returnsSecond() {
-        assertEquals("world", StringUtils.firstNonBlank("", "world"));
+    void whenFirstIsBlank_thenReturnsSecond() {
+        assertThat(StringUtils.firstNonBlank("", "world")).isEqualTo("world");
     }
 
     @Test
-    void firstNonBlank_allNull_returnsEmpty() {
-        assertEquals("", StringUtils.firstNonBlank(null, null, null));
+    void whenFirstIsWhitespaceOnly_thenReturnsSecond() {
+        assertThat(StringUtils.firstNonBlank("   ", "world")).isEqualTo("world");
     }
 
     @Test
-    void firstNonBlank_trimsWhitespace() {
-        assertEquals("hello", StringUtils.firstNonBlank("  hello  "));
+    void whenAllValuesAreNull_thenReturnsEmpty() {
+        assertThat(StringUtils.firstNonBlank(null, null, null)).isEmpty();
     }
 
     @Test
-    void firstNonBlank_whitespaceOnlyFirst_validSecond_returnsSecond() {
-        assertEquals("world", StringUtils.firstNonBlank("   ", "world"));
-    }
-
-    // --- sanitizeFileName ---
-
-    @Test
-    void sanitizeFileName_normalName_unchanged() {
-        assertEquals("document.pdf", StringUtils.sanitizeFileName("document.pdf"));
+    void whenAllValuesAreBlank_thenReturnsEmpty() {
+        assertThat(StringUtils.firstNonBlank("", "   ", "\t")).isEmpty();
     }
 
     @Test
-    void sanitizeFileName_withForwardSlashPath_stripsPath() {
-        assertEquals("file.txt", StringUtils.sanitizeFileName("/home/user/file.txt"));
+    void whenValueHasSurroundingWhitespace_thenReturnsTrimmed() {
+        assertThat(StringUtils.firstNonBlank("  hello  ")).isEqualTo("hello");
+    }
+
+    // ── sanitizeFileName ─────────────────────────────────────────────────────
+
+    @Test
+    void whenFileNameIsNormal_thenReturnsUnchanged() {
+        assertThat(StringUtils.sanitizeFileName("document.pdf")).isEqualTo("document.pdf");
     }
 
     @Test
-    void sanitizeFileName_withBackslashPath_stripsPath() {
-        assertEquals("file.txt", StringUtils.sanitizeFileName("C:\\Users\\test\\file.txt"));
+    void whenFileNameContainsForwardSlashPath_thenStripsPath() {
+        assertThat(StringUtils.sanitizeFileName("/home/user/file.txt")).isEqualTo("file.txt");
     }
 
     @Test
-    void sanitizeFileName_null_returnsAttachment() {
-        assertEquals("attachment", StringUtils.sanitizeFileName(null));
+    void whenFileNameContainsBackslashPath_thenStripsPath() {
+        assertThat(StringUtils.sanitizeFileName("C:\\Users\\test\\file.txt")).isEqualTo("file.txt");
     }
 
     @Test
-    void sanitizeFileName_blank_returnsAttachment() {
-        assertEquals("attachment", StringUtils.sanitizeFileName(""));
-    }
-
-    // --- escapeHtml ---
-
-    @Test
-    void escapeHtml_null_returnsEmpty() {
-        assertEquals("", StringUtils.escapeHtml(null));
+    void whenFileNameContainsPathTraversal_thenStripsPath() {
+        assertThat(StringUtils.sanitizeFileName("../../etc/passwd")).isEqualTo("passwd");
     }
 
     @Test
-    void escapeHtml_allSpecialChars_properlyEscaped() {
-        String input = "A & B < C > D \" E ' F";
-        String expected = "A &amp; B &lt; C &gt; D &quot; E &#39; F";
-        assertEquals(expected, StringUtils.escapeHtml(input));
+    void whenFileNameIsNull_thenReturnsAttachment() {
+        assertThat(StringUtils.sanitizeFileName(null)).isEqualTo("attachment");
     }
 
     @Test
-    void escapeHtml_normalText_unchanged() {
-        assertEquals("Hello World", StringUtils.escapeHtml("Hello World"));
+    void whenFileNameIsBlank_thenReturnsAttachment() {
+        assertThat(StringUtils.sanitizeFileName("")).isEqualTo("attachment");
+    }
+
+    @Test
+    void whenFileNameContainsNewlines_thenReplacedWithUnderscore() {
+        assertThat(StringUtils.sanitizeFileName("file\nname.txt")).isEqualTo("file_name.txt");
+    }
+
+    // ── escapeHtml ───────────────────────────────────────────────────────────
+
+    @Test
+    void whenInputIsNull_thenReturnsEmpty() {
+        assertThat(StringUtils.escapeHtml(null)).isEmpty();
+    }
+
+    @Test
+    void whenInputContainsAllSpecialChars_thenAllAreEscaped() {
+        String input = "&<>\"'";
+        assertThat(StringUtils.escapeHtml(input))
+                .isEqualTo("&amp;&lt;&gt;&quot;&#39;");
+    }
+
+    @Test
+    void whenInputIsNormalText_thenReturnsUnchanged() {
+        assertThat(StringUtils.escapeHtml("Hello World 123")).isEqualTo("Hello World 123");
+    }
+
+    @Test
+    void whenInputContainsScriptTag_thenEscaped() {
+        String input = "<script>alert('xss')</script>";
+        String escaped = StringUtils.escapeHtml(input);
+        assertThat(escaped).doesNotContain("<").doesNotContain(">");
+        assertThat(escaped).isEqualTo("&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;");
+    }
+
+    // ── computeEmailHash ─────────────────────────────────────────────────────
+
+    @Test
+    void whenEmailIsValid_thenReturnsConsistentHash() {
+        String hash1 = StringUtils.computeEmailHash("user@example.com");
+        String hash2 = StringUtils.computeEmailHash("user@example.com");
+        assertThat(hash1).isEqualTo(hash2);
+        assertThat(hash1).hasSize(64); // SHA-256 = 64 hex chars
+    }
+
+    @Test
+    void whenEmailsDifferOnlyByCase_thenSameHash() {
+        String lower = StringUtils.computeEmailHash("user@example.com");
+        String upper = StringUtils.computeEmailHash("USER@EXAMPLE.COM");
+        String mixed = StringUtils.computeEmailHash("User@Example.COM");
+        assertThat(lower).isEqualTo(upper).isEqualTo(mixed);
+    }
+
+    @Test
+    void whenEmailHasSurroundingWhitespace_thenSameHashAsTrimmed() {
+        String trimmed = StringUtils.computeEmailHash("user@example.com");
+        String padded = StringUtils.computeEmailHash("  user@example.com  ");
+        assertThat(padded).isEqualTo(trimmed);
+    }
+
+    @Test
+    void whenEmailsAreDifferent_thenDifferentHashes() {
+        String hash1 = StringUtils.computeEmailHash("alice@example.com");
+        String hash2 = StringUtils.computeEmailHash("bob@example.com");
+        assertThat(hash1).isNotEqualTo(hash2);
     }
 }

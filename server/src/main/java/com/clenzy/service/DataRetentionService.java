@@ -31,15 +31,16 @@ public class DataRetentionService {
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
     private final GdprService gdprService;
-    // Inject AuditLogRepository for cleanup
-    // Inject AirbnbWebhookEventRepository for cleanup
+    private final KpiSnapshotRepository kpiSnapshotRepository;
 
     public DataRetentionService(UserRepository userRepository,
                                 AuditLogService auditLogService,
-                                GdprService gdprService) {
+                                GdprService gdprService,
+                                KpiSnapshotRepository kpiSnapshotRepository) {
         this.userRepository = userRepository;
         this.auditLogService = auditLogService;
         this.gdprService = gdprService;
+        this.kpiSnapshotRepository = kpiSnapshotRepository;
     }
 
     /**
@@ -54,15 +55,16 @@ public class DataRetentionService {
         int anonymizedUsers = anonymizeInactiveUsers();
         int deletedAuditLogs = cleanupOldAuditLogs();
         int deletedWebhookEvents = cleanupOldWebhookEvents();
+        int deletedKpiSnapshots = cleanupOldKpiSnapshots();
 
-        log.info("Job de retention termine : {} utilisateurs anonymises, {} logs d'audit supprimes, {} webhook events supprimes",
-                anonymizedUsers, deletedAuditLogs, deletedWebhookEvents);
+        log.info("Job de retention termine : {} utilisateurs anonymises, {} logs d'audit supprimes, {} webhook events supprimes, {} KPI snapshots supprimes",
+                anonymizedUsers, deletedAuditLogs, deletedWebhookEvents, deletedKpiSnapshots);
 
         // Audit du job
         auditLogService.logAction(AuditAction.DELETE, "DataRetention", "CRON",
                 null, null,
-                String.format("Retention RGPD : %d users anonymises, %d audit logs supprimes, %d webhook events supprimes",
-                        anonymizedUsers, deletedAuditLogs, deletedWebhookEvents),
+                String.format("Retention RGPD : %d users anonymises, %d audit logs supprimes, %d webhook events supprimes, %d KPI snapshots supprimes",
+                        anonymizedUsers, deletedAuditLogs, deletedWebhookEvents, deletedKpiSnapshots),
                 AuditSource.CRON);
     }
 
@@ -98,5 +100,17 @@ public class DataRetentionService {
         // TODO: implement with AirbnbWebhookEventRepository.deleteByCreatedAtBefore(threshold)
         log.info("Suppression des webhook events anterieurs a {}", threshold);
         return 0;
+    }
+
+    /**
+     * Supprime les snapshots KPI de plus de 6 mois (retention historique).
+     */
+    private int cleanupOldKpiSnapshots() {
+        LocalDateTime threshold = LocalDateTime.now().minusMonths(6);
+        int deleted = kpiSnapshotRepository.deleteOlderThan(threshold);
+        if (deleted > 0) {
+            log.info("[Retention] Purged {} KPI snapshots older than 6 months", deleted);
+        }
+        return deleted;
     }
 }

@@ -34,10 +34,11 @@ public class LibreOfficeConversionService {
     private final RestTemplate restTemplate;
 
     public LibreOfficeConversionService(
-            @Value("${clenzy.libreoffice.url:http://clenzy-libreoffice:3000}") String libreOfficeUrl
+            @Value("${clenzy.libreoffice.url:http://clenzy-libreoffice:3000}") String libreOfficeUrl,
+            RestTemplate restTemplate
     ) {
         this.libreOfficeUrl = libreOfficeUrl;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = restTemplate;
     }
 
     /**

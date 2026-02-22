@@ -102,7 +102,7 @@ export function useInterventionPhotos({
       setSelectedPhotos([]);
       setError(null);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setError(err.message || 'Erreur lors de l\'ajout des photos');
     },
   });

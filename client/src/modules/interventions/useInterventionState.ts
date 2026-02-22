@@ -265,7 +265,7 @@ export function useInterventionState(id: string | undefined) {
       setError(null);
       queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setError(err.message || 'Erreur lors du démarrage de l\'intervention');
     },
   });
@@ -277,7 +277,7 @@ export function useInterventionState(id: string | undefined) {
       setError(null);
       queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setError(err.message || 'Erreur lors de la finalisation de l\'intervention');
     },
   });

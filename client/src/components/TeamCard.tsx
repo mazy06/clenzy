@@ -29,8 +29,7 @@ import { INTERVENTION_TYPE_OPTIONS } from '../types/interventionTypes';
 import type { Team } from '../services/api';
 import { useTranslation } from '../hooks/useTranslation';
 import { formatShortDate } from '../utils/formatUtils';
-
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+import type { ChipColor } from '../types';
 
 interface TeamCardProps {
   team: Team;

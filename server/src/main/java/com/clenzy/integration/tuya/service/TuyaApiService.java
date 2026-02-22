@@ -52,12 +52,13 @@ public class TuyaApiService {
     public TuyaApiService(TuyaConfig config,
                           TuyaConnectionRepository connectionRepository,
                           TokenEncryptionService encryptionService,
-                          TenantContext tenantContext) {
+                          TenantContext tenantContext,
+                          RestTemplate restTemplate) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
         this.tenantContext = tenantContext;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = restTemplate;
         this.objectMapper = new ObjectMapper();
     }
 

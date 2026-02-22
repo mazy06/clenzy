@@ -121,8 +121,8 @@ export function useTeamUserAssignment() {
         navigate('/portfolios');
       }, 1500);
     },
-    onError: (err: any) => {
-      notify.error(err?.message || t('portfolios.errors.assignmentError'));
+    onError: (err: Error) => {
+      notify.error(err.message || t('portfolios.errors.assignmentError'));
     },
   });
 

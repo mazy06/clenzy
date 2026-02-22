@@ -118,11 +118,14 @@ const DashboardAnalyticsContent: React.FC<DashboardAnalyticsContentProps> = Reac
                 <DashboardErrorBoundary widgetName="Benchmark">
                   <AnalyticsBenchmark data={analytics?.benchmark ?? null} loading={analyticsLoading} />
                 </DashboardErrorBoundary>
-
-                <DashboardErrorBoundary widgetName="Simulateur">
-                  <AnalyticsSimulator data={analytics} />
-                </DashboardErrorBoundary>
               </>
+            )}
+
+            {/* ── Tab 4 : Simulateur ─────────────────────────────── */}
+            {subTab === 4 && (
+              <DashboardErrorBoundary widgetName="Simulateur">
+                <AnalyticsSimulator data={analytics} />
+              </DashboardErrorBoundary>
             )}
           </Box>
         </Box>

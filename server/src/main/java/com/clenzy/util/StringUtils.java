@@ -1,5 +1,9 @@
 package com.clenzy.util;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 /**
  * Utilitaires texte partages entre les services email/contact.
  */
@@ -44,5 +48,23 @@ public final class StringUtils {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
+    }
+
+    /**
+     * Calcule le hash SHA-256 d'un email normalise (lowercase + trim).
+     * Utilise pour le lookup d'utilisateurs par email chiffre.
+     */
+    public static String computeEmailHash(String email) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(email.toLowerCase().trim().getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hashBytes) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 non disponible", e);
+        }
     }
 }

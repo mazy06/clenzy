@@ -108,10 +108,7 @@ public class PropertyService {
     @Cacheable(value = "properties", key = "#id")
     public PropertyDto getById(Long id) {
         try {
-            // Utiliser la méthode avec JOIN FETCH pour charger la relation owner
-            Property entity = propertyRepository.findByIdWithOwner(id, tenantContext.getRequiredOrganizationId())
-                .orElseThrow(() -> new NotFoundException("Property not found with id: " + id));
-            
+            Property entity = findByIdRespectingTenant(id);
             return toDto(entity);
         } catch (NotFoundException e) {
             throw e;
@@ -120,12 +117,25 @@ public class PropertyService {
             throw new RuntimeException("Erreur lors de la récupération de la propriété: " + e.getMessage(), e);
         }
     }
-    
+
     /**
      * Récupère l'entité Property directement (pour les vérifications d'accès)
      */
     @Transactional(readOnly = true)
     public Property getPropertyEntityById(Long id) {
+        return findByIdRespectingTenant(id);
+    }
+
+    /**
+     * Charge une propriete avec JOIN FETCH owner.
+     * Le staff plateforme (SUPER_ADMIN, SUPER_MANAGER) accede a toutes les proprietes
+     * sans filtre d'organisation. Les autres utilisateurs sont filtres par leur org.
+     */
+    private Property findByIdRespectingTenant(Long id) {
+        if (tenantContext.isSuperAdmin()) {
+            return propertyRepository.findByIdWithOwnerNoOrgFilter(id)
+                .orElseThrow(() -> new NotFoundException("Property not found with id: " + id));
+        }
         return propertyRepository.findByIdWithOwner(id, tenantContext.getRequiredOrganizationId())
             .orElseThrow(() -> new NotFoundException("Property not found with id: " + id));
     }
@@ -389,8 +399,7 @@ public class PropertyService {
     @Transactional(readOnly = true)
     public boolean canUserAssignForProperty(Long userId, Long propertyId) {
         // Récupérer la propriété avec son propriétaire
-        Property property = propertyRepository.findByIdWithOwner(propertyId, tenantContext.getRequiredOrganizationId())
-            .orElseThrow(() -> new NotFoundException("Property not found"));
+        Property property = findByIdRespectingTenant(propertyId);
         
         if (property.getOwner() == null) {
             return false;

@@ -142,7 +142,7 @@ export interface ReconciliationStats {
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
-const BASE = '/api/admin/sync';
+const BASE = '/admin/sync';
 
 export const syncAdminApi = {
   // Connections

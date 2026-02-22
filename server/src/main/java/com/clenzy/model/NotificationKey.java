@@ -128,9 +128,18 @@ public enum NotificationKey {
 
     RECONCILIATION_COMPLETED(NotificationType.INFO, NotificationCategory.SYSTEM, false),
     RECONCILIATION_DIVERGENCE_HIGH(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
-    RECONCILIATION_FAILED(NotificationType.ERROR, NotificationCategory.SYSTEM, true);
+    RECONCILIATION_FAILED(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
 
-    // Total: 18 + 8 + 10 + 6 + 8 + 6 + 5 + 3 + 2 + 4 + 6 + 4 + 3 = 83
+    // ─── KPI (2 cles) ──────────────────────────────────────────────────────
+    KPI_THRESHOLD_BREACH(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
+    KPI_CRITICAL_FAILURE(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
+
+    // ─── GUEST MESSAGING (3 cles) ───────────────────────────────────────────
+    GUEST_MESSAGE_SENT(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, true),
+    GUEST_MESSAGE_FAILED(NotificationType.ERROR, NotificationCategory.GUEST_MESSAGING, true),
+    GUEST_PRICING_PUSHED(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, false);
+
+    // Total: 18 + 8 + 10 + 6 + 8 + 6 + 5 + 3 + 2 + 4 + 6 + 4 + 3 + 2 + 3 = 88
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

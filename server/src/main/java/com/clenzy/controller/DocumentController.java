@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/documents")
 @Tag(name = "Documents", description = "Generation et gestion de documents")
+@PreAuthorize("isAuthenticated()")
 public class DocumentController {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentController.class);

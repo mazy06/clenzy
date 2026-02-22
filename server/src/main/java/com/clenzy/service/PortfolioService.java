@@ -13,7 +13,6 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,26 +30,29 @@ public class PortfolioService {
 
     private static final Logger log = LoggerFactory.getLogger(PortfolioService.class);
 
-    @Autowired
-    private PortfolioRepository portfolioRepository;
-    
-    @Autowired
-    private PortfolioClientRepository portfolioClientRepository;
-    
-    @Autowired
-    private PortfolioTeamRepository portfolioTeamRepository;
-    
-    @Autowired
-    private PropertyRepository propertyRepository;
+    private final PortfolioRepository portfolioRepository;
+    private final PortfolioClientRepository portfolioClientRepository;
+    private final PortfolioTeamRepository portfolioTeamRepository;
+    private final PropertyRepository propertyRepository;
+    private final UserRepository userRepository;
+    private final NotificationService notificationService;
+    private final com.clenzy.tenant.TenantContext tenantContext;
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private NotificationService notificationService;
-
-    @Autowired
-    private com.clenzy.tenant.TenantContext tenantContext;
+    public PortfolioService(PortfolioRepository portfolioRepository,
+                            PortfolioClientRepository portfolioClientRepository,
+                            PortfolioTeamRepository portfolioTeamRepository,
+                            PropertyRepository propertyRepository,
+                            UserRepository userRepository,
+                            NotificationService notificationService,
+                            com.clenzy.tenant.TenantContext tenantContext) {
+        this.portfolioRepository = portfolioRepository;
+        this.portfolioClientRepository = portfolioClientRepository;
+        this.portfolioTeamRepository = portfolioTeamRepository;
+        this.propertyRepository = propertyRepository;
+        this.userRepository = userRepository;
+        this.notificationService = notificationService;
+        this.tenantContext = tenantContext;
+    }
     
     /**
      * Créer un nouveau portefeuille

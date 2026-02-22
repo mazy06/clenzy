@@ -35,30 +35,17 @@ public class PermissionService {
 
     private static final Logger log = LoggerFactory.getLogger(PermissionService.class);
 
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
-
-    @Autowired
-    private CacheManager cacheManager;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private TenantContext tenantContext;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final CacheManager cacheManager;
+    private final UserRepository userRepository;
+    private final TenantContext tenantContext;
+    private final RolePermissionRepository rolePermissionRepository;
+    private final RoleRepository roleRepository;
+    private final PermissionRepository permissionRepository;
 
     @Autowired(required = false)
     private NotificationService notificationService;
-    
-    @Autowired
-    private RolePermissionRepository rolePermissionRepository;
-    
-    @Autowired
-    private RoleRepository roleRepository;
-    
-    @Autowired
-    private PermissionRepository permissionRepository;
-    
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -67,10 +54,20 @@ public class PermissionService {
     private static final String ROLES_KEY = "roles:all";
     private static final int CACHE_TTL_HOURS = 0; // 0 = Pas d'expiration (cache permanent)
 
-    // Permissions par défaut (hardcodées pour l'instant)
-    // Toutes les permissions viennent de la base de données
-
-    public PermissionService() {
+    public PermissionService(RedisTemplate<String, Object> redisTemplate,
+                             CacheManager cacheManager,
+                             UserRepository userRepository,
+                             TenantContext tenantContext,
+                             RolePermissionRepository rolePermissionRepository,
+                             RoleRepository roleRepository,
+                             PermissionRepository permissionRepository) {
+        this.redisTemplate = redisTemplate;
+        this.cacheManager = cacheManager;
+        this.userRepository = userRepository;
+        this.tenantContext = tenantContext;
+        this.rolePermissionRepository = rolePermissionRepository;
+        this.roleRepository = roleRepository;
+        this.permissionRepository = permissionRepository;
         log.debug("PermissionService Redis initialise - Base de donnees = Source de verite unique");
         log.debug("Ce service utilise Redis pour le cache des permissions");
         log.debug("Toutes les permissions viennent de la base de donnees");
@@ -312,7 +309,7 @@ public class PermissionService {
     
 
 
-    @Transactional
+    // Package-private would allow @Transactional, but this is called within the caller's transaction scope
     private void savePermissionsToDatabase(String role, List<String> permissions) {
         try {
             log.debug("PermissionService.savePermissionsToDatabase() - Sauvegarde pour le role: {}: {}", role, permissions);

@@ -179,6 +179,18 @@ public class AirbnbListingService {
     }
 
     /**
+     * Active/desactive le push automatique des prix vers Airbnb.
+     */
+    @Transactional
+    public AirbnbListingMapping toggleAutoPushPricing(Long propertyId, boolean enabled) {
+        AirbnbListingMapping mapping = listingMappingRepository.findByPropertyId(propertyId)
+                .orElseThrow(() -> new RuntimeException("Aucun mapping Airbnb pour la propriete: " + propertyId));
+
+        mapping.setAutoPushPricing(enabled);
+        return listingMappingRepository.save(mapping);
+    }
+
+    /**
      * Active/desactive la creation automatique d'interventions.
      */
     @Transactional

@@ -2,7 +2,6 @@ package com.clenzy.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -14,9 +13,12 @@ public class TokenCleanupService {
     
     private static final Logger logger = LoggerFactory.getLogger(TokenCleanupService.class);
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    
-    @Autowired
-    private JwtTokenService jwtTokenService;
+
+    private final JwtTokenService jwtTokenService;
+
+    public TokenCleanupService(JwtTokenService jwtTokenService) {
+        this.jwtTokenService = jwtTokenService;
+    }
     
     /**
      * Nettoyage automatique des tokens expirés toutes les 30 minutes

@@ -8,7 +8,6 @@ import com.clenzy.model.TeamRole;
 import com.clenzy.model.User;
 import com.clenzy.service.PortfolioService;
 import com.clenzy.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -26,11 +25,14 @@ import org.springframework.security.access.AccessDeniedException;
 @PreAuthorize("isAuthenticated()")
 public class PortfolioController {
 
-    @Autowired
-    private PortfolioService portfolioService;
+    private final PortfolioService portfolioService;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    public PortfolioController(PortfolioService portfolioService,
+                               UserRepository userRepository) {
+        this.portfolioService = portfolioService;
+        this.userRepository = userRepository;
+    }
 
     /**
      * Resout un managerId qui peut etre un Long (ID numerique) ou un UUID Keycloak.

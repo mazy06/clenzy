@@ -227,7 +227,8 @@ export function useServiceRequestsList() {
       setAssignSelectedTeamId(null);
       setAssignSelectedUserId(null);
     } catch (error) {
-      alert('Erreur lors de l\'assignation');
+      setErrorMessage(t('serviceRequests.assignError', { defaultValue: 'Erreur lors de l\'assignation' }));
+      setErrorDialogOpen(true);
     }
   };
 

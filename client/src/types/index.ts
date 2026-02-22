@@ -102,6 +102,17 @@ export type {
   InterventionTypeOption,
 } from './interventionTypes';
 
+// ─── Types dashboard partagés ─────────────────────────────────────────────
+
+export type {
+  DashboardStats,
+  ActivityItem,
+  UpcomingIntervention,
+  PendingPaymentItem,
+  ServiceRequestItem,
+  AlertItem,
+} from './dashboard';
+
 // ─── Types utilitaires partagés ────────────────────────────────────────────
 
 /** Type couleur Chip MUI */
@@ -159,3 +170,7 @@ export interface ConfirmationState {
 // ─── Types API Client ──────────────────────────────────────────────────────
 
 export type { ApiError, RequestOptions } from '../services/apiClient';
+
+// ─── Utilitaires partagés ─────────────────────────────────────────────────
+
+export { getErrorMessage } from '../utils/getErrorMessage';

@@ -110,8 +110,9 @@ export function usePropertyForm({
     setValue,
     reset,
     formState: { errors },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = useForm<PropertyFormValues>({
+    // zodResolver v4 type mismatch with react-hook-form v7 — safe cast
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(propertySchema) as any,
     defaultValues: DEFAULT_VALUES,
   });

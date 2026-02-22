@@ -25,8 +25,7 @@ import {
   PRIORITY_OPTIONS,
 } from '../../types/statusEnums';
 import { getTypeLabel } from '../interventions/interventionUtils';
-
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+import type { ChipColor } from '../../types';
 
 interface CalendarEventDialogProps {
   open: boolean;

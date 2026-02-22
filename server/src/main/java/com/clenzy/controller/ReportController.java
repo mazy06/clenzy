@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -20,12 +19,16 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/reports")
 @Tag(name = "Reports", description = "Génération de rapports PDF")
+@PreAuthorize("isAuthenticated()")
 public class ReportController {
     
     private static final Logger logger = LoggerFactory.getLogger(ReportController.class);
-    
-    @Autowired
-    private ReportService reportService;
+
+    private final ReportService reportService;
+
+    public ReportController(ReportService reportService) {
+        this.reportService = reportService;
+    }
     
     @GetMapping("/financial/{reportType}")
     @Operation(summary = "Générer un rapport financier")

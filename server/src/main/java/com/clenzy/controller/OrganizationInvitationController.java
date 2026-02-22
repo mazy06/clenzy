@@ -33,6 +33,7 @@ import java.util.Map;
  */
 @RestController
 @Tag(name = "Invitations", description = "Gestion des invitations d'organisation")
+@PreAuthorize("isAuthenticated()")
 public class OrganizationInvitationController {
 
     private static final Logger log = LoggerFactory.getLogger(OrganizationInvitationController.class);
@@ -96,6 +97,7 @@ public class OrganizationInvitationController {
     // ═══════════════════════════════════════════════════════════════════════════
 
     @GetMapping("/api/invitations/info")
+    @PreAuthorize("permitAll()")
     @Operation(summary = "Obtenir les infos d'une invitation (public, pas de JWT)")
     public ResponseEntity<?> getInvitationInfo(@RequestParam String token) {
         try {

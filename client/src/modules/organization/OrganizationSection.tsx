@@ -77,9 +77,8 @@ export default function OrganizationSection({ organizationId, organizationName }
             : null;
           setSelectedOrg(userOrg || data[0]);
         }
-      } catch (err) {
+      } catch {
         if (cancelled) return;
-        console.error('Erreur chargement organisations:', err);
         setOrgsError('Impossible de charger les organisations');
       } finally {
         if (!cancelled) setOrgsLoading(false);

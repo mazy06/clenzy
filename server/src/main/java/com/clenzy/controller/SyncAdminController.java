@@ -20,7 +20,6 @@ import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.service.SyncAdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -38,8 +37,11 @@ import java.util.Optional;
 @PreAuthorize("hasRole('SUPER_ADMIN')")
 public class SyncAdminController {
 
-    @Autowired
-    private SyncAdminService syncAdminService;
+    private final SyncAdminService syncAdminService;
+
+    public SyncAdminController(SyncAdminService syncAdminService) {
+        this.syncAdminService = syncAdminService;
+    }
 
     // ── Connections ──────────────────────────────────────────────────────────
 
