@@ -12,9 +12,9 @@ spring:
       
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: create-drop
   liquibase:
-    enabled: true
+    enabled: false   # Performance utilise Hibernate create-drop (base ephemere)
       jdbc:
         batch_size: 25
         order_inserts: true
