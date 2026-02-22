@@ -205,6 +205,11 @@ management:
   endpoint:
     health:
       show-details: always
+  health:
+    mail:
+      enabled: false
+    kafka:
+      enabled: false
 
 # Swagger desactive en CI
 springdoc:
