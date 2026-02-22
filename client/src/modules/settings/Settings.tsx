@@ -133,25 +133,24 @@ export default function Settings() {
   useEffect(() => {
     const saved = storageService.getJSON<typeof settings>(STORAGE_KEYS.SETTINGS);
     if (saved) {
-      // Synchroniser le thème affiché avec le mode réel du thème
+      // Garder la valeur brute du mode ('auto', 'dark', 'light') — ne PAS resoudre
       setSettings({
         ...saved,
         display: {
           ...saved.display,
-          theme: themeMode === 'auto' ? (isDark ? 'dark' : 'light') : themeMode,
+          theme: themeMode,
         },
       });
     } else {
-      // Synchroniser l'état par défaut avec le mode thème actuel
       setSettings(prev => ({
         ...prev,
         display: {
           ...prev.display,
-          theme: themeMode === 'auto' ? (isDark ? 'dark' : 'light') : themeMode,
+          theme: themeMode,
         },
       }));
     }
-  }, [themeMode, isDark]);
+  }, [themeMode]);
 
   const [planningMock, setPlanningMock] = useState(
     () => localStorage.getItem(STORAGE_KEYS.PLANNING_MOCK) === 'true'

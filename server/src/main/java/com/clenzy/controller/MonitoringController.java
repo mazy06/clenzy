@@ -160,9 +160,13 @@ public class MonitoringController {
         }
 
         try {
-            var doc = DocumentBuilderFactory.newInstance()
-                .newDocumentBuilder()
-                .parse(jacocoXml);
+            var dbf = DocumentBuilderFactory.newInstance();
+            // Desactiver la resolution du DTD externe (report.dtd)
+            // pour eviter FileNotFoundException en Docker
+            dbf.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+            dbf.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            var doc = dbf.newDocumentBuilder().parse(jacocoXml);
             doc.getDocumentElement().normalize();
 
             // Parse top-level <counter> elements (direct children of <report>)
