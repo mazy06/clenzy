@@ -1,0 +1,204 @@
+# ===========================================
+# Profil CI — Backend lance dans GitHub Actions
+# ===========================================
+# Usage: SPRING_PROFILES_ACTIVE=ci
+#
+# Ce profil configure l'application pour tourner en CI sans Keycloak,
+# avec une cle RSA statique pour valider les JWT de test.
+# Les tokens sont pre-generes et fournis aux scripts K6.
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/clenzy_perf}
+    username: ${SPRING_DATASOURCE_USERNAME:clenzy_perf}
+    password: ${SPRING_DATASOURCE_PASSWORD:clenzy_perf_ci}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 20000
+      pool-name: ClenzyHikariPool-CI
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Cle RSA statique pour CI (pas de Keycloak)
+          public-key-location: classpath:ci-jwt-public.pem
+  redis:
+    host: ${SPRING_REDIS_HOST:localhost}
+    port: ${SPRING_REDIS_PORT:6379}
+    database: 0
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 10
+        max-idle: 5
+        min-idle: 1
+        max-wait: 2000ms
+      shutdown-timeout: 200ms
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000
+      cache-null-values: false
+  mail:
+    host: localhost
+    port: 1025
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: clenzy-ci
+      auto-offset-reset: earliest
+    listener:
+      auto-startup: false
+    producer:
+      acks: all
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# Keycloak Admin — valeurs factices (pas de Keycloak en CI)
+keycloak:
+  auth-server-url: http://localhost:8080
+  realm: clenzy
+  resource: clenzy-web
+  credentials:
+    secret: ci-dummy-secret
+  admin:
+    username: admin
+    password: admin
+    client-id: admin-cli
+
+# Jasypt — cle de chiffrement CI
+jasypt:
+  encryptor:
+    password: ${JASYPT_ENCRYPTOR_PASSWORD:ci-encryption-key-not-for-production}
+
+# Stripe — valeurs factices pour CI
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY:sk_test_ci_dummy}
+  publishable-key: ${STRIPE_PUBLISHABLE_KEY:pk_test_ci_dummy}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_ci_dummy}
+  currency: eur
+  success-url: http://localhost:3000/interventions/payment/success?session_id={CHECKOUT_SESSION_ID}
+  cancel-url: http://localhost:3000/interventions/payment/cancel
+  inscription:
+    success-url: http://localhost:3000/login?inscription=success
+    cancel-url: http://localhost:3000/inscription?payment=cancelled
+
+# JWT
+jwt:
+  secret: ${JWT_SECRET:ci-jwt-secret-key-minimum-32-characters-long}
+  expiration: 3600
+
+# Airbnb — desactive en CI
+airbnb:
+  api:
+    base-url: https://api.airbnb.com/v2
+  oauth:
+    client-id: ci-dummy
+    client-secret: ci-dummy
+    redirect-uri: http://localhost:8080/api/airbnb/callback
+    authorization-url: https://www.airbnb.com/oauth2/auth
+    token-url: https://api.airbnb.com/v2/oauth2/authorizations
+    scopes: listings_r,reservations_r
+  webhook:
+    secret: ci-dummy
+  sync:
+    enabled: false
+    interval-minutes: 9999
+
+# Minut — desactive en CI
+minut:
+  api:
+    base-url: https://api.minut.com/v8
+  oauth:
+    client-id: ci-dummy
+    client-secret: ci-dummy
+    redirect-uri: http://localhost:8080/api/minut/callback
+    authorization-url: https://api.minut.com/v8/oauth/authorize
+    token-url: https://api.minut.com/v8/oauth/token
+    scopes: read
+  webhook:
+    secret: ci-dummy
+
+# Tuya — desactive en CI
+tuya:
+  api:
+    base-url: https://openapi.tuyaeu.com
+    region: eu
+  auth:
+    access-id: ci-dummy
+    access-secret: ci-dummy
+
+# Clenzy custom
+clenzy:
+  mail:
+    provider: generic
+    from: ci-test@clenzy.fr
+    notification-to: ci-test@clenzy.fr
+    contact:
+      max-attachments: 10
+      max-attachment-size-bytes: 10485760
+  imap:
+    enabled: false
+    host: localhost
+    port: 993
+    username: ci-test@clenzy.fr
+    password: dummy
+  uploads:
+    contact-dir: /tmp/clenzy-ci/uploads/contact
+    templates-dir: /tmp/clenzy-ci/uploads/templates
+    documents-dir: /tmp/clenzy-ci/uploads/documents
+  libreoffice:
+    url: http://localhost:8083
+
+# Server
+server:
+  port: 8080
+  address: 0.0.0.0
+
+# Logging minimal pour CI
+logging:
+  level:
+    org.hibernate.SQL: warn
+    org.springframework.web: warn
+    com.clenzy: info
+    org.springframework.security: warn
+  pattern:
+    console: "%d{HH:mm:ss} %-5level %logger{36} - %msg%n"
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# Swagger desactive en CI
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

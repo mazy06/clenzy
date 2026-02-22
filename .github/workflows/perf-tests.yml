@@ -8,9 +8,10 @@
 # Prerequis :
 #   - K6 installe dans le runner
 #   - Services backend + DB + Redis up
-#   - Secrets : PERF_TEST_USER, PERF_TEST_PASSWORD (utilisateur Keycloak de test)
+#   - Profil Spring Boot "ci" avec cle RSA statique pour JWT
 #
-# Les resultats sont uploades en artifact et un summary est poste dans la PR.
+# En CI (sans Keycloak) : un JWT pre-signe (CI_AUTH_TOKEN) est utilise.
+# En environnement reel : configurer KEYCLOAK_URL + PERF_TEST_USER/PASSWORD.
 
 name: Performance Tests
 
@@ -49,7 +50,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U clenzy_perf -d clenzy_perf"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -80,10 +81,13 @@ jobs:
         working-directory: server
         run: mvn clean package -B -q -DskipTests
 
+      - name: Create upload directories
+        run: mkdir -p /tmp/clenzy-ci/uploads/{contact,templates,documents}
+
       - name: Start backend
         working-directory: server
         env:
-          SPRING_PROFILES_ACTIVE: test
+          SPRING_PROFILES_ACTIVE: ci
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/clenzy_perf
           SPRING_DATASOURCE_USERNAME: clenzy_perf
           SPRING_DATASOURCE_PASSWORD: clenzy_perf_ci
@@ -91,15 +95,24 @@ jobs:
           SPRING_REDIS_PORT: 6379
           SERVER_PORT: 8080
         run: |
-          java -jar target/*.jar &
+          java -jar target/*.jar > /tmp/backend.log 2>&1 &
+          BACKEND_PID=$!
+          echo "Backend PID: $BACKEND_PID"
           echo "Waiting for backend to start..."
-          for i in $(seq 1 60); do
+
+          for i in $(seq 1 90); do
             if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
               echo "Backend ready after ${i}s"
               break
             fi
-            if [ "$i" -eq 60 ]; then
-              echo "::error::Backend failed to start within 60 seconds"
+            if ! kill -0 $BACKEND_PID 2>/dev/null; then
+              echo "::error::Backend process crashed. Logs:"
+              tail -100 /tmp/backend.log
+              exit 1
+            fi
+            if [ "$i" -eq 90 ]; then
+              echo "::error::Backend failed to start within 90 seconds. Last logs:"
+              tail -100 /tmp/backend.log
               exit 1
             fi
             sleep 1
@@ -135,8 +148,6 @@ jobs:
       - name: Run Smoke Test
         env:
           BASE_URL: http://localhost:8080
-          TEST_USER: ${{ secrets.PERF_TEST_USER || 'perf-test@clenzy.fr' }}
-          TEST_PASSWORD: ${{ secrets.PERF_TEST_PASSWORD || 'PerfTest2026!' }}
         run: |
           k6 run \
             --out json=tests/performance/results/smoke-results.json \
@@ -149,8 +160,7 @@ jobs:
         if: steps.test-type.outputs.type == 'pr' || steps.test-type.outputs.type == 'load'
         env:
           BASE_URL: http://localhost:8080
-          TEST_USER: ${{ secrets.PERF_TEST_USER || 'perf-test@clenzy.fr' }}
-          TEST_PASSWORD: ${{ secrets.PERF_TEST_PASSWORD || 'PerfTest2026!' }}
+          CI_AUTH_TOKEN: ${{ secrets.CI_AUTH_TOKEN }}
         run: |
           k6 run \
             --out json=tests/performance/results/load-results.json \
@@ -162,8 +172,7 @@ jobs:
         if: steps.test-type.outputs.type == 'stress'
         env:
           BASE_URL: http://localhost:8080
-          TEST_USER: ${{ secrets.PERF_TEST_USER || 'perf-test@clenzy.fr' }}
-          TEST_PASSWORD: ${{ secrets.PERF_TEST_PASSWORD || 'PerfTest2026!' }}
+          CI_AUTH_TOKEN: ${{ secrets.CI_AUTH_TOKEN }}
         run: |
           k6 run \
             --out json=tests/performance/results/stress-results.json \
@@ -175,13 +184,19 @@ jobs:
         if: steps.test-type.outputs.type == 'soak'
         env:
           BASE_URL: http://localhost:8080
-          TEST_USER: ${{ secrets.PERF_TEST_USER || 'perf-test@clenzy.fr' }}
-          TEST_PASSWORD: ${{ secrets.PERF_TEST_PASSWORD || 'PerfTest2026!' }}
+          CI_AUTH_TOKEN: ${{ secrets.CI_AUTH_TOKEN }}
         run: |
           k6 run \
             --out json=tests/performance/results/soak-results.json \
             --summary-export=tests/performance/results/soak-summary.json \
             tests/performance/soak-test.js
+
+      # ── Show backend logs on failure ──
+      - name: Show backend logs
+        if: failure()
+        run: |
+          echo "=== Backend logs ==="
+          cat /tmp/backend.log || echo "No backend log file found"
 
       # ── Upload results ──
       - name: Upload performance results

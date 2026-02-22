@@ -7,7 +7,7 @@
 export const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 export const API_BASE = `${BASE_URL}/api`;
 
-// Keycloak
+// Keycloak (utilise uniquement si CI_AUTH_TOKEN n'est pas fourni)
 export const KEYCLOAK_URL = __ENV.KEYCLOAK_URL || 'http://localhost:8443';
 export const KEYCLOAK_REALM = __ENV.KEYCLOAK_REALM || 'clenzy';
 export const KEYCLOAK_CLIENT_ID = __ENV.KEYCLOAK_CLIENT_ID || 'clenzy-web';
@@ -15,6 +15,10 @@ export const KEYCLOAK_CLIENT_ID = __ENV.KEYCLOAK_CLIENT_ID || 'clenzy-web';
 // Utilisateur de test (doit exister dans Keycloak)
 export const TEST_USER = __ENV.TEST_USER || 'perf-test@clenzy.fr';
 export const TEST_PASSWORD = __ENV.TEST_PASSWORD || 'PerfTest2026!';
+
+// Token pre-signe pour CI (pas de Keycloak necessaire)
+// Genere avec la cle privee correspondant a ci-jwt-public.pem
+export const CI_AUTH_TOKEN = __ENV.CI_AUTH_TOKEN || '';
 
 // Seuils de performance par defaut
 export const THRESHOLDS = {
