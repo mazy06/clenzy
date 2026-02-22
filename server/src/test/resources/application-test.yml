@@ -22,8 +22,8 @@ spring:
           time_zone: UTC
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
-  flyway:
-    enabled: false   # Pas de baseline V1 — Hibernate cree le schema
+  liquibase:
+    enabled: false   # Tests utilisent Hibernate create-drop via Testcontainers
   redis:
     # URL injectee dynamiquement par @DynamicPropertySource
     timeout: 2000ms
