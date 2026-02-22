@@ -123,6 +123,9 @@ management:
       show-details: WHEN_AUTHORIZED
     metrics:
       enabled: true
+  health:
+    mail:
+      enabled: false
   metrics:
     export:
       prometheus:
