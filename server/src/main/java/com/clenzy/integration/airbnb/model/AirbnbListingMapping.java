@@ -48,6 +48,9 @@ public class AirbnbListingMapping {
     @Column(name = "auto_create_interventions", nullable = false)
     private boolean autoCreateInterventions = true;
 
+    @Column(name = "auto_push_pricing", nullable = false)
+    private boolean autoPushPricing = false;
+
     @Column(name = "last_sync_at")
     private LocalDateTime lastSyncAt;
 
@@ -152,6 +155,14 @@ public class AirbnbListingMapping {
         this.autoCreateInterventions = autoCreateInterventions;
     }
 
+    public boolean isAutoPushPricing() {
+        return autoPushPricing;
+    }
+
+    public void setAutoPushPricing(boolean autoPushPricing) {
+        this.autoPushPricing = autoPushPricing;
+    }
+
     public LocalDateTime getLastSyncAt() {
         return lastSyncAt;
     }
@@ -184,6 +195,7 @@ public class AirbnbListingMapping {
                 ", airbnbListingId='" + airbnbListingId + '\'' +
                 ", syncEnabled=" + syncEnabled +
                 ", autoCreateInterventions=" + autoCreateInterventions +
+                ", autoPushPricing=" + autoPushPricing +
                 '}';
     }
 }

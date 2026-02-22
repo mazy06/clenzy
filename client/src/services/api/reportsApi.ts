@@ -118,7 +118,7 @@ function unwrapArray<T>(data: unknown): T[] {
 
 export const reportsApi = {
   async getInterventionStats(): Promise<InterventionReportData> {
-    const interventions = await interventionsApi.getAll({ size: 1000 } as any);
+    const interventions = await interventionsApi.getAll({ size: 1000 });
     const list: Intervention[] = unwrapArray<Intervention>(interventions);
 
     // By status
@@ -172,7 +172,7 @@ export const reportsApi = {
   async getPropertyStats(): Promise<PropertyReportData> {
     const [properties, interventions] = await Promise.all([
       propertiesApi.getAll({ size: 1000 }),
-      interventionsApi.getAll({ size: 1000 } as any),
+      interventionsApi.getAll({ size: 1000 }),
     ]);
 
     const propList: Property[] = unwrapArray<Property>(properties);
@@ -199,7 +199,7 @@ export const reportsApi = {
   async getTeamStats(): Promise<TeamReportData> {
     const [teams, interventions] = await Promise.all([
       teamsApi.getAll(),
-      interventionsApi.getAll({ size: 1000 } as any),
+      interventionsApi.getAll({ size: 1000 }),
     ]);
 
     const teamList: Team[] = unwrapArray<Team>(teams);
@@ -223,7 +223,7 @@ export const reportsApi = {
   },
 
   async getFinancialStats(): Promise<FinancialReportData> {
-    const interventions = await interventionsApi.getAll({ size: 1000 } as any);
+    const interventions = await interventionsApi.getAll({ size: 1000 });
     const list: Intervention[] = unwrapArray<Intervention>(interventions);
 
     // Monthly financials (last 6 months) - computed from intervention costs

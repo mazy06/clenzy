@@ -38,6 +38,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { teamsApi, usersApi } from '../../services/api';
+import type { TeamFormData as ApiTeamFormData } from '../../services/api/teamsApi';
+import { extractApiList } from '../../types';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { teamSchema, type TeamFormValues, type TeamFormInput } from '../../schemas';
@@ -94,8 +96,7 @@ const TeamForm: React.FC = () => {
     queryKey: ['form-available-users'],
     queryFn: async () => {
       const data = await usersApi.getAll();
-      const usersList = (data as any).content || data;
-      return Array.isArray(usersList) ? usersList : [];
+      return extractApiList<User>(data);
     },
     staleTime: 60_000,
   });
@@ -105,7 +106,7 @@ const TeamForm: React.FC = () => {
 
   // ─── Create mutation ────────────────────────────────────────────────────
   const createMutation = useMutation({
-    mutationFn: (data: any) => teamsApi.create(data),
+    mutationFn: (data: ApiTeamFormData) => teamsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: teamsKeys.all });
       setSuccess(true);
@@ -113,7 +114,7 @@ const TeamForm: React.FC = () => {
         navigate('/teams');
       }, 1500);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setError(t('teams.errors.createErrorDetails') + ': ' + (err?.message || t('teams.errors.createError')));
     },
   });
@@ -217,11 +218,11 @@ const TeamForm: React.FC = () => {
       interventionType: formData.interventionType,
       members: formData.members.map(member => ({
         userId: member.userId,
-        role: member.role,
+        roleInTeam: member.role,
       })),
       coverageZones: (formData.coverageZones || []).map(zone => ({
         department: zone.department,
-        arrondissement: zone.arrondissement || null,
+        arrondissement: zone.arrondissement || undefined,
       })),
     };
     createMutation.mutate(backendData);

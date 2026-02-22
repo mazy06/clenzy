@@ -123,11 +123,12 @@ export function useClientPropertyAssignment() {
         navigate('/portfolios');
       }, 1500);
     },
-    onError: (err: any) => {
-      if (err?.details?.conflicts && err.details.conflicts.length > 0) {
-        notify.error(`Conflits d'assignation : ${err.details.conflicts.join(', ')}`);
+    onError: (err: Error) => {
+      const errWithDetails = err as Error & { details?: { conflicts?: string[] } };
+      if (errWithDetails.details?.conflicts && errWithDetails.details.conflicts.length > 0) {
+        notify.error(`Conflits d'assignation : ${errWithDetails.details.conflicts.join(', ')}`);
       } else {
-        notify.error(err?.message || t('portfolios.errors.assignmentError'));
+        notify.error(err.message || t('portfolios.errors.assignmentError'));
       }
     },
   });

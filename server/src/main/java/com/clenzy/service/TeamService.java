@@ -7,6 +7,7 @@ import com.clenzy.model.TeamMember;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.repository.TeamRepository;
+import com.clenzy.util.JwtRoleExtractor;
 import com.clenzy.repository.TeamCoverageZoneRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.ManagerTeamRepository;
@@ -23,7 +24,6 @@ import com.clenzy.tenant.TenantContext;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +56,7 @@ public class TeamService {
             throw new com.clenzy.exception.UnauthorizedException("Non authentifié");
         }
 
-        UserRole userRole = extractUserRole(jwt);
+        UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
         if (!userRole.isPlatformStaff()) {
             throw new com.clenzy.exception.UnauthorizedException("Seuls les administrateurs et managers peuvent créer des équipes");
         }
@@ -193,7 +193,7 @@ public class TeamService {
             return teams.map(this::convertToDto);
         }
 
-        UserRole userRole = extractUserRole(jwt);
+        UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
         log.debug("list - Role: {}", userRole);
 
         List<Team> filteredTeams;
@@ -235,66 +235,6 @@ public class TeamService {
 
         return new PageImpl<>(pageContent.stream().map(this::convertToDto).collect(Collectors.toList()),
                              pageable, filteredTeams.size());
-    }
-
-    /**
-     * Extrait le rôle principal de l'utilisateur depuis le JWT
-     */
-    private UserRole extractUserRole(Jwt jwt) {
-        try {
-            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-            if (realmAccess != null) {
-                Object roles = realmAccess.get("roles");
-                if (roles instanceof List<?>) {
-                    List<?> roleList = (List<?>) roles;
-                    for (Object role : roleList) {
-                        if (role instanceof String) {
-                            String roleStr = (String) role;
-                            if (roleStr.equals("offline_access") ||
-                                roleStr.equals("uma_authorization") ||
-                                roleStr.equals("default-roles-clenzy")) {
-                                continue;
-                            }
-                            if (roleStr.equalsIgnoreCase("realm-admin")) {
-                                return UserRole.SUPER_ADMIN;
-                            }
-                            try {
-                                UserRole userRole = UserRole.valueOf(roleStr.toUpperCase());
-                                if (userRole.isPlatformStaff()) {
-                                    return userRole;
-                                }
-                            } catch (IllegalArgumentException e) {
-                                // Ignorer les rôles non reconnus
-                            }
-                        }
-                    }
-                    // Si aucun rôle prioritaire trouvé, prendre le premier rôle valide
-                    for (Object role : roleList) {
-                        if (role instanceof String) {
-                            String roleStr = (String) role;
-                            try {
-                                return UserRole.valueOf(roleStr.toUpperCase());
-                            } catch (IllegalArgumentException e) {
-                                // Ignorer
-                            }
-                        }
-                    }
-                }
-            }
-            // Fallback : essayer le rôle direct
-            String directRole = jwt.getClaim("role");
-            if (directRole != null) {
-                try {
-                    return UserRole.valueOf(directRole.toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    // Ignorer
-                }
-            }
-            return UserRole.HOST; // Fallback par défaut
-        } catch (Exception e) {
-            log.warn("Error extracting role from JWT: {}", e.getMessage());
-            return UserRole.HOST;
-        }
     }
 
     public void delete(Long id) {

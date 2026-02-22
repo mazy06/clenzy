@@ -183,12 +183,26 @@ public class PermissionInitializer {
         anyCreated |= ensurePermission("payments:view", "Voir l'historique des paiements", "payments",
                 List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
 
+        // --- Reservations ---
+        anyCreated |= ensurePermission("reservations:view", "Voir les reservations", "reservations",
+                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST", "SUPERVISOR"));
+        anyCreated |= ensurePermission("reservations:create", "Creer des reservations", "reservations",
+                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
+        anyCreated |= ensurePermission("reservations:edit", "Modifier des reservations", "reservations",
+                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
+
+        // --- Dynamic Pricing ---
+        anyCreated |= ensurePermission("pricing:view", "Voir les prix dynamiques", "pricing",
+                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
+        anyCreated |= ensurePermission("pricing:manage", "Gerer les prix dynamiques", "pricing",
+                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
+
         if (anyCreated) {
             log.info("Nouvelles permissions creees. Invalidation du cache...");
             permissionService.invalidateAllCache();
         }
 
-        log.info("Verification des permissions terminee ({} permissions verifiees).", 37);
+        log.info("Verification des permissions terminee ({} permissions verifiees).", 42);
     }
 
     private boolean ensurePermission(String name, String description, String module, List<String> roleNames) {

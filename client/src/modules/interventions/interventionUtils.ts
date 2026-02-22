@@ -5,8 +5,8 @@ export {
   getInterventionPriorityColor as getPriorityColor,
   getInterventionPriorityLabel as getPriorityLabel,
   getInterventionTypeLabel as getTypeLabel,
-  type ChipColor,
 } from '../../utils/statusUtils';
+export type { ChipColor } from '../../types';
 export { formatDateTime as formatDate, formatDuration } from '../../utils/formatUtils';
 
 // Types

@@ -62,6 +62,13 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
      */
     @Query("SELECT p FROM Property p LEFT JOIN FETCH p.owner WHERE p.id = :id AND p.organizationId = :orgId")
     java.util.Optional<Property> findByIdWithOwner(@Param("id") Long id, @Param("orgId") Long orgId);
+
+    /**
+     * Variante sans filtre organization — pour le staff plateforme (SUPER_ADMIN, SUPER_MANAGER)
+     * qui doit acceder a toutes les proprietes, toutes orgs confondues.
+     */
+    @Query("SELECT p FROM Property p LEFT JOIN FETCH p.owner WHERE p.id = :id")
+    java.util.Optional<Property> findByIdWithOwnerNoOrgFilter(@Param("id") Long id);
 }
 
 

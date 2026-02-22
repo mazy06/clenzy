@@ -20,6 +20,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+// Security: This controller handles Stripe webhook callbacks and MUST remain publicly accessible.
+// Authentication is performed via Stripe's webhook signature verification, not Spring Security.
+// See SecurityConfigProd.java permitAll() for the endpoint whitelist.
 @RestController
 @RequestMapping("/api/webhooks/stripe")
 public class StripeWebhookController {

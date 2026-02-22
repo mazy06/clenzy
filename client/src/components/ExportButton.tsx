@@ -18,7 +18,8 @@ import { exportToCSV, type ExportColumn } from '../utils/exportUtils';
 import { useTranslation } from '../hooks/useTranslation';
 
 interface ExportButtonProps {
-  data: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: Record<string, any>[];
   columns: ExportColumn[];
   fileName: string;
   disabled?: boolean;

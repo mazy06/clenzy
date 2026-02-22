@@ -35,7 +35,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../../hooks/useAuth';
-import { usersApi } from '../../services/api';
+import { usersApi, type UserFormData as ApiUserFormData } from '../../services/api';
 import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
 import { userSchema } from '../../schemas';
 import PageHeader from '../../components/PageHeader';
@@ -138,23 +138,23 @@ const UserForm: React.FC = () => {
 
     try {
       // Préparer les données pour le backend
-      const backendData = {
+      const backendData: ApiUserFormData = {
         firstName: data.firstName.trim(),
         lastName: data.lastName.trim(),
         email: data.email.trim().toLowerCase(),
-        phoneNumber: data.phoneNumber?.trim() || null,
+        phoneNumber: data.phoneNumber?.trim() || undefined,
         password: data.password,
         role: data.role,
         status: data.status,
       };
 
-      await usersApi.create(backendData as any);
+      await usersApi.create(backendData);
       setSuccess(true);
       setTimeout(() => {
         navigate('/users');
       }, 1500);
-    } catch (err: any) {
-      setError('Erreur lors de la création: ' + (err?.message || 'Erreur inconnue'));
+    } catch (err: unknown) {
+      setError('Erreur lors de la création: ' + (err instanceof Error ? err.message : 'Erreur inconnue'));
     } finally {
       setSaving(false);
     }

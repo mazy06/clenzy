@@ -7,7 +7,6 @@ import com.clenzy.model.UserRole;
 import com.clenzy.model.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,11 +22,14 @@ public class SyncController {
 
     private static final Logger log = LoggerFactory.getLogger(SyncController.class);
 
-    @Autowired
-    private KeycloakService keycloakService;
+    private final KeycloakService keycloakService;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    public SyncController(KeycloakService keycloakService,
+                          UserRepository userRepository) {
+        this.keycloakService = keycloakService;
+        this.userRepository = userRepository;
+    }
 
     /**
      * Synchronisation forcée de tous les utilisateurs depuis la base de données vers Keycloak

@@ -39,9 +39,9 @@ import FilterSearchBar from '../../components/FilterSearchBar';
 import { organizationsApi } from '../../services/api';
 import type { OrganizationDto } from '../../services/api';
 
-// ─── Types d'organisation ─────────────────────────────────────────────────────
+import type { ChipColor } from '../../types';
 
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+// ─── Types d'organisation ─────────────────────────────────────────────────────
 
 const orgTypes: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor }> = [
   { value: 'INDIVIDUAL', label: 'Particulier', icon: <Person />, color: 'info' },
@@ -165,8 +165,8 @@ const OrganizationsList = forwardRef<OrganizationsListHandle>((_, ref) => {
       setFormDialogOpen(false);
       setFormData({ name: '', type: 'INDIVIDUAL' });
       setSelectedOrg(null);
-    } catch (err: any) {
-      notify.error(err?.message || 'Erreur lors de la sauvegarde');
+    } catch (err: unknown) {
+      notify.error(err instanceof Error ? err.message : 'Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
     }
@@ -180,8 +180,8 @@ const OrganizationsList = forwardRef<OrganizationsListHandle>((_, ref) => {
         setDeleteDialogOpen(false);
         setSelectedOrg(null);
         notify.success('Organisation supprimee avec succes');
-      } catch (err: any) {
-        const message = err?.response?.data?.message || err?.message || 'Erreur lors de la suppression';
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Erreur lors de la suppression';
         notify.error(message);
         setDeleteDialogOpen(false);
       }

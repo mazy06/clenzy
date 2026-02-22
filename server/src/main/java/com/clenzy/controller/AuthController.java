@@ -1,5 +1,6 @@
 package com.clenzy.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -37,6 +38,7 @@ import com.clenzy.dto.RolePermissionsDto;
 @RestController
 @RequestMapping("/api")
 @Tag(name = "Auth", description = "Endpoints d'authentification (Keycloak JWT)")
+@PreAuthorize("isAuthenticated()")
 public class AuthController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
@@ -62,13 +64,15 @@ public class AuthController {
     private final OrganizationInvitationService invitationService;
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
+    private final RestTemplate restTemplate;
 
     public AuthController(UserService userService, PermissionService permissionService,
                           AuditLogService auditLogService, SecurityAuditService securityAuditService,
                           LoginProtectionService loginProtectionService,
                           OrganizationInvitationService invitationService,
                           OrganizationRepository organizationRepository,
-                          OrganizationMemberRepository organizationMemberRepository) {
+                          OrganizationMemberRepository organizationMemberRepository,
+                          RestTemplate restTemplate) {
         this.userService = userService;
         this.permissionService = permissionService;
         this.auditLogService = auditLogService;
@@ -77,9 +81,11 @@ public class AuthController {
         this.invitationService = invitationService;
         this.organizationRepository = organizationRepository;
         this.organizationMemberRepository = organizationMemberRepository;
+        this.restTemplate = restTemplate;
     }
 
     @PostMapping("/auth/login")
+    @PreAuthorize("permitAll()")
     @Operation(summary = "Authentification utilisateur via Keycloak")
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> credentials) {
         String username = credentials.get("username");
@@ -130,7 +136,6 @@ public class AuthController {
             }
 
             // ─── Appel a Keycloak pour obtenir le token ───────────
-            RestTemplate restTemplate = new RestTemplate();
             String tokenUrl = keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/token";
 
             HttpHeaders headers = new HttpHeaders();
@@ -459,7 +464,6 @@ public class AuthController {
 
     private void revokeToken(String token) {
         try {
-            RestTemplate restTemplate = new RestTemplate();
             String revokeUrl = keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/logout";
 
             HttpHeaders headers = new HttpHeaders();

@@ -1,18 +1,21 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.PropertyDto;
+import com.clenzy.integration.airbnb.model.AirbnbListingMapping;
+import com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository;
 import com.clenzy.service.PropertyService;
 import com.clenzy.service.UserService;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.exception.UnauthorizedException;
+import com.clenzy.util.JwtRoleExtractor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,56 +40,21 @@ public class PropertyController {
 
     private final PropertyService propertyService;
     private final UserService userService;
+    private final AirbnbListingMappingRepository listingMappingRepository;
 
-    public PropertyController(PropertyService propertyService, UserService userService) {
+    public PropertyController(PropertyService propertyService,
+                              UserService userService,
+                              AirbnbListingMappingRepository listingMappingRepository) {
         this.propertyService = propertyService;
         this.userService = userService;
-    }
-
-    /**
-     * Extrait le rôle de l'utilisateur depuis le JWT
-     */
-    private UserRole extractUserRole(Jwt jwt) {
-        if (jwt == null) {
-            return null;
-        }
-
-        try {
-            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-            if (realmAccess != null) {
-                Object roles = realmAccess.get("roles");
-                if (roles instanceof List<?>) {
-                    List<?> roleList = (List<?>) roles;
-                    for (Object role : roleList) {
-                        if (role instanceof String) {
-                            String roleStr = (String) role;
-                            // Ignorer les rôles techniques Keycloak
-                            if (roleStr.equals("offline_access") ||
-                                roleStr.equals("uma_authorization") ||
-                                roleStr.equals("default-roles-clenzy")) {
-                                continue;
-                            }
-                            try {
-                                return UserRole.valueOf(roleStr.toUpperCase());
-                            } catch (IllegalArgumentException e) {
-                                continue;
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Error extracting role from JWT: {}", e.getMessage());
-        }
-
-        return null;
+        this.listingMappingRepository = listingMappingRepository;
     }
 
     /**
      * Vérifie si un HOST a accès à une propriété (doit être le propriétaire)
      */
     private void checkHostAccess(Long propertyId, Jwt jwt) {
-        UserRole userRole = extractUserRole(jwt);
+        UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
         if (userRole == UserRole.HOST && jwt != null) {
             // Récupérer l'utilisateur depuis la base de données
             String keycloakId = jwt.getSubject();
@@ -111,7 +79,7 @@ public class PropertyController {
     @Operation(summary = "Créer un logement")
     public ResponseEntity<PropertyDto> create(@Validated(Create.class) @RequestBody PropertyDto dto, @AuthenticationPrincipal Jwt jwt) {
         // Si l'utilisateur est un HOST, forcer le ownerId à son propre ID
-        UserRole userRole = extractUserRole(jwt);
+        UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
         if (userRole == UserRole.HOST && jwt != null) {
             String keycloakId = jwt.getSubject();
             User user = userService.findByKeycloakId(keycloakId);
@@ -154,7 +122,7 @@ public class PropertyController {
                                   @RequestParam(required = false) String city,
                                   @AuthenticationPrincipal Jwt jwt) {
         // Si l'utilisateur est un HOST, filtrer automatiquement par ses propriétés
-        UserRole userRole = extractUserRole(jwt);
+        UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
         if (userRole == UserRole.HOST && jwt != null) {
             // Récupérer l'utilisateur depuis la base de données
             String keycloakId = jwt.getSubject();
@@ -206,5 +174,28 @@ public class PropertyController {
 
         boolean canAssign = propertyService.canUserAssignForProperty(user.getId(), propertyId);
         return ResponseEntity.ok(Map.of("canAssign", canAssign));
+    }
+
+    @GetMapping("/{propertyId}/channels")
+    @Operation(summary = "Statut des channels pour une propriete",
+            description = "Retourne le statut de connexion Airbnb pour une propriete donnee.")
+    public ResponseEntity<Map<String, Object>> getPropertyChannelStatus(@PathVariable Long propertyId) {
+        Map<String, Object> airbnb = new LinkedHashMap<>();
+
+        var mapping = listingMappingRepository.findByPropertyId(propertyId);
+        if (mapping.isPresent()) {
+            AirbnbListingMapping m = mapping.get();
+            airbnb.put("linked", true);
+            airbnb.put("syncEnabled", m.isSyncEnabled());
+            airbnb.put("lastSyncAt", m.getLastSyncAt() != null ? m.getLastSyncAt().toString() : null);
+            airbnb.put("status", m.isSyncEnabled() ? "ACTIVE" : "DISABLED");
+        } else {
+            airbnb.put("linked", false);
+            airbnb.put("syncEnabled", false);
+            airbnb.put("lastSyncAt", null);
+            airbnb.put("status", "NOT_LINKED");
+        }
+
+        return ResponseEntity.ok(Map.of("airbnb", airbnb));
     }
 }

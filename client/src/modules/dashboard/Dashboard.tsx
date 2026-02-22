@@ -21,6 +21,7 @@ import {
   Euro as EuroIcon,
   Groups as GroupsIcon,
   Tune as TuneIcon,
+  Calculate as CalculateIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
@@ -337,16 +338,16 @@ const Dashboard: React.FC = () => {
                 variant="scrollable"
                 scrollButtons="auto"
                 sx={{
-                  minHeight: 30,
+                  minHeight: 34,
                   '& .MuiTab-root': {
-                    minHeight: 30,
-                    py: 0.25,
+                    minHeight: 34,
+                    py: 0.5,
                     px: 1.5,
-                    fontSize: '0.6875rem',
+                    fontSize: '0.75rem',
                     fontWeight: 500,
                     textTransform: 'none',
                     letterSpacing: '0.01em',
-                    color: 'text.disabled',
+                    color: 'text.secondary',
                     '&.Mui-selected': {
                       fontWeight: 700,
                       color: '#6B8A9A',
@@ -360,24 +361,29 @@ const Dashboard: React.FC = () => {
                 }}
               >
                 <Tab
-                  icon={<DashboardIcon sx={{ fontSize: 13 }} />}
+                  icon={<DashboardIcon sx={{ fontSize: 15 }} />}
                   iconPosition="start"
                   label={t('dashboard.analytics.subTabs.overview')}
                 />
                 <Tab
-                  icon={<EuroIcon sx={{ fontSize: 13 }} />}
+                  icon={<EuroIcon sx={{ fontSize: 15 }} />}
                   iconPosition="start"
                   label={t('dashboard.analytics.subTabs.revenueAndPricing')}
                 />
                 <Tab
-                  icon={<GroupsIcon sx={{ fontSize: 13 }} />}
+                  icon={<GroupsIcon sx={{ fontSize: 15 }} />}
                   iconPosition="start"
                   label={t('dashboard.analytics.subTabs.occupancyAndClients')}
                 />
                 <Tab
-                  icon={<TuneIcon sx={{ fontSize: 13 }} />}
+                  icon={<TuneIcon sx={{ fontSize: 15 }} />}
                   iconPosition="start"
                   label={t('dashboard.analytics.subTabs.performanceAndTools')}
+                />
+                <Tab
+                  icon={<CalculateIcon sx={{ fontSize: 15 }} />}
+                  iconPosition="start"
+                  label={t('dashboard.analytics.subTabs.simulator')}
                 />
               </Tabs>
             </Box>

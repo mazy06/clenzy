@@ -3,6 +3,7 @@ import { iCalApi } from '../../services/api/iCalApi';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
 import { usersApi } from '../../services/api/usersApi';
+import { extractApiList } from '../../types';
 import { planningKeys } from '../../hooks/useDashboardPlanning';
 import type { ICalPreviewRequest, ICalImportRequest, ICalFeed } from '../../services/api/iCalApi';
 
@@ -52,8 +53,7 @@ export function useICalProperties(enabled: boolean) {
     queryKey: iCalKeys.properties(),
     queryFn: async (): Promise<Property[]> => {
       const data = await propertiesApi.getAll({ size: 500, sort: 'name,asc' });
-      const list: Property[] = Array.isArray(data) ? data : (data as any).content ?? [];
-      return list;
+      return extractApiList<Property>(data);
     },
     enabled,
     staleTime: 2 * 60 * 1000,
@@ -66,7 +66,7 @@ export function useICalOwners(enabled: boolean) {
     queryKey: iCalKeys.owners(),
     queryFn: async (): Promise<ICalOwner[]> => {
       const data = await usersApi.getAll({ role: 'HOST' });
-      return Array.isArray(data) ? data : (data as any).content ?? [];
+      return extractApiList<ICalOwner>(data);
     },
     enabled,
     staleTime: 2 * 60 * 1000,

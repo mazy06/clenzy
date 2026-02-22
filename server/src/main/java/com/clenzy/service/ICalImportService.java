@@ -8,16 +8,6 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
-import net.fortuna.ical4j.data.CalendarBuilder;
-import net.fortuna.ical4j.data.ParserException;
-import net.fortuna.ical4j.model.Calendar;
-import net.fortuna.ical4j.model.Component;
-import net.fortuna.ical4j.model.component.VEvent;
-import net.fortuna.ical4j.model.property.Description;
-import net.fortuna.ical4j.model.property.DtEnd;
-import net.fortuna.ical4j.model.property.DtStart;
-import net.fortuna.ical4j.model.property.Summary;
-import net.fortuna.ical4j.model.property.Uid;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
@@ -31,7 +21,6 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.InetAddress;
 import java.net.URI;
-import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -39,10 +28,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -55,24 +41,10 @@ public class ICalImportService {
 
     private static final Logger log = LoggerFactory.getLogger(ICalImportService.class);
 
-    // Pattern pour extraire le nom du guest et le code de confirmation du SUMMARY
-    // Ex: "John Doe (HMXXXXXXXX)" ou "Réservation - John Doe"
-    private static final Pattern SUMMARY_GUEST_PATTERN = Pattern.compile("^(.+?)\\s*\\(([A-Z0-9]+)\\)$");
-    private static final Pattern DESCRIPTION_NIGHTS_PATTERN = Pattern.compile("NIGHTS:\\s*(\\d+)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern DESCRIPTION_PHONE_PATTERN = Pattern.compile("PHONE:\\s*([+\\d\\s]+)", Pattern.CASE_INSENSITIVE);
-
-    // Mots-cles indiquant une date bloquee (non une reservation)
-    private static final List<String> BLOCKED_KEYWORDS = List.of(
-            "not available", "airbnb (not available)", "blocked", "indisponible",
-            "not available - airbnb", "reservé", "reserved"
-    );
-
     private static final Set<String> ALLOWED_FORFAITS = Set.of("confort", "premium");
 
-    // SSRF protection: max response size (5 MB) and max events per feed
+    // SSRF protection: max response size (5 MB)
     private static final long MAX_ICAL_RESPONSE_BYTES = 5 * 1024 * 1024;
-    private static final int MAX_EVENTS_PER_FEED = 5000;
-    private static final Set<String> ALLOWED_ICAL_SCHEMES = Set.of("https");
 
     private final ICalFeedRepository icalFeedRepository;
     private final InterventionRepository interventionRepository;
@@ -299,285 +271,82 @@ public class ICalImportService {
     }
 
     /**
-     * Valide une URL iCal contre les attaques SSRF.
-     * Bloque : schemes non-HTTPS, IPs privees/loopback/link-local, metadata endpoints.
-     */
-    private void validateICalUrl(String url) {
-        validateICalUrlAndResolve(url);
-    }
-
-    /**
-     * Valide une URL iCal et retourne l'adresse IP resolue.
-     * L'IP retournee DOIT etre utilisee pour la requete HTTP afin d'eviter
-     * les attaques DNS rebinding (TOCTOU entre validation et requete).
-     */
-    private InetAddress validateICalUrlAndResolve(String url) {
-        if (url == null || url.isBlank()) {
-            throw new IllegalArgumentException("L'URL du calendrier iCal ne peut pas etre vide");
-        }
-
-        URI uri;
-        try {
-            uri = URI.create(url.trim());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("URL iCal invalide : " + e.getMessage());
-        }
-
-        // Scheme check: HTTPS only
-        String scheme = uri.getScheme();
-        if (scheme == null || !ALLOWED_ICAL_SCHEMES.contains(scheme.toLowerCase())) {
-            throw new IllegalArgumentException("Seul le protocole HTTPS est autorise pour les URLs iCal (recu: " + scheme + ")");
-        }
-
-        String host = uri.getHost();
-        if (host == null || host.isBlank()) {
-            throw new IllegalArgumentException("L'URL iCal doit contenir un nom d'hote valide");
-        }
-
-        // Block localhost variants
-        String hostLower = host.toLowerCase();
-        if (hostLower.equals("localhost") || hostLower.equals("127.0.0.1")
-                || hostLower.equals("[::1]") || hostLower.equals("0.0.0.0")
-                || hostLower.endsWith(".local") || hostLower.endsWith(".internal")) {
-            throw new IllegalArgumentException("Les adresses locales ne sont pas autorisees pour les URLs iCal");
-        }
-
-        // Block cloud metadata endpoints
-        if (hostLower.equals("169.254.169.254") || hostLower.equals("metadata.google.internal")) {
-            throw new IllegalArgumentException("Les endpoints de metadata cloud ne sont pas autorises");
-        }
-
-        // DNS resolution + private IP check (RFC 1918: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
-        // On retourne la premiere adresse IP valide pour l'utiliser dans la requete (anti-rebinding)
-        try {
-            InetAddress[] addresses = InetAddress.getAllByName(host);
-            InetAddress validAddress = null;
-            for (InetAddress addr : addresses) {
-                if (addr.isLoopbackAddress() || addr.isSiteLocalAddress()
-                        || addr.isLinkLocalAddress() || addr.isAnyLocalAddress()
-                        || isRfc1918Private(addr)) {
-                    throw new IllegalArgumentException("L'URL iCal pointe vers une adresse IP privee ou locale");
-                }
-                if (validAddress == null) {
-                    validAddress = addr;
-                }
-            }
-            if (validAddress == null) {
-                throw new IllegalArgumentException("Aucune adresse IP valide pour : " + host);
-            }
-            return validAddress;
-        } catch (UnknownHostException e) {
-            throw new IllegalArgumentException("Impossible de resoudre le nom d'hote : " + host);
-        }
-    }
-
-    /**
-     * Verifie explicitement si une adresse IP est dans un range prive RFC 1918.
-     * Couvre 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 — isSiteLocalAddress() ne couvre
-     * que 192.168.x.x en Java, donc on doit verifier 10.x et 172.16-31.x manuellement.
-     */
-    private boolean isRfc1918Private(InetAddress addr) {
-        byte[] bytes = addr.getAddress();
-        if (bytes == null || bytes.length != 4) return false;
-        int b0 = bytes[0] & 0xFF;
-        int b1 = bytes[1] & 0xFF;
-        // 10.0.0.0/8
-        if (b0 == 10) return true;
-        // 172.16.0.0/12 (172.16.x.x - 172.31.x.x)
-        if (b0 == 172 && b1 >= 16 && b1 <= 31) return true;
-        // 192.168.0.0/16
-        if (b0 == 192 && b1 == 168) return true;
-        return false;
-    }
-
-    /**
      * Telecharge et parse un fichier iCal depuis une URL.
-     * Inclut : validation SSRF, limite de taille, limite d'evenements.
-     * Protection DNS rebinding : on resout le DNS une seule fois dans validateICalUrl(),
+     * Inclut : validation SSRF (via ICalUrlValidator), limite de taille,
+     * parsing des evenements (via ICalEventParser).
+     * Protection DNS rebinding : on resout le DNS une seule fois dans ICalUrlValidator,
      * puis on force la meme IP dans la requete HTTP pour eviter le TOCTOU.
      */
     @CircuitBreaker(name = "ical-import")
     public List<ICalEventPreview> fetchAndParseICalFeed(String url) {
-        // Valider l'URL et recuperer l'IP resolue (protection DNS rebinding TOCTOU)
-        InetAddress resolvedAddress = validateICalUrlAndResolve(url);
+        // Validate URL and resolve DNS (SSRF + DNS rebinding protection)
+        InetAddress resolvedAddress = ICalUrlValidator.validateAndResolve(url);
 
         try {
-            // Construire l'URL avec l'IP resolue pour eviter une 2eme resolution DNS
-            URI originalUri = URI.create(url.trim());
-            URI resolvedUri = new URI(
-                    originalUri.getScheme(),
-                    null, // userInfo
-                    resolvedAddress.getHostAddress(),
-                    originalUri.getPort() == -1 ? 443 : originalUri.getPort(),
-                    originalUri.getPath(),
-                    originalUri.getQuery(),
-                    null
-            );
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(resolvedUri)
-                    .GET()
-                    .timeout(Duration.ofSeconds(30))
-                    .header("User-Agent", "Clenzy-PMS/1.0")
-                    .header("Host", originalUri.getHost()) // Garder le Host original pour le SNI/TLS
-                    .build();
-
-            HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
-
-            if (response.statusCode() != 200) {
-                throw new IOException("Erreur HTTP " + response.statusCode() + " lors du telechargement du calendrier");
-            }
-
-            // Limit response size to prevent memory exhaustion
-            InputStream limitedStream = new java.io.FilterInputStream(response.body()) {
-                private long bytesRead = 0;
-                @Override
-                public int read() throws IOException {
-                    if (bytesRead >= MAX_ICAL_RESPONSE_BYTES) {
-                        throw new IOException("Calendrier iCal trop volumineux (limite: " + MAX_ICAL_RESPONSE_BYTES / 1024 / 1024 + " Mo)");
-                    }
-                    int b = super.read();
-                    if (b != -1) bytesRead++;
-                    return b;
-                }
-                @Override
-                public int read(byte[] buf, int off, int len) throws IOException {
-                    if (bytesRead >= MAX_ICAL_RESPONSE_BYTES) {
-                        throw new IOException("Calendrier iCal trop volumineux (limite: " + MAX_ICAL_RESPONSE_BYTES / 1024 / 1024 + " Mo)");
-                    }
-                    int n = super.read(buf, off, (int) Math.min(len, MAX_ICAL_RESPONSE_BYTES - bytesRead));
-                    if (n > 0) bytesRead += n;
-                    return n;
-                }
-            };
-
-            CalendarBuilder builder = new CalendarBuilder();
-            Calendar calendar = builder.build(limitedStream);
-
-            List<ICalEventPreview> events = new ArrayList<>();
-
-            // Limiter le nombre d'evenements importes (protection DoS)
-            var allVEvents = calendar.getComponents(Component.VEVENT);
-            if (allVEvents.size() > 5000) {
-                throw new IllegalArgumentException("Le fichier iCal contient trop d'evenements (" + allVEvents.size() + "). Maximum autorise : 5000.");
-            }
-
-            int eventCount = 0;
-
-            for (Object component : allVEvents) {
-                if (++eventCount > MAX_EVENTS_PER_FEED) {
-                    log.warn("Feed iCal {} depasse la limite de {} evenements, troncature", url, MAX_EVENTS_PER_FEED);
-                    break;
-                }
-                VEvent vevent = (VEvent) component;
-                ICalEventPreview preview = parseVEvent(vevent);
-                if (preview != null) {
-                    events.add(preview);
-                }
-            }
-
-            // Trier par date de debut
-            events.sort(Comparator.comparing(ICalEventPreview::getDtStart, Comparator.nullsLast(Comparator.naturalOrder())));
-
-            return events;
-
+            InputStream limitedStream = downloadICalContent(url, resolvedAddress);
+            return ICalEventParser.parseEvents(limitedStream);
         } catch (java.net.URISyntaxException e) {
             log.error("Erreur construction URI resolue depuis {}: {}", url, e.getMessage());
             throw new RuntimeException("URL iCal invalide : " + e.getMessage());
         } catch (IOException | InterruptedException e) {
             log.error("Erreur telechargement iCal depuis {}: {}", url, e.getMessage());
             throw new RuntimeException("Impossible de telecharger le calendrier iCal : " + e.getMessage());
-        } catch (ParserException e) {
-            log.error("Erreur parsing iCal depuis {}: {}", url, e.getMessage());
-            throw new RuntimeException("Format de calendrier iCal invalide : " + e.getMessage());
         }
     }
 
     /**
-     * Parse un VEVENT iCal en preview.
+     * Downloads iCal content from the given URL using the pre-resolved IP address.
+     * Returns a size-limited InputStream to prevent memory exhaustion.
      */
-    private ICalEventPreview parseVEvent(VEvent vevent) {
-        ICalEventPreview preview = new ICalEventPreview();
+    private InputStream downloadICalContent(String url, InetAddress resolvedAddress)
+            throws java.net.URISyntaxException, IOException, InterruptedException {
+        URI originalUri = URI.create(url.trim());
+        URI resolvedUri = new URI(
+                originalUri.getScheme(),
+                null, // userInfo
+                resolvedAddress.getHostAddress(),
+                originalUri.getPort() == -1 ? 443 : originalUri.getPort(),
+                originalUri.getPath(),
+                originalUri.getQuery(),
+                null
+        );
 
-        // UID
-        Uid uid = vevent.getUid();
-        if (uid != null) {
-            preview.setUid(uid.getValue());
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(resolvedUri)
+                .GET()
+                .timeout(Duration.ofSeconds(30))
+                .header("User-Agent", "Clenzy-PMS/1.0")
+                .header("Host", originalUri.getHost()) // Keep original Host for SNI/TLS
+                .build();
+
+        HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+        if (response.statusCode() != 200) {
+            throw new IOException("Erreur HTTP " + response.statusCode() + " lors du telechargement du calendrier");
         }
 
-        // SUMMARY
-        Summary summary = vevent.getSummary();
-        String summaryText = summary != null ? summary.getValue() : "";
-        preview.setSummary(summaryText);
-
-        // Toutes les entrees iCal sont traitees comme des reservations
-        preview.setType("reservation");
-
-        // Extraire guest name et confirmation code du SUMMARY
-        Matcher matcher = SUMMARY_GUEST_PATTERN.matcher(summaryText.trim());
-        if (matcher.matches()) {
-            preview.setGuestName(matcher.group(1).trim());
-            preview.setConfirmationCode(matcher.group(2).trim());
-        } else if (!summaryText.isBlank()) {
-            // Pas de code de confirmation : utiliser le summary entier comme nom
-            preview.setGuestName(summaryText.trim());
-        }
-
-        // DTSTART
-        DtStart dtStart = vevent.getStartDate();
-        if (dtStart != null) {
-            try {
-                String dateStr = dtStart.getValue();
-                // Format DATE (yyyyMMdd) ou DATE-TIME
-                if (dateStr.length() == 8) {
-                    preview.setDtStart(LocalDate.parse(dateStr, DateTimeFormatter.BASIC_ISO_DATE));
-                } else {
-                    // Tenter ISO local date time
-                    preview.setDtStart(LocalDate.parse(dateStr.substring(0, 8), DateTimeFormatter.BASIC_ISO_DATE));
+        // Limit response size to prevent memory exhaustion
+        return new java.io.FilterInputStream(response.body()) {
+            private long bytesRead = 0;
+            @Override
+            public int read() throws IOException {
+                if (bytesRead >= MAX_ICAL_RESPONSE_BYTES) {
+                    throw new IOException("Calendrier iCal trop volumineux (limite: " + MAX_ICAL_RESPONSE_BYTES / 1024 / 1024 + " Mo)");
                 }
-            } catch (Exception e) {
-                log.warn("Impossible de parser DTSTART: {}", dtStart.getValue());
+                int b = super.read();
+                if (b != -1) bytesRead++;
+                return b;
             }
-        }
-
-        // DTEND
-        DtEnd dtEnd = vevent.getEndDate();
-        if (dtEnd != null) {
-            try {
-                String dateStr = dtEnd.getValue();
-                if (dateStr.length() == 8) {
-                    preview.setDtEnd(LocalDate.parse(dateStr, DateTimeFormatter.BASIC_ISO_DATE));
-                } else {
-                    preview.setDtEnd(LocalDate.parse(dateStr.substring(0, 8), DateTimeFormatter.BASIC_ISO_DATE));
+            @Override
+            public int read(byte[] buf, int off, int len) throws IOException {
+                if (bytesRead >= MAX_ICAL_RESPONSE_BYTES) {
+                    throw new IOException("Calendrier iCal trop volumineux (limite: " + MAX_ICAL_RESPONSE_BYTES / 1024 / 1024 + " Mo)");
                 }
-            } catch (Exception e) {
-                log.warn("Impossible de parser DTEND: {}", dtEnd.getValue());
+                int n = super.read(buf, off, (int) Math.min(len, MAX_ICAL_RESPONSE_BYTES - bytesRead));
+                if (n > 0) bytesRead += n;
+                return n;
             }
-        }
-
-        // DESCRIPTION
-        Description description = vevent.getDescription();
-        if (description != null) {
-            preview.setDescription(description.getValue());
-
-            // Parser le nombre de nuits depuis la description
-            Matcher nightsMatcher = DESCRIPTION_NIGHTS_PATTERN.matcher(description.getValue());
-            if (nightsMatcher.find()) {
-                preview.setNights(Integer.parseInt(nightsMatcher.group(1)));
-            }
-        }
-
-        // Calculer les nuits si pas dans la description
-        if (preview.getNights() == 0 && preview.getDtStart() != null && preview.getDtEnd() != null) {
-            preview.setNights((int) (preview.getDtEnd().toEpochDay() - preview.getDtStart().toEpochDay()));
-        }
-
-        // Ignorer les evenements sans dates
-        if (preview.getDtStart() == null) {
-            return null;
-        }
-
-        return preview;
+        };
     }
 
     /**

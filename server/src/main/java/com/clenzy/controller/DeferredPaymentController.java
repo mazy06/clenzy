@@ -16,6 +16,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/deferred-payments")
 @Tag(name = "Deferred Payments", description = "Gestion des paiements differes et cumul des impayes par host")
+@PreAuthorize("isAuthenticated()")
 public class DeferredPaymentController {
 
     private static final Logger logger = LoggerFactory.getLogger(DeferredPaymentController.class);

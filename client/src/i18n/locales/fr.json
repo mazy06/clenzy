@@ -34,6 +34,8 @@
     "properties": "Propriétés",
     "serviceRequests": "Demandes de service",
     "interventions": "Interventions",
+    "reservations": "Réservations",
+    "dynamicPricing": "Prix dynamiques",
     "teams": "Équipes",
     "portfolios": "Portefeuilles",
     "contact": "Contact",
@@ -45,6 +47,8 @@
     "tarification": "Tarification",
     "payments": "Paiements",
     "monitoring": "Monitoring",
+    "syncDiagnostics": "Sync & Diagnostics",
+    "kpiReadiness": "KPI Readiness",
     "documents": "Documents",
     "myProfile": "Mon profil",
     "logout": "Déconnexion",
@@ -65,7 +69,11 @@
     "languages": {
       "fr": "Français",
       "en": "Anglais"
-    }
+    },
+    "channels": "Channels",
+    "messaging": "Messagerie",
+    "messageTemplates": "Templates",
+    "messageHistory": "Historique"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -255,7 +263,8 @@
         "overview": "Vue d'ensemble",
         "revenueAndPricing": "Revenus & Tarifs",
         "occupancyAndClients": "Occupation & Clientèle",
-        "performanceAndTools": "Performance & Outils"
+        "performanceAndTools": "Performance & Outils",
+        "simulator": "Simulateur"
       }
     },
     "dateFilter": {
@@ -875,6 +884,107 @@
       "RESTORATION": "Remise en État",
       "INSPECTION": "Inspection",
       "OTHER": "Autre"
+    }
+  },
+  "reservations": {
+    "title": "Réservations",
+    "subtitle": "Consultez et gérez les réservations de vos propriétés",
+    "create": "Nouvelle réservation",
+    "edit": "Modifier la réservation",
+    "cancel": "Annuler la réservation",
+    "cancelConfirm": "Voulez-vous vraiment annuler cette réservation ?",
+    "noReservations": "Aucune réservation trouvée",
+    "fields": {
+      "guestName": "Nom du voyageur",
+      "guestEmail": "Email du voyageur",
+      "guestPhone": "Téléphone",
+      "guestInfo": "Informations voyageur",
+      "guestCount": "Nombre de voyageurs",
+      "dates": "Dates du séjour",
+      "checkIn": "Arrivée",
+      "checkOut": "Départ",
+      "checkInTime": "Heure d'arrivée",
+      "checkOutTime": "Heure de départ",
+      "totalPrice": "Prix total",
+      "confirmationCode": "Code de confirmation",
+      "notes": "Notes",
+      "property": "Propriété",
+      "source": "Source",
+      "status": "Statut"
+    },
+    "status": {
+      "confirmed": "Confirmée",
+      "pending": "En attente",
+      "cancelled": "Annulée",
+      "checked_in": "Arrivé",
+      "checked_out": "Parti"
+    },
+    "source": {
+      "airbnb": "Airbnb",
+      "booking": "Booking.com",
+      "direct": "Direct",
+      "other": "Autre"
+    },
+    "filters": {
+      "allProperties": "Toutes les propriétés",
+      "allStatuses": "Tous les statuts",
+      "allSources": "Toutes les sources",
+      "dateRange": "Période"
+    }
+  },
+  "dynamicPricing": {
+    "title": "Prix dynamiques",
+    "subtitle": "Gérez vos plans tarifaires et ajustez les prix par propriété",
+    "selectOwner": "Propriétaire / Hôte",
+    "allOwners": "Tous les propriétaires",
+    "propertiesCount": "propriété(s)",
+    "tabs": {
+      "byProperty": "Par propriété",
+      "overview": "Vue d'ensemble"
+    },
+    "ratePlan": {
+      "title": "Plans tarifaires",
+      "create": "Nouveau plan",
+      "edit": "Modifier le plan",
+      "delete": "Supprimer le plan",
+      "deleteConfirm": "Voulez-vous vraiment supprimer ce plan tarifaire ?",
+      "name": "Nom du plan",
+      "nightlyPrice": "Prix par nuit",
+      "priority": "Priorité",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "daysOfWeek": "Jours de la semaine",
+      "dateRange": "Période d'application",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "empty": "Aucun plan tarifaire configuré",
+      "types": {
+        "BASE": "Base",
+        "SEASONAL": "Saisonnier",
+        "PROMOTIONAL": "Promotion",
+        "LAST_MINUTE": "Dernière minute"
+      }
+    },
+    "override": {
+      "title": "Prix spécifiques",
+      "create": "Ajouter un prix spécifique",
+      "createBulk": "Appliquer sur une période",
+      "delete": "Supprimer"
+    },
+    "priceSource": {
+      "OVERRIDE": "Manuel",
+      "BASE": "Plan de base",
+      "SEASONAL": "Saisonnier",
+      "PROMOTIONAL": "Promotion",
+      "LAST_MINUTE": "Dernière minute",
+      "PROPERTY_DEFAULT": "Prix par défaut"
+    },
+    "calendar": {
+      "selectProperty": "Sélectionner une propriété",
+      "noProperty": "Veuillez sélectionner une propriété",
+      "editPrice": "Modifier le prix",
+      "pricePerNight": "Prix par nuit",
+      "applyRange": "Appliquer sur la période"
     }
   },
   "teams": {
@@ -1718,6 +1828,196 @@
       "price": "Prix",
       "key": "Identifiant",
       "keyHelp": "Identifiant unique (ex: deep_cleaning, custom_prestation)"
+    }
+  },
+  "channels": {
+    "title": "Channels & Intégrations",
+    "subtitle": "Gérez vos connexions Airbnb, Booking.com et autres plateformes",
+    "airbnb": {
+      "connect": "Connecter Airbnb",
+      "disconnect": "Déconnecter",
+      "disconnected": "Non connecté",
+      "userId": "ID Airbnb",
+      "connectedSince": "Connecté depuis",
+      "lastSync": "Dernière sync",
+      "linkedListings": "Annonces liées",
+      "connectDescription": "Connectez votre compte Airbnb pour synchroniser automatiquement vos réservations, calendrier et prix.",
+      "errorFetchingStatus": "Impossible de récupérer le statut de connexion Airbnb",
+      "errorConnecting": "Erreur lors de la connexion à Airbnb",
+      "errorDisconnecting": "Erreur lors de la déconnexion d'Airbnb"
+    },
+    "listings": {
+      "title": "Propriétés liées",
+      "noListings": "Aucune propriété liée à Airbnb. Liez vos propriétés pour activer la synchronisation.",
+      "linkProperty": "Lier une propriété",
+      "linkNewProperty": "Lier une nouvelle propriété à un listing Airbnb",
+      "listingTitle": "Titre de l'annonce",
+      "link": "Lier",
+      "unlink": "Délier",
+      "sync": "Sync",
+      "autoClean": "Auto-menage",
+      "autoPushPricing": "Auto-push prix",
+      "viewOnAirbnb": "Voir sur Airbnb"
+    },
+    "syncStatus": {
+      "title": "Statut de synchronisation",
+      "syncOn": "Synchronisation activée",
+      "syncOff": "Synchronisation désactivée",
+      "lastSync": "Dernière sync"
+    },
+    "reviews": {
+      "title": "Avis & Notes",
+      "subtitle": "Consultez et répondez aux avis de vos voyageurs",
+      "avgRating": "Note moyenne",
+      "totalReviews": "Total avis",
+      "excellent": "Excellent",
+      "good": "Bien",
+      "average": "Moyen",
+      "poor": "Insuffisant",
+      "filterByProperty": "Filtrer par propriété",
+      "noReviews": "Aucun avis pour le moment",
+      "yourReply": "Votre réponse",
+      "reply": "Répondre",
+      "replyPlaceholder": "Écrivez votre réponse...",
+      "sendReply": "Envoyer",
+      "errorLoading": "Impossible de charger les avis"
+    },
+    "guest": {
+      "title": "Profil voyageur",
+      "totalStays": "Séjours",
+      "source": "Source",
+      "avgRating": "Note moy.",
+      "lastStay": "Dernier séjour",
+      "specialRequests": "Demandes spéciales",
+      "notes": "Notes internes",
+      "noNotes": "Aucune note",
+      "reservationHistory": "Historique des réservations",
+      "errorLoading": "Impossible de charger le profil voyageur"
+    },
+    "checkIn": {
+      "title": "Instructions voyageur",
+      "accessSection": "Accès",
+      "accessCode": "Code d'accès / Digicode",
+      "wifiName": "Nom du WiFi",
+      "wifiPassword": "Mot de passe WiFi",
+      "parkingSection": "Stationnement",
+      "parkingInfo": "Informations parking",
+      "arrivalSection": "Arrivée",
+      "arrivalInstructions": "Instructions d'arrivée",
+      "arrivalPlaceholder": "Ex: Prendre l'ascenseur au 3e étage, porte de gauche...",
+      "departureSection": "Départ",
+      "departureInstructions": "Instructions de départ",
+      "departurePlaceholder": "Ex: Merci de laisser les clés sur la table, sortir les poubelles...",
+      "rulesSection": "Règlement",
+      "houseRules": "Règlement intérieur",
+      "emergencySection": "Urgence",
+      "emergencyContact": "Contact d'urgence",
+      "additionalSection": "Compléments",
+      "additionalNotes": "Notes supplémentaires",
+      "saved": "Instructions enregistrées avec succès",
+      "errorSaving": "Erreur lors de l'enregistrement des instructions",
+      "lastUpdated": "Dernière mise à jour"
+    },
+    "inbox": {
+      "title": "Messages Airbnb",
+      "noMessages": "Aucun message Airbnb",
+      "noMessagesHint": "Les messages de vos voyageurs Airbnb apparaîtront ici automatiquement.",
+      "errorLoading": "Impossible de charger les messages Airbnb"
+    },
+    "pushPricing": {
+      "title": "Pousser vers Airbnb",
+      "description": "Synchroniser les prix du calendrier Clenzy vers Airbnb",
+      "push": "Pousser les prix",
+      "button": "Push prix",
+      "tooltip": "Pousser les prix resolus vers Airbnb (365 jours)",
+      "pushing": "Envoi en cours...",
+      "notAvailable": "La synchronisation sortante des prix sera disponible prochainement.",
+      "success": "Prix synchronises avec succes vers Airbnb",
+      "error": "Erreur lors de la synchronisation des prix"
+    }
+  },
+  "messaging": {
+    "automation": {
+      "loadError": "Erreur lors du chargement de la configuration",
+      "saveError": "Erreur lors de la sauvegarde",
+      "saved": "Configuration messagerie sauvegardee",
+      "noTemplate": "Aucun template selectionne",
+      "noTemplatesYet": "Aucun template cree. Creez vos templates dans Messagerie > Templates.",
+      "checkIn": {
+        "title": "Check-in automatique",
+        "autoSend": "Envoi automatique check-in",
+        "autoSendDesc": "Envoyer les instructions d'arrivee avant le check-in",
+        "hoursBefore": "Heures avant",
+        "hoursBeforeDesc": "Delai avant le check-in pour l'envoi",
+        "template": "Template check-in"
+      },
+      "checkOut": {
+        "title": "Check-out automatique",
+        "autoSend": "Envoi automatique check-out",
+        "autoSendDesc": "Envoyer les instructions de depart avant le check-out",
+        "hoursBefore": "Heures avant",
+        "hoursBeforeDesc": "Delai avant le check-out pour l'envoi",
+        "template": "Template check-out"
+      }
+    },
+    "templates": {
+      "title": "Templates de messages",
+      "subtitle": "Gerez vos modeles d'emails pour la communication voyageurs",
+      "create": "Nouveau template",
+      "createFirst": "Creer mon premier template",
+      "empty": "Aucun template",
+      "emptyDesc": "Creez des modeles d'emails pour automatiser vos communications avec les voyageurs.",
+      "loadError": "Erreur lors du chargement des templates",
+      "deleteError": "Erreur lors de la suppression",
+      "name": "Nom",
+      "type": "Type",
+      "subject": "Objet",
+      "language": "Langue",
+      "status": "Statut",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "editor": {
+        "createTitle": "Nouveau template",
+        "editTitle": "Modifier le template",
+        "name": "Nom du template",
+        "type": "Type",
+        "language": "Langue",
+        "subject": "Objet de l'email",
+        "subjectHelper": "Utilisez {guestName}, {propertyName}, etc.",
+        "body": "Corps du message",
+        "bodyHelper": "Redigez le contenu avec les variables dynamiques",
+        "preview": "Apercu",
+        "previewSubject": "Objet",
+        "variables": "Variables disponibles",
+        "variablesDesc": "Cliquez pour inserer dans le corps du message",
+        "variablesList": "Detail des variables",
+        "requiredFields": "Nom, objet et corps sont obligatoires",
+        "saveError": "Erreur lors de la sauvegarde du template"
+      }
+    },
+    "history": {
+      "title": "Historique des messages",
+      "subtitle": "Consultez l'historique des messages envoyes aux voyageurs",
+      "loadError": "Erreur lors du chargement de l'historique",
+      "empty": "Aucun message envoye",
+      "emptyDesc": "L'historique apparaitra ici apres l'envoi de vos premiers messages.",
+      "date": "Date",
+      "guest": "Voyageur",
+      "template": "Template",
+      "channel": "Canal",
+      "recipient": "Destinataire",
+      "subject": "Objet",
+      "status": "Statut"
+    },
+    "send": {
+      "title": "Envoyer un message",
+      "sendTo": "Destinataire",
+      "selectTemplate": "Choisir un template",
+      "preview": "Apercu du template",
+      "send": "Envoyer",
+      "success": "Message envoye avec succes",
+      "error": "Erreur lors de l'envoi du message",
+      "loadError": "Erreur lors du chargement des templates"
     }
   }
 }

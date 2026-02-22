@@ -6,10 +6,9 @@ import { managersApi, portfoliosKeys, propertyTeamsApi, propertyTeamsKeys } from
 import type { ManagerAssociations, PropertyTeamMapping } from '../../services/api';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNotification } from '../../hooks/useNotification';
+import type { ChipColor } from '../../types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
-export type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
 export interface PortfolioClient {
   id: number;
@@ -168,8 +167,8 @@ export function usePortfoliosPage() {
       setEditingClient(null);
       notify.success(t('portfolios.notifications.clientReassigned'));
     },
-    onError: (err: any) => {
-      notify.error(err?.message || t('portfolios.errors.reassignConnectionError'));
+    onError: (err: Error) => {
+      notify.error(err.message || t('portfolios.errors.reassignConnectionError'));
     },
   });
 
@@ -179,8 +178,8 @@ export function usePortfoliosPage() {
       queryClient.invalidateQueries({ queryKey: portfoliosKeys.all });
       notify.success(t('portfolios.notifications.clientUnassigned'));
     },
-    onError: (err: any) => {
-      notify.error(err?.message || t('portfolios.errors.connectionError'));
+    onError: (err: Error) => {
+      notify.error(err.message || t('portfolios.errors.connectionError'));
     },
   });
 
@@ -190,8 +189,8 @@ export function usePortfoliosPage() {
       queryClient.invalidateQueries({ queryKey: portfoliosKeys.all });
       notify.success(t('portfolios.notifications.teamUnassigned'));
     },
-    onError: (err: any) => {
-      notify.error(err?.message || t('portfolios.errors.connectionError'));
+    onError: (err: Error) => {
+      notify.error(err.message || t('portfolios.errors.connectionError'));
     },
   });
 
@@ -201,8 +200,8 @@ export function usePortfoliosPage() {
       queryClient.invalidateQueries({ queryKey: portfoliosKeys.all });
       notify.success(t('portfolios.notifications.userUnassigned'));
     },
-    onError: (err: any) => {
-      notify.error(err?.message || t('portfolios.errors.connectionError'));
+    onError: (err: Error) => {
+      notify.error(err.message || t('portfolios.errors.connectionError'));
     },
   });
 
@@ -212,8 +211,8 @@ export function usePortfoliosPage() {
       queryClient.invalidateQueries({ queryKey: portfoliosKeys.all });
       notify.success(t('portfolios.notifications.propertyUnassigned'));
     },
-    onError: (err: any) => {
-      notify.error(err?.message || t('portfolios.errors.connectionError'));
+    onError: (err: Error) => {
+      notify.error(err.message || t('portfolios.errors.connectionError'));
     },
   });
 
@@ -224,8 +223,8 @@ export function usePortfoliosPage() {
       queryClient.invalidateQueries({ queryKey: propertyTeamsKeys.all });
       notify.success(t('portfolios.notifications.teamAssignedToProperty'));
     },
-    onError: (err: any) => {
-      notify.error(err?.message || t('portfolios.errors.connectionError'));
+    onError: (err: Error) => {
+      notify.error(err.message || t('portfolios.errors.connectionError'));
     },
   });
 
@@ -235,8 +234,8 @@ export function usePortfoliosPage() {
       queryClient.invalidateQueries({ queryKey: propertyTeamsKeys.all });
       notify.success(t('portfolios.notifications.teamRemovedFromProperty'));
     },
-    onError: (err: any) => {
-      notify.error(err?.message || t('portfolios.errors.connectionError'));
+    onError: (err: Error) => {
+      notify.error(err.message || t('portfolios.errors.connectionError'));
     },
   });
 

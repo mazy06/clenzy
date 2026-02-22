@@ -1,0 +1,232 @@
+# ===========================================
+# Clenzy — Tests de Performance & Charge (K6)
+# ===========================================
+# Declenchement :
+#   - PR vers production          → smoke + load test (validation obligatoire)
+#   - workflow_dispatch (manuel)  → choix du type de test (smoke/load/stress/soak)
+#
+# Prerequis :
+#   - K6 installe dans le runner
+#   - Services backend + DB + Redis up
+#   - Secrets : PERF_TEST_USER, PERF_TEST_PASSWORD (utilisateur Keycloak de test)
+#
+# Les resultats sont uploades en artifact et un summary est poste dans la PR.
+
+name: Performance Tests
+
+on:
+  pull_request:
+    branches: [production]
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type de test a executer'
+        required: true
+        default: 'load'
+        type: choice
+        options:
+          - smoke
+          - load
+          - stress
+          - soak
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  performance-tests:
+    name: K6 Performance Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: clenzy_perf
+          POSTGRES_USER: clenzy_perf
+          POSTGRES_PASSWORD: clenzy_perf_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── Build & start backend ──
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Build backend
+        working-directory: server
+        run: mvn clean package -B -q -DskipTests
+
+      - name: Start backend
+        working-directory: server
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/clenzy_perf
+          SPRING_DATASOURCE_USERNAME: clenzy_perf
+          SPRING_DATASOURCE_PASSWORD: clenzy_perf_ci
+          SPRING_REDIS_HOST: localhost
+          SPRING_REDIS_PORT: 6379
+          SERVER_PORT: 8080
+        run: |
+          java -jar target/*.jar &
+          echo "Waiting for backend to start..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+              echo "Backend ready after ${i}s"
+              break
+            fi
+            if [ "$i" -eq 60 ]; then
+              echo "::error::Backend failed to start within 60 seconds"
+              exit 1
+            fi
+            sleep 1
+          done
+
+      # ── Install K6 ──
+      - name: Install K6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Create results directory
+        run: mkdir -p tests/performance/results
+
+      # ── Determine test type ──
+      - name: Determine test type
+        id: test-type
+        env:
+          INPUT_TYPE: ${{ github.event.inputs.test_type || '' }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "type=$INPUT_TYPE" >> "$GITHUB_OUTPUT"
+          else
+            # PR vers production : smoke + load
+            echo "type=pr" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── Smoke Test (toujours execute) ──
+      - name: Run Smoke Test
+        env:
+          BASE_URL: http://localhost:8080
+          TEST_USER: ${{ secrets.PERF_TEST_USER || 'perf-test@clenzy.fr' }}
+          TEST_PASSWORD: ${{ secrets.PERF_TEST_PASSWORD || 'PerfTest2026!' }}
+        run: |
+          k6 run \
+            --out json=tests/performance/results/smoke-results.json \
+            --summary-export=tests/performance/results/smoke-summary.json \
+            tests/performance/smoke-test.js
+        continue-on-error: false
+
+      # ── Load Test (PR ou dispatch 'load') ──
+      - name: Run Load Test
+        if: steps.test-type.outputs.type == 'pr' || steps.test-type.outputs.type == 'load'
+        env:
+          BASE_URL: http://localhost:8080
+          TEST_USER: ${{ secrets.PERF_TEST_USER || 'perf-test@clenzy.fr' }}
+          TEST_PASSWORD: ${{ secrets.PERF_TEST_PASSWORD || 'PerfTest2026!' }}
+        run: |
+          k6 run \
+            --out json=tests/performance/results/load-results.json \
+            --summary-export=tests/performance/results/load-summary.json \
+            tests/performance/load-test.js
+
+      # ── Stress Test (dispatch only) ──
+      - name: Run Stress Test
+        if: steps.test-type.outputs.type == 'stress'
+        env:
+          BASE_URL: http://localhost:8080
+          TEST_USER: ${{ secrets.PERF_TEST_USER || 'perf-test@clenzy.fr' }}
+          TEST_PASSWORD: ${{ secrets.PERF_TEST_PASSWORD || 'PerfTest2026!' }}
+        run: |
+          k6 run \
+            --out json=tests/performance/results/stress-results.json \
+            --summary-export=tests/performance/results/stress-summary.json \
+            tests/performance/stress-test.js
+
+      # ── Soak Test (dispatch only) ──
+      - name: Run Soak Test
+        if: steps.test-type.outputs.type == 'soak'
+        env:
+          BASE_URL: http://localhost:8080
+          TEST_USER: ${{ secrets.PERF_TEST_USER || 'perf-test@clenzy.fr' }}
+          TEST_PASSWORD: ${{ secrets.PERF_TEST_PASSWORD || 'PerfTest2026!' }}
+        run: |
+          k6 run \
+            --out json=tests/performance/results/soak-results.json \
+            --summary-export=tests/performance/results/soak-summary.json \
+            tests/performance/soak-test.js
+
+      # ── Upload results ──
+      - name: Upload performance results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-test-results
+          path: tests/performance/results/
+          retention-days: 30
+
+      # ── Post summary as PR comment ──
+      - name: Post PR comment with results
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          COMMENT_BODY="## Performance Test Results\n\n"
+
+          # Smoke test summary
+          if [ -f tests/performance/results/smoke-summary.json ]; then
+            SMOKE_DURATION=$(jq -r '.metrics.http_req_duration.values."p(95)" // "N/A"' tests/performance/results/smoke-summary.json 2>/dev/null || echo "N/A")
+            SMOKE_REQS=$(jq -r '.metrics.http_reqs.values.count // "N/A"' tests/performance/results/smoke-summary.json 2>/dev/null || echo "N/A")
+            SMOKE_FAIL=$(jq -r '.metrics.http_req_failed.values.rate // "N/A"' tests/performance/results/smoke-summary.json 2>/dev/null || echo "N/A")
+            COMMENT_BODY+="### Smoke Test\n"
+            COMMENT_BODY+="| Metric | Value |\n|--------|-------|\n"
+            COMMENT_BODY+="| Total requests | ${SMOKE_REQS} |\n"
+            COMMENT_BODY+="| p95 latency | ${SMOKE_DURATION}ms |\n"
+            COMMENT_BODY+="| Error rate | ${SMOKE_FAIL} |\n\n"
+          fi
+
+          # Load test summary
+          if [ -f tests/performance/results/load-summary.json ]; then
+            LOAD_DURATION=$(jq -r '.metrics.http_req_duration.values."p(95)" // "N/A"' tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
+            LOAD_REQS=$(jq -r '.metrics.http_reqs.values.count // "N/A"' tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
+            LOAD_FAIL=$(jq -r '.metrics.http_req_failed.values.rate // "N/A"' tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
+            LOAD_API=$(jq -r '.metrics.api_duration.values."p(95)" // "N/A"' tests/performance/results/load-summary.json 2>/dev/null || echo "N/A")
+            COMMENT_BODY+="### Load Test (50 VUs)\n"
+            COMMENT_BODY+="| Metric | Value | Threshold |\n|--------|-------|----------|\n"
+            COMMENT_BODY+="| Total requests | ${LOAD_REQS} | — |\n"
+            COMMENT_BODY+="| p95 latency | ${LOAD_DURATION}ms | < 500ms |\n"
+            COMMENT_BODY+="| API p95 | ${LOAD_API}ms | < 500ms |\n"
+            COMMENT_BODY+="| Error rate | ${LOAD_FAIL} | < 1% |\n\n"
+          fi
+
+          COMMENT_BODY+="---\n*Generated by Performance Tests workflow*"
+
+          printf "%b" "$COMMENT_BODY" | gh pr comment "$PR_NUMBER" --body-file -

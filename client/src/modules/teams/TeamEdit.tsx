@@ -38,7 +38,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { teamsApi, usersApi } from '../../services/api';
-import type { CoverageZone } from '../../services/api/teamsApi';
+import type { CoverageZone, TeamFormData as ApiTeamFormData } from '../../services/api/teamsApi';
+import type { User } from '../../services/api/usersApi';
+import { extractApiList } from '../../types';
 import PageHeader from '../../components/PageHeader';
 import { teamsKeys } from './useTeamsList';
 import {
@@ -108,7 +110,7 @@ const TeamEdit: React.FC = () => {
     queryKey: ['edit-available-users'],
     queryFn: async () => {
       const data = await usersApi.getAll();
-      return Array.isArray(data) ? data : (data as any).content || [];
+      return extractApiList<User>(data);
     },
     staleTime: 60_000,
   });
@@ -121,7 +123,13 @@ const TeamEdit: React.FC = () => {
         name: teamData.name || '',
         description: teamData.description || '',
         interventionType: teamData.interventionType || 'CLEANING',
-        members: (teamData as any).members || [],
+        members: (teamData.members || []).map(m => ({
+          userId: m.userId ?? m.id,
+          firstName: m.firstName,
+          lastName: m.lastName,
+          email: m.email,
+          role: m.roleInTeam ?? m.role,
+        })),
         coverageZones: teamData.coverageZones?.map((z) => ({
           id: z.id,
           department: z.department,
@@ -136,7 +144,16 @@ const TeamEdit: React.FC = () => {
 
   // ─── Update mutation ──────────────────────────────────────────────────
   const updateMutation = useMutation({
-    mutationFn: (data: TeamFormData) => teamsApi.update(Number(id), data as any),
+    mutationFn: (data: TeamFormData) => {
+      const apiData: ApiTeamFormData = {
+        name: data.name,
+        description: data.description,
+        interventionType: data.interventionType,
+        members: data.members.map(m => ({ userId: m.userId, roleInTeam: m.role })),
+        coverageZones: data.coverageZones,
+      };
+      return teamsApi.update(Number(id), apiData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: teamsKeys.all });
       setSuccess(true);
@@ -144,7 +161,7 @@ const TeamEdit: React.FC = () => {
         navigate(`/teams/${id}`);
       }, 1500);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setError(err?.message || 'Erreur lors de la mise à jour');
     },
   });
@@ -156,14 +173,14 @@ const TeamEdit: React.FC = () => {
 
   const addMember = () => {
     if (!selectedUser || !selectedRole) return;
-    const user = (availableUsers as TeamMember[])?.find(u => u.userId?.toString() === selectedUser);
+    const user = availableUsers?.find(u => u.id?.toString() === selectedUser);
     if (!user) return;
-    if ((formData.members || []).some(m => m.userId === user.userId)) {
+    if ((formData.members || []).some(m => m.userId === user.id)) {
       setError('Cet utilisateur est déjà dans l\'équipe');
       return;
     }
     const newMember: TeamMember = {
-      userId: user.userId,
+      userId: user.id,
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
@@ -452,11 +469,11 @@ const TeamEdit: React.FC = () => {
                     onChange={(e) => setSelectedUser(e.target.value)}
                     label="Utilisateur"
                   >
-                    {availableUsers && (availableUsers as TeamMember[]).length > 0 ? (
-                      (availableUsers as TeamMember[])
-                        .filter((user: TeamMember) => !(formData.members || []).some(m => m.userId === user.userId))
-                        .map((user: TeamMember) => (
-                          <MenuItem key={user.userId} value={user.userId.toString()}>
+                    {availableUsers && availableUsers.length > 0 ? (
+                      availableUsers
+                        .filter((user) => !(formData.members || []).some(m => m.userId === user.id))
+                        .map((user) => (
+                          <MenuItem key={user.id} value={user.id.toString()}>
                             {user.firstName} {user.lastName} ({user.email})
                           </MenuItem>
                         ))

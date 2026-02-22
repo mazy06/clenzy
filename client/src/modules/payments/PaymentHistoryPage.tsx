@@ -206,8 +206,8 @@ const PaymentHistoryPage: React.FC = () => {
       });
 
       window.location.href = paymentData.url;
-    } catch (err: any) {
-      setPayError(err.message || 'Erreur lors de la creation de la session de paiement');
+    } catch (err: unknown) {
+      setPayError(err instanceof Error ? err.message : 'Erreur lors de la creation de la session de paiement');
       setProcessingPayment(null);
     }
   };
@@ -227,8 +227,8 @@ const PaymentHistoryPage: React.FC = () => {
       setRefundDialogOpen(false);
       setRefundTarget(null);
       loadData(); // Recharger la liste
-    } catch (err: any) {
-      setRefundError(err.message || 'Erreur lors du remboursement');
+    } catch (err: unknown) {
+      setRefundError(err instanceof Error ? err.message : 'Erreur lors du remboursement');
     } finally {
       setRefundingPayment(null);
     }

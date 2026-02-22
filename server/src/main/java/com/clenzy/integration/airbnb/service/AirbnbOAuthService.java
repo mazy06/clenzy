@@ -48,13 +48,14 @@ public class AirbnbOAuthService {
                               AirbnbConnectionRepository connectionRepository,
                               AirbnbTokenEncryptionService encryptionService,
                               AuditLogService auditLogService,
-                              StringRedisTemplate redisTemplate) {
+                              StringRedisTemplate redisTemplate,
+                              RestTemplate restTemplate) {
         this.config = config;
         this.connectionRepository = connectionRepository;
         this.encryptionService = encryptionService;
         this.auditLogService = auditLogService;
         this.redisTemplate = redisTemplate;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = restTemplate;
     }
 
     /**

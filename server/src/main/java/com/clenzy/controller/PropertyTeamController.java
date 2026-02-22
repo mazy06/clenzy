@@ -3,7 +3,6 @@ package com.clenzy.controller;
 import com.clenzy.dto.PropertyTeamDto;
 import com.clenzy.dto.PropertyTeamRequest;
 import com.clenzy.service.PropertyTeamService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,8 +18,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
 public class PropertyTeamController {
 
-    @Autowired
-    private PropertyTeamService propertyTeamService;
+    private final PropertyTeamService propertyTeamService;
+
+    public PropertyTeamController(PropertyTeamService propertyTeamService) {
+        this.propertyTeamService = propertyTeamService;
+    }
 
     /**
      * Recuperer l'equipe assignee a une propriete

@@ -6,7 +6,6 @@ import com.clenzy.dto.UserProfileDto;
 import com.clenzy.service.LoginProtectionService;
 import com.clenzy.service.LoginProtectionService.LoginStatus;
 import com.clenzy.service.NewUserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -23,11 +22,14 @@ import java.util.Map;
 @PreAuthorize("hasRole('SUPER_ADMIN')")
 public class NewUserController {
 
-    @Autowired
-    private NewUserService newUserService;
+    private final NewUserService newUserService;
+    private final LoginProtectionService loginProtectionService;
 
-    @Autowired
-    private LoginProtectionService loginProtectionService;
+    public NewUserController(NewUserService newUserService,
+                             LoginProtectionService loginProtectionService) {
+        this.newUserService = newUserService;
+        this.loginProtectionService = loginProtectionService;
+    }
 
     /**
      * Récupérer tous les profils utilisateurs

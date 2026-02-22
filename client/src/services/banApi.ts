@@ -155,14 +155,12 @@ export const banApi = {
       const response = await fetch(`${BAN_BASE_URL}/search/?${params.toString()}`);
 
       if (!response.ok) {
-        console.error('BAN API error:', response.status, response.statusText);
-        return [];
+        throw new Error(`BAN API error: ${response.status} ${response.statusText}`);
       }
 
       const data: BanResponse = await response.json();
       return data.features.map(parseBanFeature);
-    } catch (error) {
-      console.error('BAN API fetch error:', error);
+    } catch {
       return [];
     }
   },

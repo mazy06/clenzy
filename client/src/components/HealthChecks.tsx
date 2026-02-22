@@ -35,8 +35,7 @@ import {
   Cloud,
   Memory,
 } from '@mui/icons-material';
-
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+import type { ChipColor } from '../types';
 
 interface HealthCheckResult {
   name: string;

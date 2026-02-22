@@ -8,6 +8,10 @@ export interface User {
   role: string;
   status?: string;
   createdAt?: string;
+  updatedAt?: string;
+  lastLoginAt?: string;
+  // Contact
+  phoneNumber?: string;
   // Profil host (donnees du formulaire de devis)
   companyName?: string;
   forfait?: string;
@@ -35,6 +39,10 @@ export interface UserFormData {
   email: string;
   password?: string;
   role: string;
+  phoneNumber?: string;
+  status?: string;
+  deferredPayment?: boolean;
+  organizationId?: number;
 }
 
 export interface LockoutStatus {

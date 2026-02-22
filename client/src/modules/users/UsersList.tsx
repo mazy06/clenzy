@@ -48,10 +48,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
 import FilterSearchBar from '../../components/FilterSearchBar';
-import { usersApi } from '../../services/api';
+import { usersApi, type UserFormData } from '../../services/api';
+import { extractApiList } from '../../types';
 import apiClient from '../../services/apiClient';
 import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
 import type { ExportColumn } from '../../utils/exportUtils';
+import type { ChipColor } from '../../types';
 
 interface User {
   id: number;
@@ -63,8 +65,6 @@ interface User {
   status: string;
   createdAt: string;
 }
-
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 
 const userRoles: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor }> = [
   { value: 'SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error' },
@@ -89,7 +89,7 @@ const userStatuses = USER_STATUS_OPTIONS.map(option => ({
 export interface UsersListHandle {
   sync: () => void;
   syncing: boolean;
-  filteredUsers: any[];
+  filteredUsers: User[];
   exportColumns: ExportColumn[];
 }
 
@@ -100,7 +100,7 @@ const UsersList = forwardRef<UsersListHandle>((_, ref) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState<Partial<User>>({});
+  const [editFormData, setEditFormData] = useState<Partial<UserFormData>>({});
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -128,7 +128,7 @@ const UsersList = forwardRef<UsersListHandle>((_, ref) => {
       setLoading(true);
       try {
         const data = await usersApi.getAll();
-        const usersList = (data as any).content || data;
+        const usersList = extractApiList<User>(data);
         setUsers(usersList);
       } catch (err) {
         // En cas d'erreur, tableau vide
@@ -182,7 +182,7 @@ const UsersList = forwardRef<UsersListHandle>((_, ref) => {
     try {
       await apiClient.post('/sync/force-sync-all-to-keycloak');
       const data = await usersApi.getAll();
-      const usersList = (data as any).content || data;
+      const usersList = extractApiList<User>(data);
       setUsers(usersList);
     } catch (err) {
     } finally {
@@ -198,7 +198,7 @@ const UsersList = forwardRef<UsersListHandle>((_, ref) => {
 
     setSaving(true);
     try {
-      await usersApi.update(selectedUser.id, editFormData as any);
+      await usersApi.update(selectedUser.id, editFormData);
       setUsers(prev => prev.map(u =>
         u.id === selectedUser.id ? { ...u, ...editFormData } : u
       ));
@@ -206,8 +206,8 @@ const UsersList = forwardRef<UsersListHandle>((_, ref) => {
       setEditFormData({});
       setSelectedUser(null);
       notify.success('Utilisateur mis à jour avec succès');
-    } catch (err: any) {
-      notify.error(err?.message || 'Erreur lors de la mise à jour de l\'utilisateur');
+    } catch (err: unknown) {
+      notify.error(err instanceof Error ? err.message : 'Erreur lors de la mise à jour de l\'utilisateur');
     } finally {
       setSaving(false);
     }
@@ -220,8 +220,8 @@ const UsersList = forwardRef<UsersListHandle>((_, ref) => {
         setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
         setDeleteDialogOpen(false);
         notify.success('Utilisateur supprimé avec succès');
-      } catch (err: any) {
-        notify.error(err?.message || 'Erreur lors de la suppression de l\'utilisateur');
+      } catch (err: unknown) {
+        notify.error(err instanceof Error ? err.message : 'Erreur lors de la suppression de l\'utilisateur');
         setDeleteDialogOpen(false);
       }
     } else {

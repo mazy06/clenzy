@@ -2,7 +2,6 @@ package com.clenzy.controller;
 
 import com.clenzy.service.PermissionService;
 import com.clenzy.dto.RolePermissionsDto;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -17,8 +16,11 @@ import java.util.ArrayList;
 @PreAuthorize("hasRole('SUPER_ADMIN')")
 public class PermissionController {
 
-    @Autowired
-    private PermissionService permissionService;
+    private final PermissionService permissionService;
+
+    public PermissionController(PermissionService permissionService) {
+        this.permissionService = permissionService;
+    }
 
     @GetMapping("/roles")
     public ResponseEntity<List<String>> getAllRoles() {

@@ -37,11 +37,10 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { usersApi } from '../../services/api';
+import { usersApi, type User, type UserFormData } from '../../services/api';
 import { organizationsApi, OrganizationDto } from '../../services/api/organizationsApi';
 import PageHeader from '../../components/PageHeader';
-
-type ChipColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+import type { ChipColor } from '../../types';
 
 // Types pour les utilisateurs
 export interface UserEditData {
@@ -96,7 +95,7 @@ const UserEdit: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [user, setUser] = useState<UserEditData | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -140,16 +139,16 @@ const UserEdit: React.FC = () => {
       setLoading(true);
       try {
         const userData = await usersApi.getById(Number(id));
-        setUser(userData as any);
+        setUser(userData);
 
         // Pré-remplir le formulaire avec les données existantes
         setFormData({
           firstName: userData.firstName || '',
           lastName: userData.lastName || '',
           email: userData.email || '',
-          phoneNumber: (userData as any).phoneNumber || '',
+          phoneNumber: userData.phoneNumber || '',
           role: userData.role?.toUpperCase() || 'HOUSEKEEPER',
-          status: (userData as any).status?.toUpperCase() || 'ACTIVE',
+          status: userData.status?.toUpperCase() || 'ACTIVE',
         });
 
         // Pre-selectionner l'organisation
@@ -242,11 +241,11 @@ const UserEdit: React.FC = () => {
 
     try {
       // Préparer les données pour le backend
-      const backendData: Record<string, string | number | null> = {
+      const backendData: Partial<UserFormData> & { newPassword?: string } = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim().toLowerCase(),
-        phoneNumber: formData.phoneNumber?.trim() || null,
+        phoneNumber: formData.phoneNumber?.trim() || undefined,
         role: formData.role,
         status: formData.status,
       };
@@ -261,7 +260,7 @@ const UserEdit: React.FC = () => {
         backendData.newPassword = formData.newPassword;
       }
 
-      await usersApi.update(Number(id), backendData as any);
+      await usersApi.update(Number(id), backendData);
       setSuccess(true);
 
       // Réinitialiser les champs de mot de passe
@@ -274,8 +273,8 @@ const UserEdit: React.FC = () => {
       setTimeout(() => {
         navigate(`/users/${id}`);
       }, 1500);
-    } catch (err: any) {
-      setError('Erreur lors de la mise à jour: ' + (err?.message || 'Erreur inconnue'));
+    } catch (err: unknown) {
+      setError('Erreur lors de la mise à jour: ' + (err instanceof Error ? err.message : 'Erreur inconnue'));
     } finally {
       setSaving(false);
     }

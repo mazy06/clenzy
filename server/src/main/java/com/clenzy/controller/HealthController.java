@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.HashMap;
 
+// Security: Health check endpoint — intentionally public, listed in SecurityConfigProd.java permitAll()
 @RestController
 @RequestMapping("/api/health")
 public class HealthController {

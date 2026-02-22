@@ -7,7 +7,7 @@ import {
   PlayArrow as PlayArrowIcon,
   Replay as ReplayIcon,
 } from '@mui/icons-material';
-import type { InterventionDetailsData } from './interventionUtils';
+import type { InterventionDetailsData, PropertyDetails } from './interventionUtils';
 import PhotoGallery from '../../components/PhotoGallery';
 import ProgressStepInspection from './ProgressStepInspection';
 import ProgressStepRooms from './ProgressStepRooms';
@@ -23,7 +23,7 @@ interface InterventionProgressStepsProps {
   canStartIntervention: boolean;
   canStartOrUpdateIntervention: boolean;
   // Property & rooms
-  propertyDetails: any | null;
+  propertyDetails: PropertyDetails | null;
   getTotalRooms: () => number;
   getRoomNames: () => string[];
   validatedRooms: Set<number>;

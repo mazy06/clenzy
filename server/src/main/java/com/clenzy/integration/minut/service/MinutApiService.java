@@ -26,10 +26,10 @@ public class MinutApiService {
     private final MinutOAuthService oAuthService;
     private final RestTemplate restTemplate;
 
-    public MinutApiService(MinutConfig config, MinutOAuthService oAuthService) {
+    public MinutApiService(MinutConfig config, MinutOAuthService oAuthService, RestTemplate restTemplate) {
         this.config = config;
         this.oAuthService = oAuthService;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = restTemplate;
     }
 
     // ─── Devices ────────────────────────────────────────────────

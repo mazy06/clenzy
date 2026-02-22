@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
@@ -19,12 +20,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Auth Proxy", description = "Proxy d'authentification via Keycloak (Direct Access Grants)")
+@PreAuthorize("isAuthenticated()")
 public class AuthProxyController {
 
     private static final Logger log = LoggerFactory.getLogger(AuthProxyController.class);
 
     private final LoginProtectionService loginProtectionService;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     @Value("${KEYCLOAK_TOKEN_URI:http://keycloak:8080/realms/clenzy/protocol/openid-connect/token}")
     private String tokenUri;
@@ -35,14 +37,16 @@ public class AuthProxyController {
     @Value("${KEYCLOAK_CLIENT_SECRET:}")
     private String clientSecret;
 
-    public AuthProxyController(LoginProtectionService loginProtectionService) {
+    public AuthProxyController(LoginProtectionService loginProtectionService, RestTemplate restTemplate) {
         this.loginProtectionService = loginProtectionService;
+        this.restTemplate = restTemplate;
     }
 
     public record LoginRequest(String username, String password, String captchaToken) {}
     public record LogoutRequest(String refreshToken) {}
 
     @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("permitAll()")
     @Operation(summary = "Connexion avec identifiants (proxy)")
     public ResponseEntity<?> login(@RequestBody LoginRequest body) {
         if (body == null || body.username() == null || body.password() == null) {
@@ -124,6 +128,7 @@ public class AuthProxyController {
     }
 
     @PostMapping(value = "/logout", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("permitAll()")
     @Operation(summary = "Deconnexion (revocation du refresh token)")
     public ResponseEntity<?> logout(@RequestBody LogoutRequest body) {
         String logoutUri = tokenUri.replace("/token", "/logout");

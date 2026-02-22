@@ -95,7 +95,7 @@ const InterventionsPendingValidation: React.FC = () => {
       handleCloseValidationDialog();
       queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setValidationError(err.message || 'Erreur de connexion');
     },
   });

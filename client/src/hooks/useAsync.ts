@@ -26,11 +26,11 @@ export interface AsyncState<T> {
   error: string | null;
 }
 
-interface UseAsyncOptions {
+interface UseAsyncOptions<T = unknown> {
   /** Exécuter automatiquement au montage (default: true) */
   immediate?: boolean;
   /** Callback appelé en cas de succès */
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: T) => void;
   /** Callback appelé en cas d'erreur */
   onError?: (error: string) => void;
   /** Message d'erreur par défaut */
@@ -38,8 +38,8 @@ interface UseAsyncOptions {
 }
 
 export function useAsync<T>(
-  asyncFunction: (...args: any[]) => Promise<T>,
-  options: UseAsyncOptions = {}
+  asyncFunction: (...args: unknown[]) => Promise<T>,
+  options: UseAsyncOptions<T> = {}
 ) {
   const {
     immediate = true,
@@ -59,7 +59,7 @@ export function useAsync<T>(
   asyncFunctionRef.current = asyncFunction;
 
   const execute = useCallback(
-    async (...args: any[]): Promise<T | null> => {
+    async (...args: unknown[]): Promise<T | null> => {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
       try {
@@ -69,8 +69,8 @@ export function useAsync<T>(
           onSuccess?.(result);
         }
         return result;
-      } catch (err: any) {
-        const errorMessage = err?.message || defaultErrorMessage;
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : String(err || defaultErrorMessage);
         if (mountedRef.current) {
           setState(prev => ({ ...prev, loading: false, error: errorMessage }));
           onError?.(errorMessage);
@@ -109,6 +109,10 @@ export function useAsync<T>(
     return () => {
       mountedRef.current = false;
     };
+    // WHY: intentional mount-only effect. `immediate` controls initial-load behavior
+    // and must not trigger re-execution. `execute` uses asyncFunctionRef (always
+    // up-to-date via ref) so re-running on `execute` identity changes is unnecessary
+    // and would cause duplicate fetches when parent re-renders with new callbacks.
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
@@ -132,11 +136,11 @@ export function useAsync<T>(
  *   { onSuccess: () => navigate('/properties') }
  * );
  */
-export function useMutation<T, TArgs extends any[] = any[]>(
+export function useMutation<T, TArgs extends unknown[] = unknown[]>(
   mutationFunction: (...args: TArgs) => Promise<T>,
-  options: Omit<UseAsyncOptions, 'immediate'> = {}
+  options: Omit<UseAsyncOptions<T>, 'immediate'> = {}
 ) {
-  return useAsync<T>(mutationFunction as any, { ...options, immediate: false });
+  return useAsync<T>(mutationFunction as (...args: unknown[]) => Promise<T>, { ...options, immediate: false });
 }
 
 export default useAsync;
