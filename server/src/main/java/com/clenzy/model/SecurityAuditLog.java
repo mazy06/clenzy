@@ -1,6 +1,8 @@
 package com.clenzy.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 
 /**
@@ -54,6 +56,7 @@ public class SecurityAuditLog {
     private String result;
 
     @Column(columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String details;
 
     @Column(name = "organization_id")
