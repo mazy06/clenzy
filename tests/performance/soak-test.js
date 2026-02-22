@@ -11,6 +11,7 @@ import { check, group, sleep } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
 import {
   API_BASE,
+  CI_AUTH_TOKEN,
   KEYCLOAK_URL,
   KEYCLOAK_REALM,
   KEYCLOAK_CLIENT_ID,
@@ -42,6 +43,10 @@ export const options = {
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function getAuthToken() {
+  if (CI_AUTH_TOKEN) {
+    return CI_AUTH_TOKEN;
+  }
+
   const tokenUrl = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`;
 
   const res = http.post(tokenUrl, {

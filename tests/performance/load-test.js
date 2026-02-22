@@ -7,15 +7,17 @@
 //
 // Variables d'environnement :
 //   BASE_URL         - URL du backend (defaut: http://localhost:8080)
+//   CI_AUTH_TOKEN    - Token JWT pre-signe (CI, pas de Keycloak)
 //   KEYCLOAK_URL     - URL Keycloak (defaut: http://localhost:8443)
 //   TEST_USER        - Email utilisateur de test
 //   TEST_PASSWORD    - Mot de passe utilisateur de test
 
 import http from 'k6/http';
-import { check, group, sleep, fail } from 'k6';
+import { check, group, sleep } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
 import {
   API_BASE,
+  CI_AUTH_TOKEN,
   KEYCLOAK_URL,
   KEYCLOAK_REALM,
   KEYCLOAK_CLIENT_ID,
@@ -51,6 +53,12 @@ export const options = {
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function getAuthToken() {
+  // En CI, utiliser le token pre-signe (pas de Keycloak)
+  if (CI_AUTH_TOKEN) {
+    return CI_AUTH_TOKEN;
+  }
+
+  // En environnement avec Keycloak, obtenir un token via password grant
   const tokenUrl = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`;
 
   const res = http.post(tokenUrl, {
