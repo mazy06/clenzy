@@ -6,6 +6,9 @@ spring:
   threads:
     virtual:
       enabled: true
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: false
 
 # Configuration Keycloak
 keycloak:
