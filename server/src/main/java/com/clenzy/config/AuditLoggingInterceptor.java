@@ -35,6 +35,11 @@ public class AuditLoggingInterceptor implements HandlerInterceptor {
     private static final Set<String> ADMIN_PATHS = Set.of(
             "/api/users", "/api/teams", "/api/pricing-config", "/api/admin"
     );
+    /** Rôles applicatifs réels (exclut les scopes Keycloak comme "profile", "email"). */
+    private static final Set<String> APP_ROLES = Set.of(
+            "SUPER_ADMIN", "SUPER_MANAGER", "HOST", "TECHNICIAN",
+            "HOUSEKEEPER", "SUPERVISOR", "LAUNDRY", "EXTERIOR_TECH"
+    );
 
     private final AuditLogRepository auditLogRepository;
     private final TenantContext tenantContext;
@@ -72,12 +77,13 @@ public class AuditLoggingInterceptor implements HandlerInterceptor {
             if (auth != null && auth.getPrincipal() instanceof Jwt jwt) {
                 userId = jwt.getSubject();
                 userEmail = jwt.getClaimAsString("email");
-                // Extract role from authorities
+                // Extract actual app role (skip Keycloak scopes like "profile", "email")
                 userRole = auth.getAuthorities().stream()
                         .map(Object::toString)
                         .filter(a -> a.startsWith("ROLE_"))
-                        .findFirst()
                         .map(a -> a.substring(5))
+                        .filter(APP_ROLES::contains)
+                        .findFirst()
                         .orElse(null);
             }
 

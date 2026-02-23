@@ -25,9 +25,13 @@ import {
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
   ReferenceLine,
+  usePlotArea,
+  useXAxisDomain,
+  useYAxisDomain,
 } from 'recharts';
 import type { NoiseMonitoringData } from '../../hooks/useNoiseMonitoring';
 import { NOISE_THRESHOLDS } from '../../hooks/useNoiseMonitoring';
+import type { TimeWindowThreshold } from './NoiseAlertConfigPanel';
 
 // ─── Styling constants ──────────────────────────────────────────────────────
 
@@ -54,15 +58,26 @@ function getNoiseStatus(level: number): { label: string; color: 'success' | 'war
   return { label: 'Critique', color: 'error', icon: <ErrorIcon sx={{ fontSize: 14 }} /> };
 }
 
+/** Convertit "HH:MM" en minutes depuis minuit. */
+function timeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
+/** Distance circulaire entre deux heures (en minutes), gère le passage minuit. */
+function circularDist(a: number, b: number): number {
+  return Math.min(
+    Math.abs(a - b),
+    Math.abs(a - b + 1440),
+    Math.abs(a - b - 1440),
+  );
+}
+
 // ─── Custom Tooltip ─────────────────────────────────────────────────────────
 
 interface CustomTooltipProps {
   active?: boolean;
-  payload?: Array<{
-    name: string;
-    value: number;
-    color: string;
-  }>;
+  payload?: Array<{ name: string; value: number; color: string }>;
   label?: string;
 }
 
@@ -104,20 +119,160 @@ const NoiseTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) 
   );
 };
 
-// ─── Component ──────────────────────────────────────────────────────────────
+// ─── Threshold lines via Recharts v3 public hooks ───────────────────────────
+
+interface ThresholdLinesRendererProps {
+  thresholds: TimeWindowThreshold[];
+  displayData: Record<string, string | number>[];
+}
+
+/**
+ * Composant rendu directement dans le <AreaChart> (Recharts v3 permet les enfants arbitraires).
+ * Utilise les hooks publics Recharts v3 (usePlotArea, useXAxisDomain, useYAxisDomain)
+ * pour calculer les positions en pixels depuis le domaine.
+ *
+ * Pour chaque créneau horaire, dessine une ligne warning (orange) et une ligne critique
+ * (rouge) qui s'étendent uniquement sur la largeur correspondant à la plage horaire.
+ */
+const ThresholdLinesRenderer: React.FC<ThresholdLinesRendererProps> = ({
+  thresholds,
+  displayData,
+}) => {
+  const plotArea = usePlotArea();
+  const xDomain = useXAxisDomain();
+  const yDomain = useYAxisDomain();
+
+  if (!plotArea || !xDomain || !yDomain || displayData.length < 2) return null;
+
+  // xDomain = tableau de catégories ['00:00', '01:00', ...] pour un axe catégoriel
+  const categories = xDomain as string[];
+  if (!Array.isArray(categories) || categories.length < 2) return null;
+
+  // yDomain = [min, max] pour un axe numérique
+  const yMin = Number(yDomain[0]);
+  const yMax = Number(yDomain[yDomain.length - 1]);
+  if (Number.isNaN(yMin) || Number.isNaN(yMax) || yMax <= yMin) return null;
+
+  /** Convertit un label de catégorie X en pixel. (Point scale) */
+  const xPixel = (label: string): number | null => {
+    const idx = categories.indexOf(label);
+    if (idx < 0) return null;
+    // Point scale : chaque catégorie est répartie uniformément
+    return plotArea.x + (idx / (categories.length - 1)) * plotArea.width;
+  };
+
+  /** Convertit une valeur Y (dB) en pixel. (Linear scale, Y inversé) */
+  const yPixel = (value: number): number => {
+    return plotArea.y + plotArea.height * (1 - (value - yMin) / (yMax - yMin));
+  };
+
+  /**
+   * Trouve les labels start/end dans le domaine pour un créneau horaire,
+   * en scannant vers l'avant depuis startIdx pour gérer le passage minuit.
+   */
+  const findRange = (startTime: string, endTime: string) => {
+    const startMin = timeToMinutes(startTime);
+    const endMin = timeToMinutes(endTime);
+
+    // Trouver l'index le plus proche de startTime dans displayData
+    let startIdx = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < displayData.length; i++) {
+      const t = String(displayData[i].time ?? '');
+      if (!t.includes(':')) continue;
+      const d = circularDist(timeToMinutes(t), startMin);
+      if (d < bestDist) { bestDist = d; startIdx = i; }
+    }
+
+    // Scanner vers l'avant depuis startIdx pour trouver endTime
+    let endIdx = startIdx;
+    bestDist = Infinity;
+    for (let i = startIdx; i < displayData.length; i++) {
+      const t = String(displayData[i].time ?? '');
+      if (!t.includes(':')) continue;
+      const d = circularDist(timeToMinutes(t), endMin);
+      if (d < bestDist) { bestDist = d; endIdx = i; }
+    }
+
+    if (startIdx === endIdx) return null;
+
+    const startLabel = String(displayData[startIdx].time);
+    const endLabel = String(displayData[endIdx].time);
+    return { startLabel, endLabel };
+  };
+
+  const lines: React.ReactElement[] = [];
+
+  for (const tw of thresholds) {
+    const range = findRange(tw.startTime, tw.endTime);
+    if (!range) continue;
+
+    const x1 = xPixel(range.startLabel);
+    const x2 = xPixel(range.endLabel);
+    if (x1 == null || x2 == null) continue;
+
+    // Warning line
+    const yWarn = yPixel(tw.warning);
+    lines.push(
+      <g key={`${tw.label}-warn`}>
+        <line
+          x1={x1} y1={yWarn} x2={x2} y2={yWarn}
+          stroke="#ED6C02"
+          strokeDasharray="6 4"
+          strokeWidth={1.5}
+        />
+        <text
+          x={x2 - 4} y={yWarn - 4}
+          textAnchor="end"
+          fontSize={9} fontWeight={600} fill="#ED6C02"
+        >
+          {tw.label} {tw.warning} dB
+        </text>
+      </g>,
+    );
+
+    // Critical line
+    const yCrit = yPixel(tw.critical);
+    lines.push(
+      <g key={`${tw.label}-crit`}>
+        <line
+          x1={x1} y1={yCrit} x2={x2} y2={yCrit}
+          stroke="#D32F2F"
+          strokeDasharray="6 4"
+          strokeWidth={1.5}
+        />
+        <text
+          x={x2 - 4} y={yCrit - 4}
+          textAnchor="end"
+          fontSize={9} fontWeight={600} fill="#D32F2F"
+        >
+          {tw.label} {tw.critical} dB
+        </text>
+      </g>,
+    );
+  }
+
+  if (lines.length === 0) return null;
+  return <g className="threshold-lines">{lines}</g>;
+};
+
+// ─── Main Component ─────────────────────────────────────────────────────────
 
 interface NoiseMonitorChartProps {
   data: NoiseMonitoringData;
   combinedChartData: Record<string, string | number>[];
+  activeThresholds?: TimeWindowThreshold[] | null;
 }
 
-const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, combinedChartData }) => {
+const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, combinedChartData, activeThresholds }) => {
   const [selectedProperty, setSelectedProperty] = useState<string>('all');
 
-  // Filter chart data based on selection
+  const maxCritical = activeThresholds && activeThresholds.length > 0
+    ? Math.max(...activeThresholds.map(tw => tw.critical))
+    : NOISE_THRESHOLDS.critical;
+
   const chartData = combinedChartData;
 
-  // Show only every nth point for readability (last 12 hours = ~24 points)
   const displayData = chartData.length > 48
     ? chartData.filter((_, i) => i % 2 === 0).slice(-24)
     : chartData.slice(-24);
@@ -127,7 +282,6 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
     ? propertyNames
     : [selectedProperty];
 
-  // Latest alerts (max 3)
   const recentAlerts = data.allAlerts.slice(0, 3);
 
   return (
@@ -262,26 +416,35 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
               <XAxis dataKey="time" tick={AXIS_TICK} interval="preserveStartEnd" />
               <YAxis
                 tick={AXIS_TICK}
-                domain={[20, 100]}
-                ticks={[20, 40, 50, 60, 70, 85, 100]}
+                domain={[20, Math.max(100, maxCritical + 10)]}
+                ticks={[20, 40, 60, 80, Math.max(100, maxCritical + 10)]}
               />
               <RechartsTooltip content={<NoiseTooltip />} />
 
-              {/* Threshold reference lines */}
-              <ReferenceLine
-                y={NOISE_THRESHOLDS.warning}
-                stroke="#ED6C02"
-                strokeDasharray="6 4"
-                strokeWidth={1.5}
-                label={{ value: `${NOISE_THRESHOLDS.warning} dB`, position: 'insideRight', style: { fontSize: 10, fill: '#ED6C02', fontWeight: 600 } }}
-              />
-              <ReferenceLine
-                y={NOISE_THRESHOLDS.critical}
-                stroke="#D32F2F"
-                strokeDasharray="6 4"
-                strokeWidth={1.5}
-                label={{ value: `${NOISE_THRESHOLDS.critical} dB`, position: 'insideRight', style: { fontSize: 10, fill: '#D32F2F', fontWeight: 600 } }}
-              />
+              {/* Seuils par créneau — rendu direct via hooks publics Recharts v3 */}
+              {activeThresholds && activeThresholds.length > 0 ? (
+                <ThresholdLinesRenderer
+                  thresholds={activeThresholds}
+                  displayData={displayData}
+                />
+              ) : (
+                <>
+                  <ReferenceLine
+                    y={NOISE_THRESHOLDS.warning}
+                    stroke="#ED6C02"
+                    strokeDasharray="6 4"
+                    strokeWidth={1.5}
+                    label={{ value: `${NOISE_THRESHOLDS.warning} dB`, position: 'insideRight', style: { fontSize: 10, fill: '#ED6C02', fontWeight: 600 } }}
+                  />
+                  <ReferenceLine
+                    y={NOISE_THRESHOLDS.critical}
+                    stroke="#D32F2F"
+                    strokeDasharray="6 4"
+                    strokeWidth={1.5}
+                    label={{ value: `${NOISE_THRESHOLDS.critical} dB`, position: 'insideRight', style: { fontSize: 10, fill: '#D32F2F', fontWeight: 600 } }}
+                  />
+                </>
+              )}
 
               {displayProperties.map((name) => {
                 const colorIdx = propertyNames.indexOf(name);
