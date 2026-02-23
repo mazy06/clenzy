@@ -12,10 +12,23 @@ import {
   DialogActions,
   Fab,
   TablePagination,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  IconButton,
+  Tooltip,
+  useTheme,
 } from '@mui/material';
 import {
   Add,
   Home,
+  Visibility,
+  Edit,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -27,8 +40,16 @@ import ExportButton from '../../components/ExportButton';
 import type { ExportColumn } from '../../utils/exportUtils';
 import PropertyCard from './PropertyCard';
 import type { PropertyDetails } from './PropertyCard';
+import { estimateCleaningPrice, estimateCleaningDuration, formatDuration, getAmenityColor } from './PropertyCard';
+import ThemedTooltip from '../../components/ThemedTooltip';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
+import {
+  getPropertyStatusColor,
+  getPropertyStatusLabel,
+  getPropertyTypeLabel,
+  getCleaningFrequencyLabel,
+} from '../../utils/statusUtils';
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
@@ -73,6 +94,15 @@ const EMPTY_STATE_ICON_SX = {
 } as const;
 
 const ITEMS_PER_PAGE = 6;
+const LIST_ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
+const LIST_DEFAULT_ROWS = 10;
+
+const LIST_PAPER_SX = {
+  border: '1px solid',
+  borderColor: 'divider',
+  boxShadow: 'none',
+  borderRadius: 1.5,
+} as const;
 
 export default function PropertiesList() {
   // ─── React Query ──────────────────────────────────────────────────
@@ -86,10 +116,13 @@ export default function PropertiesList() {
   const [selectedProperty, setSelectedProperty] = useState<PropertyListItem | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [page, setPage] = useState(0);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [rowsPerPage, setRowsPerPage] = useState(LIST_DEFAULT_ROWS);
 
   const navigate = useNavigate();
   const { isAdmin, isManager, isHost } = useAuth();
   const { t } = useTranslation();
+  const theme = useTheme();
 
   // ─── Filtering ────────────────────────────────────────────────────
 
@@ -107,14 +140,16 @@ export default function PropertiesList() {
     });
   }, [properties, searchTerm, selectedType, selectedStatus, selectedHost]);
 
+  const effectivePageSize = viewMode === 'grid' ? ITEMS_PER_PAGE : rowsPerPage;
+
   const paginatedProperties = useMemo(
-    () => filteredProperties.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE),
-    [filteredProperties, page]
+    () => filteredProperties.slice(page * effectivePageSize, (page + 1) * effectivePageSize),
+    [filteredProperties, page, effectivePageSize]
   );
 
   useEffect(() => {
     setPage(0);
-  }, [searchTerm, selectedType, selectedStatus, selectedHost]);
+  }, [searchTerm, selectedType, selectedStatus, selectedHost, viewMode]);
 
   // ─── Delete handler ───────────────────────────────────────────────
 
@@ -246,6 +281,10 @@ export default function PropertiesList() {
           singular: "",
           plural: "s"
         }}
+        viewToggle={{
+          mode: viewMode,
+          onChange: setViewMode,
+        }}
       />
 
       {/* Liste des propriétés */}
@@ -293,7 +332,7 @@ export default function PropertiesList() {
             )}
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <>
           <Grid container spacing={1.5}>
             {paginatedProperties.map((property) => (
@@ -323,6 +362,194 @@ export default function PropertiesList() {
             />
           )}
         </>
+      ) : (
+        /* ─── Vue liste (table) ─── */
+        <Paper sx={LIST_PAPER_SX}>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow
+                  sx={{
+                    '& th': {
+                      fontWeight: 700,
+                      fontSize: '0.78rem',
+                      color: theme.palette.text.secondary,
+                      borderBottom: `2px solid ${theme.palette.divider}`,
+                      whiteSpace: 'nowrap',
+                    },
+                  }}
+                >
+                  <TableCell>Nom</TableCell>
+                  <TableCell>Type</TableCell>
+                  <TableCell>Caractéristiques</TableCell>
+                  <TableCell>Commodités</TableCell>
+                  <TableCell align="right">Prix/nuit</TableCell>
+                  <TableCell align="right">Ménage estimé</TableCell>
+                  <TableCell align="center">Ménage auto</TableCell>
+                  <TableCell align="center">Statut</TableCell>
+                  <TableCell align="center">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paginatedProperties.map((property) => {
+                  const details = toPropertyDetails(property);
+                  const price = estimateCleaningPrice(details);
+                  const duration = estimateCleaningDuration(details);
+                  return (
+                    <TableRow
+                      key={property.id}
+                      hover
+                      sx={{
+                        cursor: 'pointer',
+                        '&:last-child td': { borderBottom: 0 },
+                      }}
+                      onClick={() => navigate(`/properties/${property.id}`)}
+                    >
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.82rem' }}>
+                          {property.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
+                          {property.address}, {property.postalCode} {property.city}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getPropertyTypeLabel(property.type, t)}
+                          size="small"
+                          variant="outlined"
+                          sx={{ height: 22, fontSize: '0.68rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                          {property.bedrooms} ch. · {property.bathrooms} sdb · {property.squareMeters ?? 0} m² · {property.guests} voy.
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {property.amenities && property.amenities.length > 0 ? (
+                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', alignItems: 'center' }}>
+                            {property.amenities.slice(0, 3).map((amenity, i) => (
+                              <Chip
+                                key={i}
+                                label={t(`properties.amenities.items.${amenity}`)}
+                                size="small"
+                                color={getAmenityColor(amenity)}
+                                variant="outlined"
+                                sx={{ height: 22, fontSize: '0.62rem', borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                              />
+                            ))}
+                            {property.amenities.length > 3 && (
+                              <ThemedTooltip
+                                title={
+                                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                    {property.amenities.map((a, i) => (
+                                      <Chip
+                                        key={i}
+                                        label={t(`properties.amenities.items.${a}`)}
+                                        color={getAmenityColor(a)}
+                                        variant="outlined"
+                                        size="small"
+                                        sx={{ fontSize: '0.6rem', height: 20, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                                      />
+                                    ))}
+                                  </Box>
+                                }
+                                arrow
+                                placement="top"
+                              >
+                                <Chip
+                                  label={`+${property.amenities.length - 3}`}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ height: 22, fontSize: '0.62rem', borderWidth: 1.5, borderColor: 'grey.300', color: 'text.secondary', '& .MuiChip-label': { px: 0.75 }, cursor: 'default' }}
+                                />
+                              </ThemedTooltip>
+                            )}
+                          </Box>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">—</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.82rem' }}>
+                          {property.nightlyPrice > 0 ? `${property.nightlyPrice}€` : '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        {price != null ? (
+                          <Box>
+                            <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.82rem' }}>
+                              {price}€
+                            </Typography>
+                            {duration != null && (
+                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                                ~{formatDuration(duration)}
+                              </Typography>
+                            )}
+                          </Box>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">—</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          label={getCleaningFrequencyLabel(property.cleaningFrequency || 'ON_DEMAND', t)}
+                          size="small"
+                          color={property.cleaningFrequency === 'AFTER_EACH_STAY' ? 'success' : 'default'}
+                          variant="outlined"
+                          sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          label={getPropertyStatusLabel(property.status, t)}
+                          color={getPropertyStatusColor(property.status)}
+                          size="small"
+                          variant="outlined"
+                          sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                        />
+                      </TableCell>
+                      <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
+                        <Tooltip title="Détails">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}`); }}
+                          >
+                            <Visibility sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Modifier">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}/edit`); }}
+                          >
+                            <Edit sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            component="div"
+            count={filteredProperties.length}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+            rowsPerPageOptions={LIST_ROWS_PER_PAGE_OPTIONS}
+            labelRowsPerPage="Lignes par page"
+            labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
+            sx={PAGINATION_SX}
+          />
+        </Paper>
       )}
 
       {/* Dialog de confirmation de suppression */}

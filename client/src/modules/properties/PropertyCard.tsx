@@ -276,7 +276,7 @@ const AMENITY_CATEGORY_MAP: Record<string, AmenityChipColor> = {
   SAFE: 'secondary', BABY_BED: 'secondary', HIGH_CHAIR: 'secondary',
 };
 
-function getAmenityColor(amenity: string): AmenityChipColor {
+export function getAmenityColor(amenity: string): AmenityChipColor {
   return AMENITY_CATEGORY_MAP[amenity] || 'default';
 }
 
@@ -288,7 +288,7 @@ const SURFACE_TIERS: { maxSurface: number | null; base: number }[] = [
   { maxSurface: 150, base: 90 }, { maxSurface: null, base: 110 },
 ];
 
-function estimateCleaningPrice(p: PropertyDetails): number | null {
+export function estimateCleaningPrice(p: PropertyDetails): number | null {
   const sqm = p.surfaceArea ?? 0;
   const hasBase = p.cleaningBasePrice != null && p.cleaningBasePrice > 0;
   if (sqm <= 0 && !hasBase) return null;
@@ -310,7 +310,7 @@ function estimateCleaningPrice(p: PropertyDetails): number | null {
 
 // ─── Duration estimation (lightweight version for cards) ─────────────────────
 
-function estimateCleaningDuration(p: PropertyDetails): number | null {
+export function estimateCleaningDuration(p: PropertyDetails): number | null {
   const bedrooms = p.bedrooms ?? 1;
   const bathrooms = p.bathrooms ?? 1;
   const sqm = p.surfaceArea ?? 0;
@@ -341,7 +341,7 @@ function estimateCleaningDuration(p: PropertyDetails): number | null {
   return mins;
 }
 
-function formatDuration(mins: number): string {
+export function formatDuration(mins: number): string {
   const hours = Math.floor(mins / 60);
   const remainder = mins % 60;
   if (hours === 0) return `${mins}min`;
