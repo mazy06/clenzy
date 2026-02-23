@@ -11,6 +11,18 @@ import {
   ListItemIcon,
   ListItemText,
   TablePagination,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  IconButton,
+  Tooltip,
+  LinearProgress,
+  useTheme,
 } from '@mui/material';
 import {
   Add,
@@ -21,6 +33,7 @@ import {
   Cancel,
   Description,
   Assignment,
+  MoreVert,
 } from '@mui/icons-material';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
@@ -30,6 +43,12 @@ import type { ExportColumn } from '../../utils/exportUtils';
 import { createSpacing } from '../../theme/spacing';
 import { useServiceRequestsList } from './useServiceRequestsList';
 import { statusColors, priorityColors, typeIcons } from './serviceRequestsUtils';
+import {
+  getServiceRequestStatusColor,
+  getServiceRequestStatusLabel,
+  getServiceRequestPriorityColor,
+  getServiceRequestPriorityLabel,
+} from '../../utils/statusUtils';
 import {
   DeleteConfirmDialog,
   StatusChangeDialog,
@@ -48,6 +67,26 @@ const paginationSx = {
   mt: 2,
   borderRadius: 1,
 } as const;
+
+const LIST_ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
+const LIST_DEFAULT_ROWS = 10;
+
+const LIST_PAPER_SX = {
+  border: '1px solid',
+  borderColor: 'divider',
+  boxShadow: 'none',
+  borderRadius: 1.5,
+} as const;
+
+function formatDateShort(dateStr: string): string {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function formatPrice(price: number | undefined): string {
+  if (price === undefined || price === null) return '—';
+  return `${price}€`;
+}
 
 export default function ServiceRequestsList() {
   const {
@@ -142,17 +181,22 @@ export default function ServiceRequestsList() {
   } = useServiceRequestsList();
 
   const [page, setPage] = useState(0);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [rowsPerPage, setRowsPerPage] = useState(LIST_DEFAULT_ROWS);
+  const theme = useTheme();
   const ITEMS_PER_PAGE = 6;
 
+  const effectivePageSize = viewMode === 'grid' ? ITEMS_PER_PAGE : rowsPerPage;
+
   const paginatedServiceRequests = useMemo(
-    () => filteredServiceRequests.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE),
-    [filteredServiceRequests, page]
+    () => filteredServiceRequests.slice(page * effectivePageSize, (page + 1) * effectivePageSize),
+    [filteredServiceRequests, page, effectivePageSize]
   );
 
   // Reset page quand les filtres changent
   useEffect(() => {
     setPage(0);
-  }, [searchTerm, selectedType, selectedStatus, selectedPriority]);
+  }, [searchTerm, selectedType, selectedStatus, selectedPriority, viewMode]);
 
   const exportColumns: ExportColumn[] = useMemo(() => [
     { key: 'id', label: 'ID' },
@@ -226,72 +270,212 @@ export default function ServiceRequestsList() {
           singular: "",
           plural: "s"
         }}
+        viewToggle={{
+          mode: viewMode,
+          onChange: setViewMode,
+        }}
       />
 
       {/* Liste des demandes de service */}
-      <Grid container spacing={2}>
-        {filteredServiceRequests.length === 0 ? (
-          <Grid item xs={12}>
-            <Card sx={{ textAlign: 'center', py: 2.5, px: 2, ...createSpacing.card() }}>
-              <CardContent>
-                <Box sx={{ mb: 1.5 }}>
-                  <Description sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.6 }} />
-                </Box>
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  {t('serviceRequests.noRequestFound')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                  {isAdmin() || isManager()
-                    ? t('serviceRequests.noRequestCreated')
-                    : t('serviceRequests.noRequestAssigned')}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 3, display: 'block' }}>
-                  {t('serviceRequests.requestsDescription')}
-                </Typography>
-                {(false || isAdmin() || isManager() || isHost()) && (
-                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                    <Button
-                      variant="contained"
-                      startIcon={<Add />}
-                      onClick={() => navigate('/service-requests/new')}
-                      size="small"
-                      sx={{ borderRadius: 1.5 }}
-                    >
-                      {t('serviceRequests.createFirst')}
-                    </Button>
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
+      {filteredServiceRequests.length === 0 ? (
+        <Card sx={{ textAlign: 'center', py: 2.5, px: 2, ...createSpacing.card() }}>
+          <CardContent>
+            <Box sx={{ mb: 1.5 }}>
+              <Description sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.6 }} />
+            </Box>
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              {t('serviceRequests.noRequestFound')}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              {isAdmin() || isManager()
+                ? t('serviceRequests.noRequestCreated')
+                : t('serviceRequests.noRequestAssigned')}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 3, display: 'block' }}>
+              {t('serviceRequests.requestsDescription')}
+            </Typography>
+            {(isAdmin() || isManager() || isHost()) && (
+              <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={() => navigate('/service-requests/new')}
+                  size="small"
+                  sx={{ borderRadius: 1.5 }}
+                >
+                  {t('serviceRequests.createFirst')}
+                </Button>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      ) : viewMode === 'grid' ? (
+        <>
+          <Grid container spacing={2}>
+            {paginatedServiceRequests.map((request) => (
+              <Grid item xs={12} md={6} lg={4} key={request.id}>
+                <ServiceRequestCard
+                  request={request}
+                  onMenuOpen={handleMenuOpen}
+                  typeIcons={typeIcons}
+                  statuses={statuses}
+                  priorities={priorities}
+                  statusColors={statusColors}
+                  priorityColors={priorityColors}
+                />
+              </Grid>
+            ))}
           </Grid>
-        ) : (
-          paginatedServiceRequests.map((request) => (
-            <Grid item xs={12} md={6} lg={4} key={request.id}>
-              <ServiceRequestCard
-                request={request}
-                onMenuOpen={handleMenuOpen}
-                typeIcons={typeIcons}
-                statuses={statuses}
-                priorities={priorities}
-                statusColors={statusColors}
-                priorityColors={priorityColors}
-              />
-            </Grid>
-          ))
-        )}
-      </Grid>
-
-      {filteredServiceRequests.length > ITEMS_PER_PAGE && (
-        <TablePagination
-          component="div"
-          count={filteredServiceRequests.length}
-          page={page}
-          onPageChange={(_, p) => setPage(p)}
-          rowsPerPage={ITEMS_PER_PAGE}
-          rowsPerPageOptions={[ITEMS_PER_PAGE]}
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-          sx={paginationSx}
-        />
+          {filteredServiceRequests.length > ITEMS_PER_PAGE && (
+            <TablePagination
+              component="div"
+              count={filteredServiceRequests.length}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={ITEMS_PER_PAGE}
+              rowsPerPageOptions={[ITEMS_PER_PAGE]}
+              labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
+              sx={paginationSx}
+            />
+          )}
+        </>
+      ) : (
+        /* ─── Vue liste (table) ─── */
+        <Paper sx={LIST_PAPER_SX}>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow
+                  sx={{
+                    '& th': {
+                      fontWeight: 700,
+                      fontSize: '0.78rem',
+                      color: theme.palette.text.secondary,
+                      borderBottom: `2px solid ${theme.palette.divider}`,
+                      whiteSpace: 'nowrap',
+                    },
+                  }}
+                >
+                  <TableCell>Titre</TableCell>
+                  <TableCell>Propriété</TableCell>
+                  <TableCell>Demandeur</TableCell>
+                  <TableCell>Assigné à</TableCell>
+                  <TableCell align="center">Statut</TableCell>
+                  <TableCell align="center">Priorité</TableCell>
+                  <TableCell align="right">Coût</TableCell>
+                  <TableCell>Échéance</TableCell>
+                  <TableCell align="center">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paginatedServiceRequests.map((request) => (
+                  <TableRow
+                    key={request.id}
+                    hover
+                    sx={{
+                      cursor: 'pointer',
+                      '&:last-child td': { borderBottom: 0 },
+                    }}
+                    onClick={() => navigate(`/service-requests/${request.id}`)}
+                  >
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.82rem' }}>
+                        {request.title}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                        {request.type}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                        {request.propertyName}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                        {request.propertyAddress}, {request.propertyCity}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                        {request.requestorName}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                        {request.assignedToName || '—'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={getServiceRequestStatusLabel(request.status, t)}
+                        color={getServiceRequestStatusColor(request.status)}
+                        size="small"
+                        variant="outlined"
+                        sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={getServiceRequestPriorityLabel(request.priority, t)}
+                        color={getServiceRequestPriorityColor(request.priority)}
+                        size="small"
+                        variant="outlined"
+                        sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.82rem' }}>
+                        {formatPrice(request.estimatedCost)}
+                      </Typography>
+                      {request.estimatedDuration > 0 && (
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                          ~{request.estimatedDuration}h
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
+                        {formatDateShort(request.dueDate)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
+                      <Tooltip title="Détails">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/service-requests/${request.id}`); }}
+                        >
+                          <Visibility sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Actions">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, request); }}
+                        >
+                          <MoreVert sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            component="div"
+            count={filteredServiceRequests.length}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+            rowsPerPageOptions={LIST_ROWS_PER_PAGE_OPTIONS}
+            labelRowsPerPage="Lignes par page"
+            labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
+            sx={paginationSx}
+          />
+        </Paper>
       )}
 
       {/* Menu contextuel */}

@@ -1,3 +1,7 @@
+## Commit & PR Rules
+
+- Ne JAMAIS ajouter la ligne "Generated with Claude Code" (ni emoji robot) dans les messages de commit ou les descriptions de PR.
+
 <!-- rtk-instructions v2 -->
 # RTK (Rust Token Killer) - Token-Optimized Commands
 
