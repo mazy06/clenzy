@@ -50,8 +50,12 @@ public class SecurityAuditAccessDeniedHandler implements AccessDeniedHandler {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
-        securityAuditService.logPermissionDenied(
-                actorId, actorEmail, "ENDPOINT", path, method + " " + path);
+        // Exclure les endpoints actuator de l'audit — les scrapes internes Docker
+        // ne sont pas des violations d'acces et inondent la table security_audit_log.
+        if (!path.startsWith("/actuator")) {
+            securityAuditService.logPermissionDenied(
+                    actorId, actorEmail, "ENDPOINT", path, method + " " + path);
+        }
 
         log.warn("Acces refuse: {} {} par {} ({})", method, path, actorEmail, ex.getMessage());
 

@@ -35,8 +35,12 @@ public class SecurityAuditAuthEntryPoint implements AuthenticationEntryPoint {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
-        securityAuditService.logLoginFailure(null,
-                "Unauthenticated access: " + method + " " + path);
+        // Exclure les endpoints actuator de l'audit — les scrapes Prometheus/healthchecks
+        // ne sont pas des tentatives de connexion et inondent la table security_audit_log.
+        if (!path.startsWith("/actuator")) {
+            securityAuditService.logLoginFailure(null,
+                    "Unauthenticated access: " + method + " " + path);
+        }
 
         log.warn("Acces non authentifie: {} {} ({})", method, path, ex.getMessage());
 
