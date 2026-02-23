@@ -16,6 +16,12 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+/**
+ * Tests unitaires du PricingConfigController.
+ * L'autorisation (SUPER_ADMIN / SUPER_MANAGER) est gérée par @PreAuthorize
+ * au niveau classe et testée via les tests d'intégration Spring Security.
+ * Ici on vérifie uniquement la délégation vers le service.
+ */
 @ExtendWith(MockitoExtension.class)
 class PricingConfigControllerTest {
 
@@ -42,27 +48,15 @@ class PricingConfigControllerTest {
     @DisplayName("getCurrentConfig")
     class GetConfig {
         @Test
-        void whenAdmin_thenReturnsOk() {
+        void whenCalled_thenDelegatesToService() {
             PricingConfigDto dto = mock(PricingConfigDto.class);
             when(pricingConfigService.getCurrentConfig()).thenReturn(dto);
 
-            ResponseEntity<PricingConfigDto> response = controller.getCurrentConfig(createJwt("SUPER_ADMIN"));
+            ResponseEntity<PricingConfigDto> response = controller.getCurrentConfig();
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-        }
-
-        @Test
-        void whenNullJwt_thenUnauthorized() {
-            ResponseEntity<PricingConfigDto> response = controller.getCurrentConfig(null);
-
-            assertThat(response.getStatusCode().value()).isEqualTo(401);
-        }
-
-        @Test
-        void whenNoAdminRole_thenForbidden() {
-            ResponseEntity<PricingConfigDto> response = controller.getCurrentConfig(createJwt("HOST"));
-
-            assertThat(response.getStatusCode().value()).isEqualTo(403);
+            assertThat(response.getBody()).isEqualTo(dto);
+            verify(pricingConfigService).getCurrentConfig();
         }
     }
 
@@ -70,7 +64,7 @@ class PricingConfigControllerTest {
     @DisplayName("updateConfig")
     class UpdateConfig {
         @Test
-        void whenAdmin_thenReturnsOk() {
+        void whenCalled_thenDelegatesToService() {
             PricingConfigDto dto = mock(PricingConfigDto.class);
             PricingConfigDto updated = mock(PricingConfigDto.class);
             when(pricingConfigService.updateConfig(dto)).thenReturn(updated);
@@ -78,18 +72,12 @@ class PricingConfigControllerTest {
             ResponseEntity<PricingConfigDto> response = controller.updateConfig(dto, createJwt("SUPER_ADMIN"));
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
+            assertThat(response.getBody()).isEqualTo(updated);
+            verify(pricingConfigService).updateConfig(dto);
         }
 
         @Test
-        void whenNullJwt_thenUnauthorized() {
-            PricingConfigDto dto = mock(PricingConfigDto.class);
-            ResponseEntity<PricingConfigDto> response = controller.updateConfig(dto, null);
-
-            assertThat(response.getStatusCode().value()).isEqualTo(401);
-        }
-
-        @Test
-        void whenManager_thenReturnsOk() {
+        void whenManager_thenDelegatesToService() {
             PricingConfigDto dto = mock(PricingConfigDto.class);
             PricingConfigDto updated = mock(PricingConfigDto.class);
             when(pricingConfigService.updateConfig(dto)).thenReturn(updated);
@@ -97,14 +85,7 @@ class PricingConfigControllerTest {
             ResponseEntity<PricingConfigDto> response = controller.updateConfig(dto, createJwt("SUPER_MANAGER"));
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
-        }
-
-        @Test
-        void whenHost_thenForbidden() {
-            PricingConfigDto dto = mock(PricingConfigDto.class);
-            ResponseEntity<PricingConfigDto> response = controller.updateConfig(dto, createJwt("HOST"));
-
-            assertThat(response.getStatusCode().value()).isEqualTo(403);
+            assertThat(response.getBody()).isEqualTo(updated);
         }
     }
 }
