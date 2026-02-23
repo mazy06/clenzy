@@ -38,6 +38,11 @@ const BAR_ROW_HEIGHT = 36;
 const ROW_PADDING = 4;
 const PROPERTIES_PER_PAGE = 8;
 const GRADUATION_ROW_HEIGHT = 10;
+// Puzzle jigsaw connector — vertical orientation (tab drops DOWN from reservation, notch cut into TOP of intervention)
+const PUZZLE_TAB_DEPTH = 14;  // total depth of tab/notch protrusion (px)
+const PUZZLE_NECK_HW = 3;     // half-width of the narrow neck (px)
+const PUZZLE_KNOB_HW = 10;    // half-width of the round knob at widest point (px)
+const PUZZLE_OVERLAP = 26;    // horizontal overlap between reservation end and intervention start (px)
 
 // ─── Zoom system ─────────────────────────────────────────────────────────────
 
@@ -83,6 +88,48 @@ const SX_PAGINATION = { display: 'flex', alignItems: 'center', justifyContent: '
 const SX_PROPERTY_NAME = { fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'text.primary', lineHeight: 1.3 } as const;
 const SX_PROPERTY_OWNER = { fontSize: '0.5625rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'primary.main', lineHeight: 1.2, letterSpacing: '0.01em' } as const;
 const SX_PROPERTY_CITY = { fontSize: '0.5625rem', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'text.secondary', lineHeight: 1.2, letterSpacing: '0.02em' } as const;
+
+// ─── Puzzle jigsaw clip-path generators ──────────────────────────────────────
+// Vertical orientation: male tab drops DOWN from reservation bottom edge,
+// female notch is cut into intervention TOP edge. Both use identical Bézier
+// coefficients (vertical mirror) so they interlock perfectly.
+//
+// Tab shape: narrow neck (±PUZZLE_NECK_HW) widens into a round knob (±PUZZLE_KNOB_HW)
+// using 4 cubic Bézier curves that form a smooth, organic mushroom/keyhole shape.
+
+/** Male connector (reservation): rounded rectangle + jigsaw tab protruding DOWNWARD from bottom edge.
+ *  Corners are rounded with R=14 arcs (top-left, top-right, bottom-left).
+ *  @param w  visible bar width (px)
+ *  @param h  visible bar height (px) — tab extends below h */
+function buildMaleClipPath(w: number, h: number): string {
+  const d = PUZZLE_TAB_DEPTH;
+  const nk = PUZZLE_NECK_HW;
+  const kb = PUZZLE_KNOB_HW;
+  const cx = w - PUZZLE_OVERLAP / 2;
+  const R = 14; // corner radius
+
+  // Rounded top-left → top edge → rounded top-right → right edge → bottom to tab →
+  // 4 Bézier tab curves → rest of bottom → rounded bottom-left → close
+  return `path('M 0 ${R} A ${R} ${R} 0 0 1 ${R} 0 L ${w - R} 0 A ${R} ${R} 0 0 1 ${w} ${R} L ${w} ${h} L ${cx + nk} ${h} C ${cx + nk} ${h + 4}, ${cx + kb} ${h + 4}, ${cx + kb} ${h + d * 0.5} C ${cx + kb} ${h + d - 3}, ${cx + 5} ${h + d}, ${cx} ${h + d} C ${cx - 5} ${h + d}, ${cx - kb} ${h + d - 3}, ${cx - kb} ${h + d * 0.5} C ${cx - kb} ${h + 4}, ${cx - nk} ${h + 4}, ${cx - nk} ${h} L ${R} ${h} A ${R} ${R} 0 0 1 0 ${h - R} Z')`;
+}
+
+/** Female connector (intervention): rectangle with jigsaw notch CARVED DOWN from top edge.
+ *  The notch is a concave cutout — same mushroom shape as the male tab but
+ *  subtracted from the bar instead of added. The clip-path traces the outline
+ *  of the visible area: along the top edge, the path dips DOWN into the bar
+ *  to form the notch, then comes back up. Uses identical Bézier offsets as male.
+ *  @param w  total element width (px)
+ *  @param h  element height (px) — notch occupies top PUZZLE_TAB_DEPTH pixels */
+function buildFemaleClipPath(w: number, h: number): string {
+  const d = PUZZLE_TAB_DEPTH;
+  const nk = PUZZLE_NECK_HW;
+  const kb = PUZZLE_KNOB_HW;
+  const cx = PUZZLE_OVERLAP / 2;
+
+  // Top-left → along top to left entry of notch → 4 Bézier curves going
+  // DOWN into the bar (carving the notch) → back to top → rest of rectangle
+  return `path('M 0 0 L ${cx - nk} 0 C ${cx - nk} 4, ${cx - kb} 4, ${cx - kb} ${d * 0.5} C ${cx - kb} ${d - 3}, ${cx - 5} ${d}, ${cx} ${d} C ${cx + 5} ${d}, ${cx + kb} ${d - 3}, ${cx + kb} ${d * 0.5} C ${cx + kb} 4, ${cx + nk} 4, ${cx + nk} 0 L ${w} 0 L ${w} ${h} L 0 ${h} Z')`;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -285,8 +332,8 @@ export default function DashboardPlanning({ forfait, zoomLevel, onZoomChange }: 
       if (!scrollContainerRef.current) return;
       const todayIndex = days.findIndex((d) => isSameDay(d, today));
       if (todayIndex >= 0) {
-        // Positionner today au bord gauche (juste après la colonne logement)
-        scrollContainerRef.current.scrollLeft = todayIndex * dayColWidth;
+        // Positionner today au bord gauche avec 1 jour de marge avant
+        scrollContainerRef.current.scrollLeft = Math.max(0, (todayIndex - 1) * dayColWidth);
         hasScrolledToTodayRef.current = true;
       }
     }, 50);
@@ -416,7 +463,7 @@ export default function DashboardPlanning({ forfait, zoomLevel, onZoomChange }: 
   }, [filteredInterventions]);
 
   const totalRowHeight = BAR_ROW_HEIGHT + ROW_PADDING * 2
-    + (showInterventions ? BAR_ROW_HEIGHT + ROW_PADDING : 0);
+    + (showInterventions ? BAR_ROW_HEIGHT + ROW_PADDING + PUZZLE_TAB_DEPTH : 0);
 
   // ─── Stats filtrees par mois visible ────────────────────────────────────
   const visibleReservationCount = useMemo(() => {
@@ -664,6 +711,24 @@ export default function DashboardPlanning({ forfait, zoomLevel, onZoomChange }: 
               {paginatedProperties.map((property, rowIndex) => {
                 const propertyReservations = reservationsByProperty.get(property.id) || [];
                 const propertyInterventions = interventionsByProperty.get(property.id) || [];
+
+                // Build lookup maps for linked interventions
+                const reservationMap = new Map<number, Reservation>();
+                for (const r of propertyReservations) reservationMap.set(r.id, r);
+
+                const linkedReservationIds = new Set<number>();
+                const linkedInterventions: PlanningIntervention[] = [];
+                const standaloneInterventions: PlanningIntervention[] = [];
+
+                for (const intervention of propertyInterventions) {
+                  if (intervention.linkedReservationId && reservationMap.has(intervention.linkedReservationId)) {
+                    linkedInterventions.push(intervention);
+                    linkedReservationIds.add(intervention.linkedReservationId);
+                  } else {
+                    standaloneInterventions.push(intervention);
+                  }
+                }
+
                 const rowBg = rowIndex % 2 === 0
                   ? theme.palette.background.paper
                   : (isDark ? theme.palette.grey[200] : '#f5f5f5');
@@ -742,11 +807,28 @@ export default function DashboardPlanning({ forfait, zoomLevel, onZoomChange }: 
                           barHeight={BAR_ROW_HEIGHT}
                           dayColWidth={dayColWidth}
                           zoomLevel={zoomLevel}
+                          hasLinkedIntervention={linkedReservationIds.has(reservation.id)}
                         />
                       ))}
 
-                      {/* Intervention bars */}
-                      {showInterventions && propertyInterventions.map((intervention) => (
+                      {/* Linked intervention bars (positioned at checkout of their reservation) */}
+                      {showInterventions && linkedInterventions.map((intervention) => (
+                        <MemoizedInterventionBar
+                          key={`int-${intervention.id}`}
+                          intervention={intervention}
+                          days={days}
+                          rangeStart={dateRange.start}
+                          topOffset={ROW_PADDING + BAR_ROW_HEIGHT - 4 + PUZZLE_TAB_DEPTH}
+                          barHeight={BAR_ROW_HEIGHT}
+                          dayColWidth={dayColWidth}
+                          zoomLevel={zoomLevel}
+                          linkedReservation={reservationMap.get(intervention.linkedReservationId!)}
+                          today={today}
+                        />
+                      ))}
+
+                      {/* Standalone intervention bars (current behavior) */}
+                      {showInterventions && standaloneInterventions.map((intervention) => (
                         <MemoizedInterventionBar
                           key={`int-${intervention.id}`}
                           intervention={intervention}
@@ -894,7 +976,7 @@ export default function DashboardPlanning({ forfait, zoomLevel, onZoomChange }: 
 // ─── Source Logos ─────────────────────────────────────────────────────────────
 
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.png';
-import bookingLogoSmall from '../../assets/logo/booking-logo-small.svg';
+import bookingLogoSmall from '../../assets/logo/logo-booking-planning.png';
 import clenzyLogo from '../../assets/logo/clenzy-logo.png';
 import homeAwayLogo from '../../assets/logo/HomeAway-logo.png';
 import expediaLogo from '../../assets/logo/expedia-logo.png';
@@ -917,9 +999,8 @@ function SourceLogo({ source, size = 16 }: { source: ReservationSource; size?: n
     <Box
       sx={{
         width: size, height: size, minWidth: size, borderRadius: '50%',
-        backgroundColor: '#fff', display: 'flex', alignItems: 'center',
+        backgroundColor: 'transparent', display: 'flex', alignItems: 'center',
         justifyContent: 'center', flexShrink: 0,
-        boxShadow: '0 0 0 1px rgba(255,255,255,0.3)',
       }}
     >
       {logo ? (
@@ -950,9 +1031,10 @@ interface ReservationBarProps {
   barHeight: number;
   dayColWidth: number;
   zoomLevel: ZoomLevel;
+  hasLinkedIntervention?: boolean;
 }
 
-function ReservationBar({ reservation, days, rangeStart, today: todayOnly, topOffset, barHeight, dayColWidth, zoomLevel }: ReservationBarProps) {
+function ReservationBar({ reservation, days, rangeStart, today: todayOnly, topOffset, barHeight, dayColWidth, zoomLevel, hasLinkedIntervention }: ReservationBarProps) {
   const checkIn = toDateOnly(reservation.checkIn);
   const checkOut = toDateOnly(reservation.checkOut);
 
@@ -1006,12 +1088,21 @@ function ReservationBar({ reservation, days, rangeStart, today: todayOnly, topOf
       <Box
         sx={{
           position: 'absolute', top: topOffset, left: left,
-          width: Math.max(width - 4, 16), height: barHeight - 4,
-          backgroundColor: color, borderRadius: '14px', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: 0.5, px: 1, overflow: 'hidden',
-          opacity: effectiveStatus === 'cancelled' ? 0.5 : 0.9,
+          width: hasLinkedIntervention ? Math.max(width, 16) : Math.max(width - 4, 16),
+          height: (barHeight - 4) + (hasLinkedIntervention ? PUZZLE_TAB_DEPTH : 0),
+          backgroundColor: color,
+          borderRadius: '14px',
+          clipPath: hasLinkedIntervention ? buildMaleClipPath(Math.max(width, 16), barHeight - 4) : 'none',
+          cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 0.5, px: 1,
+          pb: hasLinkedIntervention ? `${PUZZLE_TAB_DEPTH}px` : 0,
+          overflow: 'visible',
+          opacity: effectiveStatus === 'cancelled' ? 0.5 : effectiveStatus === 'checked_out' ? 0.55 : 0.9,
+          backgroundImage: effectiveStatus === 'checked_out'
+            ? `repeating-linear-gradient(135deg, transparent, transparent 3px, rgba(255,255,255,0.25) 3px, rgba(255,255,255,0.25) 5px)`
+            : 'none',
           transition: 'opacity 0.15s, box-shadow 0.15s',
-          '&:hover': { opacity: 1, boxShadow: `0 2px 8px ${color}60`, zIndex: 1 },
+          '&:hover': { opacity: 1, boxShadow: hasLinkedIntervention ? 'none' : `0 2px 8px ${color}60`, zIndex: 1 },
         }}
       >
         <SourceLogo source={reservation.source} size={barHeight - 12} />
@@ -1020,7 +1111,7 @@ function ReservationBar({ reservation, days, rangeStart, today: todayOnly, topOf
           sx={{
             color: '#fff',
             fontWeight: 600,
-            fontSize: '0.6875rem',
+            fontSize: '0.8125rem',
             letterSpacing: '0.01em',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -1040,6 +1131,7 @@ const MemoizedReservationBar = React.memo(ReservationBar, (prev, next) => {
     && prev.dayColWidth === next.dayColWidth
     && prev.zoomLevel === next.zoomLevel
     && prev.topOffset === next.topOffset
+    && prev.hasLinkedIntervention === next.hasLinkedIntervention
     && prev.days.length === next.days.length
     && prev.rangeStart.getTime() === next.rangeStart.getTime()
     && prev.today.getTime() === next.today.getTime();
@@ -1055,11 +1147,14 @@ interface InterventionBarProps {
   barHeight: number;
   dayColWidth: number;
   zoomLevel: ZoomLevel;
+  linkedReservation?: Reservation;
+  today?: Date;
 }
 
-function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight, dayColWidth, zoomLevel }: InterventionBarProps) {
+function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight, dayColWidth, zoomLevel, linkedReservation, today: todayProp }: InterventionBarProps) {
   const startDate = toDateOnly(intervention.startDate);
   const endDate = toDateOnly(intervention.endDate);
+  const isLinked = !!linkedReservation;
 
   const startOffset = daysBetween(rangeStart, startDate);
   const endOffset = daysBetween(rangeStart, endDate) + 1;
@@ -1069,22 +1164,35 @@ function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight,
 
   if (visibleStart >= days.length || visibleEnd <= 0) return null;
 
-  // Hour-level adjustment — only for start position (anchor at start)
-  const startHourOffset = (startOffset >= 0 && zoomLevel !== 'compact')
-    ? getHourOffsetPx(intervention.startTime, dayColWidth)
-    : 0;
-
-  const left = visibleStart * dayColWidth + startHourOffset;
-
-  // Width adapts to label length — icon (11px) + gap (4px) + text + padding (16px)
-  // ~5.5px per character at 0.5625rem font-size (Inter 600)
-  const ICON_AND_PAD = 11 + 4 + 16;
-  const CHAR_WIDTH = 5.5;
-  const textWidth = intervention.title.length * CHAR_WIDTH;
-  const width = Math.max(ICON_AND_PAD + textWidth, 60);
+  // For linked interventions: position at the checkout point of the reservation
+  let left: number;
+  if (isLinked) {
+    const checkOut = toDateOnly(linkedReservation.checkOut);
+    const checkOutOffset = daysBetween(rangeStart, checkOut);
+    const checkOutHourOffset = (checkOutOffset <= days.length && zoomLevel !== 'compact')
+      ? getHourOffsetPx(linkedReservation.checkOutTime, dayColWidth)
+      : 0;
+    // Overlap intervention with reservation so the jigsaw connectors interlock
+    left = checkOutOffset * dayColWidth + checkOutHourOffset - PUZZLE_OVERLAP;
+  } else {
+    const startHourOffset = (startOffset >= 0 && zoomLevel !== 'compact')
+      ? getHourOffsetPx(intervention.startTime, dayColWidth)
+      : 0;
+    left = visibleStart * dayColWidth + startHourOffset;
+  }
 
   const color = INTERVENTION_TYPE_COLORS[intervention.type];
   const typeLabel = INTERVENTION_TYPE_LABELS[intervention.type];
+
+  // In compact zoom (day view): icon only, no text label
+  const isCompact = zoomLevel === 'compact';
+  // Width adapts to displayed label length — icon (14px) + gap (4px) + text + padding (16px)
+  // ~7px per character at 0.75rem font-size (Inter 600)
+  const ICON_ONLY_WIDTH = 14 + 12; // icon + horizontal padding
+  const ICON_AND_PAD = 14 + 4 + 16;
+  const CHAR_WIDTH = 7;
+  const textWidth = typeLabel.length * CHAR_WIDTH;
+  const width = isCompact ? ICON_ONLY_WIDTH : Math.max(ICON_AND_PAD + textWidth, 60);
   const statusLabel = INTERVENTION_STATUS_LABELS[intervention.status];
 
   const startStr = startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
@@ -1104,42 +1212,48 @@ function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight,
 
   const isCompleted = intervention.status === 'completed';
   const isCancelled = intervention.status === 'cancelled';
+  const effectiveColor = isCancelled ? '#9e9e9e' : color;
 
   return (
     <ThemedTooltip title={<Box sx={{ whiteSpace: 'pre-line', fontSize: '0.6875rem', lineHeight: 1.5, letterSpacing: '0.01em' }}>{tooltipContent}</Box>} arrow placement="bottom">
       <Box
         sx={{
-          position: 'absolute', top: topOffset, left: left,
-          width: width, height: barHeight - 4,
-          backgroundColor: isCancelled ? '#9e9e9e' : color, borderRadius: '14px',
-          cursor: 'pointer', display: 'flex', alignItems: 'center', px: 1, gap: 0.5, overflow: 'hidden',
+          position: 'absolute', top: isLinked ? topOffset - PUZZLE_TAB_DEPTH : topOffset, left: left,
+          width: width + (isLinked ? PUZZLE_OVERLAP : 0), height: barHeight - 4,
+          backgroundColor: effectiveColor,
+          borderRadius: isLinked ? '0 14px 14px 14px' : '14px',
+          clipPath: isLinked ? buildFemaleClipPath(width + PUZZLE_OVERLAP, barHeight - 4) : 'none',
+          cursor: 'pointer', display: 'flex', alignItems: 'center',
+          pl: isLinked ? `${PUZZLE_OVERLAP}px` : 1, pr: 1, gap: 0.5,
           opacity: isCompleted ? 0.55 : isCancelled ? 0.4 : 0.85,
           transition: 'opacity 0.15s, box-shadow 0.15s',
           backgroundImage: isCompleted
             ? `repeating-linear-gradient(135deg, transparent, transparent 3px, rgba(255,255,255,0.25) 3px, rgba(255,255,255,0.25) 5px)`
             : 'none',
-          '&:hover': { opacity: 1, boxShadow: `0 2px 6px ${color}50`, zIndex: 1 },
+          '&:hover': { opacity: 1, boxShadow: isLinked ? 'none' : `0 2px 6px ${color}50`, zIndex: 1 },
         }}
       >
         {intervention.type === 'cleaning'
-          ? <AutoAwesome sx={{ fontSize: 11, color: '#fff', flexShrink: 0 }} />
-          : <Handyman sx={{ fontSize: 11, color: '#fff', flexShrink: 0 }} />
+          ? <AutoAwesome sx={{ fontSize: 14, color: '#fff', flexShrink: 0 }} />
+          : <Handyman sx={{ fontSize: 14, color: '#fff', flexShrink: 0 }} />
         }
-        <Typography
-          variant="caption"
-          sx={{
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: '0.5625rem',
-            letterSpacing: '0.02em',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            textDecoration: isCancelled ? 'line-through' : 'none',
-          }}
-        >
-          {intervention.title}
-        </Typography>
+        {!isCompact && (
+          <Typography
+            variant="caption"
+            sx={{
+              color: '#fff',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              letterSpacing: '0.02em',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              textDecoration: isCancelled ? 'line-through' : 'none',
+            }}
+          >
+            {typeLabel}
+          </Typography>
+        )}
       </Box>
     </ThemedTooltip>
   );
@@ -1151,5 +1265,6 @@ const MemoizedInterventionBar = React.memo(InterventionBar, (prev, next) => {
     && prev.zoomLevel === next.zoomLevel
     && prev.topOffset === next.topOffset
     && prev.days.length === next.days.length
-    && prev.rangeStart.getTime() === next.rangeStart.getTime();
+    && prev.rangeStart.getTime() === next.rangeStart.getTime()
+    && prev.linkedReservation?.id === next.linkedReservation?.id;
 });

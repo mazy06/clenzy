@@ -62,7 +62,7 @@ const BILLING_PERIOD_MONTHS: Record<BillingPeriod, number> = {
   BIENNIAL: 24,
 };
 
-const DEFAULT_PMS_MONTHLY_CENTS = 500; // 5€/mois fallback
+const DEFAULT_PMS_MONTHLY_CENTS = 3000; // 30€/mois fallback
 
 function getPmsDisplayPrice(period: BillingPeriod, baseCents: number): string {
   const monthlyCents = Math.round(baseCents * BILLING_PERIOD_DISCOUNT[period]);

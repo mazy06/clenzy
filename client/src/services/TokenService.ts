@@ -1,7 +1,7 @@
 import Keycloak from 'keycloak-js';
 import keycloak from '../keycloak';
 import apiClient, { type ApiError } from './apiClient';
-import storageService, { STORAGE_KEYS } from './storageService';
+import storageService, { STORAGE_KEYS, saveTokens, setSessionCookie } from './storageService';
 
 // Types pour les événements de token
 export interface TokenEventData {
@@ -223,7 +223,15 @@ class TokenService {
 
       const refreshed = await keycloak.updateToken(70); // Rafraîchir si expiré dans moins de 70 secondes
 
-      if (refreshed) {
+      if (refreshed && keycloak.token) {
+        // Synchroniser localStorage et le cookie partagé avec la landing page
+        saveTokens({
+          accessToken: keycloak.token,
+          refreshToken: keycloak.refreshToken,
+          idToken: keycloak.idToken,
+        });
+        setSessionCookie(keycloak.token);
+
         this.notifyOtherTabs('refresh', { timestamp: Date.now() });
         return { success: true };
       } else {

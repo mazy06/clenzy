@@ -88,4 +88,13 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         @Param("from") LocalDate from,
         @Param("to") LocalDate to,
         @Param("orgId") Long orgId);
+
+    /**
+     * Reservations liees a des interventions (via intervention_id FK).
+     * Utilise par le planning pour rattacher visuellement les interventions menage au checkout.
+     */
+    @Query("SELECT r FROM Reservation r WHERE r.intervention.id IN :interventionIds AND r.organizationId = :orgId")
+    List<Reservation> findByInterventionIdIn(
+        @Param("interventionIds") List<Long> interventionIds,
+        @Param("orgId") Long orgId);
 }

@@ -148,10 +148,10 @@ const App: React.FC = () => {
           if (keycloak.authenticated) {
             setAuthenticated(true);
             setInitialized(true);
-            
+
             // Vérifier la santé du token
             checkTokenHealth();
-            
+
             // Sauvegarder les tokens en localStorage
             if (keycloak.token) {
               setItem(STORAGE_KEYS.ACCESS_TOKEN, keycloak.token);
