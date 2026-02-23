@@ -118,9 +118,9 @@ public class SecurityConfigProd {
                         // OAuth callbacks (appeles par les providers externes sans JWT)
                         .requestMatchers("/api/airbnb/callback").permitAll()
                         .requestMatchers("/api/minut/callback").permitAll()
-                        // Actuator (health, info, prometheus et metrics sans auth — accès réseau Docker interne uniquement)
-                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                        .requestMatchers("/actuator/prometheus", "/actuator/metrics").hasRole("SUPER_ADMIN")
+                        // Actuator : health, info, prometheus et metrics sans auth (accès réseau Docker interne uniquement,
+                        // non exposés par nginx). Les autres endpoints actuator restent protégés.
+                        .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus", "/actuator/metrics").permitAll()
                         .requestMatchers("/actuator/**").hasRole("SUPER_ADMIN")
                         // Endpoints authentifies
                         .requestMatchers("/api/me").authenticated()
