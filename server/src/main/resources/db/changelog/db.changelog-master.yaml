@@ -486,3 +486,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0054__create_noise_alert_tables.sql
         relativeToChangelogFile: true
+
+  # --- 0055 : Fix audit_log_source_check constraint (ex V59) ---
+  - changeSet:
+      id: "0055-fix-audit-log-source-check"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0055__fix_audit_log_source_check.sql
+        relativeToChangelogFile: true
