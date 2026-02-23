@@ -9,9 +9,10 @@ import {
   Select,
   MenuItem,
   Typography,
+  IconButton,
 } from '@mui/material';
 import { SxProps, Theme } from '@mui/material/styles';
-import { Search } from '@mui/icons-material';
+import { Search, GridView, ViewList } from '@mui/icons-material';
 
 export interface FilterOption {
   value: string;
@@ -24,6 +25,11 @@ interface FilterConfig {
   options: FilterOption[];
   onChange: (value: string) => void;
   label?: string;
+}
+
+export interface ViewToggleConfig {
+  mode: 'grid' | 'list';
+  onChange: (mode: 'grid' | 'list') => void;
 }
 
 export interface FilterSearchBarProps {
@@ -45,6 +51,7 @@ export interface FilterSearchBarProps {
     singular?: string;
     plural?: string;
   };
+  viewToggle?: ViewToggleConfig;
   sx?: SxProps<Theme>;
 }
 
@@ -109,12 +116,19 @@ const COUNTER_SX = {
   letterSpacing: '0.01em',
 } as const;
 
+const VIEW_TOGGLE_BUTTON_SX = {
+  p: 0.5,
+  borderRadius: 1,
+  '& .MuiSvgIcon-root': { fontSize: 18 },
+} as const;
+
 export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
   searchTerm,
   onSearchChange,
   searchPlaceholder = "Rechercher...",
   filters,
   counter,
+  viewToggle,
   sx = {}
 }) => {
   const getCounterText = () => {
@@ -171,11 +185,37 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
           filter ? renderFilter(key, filter) : null
         )}
 
-        {/* Counter */}
-        <Box sx={{ ml: 'auto', flex: '0 0 auto', minWidth: '80px', textAlign: 'right' }}>
+        {/* Counter + View toggle */}
+        <Box sx={{ ml: 'auto', flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Typography variant="body2" sx={COUNTER_SX}>
             {getCounterText()}
           </Typography>
+          {viewToggle && (
+            <Box sx={{ display: 'flex', gap: 0.25 }}>
+              <IconButton
+                size="small"
+                onClick={() => viewToggle.onChange('grid')}
+                sx={{
+                  ...VIEW_TOGGLE_BUTTON_SX,
+                  color: viewToggle.mode === 'grid' ? 'primary.main' : 'text.disabled',
+                  bgcolor: viewToggle.mode === 'grid' ? 'rgba(107,138,154,0.08)' : 'transparent',
+                }}
+              >
+                <GridView />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={() => viewToggle.onChange('list')}
+                sx={{
+                  ...VIEW_TOGGLE_BUTTON_SX,
+                  color: viewToggle.mode === 'list' ? 'primary.main' : 'text.disabled',
+                  bgcolor: viewToggle.mode === 'list' ? 'rgba(107,138,154,0.08)' : 'transparent',
+                }}
+              >
+                <ViewList />
+              </IconButton>
+            </Box>
+          )}
         </Box>
       </Box>
     </Paper>

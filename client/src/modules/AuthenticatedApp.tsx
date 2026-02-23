@@ -23,7 +23,6 @@ import InterventionDetails from './interventions/InterventionDetails';
 import InterventionEdit from './interventions/InterventionEdit';
 import PaymentSuccess from './interventions/PaymentSuccess';
 import PaymentCancel from './interventions/PaymentCancel';
-import InterventionsPendingValidation from './interventions/InterventionsPendingValidation';
 import InterventionsPendingPayment from './interventions/InterventionsPendingPayment';
 
 // Teams
@@ -197,13 +196,6 @@ const AuthenticatedApp: React.FC = () => {
         } />
         <Route path="/interventions/payment/cancel" element={
           <PaymentCancel />
-        } />
-        <Route path="/interventions/pending-validation" element={
-          <ProtectedRoute requiredPermission="interventions:view">
-            <ErrorBoundary>
-              <InterventionsPendingValidation />
-            </ErrorBoundary>
-          </ProtectedRoute>
         } />
         <Route path="/interventions/pending-payment" element={
           <ProtectedRoute requiredPermission="interventions:view">
