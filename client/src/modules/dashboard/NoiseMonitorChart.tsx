@@ -58,21 +58,6 @@ function getNoiseStatus(level: number): { label: string; color: 'success' | 'war
   return { label: 'Critique', color: 'error', icon: <ErrorIcon sx={{ fontSize: 14 }} /> };
 }
 
-/** Convertit "HH:MM" en minutes depuis minuit. */
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number);
-  return h * 60 + m;
-}
-
-/** Distance circulaire entre deux heures (en minutes), gère le passage minuit. */
-function circularDist(a: number, b: number): number {
-  return Math.min(
-    Math.abs(a - b),
-    Math.abs(a - b + 1440),
-    Math.abs(a - b - 1440),
-  );
-}
-
 // ─── Custom Tooltip ─────────────────────────────────────────────────────────
 
 interface CustomTooltipProps {
@@ -166,90 +151,94 @@ const ThresholdLinesRenderer: React.FC<ThresholdLinesRendererProps> = ({
     return plotArea.y + plotArea.height * (1 - (value - yMin) / (yMax - yMin));
   };
 
+  const hourLabel = (h: number) => `${h.toString().padStart(2, '0')}:00`;
+  const hasLabel = (label: string) => categories.includes(label);
+
   /**
-   * Trouve les labels start/end dans le domaine pour un créneau horaire,
-   * en scannant vers l'avant depuis startIdx pour gérer le passage minuit.
+   * Returns one or two ranges for a time window.
+   * Handles midnight crossing by splitting into [startH..23:00] and [00:00..endH].
    */
-  const findRange = (startTime: string, endTime: string) => {
-    const startMin = timeToMinutes(startTime);
-    const endMin = timeToMinutes(endTime);
+  const findRanges = (startTime: string, endTime: string): Array<{ startLabel: string; endLabel: string }> => {
+    const startH = parseInt(startTime.split(':')[0], 10);
+    const [endHRaw, endM] = endTime.split(':').map(Number);
+    // Round end hour UP when minutes > 0 (e.g. 21:59 → 22, 07:00 → 7)
+    const endH = endM > 0 ? (endHRaw + 1) % 24 : endHRaw;
 
-    // Trouver l'index le plus proche de startTime dans displayData
-    let startIdx = 0;
-    let bestDist = Infinity;
-    for (let i = 0; i < displayData.length; i++) {
-      const t = String(displayData[i].time ?? '');
-      if (!t.includes(':')) continue;
-      const d = circularDist(timeToMinutes(t), startMin);
-      if (d < bestDist) { bestDist = d; startIdx = i; }
+    if (startH < endH) {
+      // No midnight crossing — single range
+      const s = hourLabel(startH);
+      const e = hourLabel(endH);
+      return (hasLabel(s) && hasLabel(e)) ? [{ startLabel: s, endLabel: e }] : [];
     }
 
-    // Scanner vers l'avant depuis startIdx pour trouver endTime
-    let endIdx = startIdx;
-    bestDist = Infinity;
-    for (let i = startIdx; i < displayData.length; i++) {
-      const t = String(displayData[i].time ?? '');
-      if (!t.includes(':')) continue;
-      const d = circularDist(timeToMinutes(t), endMin);
-      if (d < bestDist) { bestDist = d; endIdx = i; }
-    }
-
-    if (startIdx === endIdx) return null;
-
-    const startLabel = String(displayData[startIdx].time);
-    const endLabel = String(displayData[endIdx].time);
-    return { startLabel, endLabel };
+    // Crosses midnight — split into two segments
+    const ranges: Array<{ startLabel: string; endLabel: string }> = [];
+    const s1 = hourLabel(startH);
+    const e1 = hourLabel(23);
+    if (hasLabel(s1) && hasLabel(e1)) ranges.push({ startLabel: s1, endLabel: e1 });
+    const s2 = hourLabel(0);
+    const e2 = hourLabel(endH);
+    if (hasLabel(s2) && hasLabel(e2)) ranges.push({ startLabel: s2, endLabel: e2 });
+    return ranges;
   };
 
   const lines: React.ReactElement[] = [];
 
   for (const tw of thresholds) {
-    const range = findRange(tw.startTime, tw.endTime);
-    if (!range) continue;
+    const ranges = findRanges(tw.startTime, tw.endTime);
 
-    const x1 = xPixel(range.startLabel);
-    const x2 = xPixel(range.endLabel);
-    if (x1 == null || x2 == null) continue;
+    for (let ri = 0; ri < ranges.length; ri++) {
+      const range = ranges[ri];
+      const x1 = xPixel(range.startLabel);
+      const x2 = xPixel(range.endLabel);
+      if (x1 == null || x2 == null) continue;
+      // Show label only on the last segment to avoid clutter
+      const showLabel = ri === ranges.length - 1;
 
-    // Warning line
-    const yWarn = yPixel(tw.warning);
-    lines.push(
-      <g key={`${tw.label}-warn`}>
-        <line
-          x1={x1} y1={yWarn} x2={x2} y2={yWarn}
-          stroke="#ED6C02"
-          strokeDasharray="6 4"
-          strokeWidth={1.5}
-        />
-        <text
-          x={x2 - 4} y={yWarn - 4}
-          textAnchor="end"
-          fontSize={9} fontWeight={600} fill="#ED6C02"
-        >
-          {tw.label} {tw.warning} dB
-        </text>
-      </g>,
-    );
+      // Warning line
+      const yWarn = yPixel(tw.warning);
+      lines.push(
+        <g key={`${tw.label}-warn-${ri}`}>
+          <line
+            x1={x1} y1={yWarn} x2={x2} y2={yWarn}
+            stroke="#ED6C02"
+            strokeDasharray="6 4"
+            strokeWidth={1.5}
+          />
+          {showLabel && (
+            <text
+              x={x2 - 4} y={yWarn - 4}
+              textAnchor="end"
+              fontSize={9} fontWeight={600} fill="#ED6C02"
+            >
+              {tw.label} {tw.warning} dB
+            </text>
+          )}
+        </g>,
+      );
 
-    // Critical line
-    const yCrit = yPixel(tw.critical);
-    lines.push(
-      <g key={`${tw.label}-crit`}>
-        <line
-          x1={x1} y1={yCrit} x2={x2} y2={yCrit}
-          stroke="#D32F2F"
-          strokeDasharray="6 4"
-          strokeWidth={1.5}
-        />
-        <text
-          x={x2 - 4} y={yCrit - 4}
-          textAnchor="end"
-          fontSize={9} fontWeight={600} fill="#D32F2F"
-        >
-          {tw.label} {tw.critical} dB
-        </text>
-      </g>,
-    );
+      // Critical line
+      const yCrit = yPixel(tw.critical);
+      lines.push(
+        <g key={`${tw.label}-crit-${ri}`}>
+          <line
+            x1={x1} y1={yCrit} x2={x2} y2={yCrit}
+            stroke="#D32F2F"
+            strokeDasharray="6 4"
+            strokeWidth={1.5}
+          />
+          {showLabel && (
+            <text
+              x={x2 - 4} y={yCrit - 4}
+              textAnchor="end"
+              fontSize={9} fontWeight={600} fill="#D32F2F"
+            >
+              {tw.label} {tw.critical} dB
+            </text>
+          )}
+        </g>,
+      );
+    }
   }
 
   if (lines.length === 0) return null;
@@ -273,9 +262,25 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
 
   const chartData = combinedChartData;
 
-  const displayData = chartData.length > 48
-    ? chartData.filter((_, i) => i % 2 === 0).slice(-24)
-    : chartData.slice(-24);
+  // Build a fixed 24-hour timeline from 00:00 to 23:00.
+  // Group raw data by hour (last point per hour wins), then sort from midnight.
+  const displayData = (() => {
+    const hourMap = new Map<string, Record<string, string | number>>();
+    for (const point of chartData) {
+      const t = String(point.time);
+      if (!t.includes(':')) continue;
+      const h = parseInt(t.split(':')[0], 10);
+      if (h < 0 || h > 23) continue;
+      const label = `${h.toString().padStart(2, '0')}:00`;
+      hourMap.set(label, { ...point, time: label });
+    }
+    const result: Record<string, string | number>[] = [];
+    for (let h = 0; h < 24; h++) {
+      const label = `${h.toString().padStart(2, '0')}:00`;
+      result.push(hourMap.get(label) ?? { time: label });
+    }
+    return result;
+  })();
 
   const propertyNames = data.properties.map(p => p.propertyName);
   const displayProperties = selectedProperty === 'all'

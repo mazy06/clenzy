@@ -58,8 +58,8 @@ public class PricingConfigService {
     private static final int DEFAULT_BASE_CONFORT = 75;
     private static final int DEFAULT_BASE_PREMIUM = 100;
     private static final int DEFAULT_MIN_PRICE = 50;
-    private static final int DEFAULT_PMS_MONTHLY_CENTS = 500;
-    private static final int DEFAULT_PMS_SYNC_CENTS = 1000;
+    private static final int DEFAULT_PMS_MONTHLY_CENTS = 3000;  // 30€/mois
+    private static final int DEFAULT_PMS_SYNC_CENTS = 1500;    // 15€/mois (synchro auto)
 
     // NOTE: DEFAULT_FORFAIT_CONFIGS, DEFAULT_TRAVAUX_CONFIG, DEFAULT_EXTERIEUR_CONFIG,
     // DEFAULT_BLANCHISSERIE_CONFIG, DEFAULT_COMMISSION_CONFIGS have been removed.

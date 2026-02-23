@@ -8,6 +8,7 @@ import com.clenzy.model.Property;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.InterventionService;
 import com.clenzy.tenant.TenantContext;
@@ -42,6 +43,7 @@ class InterventionControllerTest {
 
     @Mock private InterventionService interventionService;
     @Mock private InterventionRepository interventionRepository;
+    @Mock private ReservationRepository reservationRepository;
     @Mock private UserRepository userRepository;
     @Mock private TenantContext tenantContext;
 
@@ -59,7 +61,7 @@ class InterventionControllerTest {
     @BeforeEach
     void setUp() {
         controller = new InterventionController(interventionService, interventionRepository,
-                userRepository, tenantContext);
+                reservationRepository, userRepository, tenantContext);
     }
 
     @Nested
