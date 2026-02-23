@@ -33,7 +33,7 @@ import ThemedTooltip from './ThemedTooltip';
 import { formatShortDate, formatTimeFromDate, formatDuration } from '../utils/formatUtils';
 // ─── Source logos ─────────────────────────────────────────────────────────────
 import airbnbLogoSmall from '../assets/logo/airbnb-logo-small.png';
-import bookingLogoSmall from '../assets/logo/booking-logo-small.svg';
+import bookingLogoSmall from '../assets/logo/logo-booking-planning.png';
 import homeAwayLogo from '../assets/logo/HomeAway-logo.png';
 import expediaLogo from '../assets/logo/expedia-logo.png';
 import leboncoinLogo from '../assets/logo/Leboncoin-logo.png';

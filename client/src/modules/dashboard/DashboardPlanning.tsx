@@ -332,8 +332,8 @@ export default function DashboardPlanning({ forfait, zoomLevel, onZoomChange }: 
       if (!scrollContainerRef.current) return;
       const todayIndex = days.findIndex((d) => isSameDay(d, today));
       if (todayIndex >= 0) {
-        // Positionner today au bord gauche (juste après la colonne logement)
-        scrollContainerRef.current.scrollLeft = todayIndex * dayColWidth;
+        // Positionner today au bord gauche avec 1 jour de marge avant
+        scrollContainerRef.current.scrollLeft = Math.max(0, (todayIndex - 1) * dayColWidth);
         hasScrolledToTodayRef.current = true;
       }
     }, 50);
@@ -1181,15 +1181,18 @@ function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight,
     left = visibleStart * dayColWidth + startHourOffset;
   }
 
-  // Width adapts to label length — icon (11px) + gap (4px) + text + padding (16px)
-  // ~5.5px per character at 0.5625rem font-size (Inter 600)
-  const ICON_AND_PAD = 11 + 4 + 16;
-  const CHAR_WIDTH = 5.5;
-  const textWidth = intervention.title.length * CHAR_WIDTH;
-  const width = Math.max(ICON_AND_PAD + textWidth, 60);
-
   const color = INTERVENTION_TYPE_COLORS[intervention.type];
   const typeLabel = INTERVENTION_TYPE_LABELS[intervention.type];
+
+  // In compact zoom (day view): icon only, no text label
+  const isCompact = zoomLevel === 'compact';
+  // Width adapts to displayed label length — icon (14px) + gap (4px) + text + padding (16px)
+  // ~7px per character at 0.75rem font-size (Inter 600)
+  const ICON_ONLY_WIDTH = 14 + 12; // icon + horizontal padding
+  const ICON_AND_PAD = 14 + 4 + 16;
+  const CHAR_WIDTH = 7;
+  const textWidth = typeLabel.length * CHAR_WIDTH;
+  const width = isCompact ? ICON_ONLY_WIDTH : Math.max(ICON_AND_PAD + textWidth, 60);
   const statusLabel = INTERVENTION_STATUS_LABELS[intervention.status];
 
   const startStr = startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
@@ -1234,21 +1237,23 @@ function InterventionBar({ intervention, days, rangeStart, topOffset, barHeight,
           ? <AutoAwesome sx={{ fontSize: 14, color: '#fff', flexShrink: 0 }} />
           : <Handyman sx={{ fontSize: 14, color: '#fff', flexShrink: 0 }} />
         }
-        <Typography
-          variant="caption"
-          sx={{
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: '0.75rem',
-            letterSpacing: '0.02em',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            textDecoration: isCancelled ? 'line-through' : 'none',
-          }}
-        >
-          {typeLabel}
-        </Typography>
+        {!isCompact && (
+          <Typography
+            variant="caption"
+            sx={{
+              color: '#fff',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              letterSpacing: '0.02em',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              textDecoration: isCancelled ? 'line-through' : 'none',
+            }}
+          >
+            {typeLabel}
+          </Typography>
+        )}
       </Box>
     </ThemedTooltip>
   );

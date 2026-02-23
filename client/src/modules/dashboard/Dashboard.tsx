@@ -39,7 +39,7 @@ import type { ZoomLevel } from './PlanningToolbar';
 
 // ─── Source logos for connected iCal feeds ──────────────────────────────────
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.png';
-import bookingLogoSmall from '../../assets/logo/booking-logo-small.svg';
+import bookingLogoSmall from '../../assets/logo/logo-booking-planning.png';
 import clenzyLogo from '../../assets/logo/clenzy-logo.png';
 import homeAwayLogo from '../../assets/logo/HomeAway-logo.png';
 import expediaLogo from '../../assets/logo/expedia-logo.png';
