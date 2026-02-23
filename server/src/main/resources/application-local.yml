@@ -26,6 +26,8 @@ spring:
   mail:
     host: localhost
     port: 1025
+  liquibase:
+    enabled: false
 
 # Keycloak Admin Client — pointe vers localhost:8086 (port Docker exposé)
 keycloak:
@@ -34,10 +36,25 @@ keycloak:
     username: admin
     password: admin
 
-# LibreOffice (Gotenberg)
+# Répertoires d'uploads (local au lieu de /app Docker)
 clenzy:
+  uploads:
+    contact-dir: ./uploads/contact
+    templates-dir: ./uploads/templates
+    documents-dir: ./uploads/documents
   libreoffice:
     url: http://localhost:8083
+
+# Jasypt (chiffrement PII en base — clé dev uniquement)
+jasypt:
+  encryptor:
+    password: dev-jasypt-secret-key
+
+# Stripe (clés test)
+stripe:
+  secret-key: rk_test_51QRsKVAcz2KVTG4uEyYsCSujLv1gy2bwoBN89IZnvDndWdJsZsAymRk78Fy9CMKTzWdLbaiJ8N5zQUKQfAlAlce7009E1jXDWh
+  publishable-key: pk_test_51QRsKVAcz2KVTG4uiwjYrKEXZhwKPDvopnPJag9ESkO3a8FehPbt3Y5pxDpX00sR0ATwj2suK8lI4rBE7aXZlqD700PBD31nrL
+  webhook-secret: whsec_8dc68e987c1b7ebc6d3f67ed9d12fa813fabef5e86162a5ce47c4a4984bfae77
 
 server:
   port: 8084

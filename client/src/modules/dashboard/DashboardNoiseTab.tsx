@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -7,12 +7,18 @@ import {
   Chip,
   Divider,
   Button,
+  Tabs,
+  Tab,
+  Alert,
 } from '@mui/material';
 import {
   VolumeUp,
   Handshake,
   Memory,
   CheckCircleOutline,
+  Save,
+  Settings,
+  History,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import { useNoiseDevices, type NoiseView } from '../../hooks/useNoiseDevices';
@@ -25,7 +31,7 @@ import DashboardErrorBoundary from './DashboardErrorBoundary';
 import NoiseProductDetail from './NoiseProductDetail';
 import NoiseDeviceConfigForm from './NoiseDeviceConfigForm';
 import NoiseDeviceList from './NoiseDeviceList';
-import NoiseAlertConfigPanel from './NoiseAlertConfigPanel';
+import NoiseAlertConfigPanel, { type ActiveThresholds, type NoiseAlertConfigHandle } from './NoiseAlertConfigPanel';
 import NoiseAlertHistory from './NoiseAlertHistory';
 
 // ─── Feature list helper ────────────────────────────────────────────────────
@@ -279,6 +285,20 @@ const DashboardNoiseTab: React.FC = () => {
     deviceChartData,
   } = useNoiseDevices();
 
+  // Seuils dynamiques synchronisés avec les sliders de NoiseAlertConfigPanel.
+  const [activeThresholds, setActiveThresholds] = useState<ActiveThresholds | null>(null);
+  const handleThresholdsChange = useCallback((thresholds: ActiveThresholds) => {
+    setActiveThresholds(thresholds);
+  }, []);
+
+  // Sous-onglet actif dans la vue devices (0 = Configuration, 1 = Historique).
+  const [subTab, setSubTab] = useState(0);
+
+  // Ref vers le panneau de config pour déclencher la sauvegarde depuis le header.
+  const configPanelRef = useRef<NoiseAlertConfigHandle>(null);
+  const [saveRefresh, setSaveRefresh] = useState(0);
+  const forceRefresh = useCallback(() => setSaveRefresh(v => v + 1), []);
+
   // Properties query (only active during config-form)
   const propertiesQuery = useQuery({
     queryKey: ['properties-for-noise-config'],
@@ -354,29 +374,85 @@ const DashboardNoiseTab: React.FC = () => {
     case 'devices':
       return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 1 }}>
+          {/* ── Header : capteurs + actions ── */}
           <NoiseDeviceList
             devices={devices}
             onRemoveDevice={(id) => {
               removeDevice(id);
-              // If last device removed, go back to offers
-              if (devices.length <= 1) {
-                setView('offers');
-              }
+              if (devices.length <= 1) setView('offers');
             }}
             onAddDevice={() => setView('offers')}
           />
+
+          {/* ── Graphique monitoring ── */}
           {deviceNoiseData.length > 0 && (
             <Box sx={{ flex: 1, minHeight: 400 }}>
               <DashboardErrorBoundary widgetName="Monitoring sonore">
-                <NoiseMonitorChart data={chartData} combinedChartData={deviceChartData} />
+                <NoiseMonitorChart data={chartData} combinedChartData={deviceChartData} activeThresholds={activeThresholds} />
               </DashboardErrorBoundary>
             </Box>
           )}
-          {/* Alert config + history */}
-          <NoiseAlertConfigPanel
-            propertyIds={devices.map(d => d.propertyId)}
-          />
-          <NoiseAlertHistory />
+
+          {/* ── Sous-onglets : Configuration | Historique ── */}
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
+              <Tabs
+                value={subTab}
+                onChange={(_, v) => setSubTab(v)}
+                sx={{
+                  minHeight: 36,
+                  '& .MuiTab-root': { minHeight: 36, textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, py: 0.5 },
+                }}
+              >
+                <Tab icon={<Settings sx={{ fontSize: 16 }} />} iconPosition="start" label="Configuration" />
+                <Tab icon={<History sx={{ fontSize: 16 }} />} iconPosition="start" label="Historique" />
+              </Tabs>
+
+              {/* Bouton Sauvegarder — visible uniquement sur l'onglet Configuration */}
+              {subTab === 0 && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 0.5 }}>
+                  {configPanelRef.current?.hasError && (
+                    <Alert severity="error" sx={{ py: 0, px: 1, fontSize: '0.6875rem' }}>
+                      Erreur
+                    </Alert>
+                  )}
+                  {configPanelRef.current?.isSaved && (
+                    <Chip
+                      label="Sauvegardé"
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                      sx={{ fontSize: '0.6875rem', height: 22 }}
+                    />
+                  )}
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<Save sx={{ fontSize: 14 }} />}
+                    onClick={() => { configPanelRef.current?.save(); forceRefresh(); }}
+                    disabled={!configPanelRef.current?.canSave || configPanelRef.current?.isSaving}
+                    sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}
+                  >
+                    {configPanelRef.current?.isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+                  </Button>
+                </Box>
+              )}
+            </Box>
+
+            {/* Contenu du sous-onglet */}
+            <Box sx={{ pt: 2 }}>
+              {subTab === 0 && (
+                <NoiseAlertConfigPanel
+                  ref={configPanelRef}
+                  propertyIds={devices.map(d => d.propertyId)}
+                  onThresholdsChange={handleThresholdsChange}
+                />
+              )}
+              {subTab === 1 && (
+                <NoiseAlertHistory />
+              )}
+            </Box>
+          </Box>
         </Box>
       );
 
