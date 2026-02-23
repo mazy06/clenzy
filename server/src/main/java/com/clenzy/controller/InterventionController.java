@@ -4,7 +4,9 @@ import com.clenzy.dto.InterventionDto;
 import com.clenzy.model.Intervention;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
+import com.clenzy.model.Reservation;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.InterventionService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -46,15 +48,18 @@ public class InterventionController {
 
     private final InterventionService interventionService;
     private final InterventionRepository interventionRepository;
+    private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
 
     public InterventionController(InterventionService interventionService,
                                   InterventionRepository interventionRepository,
+                                  ReservationRepository reservationRepository,
                                   UserRepository userRepository,
                                   TenantContext tenantContext) {
         this.interventionService = interventionService;
         this.interventionRepository = interventionRepository;
+        this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
     }
@@ -100,6 +105,22 @@ public class InterventionController {
                     .collect(Collectors.toList());
         }
 
+        // Construire la map interventionId → reservationId pour les interventions liees
+        final Map<Long, Long> interventionToReservation;
+        List<Long> interventionIds = interventions.stream().map(Intervention::getId).collect(Collectors.toList());
+        if (!interventionIds.isEmpty()) {
+            List<Reservation> linkedReservations = reservationRepository.findByInterventionIdIn(
+                    interventionIds, tenantContext.getRequiredOrganizationId());
+            interventionToReservation = linkedReservations.stream()
+                    .filter(r -> r.getIntervention() != null)
+                    .collect(Collectors.toMap(
+                            r -> r.getIntervention().getId(),
+                            Reservation::getId,
+                            (a, b) -> a));
+        } else {
+            interventionToReservation = Map.of();
+        }
+
         // Mapper vers la structure attendue par le frontend (PlanningIntervention)
         List<Map<String, Object>> result = interventions.stream().map(i -> {
             Map<String, Object> map = new LinkedHashMap<>();
@@ -139,6 +160,7 @@ public class InterventionController {
             map.put("notes", i.getNotes());
             map.put("assigneeName", i.getAssignedUser() != null ?
                     (i.getAssignedUser().getFirstName() + " " + i.getAssignedUser().getLastName()).trim() : null);
+            map.put("linkedReservationId", interventionToReservation.getOrDefault(i.getId(), null));
             return map;
         }).collect(Collectors.toList());
 
