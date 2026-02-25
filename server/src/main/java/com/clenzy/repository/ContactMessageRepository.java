@@ -39,16 +39,14 @@ public interface ContactMessageRepository extends JpaRepository<ContactMessage, 
             FROM ContactMessage m
             WHERE m.id = :id
               AND (m.senderKeycloakId = :userId OR m.recipientKeycloakId = :userId)
-              AND m.organizationId = :orgId
             """)
-    Optional<ContactMessage> findByIdForUser(@Param("id") Long id, @Param("userId") String userId, @Param("orgId") Long orgId);
+    Optional<ContactMessage> findByIdForUser(@Param("id") Long id, @Param("userId") String userId);
 
     @Query("""
             SELECT m
             FROM ContactMessage m
             WHERE m.id IN :ids
               AND (m.senderKeycloakId = :userId OR m.recipientKeycloakId = :userId)
-              AND m.organizationId = :orgId
             """)
-    List<ContactMessage> findByIdsForUser(@Param("ids") List<Long> ids, @Param("userId") String userId, @Param("orgId") Long orgId);
+    List<ContactMessage> findByIdsForUser(@Param("ids") List<Long> ids, @Param("userId") String userId);
 }
