@@ -11,7 +11,10 @@ import {
   Alert,
   Snackbar,
   Tabs,
-  Tab
+  Tab,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
@@ -35,6 +38,15 @@ import {
   Description as DescriptionIcon,
   EventNote as EventNoteIcon,
   TrendingUp as TrendingUpIcon,
+  ExpandMore as ExpandMoreIcon,
+  Payment as PaymentIcon,
+  SettingsInputAntenna as ChannelsIcon,
+  Chat as ChatIcon,
+  MonitorHeart as MonitorIcon,
+  Sync as SyncIcon,
+  Speed as SpeedIcon,
+  StorageRounded as DatabaseIcon,
+  Receipt as TarificationIcon,
 } from '@mui/icons-material';
 import PageHeader from './PageHeader';
 import { useAuth } from '../hooks/useAuth';
@@ -102,6 +114,14 @@ const PermissionConfig: React.FC = () => {
       'documents': 'Documents',
       'reservations': 'Réservations',
       'pricing': 'Prix Dynamiques',
+      'tarification': 'Tarification',
+      'payments': 'Paiements',
+      'channels': 'Canaux',
+      'messaging': 'Messagerie',
+      'monitoring': 'Monitoring',
+      'sync': 'Synchronisation',
+      'kpi': 'KPI Readiness',
+      'database': 'Base de Données',
     };
     return moduleMap[module] || module.charAt(0).toUpperCase() + module.slice(1);
   };
@@ -149,6 +169,14 @@ const PermissionConfig: React.FC = () => {
           'documents:view', 'documents:create', 'documents:edit', 'documents:delete', 'documents:compliance',
           'reservations:view', 'reservations:create', 'reservations:edit',
           'pricing:view', 'pricing:manage',
+          'tarification:view', 'tarification:edit',
+          'payments:view', 'payments:manage',
+          'channels:view', 'channels:manage',
+          'messaging:view', 'messaging:send',
+          'monitoring:view',
+          'sync:view', 'sync:manage',
+          'kpi:view',
+          'database:view', 'database:manage',
         ];
         setAllPermissions(defaultPermissions);
         setPermissionsByModule({
@@ -156,15 +184,23 @@ const PermissionConfig: React.FC = () => {
           'Propriétés': ['properties:view', 'properties:create', 'properties:edit', 'properties:delete'],
           'Demandes de Service': ['service-requests:view', 'service-requests:create', 'service-requests:edit', 'service-requests:delete'],
           'Interventions': ['interventions:view', 'interventions:create', 'interventions:edit', 'interventions:delete'],
+          'Réservations': ['reservations:view', 'reservations:create', 'reservations:edit'],
+          'Prix Dynamiques': ['pricing:view', 'pricing:manage'],
           'Équipes': ['teams:view', 'teams:create', 'teams:edit', 'teams:delete'],
           'Portefeuilles': ['portfolios:view', 'portfolios:manage'],
           'Contact': ['contact:view', 'contact:send', 'contact:manage'],
-          'Paramètres': ['settings:view', 'settings:edit'],
-          'Utilisateurs': ['users:manage'],
-          'Rapports': ['reports:view', 'reports:generate', 'reports:download', 'reports:manage'],
           'Documents': ['documents:view', 'documents:create', 'documents:edit', 'documents:delete', 'documents:compliance'],
-          'Réservations': ['reservations:view', 'reservations:create', 'reservations:edit'],
-          'Prix Dynamiques': ['pricing:view', 'pricing:manage'],
+          'Rapports': ['reports:view', 'reports:generate', 'reports:download', 'reports:manage'],
+          'Tarification': ['tarification:view', 'tarification:edit'],
+          'Paiements': ['payments:view', 'payments:manage'],
+          'Canaux': ['channels:view', 'channels:manage'],
+          'Messagerie': ['messaging:view', 'messaging:send'],
+          'Utilisateurs': ['users:manage'],
+          'Paramètres': ['settings:view', 'settings:edit'],
+          'Monitoring': ['monitoring:view'],
+          'Synchronisation': ['sync:view', 'sync:manage'],
+          'KPI Readiness': ['kpi:view'],
+          'Base de Données': ['database:view', 'database:manage'],
         });
       } finally {
         setLoadingPermissions(false);
@@ -190,6 +226,14 @@ const PermissionConfig: React.FC = () => {
       'Documents': <DescriptionIcon sx={{ color: 'text.secondary' }} />,
       'Réservations': <EventNoteIcon sx={{ color: 'text.secondary' }} />,
       'Prix Dynamiques': <TrendingUpIcon sx={{ color: 'text.secondary' }} />,
+      'Tarification': <TarificationIcon sx={{ color: 'text.secondary' }} />,
+      'Paiements': <PaymentIcon sx={{ color: 'text.secondary' }} />,
+      'Canaux': <ChannelsIcon sx={{ color: 'text.secondary' }} />,
+      'Messagerie': <ChatIcon sx={{ color: 'text.secondary' }} />,
+      'Monitoring': <MonitorIcon sx={{ color: 'text.secondary' }} />,
+      'Synchronisation': <SyncIcon sx={{ color: 'text.secondary' }} />,
+      'KPI Readiness': <SpeedIcon sx={{ color: 'text.secondary' }} />,
+      'Base de Données': <DatabaseIcon sx={{ color: 'text.secondary' }} />,
     };
     return iconMap[moduleName] || <InfoIcon sx={{ color: 'text.secondary' }} />;
   };
@@ -494,63 +538,78 @@ const PermissionConfig: React.FC = () => {
                   </Alert>
                 )}
                 
-                <Grid container spacing={3}>
-                  {Object.entries(permissionsByModule).map(([moduleName, permissions]) => (
-                    <Grid item xs={12} lg={6} key={moduleName}>
-                      <Card 
-                        variant="outlined" 
-                        sx={{ 
-                          height: '100%',
-                          bgcolor: 'background.paper',
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  {Object.entries(permissionsByModule).map(([moduleName, permissions]) => {
+                    const activeCount = permissions.filter(p => rolePermissions.permissions.includes(p)).length;
+                    const allActive = activeCount === permissions.length;
+                    const noneActive = activeCount === 0;
+
+                    return (
+                      <Accordion
+                        key={moduleName}
+                        disableGutters
+                        sx={{
                           border: '1px solid',
                           borderColor: 'divider',
-                          '&:hover': {
+                          borderRadius: '8px !important',
+                          '&:before': { display: 'none' },
+                          boxShadow: 'none',
+                          overflow: 'hidden',
+                          '&.Mui-expanded': {
                             borderColor: 'primary.main',
-                            boxShadow: 1
-                          }
+                            boxShadow: 1,
+                          },
                         }}
                       >
-                        <CardContent sx={{ p: 2 }}>
-                          {/* En-tête de la carte */}
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                            <Box sx={{ 
-                              p: 0.5, 
-                              bgcolor: 'grey.100', 
-                              borderRadius: 0.5,
-                              display: 'flex',
+                        <AccordionSummary
+                          expandIcon={<ExpandMoreIcon />}
+                          sx={{
+                            minHeight: 48,
+                            px: 2,
+                            '& .MuiAccordionSummary-content': {
                               alignItems: 'center',
-                              justifyContent: 'center',
-                              color: 'text.secondary'
-                            }}>
-                              {getModuleIcon(moduleName)}
-                            </Box>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary', flex: 1 }}>
-                              {moduleName}
-                            </Typography>
-                            <Chip 
-                              label={`${permissions.filter(p => rolePermissions.permissions.includes(p)).length}/${permissions.length}`}
-                              size="small"
-                              color="primary"
-                              variant="outlined"
-                              sx={{ fontSize: '0.75rem' }}
-                            />
+                              gap: 1.5,
+                              my: 0.75,
+                            },
+                          }}
+                        >
+                          <Box sx={{
+                            p: 0.5,
+                            bgcolor: 'grey.100',
+                            borderRadius: 0.5,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}>
+                            {getModuleIcon(moduleName)}
                           </Box>
-                          
-                          {/* Liste des permissions */}
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, flex: 1 }}>
+                            {moduleName}
+                          </Typography>
+                          <Chip
+                            label={`${activeCount}/${permissions.length}`}
+                            size="small"
+                            color={allActive ? 'success' : noneActive ? 'default' : 'primary'}
+                            variant="outlined"
+                            sx={{ fontSize: '0.72rem', height: 22, mr: 1 }}
+                          />
+                        </AccordionSummary>
+                        <AccordionDetails sx={{ px: 2, pt: 0, pb: 2 }}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                             {permissions.map((permission) => {
                               const isActive = rolePermissions.permissions.includes(permission);
                               return (
-                                <Box 
-                                  key={permission} 
-                                  sx={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
+                                <Box
+                                  key={permission}
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
                                     gap: 1.5,
-                                    p: 1.5,
+                                    p: 1.25,
                                     borderRadius: 1,
                                     bgcolor: isActive ? 'success.light' : 'grey.50',
-                                    border: `1px solid ${isActive ? 'success.main' : 'grey.200'}`
+                                    border: '1px solid',
+                                    borderColor: isActive ? 'success.main' : 'grey.200',
                                   }}
                                 >
                                   <Chip
@@ -559,29 +618,24 @@ const PermissionConfig: React.FC = () => {
                                     color={isActive ? 'success' : 'default'}
                                     variant={isActive ? 'filled' : 'outlined'}
                                     onClick={() => togglePermission(permission)}
-                                    sx={{ 
+                                    sx={{
                                       cursor: 'pointer',
                                       fontWeight: 500,
                                       transition: 'all 0.2s ease-in-out',
                                       '&:hover': {
                                         transform: 'scale(1.05)',
-                                        boxShadow: 1
-                                      }
+                                        boxShadow: 1,
+                                      },
                                     }}
                                   />
-                                  <Box sx={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: 0.5,
-                                    ml: 'auto'
-                                  }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
                                     {isActive ? (
                                       <CheckCircleIcon sx={{ fontSize: '1rem', color: 'text.secondary' }} />
                                     ) : (
                                       <ErrorIcon sx={{ fontSize: '1rem', color: 'text.secondary' }} />
                                     )}
-                                    <Typography 
-                                      variant="caption" 
+                                    <Typography
+                                      variant="caption"
                                       color={isActive ? 'success.main' : 'text.secondary'}
                                       sx={{ fontWeight: 500, fontSize: '0.7rem' }}
                                     >
@@ -592,11 +646,11 @@ const PermissionConfig: React.FC = () => {
                               );
                             })}
                           </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
+                        </AccordionDetails>
+                      </Accordion>
+                    );
+                  })}
+                </Box>
               </Box>
 
             </Box>

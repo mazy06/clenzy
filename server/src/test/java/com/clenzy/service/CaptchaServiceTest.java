@@ -215,13 +215,13 @@ class CaptchaServiceTest {
 
     @Test
     void verify_correctPositionWithinTolerancePlus_returnsSuccess() {
-        // Arrange: tolerance is +/-10px, submitting 160 for correct 150
+        // Arrange: tolerance is +/-15px, submitting 165 for correct 150
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("captcha:tol-plus")).thenReturn("150:0");
         when(redisTemplate.getExpire("captcha:tol-plus")).thenReturn(240L);
 
         // Act
-        CaptchaVerificationResult result = captchaService.verify("tol-plus", 160);
+        CaptchaVerificationResult result = captchaService.verify("tol-plus", 165);
 
         // Assert
         assertThat(result.success()).isTrue();
@@ -229,13 +229,13 @@ class CaptchaServiceTest {
 
     @Test
     void verify_correctPositionWithinToleranceMinus_returnsSuccess() {
-        // Arrange: tolerance is +/-10px, submitting 140 for correct 150
+        // Arrange: tolerance is +/-15px, submitting 135 for correct 150
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("captcha:tol-minus")).thenReturn("150:0");
         when(redisTemplate.getExpire("captcha:tol-minus")).thenReturn(240L);
 
         // Act
-        CaptchaVerificationResult result = captchaService.verify("tol-minus", 140);
+        CaptchaVerificationResult result = captchaService.verify("tol-minus", 135);
 
         // Assert
         assertThat(result.success()).isTrue();
@@ -247,13 +247,13 @@ class CaptchaServiceTest {
 
     @Test
     void verify_positionJustOutsideTolerance_returnsFailure() {
-        // Arrange: tolerance is +/-10px, submitting 161 for correct 150
+        // Arrange: tolerance is +/-15px, submitting 166 for correct 150
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("captcha:outside-tol")).thenReturn("150:0");
         when(redisTemplate.getExpire("captcha:outside-tol")).thenReturn(240L);
 
         // Act
-        CaptchaVerificationResult result = captchaService.verify("outside-tol", 161);
+        CaptchaVerificationResult result = captchaService.verify("outside-tol", 166);
 
         // Assert
         assertThat(result.success()).isFalse();

@@ -5,7 +5,9 @@ import com.clenzy.dto.ContactBulkDeleteRequest;
 import com.clenzy.dto.ContactBulkStatusRequest;
 import com.clenzy.dto.ContactMessageDto;
 import com.clenzy.dto.ContactSendRequest;
+import com.clenzy.model.ContactAttachmentFile;
 import com.clenzy.model.ContactMessage;
+import com.clenzy.repository.ContactAttachmentFileRepository;
 import com.clenzy.service.ContactFileStorageService;
 import com.clenzy.service.ContactMessageService;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -14,6 +16,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,6 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -45,11 +49,14 @@ public class ContactController {
 
     private final ContactMessageService contactMessageService;
     private final ContactFileStorageService fileStorageService;
+    private final ContactAttachmentFileRepository attachmentFileRepository;
 
     public ContactController(ContactMessageService contactMessageService,
-                              ContactFileStorageService fileStorageService) {
+                              ContactFileStorageService fileStorageService,
+                              ContactAttachmentFileRepository attachmentFileRepository) {
         this.contactMessageService = contactMessageService;
         this.fileStorageService = fileStorageService;
+        this.attachmentFileRepository = attachmentFileRepository;
     }
 
     // ─── Lecture (contact:view) ─────────────────────────────────────────────
@@ -150,15 +157,12 @@ public class ContactController {
                 .findFirst()
                 .orElseThrow(() -> new NoSuchElementException("Piece jointe introuvable"));
 
-        // 3. Verifier que le fichier est disponible
-        if (attachment.storagePath() == null || attachment.storagePath().isBlank()) {
-            throw new NoSuchElementException("Fichier non disponible en telechargement");
-        }
+        // 3. Charger les donnees depuis la base de donnees
+        ContactAttachmentFile file = attachmentFileRepository
+                .findByMessageIdAndAttachmentId(messageId, attachmentId)
+                .orElseThrow(() -> new NoSuchElementException("Fichier non disponible en telechargement"));
 
-        // 4. Charger le fichier en streaming
-        Resource resource = fileStorageService.load(attachment.storagePath());
-
-        // 5. Content-Disposition avec encodage RFC 5987 pour les noms non-ASCII
+        // 4. Content-Disposition avec encodage RFC 5987 pour les noms non-ASCII
         String encodedFilename = URLEncoder.encode(attachment.originalName(), StandardCharsets.UTF_8)
                 .replace("+", "%20");
         String contentDisposition = "attachment; filename=\"" + attachment.originalName() + "\"; "
@@ -168,7 +172,40 @@ public class ContactController {
                 .header("Content-Type", attachment.contentType())
                 .header("Content-Disposition", contentDisposition)
                 .header("Cache-Control", "private, max-age=86400")
-                .body(resource);
+                .body(new ByteArrayResource(file.getData()));
+    }
+
+    /**
+     * Retourne la piece jointe encodee en base64 dans un JSON.
+     * Utilise par le mobile pour afficher les images inline sans problemes d'auth headers.
+     */
+    @GetMapping("/messages/{messageId}/attachments/{attachmentId}/base64")
+    @Operation(summary = "Recuperer une piece jointe en base64 (mobile)")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
+    public ResponseEntity<Map<String, Object>> getAttachmentBase64(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long messageId,
+            @PathVariable String attachmentId
+    ) {
+        // 1. Valider l'acces utilisateur au message
+        contactMessageService.getMessageForUser(messageId, jwt);
+
+        // 2. Charger les donnees depuis la base de donnees
+        ContactAttachmentFile file = attachmentFileRepository
+                .findByMessageIdAndAttachmentId(messageId, attachmentId)
+                .orElseThrow(() -> new NoSuchElementException("Fichier non disponible"));
+
+        // 3. Encoder en data URI
+        String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
+        String base64Data = Base64.getEncoder().encodeToString(file.getData());
+        String dataUri = "data:" + contentType + ";base64," + base64Data;
+
+        return ResponseEntity.ok(Map.of(
+                "data", dataUri,
+                "contentType", contentType,
+                "originalName", file.getOriginalName() != null ? file.getOriginalName() : "",
+                "size", file.getSize() != null ? file.getSize() : 0
+        ));
     }
 
     private List<ContactAttachmentDto> parseAttachments(String json) {
@@ -221,7 +258,7 @@ public class ContactController {
 
     @PostMapping(value = "/messages/{id}/reply")
     @Operation(summary = "Repondre a un message")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
     public ResponseEntity<ContactMessageDto> replyToMessage(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long id,

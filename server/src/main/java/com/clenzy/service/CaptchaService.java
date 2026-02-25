@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 2. Decoupe une piece de puzzle a une position X aleatoire
  * 3. Retourne : image de fond (avec trou), image de la piece, position Y, token
  * 4. L'utilisateur glisse la piece horizontalement
- * 5. Le backend verifie que la position X soumise correspond (tolerance ±7px)
+ * 5. Le backend verifie que la position X soumise correspond (tolerance ±15px)
  *
  * Les solutions sont stockees dans Redis (TTL 5min) avec fallback in-memory.
  */
@@ -45,8 +45,8 @@ public class CaptchaService {
     private static final int PIECE_SIZE = 50;
     private static final int KNOB_RADIUS = 8;
 
-    // Verification
-    private static final int TOLERANCE_PX = 10;
+    // Verification — tolerance elargie pour compenser les erreurs d'arrondi CSS/scale
+    private static final int TOLERANCE_PX = 15;
     private static final Duration CAPTCHA_TTL = Duration.ofMinutes(5);
     private static final int MAX_VERIFY_ATTEMPTS = 5;
 
