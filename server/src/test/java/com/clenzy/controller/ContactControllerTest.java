@@ -1,7 +1,9 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.*;
+import com.clenzy.model.ContactAttachmentFile;
 import com.clenzy.model.ContactMessage;
+import com.clenzy.repository.ContactAttachmentFileRepository;
 import com.clenzy.service.ContactFileStorageService;
 import com.clenzy.service.ContactMessageService;
 import org.junit.jupiter.api.*;
@@ -19,6 +21,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,13 +33,14 @@ class ContactControllerTest {
 
     @Mock private ContactMessageService contactMessageService;
     @Mock private ContactFileStorageService fileStorageService;
+    @Mock private ContactAttachmentFileRepository attachmentFileRepository;
 
     private ContactController controller;
     private Jwt jwt;
 
     @BeforeEach
     void setUp() {
-        controller = new ContactController(contactMessageService, fileStorageService);
+        controller = new ContactController(contactMessageService, fileStorageService, attachmentFileRepository);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "user-123")
@@ -340,18 +344,20 @@ class ContactControllerTest {
     class DownloadAttachment {
 
         @Test
-        @DisplayName("returns file resource when attachment found")
+        @DisplayName("returns file resource when attachment found in DB")
         void whenAttachmentFound_thenReturnsResource() {
             // Arrange
             ContactMessage message = new ContactMessage();
             message.setId(1L);
             String attachmentsJson = "[{\"id\":\"att-1\",\"filename\":\"file.pdf\",\"originalName\":\"rapport.pdf\","
-                    + "\"size\":1024,\"contentType\":\"application/pdf\",\"storagePath\":\"uploads/file.pdf\"}]";
+                    + "\"size\":1024,\"contentType\":\"application/pdf\",\"storagePath\":\"db\"}]";
             message.setAttachments(attachmentsJson);
             when(contactMessageService.getMessageForUser(1L, jwt)).thenReturn(message);
 
-            Resource resource = new ByteArrayResource("pdf-content".getBytes());
-            when(fileStorageService.load("uploads/file.pdf")).thenReturn(resource);
+            ContactAttachmentFile dbFile = new ContactAttachmentFile(
+                    1L, "att-1", "pdf-content".getBytes(), "application/pdf", "rapport.pdf", 1024L);
+            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
+                    .thenReturn(Optional.of(dbFile));
 
             // Act
             ResponseEntity<Resource> response = controller.downloadAttachment(jwt, 1L, "att-1");
@@ -364,13 +370,13 @@ class ContactControllerTest {
         }
 
         @Test
-        @DisplayName("throws NoSuchElementException when attachment ID not found")
+        @DisplayName("throws NoSuchElementException when attachment ID not found in metadata")
         void whenAttachmentIdNotFound_thenThrows() {
             // Arrange
             ContactMessage message = new ContactMessage();
             message.setId(1L);
             message.setAttachments("[{\"id\":\"att-1\",\"filename\":\"file.pdf\",\"originalName\":\"rapport.pdf\","
-                    + "\"size\":1024,\"contentType\":\"application/pdf\",\"storagePath\":\"uploads/file.pdf\"}]");
+                    + "\"size\":1024,\"contentType\":\"application/pdf\",\"storagePath\":\"db\"}]");
             when(contactMessageService.getMessageForUser(1L, jwt)).thenReturn(message);
 
             // Act & Assert
@@ -380,14 +386,16 @@ class ContactControllerTest {
         }
 
         @Test
-        @DisplayName("throws NoSuchElementException when storagePath is blank")
-        void whenStoragePathBlank_thenThrows() {
+        @DisplayName("throws NoSuchElementException when file not found in DB")
+        void whenFileNotInDb_thenThrows() {
             // Arrange
             ContactMessage message = new ContactMessage();
             message.setId(1L);
             message.setAttachments("[{\"id\":\"att-1\",\"filename\":\"file.pdf\",\"originalName\":\"rapport.pdf\","
-                    + "\"size\":1024,\"contentType\":\"application/pdf\",\"storagePath\":\"\"}]");
+                    + "\"size\":1024,\"contentType\":\"application/pdf\",\"storagePath\":\"db\"}]");
             when(contactMessageService.getMessageForUser(1L, jwt)).thenReturn(message);
+            when(attachmentFileRepository.findByMessageIdAndAttachmentId(1L, "att-1"))
+                    .thenReturn(Optional.empty());
 
             // Act & Assert
             assertThatThrownBy(() -> controller.downloadAttachment(jwt, 1L, "att-1"))
@@ -396,23 +404,7 @@ class ContactControllerTest {
         }
 
         @Test
-        @DisplayName("throws NoSuchElementException when storagePath is null")
-        void whenStoragePathNull_thenThrows() {
-            // Arrange
-            ContactMessage message = new ContactMessage();
-            message.setId(1L);
-            message.setAttachments("[{\"id\":\"att-1\",\"filename\":\"file.pdf\",\"originalName\":\"rapport.pdf\","
-                    + "\"size\":1024,\"contentType\":\"application/pdf\",\"storagePath\":null}]");
-            when(contactMessageService.getMessageForUser(1L, jwt)).thenReturn(message);
-
-            // Act & Assert
-            assertThatThrownBy(() -> controller.downloadAttachment(jwt, 1L, "att-1"))
-                    .isInstanceOf(NoSuchElementException.class)
-                    .hasMessageContaining("non disponible");
-        }
-
-        @Test
-        @DisplayName("returns empty list when attachments JSON is null")
+        @DisplayName("throws NoSuchElementException when attachments JSON is null")
         void whenAttachmentsNull_thenThrowsNotFound() {
             // Arrange
             ContactMessage message = new ContactMessage();

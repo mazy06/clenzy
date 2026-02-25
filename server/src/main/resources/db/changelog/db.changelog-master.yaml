@@ -494,3 +494,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0055__fix_audit_log_source_check.sql
         relativeToChangelogFile: true
+
+  # --- 0056 : Fix notifications_category_check constraint ---
+  - changeSet:
+      id: "0056-fix-notifications-category-check"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0056__fix_notifications_category_check.sql
+        relativeToChangelogFile: true

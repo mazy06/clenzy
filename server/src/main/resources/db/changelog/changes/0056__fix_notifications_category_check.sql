@@ -1,0 +1,133 @@
+-- 0056: Mettre a jour les contraintes CHECK de la table notifications
+-- pour inclure toutes les categories et notification_keys actuelles
+
+-- 1. Fix notifications_category_check (ajouter CONTACT, DOCUMENT, GUEST_MESSAGING, NOISE_ALERT)
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_category_check;
+
+ALTER TABLE notifications ADD CONSTRAINT notifications_category_check
+    CHECK (category IN (
+        'INTERVENTION',
+        'SERVICE_REQUEST',
+        'PAYMENT',
+        'SYSTEM',
+        'TEAM',
+        'CONTACT',
+        'DOCUMENT',
+        'GUEST_MESSAGING',
+        'NOISE_ALERT'
+    ));
+
+-- 2. Fix notifications_notification_key_check (ajouter toutes les cles manquantes)
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_notification_key_check;
+
+ALTER TABLE notifications ADD CONSTRAINT notifications_notification_key_check
+    CHECK (notification_key IN (
+        -- INTERVENTION (18)
+        'INTERVENTION_CREATED',
+        'INTERVENTION_UPDATED',
+        'INTERVENTION_ASSIGNED_TO_USER',
+        'INTERVENTION_ASSIGNED_TO_TEAM',
+        'INTERVENTION_STARTED',
+        'INTERVENTION_PROGRESS_UPDATED',
+        'INTERVENTION_COMPLETED',
+        'INTERVENTION_REOPENED',
+        'INTERVENTION_STATUS_CHANGED',
+        'INTERVENTION_VALIDATED',
+        'INTERVENTION_AWAITING_VALIDATION',
+        'INTERVENTION_AWAITING_PAYMENT',
+        'INTERVENTION_CANCELLED',
+        'INTERVENTION_DELETED',
+        'INTERVENTION_PHOTOS_ADDED',
+        'INTERVENTION_NOTES_UPDATED',
+        'INTERVENTION_OVERDUE',
+        'INTERVENTION_REMINDER',
+        -- SERVICE_REQUEST (8)
+        'SERVICE_REQUEST_CREATED',
+        'SERVICE_REQUEST_UPDATED',
+        'SERVICE_REQUEST_APPROVED',
+        'SERVICE_REQUEST_REJECTED',
+        'SERVICE_REQUEST_INTERVENTION_CREATED',
+        'SERVICE_REQUEST_ASSIGNED',
+        'SERVICE_REQUEST_CANCELLED',
+        'SERVICE_REQUEST_URGENT',
+        -- PAYMENT (10)
+        'PAYMENT_SESSION_CREATED',
+        'PAYMENT_CONFIRMED',
+        'PAYMENT_FAILED',
+        'PAYMENT_GROUPED_SESSION_CREATED',
+        'PAYMENT_GROUPED_CONFIRMED',
+        'PAYMENT_GROUPED_FAILED',
+        'PAYMENT_DEFERRED_REMINDER',
+        'PAYMENT_DEFERRED_OVERDUE',
+        'PAYMENT_REFUND_INITIATED',
+        'PAYMENT_REFUND_COMPLETED',
+        -- ICAL (6)
+        'ICAL_IMPORT_SUCCESS',
+        'ICAL_IMPORT_PARTIAL',
+        'ICAL_IMPORT_FAILED',
+        'ICAL_SYNC_COMPLETED',
+        'ICAL_FEED_DELETED',
+        'ICAL_AUTO_INTERVENTIONS_TOGGLED',
+        -- TEAM (8)
+        'TEAM_CREATED',
+        'TEAM_UPDATED',
+        'TEAM_DELETED',
+        'TEAM_MEMBER_ADDED',
+        'TEAM_MEMBER_REMOVED',
+        'TEAM_ASSIGNED_INTERVENTION',
+        'TEAM_ROLE_CHANGED',
+        'TEAM_MEMBER_JOINED',
+        -- PORTFOLIO (6)
+        'PORTFOLIO_CREATED',
+        'PORTFOLIO_CLIENT_ADDED',
+        'PORTFOLIO_CLIENT_REMOVED',
+        'PORTFOLIO_TEAM_MEMBER_ADDED',
+        'PORTFOLIO_TEAM_MEMBER_REMOVED',
+        'PORTFOLIO_UPDATED',
+        -- USER (5)
+        'USER_CREATED',
+        'USER_UPDATED',
+        'USER_DELETED',
+        'USER_ROLE_CHANGED',
+        'USER_DEACTIVATED',
+        -- GDPR (3)
+        'GDPR_DATA_EXPORTED',
+        'GDPR_USER_ANONYMIZED',
+        'GDPR_CONSENTS_UPDATED',
+        -- PERMISSION (2)
+        'PERMISSION_ROLE_UPDATED',
+        'PERMISSION_CACHE_INVALIDATED',
+        -- PROPERTY (4)
+        'PROPERTY_CREATED',
+        'PROPERTY_UPDATED',
+        'PROPERTY_DELETED',
+        'PROPERTY_STATUS_CHANGED',
+        -- CONTACT (6)
+        'CONTACT_MESSAGE_RECEIVED',
+        'CONTACT_MESSAGE_SENT',
+        'CONTACT_MESSAGE_REPLIED',
+        'CONTACT_MESSAGE_ARCHIVED',
+        'CONTACT_FORM_RECEIVED',
+        'CONTACT_FORM_STATUS_CHANGED',
+        -- DOCUMENT (4)
+        'DOCUMENT_GENERATED',
+        'DOCUMENT_GENERATION_FAILED',
+        'DOCUMENT_TEMPLATE_UPLOADED',
+        'DOCUMENT_SENT_BY_EMAIL',
+        -- RECONCILIATION (3)
+        'RECONCILIATION_COMPLETED',
+        'RECONCILIATION_DIVERGENCE_HIGH',
+        'RECONCILIATION_FAILED',
+        -- KPI (2)
+        'KPI_THRESHOLD_BREACH',
+        'KPI_CRITICAL_FAILURE',
+        -- GUEST MESSAGING (3)
+        'GUEST_MESSAGE_SENT',
+        'GUEST_MESSAGE_FAILED',
+        'GUEST_PRICING_PUSHED',
+        -- NOISE ALERT (4)
+        'NOISE_ALERT_WARNING',
+        'NOISE_ALERT_CRITICAL',
+        'NOISE_ALERT_RESOLVED',
+        'NOISE_ALERT_CONFIG_CHANGED'
+    ));
