@@ -17,7 +17,7 @@ import {
   ToggleButtonGroup,
   ToggleButton,
 } from '@mui/material';
-import clenzyLogo from '../../assets/Clenzy_logo.png';
+import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
 
 // Labels pour affichage
@@ -259,23 +259,15 @@ export default function Inscription() {
       <Paper elevation={8} sx={{
         p: { xs: 3, sm: 4 },
         width: '100%',
-        maxWidth: 520,
+        maxWidth: 640,
         borderRadius: 3,
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(10px)',
         border: '1px solid rgba(255, 255, 255, 0.2)',
       }}>
-        {/* Logo */}
+        {/* Logo animé */}
         <Box sx={{ textAlign: 'center', mb: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
-            <img src={clenzyLogo} alt="Clenzy Logo" style={{ height: '48px', width: 'auto' }} />
-          </Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
-            Creer votre compte
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Accedez a votre espace de gestion Clenzy
-          </Typography>
+          <ClenzyAnimatedLogo scale={1.1} />
         </Box>
 
         {/* Badge forfait selectionne */}
@@ -316,42 +308,44 @@ export default function Inscription() {
         {/* Etape 1 : Informations */}
         {activeStep === 0 && (
           <Stack spacing={2}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Nom complet *"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Jean Dupont"
-              helperText="Prenom et nom de famille"
-            />
-            <TextField
-              fullWidth
-              size="small"
-              label="Email *"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="jean@exemple.fr"
-            />
-            <TextField
-              fullWidth
-              size="small"
-              label="Telephone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="07 66 72 91 09"
-              helperText="Optionnel"
-            />
-            <TextField
-              fullWidth
-              size="small"
-              label="Nom de la societe"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="Ma Societe SARL"
-              helperText="Optionnel"
-            />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Nom complet *"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Jean Dupont"
+                helperText="Prenom et nom de famille"
+              />
+              <TextField
+                fullWidth
+                size="small"
+                label="Email *"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="jean@exemple.fr"
+              />
+              <TextField
+                fullWidth
+                size="small"
+                label="Telephone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="07 66 72 91 09"
+                helperText="Optionnel"
+              />
+              <TextField
+                fullWidth
+                size="small"
+                label="Nom de la societe"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="Ma Societe SARL"
+                helperText="Optionnel"
+              />
+            </Box>
 
             {/* Selection du forfait si non pre-rempli */}
             {!prefill.forfait && (
@@ -464,29 +458,31 @@ export default function Inscription() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               Choisissez un mot de passe pour securiser votre compte.
             </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              label="Mot de passe *"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              helperText="Minimum 8 caracteres"
-            />
-            <TextField
-              fullWidth
-              size="small"
-              label="Confirmer le mot de passe *"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              error={confirmPassword.length > 0 && password !== confirmPassword}
-              helperText={
-                confirmPassword.length > 0 && password !== confirmPassword
-                  ? 'Les mots de passe ne correspondent pas'
-                  : ''
-              }
-            />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Mot de passe *"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                helperText="Minimum 8 caracteres"
+              />
+              <TextField
+                fullWidth
+                size="small"
+                label="Confirmer le mot de passe *"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                error={confirmPassword.length > 0 && password !== confirmPassword}
+                helperText={
+                  confirmPassword.length > 0 && password !== confirmPassword
+                    ? 'Les mots de passe ne correspondent pas'
+                    : ''
+                }
+              />
+            </Box>
 
             {/* Recapitulatif */}
             <Box sx={{
