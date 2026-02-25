@@ -36,10 +36,11 @@ const FORFAIT_LABELS: Record<string, string> = {
   premium: 'Forfait Premium',
 };
 
-const FORFAIT_PRICES: Record<string, string> = {
-  essentiel: 'Interventions a partir de 35€',
-  confort: 'Interventions a partir de 55€',
-  premium: 'Interventions a partir de 80€',
+/** Prix de base par forfait (aligné avec la landing page) */
+const FORFAIT_BASE_PRICES: Record<string, number> = {
+  essentiel: 50,
+  confort: 75,
+  premium: 100,
 };
 
 type BillingPeriod = 'MONTHLY' | 'ANNUAL' | 'BIENNIAL';
@@ -77,6 +78,15 @@ function getPmsFirstPayment(period: BillingPeriod, baseCents: number): string {
   return `${total}€ / an`;
 }
 
+/** Libellé prix intervention : utilise le prix transmis par la landing page, sinon le prix de base */
+function getInterventionPriceLabel(forfait: string, interventionPrice?: string): string {
+  const price = interventionPrice
+    ? parseInt(interventionPrice, 10)
+    : FORFAIT_BASE_PRICES[forfait];
+  if (!price) return '';
+  return `Interventions a partir de ${price}€`;
+}
+
 const FORFAIT_COLORS: Record<string, string> = {
   essentiel: '#6B8A9A',
   confort: '#A6C0CE',
@@ -98,6 +108,7 @@ export default function Inscription() {
   const prefill = useMemo(() => ({
     forfait: searchParams.get('forfait') || '',
     billingPeriod: (searchParams.get('billingPeriod') || 'MONTHLY').toUpperCase() as BillingPeriod,
+    interventionPrice: searchParams.get('interventionPrice') || '',
     email: searchParams.get('email') || '',
     fullName: searchParams.get('fullName') || '',
     phone: searchParams.get('phone') || '',
@@ -284,7 +295,7 @@ export default function Inscription() {
               }}
             />
             <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
-              {FORFAIT_PRICES[prefill.forfait] || ''} | Plateforme : {getPmsDisplayPrice(billingPeriod, pmsBaseCents)}
+              {getInterventionPriceLabel(prefill.forfait, prefill.interventionPrice)} | Plateforme : {getPmsDisplayPrice(billingPeriod, pmsBaseCents)}
             </Typography>
           </Box>
         )}
@@ -376,7 +387,7 @@ export default function Inscription() {
                 </Stack>
                 {forfait && (
                   <Typography variant="caption" color="text.secondary">
-                    {FORFAIT_PRICES[forfait] || ''}
+                    {getInterventionPriceLabel(forfait)}
                   </Typography>
                 )}
               </>
@@ -501,7 +512,7 @@ export default function Inscription() {
                 <strong>Forfait :</strong> {FORFAIT_LABELS[forfait] || forfait}
               </Typography>
               <Typography variant="body2">
-                <strong>Interventions :</strong> {FORFAIT_PRICES[forfait] || ''}
+                <strong>Interventions :</strong> {getInterventionPriceLabel(forfait, prefill.interventionPrice)}
               </Typography>
               <Divider sx={{ my: 1 }} />
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
