@@ -2,7 +2,9 @@ package com.clenzy.service;
 
 import com.clenzy.dto.ContactMessageDto;
 import com.clenzy.model.*;
+import com.clenzy.repository.ContactAttachmentFileRepository;
 import com.clenzy.repository.ContactMessageRepository;
+import com.clenzy.repository.ManagerUserRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +35,8 @@ import static org.mockito.Mockito.*;
 class ContactMessageServiceTest {
 
     @Mock private ContactMessageRepository contactMessageRepository;
+    @Mock private ContactAttachmentFileRepository attachmentFileRepository;
+    @Mock private ManagerUserRepository managerUserRepository;
     @Mock private UserRepository userRepository;
     @Mock private EmailService emailService;
     @Mock private ObjectMapper objectMapper;
@@ -56,6 +60,8 @@ class ContactMessageServiceTest {
     void setUp() {
         service = new ContactMessageService(
                 contactMessageRepository,
+                attachmentFileRepository,
+                managerUserRepository,
                 userRepository,
                 emailService,
                 objectMapper,
@@ -377,7 +383,7 @@ class ContactMessageServiceTest {
             ContactMessage original = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
             when(userRepository.findByKeycloakId(SENDER_KC_ID)).thenReturn(Optional.of(senderUser));
-            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
                     .thenReturn(Optional.of(original));
             when(objectMapper.writeValueAsString(anyList())).thenReturn("[]");
             when(contactMessageRepository.save(any(ContactMessage.class)))
@@ -406,7 +412,7 @@ class ContactMessageServiceTest {
             ContactMessage original = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
             when(userRepository.findByKeycloakId(RECIPIENT_KC_ID)).thenReturn(Optional.of(recipientUser));
-            when(contactMessageRepository.findByIdForUser(1L, RECIPIENT_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(1L, RECIPIENT_KC_ID))
                     .thenReturn(Optional.of(original));
             when(objectMapper.writeValueAsString(anyList())).thenReturn("[]");
             when(contactMessageRepository.save(any(ContactMessage.class)))
@@ -429,9 +435,8 @@ class ContactMessageServiceTest {
         @Test
         void replyToMessage_originalNotFound_throwsNoSuchElement() {
             // Arrange
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
             when(userRepository.findByKeycloakId(SENDER_KC_ID)).thenReturn(Optional.of(senderUser));
-            when(contactMessageRepository.findByIdForUser(999L, SENDER_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(999L, SENDER_KC_ID))
                     .thenReturn(Optional.empty());
 
             // Act & Assert
@@ -443,9 +448,8 @@ class ContactMessageServiceTest {
         void replyToMessage_blankMessage_throwsIllegalArgument() {
             // Arrange
             ContactMessage original = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
             when(userRepository.findByKeycloakId(SENDER_KC_ID)).thenReturn(Optional.of(senderUser));
-            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
                     .thenReturn(Optional.of(original));
 
             // Act & Assert
@@ -461,7 +465,7 @@ class ContactMessageServiceTest {
             original.setSubject("Re: Original subject");
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
             when(userRepository.findByKeycloakId(SENDER_KC_ID)).thenReturn(Optional.of(senderUser));
-            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
                     .thenReturn(Optional.of(original));
             when(objectMapper.writeValueAsString(anyList())).thenReturn("[]");
             when(contactMessageRepository.save(any(ContactMessage.class)))
@@ -487,7 +491,7 @@ class ContactMessageServiceTest {
             ContactMessage original = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
             when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
             when(userRepository.findByKeycloakId(SENDER_KC_ID)).thenReturn(Optional.of(senderUser));
-            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
                     .thenReturn(Optional.of(original));
             when(objectMapper.writeValueAsString(anyList())).thenReturn("[]");
             when(contactMessageRepository.save(any(ContactMessage.class)))
@@ -518,8 +522,7 @@ class ContactMessageServiceTest {
         void archiveMessage_setsArchivedTrueAndTimestamp() {
             // Arrange
             ContactMessage msg = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
                     .thenReturn(Optional.of(msg));
             when(contactMessageRepository.save(any(ContactMessage.class)))
                     .thenAnswer(inv -> inv.getArgument(0));
@@ -541,8 +544,7 @@ class ContactMessageServiceTest {
         @Test
         void archiveMessage_messageNotFound_throwsNoSuchElement() {
             // Arrange
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(contactMessageRepository.findByIdForUser(999L, SENDER_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(999L, SENDER_KC_ID))
                     .thenReturn(Optional.empty());
 
             // Act & Assert
@@ -556,8 +558,7 @@ class ContactMessageServiceTest {
             ContactMessage msg = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
             msg.setArchived(true);
             msg.setArchivedAt(LocalDateTime.now());
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
                     .thenReturn(Optional.of(msg));
             when(contactMessageRepository.save(any(ContactMessage.class)))
                     .thenAnswer(inv -> inv.getArgument(0));
@@ -581,8 +582,7 @@ class ContactMessageServiceTest {
         void updateStatus_markAsRead_asRecipient_succeeds() {
             // Arrange
             ContactMessage msg = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(contactMessageRepository.findByIdForUser(1L, RECIPIENT_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(1L, RECIPIENT_KC_ID))
                     .thenReturn(Optional.of(msg));
             when(contactMessageRepository.save(any(ContactMessage.class)))
                     .thenAnswer(inv -> inv.getArgument(0));
@@ -599,8 +599,7 @@ class ContactMessageServiceTest {
         void updateStatus_markAsRead_asNonRecipient_throwsSecurityException() {
             // Arrange
             ContactMessage msg = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
                     .thenReturn(Optional.of(msg));
 
             // Act & Assert
@@ -627,8 +626,7 @@ class ContactMessageServiceTest {
         void updateStatus_delivered_setsDeliveredAt() {
             // Arrange
             ContactMessage msg = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
                     .thenReturn(Optional.of(msg));
             when(contactMessageRepository.save(any(ContactMessage.class)))
                     .thenAnswer(inv -> inv.getArgument(0));
@@ -650,8 +648,7 @@ class ContactMessageServiceTest {
         void deleteMessage_existingMessage_deletesSuccessfully() {
             // Arrange
             ContactMessage msg = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
                     .thenReturn(Optional.of(msg));
 
             // Act
@@ -664,8 +661,7 @@ class ContactMessageServiceTest {
         @Test
         void deleteMessage_notFound_throwsNoSuchElement() {
             // Arrange
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(contactMessageRepository.findByIdForUser(999L, SENDER_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(999L, SENDER_KC_ID))
                     .thenReturn(Optional.empty());
 
             // Act & Assert
@@ -706,8 +702,7 @@ class ContactMessageServiceTest {
             ContactMessage msg2 = buildMessage("other-sender", SENDER_KC_ID);
             msg2.setId(2L);
 
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(contactMessageRepository.findByIdsForUser(anyList(), eq(SENDER_KC_ID), eq(ORG_ID)))
+            when(contactMessageRepository.findByIdsForUser(anyList(), eq(SENDER_KC_ID)))
                     .thenReturn(List.of(msg1, msg2));
 
             // Act
@@ -725,8 +720,7 @@ class ContactMessageServiceTest {
             ContactMessage msg2 = buildMessage("other-sender", SENDER_KC_ID);
             msg2.setId(2L);
 
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(contactMessageRepository.findByIdsForUser(anyList(), eq(SENDER_KC_ID), eq(ORG_ID)))
+            when(contactMessageRepository.findByIdsForUser(anyList(), eq(SENDER_KC_ID)))
                     .thenReturn(List.of(msg1, msg2));
 
             // Act
@@ -757,8 +751,7 @@ class ContactMessageServiceTest {
             ContactMessage msg1 = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
             ContactMessage msg2 = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
 
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(contactMessageRepository.findByIdsForUser(anyList(), eq(SENDER_KC_ID), eq(ORG_ID)))
+            when(contactMessageRepository.findByIdsForUser(anyList(), eq(SENDER_KC_ID)))
                     .thenReturn(List.of(msg1, msg2));
 
             // Act
@@ -874,8 +867,7 @@ class ContactMessageServiceTest {
         void getMessageForUser_existingMessage_returnsMessage() {
             // Arrange
             ContactMessage msg = buildMessage(SENDER_KC_ID, RECIPIENT_KC_ID);
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(1L, SENDER_KC_ID))
                     .thenReturn(Optional.of(msg));
 
             // Act
@@ -888,8 +880,7 @@ class ContactMessageServiceTest {
         @Test
         void getMessageForUser_notFound_throwsNoSuchElement() {
             // Arrange
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
-            when(contactMessageRepository.findByIdForUser(999L, SENDER_KC_ID, ORG_ID))
+            when(contactMessageRepository.findByIdForUser(999L, SENDER_KC_ID))
                     .thenReturn(Optional.empty());
 
             // Act & Assert
@@ -919,8 +910,8 @@ class ContactMessageServiceTest {
         }
 
         @Test
-        void listRecipients_restrictedRole_seesOnlyPlatformStaff() {
-            // Arrange: HOST is in RESTRICTED_ROLES
+        void listRecipients_restrictedRole_noManagerAssigned_seesAllPlatformStaff() {
+            // Arrange: HOST with no manager assigned (fallback)
             Jwt hostJwt = Jwt.withTokenValue("token-host")
                     .header("alg", "RS256")
                     .subject("kc-host-001")
@@ -933,11 +924,15 @@ class ContactMessageServiceTest {
                     .build();
 
             User hostUser = new User("Host", "User", "host@clenzy.com", "password");
+            hostUser.setId(10L);
             hostUser.setKeycloakId("kc-host-001");
             hostUser.setRole(UserRole.HOST);
             hostUser.setStatus(UserStatus.ACTIVE);
 
             when(userRepository.findByKeycloakId("kc-host-001")).thenReturn(Optional.of(hostUser));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
+            when(managerUserRepository.findManagerIdsByUserIdAndIsActiveTrue(10L, ORG_ID))
+                    .thenReturn(List.of());
             when(userRepository.findByStatusAndRoleInAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(
                     UserStatus.ACTIVE, List.of(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER)))
                     .thenReturn(List.of(senderUser));
@@ -946,6 +941,41 @@ class ContactMessageServiceTest {
             var result = service.listRecipients(hostJwt);
 
             // Assert
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).id()).isEqualTo(SENDER_KC_ID);
+        }
+
+        @Test
+        void listRecipients_restrictedRole_withManagerAssigned_seesOnlyAssignedManager() {
+            // Arrange: HOST with a manager assigned
+            Jwt hostJwt = Jwt.withTokenValue("token-host")
+                    .header("alg", "RS256")
+                    .subject("kc-host-001")
+                    .claim("email", "host@clenzy.com")
+                    .claim("given_name", "Host")
+                    .claim("family_name", "User")
+                    .claim("realm_access", Map.of("roles", List.of("HOST")))
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(3600))
+                    .build();
+
+            User hostUser = new User("Host", "User", "host@clenzy.com", "password");
+            hostUser.setId(10L);
+            hostUser.setKeycloakId("kc-host-001");
+            hostUser.setRole(UserRole.HOST);
+            hostUser.setStatus(UserStatus.ACTIVE);
+
+            when(userRepository.findByKeycloakId("kc-host-001")).thenReturn(Optional.of(hostUser));
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(ORG_ID);
+            when(managerUserRepository.findManagerIdsByUserIdAndIsActiveTrue(10L, ORG_ID))
+                    .thenReturn(List.of(1L));
+            when(userRepository.findAllById(List.of(1L)))
+                    .thenReturn(List.of(senderUser));
+
+            // Act
+            var result = service.listRecipients(hostJwt);
+
+            // Assert - only the assigned manager is returned
             assertThat(result).hasSize(1);
             assertThat(result.get(0).id()).isEqualTo(SENDER_KC_ID);
         }

@@ -4,7 +4,10 @@ import com.clenzy.dto.ContactAttachmentDto;
 import com.clenzy.dto.ContactMessageDto;
 import com.clenzy.dto.ContactUserDto;
 import com.clenzy.model.*;
+import com.clenzy.model.ContactAttachmentFile;
+import com.clenzy.repository.ContactAttachmentFileRepository;
 import com.clenzy.repository.ContactMessageRepository;
+import com.clenzy.repository.ManagerUserRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
 import com.clenzy.util.AttachmentValidator;
@@ -34,6 +37,8 @@ public class ContactMessageService {
     private static final Set<String> RESTRICTED_ROLES = Set.of("HOST", "HOUSEKEEPER", "TECHNICIAN", "SUPERVISOR", "LAUNDRY", "EXTERIOR_TECH");
 
     private final ContactMessageRepository contactMessageRepository;
+    private final ContactAttachmentFileRepository attachmentFileRepository;
+    private final ManagerUserRepository managerUserRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final ObjectMapper objectMapper;
@@ -49,6 +54,8 @@ public class ContactMessageService {
 
     public ContactMessageService(
             ContactMessageRepository contactMessageRepository,
+            ContactAttachmentFileRepository attachmentFileRepository,
+            ManagerUserRepository managerUserRepository,
             UserRepository userRepository,
             EmailService emailService,
             ObjectMapper objectMapper,
@@ -57,6 +64,8 @@ public class ContactMessageService {
             TenantContext tenantContext
     ) {
         this.contactMessageRepository = contactMessageRepository;
+        this.attachmentFileRepository = attachmentFileRepository;
+        this.managerUserRepository = managerUserRepository;
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.objectMapper = objectMapper;
@@ -91,12 +100,36 @@ public class ContactMessageService {
                 .map(r -> r.toUpperCase(Locale.ROOT))
                 .anyMatch(RESTRICTED_ROLES::contains);
 
-        List<User> users = restricted
-                ? userRepository.findByStatusAndRoleInAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(
+        List<User> users;
+
+        if (restricted && actor.dbId() != null) {
+            // Roles restreints (HOST, etc.) : seulement leur(s) manager(s) assigne(s)
+            Long orgId = tenantContext.getRequiredOrganizationId();
+            List<Long> managerIds = managerUserRepository
+                    .findManagerIdsByUserIdAndIsActiveTrue(actor.dbId(), orgId);
+
+            if (managerIds.isEmpty()) {
+                // Fallback : aucun manager assigne → retourner tous les platform staff
+                users = userRepository.findByStatusAndRoleInAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(
                         UserStatus.ACTIVE,
                         List.of(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER)
-                )
-                : userRepository.findByStatusAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(UserStatus.ACTIVE);
+                );
+            } else {
+                // Retourner uniquement les managers assignes
+                users = userRepository.findAllById(managerIds).stream()
+                        .filter(u -> u.getStatus() == UserStatus.ACTIVE && u.getKeycloakId() != null)
+                        .collect(Collectors.toList());
+            }
+        } else if (restricted) {
+            // dbId null (utilisateur pas encore en base) : ancien comportement
+            users = userRepository.findByStatusAndRoleInAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(
+                    UserStatus.ACTIVE,
+                    List.of(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER)
+            );
+        } else {
+            // Admin / Manager : retourner tous les utilisateurs actifs
+            users = userRepository.findByStatusAndKeycloakIdIsNotNullOrderByFirstNameAscLastNameAsc(UserStatus.ACTIVE);
+        }
 
         return users.stream()
                 .filter(u -> !actor.userId().equals(u.getKeycloakId()))
@@ -117,7 +150,7 @@ public class ContactMessageService {
     @Transactional(readOnly = true)
     public ContactMessage getMessageForUser(Long messageId, Jwt jwt) {
         String userId = requireUserId(jwt);
-        return contactMessageRepository.findByIdForUser(messageId, userId, tenantContext.getRequiredOrganizationId())
+        return contactMessageRepository.findByIdForUser(messageId, userId)
                 .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
     }
 
@@ -197,7 +230,7 @@ public class ContactMessageService {
             List<MultipartFile> attachments
     ) {
         AuthActor actor = resolveActor(jwt);
-        ContactMessage original = contactMessageRepository.findByIdForUser(messageId, actor.userId(), tenantContext.getRequiredOrganizationId())
+        ContactMessage original = contactMessageRepository.findByIdForUser(messageId, actor.userId())
                 .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
 
         String normalizedMessage = normalizeMessage(messageText);
@@ -261,7 +294,7 @@ public class ContactMessageService {
     public ContactMessageDto updateStatus(Jwt jwt, Long id, String statusValue) {
         String userId = requireUserId(jwt);
         ContactMessageStatus status = parseStatus(statusValue);
-        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId, tenantContext.getRequiredOrganizationId())
+        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId)
                 .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
 
         if (status == ContactMessageStatus.READ && !userId.equals(message.getRecipientKeycloakId())) {
@@ -275,7 +308,7 @@ public class ContactMessageService {
     @Transactional
     public void deleteMessage(Jwt jwt, Long id) {
         String userId = requireUserId(jwt);
-        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId, tenantContext.getRequiredOrganizationId())
+        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId)
                 .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
         contactMessageRepository.delete(message);
     }
@@ -289,7 +322,7 @@ public class ContactMessageService {
             return Map.of("updatedCount", 0);
         }
 
-        List<ContactMessage> messages = contactMessageRepository.findByIdsForUser(sanitizedIds, userId, tenantContext.getRequiredOrganizationId());
+        List<ContactMessage> messages = contactMessageRepository.findByIdsForUser(sanitizedIds, userId);
         int updatedCount = 0;
         for (ContactMessage message : messages) {
             if (status == ContactMessageStatus.READ && !userId.equals(message.getRecipientKeycloakId())) {
@@ -311,7 +344,7 @@ public class ContactMessageService {
             return Map.of("deletedCount", 0);
         }
 
-        List<ContactMessage> messages = contactMessageRepository.findByIdsForUser(sanitizedIds, userId, tenantContext.getRequiredOrganizationId());
+        List<ContactMessage> messages = contactMessageRepository.findByIdsForUser(sanitizedIds, userId);
         int deletedCount = messages.size();
         contactMessageRepository.deleteAll(messages);
         return Map.of("deletedCount", deletedCount);
@@ -320,7 +353,7 @@ public class ContactMessageService {
     @Transactional
     public ContactMessageDto archiveMessage(Jwt jwt, Long id) {
         String userId = requireUserId(jwt);
-        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId, tenantContext.getRequiredOrganizationId())
+        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId)
                 .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
         message.setArchived(true);
         message.setArchivedAt(LocalDateTime.now());
@@ -337,7 +370,7 @@ public class ContactMessageService {
     @Transactional
     public ContactMessageDto unarchiveMessage(Jwt jwt, Long id) {
         String userId = requireUserId(jwt);
-        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId, tenantContext.getRequiredOrganizationId())
+        ContactMessage message = contactMessageRepository.findByIdForUser(id, userId)
                 .orElseThrow(() -> new NoSuchElementException("Message introuvable"));
         message.setArchived(false);
         message.setArchivedAt(null);
@@ -413,7 +446,8 @@ public class ContactMessageService {
             roles = List.of(user.getRole().name());
         }
 
-        return new AuthActor(userId, email, firstName, lastName, roles);
+        Long dbId = user != null ? user.getId() : null;
+        return new AuthActor(dbId, userId, email, firstName, lastName, roles);
     }
 
     @SuppressWarnings("unchecked")
@@ -493,8 +527,22 @@ public class ContactMessageService {
         boolean restricted = actor.roles().stream()
                 .map(r -> r.toUpperCase(Locale.ROOT))
                 .anyMatch(RESTRICTED_ROLES::contains);
-        if (restricted && !recipient.getRole().isPlatformStaff()) {
-            throw new SecurityException("Utilisateur non autorise comme destinataire");
+
+        if (restricted) {
+            // Les roles restreints ne peuvent ecrire qu'aux platform staff
+            if (!recipient.getRole().isPlatformStaff()) {
+                throw new SecurityException("Utilisateur non autorise comme destinataire");
+            }
+            // Verifier l'assignation manager (si le host a un manager assigne)
+            if (actor.dbId() != null && recipient.getId() != null) {
+                Long orgId = tenantContext.getRequiredOrganizationId();
+                List<Long> managerIds = managerUserRepository
+                        .findManagerIdsByUserIdAndIsActiveTrue(actor.dbId(), orgId);
+                // Si des managers sont assignes, le destinataire doit en faire partie
+                if (!managerIds.isEmpty() && !managerIds.contains(recipient.getId())) {
+                    throw new SecurityException("Vous ne pouvez contacter que votre manager assigne");
+                }
+            }
         }
     }
 
@@ -513,7 +561,8 @@ public class ContactMessageService {
     }
 
     /**
-     * Stocke les fichiers sur disque et met a jour les metadonnees JSONB avec les storagePath.
+     * Stocke les fichiers en base de donnees (table contact_attachment_files)
+     * et met a jour les metadonnees JSONB avec storagePath = "db".
      * Appele APRES l'envoi email pour ne pas bloquer la livraison en cas d'echec de stockage.
      */
     private void storeAndUpdateAttachments(ContactMessage message, List<MultipartFile> files,
@@ -524,9 +573,20 @@ public class ContactMessageService {
             for (int i = 0; i < metadata.size(); i++) {
                 ContactAttachmentDto dto = metadata.get(i);
                 MultipartFile file = files.get(i);
-                String storagePath = fileStorageService.store(message.getId(), dto.id(), dto.filename(), file);
+
+                // Stocker les bytes en base de donnees
+                ContactAttachmentFile attachmentFile = new ContactAttachmentFile(
+                        message.getId(),
+                        dto.id(),
+                        file.getBytes(),
+                        dto.contentType(),
+                        dto.originalName(),
+                        dto.size()
+                );
+                attachmentFileRepository.save(attachmentFile);
+
                 updated.add(new ContactAttachmentDto(
-                        dto.id(), dto.filename(), dto.originalName(), dto.size(), dto.contentType(), storagePath
+                        dto.id(), dto.filename(), dto.originalName(), dto.size(), dto.contentType(), "db"
                 ));
             }
             message.setAttachments(serializeAttachments(updated));
@@ -616,7 +676,7 @@ public class ContactMessageService {
         }
     }
 
-    private record AuthActor(String userId, String email, String firstName, String lastName, List<String> roles) {}
+    private record AuthActor(Long dbId, String userId, String email, String firstName, String lastName, List<String> roles) {}
 
     /**
      * Destinataire resolu : soit un utilisateur interne, soit un email externe.
