@@ -32,12 +32,14 @@ import {
   Person,
   CleaningServices,
   Settings,
+  Visibility,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import { organizationsApi } from '../../services/api';
 import type { OrganizationDto } from '../../services/api';
+import MembersList from '../organization/MembersList';
 
 import type { ChipColor } from '../../types';
 
@@ -81,6 +83,8 @@ const OrganizationsList = forwardRef<OrganizationsListHandle>((_, ref) => {
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
+  const [membersDialogOrg, setMembersDialogOrg] = useState<OrganizationDto | null>(null);
+  const [membersRefresh, setMembersRefresh] = useState(0);
   const { isAdmin } = useAuth();
   const { notify } = useNotification();
 
@@ -335,7 +339,8 @@ const OrganizationsList = forwardRef<OrganizationsListHandle>((_, ref) => {
                         label={`${org.memberCount} membre${org.memberCount !== 1 ? 's' : ''}`}
                         size="small"
                         variant="outlined"
-                        sx={{ height: 20, fontSize: '0.7rem' }}
+                        onClick={() => setMembersDialogOrg(org)}
+                        sx={{ height: 20, fontSize: '0.7rem', cursor: 'pointer' }}
                       />
                     </Box>
 
@@ -346,7 +351,16 @@ const OrganizationsList = forwardRef<OrganizationsListHandle>((_, ref) => {
                   </CardContent>
 
                   {/* Actions */}
-                  <CardActions sx={{ pt: 0, p: 1 }}>
+                  <CardActions sx={{ pt: 0, p: 1, gap: 0.5 }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<Visibility sx={{ fontSize: 16 }} />}
+                      onClick={() => setMembersDialogOrg(org)}
+                      sx={{ fontSize: '0.75rem', flex: 1 }}
+                    >
+                      Membres
+                    </Button>
                     <Button
                       variant="outlined"
                       size="small"
@@ -357,8 +371,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle>((_, ref) => {
                         setFormData({ name: org.name, type: org.type });
                         setFormDialogOpen(true);
                       }}
-                      fullWidth
-                      sx={{ fontSize: '0.75rem' }}
+                      sx={{ fontSize: '0.75rem', flex: 1 }}
                     >
                       Modifier
                     </Button>
@@ -378,6 +391,18 @@ const OrganizationsList = forwardRef<OrganizationsListHandle>((_, ref) => {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
+        <MenuItem
+          onClick={() => {
+            if (selectedOrg) setMembersDialogOrg(selectedOrg);
+            setAnchorEl(null);
+          }}
+          sx={{ fontSize: '0.85rem', py: 0.75 }}
+        >
+          <ListItemIcon>
+            <People sx={{ fontSize: 18 }} />
+          </ListItemIcon>
+          Voir les membres
+        </MenuItem>
         <MenuItem
           onClick={handleEdit}
           sx={{ fontSize: '0.85rem', py: 0.75 }}
@@ -490,6 +515,65 @@ const OrganizationsList = forwardRef<OrganizationsListHandle>((_, ref) => {
             Supprimer
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Dialog des membres de l'organisation */}
+      <Dialog
+        open={!!membersDialogOrg}
+        onClose={() => {
+          setMembersDialogOrg(null);
+          // Rafraichir la liste des orgas pour mettre a jour le memberCount
+          loadOrganizations();
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        {membersDialogOrg && (
+          <>
+            <DialogTitle sx={{ pb: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <People sx={{ color: 'primary.main' }} />
+                <Box>
+                  <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+                    Membres de {membersDialogOrg.name}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
+                    <Chip
+                      label={getTypeInfo(membersDialogOrg.type).label}
+                      color={getTypeInfo(membersDialogOrg.type).color}
+                      size="small"
+                      sx={{ height: 20, fontSize: '0.7rem' }}
+                    />
+                    <Chip
+                      label={`${membersDialogOrg.memberCount} membre${membersDialogOrg.memberCount !== 1 ? 's' : ''}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{ height: 20, fontSize: '0.7rem' }}
+                    />
+                  </Box>
+                </Box>
+              </Box>
+            </DialogTitle>
+            <DialogContent sx={{ pt: 1 }}>
+              <MembersList
+                organizationId={membersDialogOrg.id}
+                refreshTrigger={membersRefresh}
+                onMemberChanged={() => setMembersRefresh(prev => prev + 1)}
+              />
+            </DialogContent>
+            <DialogActions sx={{ px: 2, pb: 1.5 }}>
+              <Button
+                onClick={() => {
+                  setMembersDialogOrg(null);
+                  loadOrganizations();
+                }}
+                size="small"
+              >
+                Fermer
+              </Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
     </Box>
   );

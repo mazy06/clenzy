@@ -502,3 +502,22 @@ databaseChangeLog:
       sqlFile:
         path: changes/0056__fix_notifications_category_check.sql
         relativeToChangelogFile: true
+
+  # --- 0057 : Extend intervention title and description columns ---
+  - changeSet:
+      id: "0057-extend-intervention-title-description"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0057__extend_intervention_title_description.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0058 : Add organization_type to pending_inscriptions ---
+  - changeSet:
+      id: "0058-add-organization-type-to-pending-inscriptions"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0058__add_organization_type_to_pending_inscriptions.sql
+        relativeToChangelogFile: true

@@ -35,6 +35,7 @@ public class InscriptionService {
     private final UserRepository userRepository;
     private final KeycloakService keycloakService;
     private final OrganizationService organizationService;
+    private final PricingConfigService pricingConfigService;
 
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
@@ -42,21 +43,20 @@ public class InscriptionService {
     @Value("${stripe.currency}")
     private String currency;
 
-    @Value("${stripe.inscription.success-url:${FRONTEND_URL:http://localhost:3000}/login?inscription=success}")
-    private String inscriptionSuccessUrl;
-
-    @Value("${stripe.inscription.cancel-url:${FRONTEND_URL:http://localhost:3000}/inscription?payment=cancelled}")
-    private String inscriptionCancelUrl;
+    @Value("${stripe.inscription.return-url:${FRONTEND_URL:http://localhost:3000}/inscription/success}")
+    private String inscriptionReturnUrl;
 
     public InscriptionService(
             PendingInscriptionRepository pendingInscriptionRepository,
             UserRepository userRepository,
             KeycloakService keycloakService,
-            OrganizationService organizationService) {
+            OrganizationService organizationService,
+            PricingConfigService pricingConfigService) {
         this.pendingInscriptionRepository = pendingInscriptionRepository;
         this.userRepository = userRepository;
         this.keycloakService = keycloakService;
         this.organizationService = organizationService;
+        this.pricingConfigService = pricingConfigService;
     }
 
     /**
@@ -65,9 +65,9 @@ public class InscriptionService {
      * - Cree une session Stripe Checkout pour le forfait choisi
      * - Sauvegarde l'inscription en attente dans la base
      *
-     * @return L'URL de la session Stripe Checkout pour rediriger le client
+     * @return Le clientSecret de la session Stripe Embedded Checkout
      */
-    public Map<String, String> initiateInscription(InscriptionDto dto) throws StripeException {
+    public Map<String, Object> initiateInscription(InscriptionDto dto) throws StripeException {
         logger.info("Initiation inscription pour email: {}, forfait: {}", dto.getEmail(), dto.getForfait());
 
         // Verifier que l'email n'est pas deja utilise dans la table users
@@ -84,8 +84,22 @@ public class InscriptionService {
                     pendingInscriptionRepository.delete(existing);
                 });
 
-        // Prix de base de l'abonnement PMS mensuel en centimes
-        int priceInCents = InscriptionDto.PMS_SUBSCRIPTION_PRICE_CENTS;
+        // Valider le type d'organisation
+        OrganizationType orgType = dto.getOrganizationTypeEnum();
+        if (orgType == OrganizationType.SYSTEM) {
+            throw new RuntimeException("Type d'organisation non autorise.");
+        }
+        if (orgType != OrganizationType.INDIVIDUAL
+                && (dto.getCompanyName() == null || dto.getCompanyName().isBlank())) {
+            throw new RuntimeException("Le nom de la societe est requis pour une " + orgType.getDisplayName() + ".");
+        }
+
+        // Prix de base de l'abonnement PMS en centimes (source unique : PricingConfig)
+        // Utiliser le prix "synchro auto" si l'utilisateur a choisi la synchronisation calendrier
+        boolean isSyncMode = "sync".equalsIgnoreCase(dto.getCalendarSync());
+        int priceInCents = isSyncMode
+                ? pricingConfigService.getPmsSyncPriceCents()
+                : pricingConfigService.getPmsMonthlyPriceCents();
 
         // Determiner l'intervalle Stripe et le montant selon la periode de facturation
         BillingPeriod period = dto.getBillingPeriodEnum();
@@ -116,8 +130,8 @@ public class InscriptionService {
 
         SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
-                .setSuccessUrl(inscriptionSuccessUrl)
-                .setCancelUrl(inscriptionCancelUrl)
+                .setUiMode(SessionCreateParams.UiMode.EMBEDDED)
+                .setReturnUrl(inscriptionReturnUrl + "?session_id={CHECKOUT_SESSION_ID}")
                 .addLineItem(
                         SessionCreateParams.LineItem.builder()
                                 .setQuantity(1L)
@@ -132,8 +146,8 @@ public class InscriptionService {
                                                 )
                                                 .setProductData(
                                                         SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                                                .setName("Clenzy - Abonnement plateforme")
-                                                                .setDescription(billingDescription + " a la plateforme de gestion Clenzy - Forfait " + dto.getForfaitDisplayName())
+                                                                .setName("Clenzy - Abonnement plateforme" + (isSyncMode ? " + Synchro auto" : ""))
+                                                                .setDescription(billingDescription + " a la plateforme de gestion Clenzy - Forfait " + dto.getForfaitDisplayName() + (isSyncMode ? " (avec synchronisation calendrier automatique)" : ""))
                                                                 .build()
                                                 )
                                                 .build()
@@ -167,6 +181,7 @@ public class InscriptionService {
         pending.setPassword(dto.getPassword()); // Stocke en clair, sera passe a Keycloak lors de la finalisation
         pending.setPhoneNumber(dto.getPhone());
         pending.setCompanyName(dto.getCompanyName());
+        pending.setOrganizationType(orgType.name());
         pending.setForfait(dto.getForfait());
         pending.setCity(dto.getCity());
         pending.setPostalCode(dto.getPostalCode());
@@ -194,10 +209,16 @@ public class InscriptionService {
 
         logger.info("Inscription en attente creee pour {}, session Stripe: {}", dto.getEmail(), session.getId());
 
-        return Map.of(
-                "checkoutUrl", session.getUrl(),
-                "sessionId", session.getId()
-        );
+        // Retourner le clientSecret + les prix reels pour affichage coherent dans le frontend
+        int monthlyPriceCents = period.computeMonthlyPriceCents(priceInCents);
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("clientSecret", session.getClientSecret());
+        result.put("sessionId", session.getId());
+        result.put("pmsBaseCents", priceInCents);
+        result.put("monthlyPriceCents", monthlyPriceCents);
+        result.put("stripePriceAmount", stripePriceAmount);
+        result.put("billingPeriod", period.name());
+        return result;
     }
 
     /**
@@ -268,12 +289,21 @@ public class InscriptionService {
             userRepository.save(user);
             logger.info("Utilisateur DB cree avec ID: {} pour email: {}, subscription: {}", user.getId(), user.getEmail(), stripeSubscriptionId);
 
-            // 2b. Creer l'organisation (INDIVIDUAL par defaut) + membership OWNER
+            // 2b. Creer l'organisation selon le type choisi + membership OWNER
+            OrganizationType completionOrgType = OrganizationType.INDIVIDUAL;
+            if (pending.getOrganizationType() != null && !pending.getOrganizationType().isBlank()) {
+                try {
+                    completionOrgType = OrganizationType.valueOf(pending.getOrganizationType());
+                } catch (IllegalArgumentException e) {
+                    logger.warn("Type d'organisation inconnu '{}', fallback sur INDIVIDUAL", pending.getOrganizationType());
+                }
+            }
+
             String orgName = pending.getCompanyName() != null && !pending.getCompanyName().isBlank()
                     ? pending.getCompanyName()
                     : pending.getFirstName() + " " + pending.getLastName();
             organizationService.createForUserWithBilling(
-                    user, orgName, OrganizationType.INDIVIDUAL,
+                    user, orgName, completionOrgType,
                     stripeCustomerId, stripeSubscriptionId, pending.getForfait(),
                     pending.getBillingPeriod());
             logger.info("Organisation creee pour l'utilisateur: {}", user.getEmail());

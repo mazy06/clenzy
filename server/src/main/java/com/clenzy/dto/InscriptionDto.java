@@ -1,6 +1,7 @@
 package com.clenzy.dto;
 
 import com.clenzy.model.BillingPeriod;
+import com.clenzy.model.OrganizationType;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -24,6 +25,8 @@ public class InscriptionDto {
     private String phone;
 
     private String companyName;
+
+    private String organizationType; // INDIVIDUAL, CONCIERGE, CLEANING_COMPANY
 
     @NotBlank(message = "Le mot de passe est requis")
     @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caracteres")
@@ -64,6 +67,23 @@ public class InscriptionDto {
 
     public String getCompanyName() { return companyName; }
     public void setCompanyName(String companyName) { this.companyName = companyName; }
+
+    public String getOrganizationType() { return organizationType; }
+    public void setOrganizationType(String organizationType) { this.organizationType = organizationType; }
+
+    /**
+     * Retourne le OrganizationType depuis la string, INDIVIDUAL par defaut.
+     */
+    public OrganizationType getOrganizationTypeEnum() {
+        if (organizationType == null || organizationType.isBlank()) {
+            return OrganizationType.INDIVIDUAL;
+        }
+        try {
+            return OrganizationType.valueOf(organizationType);
+        } catch (IllegalArgumentException e) {
+            return OrganizationType.INDIVIDUAL;
+        }
+    }
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }

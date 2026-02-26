@@ -36,6 +36,9 @@ public class PendingInscription {
     @Column(name = "company_name")
     private String companyName;
 
+    @Column(name = "organization_type", length = 30)
+    private String organizationType = "INDIVIDUAL";
+
     @Column(nullable = false)
     private String forfait;
 
@@ -115,6 +118,9 @@ public class PendingInscription {
 
     public String getCompanyName() { return companyName; }
     public void setCompanyName(String companyName) { this.companyName = companyName; }
+
+    public String getOrganizationType() { return organizationType; }
+    public void setOrganizationType(String organizationType) { this.organizationType = organizationType; }
 
     public String getForfait() { return forfait; }
     public void setForfait(String forfait) { this.forfait = forfait; }
