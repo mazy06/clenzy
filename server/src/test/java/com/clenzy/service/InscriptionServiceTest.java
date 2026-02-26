@@ -33,6 +33,7 @@ class InscriptionServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private KeycloakService keycloakService;
     @Mock private OrganizationService organizationService;
+    @Mock private PricingConfigService pricingConfigService;
 
     private InscriptionService inscriptionService;
 
@@ -40,12 +41,11 @@ class InscriptionServiceTest {
     void setUp() throws Exception {
         inscriptionService = new InscriptionService(
                 pendingInscriptionRepository, userRepository,
-                keycloakService, organizationService);
+                keycloakService, organizationService, pricingConfigService);
 
         setField(inscriptionService, "stripeSecretKey", "sk_test_dummy");
         setField(inscriptionService, "currency", "EUR");
-        setField(inscriptionService, "inscriptionSuccessUrl", "http://localhost:3000/login?inscription=success");
-        setField(inscriptionService, "inscriptionCancelUrl", "http://localhost:3000/inscription?payment=cancelled");
+        setField(inscriptionService, "inscriptionReturnUrl", "http://localhost:3000/inscription/success");
     }
 
     private void setField(Object target, String fieldName, Object value) throws Exception {
@@ -108,6 +108,7 @@ class InscriptionServiceTest {
 
             String emailHash = StringUtils.computeEmailHash("jean@test.com");
             when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
+            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3000);
 
             PendingInscription existing = buildPending("jean@test.com", "old-sess");
             when(pendingInscriptionRepository.findByEmailAndStatus("jean@test.com", PendingInscriptionStatus.PENDING_PAYMENT))
@@ -120,6 +121,109 @@ class InscriptionServiceTest {
 
             // The existing pending inscription should have been deleted before the Stripe call
             verify(pendingInscriptionRepository).delete(existing);
+        }
+
+        @Test
+        @DisplayName("when calendarSync is sync then uses sync price from PricingConfig")
+        void whenSyncMode_thenUsesSyncPrice() {
+            // Arrange
+            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
+            dto.setFullName("Jean Dupont");
+            dto.setEmail("sync@test.com");
+            dto.setPassword("Passw0rd!");
+            dto.setForfait("premium");
+            dto.setBillingPeriod("MONTHLY");
+            dto.setCalendarSync("sync");
+
+            String emailHash = StringUtils.computeEmailHash("sync@test.com");
+            when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
+            when(pricingConfigService.getPmsSyncPriceCents()).thenReturn(5000);
+
+            when(pendingInscriptionRepository.findByEmailAndStatus("sync@test.com", PendingInscriptionStatus.PENDING_PAYMENT))
+                    .thenReturn(Optional.empty());
+
+            // Stripe will fail but we verify the correct price method is called
+            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
+                    .isInstanceOf(Exception.class);
+
+            // Verify sync price was used, not monthly
+            verify(pricingConfigService).getPmsSyncPriceCents();
+            verify(pricingConfigService, never()).getPmsMonthlyPriceCents();
+        }
+
+        @Test
+        @DisplayName("when calendarSync is not sync then uses monthly price from PricingConfig")
+        void whenNonSyncMode_thenUsesMonthlyPrice() {
+            // Arrange
+            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
+            dto.setFullName("Jean Dupont");
+            dto.setEmail("nosync@test.com");
+            dto.setPassword("Passw0rd!");
+            dto.setForfait("essentiel");
+            dto.setBillingPeriod("MONTHLY");
+            dto.setCalendarSync("manuel");
+
+            String emailHash = StringUtils.computeEmailHash("nosync@test.com");
+            when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
+            when(pricingConfigService.getPmsMonthlyPriceCents()).thenReturn(3500);
+
+            when(pendingInscriptionRepository.findByEmailAndStatus("nosync@test.com", PendingInscriptionStatus.PENDING_PAYMENT))
+                    .thenReturn(Optional.empty());
+
+            // Stripe will fail but we verify the correct price method is called
+            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
+                    .isInstanceOf(Exception.class);
+
+            // Verify monthly price was used, not sync
+            verify(pricingConfigService).getPmsMonthlyPriceCents();
+            verify(pricingConfigService, never()).getPmsSyncPriceCents();
+        }
+
+        @Test
+        @DisplayName("when organizationType is SYSTEM then throws RuntimeException")
+        void whenSystemOrgType_thenThrows() {
+            // Arrange
+            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
+            dto.setFullName("Jean Dupont");
+            dto.setEmail("system@test.com");
+            dto.setPassword("Passw0rd!");
+            dto.setForfait("essentiel");
+            dto.setBillingPeriod("MONTHLY");
+            dto.setOrganizationType("SYSTEM");
+
+            String emailHash = StringUtils.computeEmailHash("system@test.com");
+            when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
+            when(pendingInscriptionRepository.findByEmailAndStatus("system@test.com", PendingInscriptionStatus.PENDING_PAYMENT))
+                    .thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("non autorise");
+        }
+
+        @Test
+        @DisplayName("when pro org type without companyName then throws RuntimeException")
+        void whenProTypeWithoutCompanyName_thenThrows() {
+            // Arrange
+            com.clenzy.dto.InscriptionDto dto = new com.clenzy.dto.InscriptionDto();
+            dto.setFullName("Jean Dupont");
+            dto.setEmail("prononame@test.com");
+            dto.setPassword("Passw0rd!");
+            dto.setForfait("essentiel");
+            dto.setBillingPeriod("MONTHLY");
+            dto.setOrganizationType("CONCIERGE");
+            dto.setCompanyName(""); // vide
+
+            String emailHash = StringUtils.computeEmailHash("prononame@test.com");
+            when(userRepository.existsByEmailHash(emailHash)).thenReturn(false);
+            when(pendingInscriptionRepository.findByEmailAndStatus("prononame@test.com", PendingInscriptionStatus.PENDING_PAYMENT))
+                    .thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> inscriptionService.initiateInscription(dto))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("nom de la societe");
         }
 
         @Test
@@ -291,6 +395,80 @@ class InscriptionServiceTest {
             verify(organizationService).createForUserWithBilling(
                     any(User.class), eq("Clenzy Corp"), eq(OrganizationType.INDIVIDUAL),
                     eq("cus_c"), eq("sub_c"), eq("essentiel"), eq("MONTHLY"));
+        }
+
+        @Test
+        @DisplayName("when organizationType is CONCIERGE then creates org with CONCIERGE type")
+        void whenConciergeType_thenCreatesOrgWithConciergeType() {
+            // Arrange
+            PendingInscription pending = buildPending("concierge@test.com", "sess_conc");
+            pending.setCompanyName("Super Conciergerie");
+            pending.setOrganizationType("CONCIERGE");
+            when(pendingInscriptionRepository.findByStripeSessionId("sess_conc"))
+                    .thenReturn(Optional.of(pending));
+            when(keycloakService.createUser(any())).thenReturn("kc-conc");
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+                User u = inv.getArgument(0);
+                u.setId(60L);
+                return u;
+            });
+
+            // Act
+            inscriptionService.completeInscription("sess_conc", "cus_conc", "sub_conc");
+
+            // Assert
+            verify(organizationService).createForUserWithBilling(
+                    any(User.class), eq("Super Conciergerie"), eq(OrganizationType.CONCIERGE),
+                    eq("cus_conc"), eq("sub_conc"), eq("essentiel"), eq("MONTHLY"));
+        }
+
+        @Test
+        @DisplayName("when organizationType is CLEANING_COMPANY then creates org with that type")
+        void whenCleaningCompanyType_thenCreatesOrgWithCleaningType() {
+            // Arrange
+            PendingInscription pending = buildPending("cleaning@test.com", "sess_clean");
+            pending.setCompanyName("CleanPro SARL");
+            pending.setOrganizationType("CLEANING_COMPANY");
+            when(pendingInscriptionRepository.findByStripeSessionId("sess_clean"))
+                    .thenReturn(Optional.of(pending));
+            when(keycloakService.createUser(any())).thenReturn("kc-clean");
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+                User u = inv.getArgument(0);
+                u.setId(61L);
+                return u;
+            });
+
+            // Act
+            inscriptionService.completeInscription("sess_clean", "cus_clean", "sub_clean");
+
+            // Assert
+            verify(organizationService).createForUserWithBilling(
+                    any(User.class), eq("CleanPro SARL"), eq(OrganizationType.CLEANING_COMPANY),
+                    eq("cus_clean"), eq("sub_clean"), eq("essentiel"), eq("MONTHLY"));
+        }
+
+        @Test
+        @DisplayName("when organizationType is null then defaults to INDIVIDUAL (backward compat)")
+        void whenOrgTypeNull_thenDefaultsToIndividual() {
+            // Arrange
+            PendingInscription pending = buildPending("legacy@test.com", "sess_legacy");
+            pending.setOrganizationType(null); // Simulates old rows before migration
+            when(pendingInscriptionRepository.findByStripeSessionId("sess_legacy"))
+                    .thenReturn(Optional.of(pending));
+            when(keycloakService.createUser(any())).thenReturn("kc-legacy");
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+                User u = inv.getArgument(0);
+                u.setId(70L);
+                return u;
+            });
+
+            // Act
+            inscriptionService.completeInscription("sess_legacy", "cus_leg", "sub_leg");
+
+            // Assert
+            verify(organizationService).createForUserWithBilling(
+                    any(User.class), anyString(), eq(OrganizationType.INDIVIDUAL),
+                    eq("cus_leg"), eq("sub_leg"), eq("essentiel"), eq("MONTHLY"));
         }
 
         @Test
