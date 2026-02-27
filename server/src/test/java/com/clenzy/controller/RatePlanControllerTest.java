@@ -54,12 +54,13 @@ class RatePlanControllerTest {
         Property property = mock(Property.class);
         when(property.getOrganizationId()).thenReturn(1L);
         User owner = mock(User.class);
+        when(owner.getId()).thenReturn(1L);
         when(owner.getKeycloakId()).thenReturn("user-123");
         when(property.getOwner()).thenReturn(owner);
         when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
         when(tenantContext.isSuperAdmin()).thenReturn(false);
-        when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.empty());
+        when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(owner));
     }
 
     @Nested
