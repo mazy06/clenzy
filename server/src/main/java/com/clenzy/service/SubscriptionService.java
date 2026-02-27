@@ -35,6 +35,7 @@ public class SubscriptionService {
 
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
+    private final PricingConfigService pricingConfigService;
 
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
@@ -45,9 +46,11 @@ public class SubscriptionService {
     @Value("${FRONTEND_URL:http://localhost:3000}")
     private String frontendUrl;
 
-    public SubscriptionService(UserRepository userRepository, AuditLogService auditLogService) {
+    public SubscriptionService(UserRepository userRepository, AuditLogService auditLogService,
+                               PricingConfigService pricingConfigService) {
         this.userRepository = userRepository;
         this.auditLogService = auditLogService;
+        this.pricingConfigService = pricingConfigService;
     }
 
     /**
@@ -79,8 +82,8 @@ public class SubscriptionService {
 
         log.info("Upgrade forfait demande pour user {} : {} -> {}", user.getEmail(), currentForfait, target);
 
-        // Prix PMS mensuel en centimes
-        int priceInCents = InscriptionDto.PMS_SUBSCRIPTION_PRICE_CENTS;
+        // Prix PMS mensuel en centimes (source unique : PricingConfig)
+        int priceInCents = pricingConfigService.getPmsMonthlyPriceCents();
 
         // Annuler l'ancien abonnement Stripe si existant
         if (user.getStripeSubscriptionId() != null && !user.getStripeSubscriptionId().isEmpty()) {

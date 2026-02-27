@@ -190,8 +190,9 @@ public class ReservationController {
         User user = userRepository.findByKeycloakId(keycloakId).orElse(null);
         if (user != null && user.getRole() != null && user.getRole().isPlatformStaff()) return;
 
-        if (property.getOwner() != null && property.getOwner().getKeycloakId() != null
-                && property.getOwner().getKeycloakId().equals(keycloakId)) return;
+        // Comparaison par ID (PK) pour eviter LazyInitializationException sur le proxy User
+        if (user != null && property.getOwner() != null
+                && property.getOwner().getId().equals(user.getId())) return;
 
         throw new AccessDeniedException("Acces refuse : vous n'etes pas proprietaire de cette propriete");
     }

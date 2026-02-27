@@ -61,6 +61,7 @@ class ReservationControllerTest {
         property.setId(1L);
         property.setOrganizationId(1L);
         User owner = new User();
+        owner.setId(1L);
         owner.setKeycloakId(ownerKeycloakId);
         property.setOwner(owner);
         return property;
@@ -150,6 +151,7 @@ class ReservationControllerTest {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
             when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
 
             Reservation saved = new Reservation();
             when(reservationService.save(any(Reservation.class))).thenReturn(saved);
@@ -176,6 +178,7 @@ class ReservationControllerTest {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
             when(tenantContext.isSuperAdmin()).thenReturn(false);
+            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
 
             Reservation cancelled = new Reservation();
             when(reservationService.cancel(1L)).thenReturn(cancelled);

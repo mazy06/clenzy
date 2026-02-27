@@ -29,18 +29,27 @@ class InscriptionControllerTest {
     @DisplayName("register")
     class Register {
         @Test
-        void whenSuccess_thenReturnsOk() throws Exception {
+        void whenSuccess_thenReturnsOkWithClientSecret() throws Exception {
             InscriptionDto dto = mock(InscriptionDto.class);
             when(dto.getEmail()).thenReturn("test@example.com");
-            Map<String, String> result = Map.of("checkoutUrl", "https://checkout.stripe.com/test", "sessionId", "cs_test");
+            Map<String, Object> result = new java.util.LinkedHashMap<>();
+            result.put("clientSecret", "cs_test_secret_abc123");
+            result.put("sessionId", "cs_test");
+            result.put("pmsBaseCents", 3000);
+            result.put("monthlyPriceCents", 1950);
+            result.put("stripePriceAmount", 23400L);
+            result.put("billingPeriod", "BIENNIAL");
             when(inscriptionService.initiateInscription(dto)).thenReturn(result);
 
             ResponseEntity<?> response = controller.register(dto);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             @SuppressWarnings("unchecked")
-            Map<String, String> body = (Map<String, String>) response.getBody();
-            assertThat(body.get("checkoutUrl")).isEqualTo("https://checkout.stripe.com/test");
+            Map<String, Object> body = (Map<String, Object>) response.getBody();
+            assertThat(body.get("clientSecret")).isEqualTo("cs_test_secret_abc123");
+            assertThat(body.get("sessionId")).isEqualTo("cs_test");
+            assertThat(body.get("pmsBaseCents")).isEqualTo(3000);
+            assertThat(body.get("monthlyPriceCents")).isEqualTo(1950);
         }
 
         @Test

@@ -35,10 +35,14 @@ function convertServiceRequest(req: ServiceRequestApiResponse): ServiceRequest {
         ? `${req.requestor.firstName} ${req.requestor.lastName}`
         : 'Demandeur inconnu',
     assignedToId: req.assignedToId || undefined,
-    assignedToName: req.assignedTo
-      ? `${req.assignedTo.firstName} ${req.assignedTo.lastName}`
-      : undefined,
-    assignedToType: (req.assignedToType || (req.assignedTo ? 'user' : undefined)) as
+    assignedToName: req.assignedToUser
+      ? `${req.assignedToUser.firstName} ${req.assignedToUser.lastName}`
+      : req.assignedToTeam
+        ? req.assignedToTeam.name
+        : req.assignedTo
+          ? `${req.assignedTo.firstName} ${req.assignedTo.lastName}`
+          : undefined,
+    assignedToType: (req.assignedToType || (req.assignedToUser ? 'user' : req.assignedToTeam ? 'team' : undefined)) as
       | 'user'
       | 'team'
       | undefined,

@@ -171,7 +171,7 @@ public class Property {
     private LocalDateTime updatedAt;
     
     // Relations
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
     

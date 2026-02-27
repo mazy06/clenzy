@@ -80,6 +80,8 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
            "(:type IS NULL OR i.type = :type) AND " +
            "(:status IS NULL OR i.status = :status) AND " +
            "(:priority IS NULL OR i.priority = :priority) AND " +
+           "(CAST(:startDate AS timestamp) IS NULL OR i.scheduledDate >= :startDate) AND " +
+           "(CAST(:endDate AS timestamp) IS NULL OR i.scheduledDate < :endDate) AND " +
            "i.organizationId = :orgId")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
@@ -89,7 +91,9 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
                                                 @Param("status") InterventionStatus status,
                                                 @Param("priority") String priority,
                                                 Pageable pageable,
-                                                @Param("orgId") Long orgId);
+                                                @Param("orgId") Long orgId,
+                                                @Param("startDate") LocalDateTime startDate,
+                                                @Param("endDate") LocalDateTime endDate);
 
     /**
      * Trouver les interventions assignées à un utilisateur (individuellement ou via une équipe)
@@ -102,7 +106,9 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
            "(:type IS NULL OR i.type = :type) AND " +
            "(:status IS NULL OR i.status = :status) AND " +
            "(:priority IS NULL OR i.priority = :priority) AND " +
-           "i.organizationId = :orgId")
+           "(CAST(:startDate AS timestamp) IS NULL OR i.scheduledDate >= :startDate) AND " +
+           "(CAST(:endDate AS timestamp) IS NULL OR i.scheduledDate < :endDate) AND " +
+           "(:orgId IS NULL OR i.organizationId = :orgId)")
     @QueryHints({
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
@@ -112,7 +118,9 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
                                                           @Param("status") InterventionStatus status,
                                                           @Param("priority") String priority,
                                                           Pageable pageable,
-                                                          @Param("orgId") Long orgId);
+                                                          @Param("orgId") Long orgId,
+                                                          @Param("startDate") LocalDateTime startDate,
+                                                          @Param("endDate") LocalDateTime endDate);
 
     /**
      * Requêtes de comptage optimisées

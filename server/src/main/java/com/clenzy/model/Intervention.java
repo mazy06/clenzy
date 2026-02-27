@@ -1,6 +1,8 @@
 package com.clenzy.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -22,10 +24,13 @@ public class Intervention {
     @Column(name = "organization_id")
     private Long organizationId;
 
-    @Column(nullable = false, length = 100)
+    @NotBlank(message = "Le titre de l'intervention est obligatoire")
+    @Size(max = 255, message = "Le titre ne peut pas dépasser 255 caractères")
+    @Column(nullable = false, length = 255)
     private String title;
-    
-    @Column(length = 500)
+
+    @Size(max = 500, message = "La description ne peut pas dépasser 500 caractères")
+    @Column(columnDefinition = "TEXT")
     private String description;
     
     @Column(nullable = false, length = 50)

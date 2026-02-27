@@ -12,13 +12,30 @@ import {
   Stepper,
   Step,
   StepLabel,
+  StepIconProps,
   Chip,
   Divider,
   ToggleButtonGroup,
   ToggleButton,
+  ThemeProvider,
+  CssBaseline,
+  Card,
+  CardContent,
 } from '@mui/material';
+import {
+  ShoppingCart as CartIcon,
+  CreditCard as CreditCardIcon,
+  CheckCircle as CheckCircleIcon,
+  PersonOutline as PersonIcon,
+  Payment as PaymentIcon,
+} from '@mui/icons-material';
+import { loadStripe } from '@stripe/stripe-js';
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
+import lightTheme from '../../theme/theme';
 import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 // Labels pour affichage
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
@@ -36,10 +53,20 @@ const FORFAIT_LABELS: Record<string, string> = {
   premium: 'Forfait Premium',
 };
 
-const FORFAIT_PRICES: Record<string, string> = {
-  essentiel: 'Interventions a partir de 35€',
-  confort: 'Interventions a partir de 55€',
-  premium: 'Interventions a partir de 80€',
+// Types d'organisation
+type OrganizationTypeKey = 'INDIVIDUAL' | 'CONCIERGE' | 'CLEANING_COMPANY';
+
+const ORG_TYPE_LABELS: Record<OrganizationTypeKey, string> = {
+  INDIVIDUAL: 'Particulier',
+  CONCIERGE: 'Conciergerie',
+  CLEANING_COMPANY: 'Societe de menage',
+};
+
+/** Prix de base par forfait (aligné avec la landing page) */
+const FORFAIT_BASE_PRICES: Record<string, number> = {
+  essentiel: 50,
+  confort: 75,
+  premium: 100,
 };
 
 type BillingPeriod = 'MONTHLY' | 'ANNUAL' | 'BIENNIAL';
@@ -62,19 +89,35 @@ const BILLING_PERIOD_MONTHS: Record<BillingPeriod, number> = {
   BIENNIAL: 24,
 };
 
-const DEFAULT_PMS_MONTHLY_CENTS = 3000; // 30€/mois fallback
+// Plus de fallback hardcodé — les prix sont toujours chargés depuis l'API /pricing-info
 
-function getPmsDisplayPrice(period: BillingPeriod, baseCents: number): string {
-  const monthlyCents = Math.round(baseCents * BILLING_PERIOD_DISCOUNT[period]);
-  const monthly = (monthlyCents / 100).toFixed(0);
-  return `${monthly}€ / mois`;
+/** Formate un montant en centimes en euros (ex: 2275 → "22,75€", 3000 → "30€") */
+function formatCents(cents: number): string {
+  const euros = cents / 100;
+  return euros % 1 === 0 ? `${euros.toFixed(0)}€` : `${euros.toFixed(2).replace('.', ',')}€`;
 }
 
-function getPmsFirstPayment(period: BillingPeriod, baseCents: number): string {
+function getPmsDisplayPrice(period: BillingPeriod, baseCents: number | null): string {
+  if (baseCents === null) return '…';
   const monthlyCents = Math.round(baseCents * BILLING_PERIOD_DISCOUNT[period]);
-  if (period === 'MONTHLY') return `${(monthlyCents / 100).toFixed(0)}€`;
-  const total = (monthlyCents * 12 / 100).toFixed(0);
-  return `${total}€ / an`;
+  return `${formatCents(monthlyCents)} / mois`;
+}
+
+function getPmsFirstPayment(period: BillingPeriod, baseCents: number | null): string {
+  if (baseCents === null) return '…';
+  const monthlyCents = Math.round(baseCents * BILLING_PERIOD_DISCOUNT[period]);
+  if (period === 'MONTHLY') return formatCents(monthlyCents);
+  const totalCents = monthlyCents * 12;
+  return `${formatCents(totalCents)} / an`;
+}
+
+/** Libellé prix intervention : utilise le prix transmis par la landing page, sinon le prix de base */
+function getInterventionPriceLabel(forfait: string, interventionPrice?: string): string {
+  const price = interventionPrice
+    ? parseInt(interventionPrice, 10)
+    : FORFAIT_BASE_PRICES[forfait];
+  if (!price) return '';
+  return `Interventions a partir de ${price}€`;
 }
 
 const FORFAIT_COLORS: Record<string, string> = {
@@ -83,11 +126,46 @@ const FORFAIT_COLORS: Record<string, string> = {
   premium: '#5A7684',
 };
 
-const steps = ['Vos informations', 'Votre mot de passe'];
+const steps = ['Vos informations', 'Paiement'];
+
+const STEP_ICONS: Record<number, React.ReactElement> = {
+  1: <PersonIcon />,
+  2: <PaymentIcon />,
+};
+
+function CustomStepIcon(props: StepIconProps) {
+  const { active, completed, icon } = props;
+  return (
+    <Box
+      sx={{
+        width: 36,
+        height: 36,
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: completed
+          ? '#6B8A9A'
+          : active
+            ? '#5A7684'
+            : 'grey.300',
+        color: '#fff',
+        transition: 'all 0.3s ease',
+        '& .MuiSvgIcon-root': { fontSize: 18 },
+      }}
+    >
+      {completed ? <CheckCircleIcon sx={{ fontSize: 20 }} /> : STEP_ICONS[icon as number]}
+    </Box>
+  );
+}
 
 interface InscriptionResponse {
-  checkoutUrl: string;
+  clientSecret: string;
   sessionId: string;
+  pmsBaseCents?: number;
+  monthlyPriceCents?: number;
+  stripePriceAmount?: number;
+  billingPeriod?: string;
 }
 
 export default function Inscription() {
@@ -98,6 +176,7 @@ export default function Inscription() {
   const prefill = useMemo(() => ({
     forfait: searchParams.get('forfait') || '',
     billingPeriod: (searchParams.get('billingPeriod') || 'MONTHLY').toUpperCase() as BillingPeriod,
+    interventionPrice: searchParams.get('interventionPrice') || '',
     email: searchParams.get('email') || '',
     fullName: searchParams.get('fullName') || '',
     phone: searchParams.get('phone') || '',
@@ -127,22 +206,34 @@ export default function Inscription() {
   const [email, setEmail] = useState(prefill.email);
   const [phone, setPhone] = useState(prefill.phone);
   const [companyName, setCompanyName] = useState('');
+  const [organizationType, setOrganizationType] = useState<OrganizationTypeKey>('INDIVIDUAL');
+  const isProType = organizationType !== 'INDIVIDUAL';
   const [forfait, setForfait] = useState(prefill.forfait || 'essentiel');
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>(
     (['MONTHLY', 'ANNUAL', 'BIENNIAL'].includes(prefill.billingPeriod) ? prefill.billingPeriod : 'MONTHLY') as BillingPeriod
   );
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // Prix PMS charges depuis l'API (pas de fallback — toujours depuis /pricing-info)
+  const [pmsMonthlyPriceCents, setPmsMonthlyPriceCents] = useState<number | null>(null);
+  const [pmsSyncPriceCents, setPmsSyncPriceCents] = useState<number | null>(null);
 
-  // Prix PMS charge depuis l'API
-  const [pmsBaseCents, setPmsBaseCents] = useState(DEFAULT_PMS_MONTHLY_CENTS);
+  // Determiner si l'utilisateur a choisi la synchronisation calendrier (venant de la landing page)
+  const isSyncMode = prefill.calendarSync === 'sync';
+
+  // Prix de base effectif selon le mode (sync ou standard)
+  const pmsBaseCents = isSyncMode ? pmsSyncPriceCents : pmsMonthlyPriceCents;
 
   useEffect(() => {
-    fetch('/api/public/pricing-info')
-      .then((r) => r.json())
+    apiClient
+      .get<{ pmsMonthlyPriceCents?: number; pmsSyncPriceCents?: number }>(
+        '/public/pricing-info',
+        { skipAuth: true },
+      )
       .then((data) => {
         if (data.pmsMonthlyPriceCents) {
-          setPmsBaseCents(data.pmsMonthlyPriceCents);
+          setPmsMonthlyPriceCents(data.pmsMonthlyPriceCents);
+        }
+        if (data.pmsSyncPriceCents) {
+          setPmsSyncPriceCents(data.pmsSyncPriceCents);
         }
       })
       .catch(() => {});
@@ -151,6 +242,9 @@ export default function Inscription() {
   // Etats
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  // Prix confirmes par le backend (utilises dans le recap Step 3 pour coherence avec Stripe)
+  const [confirmedPmsBaseCents, setConfirmedPmsBaseCents] = useState<number | null>(null);
 
   // Afficher le message d'annulation si retour de Stripe
   useEffect(() => {
@@ -166,11 +260,8 @@ export default function Inscription() {
     const emailOk = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/.test(email);
     const phoneDigits = phone.replace(/[\s.\-]/g, '');
     const phoneOk = !phone.trim() || /^(?:(?:\+33|0033)[1-9]\d{8}|0[1-9]\d{8})$/.test(phoneDigits);
-    return nameOk && emailOk && phoneOk && !!forfait;
-  };
-
-  const isStep2Valid = () => {
-    return password.length >= 8 && password === confirmPassword;
+    const companyOk = !isProType || companyName.trim().length > 0;
+    return nameOk && emailOk && phoneOk && !!forfait && companyOk;
   };
 
   const handleNext = () => {
@@ -179,20 +270,8 @@ export default function Inscription() {
       setError('Veuillez remplir correctement tous les champs obligatoires.');
       return;
     }
-    if (activeStep === 1 && !isStep2Valid()) {
-      if (password.length < 8) {
-        setError('Le mot de passe doit contenir au moins 8 caracteres.');
-      } else {
-        setError('Les mots de passe ne correspondent pas.');
-      }
-      return;
-    }
-    setActiveStep((prev) => prev + 1);
-  };
-
-  const handleBack = () => {
-    setError(null);
-    setActiveStep((prev) => prev - 1);
+    // Step 0 valide → soumettre le formulaire et passer au paiement
+    handleSubmit();
   };
 
   const handleSubmit = async () => {
@@ -200,12 +279,15 @@ export default function Inscription() {
     setLoading(true);
 
     try {
+      // Stocker l'email pour la page InscriptionSuccess (renvoi d'email)
+      sessionStorage.setItem('inscription_email', email);
+
       const response = await apiClient.post<InscriptionResponse>('/public/inscription', {
         fullName,
         email,
         phone,
-        companyName,
-        password,
+        companyName: isProType ? companyName : undefined,
+        organizationType,
         forfait,
         billingPeriod,
         city: prefill.city,
@@ -221,15 +303,14 @@ export default function Inscription() {
         servicesDevis: prefill.servicesDevis ? prefill.servicesDevis.split(',') : undefined,
       }, { skipAuth: true });
 
-      // Rediriger vers Stripe Checkout (meme onglet)
-      if (response.checkoutUrl) {
-        // Creer un lien temporaire et cliquer dessus pour garantir la navigation dans le meme onglet
-        const link = document.createElement('a');
-        link.href = response.checkoutUrl;
-        link.rel = 'noopener';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      // Stocker le clientSecret + prix confirmes et passer au step Paiement
+      if (response.clientSecret) {
+        setClientSecret(response.clientSecret);
+        // Utiliser le prix reel du backend pour le recap (coherence avec Stripe)
+        if (response.pmsBaseCents) {
+          setConfirmedPmsBaseCents(response.pmsBaseCents);
+        }
+        setActiveStep(1);
       } else {
         setError('Erreur lors de la creation de la session de paiement.');
       }
@@ -248,6 +329,8 @@ export default function Inscription() {
   };
 
   return (
+    <ThemeProvider theme={lightTheme}>
+      <CssBaseline />
     <Box sx={{
       minHeight: '100vh',
       display: 'flex',
@@ -259,11 +342,12 @@ export default function Inscription() {
       <Paper elevation={8} sx={{
         p: { xs: 3, sm: 4 },
         width: '100%',
-        maxWidth: 640,
+        maxWidth: activeStep === 1 ? 960 : 640,
         borderRadius: 3,
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(10px)',
         border: '1px solid rgba(255, 255, 255, 0.2)',
+        transition: 'max-width 0.3s ease',
       }}>
         {/* Logo animé */}
         <Box sx={{ textAlign: 'center', mb: 2 }}>
@@ -284,16 +368,43 @@ export default function Inscription() {
               }}
             />
             <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
-              {FORFAIT_PRICES[prefill.forfait] || ''} | Plateforme : {getPmsDisplayPrice(billingPeriod, pmsBaseCents)}
+              {getInterventionPriceLabel(prefill.forfait, prefill.interventionPrice)} | Plateforme{isSyncMode ? ' + Synchro' : ''} : {getPmsDisplayPrice(billingPeriod, pmsBaseCents)}
             </Typography>
           </Box>
         )}
 
         {/* Stepper */}
         <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 3 }}>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
+          {steps.map((label, index) => (
+            <Step
+              key={label}
+              completed={activeStep > index}
+              sx={{
+                cursor: activeStep > index && activeStep !== 1 ? 'pointer' : 'default',
+                '&:hover .MuiStepLabel-label': activeStep > index && activeStep !== 1
+                  ? { color: '#5A7684' }
+                  : {},
+              }}
+              onClick={() => {
+                // Permettre de revenir aux etapes precedentes (sauf depuis le paiement Stripe)
+                if (index < activeStep && activeStep !== 1) {
+                  setError(null);
+                  setActiveStep(index);
+                }
+              }}
+            >
+              <StepLabel
+                StepIconComponent={CustomStepIcon}
+                sx={{
+                  '& .MuiStepLabel-label': {
+                    fontSize: '0.78rem',
+                    fontWeight: activeStep === index ? 600 : 400,
+                    transition: 'all 0.2s ease',
+                  },
+                }}
+              >
+                {label}
+              </StepLabel>
             </Step>
           ))}
         </Stepper>
@@ -336,16 +447,51 @@ export default function Inscription() {
                 placeholder="07 66 72 91 09"
                 helperText="Optionnel"
               />
+            </Box>
+
+            {/* Selection du type d'organisation */}
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5, display: 'block' }}>
+                Vous etes
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                {(['INDIVIDUAL', 'CONCIERGE', 'CLEANING_COMPANY'] as const).map((t) => (
+                  <Chip
+                    key={t}
+                    label={ORG_TYPE_LABELS[t]}
+                    clickable
+                    onClick={() => {
+                      setOrganizationType(t);
+                      if (t === 'INDIVIDUAL') setCompanyName('');
+                    }}
+                    sx={{
+                      backgroundColor: organizationType === t ? '#6B8A9A' : 'transparent',
+                      color: organizationType === t ? '#fff' : 'text.primary',
+                      fontWeight: organizationType === t ? 600 : 400,
+                      border: '1px solid',
+                      borderColor: organizationType === t ? 'transparent' : 'grey.300',
+                      '&:hover': {
+                        backgroundColor: organizationType === t ? '#6B8A9A' : 'grey.100',
+                      },
+                    }}
+                  />
+                ))}
+              </Stack>
+            </Box>
+
+            {/* Nom de la societe (conditionnel, requis pour type pro) */}
+            {isProType && (
               <TextField
                 fullWidth
                 size="small"
-                label="Nom de la societe"
+                label="Nom de la societe *"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Ma Societe SARL"
-                helperText="Optionnel"
+                error={isProType && companyName.trim() === ''}
+                helperText="Requis pour les conciergeries et societes de menage"
               />
-            </Box>
+            )}
 
             {/* Selection du forfait si non pre-rempli */}
             {!prefill.forfait && (
@@ -376,7 +522,7 @@ export default function Inscription() {
                 </Stack>
                 {forfait && (
                   <Typography variant="caption" color="text.secondary">
-                    {FORFAIT_PRICES[forfait] || ''}
+                    {getInterventionPriceLabel(forfait)}
                   </Typography>
                 )}
               </>
@@ -409,9 +555,9 @@ export default function Inscription() {
             </ToggleButtonGroup>
             <Typography variant="caption" color="text.secondary">
               Plateforme : {getPmsDisplayPrice(billingPeriod, pmsBaseCents)}
-              {billingPeriod !== 'MONTHLY' && (
+              {billingPeriod !== 'MONTHLY' && pmsBaseCents !== null && (
                 <Typography component="span" variant="caption" sx={{ ml: 0.5, textDecoration: 'line-through', color: 'text.disabled' }}>
-                  {(pmsBaseCents / 100).toFixed(0)}{'€'}/mois
+                  {formatCents(pmsBaseCents)}/mois
                 </Typography>
               )}
               {billingPeriod !== 'MONTHLY' && (
@@ -452,117 +598,148 @@ export default function Inscription() {
           </Stack>
         )}
 
-        {/* Etape 2 : Mot de passe */}
-        {activeStep === 1 && (
-          <Stack spacing={2}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Choisissez un mot de passe pour securiser votre compte.
-            </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Mot de passe *"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                helperText="Minimum 8 caracteres"
-              />
-              <TextField
-                fullWidth
-                size="small"
-                label="Confirmer le mot de passe *"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                error={confirmPassword.length > 0 && password !== confirmPassword}
-                helperText={
-                  confirmPassword.length > 0 && password !== confirmPassword
-                    ? 'Les mots de passe ne correspondent pas'
-                    : ''
-                }
-              />
+        {/* Etape 2 : Paiement Stripe Embedded Checkout */}
+        {activeStep === 1 && clientSecret && (
+          <Box sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: 3,
+          }}>
+            {/* Colonne gauche : Recapitulatif de la commande */}
+            <Box sx={{ flex: '0 0 320px', minWidth: 0 }}>
+              <Card sx={{
+                borderLeft: '4px solid #A6C0CE',
+                borderRadius: 2,
+                boxShadow: '0 1px 4px rgba(107,138,154,0.10)',
+              }}>
+                <CardContent sx={{ p: 2.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <Box sx={{
+                      width: 36, height: 36, borderRadius: '50%',
+                      bgcolor: 'rgba(166,192,206,0.15)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <CartIcon sx={{ fontSize: 18, color: '#6B8A9A' }} />
+                    </Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                      Recapitulatif
+                    </Typography>
+                  </Box>
+
+                  <Stack spacing={1.5}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                        Compte
+                      </Typography>
+                      <Typography variant="body2">{fullName}</Typography>
+                      <Typography variant="body2" color="text.secondary">{email}</Typography>
+                    </Box>
+
+                    <Divider />
+
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                        Forfait
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                        <Chip
+                          label={FORFAIT_LABELS[forfait] || forfait}
+                          size="small"
+                          sx={{
+                            backgroundColor: FORFAIT_COLORS[forfait] || '#6B8A9A',
+                            color: '#fff',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                          }}
+                        />
+                      </Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                        {getInterventionPriceLabel(forfait, prefill.interventionPrice)}
+                      </Typography>
+                    </Box>
+
+                    <Divider />
+
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                        Abonnement plateforme{isSyncMode ? ' + Synchro auto' : ''}
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#6B8A9A' }}>
+                        {getPmsDisplayPrice(billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Periode : {BILLING_PERIOD_LABELS[billingPeriod]}
+                      </Typography>
+                    </Box>
+
+                    <Divider />
+
+                    <Box sx={{
+                      p: 1.5, borderRadius: 1.5,
+                      bgcolor: 'rgba(166,192,206,0.08)',
+                      border: '1px solid rgba(166,192,206,0.2)',
+                    }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          Total a payer
+                        </Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 700, color: '#5A7684' }}>
+                          {getPmsFirstPayment(billingPeriod, confirmedPmsBaseCents ?? pmsBaseCents)}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Stack>
+
+                  <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <CheckCircleIcon sx={{ fontSize: 14, color: 'success.main' }} />
+                    <Typography variant="caption" color="text.secondary">
+                      Paiement securise via Stripe
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
             </Box>
 
-            {/* Recapitulatif */}
-            <Box sx={{
-              mt: 1, p: 2, borderRadius: 2,
-              backgroundColor: 'grey.50', border: '1px solid',
-              borderColor: 'grey.200',
-            }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', display: 'block', mb: 1 }}>
-                Recapitulatif
-              </Typography>
-              <Typography variant="body2"><strong>Nom :</strong> {fullName}</Typography>
-              <Typography variant="body2"><strong>Email :</strong> {email}</Typography>
-              {phone && <Typography variant="body2"><strong>Telephone :</strong> {phone}</Typography>}
-              {companyName && <Typography variant="body2"><strong>Societe :</strong> {companyName}</Typography>}
-              <Typography variant="body2">
-                <strong>Forfait :</strong> {FORFAIT_LABELS[forfait] || forfait}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Interventions :</strong> {FORFAIT_PRICES[forfait] || ''}
-              </Typography>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                <strong>Abonnement plateforme :</strong> {getPmsDisplayPrice(billingPeriod, pmsBaseCents)}
-                {billingPeriod !== 'MONTHLY' && (
-                  <Typography component="span" variant="body2" sx={{ ml: 0.5, color: 'success.main' }}>
-                    ({BILLING_PERIOD_LABELS[billingPeriod]})
-                  </Typography>
-                )}
-              </Typography>
-              {billingPeriod !== 'MONTHLY' && (
-                <Typography variant="caption" color="text.secondary">
-                  Facture : {getPmsFirstPayment(billingPeriod, pmsBaseCents)}
-                </Typography>
-              )}
+            {/* Colonne droite : Stripe Embedded Checkout */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Card sx={{
+                borderLeft: '4px solid #6B8A9A',
+                borderRadius: 2,
+                boxShadow: '0 1px 4px rgba(107,138,154,0.10)',
+                overflow: 'hidden',
+              }}>
+                <CardContent sx={{ p: 2.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <Box sx={{
+                      width: 36, height: 36, borderRadius: '50%',
+                      bgcolor: 'rgba(107,138,154,0.12)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <CreditCardIcon sx={{ fontSize: 18, color: '#6B8A9A' }} />
+                    </Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                      Paiement
+                    </Typography>
+                  </Box>
+                  <EmbeddedCheckoutProvider
+                    stripe={stripePromise}
+                    options={{ clientSecret }}
+                  >
+                    <EmbeddedCheckout />
+                  </EmbeddedCheckoutProvider>
+                </CardContent>
+              </Card>
             </Box>
-
-            <Alert severity="info" sx={{ mt: 1 }}>
-              <Typography variant="caption">
-                Pour activer votre compte, un paiement de <strong>{getPmsFirstPayment(billingPeriod, pmsBaseCents)}</strong> (abonnement plateforme {BILLING_PERIOD_LABELS[billingPeriod].toLowerCase()}) vous sera demande via Stripe. Les interventions seront facturees separement a l'utilisation.
-              </Typography>
-            </Alert>
-          </Stack>
+          </Box>
         )}
 
-        {/* Boutons de navigation */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-          <Button
-            disabled={activeStep === 0}
-            onClick={handleBack}
-            variant="outlined"
-            sx={{
-              visibility: activeStep === 0 ? 'hidden' : 'visible',
-              borderColor: 'grey.300',
-              color: 'text.secondary',
-              '&:hover': { borderColor: 'grey.400' },
-            }}
-          >
-            Retour
-          </Button>
-
-          {activeStep === 1 ? (
-            <Button
-              variant="contained"
-              onClick={handleSubmit}
-              disabled={loading || !isStep2Valid()}
-              sx={{
-                px: 4,
-                fontWeight: 600,
-                backgroundColor: 'secondary.main',
-                '&:hover': { backgroundColor: 'secondary.dark' },
-                borderRadius: 1.5,
-              }}
-            >
-              {loading ? <CircularProgress size={20} color="inherit" /> : `Payer ${getPmsFirstPayment(billingPeriod, pmsBaseCents)} et activer mon compte`}
-            </Button>
-          ) : (
+        {/* Bouton de navigation (cache a l'etape Paiement) */}
+        {activeStep === 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
             <Button
               variant="contained"
               onClick={handleNext}
-              disabled={!isStep1Valid()}
+              disabled={loading || !isStep1Valid()}
               sx={{
                 px: 4,
                 fontWeight: 600,
@@ -571,31 +748,34 @@ export default function Inscription() {
                 borderRadius: 1.5,
               }}
             >
-              Suivant
+              {loading ? <CircularProgress size={20} color="inherit" /> : 'Continuer vers le paiement'}
             </Button>
-          )}
-        </Box>
+          </Box>
+        )}
 
-        {/* Lien vers login */}
-        <Box sx={{ mt: 2, textAlign: 'center' }}>
-          <Typography variant="caption" color="text.secondary">
-            Deja un compte ?{' '}
-            <Typography
-              component="span"
-              variant="caption"
-              sx={{
-                color: 'secondary.main',
-                fontWeight: 600,
-                cursor: 'pointer',
-                '&:hover': { textDecoration: 'underline' },
-              }}
-              onClick={() => navigate('/login')}
-            >
-              Se connecter
+        {/* Lien vers login (cache a l'etape Paiement) */}
+        {activeStep === 0 && (
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Typography variant="caption" color="text.secondary">
+              Deja un compte ?{' '}
+              <Typography
+                component="span"
+                variant="caption"
+                sx={{
+                  color: 'secondary.main',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  '&:hover': { textDecoration: 'underline' },
+                }}
+                onClick={() => navigate('/login')}
+              >
+                Se connecter
+              </Typography>
             </Typography>
-          </Typography>
-        </Box>
+          </Box>
+        )}
       </Paper>
     </Box>
+    </ThemeProvider>
   );
 }

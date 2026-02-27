@@ -589,6 +589,67 @@ public class EmailService {
         };
     }
 
+    /**
+     * Envoie un email de confirmation d'inscription avec un lien pour creer le mot de passe.
+     */
+    public void sendInscriptionConfirmationEmail(String toEmail, String fullName, String confirmationLink, LocalDateTime expiresAt) {
+        try {
+            JavaMailSender ms = requireMailSender();
+            MimeMessage message = ms.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromAddress);
+            helper.setTo(toEmail);
+            helper.setSubject(sanitizeHeaderValue("Confirmez votre inscription Clenzy"));
+            helper.setText(buildInscriptionConfirmationHtml(fullName, confirmationLink, expiresAt), true);
+            ms.send(message);
+            log.info("Email de confirmation d'inscription envoye a {}", toEmail);
+        } catch (MessagingException e) {
+            log.error("Erreur d'envoi email de confirmation a {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi de l'email de confirmation", e);
+        } catch (Exception e) {
+            log.error("Erreur d'envoi email de confirmation a {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi de l'email de confirmation", e);
+        }
+    }
+
+    private String buildInscriptionConfirmationHtml(String fullName, String confirmationLink, LocalDateTime expiresAt) {
+        String safeName = StringUtils.escapeHtml(fullName);
+        String safeLink = StringUtils.escapeHtml(confirmationLink);
+        String expiresStr = expiresAt != null
+                ? expiresAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy a HH:mm"))
+                : "72 heures";
+
+        return "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>"
+                + "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;'>"
+                // Header — couleurs Clenzy
+                + "<div style='background:linear-gradient(135deg,#A6C0CE 0%,#6B8A9A 100%);padding:30px;border-radius:10px 10px 0 0;text-align:center;'>"
+                + "<h1 style='color:white;margin:0;font-size:24px;'>Bienvenue sur Clenzy !</h1>"
+                + "</div>"
+                // Body
+                + "<div style='background:#ffffff;padding:30px;border:1px solid #e2e8f0;'>"
+                + "<p style='font-size:16px;color:#334155;'>Bonjour " + safeName + ",</p>"
+                + "<p style='font-size:15px;color:#475569;'>Votre paiement a ete confirme avec succes. "
+                + "Pour finaliser votre inscription, cliquez sur le bouton ci-dessous afin de confirmer votre adresse email "
+                + "et creer votre mot de passe.</p>"
+                // CTA Button — gradient Clenzy
+                + "<div style='text-align:center;margin:30px 0;'>"
+                + "<a href='" + safeLink + "' style='display:inline-block;padding:14px 32px;"
+                + "background:linear-gradient(135deg,#A6C0CE 0%,#6B8A9A 100%);color:white;"
+                + "text-decoration:none;border-radius:8px;font-size:16px;font-weight:bold;'>"
+                + "Creer mon mot de passe</a>"
+                + "</div>"
+                + "<p style='font-size:13px;color:#94a3b8;'>Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :</p>"
+                + "<p style='font-size:12px;color:#6B8A9A;word-break:break-all;'>" + safeLink + "</p>"
+                + "</div>"
+                // Footer
+                + "<div style='background:#f8fafc;padding:20px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;text-align:center;'>"
+                + "<p style='margin:0;color:#94a3b8;font-size:12px;'>Ce lien expire le " + StringUtils.escapeHtml(expiresStr) + ".</p>"
+                + "<p style='margin:5px 0 0;color:#94a3b8;font-size:12px;'>Si vous n'avez pas demande cette inscription, vous pouvez ignorer ce message.</p>"
+                + "</div>"
+                + "</div></body></html>";
+    }
+
     private String buildContactHtmlBody(String toName, String replyToName, String messageText) {
         String safeToName = StringUtils.firstNonBlank(toName, "destinataire");
         String safeReplyToName = StringUtils.firstNonBlank(replyToName, "expediteur");

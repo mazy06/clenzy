@@ -50,10 +50,10 @@ public class NoiseDeviceService {
     // ─── CRUD ───────────────────────────────────────────────────
 
     /**
-     * Liste les capteurs de l'utilisateur.
+     * Liste les capteurs de l'organisation (le filtre Hibernate assure l'isolation).
      */
     public List<NoiseDeviceDto> getUserDevices(String userId) {
-        return noiseDeviceRepository.findByUserId(userId).stream()
+        return noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE).stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
@@ -99,10 +99,11 @@ public class NoiseDeviceService {
 
     /**
      * Recupere les donnees bruit d'un capteur specifique.
+     * Le filtre Hibernate organizationFilter assure l'isolation multi-tenant.
      */
     public List<NoiseDataPointDto> getNoiseData(String userId, Long deviceId,
                                                   String startAt, String endAt) {
-        NoiseDevice device = noiseDeviceRepository.findByIdAndUserId(deviceId, userId)
+        NoiseDevice device = noiseDeviceRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Capteur introuvable: " + deviceId));
 
         if (device.getExternalDeviceId() == null || device.getExternalDeviceId().isEmpty()) {
@@ -126,10 +127,12 @@ public class NoiseDeviceService {
     }
 
     /**
-     * Recupere les donnees bruit agregees de tous les capteurs de l'utilisateur.
+     * Recupere les donnees bruit agregees de tous les capteurs de l'organisation.
+     * Les capteurs sans donnees sont inclus avec currentLevel/averageLevel/maxLevel = -1
+     * pour indiquer l'absence de donnees (et non pas une fausse valeur 0).
      */
     public NoiseChartDataDto getAllNoiseData(String userId, String startAt, String endAt) {
-        List<NoiseDevice> devices = noiseDeviceRepository.findByUserIdAndStatus(userId, DeviceStatus.ACTIVE);
+        List<NoiseDevice> devices = noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE);
 
         List<NoiseChartDataDto.DeviceSummary> summaries = new ArrayList<>();
         Map<String, Map<String, Double>> timeSeriesMap = new LinkedHashMap<>();
@@ -150,6 +153,9 @@ public class NoiseDeviceService {
                     timeSeriesMap.computeIfAbsent(point.getTime(), k -> new LinkedHashMap<>())
                             .put(label, point.getDecibels());
                 }
+            } else {
+                // Capteur sans donnees : -1 signale "pas de lecture disponible"
+                summaries.add(new NoiseChartDataDto.DeviceSummary(label, -1, -1, -1));
             }
         }
 

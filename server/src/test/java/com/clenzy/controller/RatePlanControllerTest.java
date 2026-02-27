@@ -54,12 +54,12 @@ class RatePlanControllerTest {
         Property property = mock(Property.class);
         when(property.getOrganizationId()).thenReturn(1L);
         User owner = mock(User.class);
-        when(owner.getKeycloakId()).thenReturn("user-123");
+        when(owner.getId()).thenReturn(1L);
         when(property.getOwner()).thenReturn(owner);
         when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
         when(tenantContext.isSuperAdmin()).thenReturn(false);
-        when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.empty());
+        when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(owner));
     }
 
     @Nested
@@ -178,8 +178,7 @@ class RatePlanControllerTest {
             when(property.getId()).thenReturn(1L);
             when(property.getOrganizationId()).thenReturn(1L);
             User otherOwner = mock(User.class);
-            when(otherOwner.getKeycloakId()).thenReturn("other-user");
-            when(property.getOwner()).thenReturn(otherOwner);
+            lenient().when(property.getOwner()).thenReturn(otherOwner);
             RatePlan existing = mock(RatePlan.class);
             when(existing.getProperty()).thenReturn(property);
             when(ratePlanRepository.findById(10L)).thenReturn(Optional.of(existing));

@@ -29,4 +29,7 @@ public interface NoiseDeviceRepository extends JpaRepository<NoiseDevice, Long> 
     Optional<NoiseDevice> findByExternalDeviceId(String externalDeviceId);
 
     List<NoiseDevice> findByPropertyIdAndStatus(Long propertyId, DeviceStatus status);
+
+    /** Org-scoped : le filtre Hibernate organizationFilter assure l'isolation */
+    List<NoiseDevice> findByStatus(DeviceStatus status);
 }

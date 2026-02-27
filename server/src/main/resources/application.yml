@@ -108,6 +108,10 @@ resilience4j:
         baseConfig: default
         maxAttempts: 3
 
+# ─── Firebase Cloud Messaging ─────────────────────────────────────────────────
+firebase:
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+
 springdoc:
   api-docs:
     enabled: true

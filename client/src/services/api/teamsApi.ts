@@ -38,7 +38,7 @@ export interface TeamFormData {
   name: string;
   description: string;
   interventionType: string;
-  members: { userId: number; roleInTeam: string }[];
+  members: { userId: number; role: string }[];
   coverageZones?: CoverageZone[];
 }
 

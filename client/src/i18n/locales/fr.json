@@ -1866,6 +1866,50 @@
       "syncOff": "Synchronisation désactivée",
       "lastSync": "Dernière sync"
     },
+    "ota": {
+      "comingSoon": "Bientôt disponible",
+      "connected": "Connecté",
+      "disconnected": "Non connecté",
+      "booking": {
+        "description": "Synchronisez vos réservations Booking.com, calendrier et tarifs automatiquement."
+      },
+      "expedia": {
+        "description": "Synchronisez vos réservations Expedia, calendrier et tarifs automatiquement."
+      },
+      "hotels": {
+        "description": "Synchronisez vos réservations Hotels.com, calendrier et tarifs automatiquement."
+      },
+      "agoda": {
+        "description": "Synchronisez vos réservations Agoda, calendrier et tarifs automatiquement."
+      },
+      "tripcom": {
+        "description": "Synchronisez vos réservations Trip.com, calendrier et tarifs automatiquement."
+      },
+      "vrbo": {
+        "description": "Synchronisez vos réservations Vrbo, calendrier et tarifs automatiquement."
+      },
+      "abritel": {
+        "description": "Synchronisez vos réservations Abritel, calendrier et tarifs automatiquement."
+      },
+      "hometogo": {
+        "description": "Synchronisez vos réservations HomeToGo, calendrier et tarifs automatiquement."
+      },
+      "gathern": {
+        "description": "Synchronisez vos réservations Gathern.co, calendrier et tarifs automatiquement."
+      },
+      "rentelly": {
+        "description": "Synchronisez vos réservations Rentelly, calendrier et tarifs automatiquement."
+      },
+      "kease": {
+        "description": "Synchronisez vos réservations Kease.io, calendrier et tarifs automatiquement."
+      },
+      "stay": {
+        "description": "Synchronisez vos réservations Stay.sa, calendrier et tarifs automatiquement."
+      },
+      "mabeet": {
+        "description": "Synchronisez vos réservations Mabeet.sa, calendrier et tarifs automatiquement."
+      }
+    },
     "reviews": {
       "title": "Avis & Notes",
       "subtitle": "Consultez et répondez aux avis de vos voyageurs",
