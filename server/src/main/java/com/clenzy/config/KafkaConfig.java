@@ -57,6 +57,11 @@ public class KafkaConfig {
     public static final String TOPIC_MINUT_NOISE_EVENTS = "minut.noise.events";
     public static final String TOPIC_CALENDAR_UPDATES = "calendar.updates";
 
+    // ---- Expedia/VRBO topics ----
+    public static final String TOPIC_EXPEDIA_RESERVATIONS = "expedia.reservations.sync";
+    public static final String TOPIC_EXPEDIA_CALENDAR = "expedia.calendar.sync";
+    public static final String TOPIC_EXPEDIA_DLQ = "expedia.dlq";
+
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
 
@@ -205,6 +210,32 @@ public class KafkaConfig {
     public NewTopic calendarUpdatesTopic() {
         return TopicBuilder.name(TOPIC_CALENDAR_UPDATES)
                 .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    // ---- Expedia/VRBO topics ----
+
+    @Bean
+    public NewTopic expediaReservationsTopic() {
+        return TopicBuilder.name(TOPIC_EXPEDIA_RESERVATIONS)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic expediaCalendarTopic() {
+        return TopicBuilder.name(TOPIC_EXPEDIA_CALENDAR)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic expediaDlqTopic() {
+        return TopicBuilder.name(TOPIC_EXPEDIA_DLQ)
+                .partitions(1)
                 .replicas(1)
                 .build();
     }

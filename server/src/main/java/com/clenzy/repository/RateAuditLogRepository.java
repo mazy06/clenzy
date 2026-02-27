@@ -1,6 +1,8 @@
 package com.clenzy.repository;
 
 import com.clenzy.model.RateAuditLog;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -20,6 +22,25 @@ public interface RateAuditLogRepository extends JpaRepository<RateAuditLog, Long
     List<RateAuditLog> findByPropertyIdAndDate(
             @Param("propertyId") Long propertyId,
             @Param("date") LocalDate date);
+
+    /**
+     * Historique des changements de prix pour une propriete sur une plage de dates.
+     */
+    @Query("SELECT ral FROM RateAuditLog ral WHERE ral.propertyId = :propertyId " +
+           "AND ral.date >= :from AND ral.date <= :to " +
+           "AND ral.organizationId = :orgId ORDER BY ral.changedAt DESC")
+    List<RateAuditLog> findByPropertyIdAndDateRange(
+            @Param("propertyId") Long propertyId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId);
+
+    /**
+     * Historique pagine pour une organisation.
+     */
+    @Query("SELECT ral FROM RateAuditLog ral WHERE ral.organizationId = :orgId " +
+           "ORDER BY ral.changedAt DESC")
+    Page<RateAuditLog> findByOrganizationId(@Param("orgId") Long orgId, Pageable pageable);
 
     /**
      * Nettoyage des entries > 2 ans (exigence legale = conservation 2 ans minimum).
