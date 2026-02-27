@@ -151,9 +151,13 @@ public enum NotificationKey {
 
     // ─── ONLINE CHECK-IN (2 cles) ───────────────────────────────────────────
     ONLINE_CHECKIN_STARTED(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, true),
-    ONLINE_CHECKIN_COMPLETED(NotificationType.SUCCESS, NotificationCategory.GUEST_MESSAGING, true);
+    ONLINE_CHECKIN_COMPLETED(NotificationType.SUCCESS, NotificationCategory.GUEST_MESSAGING, true),
 
-    // Total: 92 + 4 = 96
+    // ─── REVIEW (2 cles) ──────────────────────────────────────────────────
+    REVIEW_RECEIVED(NotificationType.INFO, NotificationCategory.REVIEW, true),
+    REVIEW_NEGATIVE_ALERT(NotificationType.WARNING, NotificationCategory.REVIEW, true);
+
+    // Total: 96 + 2 = 98
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

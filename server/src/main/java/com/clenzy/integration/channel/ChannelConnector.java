@@ -106,6 +106,14 @@ public interface ChannelConnector {
     }
 
     /**
+     * Recupere les avis guests depuis le channel.
+     * Retourne une liste vide par defaut.
+     */
+    default java.util.List<com.clenzy.model.GuestReview> pullReviews(Long propertyId, Long orgId, java.time.LocalDate from) {
+        return java.util.List.of();
+    }
+
+    /**
      * Teste si le channel supporte une capacite donnee.
      */
     default boolean supports(ChannelCapability capability) {

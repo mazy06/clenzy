@@ -20,5 +20,9 @@ public enum ChannelCapability {
     /** Le channel supporte la messagerie guest */
     MESSAGING,
     /** Le channel utilise OAuth 2.0 */
-    OAUTH
+    OAUTH,
+    /** Le channel supporte la recuperation d'avis guests */
+    REVIEWS,
+    /** Le channel supporte les promotions (Genius, Preferred, etc.) */
+    PROMOTIONS
 }
