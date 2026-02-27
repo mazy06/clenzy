@@ -24,12 +24,13 @@ class SubscriptionServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private AuditLogService auditLogService;
+    @Mock private PricingConfigService pricingConfigService;
 
     private SubscriptionService subscriptionService;
 
     @BeforeEach
     void setUp() throws Exception {
-        subscriptionService = new SubscriptionService(userRepository, auditLogService);
+        subscriptionService = new SubscriptionService(userRepository, auditLogService, pricingConfigService);
 
         setField(subscriptionService, "stripeSecretKey", "sk_test_dummy");
         setField(subscriptionService, "currency", "EUR");

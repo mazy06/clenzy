@@ -147,7 +147,7 @@ class TenantFilterTest {
         Long orgId = 2L;
         setupJwtAuth(keycloakId);
 
-        TenantFilter.TenantInfo cachedInfo = new TenantFilter.TenantInfo(orgId, false);
+        TenantFilter.TenantInfo cachedInfo = new TenantFilter.TenantInfo(orgId, false, false);
 
         when(valueOperations.get("tenant:" + keycloakId)).thenReturn(cachedInfo);
 

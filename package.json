@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Plateforme de gestion des services Airbnb - Clenzy (Java Serverless)",
   "main": "serverless.yml",
+  "workspaces": [
+    "shared",
+    "mobile"
+  ],
   "scripts": {
     "dev": "cd client && npm start",
     "build": "cd client && npm run build",
@@ -10,7 +14,9 @@
     "deploy:dev": "serverless deploy --stage dev",
     "deploy:prod": "serverless deploy --stage prod",
     "logs": "serverless logs -f",
-    "remove": "serverless remove"
+    "remove": "serverless remove",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "keywords": [
     "airbnb",
@@ -29,6 +35,9 @@
     "serverless-offline": "^13.3.3"
   },
   "dependencies": {
-    "glob": "^11.0.3"
+    "glob": "^11.0.3",
+    "expo": "~54.0.33",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   }
 }

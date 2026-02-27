@@ -17,7 +17,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import com.clenzy.model.InterventionStatus;
@@ -172,8 +174,9 @@ public class InterventionService {
 
     @Transactional(readOnly = true)
     public Page<InterventionDto> listWithRoleBasedAccess(Pageable pageable, Long propertyId,
-                                                        String type, String status, String priority, Jwt jwt) {
-        log.debug("listWithRoleBasedAccess - JWT present: {}", jwt != null);
+                                                        String type, String status, String priority,
+                                                        String startDate, String endDate, Jwt jwt) {
+        log.debug("listWithRoleBasedAccess - JWT present: {}, startDate={}, endDate={}", jwt != null, startDate, endDate);
 
         try {
             // Verifier que le contexte d'organisation est resolu
@@ -195,6 +198,27 @@ public class InterventionService {
                     log.warn("listWithRoleBasedAccess - invalid status: {}", status);
                     // Retourner une page vide si le statut est invalide
                     return Page.empty(pageable);
+                }
+            }
+
+            // Convertir les dates string (YYYY-MM-DD) en LocalDateTime pour le filtrage
+            LocalDateTime startDateTime = null;
+            LocalDateTime endDateTime = null;
+            if (startDate != null && !startDate.isEmpty()) {
+                try {
+                    startDateTime = LocalDate.parse(startDate).atStartOfDay();
+                    log.debug("listWithRoleBasedAccess - startDateTime: {}", startDateTime);
+                } catch (Exception e) {
+                    log.warn("listWithRoleBasedAccess - invalid startDate: {}", startDate);
+                }
+            }
+            if (endDate != null && !endDate.isEmpty()) {
+                try {
+                    // endDate exclusive: jour suivant à 00:00 pour inclure toute la journée
+                    endDateTime = LocalDate.parse(endDate).plusDays(1).atStartOfDay();
+                    log.debug("listWithRoleBasedAccess - endDateTime: {}", endDateTime);
+                } catch (Exception e) {
+                    log.warn("listWithRoleBasedAccess - invalid endDate: {}", endDate);
                 }
             }
 
@@ -222,14 +246,20 @@ public class InterventionService {
 
                 log.debug("listWithRoleBasedAccess - user found: id={}, email={}", currentUser.getId(), currentUser.getEmail());
 
+                // Pour les utilisateurs d'une org SYSTEM, accès cross-org (null = pas de filtre org)
+                Long orgIdForQuery = tenantContext.isSystemOrg() ? null : tenantContext.getRequiredOrganizationId();
+                log.debug("listWithRoleBasedAccess - orgIdForQuery={}, systemOrg={}", orgIdForQuery, tenantContext.isSystemOrg());
+
                 // Filtrer les interventions assignées à cet utilisateur (individuellement ou via équipe)
                 interventionPage = interventionRepository.findByAssignedUserOrTeamWithFilters(
-                        currentUser.getId(), propertyId, type, statusEnum, priority, pageable, tenantContext.getRequiredOrganizationId());
+                        currentUser.getId(), propertyId, type, statusEnum, priority, pageable, orgIdForQuery,
+                        startDateTime, endDateTime);
             } else {
                 // Pour les admins et managers, voir toutes les interventions
                 log.debug("listWithRoleBasedAccess - no filter for role: {}", userRole);
                 interventionPage = interventionRepository.findByFiltersWithRelations(
-                        propertyId, type, statusEnum, priority, pageable, tenantContext.getRequiredOrganizationId());
+                        propertyId, type, statusEnum, priority, pageable, tenantContext.getRequiredOrganizationId(),
+                        startDateTime, endDateTime);
             }
 
             log.debug("listWithRoleBasedAccess - total elements: {}", interventionPage.getTotalElements());
@@ -738,13 +768,16 @@ public class InterventionService {
     private void checkAccessRights(Intervention intervention, Jwt jwt) {
         UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
 
-        // Tenant isolation: always verify the intervention belongs to the caller's organization
-        Long callerOrgId = tenantContext.getRequiredOrganizationId();
-        if (intervention.getOrganizationId() != null
-                && !intervention.getOrganizationId().equals(callerOrgId)) {
-            log.warn("Cross-tenant access attempt: intervention orgId={} vs caller orgId={}",
-                    intervention.getOrganizationId(), callerOrgId);
-            throw new UnauthorizedException("Acces refuse : intervention hors de votre organisation");
+        // Tenant isolation: verify the intervention belongs to the caller's organization
+        // Les utilisateurs d'une organisation SYSTEM ont accès cross-org (ils fournissent des services à toutes les orgs)
+        if (!tenantContext.isSystemOrg()) {
+            Long callerOrgId = tenantContext.getRequiredOrganizationId();
+            if (intervention.getOrganizationId() != null
+                    && !intervention.getOrganizationId().equals(callerOrgId)) {
+                log.warn("Cross-tenant access attempt: intervention orgId={} vs caller orgId={}",
+                        intervention.getOrganizationId(), callerOrgId);
+                throw new UnauthorizedException("Acces refuse : intervention hors de votre organisation");
+            }
         }
 
         // Pour les admins et managers, acces complet au sein de leur organisation

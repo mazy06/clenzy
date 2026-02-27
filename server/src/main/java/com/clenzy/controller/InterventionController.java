@@ -209,13 +209,15 @@ public class InterventionController {
                                       @RequestParam(required = false) String type,
                                       @RequestParam(required = false) String status,
                                       @RequestParam(required = false) String priority,
+                                      @RequestParam(required = false) String startDate,
+                                      @RequestParam(required = false) String endDate,
                                       @AuthenticationPrincipal Jwt jwt) {
         if (jwt != null) {
-            log.debug("list - JWT subject: {}", jwt.getSubject());
+            log.debug("list - JWT subject: {}, startDate={}, endDate={}", jwt.getSubject(), startDate, endDate);
         } else {
             log.debug("list - No JWT received");
         }
-        return interventionService.listWithRoleBasedAccess(pageable, propertyId, type, status, priority, jwt);
+        return interventionService.listWithRoleBasedAccess(pageable, propertyId, type, status, priority, startDate, endDate, jwt);
     }
 
     // Endpoint de test temporaire pour diagnostiquer

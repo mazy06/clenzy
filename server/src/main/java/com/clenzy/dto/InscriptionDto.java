@@ -28,9 +28,7 @@ public class InscriptionDto {
 
     private String organizationType; // INDIVIDUAL, CONCIERGE, CLEANING_COMPANY
 
-    @NotBlank(message = "Le mot de passe est requis")
-    @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caracteres")
-    private String password;
+    private String password; // Plus requis a l'inscription, sera defini apres confirmation email
 
     @NotBlank(message = "Le forfait est requis")
     private String forfait; // essentiel, confort, premium

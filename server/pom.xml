@@ -210,6 +210,13 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
+        <!-- Firebase Admin SDK (Push Notifications FCM) -->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.2.0</version>
+        </dependency>
+
         <!-- Jasypt Spring Boot (Chiffrement tokens en base) -->
         <dependency>
             <groupId>com.github.ulisesbocchio</groupId>

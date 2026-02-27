@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hibernate.Hibernate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -119,24 +120,32 @@ public class PropertyService {
     }
 
     /**
-     * Récupère l'entité Property directement (pour les vérifications d'accès)
+     * Récupère l'entité Property directement (pour les vérifications d'accès).
+     * Initialise la relation owner pour éviter LazyInitializationException
+     * quand l'entité est utilisée hors transaction (ex: dans le controller).
      */
     @Transactional(readOnly = true)
     public Property getPropertyEntityById(Long id) {
-        return findByIdRespectingTenant(id);
+        Property p = findByIdRespectingTenant(id);
+        Hibernate.initialize(p.getOwner());
+        return p;
     }
 
     /**
-     * Charge une propriete avec JOIN FETCH owner.
-     * Le staff plateforme (SUPER_ADMIN, SUPER_MANAGER) accede a toutes les proprietes
-     * sans filtre d'organisation. Les autres utilisateurs sont filtres par leur org.
+     * Charge une propriete en respectant le tenant.
+     *
+     * Utilise findById (standard JPA) au lieu de findByIdWithOwner (JPQL avec LEFT JOIN FETCH).
+     * Raison : le @Filter("organizationFilter") sur l'entite User interferait avec le
+     * LEFT JOIN FETCH p.owner dans la requete JPQL, ajoutant une condition
+     * AND users.organization_id = :orgId dans le WHERE (pas le ON), transformant le LEFT JOIN
+     * en INNER JOIN effectif et causant des 404 inattendus.
+     *
+     * Le filtre Hibernate organizationFilter sur Property gere l'isolation multi-tenant
+     * automatiquement pour les utilisateurs non-staff. Pour le staff plateforme (SUPER_ADMIN,
+     * SUPER_MANAGER), le filtre n'est pas active, donc findById retourne toutes les proprietes.
      */
     private Property findByIdRespectingTenant(Long id) {
-        if (tenantContext.isSuperAdmin()) {
-            return propertyRepository.findByIdWithOwnerNoOrgFilter(id)
-                .orElseThrow(() -> new NotFoundException("Property not found with id: " + id));
-        }
-        return propertyRepository.findByIdWithOwner(id, tenantContext.getRequiredOrganizationId())
+        return propertyRepository.findById(id)
             .orElseThrow(() -> new NotFoundException("Property not found with id: " + id));
     }
 

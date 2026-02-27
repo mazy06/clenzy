@@ -521,3 +521,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0058__add_organization_type_to_pending_inscriptions.sql
         relativeToChangelogFile: true
+
+  # --- 0059 : Inscription email confirmation ---
+  - changeSet:
+      id: "0059-inscription-email-confirmation"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0059__inscription_email_confirmation.sql
+        relativeToChangelogFile: true

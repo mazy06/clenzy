@@ -314,9 +314,10 @@ public class AuthController {
                 claims.put("status", user.getStatus().name());
                 if (user.getOrganizationId() != null) {
                     claims.put("organizationId", user.getOrganizationId());
-                    organizationRepository.findById(user.getOrganizationId()).ifPresent(org ->
-                        claims.put("organizationName", org.getName())
-                    );
+                    organizationRepository.findById(user.getOrganizationId()).ifPresent(org -> {
+                        claims.put("organizationName", org.getName());
+                        claims.put("organizationType", org.getType().name());
+                    });
                 }
                 // Ajouter le role dans l'organisation si applicable
                 try {

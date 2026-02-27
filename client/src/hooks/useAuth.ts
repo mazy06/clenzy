@@ -13,6 +13,7 @@ export interface UserRole {
 
 export interface AuthUser {
   id: string;
+  databaseId?: number;  // ID numérique en base (Long) — utilisé pour les relations (userId, ownerId, etc.)
   email: string;
   username: string;
   firstName?: string;  // Prénom métier
@@ -89,6 +90,7 @@ export const useAuth = () => {
           // Créer l'objet utilisateur avec les permissions directes ET les données métier
           const user: AuthUser = {
             id: userData.subject || userData.id || 'unknown',
+            databaseId: userData.id ? Number(userData.id) : undefined,
             email: userData.email || '',
             username: userData.preferred_username || userData.username || 'Utilisateur',
             firstName: userData.firstName || '',

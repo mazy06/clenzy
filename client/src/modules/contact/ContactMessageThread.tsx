@@ -9,7 +9,8 @@ import {
   Chip,
   CircularProgress,
   Divider,
-  Avatar
+  Avatar,
+  Skeleton
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -23,6 +24,7 @@ import { contactApi } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import ContactTemplates from './ContactTemplates';
+import PhotoLightbox from '../../components/PhotoLightbox';
 
 export interface ContactMessageUser {
   id: string;
@@ -74,6 +76,15 @@ function getInitials(firstName: string, lastName: string): string {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 }
 
+const IMAGE_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/bmp'];
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'];
+
+function isImageAttachment(att: { contentType?: string; originalName?: string }): boolean {
+  if (att.contentType && IMAGE_CONTENT_TYPES.includes(att.contentType.toLowerCase())) return true;
+  const ext = att.originalName?.split('.').pop()?.toLowerCase() ?? '';
+  return IMAGE_EXTENSIONS.includes(ext);
+}
+
 const ContactMessageThread: React.FC<ContactMessageThreadProps> = ({
   message,
   onReply,
@@ -86,6 +97,57 @@ const ContactMessageThread: React.FC<ContactMessageThreadProps> = ({
   const [replyAttachments, setReplyAttachments] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Image preview state
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const blobUrlsRef = useRef<string[]>([]);
+
+  // Load image blob URLs for the message
+  useEffect(() => {
+    blobUrlsRef.current.forEach(url => window.URL.revokeObjectURL(url));
+    blobUrlsRef.current = [];
+    setImageUrls({});
+
+    const imageAtts = (message.attachments || []).filter(isImageAttachment);
+    if (imageAtts.length === 0) return;
+
+    let active = true;
+    imageAtts.forEach(att => {
+      contactApi.getAttachmentBlobUrl(Number(message.id), att.id)
+        .then(url => {
+          if (!active) { window.URL.revokeObjectURL(url); return; }
+          blobUrlsRef.current.push(url);
+          setImageUrls(prev => ({ ...prev, [att.id]: url }));
+        })
+        .catch(() => {});
+    });
+
+    return () => { active = false; };
+  }, [message.id]);
+
+  useEffect(() => {
+    return () => {
+      blobUrlsRef.current.forEach(url => window.URL.revokeObjectURL(url));
+    };
+  }, []);
+
+  // Computed lightbox data
+  const lightboxPhotos = (() => {
+    const photos: string[] = [];
+    (message.attachments || []).filter(isImageAttachment).forEach(a => {
+      const url = imageUrls[a.id];
+      if (url) photos.push(url);
+    });
+    return photos;
+  })();
+
+  const lightboxIdxMap: Record<string, number> = {};
+  (message.attachments || []).filter(isImageAttachment).forEach(a => {
+    const url = imageUrls[a.id];
+    if (url) { lightboxIdxMap[a.id] = Object.keys(lightboxIdxMap).length; }
+  });
 
   // Build a thread from the single message (the API returns one message;
   // in a real implementation this would be a list of messages in the conversation).
@@ -241,32 +303,77 @@ const ContactMessageThread: React.FC<ContactMessageThreadProps> = ({
               </Paper>
 
               {/* Attachments */}
-              {msg.attachments && msg.attachments.length > 0 && (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                  {msg.attachments.map((attachment) => (
-                    <Chip
-                      key={attachment.id}
-                      icon={<FileIcon />}
-                      label={`${attachment.originalName} (${formatFileSize(attachment.size)})`}
-                      size="small"
-                      variant="outlined"
-                      clickable={!!attachment.storagePath}
-                      onClick={attachment.storagePath ? () => contactApi.downloadAttachment(Number(msg.id), attachment.id, attachment.originalName) : undefined}
-                      deleteIcon={attachment.storagePath ? <DownloadIcon sx={{ fontSize: 16 }} /> : undefined}
-                      onDelete={attachment.storagePath ? () => contactApi.downloadAttachment(Number(msg.id), attachment.id, attachment.originalName) : undefined}
-                      sx={{
-                        maxWidth: 250, borderWidth: 1.5,
-                        cursor: attachment.storagePath ? 'pointer' : 'default',
-                        '&:hover': attachment.storagePath ? { bgcolor: 'action.hover' } : {},
-                      }}
-                    />
-                  ))}
-                </Box>
-              )}
+              {msg.attachments && msg.attachments.length > 0 && (() => {
+                const imgAtts = msg.attachments.filter(isImageAttachment);
+                const fileAtts = msg.attachments.filter(a => !isImageAttachment(a));
+
+                return (
+                  <>
+                    {/* Image attachments - inline preview */}
+                    {imgAtts.length > 0 && (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                        {imgAtts.map(att => {
+                          const url = imageUrls[att.id];
+                          if (!url) return <Skeleton key={att.id} variant="rectangular" width={120} height={90} sx={{ borderRadius: 1 }} />;
+                          return (
+                            <Box
+                              key={att.id}
+                              component="img"
+                              src={url}
+                              alt={att.originalName}
+                              onClick={() => {
+                                const idx = lightboxIdxMap[att.id];
+                                if (idx !== undefined) { setLightboxIndex(idx); setLightboxOpen(true); }
+                              }}
+                              sx={{
+                                width: 120, height: 90,
+                                objectFit: 'cover', borderRadius: 1,
+                                cursor: 'pointer', border: 1, borderColor: 'divider',
+                                transition: 'all 0.2s',
+                                '&:hover': { opacity: 0.85 },
+                              }}
+                            />
+                          );
+                        })}
+                      </Box>
+                    )}
+
+                    {/* File attachments */}
+                    {fileAtts.length > 0 && (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                        {fileAtts.map(attachment => (
+                          <Chip
+                            key={attachment.id}
+                            icon={<FileIcon />}
+                            label={`${attachment.originalName} (${formatFileSize(attachment.size)})`}
+                            size="small"
+                            variant="outlined"
+                            clickable
+                            onClick={() => contactApi.downloadAttachment(Number(msg.id), attachment.id, attachment.originalName)}
+                            deleteIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
+                            onDelete={() => contactApi.downloadAttachment(Number(msg.id), attachment.id, attachment.originalName)}
+                            sx={{
+                              maxWidth: 250, borderWidth: 1.5,
+                              cursor: 'pointer',
+                              '&:hover': { bgcolor: 'action.hover' },
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    )}
+                  </>
+                );
+              })()}
             </Box>
           );
         })}
         <div ref={messagesEndRef} />
+        <PhotoLightbox
+          open={lightboxOpen}
+          photos={lightboxPhotos}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+        />
       </Box>
 
       {/* Reply form */}

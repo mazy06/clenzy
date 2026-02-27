@@ -85,6 +85,30 @@ export function useMarkAsRead() {
   });
 }
 
+/** Archive a message */
+export function useArchiveMessage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => contactApi.archive(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KEYS.inbox });
+      queryClient.invalidateQueries({ queryKey: KEYS.sent });
+    },
+  });
+}
+
+/** Delete a message */
+export function useDeleteMessage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => contactApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KEYS.inbox });
+      queryClient.invalidateQueries({ queryKey: KEYS.sent });
+    },
+  });
+}
+
 /* ─── Guest messaging hooks ─── */
 
 /** Full guest message history */

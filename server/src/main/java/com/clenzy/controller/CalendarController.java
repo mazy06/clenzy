@@ -325,8 +325,9 @@ public class CalendarController {
         }
 
         // Verifier si l'utilisateur est le owner direct de la propriete
-        if (property.getOwner() != null && property.getOwner().getKeycloakId() != null
-                && property.getOwner().getKeycloakId().equals(keycloakId)) {
+        // Comparaison par ID (PK) pour eviter LazyInitializationException sur le proxy User
+        if (user != null && property.getOwner() != null
+                && property.getOwner().getId().equals(user.getId())) {
             return;
         }
 

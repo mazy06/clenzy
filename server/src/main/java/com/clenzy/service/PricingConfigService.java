@@ -187,6 +187,11 @@ public class PricingConfigService {
         return dto.getPmsMonthlyPriceCents() != null ? dto.getPmsMonthlyPriceCents() : DEFAULT_PMS_MONTHLY_CENTS;
     }
 
+    public int getPmsSyncPriceCents() {
+        PricingConfigDto dto = getCurrentConfig();
+        return dto.getPmsSyncPriceCents() != null ? dto.getPmsSyncPriceCents() : DEFAULT_PMS_SYNC_CENTS;
+    }
+
     // ─── Conversion: Entity -> DTO ─────────────────────────────────
 
     private PricingConfigDto toDto(PricingConfig entity) {

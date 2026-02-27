@@ -119,6 +119,32 @@ export const contactApi = {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(blobUrl);
   },
+  /** Obtenir l'URL blob d'une piece jointe (pour affichage image) */
+  async getAttachmentBlobUrl(messageId: number, attachmentId: string): Promise<string> {
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/contact/messages/${messageId}/attachments/${attachmentId}`;
+    const token = getAccessToken();
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      throw new Error(`Erreur ${response.status} lors du chargement`);
+    }
+    let blob = await response.blob();
+
+    // Convert HEIC/HEIF to JPEG — browsers cannot display HEIC natively
+    const type = blob.type?.toLowerCase() || '';
+    if (type.includes('heic') || type.includes('heif')) {
+      try {
+        const heic2any = (await import('heic2any')).default;
+        const converted = await heic2any({ blob, toType: 'image/jpeg', quality: 0.92 });
+        blob = Array.isArray(converted) ? converted[0] : converted;
+      } catch {
+        // Fallback: return original blob (will show broken image)
+      }
+    }
+
+    return window.URL.createObjectURL(blob);
+  },
   /** Reset availability flag */
   resetAvailability() {
     this._endpointAvailable = true;

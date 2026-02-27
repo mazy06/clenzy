@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Inscription from '../Inscription';
 
@@ -50,8 +50,6 @@ function expectedPriceEuros(cents: number): string {
   return euros % 1 === 0 ? `${euros}€` : `${euros.toFixed(2).replace('.', ',')}€`;
 }
 
-// mockGet retourne les prix par defaut pour /public/pricing-info (configure dans beforeEach)
-
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function renderInscription(searchParams = '') {
@@ -62,21 +60,17 @@ function renderInscription(searchParams = '') {
   );
 }
 
-/** Helper : va au step 2 avec des donnees valides pre-remplies */
-function goToStep2() {
-  renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-  fireEvent.click(screen.getByRole('button', { name: /Suivant/i }));
-}
+/** Helper : soumet le formulaire et attend la transition vers le step paiement */
+async function goToPaymentStep() {
+  mockPost.mockResolvedValueOnce({
+    clientSecret: 'cs_test_secret_123',
+    sessionId: 'cs_session_123',
+  });
 
-/** Helper : remplit les mots de passe dans le step 2 */
-function fillPasswords(password = 'MotDePasse123!') {
-  // Les 2 champs password sont rendus dans l'ordre : Mot de passe, Confirmer
-  const passwordInputs = screen.getAllByDisplayValue('');
-  const pwFields = passwordInputs.filter(
-    (el) => el.getAttribute('type') === 'password',
-  );
-  fireEvent.change(pwFields[0], { target: { value: password } });
-  fireEvent.change(pwFields[1], { target: { value: password } });
+  renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
+
+  // Cliquer sur "Continuer vers le paiement" (soumission directe)
+  fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -92,11 +86,12 @@ describe('Inscription', () => {
   });
 
   describe('Stepper', () => {
-    it('affiche 3 etapes dans le stepper', () => {
+    it('affiche 2 etapes dans le stepper', () => {
       renderInscription();
       expect(screen.getByText('Vos informations')).toBeInTheDocument();
-      expect(screen.getByText('Votre mot de passe')).toBeInTheDocument();
       expect(screen.getByText('Paiement')).toBeInTheDocument();
+      // L etape mot de passe n existe plus
+      expect(screen.queryByText('Votre mot de passe')).not.toBeInTheDocument();
     });
 
     it('demarre a l etape 1 (informations)', () => {
@@ -133,16 +128,16 @@ describe('Inscription', () => {
       expect(screen.getByDisplayValue('Jean Dupont')).toBeInTheDocument();
     });
 
-    it('desactive le bouton Suivant si les champs obligatoires sont vides', () => {
+    it('desactive le bouton si les champs obligatoires sont vides', () => {
       renderInscription();
-      const suivantBtn = screen.getByRole('button', { name: /Suivant/i });
-      expect(suivantBtn).toBeDisabled();
+      const btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
+      expect(btn).toBeDisabled();
     });
 
-    it('active le bouton Suivant quand les champs obligatoires sont remplis', () => {
+    it('active le bouton quand les champs obligatoires sont remplis', () => {
       renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      const suivantBtn = screen.getByRole('button', { name: /Suivant/i });
-      expect(suivantBtn).toBeEnabled();
+      const btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
+      expect(btn).toBeEnabled();
     });
 
     it('affiche le badge forfait quand pre-rempli', () => {
@@ -151,70 +146,9 @@ describe('Inscription', () => {
     });
   });
 
-  describe('Navigation Step 1 → Step 2', () => {
-    it('passe a l etape 2 quand on clique Suivant avec donnees valides', () => {
-      goToStep2();
-      // On doit voir les champs mot de passe (2 inputs type="password")
-      const pwFields = screen.getAllByDisplayValue('').filter(
-        (el) => el.getAttribute('type') === 'password',
-      );
-      expect(pwFields).toHaveLength(2);
-    });
-  });
-
-  describe('Etape 2 - Mot de passe', () => {
-    it('affiche le recapitulatif avec les infos saisies', () => {
-      goToStep2();
-      expect(screen.getByText('Recapitulatif')).toBeInTheDocument();
-      expect(screen.getByText('Jean Dupont')).toBeInTheDocument();
-      expect(screen.getByText('jean@test.com')).toBeInTheDocument();
-    });
-
-    it('affiche le bouton "Continuer vers le paiement"', () => {
-      goToStep2();
-      expect(screen.getByRole('button', { name: /Continuer vers le paiement/i })).toBeInTheDocument();
-    });
-
-    it('desactive le bouton si le mot de passe est trop court', () => {
-      goToStep2();
-      fillPasswords('1234');
-      expect(screen.getByRole('button', { name: /Continuer vers le paiement/i })).toBeDisabled();
-    });
-
-    it('active le bouton quand les mots de passe sont valides et identiques', () => {
-      goToStep2();
-      fillPasswords('MotDePasse123!');
-      expect(screen.getByRole('button', { name: /Continuer vers le paiement/i })).toBeEnabled();
-    });
-
-    it('permet de revenir a l etape 1 avec le bouton Retour', () => {
-      goToStep2();
-      fireEvent.click(screen.getByRole('button', { name: /Retour/i }));
-      expect(screen.getByLabelText(/Nom complet/i)).toBeInTheDocument();
-    });
-  });
-
-  describe('Etape 2 → Etape 3 (Paiement)', () => {
-    async function goToStep3() {
-      mockPost.mockResolvedValueOnce({
-        clientSecret: 'cs_test_secret_123',
-        sessionId: 'cs_session_123',
-      });
-
-      renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-
-      // Step 1 → Step 2
-      fireEvent.click(screen.getByRole('button', { name: /Suivant/i }));
-
-      // Fill passwords
-      fillPasswords('MotDePasse123!');
-
-      // Step 2 → Step 3
-      fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
-    }
-
-    it('appelle l API /public/inscription avec les bonnes donnees', async () => {
-      await goToStep3();
+  describe('Soumission vers le paiement', () => {
+    it('appelle l API /public/inscription sans mot de passe', async () => {
+      await goToPaymentStep();
 
       await waitFor(() => {
         expect(mockPost).toHaveBeenCalledWith(
@@ -224,15 +158,17 @@ describe('Inscription', () => {
             email: 'jean@test.com',
             forfait: 'essentiel',
             billingPeriod: 'MONTHLY',
-            password: 'MotDePasse123!',
           }),
           { skipAuth: true },
         );
+        // Le mot de passe ne doit PAS etre envoye
+        const callArgs = mockPost.mock.calls[0][1];
+        expect(callArgs.password).toBeUndefined();
       });
     });
 
-    it('affiche le Stripe Embedded Checkout au step 3', async () => {
-      await goToStep3();
+    it('affiche le Stripe Embedded Checkout apres soumission', async () => {
+      await goToPaymentStep();
 
       await waitFor(() => {
         expect(screen.getByTestId('stripe-checkout-provider')).toBeInTheDocument();
@@ -240,8 +176,8 @@ describe('Inscription', () => {
       });
     });
 
-    it('affiche le recapitulatif de commande dans le step 3', async () => {
-      await goToStep3();
+    it('affiche le recapitulatif de commande au step paiement', async () => {
+      await goToPaymentStep();
 
       await waitFor(() => {
         expect(screen.getByText('Paiement securise via Stripe')).toBeInTheDocument();
@@ -249,15 +185,14 @@ describe('Inscription', () => {
       });
     });
 
-    it('cache les boutons navigation et le lien login au step 3', async () => {
-      await goToStep3();
+    it('cache le bouton et le lien login au step paiement', async () => {
+      await goToPaymentStep();
 
       await waitFor(() => {
         expect(screen.getByTestId('stripe-embedded-checkout')).toBeInTheDocument();
       });
 
-      expect(screen.queryByRole('button', { name: /Suivant/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /^Retour$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Continuer vers le paiement/i })).not.toBeInTheDocument();
       expect(screen.queryByText(/Deja un compte/i)).not.toBeInTheDocument();
     });
   });
@@ -270,11 +205,7 @@ describe('Inscription', () => {
 
       renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
 
-      // Go to step 2
-      fireEvent.click(screen.getByRole('button', { name: /Suivant/i }));
-
-      // Fill passwords and submit
-      fillPasswords('MotDePasse123!');
+      // Soumettre directement
       fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
 
       await waitFor(() => {
@@ -286,8 +217,6 @@ describe('Inscription', () => {
       mockPost.mockResolvedValueOnce({ sessionId: 'cs_test' });
 
       renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      fireEvent.click(screen.getByRole('button', { name: /Suivant/i }));
-      fillPasswords('MotDePasse123!');
       fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
 
       await waitFor(() => {
@@ -297,7 +226,7 @@ describe('Inscription', () => {
   });
 
   describe('Lien login', () => {
-    it('affiche le lien "Se connecter" aux etapes 1 et 2', () => {
+    it('affiche le lien "Se connecter" a l etape informations', () => {
       renderInscription();
       expect(screen.getByText(/Se connecter/i)).toBeInTheDocument();
     });
@@ -322,19 +251,19 @@ describe('Inscription', () => {
       expect(screen.queryByLabelText(/Nom de la societe/i)).not.toBeInTheDocument();
     });
 
-    it('desactive Suivant si Conciergerie selectionne sans nom de societe', () => {
+    it('desactive le bouton si Conciergerie selectionne sans nom de societe', () => {
       renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
       fireEvent.click(screen.getByText('Conciergerie'));
-      const suivantBtn = screen.getByRole('button', { name: /Suivant/i });
-      expect(suivantBtn).toBeDisabled();
+      const btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
+      expect(btn).toBeDisabled();
     });
 
-    it('active Suivant quand Conciergerie + nom de societe rempli', () => {
+    it('active le bouton quand Conciergerie + nom de societe rempli', () => {
       renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
       fireEvent.click(screen.getByText('Conciergerie'));
       fireEvent.change(screen.getByLabelText(/Nom de la societe/i), { target: { value: 'Ma Conciergerie' } });
-      const suivantBtn = screen.getByRole('button', { name: /Suivant/i });
-      expect(suivantBtn).toBeEnabled();
+      const btn = screen.getByRole('button', { name: /Continuer vers le paiement/i });
+      expect(btn).toBeEnabled();
     });
 
     it('envoie organizationType dans l appel API', async () => {
@@ -348,10 +277,6 @@ describe('Inscription', () => {
       fireEvent.click(screen.getByText('Conciergerie'));
       // Remplir le nom de societe
       fireEvent.change(screen.getByLabelText(/Nom de la societe/i), { target: { value: 'Ma Conciergerie' } });
-      // Step 1 -> Step 2
-      fireEvent.click(screen.getByRole('button', { name: /Suivant/i }));
-      // Remplir les mots de passe
-      fillPasswords('MotDePasse123!');
       // Soumettre
       fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
 
@@ -374,10 +299,7 @@ describe('Inscription', () => {
       });
 
       renderInscription('?email=jean@test.com&fullName=Jean+Dupont&forfait=essentiel');
-      // Rester en Particulier (defaut)
-      // Step 1 -> Step 2
-      fireEvent.click(screen.getByRole('button', { name: /Suivant/i }));
-      fillPasswords('MotDePasse123!');
+      // Rester en Particulier (defaut) — soumettre directement
       fireEvent.click(screen.getByRole('button', { name: /Continuer vers le paiement/i }));
 
       await waitFor(() => {
