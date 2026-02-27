@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.UserDto;
 import com.clenzy.model.User;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.DeviceTokenService;
 import com.clenzy.service.LoginProtectionService;
 import com.clenzy.service.LoginProtectionService.LoginStatus;
 import com.clenzy.service.UserService;
@@ -34,11 +35,14 @@ public class UserController {
     private final UserService userService;
     private final UserRepository userRepository;
     private final LoginProtectionService loginProtectionService;
+    private final DeviceTokenService deviceTokenService;
 
-    public UserController(UserService userService, UserRepository userRepository, LoginProtectionService loginProtectionService) {
+    public UserController(UserService userService, UserRepository userRepository,
+                          LoginProtectionService loginProtectionService, DeviceTokenService deviceTokenService) {
         this.userService = userService;
         this.userRepository = userRepository;
         this.loginProtectionService = loginProtectionService;
+        this.deviceTokenService = deviceTokenService;
     }
 
     @PostMapping
@@ -75,6 +79,26 @@ public class UserController {
     @Operation(summary = "Supprimer un utilisateur")
     public void delete(@PathVariable Long id) {
         userService.delete(id);
+    }
+
+    // ─── Self-delete (exigence Apple App Store) ─────────────────
+
+    @DeleteMapping("/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Supprimer son propre compte",
+            description = "Permet a l'utilisateur connecte de supprimer son propre compte. " +
+                    "Supprime les tokens push, l'utilisateur Keycloak et les donnees metier. " +
+                    "Exigence Apple App Store pour la suppression de compte in-app.")
+    public void deleteSelf(@AuthenticationPrincipal Jwt jwt) {
+        String keycloakId = jwt.getSubject();
+        User user = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+
+        // Supprimer les tokens push
+        deviceTokenService.removeAllForUser(keycloakId);
+
+        // Supprimer l'utilisateur (Keycloak + base metier)
+        userService.delete(user.getId());
     }
 
     // ─── Login lockout management (admin only) ──────────────────

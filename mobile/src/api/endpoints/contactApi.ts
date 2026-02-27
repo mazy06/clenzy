@@ -94,6 +94,11 @@ export const contactApi = {
     return apiClient.put(`/contact/messages/${id}/archive`);
   },
 
+  /** Delete a message */
+  delete(id: number) {
+    return apiClient.delete(`/contact/messages/${id}`);
+  },
+
   /** Get attachment as base64 data URI (for mobile image display) */
   getAttachmentBase64(messageId: number, attachmentId: string) {
     return apiClient.get<{

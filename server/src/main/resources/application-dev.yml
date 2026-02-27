@@ -188,8 +188,7 @@ stripe:
   success-url: ${FRONTEND_URL:http://localhost:3000}/interventions/payment/success?session_id={CHECKOUT_SESSION_ID}
   cancel-url: ${FRONTEND_URL:http://localhost:3000}/interventions/payment/cancel
   inscription:
-    success-url: ${FRONTEND_URL:http://localhost:3000}/login?inscription=success
-    cancel-url: ${FRONTEND_URL:http://localhost:3000}/inscription?payment=cancelled
+    return-url: ${FRONTEND_URL:http://localhost:3000}/inscription/success
 
 clenzy:
   mail:

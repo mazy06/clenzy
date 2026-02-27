@@ -149,7 +149,7 @@ const TeamEdit: React.FC = () => {
         name: data.name,
         description: data.description,
         interventionType: data.interventionType,
-        members: data.members.map(m => ({ userId: m.userId, roleInTeam: m.role })),
+        members: data.members.map(m => ({ userId: m.userId, role: m.role })),
         coverageZones: data.coverageZones,
       };
       return teamsApi.update(Number(id), apiData);

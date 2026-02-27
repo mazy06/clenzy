@@ -27,7 +27,6 @@ import {
   CreditCard as CreditCardIcon,
   CheckCircle as CheckCircleIcon,
   PersonOutline as PersonIcon,
-  LockOutlined as LockIcon,
   Payment as PaymentIcon,
 } from '@mui/icons-material';
 import { loadStripe } from '@stripe/stripe-js';
@@ -127,12 +126,11 @@ const FORFAIT_COLORS: Record<string, string> = {
   premium: '#5A7684',
 };
 
-const steps = ['Vos informations', 'Votre mot de passe', 'Paiement'];
+const steps = ['Vos informations', 'Paiement'];
 
 const STEP_ICONS: Record<number, React.ReactElement> = {
   1: <PersonIcon />,
-  2: <LockIcon />,
-  3: <PaymentIcon />,
+  2: <PaymentIcon />,
 };
 
 function CustomStepIcon(props: StepIconProps) {
@@ -214,9 +212,6 @@ export default function Inscription() {
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>(
     (['MONTHLY', 'ANNUAL', 'BIENNIAL'].includes(prefill.billingPeriod) ? prefill.billingPeriod : 'MONTHLY') as BillingPeriod
   );
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-
   // Prix PMS charges depuis l'API (pas de fallback — toujours depuis /pricing-info)
   const [pmsMonthlyPriceCents, setPmsMonthlyPriceCents] = useState<number | null>(null);
   const [pmsSyncPriceCents, setPmsSyncPriceCents] = useState<number | null>(null);
@@ -269,30 +264,14 @@ export default function Inscription() {
     return nameOk && emailOk && phoneOk && !!forfait && companyOk;
   };
 
-  const isStep2Valid = () => {
-    return password.length >= 8 && password === confirmPassword;
-  };
-
   const handleNext = () => {
     setError(null);
     if (activeStep === 0 && !isStep1Valid()) {
       setError('Veuillez remplir correctement tous les champs obligatoires.');
       return;
     }
-    if (activeStep === 1 && !isStep2Valid()) {
-      if (password.length < 8) {
-        setError('Le mot de passe doit contenir au moins 8 caracteres.');
-      } else {
-        setError('Les mots de passe ne correspondent pas.');
-      }
-      return;
-    }
-    setActiveStep((prev) => prev + 1);
-  };
-
-  const handleBack = () => {
-    setError(null);
-    setActiveStep((prev) => prev - 1);
+    // Step 0 valide → soumettre le formulaire et passer au paiement
+    handleSubmit();
   };
 
   const handleSubmit = async () => {
@@ -300,13 +279,15 @@ export default function Inscription() {
     setLoading(true);
 
     try {
+      // Stocker l'email pour la page InscriptionSuccess (renvoi d'email)
+      sessionStorage.setItem('inscription_email', email);
+
       const response = await apiClient.post<InscriptionResponse>('/public/inscription', {
         fullName,
         email,
         phone,
         companyName: isProType ? companyName : undefined,
         organizationType,
-        password,
         forfait,
         billingPeriod,
         city: prefill.city,
@@ -329,7 +310,7 @@ export default function Inscription() {
         if (response.pmsBaseCents) {
           setConfirmedPmsBaseCents(response.pmsBaseCents);
         }
-        setActiveStep(2);
+        setActiveStep(1);
       } else {
         setError('Erreur lors de la creation de la session de paiement.');
       }
@@ -361,7 +342,7 @@ export default function Inscription() {
       <Paper elevation={8} sx={{
         p: { xs: 3, sm: 4 },
         width: '100%',
-        maxWidth: activeStep === 2 ? 960 : 640,
+        maxWidth: activeStep === 1 ? 960 : 640,
         borderRadius: 3,
         backgroundColor: 'rgba(255, 255, 255, 0.95)',
         backdropFilter: 'blur(10px)',
@@ -399,14 +380,14 @@ export default function Inscription() {
               key={label}
               completed={activeStep > index}
               sx={{
-                cursor: activeStep > index && activeStep !== 2 ? 'pointer' : 'default',
-                '&:hover .MuiStepLabel-label': activeStep > index && activeStep !== 2
+                cursor: activeStep > index && activeStep !== 1 ? 'pointer' : 'default',
+                '&:hover .MuiStepLabel-label': activeStep > index && activeStep !== 1
                   ? { color: '#5A7684' }
                   : {},
               }}
               onClick={() => {
                 // Permettre de revenir aux etapes precedentes (sauf depuis le paiement Stripe)
-                if (index < activeStep && activeStep !== 2) {
+                if (index < activeStep && activeStep !== 1) {
                   setError(null);
                   setActiveStep(index);
                 }
@@ -617,88 +598,8 @@ export default function Inscription() {
           </Stack>
         )}
 
-        {/* Etape 2 : Mot de passe */}
-        {activeStep === 1 && (
-          <Stack spacing={2}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Choisissez un mot de passe pour securiser votre compte.
-            </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Mot de passe *"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                helperText="Minimum 8 caracteres"
-              />
-              <TextField
-                fullWidth
-                size="small"
-                label="Confirmer le mot de passe *"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                error={confirmPassword.length > 0 && password !== confirmPassword}
-                helperText={
-                  confirmPassword.length > 0 && password !== confirmPassword
-                    ? 'Les mots de passe ne correspondent pas'
-                    : ''
-                }
-              />
-            </Box>
-
-            {/* Recapitulatif */}
-            <Box sx={{
-              mt: 1, p: 2, borderRadius: 2,
-              backgroundColor: 'grey.50', border: '1px solid',
-              borderColor: 'grey.200',
-            }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', display: 'block', mb: 1 }}>
-                Recapitulatif
-              </Typography>
-              <Typography variant="body2"><strong>Nom :</strong> {fullName}</Typography>
-              <Typography variant="body2"><strong>Email :</strong> {email}</Typography>
-              {phone && <Typography variant="body2"><strong>Telephone :</strong> {phone}</Typography>}
-              {isProType && (
-                <>
-                  <Typography variant="body2"><strong>Type :</strong> {ORG_TYPE_LABELS[organizationType]}</Typography>
-                  <Typography variant="body2"><strong>Societe :</strong> {companyName}</Typography>
-                </>
-              )}
-              <Typography variant="body2">
-                <strong>Forfait :</strong> {FORFAIT_LABELS[forfait] || forfait}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Interventions :</strong> {getInterventionPriceLabel(forfait, prefill.interventionPrice)}
-              </Typography>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                <strong>Abonnement plateforme{isSyncMode ? ' + Synchro auto' : ''} :</strong> {getPmsDisplayPrice(billingPeriod, pmsBaseCents)}
-                {billingPeriod !== 'MONTHLY' && (
-                  <Typography component="span" variant="body2" sx={{ ml: 0.5, color: 'success.main' }}>
-                    ({BILLING_PERIOD_LABELS[billingPeriod]})
-                  </Typography>
-                )}
-              </Typography>
-              {billingPeriod !== 'MONTHLY' && (
-                <Typography variant="caption" color="text.secondary">
-                  Facture : {getPmsFirstPayment(billingPeriod, pmsBaseCents)}
-                </Typography>
-              )}
-            </Box>
-
-            <Alert severity="info" sx={{ mt: 1 }}>
-              <Typography variant="caption">
-                Pour activer votre compte, un paiement de <strong>{getPmsFirstPayment(billingPeriod, pmsBaseCents)}</strong> (abonnement plateforme{isSyncMode ? ' + synchro auto' : ''} {BILLING_PERIOD_LABELS[billingPeriod].toLowerCase()}) vous sera demande. Les interventions seront facturees separement a l'utilisation.
-              </Typography>
-            </Alert>
-          </Stack>
-        )}
-
-        {/* Etape 3 : Paiement Stripe Embedded Checkout */}
-        {activeStep === 2 && clientSecret && (
+        {/* Etape 2 : Paiement Stripe Embedded Checkout */}
+        {activeStep === 1 && clientSecret && (
           <Box sx={{
             display: 'flex',
             flexDirection: { xs: 'column', md: 'row' },
@@ -832,59 +733,28 @@ export default function Inscription() {
           </Box>
         )}
 
-        {/* Boutons de navigation (caches a l'etape Paiement) */}
-        {activeStep < 2 && (
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+        {/* Bouton de navigation (cache a l'etape Paiement) */}
+        {activeStep === 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
             <Button
-              disabled={activeStep === 0}
-              onClick={handleBack}
-              variant="outlined"
+              variant="contained"
+              onClick={handleNext}
+              disabled={loading || !isStep1Valid()}
               sx={{
-                visibility: activeStep === 0 ? 'hidden' : 'visible',
-                borderColor: 'grey.300',
-                color: 'text.secondary',
-                '&:hover': { borderColor: 'grey.400' },
+                px: 4,
+                fontWeight: 600,
+                backgroundColor: 'secondary.main',
+                '&:hover': { backgroundColor: 'secondary.dark' },
+                borderRadius: 1.5,
               }}
             >
-              Retour
+              {loading ? <CircularProgress size={20} color="inherit" /> : 'Continuer vers le paiement'}
             </Button>
-
-            {activeStep === 1 ? (
-              <Button
-                variant="contained"
-                onClick={handleSubmit}
-                disabled={loading || !isStep2Valid()}
-                sx={{
-                  px: 4,
-                  fontWeight: 600,
-                  backgroundColor: 'secondary.main',
-                  '&:hover': { backgroundColor: 'secondary.dark' },
-                  borderRadius: 1.5,
-                }}
-              >
-                {loading ? <CircularProgress size={20} color="inherit" /> : 'Continuer vers le paiement'}
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                onClick={handleNext}
-                disabled={!isStep1Valid()}
-                sx={{
-                  px: 4,
-                  fontWeight: 600,
-                  backgroundColor: 'secondary.main',
-                  '&:hover': { backgroundColor: 'secondary.dark' },
-                  borderRadius: 1.5,
-                }}
-              >
-                Suivant
-              </Button>
-            )}
           </Box>
         )}
 
         {/* Lien vers login (cache a l'etape Paiement) */}
-        {activeStep < 2 && (
+        {activeStep === 0 && (
           <Box sx={{ mt: 2, textAlign: 'center' }}>
             <Typography variant="caption" color="text.secondary">
               Deja un compte ?{' '}

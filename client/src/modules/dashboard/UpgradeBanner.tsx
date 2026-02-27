@@ -5,6 +5,7 @@ import {
   Button,
   Chip,
   CircularProgress,
+  useTheme,
 } from '@mui/material';
 import {
   CalendarMonth as CalendarIcon,
@@ -14,22 +15,11 @@ import {
 } from '@mui/icons-material';
 import { subscriptionApi } from '../../services/api/subscriptionApi';
 
-// ─── Couleurs Clenzy ───────────────────────────────────────────────────────
+// ─── Couleurs Clenzy (brand) ───────────────────────────────────────────────
 const C = {
   primary:      '#6B8A9A',
   primaryLight: '#8BA3B3',
   primaryDark:  '#5A7684',
-  secondary:    '#A6C0CE',
-  secondaryLt:  '#C5D5E0',
-  success:      '#4A9B8E',
-  warning:      '#D4A574',
-  textPrimary:  '#1E293B',
-  textSecondary:'#64748B',
-  gray50:       '#F8FAFC',
-  gray100:      '#F1F5F9',
-  gray200:      '#E2E8F0',
-  white:        '#ffffff',
-  error:        '#C97A7A',
 } as const;
 
 // ─── Forfaits ──────────────────────────────────────────────────────────────
@@ -66,6 +56,8 @@ interface UpgradeBannerProps {
 }
 
 const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,10 +82,10 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
   return (
     <Box
       sx={{
-        bgcolor: C.white,
+        bgcolor: 'background.paper',
         borderRadius: '12px',
         borderLeft: `4px solid ${C.primary}`,
-        boxShadow: '0 2px 8px rgba(107,138,154,0.12)',
+        boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(107,138,154,0.12)',
         p: 2.5,
         mb: 2,
         display: 'flex',
@@ -132,7 +124,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
               <Typography
                 variant="h6"
-                sx={{ fontWeight: 700, fontSize: '1rem', color: C.textPrimary, lineHeight: 1.3 }}
+                sx={{ fontWeight: 700, fontSize: '1rem', color: 'text.primary', lineHeight: 1.3 }}
               >
                 Debloquez le Planning & l'import iCal
               </Typography>
@@ -141,17 +133,17 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                 size="small"
                 variant="outlined"
                 sx={{
-                  color: C.textSecondary,
+                  color: 'text.secondary',
                   fontWeight: 600,
                   fontSize: '0.7rem',
                   height: 22,
                   borderWidth: 1.5,
-                  borderColor: C.gray200,
+                  borderColor: 'divider',
                   '& .MuiChip-label': { px: 0.75 },
                 }}
               />
             </Box>
-            <Typography variant="body2" sx={{ color: C.textSecondary, fontSize: '0.813rem', lineHeight: 1.6 }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.813rem', lineHeight: 1.6 }}>
               Votre forfait actuel ne permet pas l'acces au planning interactif ni a l'import
               automatique de vos calendriers Airbnb, Booking et autres plateformes. Passez au
               forfait Confort pour automatiser la gestion de vos reservations.
@@ -177,16 +169,19 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                 sx={{
                   flex: '1 1 0',
                   minWidth: 0,
-                  bgcolor: highlight ? 'rgba(107,138,154,0.05)' : C.gray50,
+                  bgcolor: highlight
+                    ? (isDark ? 'rgba(107,138,154,0.12)' : 'rgba(107,138,154,0.05)')
+                    : (isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC'),
                   borderRadius: '8px',
                   p: 1.5,
                   border: highlight
                     ? `1.5px solid ${C.primary}`
-                    : `1px solid ${C.gray200}`,
+                    : '1px solid',
+                  borderColor: highlight ? C.primary : 'divider',
                   position: 'relative',
                   transition: 'box-shadow 0.2s ease',
                   ...(highlight && {
-                    boxShadow: '0 1px 4px rgba(107,138,154,0.10)',
+                    boxShadow: isDark ? '0 1px 4px rgba(0,0,0,0.2)' : '0 1px 4px rgba(107,138,154,0.10)',
                   }),
                 }}
               >
@@ -204,6 +199,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                       fontSize: '0.65rem',
                       height: 20,
                       borderWidth: 1.5,
+                      bgcolor: 'background.paper',
                       '& .MuiChip-label': { px: 1 },
                     }}
                   />
@@ -213,7 +209,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                   sx={{
                     fontWeight: 700,
                     fontSize: '0.813rem',
-                    color: highlight ? C.primary : isCurrent ? C.textSecondary : C.textPrimary,
+                    color: highlight ? C.primary : isCurrent ? 'text.secondary' : 'text.primary',
                     mb: 0.75,
                   }}
                 >
@@ -221,7 +217,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                   {isCurrent && (
                     <Typography
                       component="span"
-                      sx={{ fontSize: '0.7rem', color: C.textSecondary, fontWeight: 400, ml: 0.5 }}
+                      sx={{ fontSize: '0.7rem', color: 'text.secondary', fontWeight: 400, ml: 0.5 }}
                     >
                       (actuel)
                     </Typography>
@@ -232,14 +228,14 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                     <CheckIcon
                       sx={{
                         fontSize: 13,
-                        color: highlight ? C.primary : isCurrent ? C.gray200 : C.primaryLight,
+                        color: highlight ? C.primary : isCurrent ? 'text.disabled' : C.primaryLight,
                         flexShrink: 0,
                       }}
                     />
                     <Typography
                       variant="caption"
                       sx={{
-                        color: isCurrent ? C.textSecondary : C.textPrimary,
+                        color: isCurrent ? 'text.secondary' : 'text.primary',
                         lineHeight: 1.35,
                         fontSize: '0.7rem',
                         ...(isCurrent && { textDecoration: 'line-through', opacity: 0.6 }),
@@ -273,21 +269,21 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
           endIcon={!loading ? <ArrowIcon sx={{ fontSize: 18 }} /> : undefined}
           sx={{
             bgcolor: C.primary,
-            color: C.white,
+            color: '#fff',
             fontWeight: 600,
             textTransform: 'none',
             borderRadius: '6px',
             px: 2.5,
             py: 0.75,
             fontSize: '0.813rem',
-            boxShadow: '0 1px 3px rgba(107,138,154,0.3)',
+            boxShadow: isDark ? '0 1px 3px rgba(0,0,0,0.4)' : '0 1px 3px rgba(107,138,154,0.3)',
             '&:hover': {
               bgcolor: C.primaryDark,
               boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             },
             '&:disabled': {
               bgcolor: C.primaryLight,
-              color: C.white,
+              color: '#fff',
               opacity: 0.6,
             },
           }}
@@ -301,8 +297,8 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
           onClick={() => handleUpgrade('premium')}
           startIcon={<TrendingIcon sx={{ fontSize: 16 }} />}
           sx={{
-            borderColor: C.gray200,
-            color: C.textSecondary,
+            borderColor: 'divider',
+            color: 'text.secondary',
             fontWeight: 600,
             textTransform: 'none',
             borderRadius: '6px',
@@ -320,7 +316,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
 
         {/* Error message */}
         {error && (
-          <Typography variant="caption" sx={{ color: C.error, ml: 1 }}>
+          <Typography variant="caption" sx={{ color: 'error.main', ml: 1 }}>
             {error}
           </Typography>
         )}

@@ -27,7 +27,6 @@ public class PendingInscription {
     @Column(nullable = false)
     private String email;
 
-    @Column(nullable = false)
     private String password;
 
     @Column(name = "phone_number")
@@ -79,9 +78,19 @@ public class PendingInscription {
     @Column(name = "billing_period", length = 20)
     private String billingPeriod = "MONTHLY";
 
+    // Token de confirmation email (SHA-256 hash)
+    @Column(name = "confirmation_token_hash", length = 64)
+    private String confirmationTokenHash;
+
     // Stripe
     @Column(name = "stripe_session_id", unique = true)
     private String stripeSessionId;
+
+    @Column(name = "stripe_customer_id")
+    private String stripeCustomerId;
+
+    @Column(name = "stripe_subscription_id")
+    private String stripeSubscriptionId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -161,8 +170,17 @@ public class PendingInscription {
     public String getBillingPeriod() { return billingPeriod; }
     public void setBillingPeriod(String billingPeriod) { this.billingPeriod = billingPeriod; }
 
+    public String getConfirmationTokenHash() { return confirmationTokenHash; }
+    public void setConfirmationTokenHash(String confirmationTokenHash) { this.confirmationTokenHash = confirmationTokenHash; }
+
     public String getStripeSessionId() { return stripeSessionId; }
     public void setStripeSessionId(String stripeSessionId) { this.stripeSessionId = stripeSessionId; }
+
+    public String getStripeCustomerId() { return stripeCustomerId; }
+    public void setStripeCustomerId(String stripeCustomerId) { this.stripeCustomerId = stripeCustomerId; }
+
+    public String getStripeSubscriptionId() { return stripeSubscriptionId; }
+    public void setStripeSubscriptionId(String stripeSubscriptionId) { this.stripeSubscriptionId = stripeSubscriptionId; }
 
     public PendingInscriptionStatus getStatus() { return status; }
     public void setStatus(PendingInscriptionStatus status) { this.status = status; }

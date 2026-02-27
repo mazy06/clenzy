@@ -218,7 +218,7 @@ const TeamForm: React.FC = () => {
       interventionType: formData.interventionType,
       members: formData.members.map(member => ({
         userId: member.userId,
-        roleInTeam: member.role,
+        role: member.role,
       })),
       coverageZones: (formData.coverageZones || []).map(zone => ({
         department: zone.department,

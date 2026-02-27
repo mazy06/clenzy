@@ -97,22 +97,6 @@ public class PropertyController {
         return ResponseEntity.status(HttpStatus.CREATED).body(propertyService.create(dto));
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Mettre à jour un logement")
-    public PropertyDto update(@PathVariable Long id, @RequestBody PropertyDto dto, @AuthenticationPrincipal Jwt jwt) {
-        // Vérifier l'accès pour les HOST
-        checkHostAccess(id, jwt);
-        return propertyService.update(id, dto);
-    }
-
-    @GetMapping("/{id}")
-    @Operation(summary = "Obtenir un logement par ID")
-    public PropertyDto get(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        // Vérifier l'accès pour les HOST
-        checkHostAccess(id, jwt);
-        return propertyService.getById(id);
-    }
-
     @GetMapping
     @Operation(summary = "Lister les logements")
     public Page<PropertyDto> list(@PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
@@ -123,18 +107,17 @@ public class PropertyController {
                                   @AuthenticationPrincipal Jwt jwt) {
         // Si l'utilisateur est un HOST, filtrer automatiquement par ses propriétés
         UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
+
         if (userRole == UserRole.HOST && jwt != null) {
-            // Récupérer l'utilisateur depuis la base de données
             String keycloakId = jwt.getSubject();
             User user = userService.findByKeycloakId(keycloakId);
 
             if (user != null) {
-                // Forcer le filtrage par l'ID du propriétaire HOST
                 Long hostOwnerId = user.getId();
-                log.debug("HOST detected, filtering by ownerId: {}", hostOwnerId);
+                log.debug("HOST listing properties - userId={}, ownerId={}", user.getId(), hostOwnerId);
                 return propertyService.search(pageable, hostOwnerId, status, type, city);
             } else {
-                log.warn("HOST not found in database for keycloakId: {}", keycloakId);
+                log.warn("HOST user not found by keycloakId={}", keycloakId);
             }
         }
 
@@ -147,6 +130,22 @@ public class PropertyController {
     public Page<PropertyDto> listWithManagers(@PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
                                              @RequestParam(required = false) String ownerKeycloakId) {
         return propertyService.searchWithManagers(pageable, ownerKeycloakId);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Obtenir un logement par ID")
+    public PropertyDto get(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
+        // Vérifier l'accès pour les HOST
+        checkHostAccess(id, jwt);
+        return propertyService.getById(id);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Mettre à jour un logement")
+    public PropertyDto update(@PathVariable Long id, @RequestBody PropertyDto dto, @AuthenticationPrincipal Jwt jwt) {
+        // Vérifier l'accès pour les HOST
+        checkHostAccess(id, jwt);
+        return propertyService.update(id, dto);
     }
 
     @DeleteMapping("/{id}")

@@ -245,6 +245,30 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     }
   }, [isHost, setValue, isEditMode]);
 
+  // ─── HOST DÉDIÉ : Auto-sélection propriété + demandeur dès que l'auth est prête ───
+  // Cet effet est indépendant de GET /users (qui retourne 403 pour HOST).
+  // Il se déclenche dès que user.databaseId est disponible.
+  useEffect(() => {
+    if (isEditMode || !isHost() || !user?.databaseId) return;
+
+    // 1. Construire une entrée utilisateur depuis les données auth (pas besoin de GET /users)
+    const selfUser: User = {
+      id: user.databaseId,
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      email: user.email || '',
+      role: 'HOST',
+    };
+    setUsers(prev => {
+      // Ne pas écraser si déjà rempli avec l'utilisateur (éviter boucle)
+      if (prev.some(u => u.id === user.databaseId)) return prev;
+      return prev.length > 0 ? [...prev, selfUser] : [selfUser];
+    });
+
+    // 2. Auto-sélectionner comme demandeur
+    setValue('userId', user.databaseId);
+  }, [isHost, user?.databaseId, user?.firstName, user?.lastName, user?.email, setValue, isEditMode]);
+
   // Charger les propriétés depuis l'API
   useEffect(() => {
     const loadProperties = async () => {
@@ -256,9 +280,12 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
         // Si c'est un HOST en mode création, définir automatiquement sa première propriété
         if (!isEditMode && isHost() && propertiesList.length > 0) {
+          // Essayer de matcher par ownerId, sinon prendre la première propriété
+          // (le backend filtre déjà par organisation pour les HOST)
           const hostProperty = propertiesList.find((prop: Property) =>
-            prop.ownerId?.toString() === user?.id?.toString()
-          );
+            prop.ownerId != null && user?.databaseId != null &&
+            prop.ownerId.toString() === user.databaseId.toString()
+          ) || propertiesList[0];
           if (hostProperty) {
             setValue('propertyId', hostProperty.id);
           }
@@ -270,29 +297,25 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     };
 
     loadProperties();
-  }, [isHost, user?.id, setValue, isEditMode]);
+  }, [isHost, user?.databaseId, setValue, isEditMode]);
 
-  // Charger la liste des utilisateurs depuis l'API
+  // Charger la liste des utilisateurs depuis l'API (pour admin/manager uniquement)
   useEffect(() => {
+    // Les HOST n'ont pas accès à GET /users — leur user est déjà injecté ci-dessus
+    if (isHost()) return;
+
     const loadUsers = async () => {
       try {
         const data = await usersApi.getAll();
         const usersList = ((data as unknown as { content?: User[] }).content || data) as unknown as User[];
         setUsers(usersList);
-
-        // Si c'est un HOST en mode création, définir automatiquement son ID comme demandeur
-        if (!isEditMode && isHost() && user?.id) {
-          const hostUser = usersList.find((u: User) => u.id.toString() === user.id.toString());
-          if (hostUser) {
-            setValue('userId', hostUser.id);
-          }
-        }
       } catch (err) {
+        // Silently fail — les HOST sont déjà gérés
       }
     };
 
     loadUsers();
-  }, [isHost, user?.id, setValue, isEditMode]);
+  }, [isHost]);
 
   // Charger la liste des équipes depuis l'API
   useEffect(() => {
@@ -342,16 +365,10 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     loadReservations();
   }, [watchedPropertyId]);
 
-  // Définir l'utilisateur par défaut selon le rôle (only in create mode)
+  // Définir l'utilisateur par défaut selon le rôle — pour NON-HOST (only in create mode)
   useEffect(() => {
-    if (isEditMode) return;
-    if (isHost() && user?.id) {
-      // Pour un HOST, essayer de trouver son ID dans la base
-      const hostUser = users.find(u => u.email === user.email);
-      if (hostUser) {
-        setValue('userId', hostUser.id);
-      }
-    } else if (!isAdmin() && !isManager()) {
+    if (isEditMode || users.length === 0 || isHost()) return;
+    if (!isAdmin() && !isManager()) {
       // Pour les autres rôles non-admin, sélectionner automatiquement l'utilisateur connecté
       const currentUser = users.find(u => u.email === user?.email);
       if (currentUser) {

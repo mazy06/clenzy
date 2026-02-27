@@ -135,10 +135,10 @@ class InterventionControllerTest {
             var pageable = PageRequest.of(0, 10);
             Page<InterventionDto> page = new PageImpl<>(List.of(new InterventionDto()));
 
-            when(interventionService.listWithRoleBasedAccess(pageable, null, null, null, null, jwt))
+            when(interventionService.listWithRoleBasedAccess(pageable, null, null, null, null, null, null, jwt))
                     .thenReturn(page);
 
-            Page<InterventionDto> result = controller.list(pageable, null, null, null, null, jwt);
+            Page<InterventionDto> result = controller.list(pageable, null, null, null, null, null, null, jwt);
             assertThat(result.getContent()).hasSize(1);
         }
     }

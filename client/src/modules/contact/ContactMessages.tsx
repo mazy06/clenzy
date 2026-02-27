@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -13,6 +13,7 @@ import {
   Dialog,
   DialogContent,
   Checkbox,
+  Skeleton,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -33,6 +34,7 @@ import { contactApi } from '../../services/api';
 import { useTranslation } from '../../hooks/useTranslation';
 import ContactMessageThread from './ContactMessageThread';
 import type { ContactMessageItem } from './ContactMessageThread';
+import PhotoLightbox from '../../components/PhotoLightbox';
 
 // ─── Config statuts (utilise les tokens MUI palette) ─────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; palette: string }> = {
@@ -58,6 +60,17 @@ const CATEGORY_CONFIG: Record<string, { label: string; palette: string }> = {
   EMERGENCY:   { label: 'Urgence',     palette: 'error' },
 };
 
+// ─── Image detection ─────────────────────────────────────────────────────────
+
+const IMAGE_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/bmp'];
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'];
+
+function isImageAttachment(att: { contentType?: string; originalName?: string }): boolean {
+  if (att.contentType && IMAGE_CONTENT_TYPES.includes(att.contentType.toLowerCase())) return true;
+  const ext = att.originalName?.split('.').pop()?.toLowerCase() ?? '';
+  return IMAGE_EXTENSIONS.includes(ext);
+}
+
 // ─── Composant principal ─────────────────────────────────────────────────────
 
 interface ContactMessagesProps {
@@ -82,6 +95,12 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Image preview
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const blobUrlsRef = useRef<string[]>([]);
 
   // ─── Chargement ──────────────────────────────────────────────
 
@@ -117,6 +136,37 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
     loadMessages();
     setSelectedIds(new Set());
   }, [loadMessages]);
+
+  // Load image blob URLs when selected message changes
+  useEffect(() => {
+    blobUrlsRef.current.forEach(url => window.URL.revokeObjectURL(url));
+    blobUrlsRef.current = [];
+    setImageUrls({});
+
+    if (!selectedMessage?.attachments) return;
+    const imageAtts = selectedMessage.attachments.filter(isImageAttachment);
+    if (imageAtts.length === 0) return;
+
+    let active = true;
+    imageAtts.forEach(att => {
+      contactApi.getAttachmentBlobUrl(Number(selectedMessage.id), att.id)
+        .then(url => {
+          if (!active) { window.URL.revokeObjectURL(url); return; }
+          blobUrlsRef.current.push(url);
+          setImageUrls(prev => ({ ...prev, [att.id]: url }));
+        })
+        .catch(() => {});
+    });
+
+    return () => { active = false; };
+  }, [selectedMessage?.id]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      blobUrlsRef.current.forEach(url => window.URL.revokeObjectURL(url));
+    };
+  }, []);
 
   // ─── Filtrage client ─────────────────────────────────────────
 
@@ -596,36 +646,90 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                 </Box>
 
                 {/* Attachments */}
-                {selectedMessage.attachments && selectedMessage.attachments.length > 0 && (
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="caption" sx={{
-                      fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 600,
-                      textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', mb: 0.5,
-                    }}>
-                      Pieces jointes ({selectedMessage.attachments.length})
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {selectedMessage.attachments.map(att => (
-                        <Chip
-                          key={att.id}
-                          icon={<AttachFileIcon sx={{ fontSize: 14 }} />}
-                          label={att.originalName}
-                          size="small"
-                          variant="outlined"
-                          clickable={!!att.storagePath}
-                          onClick={att.storagePath ? () => contactApi.downloadAttachment(Number(selectedMessage.id), att.id, att.originalName) : undefined}
-                          deleteIcon={att.storagePath ? <DownloadIcon sx={{ fontSize: 16 }} /> : undefined}
-                          onDelete={att.storagePath ? () => contactApi.downloadAttachment(Number(selectedMessage.id), att.id, att.originalName) : undefined}
-                          sx={{
-                            fontSize: '0.75rem', borderWidth: 1.5,
-                            cursor: att.storagePath ? 'pointer' : 'default',
-                            '&:hover': att.storagePath ? { bgcolor: 'action.hover' } : {},
-                          }}
-                        />
-                      ))}
+                {selectedMessage.attachments && selectedMessage.attachments.length > 0 && (() => {
+                  const imgAtts = selectedMessage.attachments.filter(isImageAttachment);
+                  const fileAtts = selectedMessage.attachments.filter(a => !isImageAttachment(a));
+                  const photos: string[] = [];
+                  const idxMap: Record<string, number> = {};
+                  imgAtts.forEach(a => {
+                    const u = imageUrls[a.id];
+                    if (u) { idxMap[a.id] = photos.length; photos.push(u); }
+                  });
+
+                  return (
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="caption" sx={{
+                        fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 600,
+                        textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', mb: 0.5,
+                      }}>
+                        Pieces jointes ({selectedMessage.attachments.length})
+                      </Typography>
+
+                      {/* Image attachments - inline preview */}
+                      {imgAtts.length > 0 && (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: fileAtts.length > 0 ? 1 : 0 }}>
+                          {imgAtts.map(att => {
+                            const url = imageUrls[att.id];
+                            if (!url) {
+                              return <Skeleton key={att.id} variant="rectangular" width={160} height={120} sx={{ borderRadius: 1 }} />;
+                            }
+                            return (
+                              <Box
+                                key={att.id}
+                                component="img"
+                                src={url}
+                                alt={att.originalName}
+                                onClick={() => {
+                                  const idx = idxMap[att.id];
+                                  if (idx !== undefined) { setLightboxIndex(idx); setLightboxOpen(true); }
+                                }}
+                                sx={{
+                                  width: 160, height: 120,
+                                  objectFit: 'cover', borderRadius: 1,
+                                  cursor: 'pointer', border: 1, borderColor: 'divider',
+                                  transition: 'all 0.2s',
+                                  '&:hover': { opacity: 0.85, boxShadow: 2 },
+                                }}
+                              />
+                            );
+                          })}
+                        </Box>
+                      )}
+
+                      {/* Non-image file attachments */}
+                      {fileAtts.length > 0 && (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {fileAtts.map(att => (
+                            <Chip
+                              key={att.id}
+                              icon={<AttachFileIcon sx={{ fontSize: 14 }} />}
+                              label={att.originalName}
+                              size="small"
+                              variant="outlined"
+                              clickable
+                              onClick={() => contactApi.downloadAttachment(Number(selectedMessage.id), att.id, att.originalName)}
+                              deleteIcon={<DownloadIcon sx={{ fontSize: 16 }} />}
+                              onDelete={() => contactApi.downloadAttachment(Number(selectedMessage.id), att.id, att.originalName)}
+                              sx={{
+                                fontSize: '0.75rem', borderWidth: 1.5,
+                                cursor: 'pointer',
+                                '&:hover': { bgcolor: 'action.hover' },
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      )}
+
+                      {/* Lightbox for full-size image viewing */}
+                      <PhotoLightbox
+                        open={lightboxOpen}
+                        photos={photos}
+                        initialIndex={lightboxIndex}
+                        onClose={() => setLightboxOpen(false)}
+                      />
                     </Box>
-                  </Box>
-                )}
+                  );
+                })()}
 
                 {/* Actions */}
                 <Divider sx={{ my: 2 }} />

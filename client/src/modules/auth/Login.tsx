@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import keycloak from '../../keycloak';
-import clenzyLogo from '../../assets/Clenzy_logo.png';
+import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
 import { saveTokens, setSessionCookie } from '../../services/storageService';
 import lightTheme from '../../theme/theme';
@@ -187,25 +187,8 @@ export default function Login() {
         border: '1px solid rgba(255, 255, 255, 0.2)',
         transition: 'max-width 0.3s ease',
       }}>
-        <Box sx={{ textAlign: 'center', mb: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
-            <img
-              src={clenzyLogo}
-              alt="Clenzy Logo"
-              style={{
-                height: '48px',
-                width: 'auto',
-                maxWidth: '200px'
-              }}
-            />
-          </Box>
-          <Typography variant="body2" sx={{
-            fontWeight: 500,
-            color: 'secondary.main',
-            fontSize: '0.85rem'
-          }}>
-            Connectez-vous à votre compte
-          </Typography>
+        <Box sx={{ textAlign: 'center', mb: 2, display: 'flex', justifyContent: 'center' }}>
+          <ClenzyAnimatedLogo scale={0.9} />
         </Box>
 
         {/* Message de succes apres inscription */}
@@ -222,31 +205,18 @@ export default function Login() {
             <TextField
               fullWidth
               size="small"
-              label="Email ou nom d'utilisateur"
+              placeholder="Email ou nom d'utilisateur"
               type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
               autoComplete="username"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '&:hover fieldset': {
-                    borderColor: 'secondary.main',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: 'secondary.main',
-                  },
-                },
-                '& .MuiInputLabel-root.Mui-focused': {
-                  color: 'secondary.main',
-                },
-              }}
             />
             <TextField
               fullWidth
               size="small"
-              label="Mot de passe"
+              placeholder="Mot de passe"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -262,25 +232,12 @@ export default function Login() {
                       onMouseDown={(e) => e.preventDefault()}
                       edge="end"
                       size="small"
-                      sx={{ color: 'secondary.main' }}
+                      sx={{ color: 'primary.main' }}
                     >
                       {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                     </IconButton>
                   </InputAdornment>
                 ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '&:hover fieldset': {
-                    borderColor: 'secondary.main',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: 'secondary.main',
-                  },
-                },
-                '& .MuiInputLabel-root.Mui-focused': {
-                  color: 'secondary.main',
-                },
               }}
             />
 
@@ -312,18 +269,19 @@ export default function Login() {
                 py: 1,
                 fontSize: '0.9rem',
                 fontWeight: 600,
-                backgroundColor: 'secondary.main',
+                backgroundColor: 'primary.main',
+                color: '#ffffff',
                 '&:hover': {
-                  backgroundColor: 'secondary.dark',
+                  backgroundColor: 'primary.dark',
                 },
                 '&:active': {
-                  backgroundColor: 'primary.main',
+                  backgroundColor: '#3D6B7A',
                 },
                 '&:disabled': {
-                  backgroundColor: 'secondary.light',
+                  backgroundColor: 'primary.light',
                 },
                 borderRadius: 1.5,
-                boxShadow: '0 4px 12px rgba(166, 192, 206, 0.3)',
+                boxShadow: '0 4px 12px rgba(107, 138, 154, 0.3)',
                 transition: 'all 0.3s ease',
               }}
             >

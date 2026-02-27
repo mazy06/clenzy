@@ -1,6 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.service.InscriptionService;
+import com.clenzy.service.MobilePaymentService;
 import com.clenzy.service.StripeService;
 import com.clenzy.service.SubscriptionService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -10,6 +11,7 @@ import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
+import com.stripe.model.PaymentIntent;
 import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
@@ -32,6 +34,7 @@ public class StripeWebhookController {
     private final StripeService stripeService;
     private final InscriptionService inscriptionService;
     private final SubscriptionService subscriptionService;
+    private final MobilePaymentService mobilePaymentService;
 
     @Value("${stripe.webhook-secret}")
     private String webhookSecret;
@@ -41,10 +44,12 @@ public class StripeWebhookController {
 
     public StripeWebhookController(StripeService stripeService,
                                    InscriptionService inscriptionService,
-                                   SubscriptionService subscriptionService) {
+                                   SubscriptionService subscriptionService,
+                                   MobilePaymentService mobilePaymentService) {
         this.stripeService = stripeService;
         this.inscriptionService = inscriptionService;
         this.subscriptionService = subscriptionService;
+        this.mobilePaymentService = mobilePaymentService;
     }
 
     /**
@@ -94,6 +99,14 @@ public class StripeWebhookController {
 
             case "checkout.session.async_payment_failed":
                 handleAsyncPaymentFailed(event);
+                break;
+
+            case "payment_intent.succeeded":
+                handlePaymentIntentSucceeded(event);
+                break;
+
+            case "payment_intent.payment_failed":
+                handlePaymentIntentFailed(event);
                 break;
 
             default:
@@ -181,14 +194,14 @@ public class StripeWebhookController {
         logger.info("Type determine pour session {}: type={}", sessionId, type);
 
         if ("inscription".equals(type)) {
-            // Paiement d'inscription (subscription) : creer le compte utilisateur
+            // Paiement d'inscription (subscription) : confirmer le paiement + envoyer email de confirmation
             String customerId = session.getCustomer();
             String subscriptionId = session.getSubscription();
             logger.info("Subscription d'inscription reussie pour session: {}, customer: {}, subscription: {}", sessionId, customerId, subscriptionId);
             try {
-                inscriptionService.completeInscription(sessionId, customerId, subscriptionId);
+                inscriptionService.confirmPayment(sessionId, customerId, subscriptionId);
             } catch (Exception e) {
-                logger.error("Erreur lors de la finalisation de l'inscription pour session: {}", sessionId, e);
+                logger.error("Erreur lors de la confirmation du paiement d'inscription pour session: {}", sessionId, e);
             }
         } else if ("upgrade".equals(type)) {
             // Upgrade de forfait (subscription) : mettre a jour le forfait utilisateur
@@ -227,9 +240,9 @@ public class StripeWebhookController {
             String customerId = session.getCustomer();
             String subscriptionId = session.getSubscription();
             try {
-                inscriptionService.completeInscription(sessionId, customerId, subscriptionId);
+                inscriptionService.confirmPayment(sessionId, customerId, subscriptionId);
             } catch (Exception e) {
-                logger.error("Erreur lors de la finalisation asynchrone de l'inscription: {}", sessionId, e);
+                logger.error("Erreur lors de la confirmation asynchrone du paiement d'inscription: {}", sessionId, e);
             }
         } else if ("grouped_deferred".equals(type)) {
             String interventionIds = session.getMetadata() != null ? session.getMetadata().get("intervention_ids") : null;
@@ -262,5 +275,78 @@ public class StripeWebhookController {
         } else {
             stripeService.markPaymentAsFailed(sessionId);
         }
+    }
+
+    /**
+     * Gere payment_intent.succeeded pour les paiements via Payment Sheet mobile.
+     * Route vers le bon service selon le type dans les metadata du PaymentIntent.
+     */
+    private void handlePaymentIntentSucceeded(Event event) {
+        PaymentIntent paymentIntent = (PaymentIntent) event.getDataObjectDeserializer()
+                .getObject()
+                .orElse(null);
+
+        if (paymentIntent == null) {
+            logger.warn("PaymentIntent null dans payment_intent.succeeded");
+            return;
+        }
+
+        String type = paymentIntent.getMetadata() != null
+                ? paymentIntent.getMetadata().get("type") : null;
+
+        logger.info("payment_intent.succeeded: id={}, type={}, metadata={}",
+                paymentIntent.getId(), type, paymentIntent.getMetadata());
+
+        if ("mobile_upgrade".equals(type)) {
+            // Upgrade de forfait via Payment Sheet mobile
+            try {
+                mobilePaymentService.completeSubscriptionUpgrade(paymentIntent);
+            } catch (Exception e) {
+                logger.error("Erreur lors de l'upgrade mobile pour PaymentIntent {}: {}",
+                        paymentIntent.getId(), e.getMessage(), e);
+            }
+        } else if ("mobile_intervention".equals(type)) {
+            // Paiement d'intervention via Payment Sheet mobile
+            try {
+                mobilePaymentService.completeInterventionPayment(paymentIntent);
+            } catch (Exception e) {
+                logger.error("Erreur lors du paiement intervention mobile pour PaymentIntent {}: {}",
+                        paymentIntent.getId(), e.getMessage(), e);
+            }
+        } else {
+            // PaymentIntent non gere par le mobile (peut etre un PI d'un Checkout Session web)
+            logger.debug("payment_intent.succeeded ignore (type={})", type);
+        }
+    }
+
+    /**
+     * Gere payment_intent.payment_failed pour les echecs de paiement via Payment Sheet mobile.
+     */
+    private void handlePaymentIntentFailed(Event event) {
+        PaymentIntent paymentIntent = (PaymentIntent) event.getDataObjectDeserializer()
+                .getObject()
+                .orElse(null);
+
+        if (paymentIntent == null) return;
+
+        String type = paymentIntent.getMetadata() != null
+                ? paymentIntent.getMetadata().get("type") : null;
+
+        logger.warn("payment_intent.payment_failed: id={}, type={}",
+                paymentIntent.getId(), type);
+
+        if ("mobile_intervention".equals(type)) {
+            String interventionIdStr = paymentIntent.getMetadata().get("interventionId");
+            if (interventionIdStr != null) {
+                try {
+                    Long interventionId = Long.parseLong(interventionIdStr);
+                    // Reutiliser la logique existante via le session ID stocke
+                    stripeService.markPaymentAsFailed(paymentIntent.getId());
+                } catch (Exception e) {
+                    logger.error("Erreur gestion echec paiement mobile intervention: {}", e.getMessage());
+                }
+            }
+        }
+        // Pour mobile_upgrade, pas d'action speciale (la subscription reste incomplete)
     }
 }

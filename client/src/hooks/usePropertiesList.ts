@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { propertiesApi } from '../services/api';
 import type { Property as ApiProperty } from '../services/api/propertiesApi';
 import { extractApiList } from '../types';
-import { useAuth } from './useAuth';
+
 
 // ============================================================================
 // Types
@@ -48,8 +48,6 @@ export interface PropertyListItem {
 
 export const propertiesListKeys = {
   all: ['properties-list'] as const,
-  list: (userId: string | undefined) =>
-    [...propertiesListKeys.all, userId ?? 'all'] as const,
 };
 
 // ============================================================================
@@ -105,18 +103,16 @@ export interface UsePropertiesListReturn {
 }
 
 export function usePropertiesList(): UsePropertiesListReturn {
-  const { user, isAdmin, isManager, isHost } = useAuth();
   const queryClient = useQueryClient();
 
-  const isHostOnly = isHost() && !isAdmin() && !isManager();
-  const userId = isHostOnly ? user?.id?.toString() : undefined;
+  // Note: le backend détecte le rôle HOST via JWT et filtre automatiquement
+  // par ownerId côté serveur. Pas besoin d'envoyer ownerId depuis le frontend.
 
   // ─── Properties query ──────────────────────────────────────────────
   const propertiesQuery = useQuery({
-    queryKey: propertiesListKeys.list(userId),
+    queryKey: propertiesListKeys.all,
     queryFn: async () => {
-      const params = isHostOnly && user?.id ? { ownerId: user.id } : undefined;
-      const data = await propertiesApi.getAll(params);
+      const data = await propertiesApi.getAll();
       return extractApiList<ApiProperty>(data).map(convertProperty);
     },
     staleTime: 60_000,
