@@ -112,7 +112,9 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/api/webhooks/stripe").permitAll()
                         .requestMatchers("/api/webhooks/expedia").permitAll()
+                        .requestMatchers("/api/webhooks/whatsapp").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
                         // Invitations : info publique (sans JWT), accept authentifie
                         .requestMatchers(HttpMethod.GET, "/api/invitations/info").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/invitations/accept").authenticated()

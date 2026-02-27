@@ -1,22 +1,23 @@
 package com.clenzy.integration.airbnb.service;
 
 import com.clenzy.config.KafkaConfig;
-import com.clenzy.integration.airbnb.model.AirbnbListingMapping;
 import com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository;
+import com.clenzy.model.Conversation;
+import com.clenzy.model.ConversationChannel;
 import com.clenzy.service.AuditLogService;
+import com.clenzy.service.messaging.ConversationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Service de gestion des messages Airbnb.
  *
  * Ecoute le topic Kafka airbnb.messages.sync pour :
- * - Stocker les messages recus des guests
+ * - Stocker les messages dans l'inbox unifie via ConversationService
  * - Permettre la reponse via l'API Airbnb
  */
 @Service
@@ -27,13 +28,16 @@ public class AirbnbMessageService {
     private final AirbnbListingMappingRepository listingMappingRepository;
     private final AirbnbWebhookService webhookService;
     private final AuditLogService auditLogService;
+    private final ConversationService conversationService;
 
     public AirbnbMessageService(AirbnbListingMappingRepository listingMappingRepository,
                                 AirbnbWebhookService webhookService,
-                                AuditLogService auditLogService) {
+                                AuditLogService auditLogService,
+                                ConversationService conversationService) {
         this.listingMappingRepository = listingMappingRepository;
         this.webhookService = webhookService;
         this.auditLogService = auditLogService;
+        this.conversationService = conversationService;
     }
 
     /**
@@ -76,13 +80,24 @@ public class AirbnbMessageService {
         String reservationId = (String) data.get("reservation_id");
         String senderName = (String) data.get("sender_name");
         String content = (String) data.get("content");
+        String threadId = (String) data.get("thread_id");
+        String messageId = (String) data.get("message_id");
 
         log.info("Message Airbnb recu de {} pour reservation {}: {}",
                 senderName, reservationId, content != null && content.length() > 50 ? content.substring(0, 50) + "..." : content);
 
-        // TODO : Stocker le message dans une table dediee
-        // TODO : Envoyer une notification push/email au proprietaire
-        // TODO : Integrer avec le systeme de notifications Clenzy
+        // Chercher l'organisation via le listing mapping
+        Long orgId = resolveOrganizationId(data);
+        if (orgId != null) {
+            String externalId = threadId != null ? threadId : reservationId;
+            Conversation conversation = conversationService.getOrCreate(
+                orgId, ConversationChannel.AIRBNB, externalId,
+                null, null, null, "Airbnb: " + senderName);
+
+            conversationService.addInboundMessage(
+                conversation, senderName, "airbnb:" + reservationId,
+                content, null, messageId);
+        }
 
         auditLogService.logSync("AirbnbMessage", reservationId,
                 "Message Airbnb recu de " + senderName);
@@ -91,5 +106,15 @@ public class AirbnbMessageService {
     private void handleMessageSent(Map<String, Object> data) {
         String reservationId = (String) data.get("reservation_id");
         log.info("Confirmation envoi message Airbnb pour reservation {}", reservationId);
+    }
+
+    private Long resolveOrganizationId(Map<String, Object> data) {
+        String listingId = (String) data.get("listing_id");
+        if (listingId != null) {
+            return listingMappingRepository.findByAirbnbListingId(listingId)
+                .map(m -> m.getOrganizationId())
+                .orElse(null);
+        }
+        return null;
     }
 }
