@@ -178,7 +178,7 @@ class RatePlanControllerTest {
             when(property.getId()).thenReturn(1L);
             when(property.getOrganizationId()).thenReturn(1L);
             User otherOwner = mock(User.class);
-            when(property.getOwner()).thenReturn(otherOwner);
+            lenient().when(property.getOwner()).thenReturn(otherOwner);
             RatePlan existing = mock(RatePlan.class);
             when(existing.getProperty()).thenReturn(property);
             when(ratePlanRepository.findById(10L)).thenReturn(Optional.of(existing));
