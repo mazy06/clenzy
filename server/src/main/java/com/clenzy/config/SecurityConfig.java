@@ -148,9 +148,11 @@ public class SecurityConfig {
                     "/api/webhooks/minut",
                     "/api/webhooks/tripadvisor",
                     "/api/webhooks/expedia",
+                    "/api/webhooks/whatsapp",
                     "/api/airbnb/callback",
                     "/api/minut/callback",
-                    "/api/public/**"
+                    "/api/public/**",
+                    "/ws/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

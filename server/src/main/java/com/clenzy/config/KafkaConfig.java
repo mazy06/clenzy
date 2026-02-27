@@ -62,6 +62,11 @@ public class KafkaConfig {
     public static final String TOPIC_EXPEDIA_CALENDAR = "expedia.calendar.sync";
     public static final String TOPIC_EXPEDIA_DLQ = "expedia.dlq";
 
+    // ---- Conversation / WhatsApp topics ----
+    public static final String TOPIC_CONVERSATIONS = "conversations.events";
+    public static final String TOPIC_BOOKING_MESSAGES = "booking.messages.sync";
+    public static final String TOPIC_WHATSAPP_WEBHOOKS = "whatsapp.webhooks.incoming";
+
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
 
@@ -235,6 +240,32 @@ public class KafkaConfig {
     @Bean
     public NewTopic expediaDlqTopic() {
         return TopicBuilder.name(TOPIC_EXPEDIA_DLQ)
+                .partitions(1)
+                .replicas(1)
+                .build();
+    }
+
+    // ---- Conversation / WhatsApp topics ----
+
+    @Bean
+    public NewTopic conversationsTopic() {
+        return TopicBuilder.name(TOPIC_CONVERSATIONS)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic bookingMessagesTopic() {
+        return TopicBuilder.name(TOPIC_BOOKING_MESSAGES)
+                .partitions(1)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic whatsappWebhooksTopic() {
+        return TopicBuilder.name(TOPIC_WHATSAPP_WEBHOOKS)
                 .partitions(1)
                 .replicas(1)
                 .build();

@@ -143,9 +143,17 @@ public enum NotificationKey {
     NOISE_ALERT_WARNING(NotificationType.WARNING, NotificationCategory.NOISE_ALERT, true),
     NOISE_ALERT_CRITICAL(NotificationType.ERROR, NotificationCategory.NOISE_ALERT, true),
     NOISE_ALERT_RESOLVED(NotificationType.SUCCESS, NotificationCategory.NOISE_ALERT, true),
-    NOISE_ALERT_CONFIG_CHANGED(NotificationType.INFO, NotificationCategory.NOISE_ALERT, false);
+    NOISE_ALERT_CONFIG_CHANGED(NotificationType.INFO, NotificationCategory.NOISE_ALERT, false),
 
-    // Total: 18 + 8 + 10 + 6 + 8 + 6 + 5 + 3 + 2 + 4 + 6 + 4 + 3 + 2 + 3 + 4 = 92
+    // ─── CONVERSATION (2 cles) ──────────────────────────────────────────────
+    CONVERSATION_NEW_MESSAGE(NotificationType.INFO, NotificationCategory.CONVERSATION, true),
+    CONVERSATION_ASSIGNED(NotificationType.INFO, NotificationCategory.CONVERSATION, true),
+
+    // ─── ONLINE CHECK-IN (2 cles) ───────────────────────────────────────────
+    ONLINE_CHECKIN_STARTED(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, true),
+    ONLINE_CHECKIN_COMPLETED(NotificationType.SUCCESS, NotificationCategory.GUEST_MESSAGING, true);
+
+    // Total: 92 + 4 = 96
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

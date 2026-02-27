@@ -3,12 +3,18 @@ package com.clenzy.service.messaging;
 import com.clenzy.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@ExtendWith(MockitoExtension.class)
 class TemplateInterpolationServiceTest {
+
+    @Mock private TranslationService translationService;
 
     private TemplateInterpolationService service;
 
@@ -20,7 +26,7 @@ class TemplateInterpolationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TemplateInterpolationService();
+        service = new TemplateInterpolationService(translationService);
 
         property = new Property();
         property.setId(1L);
@@ -181,6 +187,6 @@ class TemplateInterpolationServiceTest {
         assertTrue(keys.contains("accessCode"));
         assertTrue(keys.contains("wifiPassword"));
         assertTrue(keys.contains("confirmationCode"));
-        assertEquals(17, keys.size());
+        assertEquals(19, keys.size());
     }
 }
