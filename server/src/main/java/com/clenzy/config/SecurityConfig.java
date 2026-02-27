@@ -146,6 +146,8 @@ public class SecurityConfig {
                     "/api/webhooks/stripe",
                     "/api/webhooks/airbnb",
                     "/api/webhooks/minut",
+                    "/api/webhooks/tripadvisor",
+                    "/api/webhooks/expedia",
                     "/api/airbnb/callback",
                     "/api/minut/callback",
                     "/api/public/**"

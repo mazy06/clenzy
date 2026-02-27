@@ -8,5 +8,11 @@ public enum ChannelName {
     BOOKING,
     VRBO,
     ICAL,
+    GOOGLE_VACATION_RENTALS,
+    HOMEAWAY,
+    TRIPADVISOR,
+    AGODA,
+    HOTELS_COM,
+    DIRECT,
     OTHER
 }
