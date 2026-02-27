@@ -137,11 +137,11 @@ const ClenzyAnimatedLogo: React.FC<ClenzyAnimatedLogoProps> = ({ scale = 1 }) =>
         }}
       >
         {/* Goutte + étincelles */}
-        <div style={{ position: 'relative', flexShrink: 0, width: 44 * scale, height: 60 * scale }}>
+        <div style={{ position: 'relative', flexShrink: 0, width: 28 * scale, height: 38 * scale }}>
           <svg
             className="drop-icon"
             viewBox="0 0 70 95"
-            style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 2px 8px rgba(74,124,142,0.3))' }}
+            style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 2px 6px rgba(74,124,142,0.25))' }}
           >
             <defs>
               <linearGradient id="clenzyDropGrad" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -160,13 +160,13 @@ const ClenzyAnimatedLogo: React.FC<ClenzyAnimatedLogoProps> = ({ scale = 1 }) =>
             />
           </svg>
 
-          <svg className="sparkle sparkle-1" style={{ position: 'absolute', top: -4 * scale, right: -8 * scale, width: 16 * scale, height: 16 * scale }} viewBox="0 0 24 24">
+          <svg className="sparkle sparkle-1" style={{ position: 'absolute', top: -3 * scale, right: -6 * scale, width: 10 * scale, height: 10 * scale }} viewBox="0 0 24 24">
             <path d="M12 2 L14 9 L21 12 L14 15 L12 22 L10 15 L3 12 L10 9 Z" fill="#C8924A" />
           </svg>
-          <svg className="sparkle sparkle-2" style={{ position: 'absolute', bottom: 4 * scale, right: -10 * scale, width: 11 * scale, height: 11 * scale }} viewBox="0 0 24 24">
+          <svg className="sparkle sparkle-2" style={{ position: 'absolute', bottom: 3 * scale, right: -7 * scale, width: 7 * scale, height: 7 * scale }} viewBox="0 0 24 24">
             <path d="M12 2 L14 9 L21 12 L14 15 L12 22 L10 15 L3 12 L10 9 Z" fill="#D4A65A" />
           </svg>
-          <svg className="sparkle sparkle-3" style={{ position: 'absolute', top: -8 * scale, left: 2 * scale, width: 8 * scale, height: 8 * scale }} viewBox="0 0 24 24">
+          <svg className="sparkle sparkle-3" style={{ position: 'absolute', top: -5 * scale, left: 1 * scale, width: 5 * scale, height: 5 * scale }} viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="6" fill="#C8924A" />
           </svg>
         </div>
