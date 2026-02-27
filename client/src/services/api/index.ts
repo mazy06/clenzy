@@ -204,6 +204,13 @@ export type {
   TestCoverageMetrics,
 } from './monitoringApi';
 
+export { smartLockApi } from './smartLockApi';
+export type {
+  SmartLockDeviceDto,
+  CreateSmartLockDeviceDto,
+  SmartLockStatusDto,
+} from './smartLockApi';
+
 export { airbnbApi } from './airbnbApi';
 export type {
   AirbnbConnectionStatus,
