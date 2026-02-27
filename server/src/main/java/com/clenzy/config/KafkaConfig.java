@@ -67,6 +67,10 @@ public class KafkaConfig {
     public static final String TOPIC_BOOKING_MESSAGES = "booking.messages.sync";
     public static final String TOPIC_WHATSAPP_WEBHOOKS = "whatsapp.webhooks.incoming";
 
+    // ---- Reviews & Pricing topics ----
+    public static final String TOPIC_REVIEWS_SYNC = "reviews.sync";
+    public static final String TOPIC_PRICING_EXTERNAL = "pricing.external.sync";
+
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
 
@@ -267,6 +271,22 @@ public class KafkaConfig {
     public NewTopic whatsappWebhooksTopic() {
         return TopicBuilder.name(TOPIC_WHATSAPP_WEBHOOKS)
                 .partitions(1)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic reviewsSyncTopic() {
+        return TopicBuilder.name(TOPIC_REVIEWS_SYNC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic pricingExternalTopic() {
+        return TopicBuilder.name(TOPIC_PRICING_EXTERNAL)
+                .partitions(3)
                 .replicas(1)
                 .build();
     }

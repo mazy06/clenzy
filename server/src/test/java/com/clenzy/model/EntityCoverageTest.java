@@ -1031,7 +1031,7 @@ class EntityCoverageTest {
     @DisplayName("NotificationCategory")
     class NotificationCategoryTest {
         @Test void allValues() {
-            assertThat(NotificationCategory.values()).hasSize(10);
+            assertThat(NotificationCategory.values()).hasSize(11);
         }
         @Test void getValueJsonMapping() {
             assertThat(NotificationCategory.INTERVENTION.getValue()).isEqualTo("intervention");
