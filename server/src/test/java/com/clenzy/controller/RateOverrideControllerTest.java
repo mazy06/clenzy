@@ -56,7 +56,6 @@ class RateOverrideControllerTest {
         when(property.getOrganizationId()).thenReturn(1L);
         User owner = mock(User.class);
         when(owner.getId()).thenReturn(1L);
-        when(owner.getKeycloakId()).thenReturn("user-123");
         when(property.getOwner()).thenReturn(owner);
         when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);

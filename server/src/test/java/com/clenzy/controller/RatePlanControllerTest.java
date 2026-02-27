@@ -55,7 +55,6 @@ class RatePlanControllerTest {
         when(property.getOrganizationId()).thenReturn(1L);
         User owner = mock(User.class);
         when(owner.getId()).thenReturn(1L);
-        when(owner.getKeycloakId()).thenReturn("user-123");
         when(property.getOwner()).thenReturn(owner);
         when(propertyRepository.findById(propertyId)).thenReturn(Optional.of(property));
         when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
@@ -179,7 +178,6 @@ class RatePlanControllerTest {
             when(property.getId()).thenReturn(1L);
             when(property.getOrganizationId()).thenReturn(1L);
             User otherOwner = mock(User.class);
-            when(otherOwner.getKeycloakId()).thenReturn("other-user");
             when(property.getOwner()).thenReturn(otherOwner);
             RatePlan existing = mock(RatePlan.class);
             when(existing.getProperty()).thenReturn(property);
