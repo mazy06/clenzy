@@ -126,8 +126,8 @@ class OutboxRelayIntegrationTest extends AbstractIntegrationTest {
         assertEquals("SENT", updated.getStatus());
         assertNotNull(updated.getSentAt());
 
-        // Verifier l'appel Kafka
-        verify(kafkaTemplate).send(eq("calendar.updates"), eq("42"), any());
+        // Verifier l'appel Kafka (atLeastOnce car le @Scheduled peut aussi relayer l'event)
+        verify(kafkaTemplate, atLeastOnce()).send(eq("calendar.updates"), eq("42"), any());
     }
 
     // ----------------------------------------------------------------
