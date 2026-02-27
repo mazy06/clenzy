@@ -82,7 +82,7 @@ class NoiseDeviceServiceTest {
         void whenDevicesExist_thenReturnsDtoList() {
             // Arrange
             NoiseDevice device = buildDevice(1L, "Capteur Salon", DeviceType.MINUT);
-            when(noiseDeviceRepository.findByUserId(USER_ID)).thenReturn(List.of(device));
+            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE)).thenReturn(List.of(device));
             Property property = buildProperty(1L, "Appart Paris");
             when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
 
@@ -101,7 +101,7 @@ class NoiseDeviceServiceTest {
         @DisplayName("when no devices then returns empty list")
         void whenNoDevices_thenReturnsEmpty() {
             // Arrange
-            when(noiseDeviceRepository.findByUserId("user-2")).thenReturn(List.of());
+            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE)).thenReturn(List.of());
 
             // Act
             List<NoiseDeviceDto> result = service.getUserDevices("user-2");
@@ -116,7 +116,7 @@ class NoiseDeviceServiceTest {
             // Arrange
             NoiseDevice d1 = buildDevice(1L, "Capteur A", DeviceType.MINUT);
             NoiseDevice d2 = buildDevice(2L, "Capteur B", DeviceType.TUYA);
-            when(noiseDeviceRepository.findByUserId(USER_ID)).thenReturn(List.of(d1, d2));
+            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE)).thenReturn(List.of(d1, d2));
             Property property = buildProperty(1L, "Appart");
             when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
 
@@ -225,7 +225,7 @@ class NoiseDeviceServiceTest {
         void whenDeviceExists_thenDeletes() {
             // Arrange
             NoiseDevice device = buildDevice(1L, "Test", DeviceType.MINUT);
-            when(noiseDeviceRepository.findById(1L)).thenReturn(Optional.of(device));
+            when(noiseDeviceRepository.findByIdAndUserId(1L, USER_ID)).thenReturn(Optional.of(device));
 
             // Act
             service.deleteDevice(USER_ID, 1L);
@@ -238,7 +238,7 @@ class NoiseDeviceServiceTest {
         @DisplayName("when device not found then throws IllegalArgumentException")
         void whenDeviceNotFound_thenThrows() {
             // Arrange
-            when(noiseDeviceRepository.findById(99L)).thenReturn(Optional.empty());
+            when(noiseDeviceRepository.findByIdAndUserId(99L, USER_ID)).thenReturn(Optional.empty());
 
             // Act & Assert
             assertThatThrownBy(() -> service.deleteDevice(USER_ID, 99L))
@@ -409,7 +409,7 @@ class NoiseDeviceServiceTest {
         @DisplayName("when no active devices then returns empty chart data")
         void whenNoActiveDevices_thenReturnsEmptyChartData() {
             // Arrange
-            when(noiseDeviceRepository.findByUserIdAndStatus(USER_ID, DeviceStatus.ACTIVE))
+            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE))
                     .thenReturn(Collections.emptyList());
 
             // Act
@@ -426,7 +426,7 @@ class NoiseDeviceServiceTest {
             // Arrange
             NoiseDevice device = buildDevice(1L, "Sensor 1", DeviceType.MINUT);
             device.setExternalDeviceId("ext-1");
-            when(noiseDeviceRepository.findByUserIdAndStatus(USER_ID, DeviceStatus.ACTIVE))
+            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE))
                     .thenReturn(List.of(device));
 
             Property property = buildProperty(1L, "Paris Apt");
@@ -457,19 +457,23 @@ class NoiseDeviceServiceTest {
 
         @Test
         @DisplayName("when device returns empty data then skips in summary")
-        void whenDeviceReturnsEmptyData_thenSkipsInSummary() {
+        void whenDeviceReturnsEmptyData_thenIncludesSummaryWithMinusOne() {
             // Arrange
             NoiseDevice device = buildDevice(1L, "Sensor 1", DeviceType.MINUT);
             device.setExternalDeviceId(null); // will return empty
-            when(noiseDeviceRepository.findByUserIdAndStatus(USER_ID, DeviceStatus.ACTIVE))
+            when(noiseDeviceRepository.findByStatus(DeviceStatus.ACTIVE))
                     .thenReturn(List.of(device));
             when(noiseDeviceRepository.findById(1L)).thenReturn(Optional.of(device));
+            when(propertyRepository.findById(1L)).thenReturn(Optional.of(buildProperty(1L, "Apt")));
 
             // Act
             NoiseChartDataDto result = service.getAllNoiseData(USER_ID, "start", "end");
 
-            // Assert
-            assertThat(result.getDevices()).isEmpty();
+            // Assert — device sans donnees inclut un summary avec -1
+            assertThat(result.getDevices()).hasSize(1);
+            assertThat(result.getDevices().get(0).getCurrentLevel()).isEqualTo(-1);
+            assertThat(result.getDevices().get(0).getAverageLevel()).isEqualTo(-1);
+            assertThat(result.getDevices().get(0).getMaxLevel()).isEqualTo(-1);
             assertThat(result.getChartData()).isEmpty();
         }
     }

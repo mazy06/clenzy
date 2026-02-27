@@ -46,6 +46,7 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: http://localhost:0/realms/test
+          jwk-set-uri: http://localhost:0/realms/test/protocol/openid-connect/certs
   mail:
     host: localhost
     port: 0
