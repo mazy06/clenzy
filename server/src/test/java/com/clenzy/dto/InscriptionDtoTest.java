@@ -176,12 +176,12 @@ class InscriptionDtoTest {
     }
 
     @Test
-    void validation_shortPassword_hasViolation() {
+    void validation_passwordField_isOptional() {
+        // Le mot de passe n'est plus requis a l'inscription (defini apres confirmation email)
         InscriptionDto dto = createValidDto();
-        dto.setPassword("1234567");
+        dto.setPassword(null);
         Set<ConstraintViolation<InscriptionDto>> violations = validator.validate(dto);
-        assertFalse(violations.isEmpty());
-        assertTrue(violations.stream().anyMatch(v -> v.getPropertyPath().toString().equals("password")));
+        assertTrue(violations.isEmpty());
     }
 
     // --- PMS_SUBSCRIPTION_PRICE_CENTS ---
