@@ -285,7 +285,8 @@
       "activity": "Activité",
       "operations": "Opérations",
       "noise": "Nuisance sonore",
-      "analytics": "Analytics"
+      "analytics": "Analytics",
+      "smartLock": "Serrures connectées"
     },
     "noise": {
       "offersTitle": "Monitoring sonore",
@@ -336,6 +337,32 @@
         "back": "Retour",
         "next": "Suivant",
         "cancel": "Annuler"
+      }
+    },
+    "smartLock": {
+      "title": "Serrures connectées",
+      "subtitle": "Configurez et contrôlez vos serrures connectées Tuya par propriété.",
+      "offersTitle": "Serrures connectées Tuya",
+      "offersSubtitle": "Gérez l'accès à vos propriétés avec des serrures connectées compatibles Tuya.",
+      "feature1": "Verrouillage/déverrouillage à distance",
+      "feature2": "Monitoring du niveau de batterie",
+      "feature3": "Statut en temps réel (en ligne/hors ligne)",
+      "feature4": "Compatible toutes serrures Tuya",
+      "configure": "Configurer",
+      "addDevice": "Ajouter une serrure",
+      "locked": "Verrouillée",
+      "unlocked": "Déverrouillée",
+      "offline": "Hors ligne",
+      "unknown": "Inconnu",
+      "battery": "Batterie",
+      "lockAction": "Verrouiller",
+      "unlockAction": "Déverrouiller",
+      "confirmDelete": "Supprimer cette serrure ?",
+      "config": {
+        "stepProperty": "Propriété",
+        "stepRoom": "Pièce",
+        "stepDevice": "Appareil",
+        "stepConfirm": "Confirmation"
       }
     },
     "planning": {
