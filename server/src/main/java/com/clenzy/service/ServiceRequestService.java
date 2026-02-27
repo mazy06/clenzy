@@ -279,8 +279,10 @@ public class ServiceRequestService {
 
         // Créer l'intervention
         Intervention intervention = new Intervention();
-        intervention.setTitle(serviceRequest.getTitle());
-        intervention.setDescription(serviceRequest.getDescription());
+        String title = serviceRequest.getTitle();
+        intervention.setTitle(title != null && title.length() > 255 ? title.substring(0, 255) : title);
+        String description = serviceRequest.getDescription();
+        intervention.setDescription(description != null && description.length() > 500 ? description.substring(0, 500) : description);
 
         String interventionType = mapServiceTypeToInterventionType(serviceRequest.getServiceType());
         log.debug("validateAndCreateIntervention - intervention type mapped: {}", interventionType);

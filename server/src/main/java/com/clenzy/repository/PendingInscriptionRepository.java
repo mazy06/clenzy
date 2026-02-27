@@ -26,6 +26,11 @@ public interface PendingInscriptionRepository extends JpaRepository<PendingInscr
     boolean existsByEmailAndStatus(String email, PendingInscriptionStatus status);
 
     /**
+     * Rechercher une inscription par le hash du token de confirmation email
+     */
+    Optional<PendingInscription> findByConfirmationTokenHash(String confirmationTokenHash);
+
+    /**
      * Rechercher les inscriptions expirees pour nettoyage
      */
     List<PendingInscription> findByStatusAndExpiresAtBefore(PendingInscriptionStatus status, LocalDateTime dateTime);

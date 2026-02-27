@@ -111,8 +111,7 @@ stripe:
   success-url: http://localhost:3000/interventions/payment/success?session_id={CHECKOUT_SESSION_ID}
   cancel-url: http://localhost:3000/interventions/payment/cancel
   inscription:
-    success-url: http://localhost:3000/login?inscription=success
-    cancel-url: http://localhost:3000/inscription?payment=cancelled
+    return-url: http://localhost:3000/inscription/success
 
 # JWT
 jwt:

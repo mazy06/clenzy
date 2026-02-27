@@ -61,6 +61,8 @@ export interface ServiceRequestApiResponse {
   requestor?: { firstName: string; lastName: string };
   assignedToId?: number;
   assignedTo?: { firstName: string; lastName: string };
+  assignedToUser?: { firstName: string; lastName: string };
+  assignedToTeam?: { name: string };
   assignedToType?: string;
   estimatedDurationHours?: number;
   estimatedDuration?: number;

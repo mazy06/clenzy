@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.UserDto;
 import com.clenzy.model.User;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.DeviceTokenService;
 import com.clenzy.service.LoginProtectionService;
 import com.clenzy.service.LoginProtectionService.LoginStatus;
 import com.clenzy.service.UserService;
@@ -36,12 +37,13 @@ class UserControllerTest {
     @Mock private UserService userService;
     @Mock private UserRepository userRepository;
     @Mock private LoginProtectionService loginProtectionService;
+    @Mock private DeviceTokenService deviceTokenService;
 
     private UserController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new UserController(userService, userRepository, loginProtectionService);
+        controller = new UserController(userService, userRepository, loginProtectionService, deviceTokenService);
     }
 
     private Jwt buildJwt(String subject, boolean isSuperAdmin) {

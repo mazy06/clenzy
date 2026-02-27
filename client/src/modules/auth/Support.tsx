@@ -9,9 +9,12 @@ import {
   Stack,
   Alert,
   CircularProgress,
-  MenuItem
+  MenuItem,
+  ThemeProvider,
+  CssBaseline,
 } from '@mui/material';
 import { ArrowBack, CheckCircle } from '@mui/icons-material';
+import lightTheme from '../../theme/theme';
 import clenzyLogo from '../../assets/Clenzy_logo.png';
 import apiClient from '../../services/apiClient';
 
@@ -66,6 +69,8 @@ export default function Support() {
   };
 
   return (
+    <ThemeProvider theme={lightTheme}>
+      <CssBaseline />
     <Box sx={{
       minHeight: '100vh',
       display: 'flex',
@@ -254,5 +259,6 @@ export default function Support() {
         )}
       </Paper>
     </Box>
+    </ThemeProvider>
   );
 }

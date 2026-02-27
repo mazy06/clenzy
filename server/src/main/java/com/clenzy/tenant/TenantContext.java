@@ -17,6 +17,7 @@ public class TenantContext {
 
     private Long organizationId;
     private boolean superAdmin = false;
+    private boolean systemOrg = false;
 
     public Long getOrganizationId() {
         return organizationId;
@@ -32,6 +33,19 @@ public class TenantContext {
 
     public void setSuperAdmin(boolean superAdmin) {
         this.superAdmin = superAdmin;
+    }
+
+    /**
+     * Indique si l'utilisateur appartient a une organisation de type SYSTEM.
+     * Les utilisateurs SYSTEM ont acces aux donnees de toutes les organisations
+     * (equipes, interventions) car ils fournissent des services cross-org.
+     */
+    public boolean isSystemOrg() {
+        return systemOrg;
+    }
+
+    public void setSystemOrg(boolean systemOrg) {
+        this.systemOrg = systemOrg;
     }
 
     /**

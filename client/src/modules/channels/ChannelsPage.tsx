@@ -38,6 +38,161 @@ import type { AirbnbConnectionStatus, AirbnbListingMapping } from '../../service
 import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
 
+// Logo imports
+import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.png';
+import bookingLogoSmall from '../../assets/logo/booking-logo-small.svg';
+import expediaLogo from '../../assets/logo/expedia-logo.png';
+import mabeetLogo from '../../assets/logo/mabeet-logo-small.png';
+import rentellyLogo from '../../assets/logo/rentelly-logo-small.svg';
+import gathernLogo from '../../assets/logo/gathern-logo-small.webp';
+import keaseLogo from '../../assets/logo/kease-logo-small.svg';
+import hotelsComLogo from '../../assets/logo/hotels-com-logo-small.svg';
+import agodaLogo from '../../assets/logo/agoda-logo-small.svg';
+import vrboLogo from '../../assets/logo/vrbo-logo-small.svg';
+import abritelLogo from '../../assets/logo/abritel-logo-small.svg';
+import hometogoLogo from '../../assets/logo/hometogo-logo-small.svg';
+
+// ─── OTA Definitions ────────────────────────────────────────────────────────
+
+interface OtaChannel {
+  id: string;
+  name: string;
+  brandColor: string;
+  brandGradient: string;
+  logo: string | null;
+  available: boolean;
+  descriptionKey: string;
+}
+
+const OTA_CHANNELS: OtaChannel[] = [
+  {
+    id: 'airbnb',
+    name: 'Airbnb',
+    brandColor: '#FF5A5F',
+    brandGradient: 'linear-gradient(135deg, #FF5A5F 0%, #FF8A8D 100%)',
+    logo: airbnbLogoSmall,
+    available: true,
+    descriptionKey: 'channels.airbnb.connectDescription',
+  },
+  {
+    id: 'booking',
+    name: 'Booking.com',
+    brandColor: '#003580',
+    brandGradient: 'linear-gradient(135deg, #003580 0%, #0050B5 100%)',
+    logo: bookingLogoSmall,
+    available: false,
+    descriptionKey: 'channels.ota.booking.description',
+  },
+  {
+    id: 'expedia',
+    name: 'Expedia',
+    brandColor: '#00355F',
+    brandGradient: 'linear-gradient(135deg, #00355F 0%, #1A6199 100%)',
+    logo: expediaLogo,
+    available: false,
+    descriptionKey: 'channels.ota.expedia.description',
+  },
+  {
+    id: 'hotels',
+    name: 'Hotels.com',
+    brandColor: '#191E3B',
+    brandGradient: 'linear-gradient(135deg, #191E3B 0%, #3A4070 100%)',
+    logo: hotelsComLogo,
+    available: false,
+    descriptionKey: 'channels.ota.hotels.description',
+  },
+  {
+    id: 'agoda',
+    name: 'Agoda',
+    brandColor: '#2067DA',
+    brandGradient: 'linear-gradient(135deg, #2067DA 0%, #4D8AE8 100%)',
+    logo: agodaLogo,
+    available: false,
+    descriptionKey: 'channels.ota.agoda.description',
+  },
+  {
+    id: 'tripcom',
+    name: 'Trip.com',
+    brandColor: '#3264FF',
+    brandGradient: 'linear-gradient(135deg, #3264FF 0%, #6590FF 100%)',
+    logo: null,
+    available: false,
+    descriptionKey: 'channels.ota.tripcom.description',
+  },
+  {
+    id: 'vrbo',
+    name: 'Vrbo',
+    brandColor: '#1A2B49',
+    brandGradient: 'linear-gradient(135deg, #1A2B49 0%, #3A5070 100%)',
+    logo: vrboLogo,
+    available: false,
+    descriptionKey: 'channels.ota.vrbo.description',
+  },
+  {
+    id: 'abritel',
+    name: 'Abritel',
+    brandColor: '#1668E3',
+    brandGradient: 'linear-gradient(135deg, #1668E3 0%, #4A8EF0 100%)',
+    logo: abritelLogo,
+    available: false,
+    descriptionKey: 'channels.ota.abritel.description',
+  },
+  {
+    id: 'hometogo',
+    name: 'HomeToGo',
+    brandColor: '#4D21B7',
+    brandGradient: 'linear-gradient(135deg, #4D21B7 28.84%, #FF8080 102.45%)',
+    logo: hometogoLogo,
+    available: false,
+    descriptionKey: 'channels.ota.hometogo.description',
+  },
+  {
+    id: 'gathern',
+    name: 'Gathern',
+    brandColor: '#4F2396',
+    brandGradient: 'linear-gradient(135deg, #4F2396 0%, #7A4FC4 100%)',
+    logo: gathernLogo,
+    available: false,
+    descriptionKey: 'channels.ota.gathern.description',
+  },
+  {
+    id: 'rentelly',
+    name: 'Rentelly',
+    brandColor: '#118B7D',
+    brandGradient: 'linear-gradient(135deg, #118B7D 0%, #3AAF9F 100%)',
+    logo: rentellyLogo,
+    available: false,
+    descriptionKey: 'channels.ota.rentelly.description',
+  },
+  {
+    id: 'kease',
+    name: 'Kease',
+    brandColor: '#1A1A1A',
+    brandGradient: 'linear-gradient(135deg, #1A1A1A 0%, #444444 100%)',
+    logo: keaseLogo,
+    available: false,
+    descriptionKey: 'channels.ota.kease.description',
+  },
+  {
+    id: 'stay',
+    name: 'Stay.sa',
+    brandColor: '#2D5F8A',
+    brandGradient: 'linear-gradient(135deg, #2D5F8A 0%, #4A8ABF 100%)',
+    logo: null,
+    available: false,
+    descriptionKey: 'channels.ota.stay.description',
+  },
+  {
+    id: 'mabeet',
+    name: 'Mabeet',
+    brandColor: '#099EAC',
+    brandGradient: 'linear-gradient(135deg, #099EAC 0%, #3BBAC6 100%)',
+    logo: mabeetLogo,
+    available: false,
+    descriptionKey: 'channels.ota.mabeet.description',
+  },
+];
+
 // ─── Style Constants ────────────────────────────────────────────────────────
 
 const CARD_SX = {
@@ -54,6 +209,30 @@ const STATUS_COLORS: Record<string, string> = {
   REVOKED: '#d32f2f',
   ERROR: '#d32f2f',
 };
+
+const OTA_CARD_SX = {
+  border: '1px solid',
+  borderColor: 'divider',
+  borderRadius: 1.5,
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'column',
+  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+  cursor: 'default',
+  '&:hover': {
+    transform: 'translateY(-3px)',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
+    borderColor: 'grey.300',
+  },
+} as const;
+
+const OTA_CARD_CONTENT_SX = {
+  p: 2.5,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 1.5,
+  flex: 1,
+} as const;
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -259,73 +438,46 @@ const ChannelsPage: React.FC = () => {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          Section 1 : Connexion Airbnb
+          OTA Channels Grid
           ═══════════════════════════════════════════════════════════════════════ */}
-      <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' },
+        gap: 1.5,
+        mb: 1.5,
+      }}>
+        {OTA_CHANNELS.map((ota) => (
+          <OtaChannelCard
+            key={ota.id}
+            channel={ota}
+            isConnected={ota.id === 'airbnb' ? isConnected : false}
+            connectionStatus={ota.id === 'airbnb' ? connectionStatus : null}
+            connectionLoading={ota.id === 'airbnb' ? connectionLoading : false}
+            onConnect={ota.id === 'airbnb' ? handleConnect : undefined}
+            onDisconnect={ota.id === 'airbnb' ? handleDisconnect : undefined}
+            connecting={ota.id === 'airbnb' ? connecting : false}
+            disconnecting={ota.id === 'airbnb' ? disconnecting : false}
+            t={t}
+          />
+        ))}
+      </Box>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          Airbnb Connection Details (shown when connected)
+          ═══════════════════════════════════════════════════════════════════════ */}
+      {isConnected && connectionStatus && (
+        <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
             <Box
               component="img"
-              src="https://upload.wikimedia.org/wikipedia/commons/6/69/Airbnb_Logo_B%C3%A9lo.svg"
+              src={airbnbLogoSmall}
               alt="Airbnb"
-              sx={{ height: 20, opacity: isConnected ? 1 : 0.4 }}
+              sx={{ height: 18 }}
             />
             <Typography sx={{ fontSize: '0.875rem', fontWeight: 700 }}>
-              Airbnb
+              {t('channels.airbnb.connectedSince')}
             </Typography>
-            {connectionLoading ? (
-              <CircularProgress size={14} />
-            ) : isConnected ? (
-              <Chip
-                label={connectionStatus?.status ?? 'ACTIVE'}
-                size="small"
-                sx={{
-                  fontSize: '0.625rem',
-                  height: 20,
-                  backgroundColor: `${STATUS_COLORS[connectionStatus?.status ?? 'ACTIVE']}20`,
-                  color: STATUS_COLORS[connectionStatus?.status ?? 'ACTIVE'],
-                  fontWeight: 600,
-                }}
-                icon={<CheckCircleIcon sx={{ fontSize: '0.75rem !important' }} />}
-              />
-            ) : (
-              <Chip
-                label={t('channels.airbnb.disconnected')}
-                size="small"
-                sx={{ fontSize: '0.625rem', height: 20 }}
-                color="default"
-              />
-            )}
           </Box>
-
-          {connectionLoading ? null : isConnected ? (
-            <Button
-              size="small"
-              variant="outlined"
-              color="error"
-              startIcon={<LinkOffIcon />}
-              onClick={handleDisconnect}
-              disabled={disconnecting}
-              sx={{ fontSize: '0.75rem' }}
-            >
-              {disconnecting ? <CircularProgress size={14} /> : t('channels.airbnb.disconnect')}
-            </Button>
-          ) : (
-            <Button
-              size="small"
-              variant="contained"
-              startIcon={<LinkIcon />}
-              onClick={handleConnect}
-              disabled={connecting}
-              sx={{ fontSize: '0.75rem' }}
-            >
-              {connecting ? <CircularProgress size={14} /> : t('channels.airbnb.connect')}
-            </Button>
-          )}
-        </Box>
-
-        {/* Connection details */}
-        {isConnected && connectionStatus && (
           <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
             <DetailItem label={t('channels.airbnb.userId')} value={connectionStatus.airbnbUserId ?? '—'} />
             <DetailItem
@@ -346,14 +498,8 @@ const ChannelsPage: React.FC = () => {
               </Alert>
             )}
           </Box>
-        )}
-
-        {!isConnected && !connectionLoading && (
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mt: 0.5 }}>
-            {t('channels.airbnb.connectDescription')}
-          </Typography>
-        )}
-      </Paper>
+        </Paper>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           Section 2 : Propriétés liées (Listings)
@@ -458,6 +604,218 @@ const ChannelsPage: React.FC = () => {
 };
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
+
+function OtaLogo({ channel }: { channel: OtaChannel }) {
+  if (channel.logo) {
+    return (
+      <Box
+        component="img"
+        src={channel.logo}
+        alt={channel.name}
+        sx={{
+          height: 30,
+          objectFit: 'contain',
+          maxWidth: 130,
+          position: 'relative',
+          zIndex: 2,
+          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3)) brightness(1.05)',
+        }}
+      />
+    );
+  }
+
+  return (
+    <Typography
+      sx={{
+        fontSize: '1.25rem',
+        fontWeight: 800,
+        color: '#fff',
+        letterSpacing: '-0.02em',
+        lineHeight: 1,
+        position: 'relative',
+        zIndex: 2,
+        textShadow: '0 2px 6px rgba(0,0,0,0.35)',
+      }}
+    >
+      {channel.name}
+    </Typography>
+  );
+}
+
+function OtaChannelCard({
+  channel,
+  isConnected,
+  connectionStatus,
+  connectionLoading,
+  onConnect,
+  onDisconnect,
+  connecting,
+  disconnecting,
+  t,
+}: {
+  channel: OtaChannel;
+  isConnected: boolean;
+  connectionStatus: AirbnbConnectionStatus | null;
+  connectionLoading: boolean;
+  onConnect?: () => void;
+  onDisconnect?: () => void;
+  connecting: boolean;
+  disconnecting: boolean;
+  t: (key: string) => string;
+}) {
+  const isAvailable = channel.available;
+
+  return (
+    <Box
+      sx={{
+        ...OTA_CARD_SX,
+        opacity: isAvailable ? 1 : 0.7,
+        '&:hover': isAvailable
+          ? OTA_CARD_SX['&:hover']
+          : { borderColor: 'grey.300' },
+      }}
+    >
+      {/* Brand header with logo + status */}
+      <Box
+        sx={{
+          background: channel.brandGradient,
+          opacity: isAvailable ? 1 : 0.6,
+          px: 2.5,
+          py: 2,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          minHeight: 56,
+        }}
+      >
+        <OtaLogo channel={channel} />
+        {connectionLoading && isAvailable ? (
+          <CircularProgress size={14} sx={{ color: 'rgba(255,255,255,0.8)' }} />
+        ) : isAvailable && isConnected ? (
+          <Chip
+            label={connectionStatus?.status ?? 'ACTIVE'}
+            size="small"
+            sx={{
+              fontSize: '0.5625rem',
+              height: 20,
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              color: '#fff',
+              fontWeight: 700,
+              border: '1px solid rgba(255,255,255,0.3)',
+              backdropFilter: 'blur(4px)',
+            }}
+            icon={<CheckCircleIcon sx={{ fontSize: '0.75rem !important', color: '#fff !important' }} />}
+          />
+        ) : isAvailable ? (
+          <Chip
+            label={t('channels.ota.disconnected')}
+            size="small"
+            sx={{
+              fontSize: '0.5625rem',
+              height: 20,
+              fontWeight: 600,
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.3)',
+              backdropFilter: 'blur(4px)',
+            }}
+          />
+        ) : (
+          <Chip
+            label={t('channels.ota.comingSoon')}
+            size="small"
+            sx={{
+              fontSize: '0.5625rem',
+              height: 20,
+              fontWeight: 600,
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.3)',
+              backdropFilter: 'blur(4px)',
+            }}
+          />
+        )}
+      </Box>
+
+      {/* Card content */}
+      <Box sx={OTA_CARD_CONTENT_SX}>
+        {/* Channel name */}
+        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: 'text.primary' }}>
+          {channel.name}
+        </Typography>
+
+        {/* Description */}
+        <Typography sx={{
+          fontSize: '0.6875rem',
+          color: 'text.secondary',
+          lineHeight: 1.5,
+          flex: 1,
+          minHeight: 32,
+        }}>
+          {t(channel.descriptionKey)}
+        </Typography>
+
+        {/* Action button */}
+        <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
+          {isAvailable && !isConnected && (
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<LinkIcon sx={{ fontSize: '0.8rem' }} />}
+              onClick={onConnect}
+              disabled={connecting || connectionLoading}
+              sx={{
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                px: 2,
+                py: 0.5,
+                minHeight: 30,
+                backgroundColor: channel.brandColor,
+                '&:hover': {
+                  backgroundColor: channel.brandColor,
+                  filter: 'brightness(0.9)',
+                },
+              }}
+            >
+              {connecting ? <CircularProgress size={12} color="inherit" /> : t('channels.airbnb.connect')}
+            </Button>
+          )}
+          {isAvailable && isConnected && (
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              startIcon={<LinkOffIcon sx={{ fontSize: '0.8rem' }} />}
+              onClick={onDisconnect}
+              disabled={disconnecting}
+              sx={{ fontSize: '0.6875rem', px: 2, py: 0.5, minHeight: 30 }}
+            >
+              {disconnecting ? <CircularProgress size={12} /> : t('channels.airbnb.disconnect')}
+            </Button>
+          )}
+          {!isAvailable && (
+            <Button
+              size="small"
+              variant="outlined"
+              disabled
+              sx={{
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                px: 2,
+                py: 0.5,
+                minHeight: 30,
+                borderColor: 'grey.200',
+                color: 'text.disabled',
+              }}
+            >
+              {t('channels.ota.comingSoon')}
+            </Button>
+          )}
+        </Box>
+      </Box>
+    </Box>
+  );
+}
 
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (

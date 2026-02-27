@@ -5,7 +5,10 @@ import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
 import com.clenzy.tenant.TenantFilter;
 import jakarta.persistence.EntityManager;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -16,7 +19,11 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -64,6 +71,28 @@ public class SecurityConfig {
         FilterRegistrationBean<TenantFilter> registration = new FilterRegistrationBean<>(tenantFilter);
         registration.setEnabled(false);
         return registration;
+    }
+
+    /**
+     * JwtDecoder custom pour l'environnement dev/Docker.
+     * Valide la signature JWT via JWK Set (sécurisé) + timestamps,
+     * mais n'impose PAS de validation d'issuer.
+     * Nécessaire car en dev les clients accèdent à Keycloak via des URLs différentes :
+     *   - Web : http://localhost:8086 → iss = http://localhost:8086/realms/clenzy
+     *   - Mobile : http://192.168.1.70:8086 → iss = http://192.168.1.70:8086/realms/clenzy
+     *   - Backend Docker : http://clenzy-keycloak:8080
+     * La prod utilise SecurityConfigProd avec validation d'issuer stricte.
+     */
+    @Bean
+    @ConditionalOnMissingBean(JwtDecoder.class)
+    @ConditionalOnProperty(name = "spring.security.oauth2.resourceserver.jwt.jwk-set-uri")
+    public JwtDecoder jwtDecoder(
+            @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}") String jwkSetUri) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+            new JwtTimestampValidator()
+        ));
+        return decoder;
     }
 
     @Bean

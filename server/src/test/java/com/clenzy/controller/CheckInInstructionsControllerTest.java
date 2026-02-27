@@ -47,6 +47,7 @@ class CheckInInstructionsControllerTest {
             instructionsRepository, propertyRepository, userRepository, tenantContext);
 
         owner = new User();
+        owner.setId(1L);
         owner.setKeycloakId("owner-kc-id");
 
         property = new Property();
@@ -60,6 +61,9 @@ class CheckInInstructionsControllerTest {
             .issuedAt(Instant.now())
             .expiresAt(Instant.now().plusSeconds(3600))
             .build();
+
+        // Mock pour que validatePropertyAccess trouve le user et verifie ownership
+        lenient().when(userRepository.findByKeycloakId("owner-kc-id")).thenReturn(Optional.of(owner));
     }
 
     @Test

@@ -40,6 +40,10 @@ infrastructure/
 *.log
 logs/
 
+# Firebase (credentials - ne jamais commiter)
+firebase-service-account.json
+**/firebase-service-account.json
+
 # Temporary files
 *.tmp
 *.temp

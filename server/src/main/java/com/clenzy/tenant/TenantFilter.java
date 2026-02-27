@@ -1,5 +1,6 @@
 package com.clenzy.tenant;
 
+import com.clenzy.model.OrganizationType;
 import com.clenzy.model.UserRole;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.UserRepository;
@@ -87,11 +88,13 @@ public class TenantFilter extends OncePerRequestFilter {
 
             Long orgId;
             boolean isSuperAdmin;
+            boolean isSystemOrg;
 
             if (cached != null) {
                 orgId = cached.organizationId;
                 isSuperAdmin = cached.superAdmin;
-                logger.debug("TenantFilter: cache hit keycloakId={}, orgId={}, superAdmin={}", keycloakId, orgId, isSuperAdmin);
+                isSystemOrg = cached.systemOrg;
+                logger.debug("TenantFilter: cache hit keycloakId={}, orgId={}, superAdmin={}, systemOrg={}", keycloakId, orgId, isSuperAdmin, isSystemOrg);
             } else {
                 // 2. Lookup en base
                 var userOpt = userRepository.findByKeycloakId(keycloakId);
@@ -106,6 +109,7 @@ public class TenantFilter extends OncePerRequestFilter {
                 var user = userOpt.get();
                 orgId = user.getOrganizationId();
                 isSuperAdmin = user.getRole().isPlatformStaff();
+                isSystemOrg = false;
                 logger.debug("TenantFilter: DB lookup keycloakId={}, userId={}, orgId={}, role={}, isPlatformStaff={}", keycloakId, user.getId(), orgId, user.getRole(), isSuperAdmin);
 
                 if (orgId == null && isSuperAdmin) {
@@ -122,18 +126,33 @@ public class TenantFilter extends OncePerRequestFilter {
                     return;
                 }
 
+                // Detecter si l'organisation est de type SYSTEM (acces cross-org)
+                if (!isSuperAdmin) {
+                    try {
+                        var orgOpt = organizationRepository.findById(orgId);
+                        if (orgOpt.isPresent() && orgOpt.get().getType() == OrganizationType.SYSTEM) {
+                            isSystemOrg = true;
+                            logger.debug("TenantFilter: organisation SYSTEM detectee pour keycloakId={}, orgId={}", keycloakId, orgId);
+                        }
+                    } catch (Exception e) {
+                        logger.warn("TenantFilter: erreur verification type organisation: {}", e.getMessage());
+                    }
+                }
+
                 // 3. Mettre en cache
-                cacheTenantInfo(cacheKey, orgId, isSuperAdmin);
+                cacheTenantInfo(cacheKey, orgId, isSuperAdmin, isSystemOrg);
             }
 
             // 4. Set sur TenantContext (request-scoped) + MDC pour logs correlés
             tenantContext.setOrganizationId(orgId);
             tenantContext.setSuperAdmin(isSuperAdmin);
+            tenantContext.setSystemOrg(isSystemOrg);
             MDC.put("orgId", String.valueOf(orgId));
-            logger.debug("TenantFilter: context SET orgId={}, superAdmin={}", orgId, isSuperAdmin);
+            logger.debug("TenantFilter: context SET orgId={}, superAdmin={}, systemOrg={}", orgId, isSuperAdmin, isSystemOrg);
 
-            // 5. Activer le filtre Hibernate pour les non-ADMIN
-            if (!isSuperAdmin) {
+            // 5. Activer le filtre Hibernate pour les non-ADMIN et non-SYSTEM
+            // Les utilisateurs SYSTEM ont besoin d'acceder aux interventions cross-org
+            if (!isSuperAdmin && !isSystemOrg) {
                 Session session = entityManager.unwrap(Session.class);
                 session.enableFilter("organizationFilter")
                         .setParameter("orgId", orgId);
@@ -196,9 +215,9 @@ public class TenantFilter extends OncePerRequestFilter {
         return null;
     }
 
-    private void cacheTenantInfo(String cacheKey, Long orgId, boolean superAdmin) {
+    private void cacheTenantInfo(String cacheKey, Long orgId, boolean superAdmin, boolean systemOrg) {
         try {
-            TenantInfo info = new TenantInfo(orgId, superAdmin);
+            TenantInfo info = new TenantInfo(orgId, superAdmin, systemOrg);
             redisTemplate.opsForValue().set(cacheKey, info, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
         } catch (Exception e) {
             logger.debug("TenantFilter: erreur ecriture cache Redis: {}", e.getMessage());
@@ -209,15 +228,17 @@ public class TenantFilter extends OncePerRequestFilter {
      * DTO pour le cache Redis du contexte tenant.
      */
     public static class TenantInfo implements Serializable {
-        private static final long serialVersionUID = 1L;
+        private static final long serialVersionUID = 2L;
         public Long organizationId;
         public boolean superAdmin;
+        public boolean systemOrg;
 
         public TenantInfo() {}
 
-        public TenantInfo(Long organizationId, boolean superAdmin) {
+        public TenantInfo(Long organizationId, boolean superAdmin, boolean systemOrg) {
             this.organizationId = organizationId;
             this.superAdmin = superAdmin;
+            this.systemOrg = systemOrg;
         }
     }
 }

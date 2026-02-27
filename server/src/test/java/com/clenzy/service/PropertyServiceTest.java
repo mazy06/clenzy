@@ -194,7 +194,7 @@ class PropertyServiceTest {
         void whenPropertyExists_thenReturnsDto() {
             User owner = buildOwner(1L);
             Property property = buildProperty(10L, owner);
-            when(propertyRepository.findByIdWithOwner(10L, ORG_ID))
+            when(propertyRepository.findById(10L))
                     .thenReturn(Optional.of(property));
 
             PropertyDto result = propertyService.getById(10L);
@@ -209,18 +209,17 @@ class PropertyServiceTest {
             tenantContext.setSuperAdmin(true);
             User owner = buildOwner(1L);
             Property property = buildProperty(10L, owner);
-            when(propertyRepository.findByIdWithOwnerNoOrgFilter(10L))
+            when(propertyRepository.findById(10L))
                     .thenReturn(Optional.of(property));
 
             PropertyDto result = propertyService.getById(10L);
 
             assertThat(result.id).isEqualTo(10L);
-            verify(propertyRepository, never()).findByIdWithOwner(anyLong(), anyLong());
         }
 
         @Test
         void whenPropertyNotFound_thenThrowsNotFoundException() {
-            when(propertyRepository.findByIdWithOwner(999L, ORG_ID))
+            when(propertyRepository.findById(999L))
                     .thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> propertyService.getById(999L))
@@ -293,7 +292,7 @@ class PropertyServiceTest {
             User propOwner = buildOwner(2L);
             Property property = buildProperty(10L, propOwner);
 
-            when(propertyRepository.findByIdWithOwner(10L, ORG_ID))
+            when(propertyRepository.findById(10L))
                     .thenReturn(Optional.of(property));
             when(userRepository.findById(1L)).thenReturn(Optional.of(admin));
 
@@ -307,7 +306,7 @@ class PropertyServiceTest {
             User propOwner = buildOwner(2L);
             Property property = buildProperty(10L, propOwner);
 
-            when(propertyRepository.findByIdWithOwner(10L, ORG_ID))
+            when(propertyRepository.findById(10L))
                     .thenReturn(Optional.of(property));
             when(userRepository.findById(5L)).thenReturn(Optional.of(user));
             when(managerPropertyRepository.existsByManagerIdAndPropertyId(5L, 10L, ORG_ID))
@@ -322,7 +321,7 @@ class PropertyServiceTest {
             property.setId(10L);
             property.setOwner(null);
 
-            when(propertyRepository.findByIdWithOwner(10L, ORG_ID))
+            when(propertyRepository.findById(10L))
                     .thenReturn(Optional.of(property));
 
             assertThat(propertyService.canUserAssignForProperty(1L, 10L)).isFalse();
@@ -335,7 +334,7 @@ class PropertyServiceTest {
             User propOwner = buildOwner(2L);
             Property property = buildProperty(10L, propOwner);
 
-            when(propertyRepository.findByIdWithOwner(10L, ORG_ID))
+            when(propertyRepository.findById(10L))
                     .thenReturn(Optional.of(property));
             when(userRepository.findById(5L)).thenReturn(Optional.of(user));
             when(managerPropertyRepository.existsByManagerIdAndPropertyId(5L, 10L, ORG_ID))
