@@ -47,7 +47,7 @@ public class OwnerPayout {
     @Column(name = "net_amount", precision = 10, scale = 2, nullable = false)
     private BigDecimal netAmount = BigDecimal.ZERO;
 
-    @Column(name = "currency", nullable = false, length = 3)
+    @Column(name = "currency", nullable = false, length = 3, columnDefinition = "varchar(3) default 'EUR'")
     private String currency = "EUR";
 
     @Enumerated(EnumType.STRING)

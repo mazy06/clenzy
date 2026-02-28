@@ -79,7 +79,7 @@ class SyncAdminServiceTest {
             ChannelConnection cc = new ChannelConnection();
             cc.setId(1L);
             cc.setChannel(ChannelName.AIRBNB);
-            cc.setStatus("ACTIVE");
+            cc.setStatus(ChannelConnection.ConnectionStatus.ACTIVE);
 
             when(connectionRepository.findAllCrossOrg()).thenReturn(List.of(cc));
             when(mappingRepository.countByConnectionId(1L)).thenReturn(3L);
@@ -114,7 +114,7 @@ class SyncAdminServiceTest {
             ChannelConnection cc = new ChannelConnection();
             cc.setId(1L);
             cc.setChannel(ChannelName.AIRBNB);
-            cc.setStatus("ACTIVE");
+            cc.setStatus(ChannelConnection.ConnectionStatus.ACTIVE);
 
             ChannelConnector connector = mock(ChannelConnector.class);
             when(connector.checkHealth(1L)).thenReturn(HealthStatus.HEALTHY);
@@ -143,7 +143,7 @@ class SyncAdminServiceTest {
             ChannelConnection cc = new ChannelConnection();
             cc.setId(1L);
             cc.setChannel(ChannelName.AIRBNB);
-            cc.setStatus("ACTIVE");
+            cc.setStatus(ChannelConnection.ConnectionStatus.ACTIVE);
             cc.setOrganizationId(10L);
 
             when(connectionRepository.findById(1L)).thenReturn(Optional.of(cc));
@@ -582,7 +582,7 @@ class SyncAdminServiceTest {
             ChannelConnection activeConn = new ChannelConnection();
             activeConn.setId(1L);
             activeConn.setChannel(ChannelName.AIRBNB);
-            activeConn.setStatus("ACTIVE");
+            activeConn.setStatus(ChannelConnection.ConnectionStatus.ACTIVE);
 
             when(connectionRepository.findAllCrossOrg()).thenReturn(List.of(activeConn));
             when(connectionRepository.findAllActive()).thenReturn(List.of(activeConn));

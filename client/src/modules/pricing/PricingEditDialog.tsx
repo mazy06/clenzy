@@ -20,6 +20,7 @@ interface PricingEditDialogProps {
   onApply: (price: number) => Promise<void>;
   selectedDates: string[];
   loading: boolean;
+  currency?: string;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -40,6 +41,7 @@ const PricingEditDialog: React.FC<PricingEditDialogProps> = ({
   onApply,
   selectedDates,
   loading,
+  currency = 'EUR',
 }) => {
   const { t } = useTranslation();
   const [price, setPrice] = useState<string>('');
@@ -87,7 +89,7 @@ const PricingEditDialog: React.FC<PricingEditDialogProps> = ({
             fullWidth
             autoFocus
             InputProps={{
-              endAdornment: <Typography color="text.secondary">EUR</Typography>,
+              endAdornment: <Typography color="text.secondary">{currency}</Typography>,
             }}
             inputProps={{ min: 0, step: 1 }}
           />

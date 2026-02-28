@@ -90,7 +90,7 @@ class InvoiceGeneratorServiceTest {
         void shouldCreateDraftInvoiceWithAccommodationAndCleaningLines() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
+
 
             when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
@@ -132,7 +132,7 @@ class InvoiceGeneratorServiceTest {
         void shouldThrowIfInvoiceAlreadyExistsForReservation() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
+
 
             Invoice existing = new Invoice();
             existing.setInvoiceNumber("FA2026-00001");
@@ -150,7 +150,7 @@ class InvoiceGeneratorServiceTest {
         void shouldThrowIfReservationNotFound() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
+
             when(invoiceRepository.findByReservationId(999L)).thenReturn(Optional.empty());
             when(reservationRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -166,7 +166,7 @@ class InvoiceGeneratorServiceTest {
         void shouldIncludeTouristTaxLineWhenRateProvided() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
+
 
             when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
@@ -208,7 +208,7 @@ class InvoiceGeneratorServiceTest {
         void shouldUseGuestNameWhenBuyerNameNotProvided() {
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(tenantContext.getCountryCode()).thenReturn("FR");
-            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
+
 
             when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
             when(reservationRepository.findById(100L)).thenReturn(Optional.of(createTestReservation()));
@@ -239,6 +239,83 @@ class InvoiceGeneratorServiceTest {
             InvoiceDto result = service.generateFromReservation(request);
 
             assertThat(result.buyerName()).isEqualTo("John Doe");
+        }
+
+        @Test
+        void shouldUseReservationCurrencyInsteadOfTenantDefault() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(tenantContext.getCountryCode()).thenReturn("MA");
+
+            Reservation res = createTestReservation();
+            res.setCurrency("MAD");
+
+            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(reservationRepository.findById(100L)).thenReturn(Optional.of(res));
+            when(fiscalProfileRepository.findByOrganizationId(1L))
+                .thenReturn(Optional.of(createTestFiscalProfile()));
+
+            TaxResult accommodationTax = new TaxResult(
+                new BigDecimal("250.00"), new BigDecimal("25.00"), new BigDecimal("275.00"),
+                new BigDecimal("0.1000"), "TVA 10%", "ACCOMMODATION");
+            TaxResult cleaningTax = new TaxResult(
+                new BigDecimal("50.00"), new BigDecimal("10.00"), new BigDecimal("60.00"),
+                new BigDecimal("0.2000"), "TVA 20%", "CLEANING");
+
+            when(fiscalEngine.calculateTax(eq("MA"), any(), any()))
+                .thenReturn(accommodationTax, cleaningTax);
+
+            when(invoiceRepository.save(any(Invoice.class)))
+                .thenAnswer(invocation -> {
+                    Invoice inv = invocation.getArgument(0);
+                    inv.setId(1L);
+                    return inv;
+                });
+
+            GenerateInvoiceRequest request = new GenerateInvoiceRequest(
+                100L, "Client", null, null, null);
+
+            InvoiceDto result = service.generateFromReservation(request);
+
+            assertThat(result.currency()).isEqualTo("MAD");
+        }
+
+        @Test
+        void shouldFallbackToTenantCurrencyWhenReservationCurrencyIsNull() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(tenantContext.getCountryCode()).thenReturn("FR");
+            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
+
+            Reservation res = createTestReservation();
+            res.setCurrency(null);
+
+            when(invoiceRepository.findByReservationId(100L)).thenReturn(Optional.empty());
+            when(reservationRepository.findById(100L)).thenReturn(Optional.of(res));
+            when(fiscalProfileRepository.findByOrganizationId(1L))
+                .thenReturn(Optional.of(createTestFiscalProfile()));
+
+            TaxResult accommodationTax = new TaxResult(
+                new BigDecimal("250.00"), new BigDecimal("25.00"), new BigDecimal("275.00"),
+                new BigDecimal("0.1000"), "TVA 10%", "ACCOMMODATION");
+            TaxResult cleaningTax = new TaxResult(
+                new BigDecimal("50.00"), new BigDecimal("10.00"), new BigDecimal("60.00"),
+                new BigDecimal("0.2000"), "TVA 20%", "CLEANING");
+
+            when(fiscalEngine.calculateTax(eq("FR"), any(), any()))
+                .thenReturn(accommodationTax, cleaningTax);
+
+            when(invoiceRepository.save(any(Invoice.class)))
+                .thenAnswer(invocation -> {
+                    Invoice inv = invocation.getArgument(0);
+                    inv.setId(1L);
+                    return inv;
+                });
+
+            GenerateInvoiceRequest request = new GenerateInvoiceRequest(
+                100L, "Client", null, null, null);
+
+            InvoiceDto result = service.generateFromReservation(request);
+
+            assertThat(result.currency()).isEqualTo("EUR");
         }
     }
 

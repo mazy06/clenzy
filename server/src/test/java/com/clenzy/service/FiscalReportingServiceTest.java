@@ -29,13 +29,16 @@ class FiscalReportingServiceTest {
     private InvoiceRepository invoiceRepository;
 
     @Mock
+    private CurrencyConverterService currencyConverter;
+
+    @Mock
     private TenantContext tenantContext;
 
     private FiscalReportingService reportingService;
 
     @BeforeEach
     void setUp() {
-        reportingService = new FiscalReportingService(invoiceRepository, tenantContext);
+        reportingService = new FiscalReportingService(invoiceRepository, currencyConverter, tenantContext);
     }
 
     private Invoice createInvoice(InvoiceStatus status, BigDecimal totalHt,
@@ -228,6 +231,47 @@ class FiscalReportingServiceTest {
             // Sorted by taxRate descending: CLEANING 20% first, then ACCOMMODATION 10%
             assertThat(summary.breakdown().get(0).taxCategory()).isEqualTo("CLEANING");
             assertThat(summary.breakdown().get(1).taxCategory()).isEqualTo("ACCOMMODATION");
+        }
+
+        @Test
+        void shouldConvertForeignCurrencyInvoicesToBaseCurrency() {
+            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            when(tenantContext.getCountryCode()).thenReturn("FR");
+            when(tenantContext.getDefaultCurrency()).thenReturn("EUR");
+
+            // Invoice in EUR — no conversion needed
+            Invoice eurInvoice = createInvoice(InvoiceStatus.ISSUED,
+                new BigDecimal("100.00"), new BigDecimal("10.00"), new BigDecimal("110.00"),
+                "ACCOMMODATION", new BigDecimal("0.1000"));
+
+            // Invoice in MAD — needs conversion
+            Invoice madInvoice = createInvoice(InvoiceStatus.ISSUED,
+                new BigDecimal("1000.00"), new BigDecimal("100.00"), new BigDecimal("1100.00"),
+                "ACCOMMODATION", new BigDecimal("0.1000"));
+            madInvoice.setCurrency("MAD");
+
+            LocalDate from = LocalDate.of(2026, 1, 1);
+            LocalDate to = LocalDate.of(2026, 1, 31);
+
+            when(invoiceRepository.findByOrganizationIdAndDateRange(1L, from, to))
+                .thenReturn(List.of(eurInvoice, madInvoice));
+
+            // Mock conversion: 1000 MAD → ~91 EUR (rate ~0.091)
+            when(currencyConverter.convertToBase(new BigDecimal("1000.00"), "MAD", "EUR", madInvoice.getInvoiceDate()))
+                .thenReturn(new BigDecimal("91.00"));
+            when(currencyConverter.convertToBase(new BigDecimal("100.00"), "MAD", "EUR", madInvoice.getInvoiceDate()))
+                .thenReturn(new BigDecimal("9.10"));
+            when(currencyConverter.convertToBase(new BigDecimal("1100.00"), "MAD", "EUR", madInvoice.getInvoiceDate()))
+                .thenReturn(new BigDecimal("100.10"));
+
+            VatSummaryDto summary = reportingService.getVatSummary(from, to);
+
+            // EUR invoice (100) + converted MAD invoice (91) = 191
+            assertThat(summary.totalHt()).isEqualByComparingTo("191.00");
+            assertThat(summary.totalTax()).isEqualByComparingTo("19.10");
+            assertThat(summary.totalTtc()).isEqualByComparingTo("210.10");
+            assertThat(summary.currency()).isEqualTo("EUR");
+            assertThat(summary.invoiceCount()).isEqualTo(2);
         }
     }
 

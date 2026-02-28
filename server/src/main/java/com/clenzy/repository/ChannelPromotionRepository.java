@@ -23,6 +23,9 @@ public interface ChannelPromotionRepository extends JpaRepository<ChannelPromoti
     @Query("SELECT p FROM ChannelPromotion p WHERE p.status = 'ACTIVE' AND p.endDate < :now AND p.organizationId = :orgId")
     List<ChannelPromotion> findExpired(@Param("now") LocalDate now, @Param("orgId") Long orgId);
 
+    @Query("SELECT p FROM ChannelPromotion p WHERE p.status = 'ACTIVE' AND p.endDate < :now")
+    List<ChannelPromotion> findAllExpired(@Param("now") LocalDate now);
+
     @Query("SELECT p FROM ChannelPromotion p WHERE p.id = :id AND p.organizationId = :orgId")
     Optional<ChannelPromotion> findByIdAndOrgId(@Param("id") Long id, @Param("orgId") Long orgId);
 

@@ -36,11 +36,27 @@ public class FiscalProfileService {
     /**
      * Retourne le profil fiscal de l'organisation courante.
      * Si aucun profil n'existe, en cree un avec les valeurs par defaut (FR/EUR).
+     *
+     * Note : @Transactional (non readOnly) est necessaire car l'auto-creation
+     * du profil par defaut fait un INSERT. Sans cela, l'appel interne a
+     * createDefaultProfile() herite du readOnly=true de la classe et echoue.
      */
+    @Transactional
     public FiscalProfileDto getCurrentProfile() {
         Long orgId = tenantContext.getRequiredOrganizationId();
         FiscalProfile fp = fiscalProfileRepository.findByOrganizationId(orgId)
-            .orElseGet(() -> createDefaultProfile(orgId));
+            .orElseGet(() -> {
+                logger.info("Aucun profil fiscal pour org {} — creation automatique", orgId);
+                FiscalProfile newProfile = new FiscalProfile();
+                newProfile.setOrganizationId(orgId);
+                newProfile.setCountryCode("FR");
+                newProfile.setDefaultCurrency("EUR");
+                newProfile.setFiscalRegime(FiscalRegime.STANDARD);
+                newProfile.setVatRegistered(true);
+                newProfile.setInvoiceLanguage("fr");
+                newProfile.setInvoicePrefix("FA");
+                return fiscalProfileRepository.save(newProfile);
+            });
         return FiscalProfileDto.from(fp);
     }
 

@@ -136,7 +136,7 @@ public class Intervention {
     private BigDecimal actualCost;
 
     // Multi-currency (V84)
-    @Column(name = "currency", nullable = false, length = 3)
+    @Column(name = "currency", nullable = false, length = 3, columnDefinition = "varchar(3) default 'EUR'")
     private String currency = "EUR";
 
     @Column(name = "special_instructions", columnDefinition = "TEXT")

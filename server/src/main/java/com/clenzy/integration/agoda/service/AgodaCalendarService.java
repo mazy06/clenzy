@@ -3,6 +3,7 @@ package com.clenzy.integration.agoda.service;
 import com.clenzy.integration.agoda.dto.AgodaAvailabilityDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +23,11 @@ import java.util.Map;
  *
  * Agoda utilise un modele push : le PMS envoie les mises a jour
  * de disponibilite/tarifs vers l'API Supply.
+ *
+ * Desactive par defaut — activer via agoda.sync.enabled=true.
  */
 @Service
+@ConditionalOnProperty(name = "agoda.sync.enabled", havingValue = "true")
 public class AgodaCalendarService {
 
     private static final Logger log = LoggerFactory.getLogger(AgodaCalendarService.class);

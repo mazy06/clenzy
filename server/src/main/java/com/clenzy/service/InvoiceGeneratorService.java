@@ -63,7 +63,6 @@ public class InvoiceGeneratorService {
     public InvoiceDto generateFromReservation(GenerateInvoiceRequest request) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         String countryCode = tenantContext.getCountryCode();
-        String currency = tenantContext.getDefaultCurrency();
 
         // Verifier qu'il n'y a pas deja une facture pour cette reservation
         invoiceRepository.findByReservationId(request.reservationId())
@@ -76,6 +75,12 @@ public class InvoiceGeneratorService {
         Reservation reservation = reservationRepository.findById(request.reservationId())
             .orElseThrow(() -> new IllegalArgumentException(
                 "Reservation introuvable: " + request.reservationId()));
+
+        // Utiliser la devise de la reservation (multi-devise),
+        // fallback sur la devise par defaut de l'organisation
+        String currency = reservation.getCurrency() != null
+            ? reservation.getCurrency()
+            : tenantContext.getDefaultCurrency();
 
         // Charger le profil fiscal pour les infos vendeur
         FiscalProfile fiscalProfile = fiscalProfileRepository.findByOrganizationId(orgId)

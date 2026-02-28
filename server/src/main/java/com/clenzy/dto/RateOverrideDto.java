@@ -9,5 +9,6 @@ public record RateOverrideDto(
     Long propertyId,
     String date,
     Double nightlyPrice,
-    String source
+    String source,
+    String currency
 ) {}

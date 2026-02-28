@@ -11,6 +11,7 @@ import com.clenzy.service.AuditLogService;
 import com.clenzy.service.CalendarEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,8 +35,11 @@ import java.util.Optional;
  *
  * orgId est resolu via ChannelMapping (pas de TenantContext
  * car les Kafka consumers s'executent hors contexte HTTP).
+ *
+ * Desactive par defaut — activer via booking.sync.enabled=true.
  */
 @Service
+@ConditionalOnProperty(name = "booking.sync.enabled", havingValue = "true")
 public class BookingCalendarService {
 
     private static final Logger log = LoggerFactory.getLogger(BookingCalendarService.class);

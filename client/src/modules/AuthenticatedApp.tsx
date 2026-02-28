@@ -97,6 +97,21 @@ import ReviewsPage from './channels/ReviewsPage';
 import MessageTemplatesPage from './messaging/MessageTemplatesPage';
 import MessageHistoryPage from './messaging/MessageHistoryPage';
 
+// Channel Promotions
+import ChannelPromotionsPage from './promotions/ChannelPromotionsPage';
+
+// Accounting
+import AccountingPage from './accounting/AccountingPage';
+
+// Owner Portal
+import OwnerPortalPage from './owner-portal/OwnerPortalPage';
+
+// Automation Rules
+import AutomationRulesPage from './automation/AutomationRulesPage';
+
+// Invoices (Fiscal)
+import InvoicesList from './invoices/InvoicesList';
+
 
 const AuthenticatedApp: React.FC = () => {
   return (
@@ -416,6 +431,46 @@ const AuthenticatedApp: React.FC = () => {
           <ProtectedRoute requiredPermission="settings:view">
             <ErrorBoundary>
               <MessageHistoryPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/promotions" element={
+          <ProtectedRoute requiredPermission="pricing:view">
+            <ErrorBoundary>
+              <ChannelPromotionsPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/accounting" element={
+          <ProtectedRoute requiredPermission="payments:view">
+            <ErrorBoundary>
+              <AccountingPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/invoices" element={
+          <ProtectedRoute requiredPermission="reports:view">
+            <ErrorBoundary>
+              <InvoicesList />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/owner-portal" element={
+          <ProtectedRoute requiredPermission="payments:view">
+            <ErrorBoundary>
+              <OwnerPortalPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/automation-rules" element={
+          <ProtectedRoute requiredPermission="settings:view">
+            <ErrorBoundary>
+              <AutomationRulesPage />
             </ErrorBoundary>
           </ProtectedRoute>
         } />

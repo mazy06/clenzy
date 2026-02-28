@@ -81,6 +81,8 @@ public class RateOverrideController {
                 property, LocalDate.parse(dto.date()),
                 BigDecimal.valueOf(dto.nightlyPrice()),
                 dto.source() != null ? dto.source() : "MANUAL", orgId);
+        override.setCurrency(dto.currency() != null ? dto.currency()
+                : (property.getDefaultCurrency() != null ? property.getDefaultCurrency() : "EUR"));
         override.setCreatedBy(jwt.getSubject());
 
         RateOverride saved = rateOverrideRepository.save(override);
@@ -104,10 +106,14 @@ public class RateOverrideController {
         LocalDate to = LocalDate.parse(body.get("to").toString());
         BigDecimal price = new BigDecimal(body.get("nightlyPrice").toString());
         String source = body.containsKey("source") ? body.get("source").toString() : "MANUAL";
+        String currency = body.containsKey("currency")
+                ? body.get("currency").toString()
+                : (property.getDefaultCurrency() != null ? property.getDefaultCurrency() : "EUR");
 
         List<RateOverride> created = new ArrayList<>();
         for (LocalDate date = from; date.isBefore(to); date = date.plusDays(1)) {
             RateOverride override = new RateOverride(property, date, price, source, orgId);
+            override.setCurrency(currency);
             override.setCreatedBy(jwt.getSubject());
             created.add(rateOverrideRepository.save(override));
         }
@@ -144,7 +150,8 @@ public class RateOverrideController {
             entity.getProperty() != null ? entity.getProperty().getId() : null,
             entity.getDate() != null ? entity.getDate().toString() : null,
             entity.getNightlyPrice() != null ? entity.getNightlyPrice().doubleValue() : null,
-            entity.getSource()
+            entity.getSource(),
+            entity.getCurrency()
         );
     }
 

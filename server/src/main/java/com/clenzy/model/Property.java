@@ -80,7 +80,7 @@ public class Property {
     @Column(name = "nightly_price", precision = 10, scale = 2)
     private BigDecimal nightlyPrice;
 
-    @Column(name = "default_currency", nullable = false, length = 3)
+    @Column(name = "default_currency", nullable = false, length = 3, columnDefinition = "varchar(3) default 'EUR'")
     private String defaultCurrency = "EUR";
 
     @Enumerated(EnumType.STRING)

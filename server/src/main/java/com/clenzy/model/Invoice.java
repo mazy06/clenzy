@@ -6,8 +6,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
@@ -28,7 +26,6 @@ import java.util.List;
     @Index(name = "idx_invoice_date", columnList = "invoice_date"),
     @Index(name = "idx_invoice_reservation", columnList = "reservation_id")
 })
-@FilterDef(name = "organizationFilter", parameters = @ParamDef(name = "orgId", type = Long.class))
 @Filter(name = "organizationFilter", condition = "organization_id = :orgId")
 public class Invoice {
 
