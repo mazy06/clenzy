@@ -17,6 +17,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { NotificationBell } from '@/components/ui/NotificationBell';
 import { useTheme } from '@/theme';
+import { useAlurComplianceMultiple } from '@/hooks/useRegulatory';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -66,7 +67,24 @@ export function DashboardScreen() {
   const { data: propertiesData } = useProperties();
   const firstName = getFirstName(user);
 
-  const propertyCount = propertiesData?.content?.length ?? 0;
+  const propertyList = propertiesData?.content ?? [];
+  const propertyCount = propertyList.length;
+  const propertyIds = useMemo(() => propertyList.map((p) => p.id), [propertyList]);
+
+  // ALUR compliance for all properties
+  const alurResults = useAlurComplianceMultiple(propertyIds);
+  const alurAlerts = useMemo(() => {
+    const alerts: Array<{ propertyName: string; daysRented: number; maxDays: number; daysRemaining: number; isCompliant: boolean }> = [];
+    alurResults.forEach((result, idx) => {
+      if (result.data && result.data.daysRented >= 100) {
+        alerts.push({
+          propertyName: propertyList[idx]?.name ?? `Propriete ${propertyIds[idx]}`,
+          ...result.data,
+        });
+      }
+    });
+    return alerts.sort((a, b) => a.daysRemaining - b.daysRemaining);
+  }, [alurResults, propertyList, propertyIds]);
 
   // Active interventions count (pending + in_progress) for KPI card
   const { data: serviceRequestsData } = useServiceRequests({ size: '100' });
@@ -204,6 +222,50 @@ export function DashboardScreen() {
               <KpiCard label="Proprietes" value={propertyCount} iconName="home-outline" compact onPress={() => navigation.navigate('Properties' as any)} />
               <KpiCard label="Reservations" value={allReservations.length} unit="cette sem." iconName="calendar-outline" color="secondary" compact onPress={() => navigation.navigate('ReservationsList')} />
               <KpiCard label="Interventions" value={activeInterventions} unit="en cours" iconName="construct-outline" color="warning" compact onPress={() => navigation.navigate('InterventionsList')} />
+            </View>
+          )}
+
+          {/* ALUR compliance alerts */}
+          {alurAlerts.length > 0 && (
+            <View style={{ marginBottom: theme.SPACING.lg }}>
+              <SectionHeader title="Alertes ALUR" iconName="warning-outline" />
+              {alurAlerts.map((alert) => {
+                const isDanger = alert.daysRemaining <= 0 || !alert.isCompliant;
+                const alertColor = isDanger ? theme.colors.error.main : theme.colors.warning.main;
+                return (
+                  <View
+                    key={alert.propertyName}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: theme.SPACING.sm,
+                      padding: theme.SPACING.md,
+                      marginBottom: theme.SPACING.xs,
+                      backgroundColor: `${alertColor}10`,
+                      borderRadius: theme.BORDER_RADIUS.lg,
+                      borderLeftWidth: 3,
+                      borderLeftColor: alertColor,
+                    }}
+                  >
+                    <Ionicons
+                      name={isDanger ? 'warning' : 'alert-circle-outline'}
+                      size={20}
+                      color={alertColor}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ ...theme.typography.body2, fontWeight: '600', color: theme.colors.text.primary }} numberOfLines={1}>
+                        {alert.propertyName}
+                      </Text>
+                      <Text style={{ ...theme.typography.caption, color: alertColor }}>
+                        {alert.daysRented}/{alert.maxDays} jours — {isDanger ? 'Limite depassee !' : `${alert.daysRemaining}j restants`}
+                      </Text>
+                    </View>
+                    <Text style={{ ...theme.typography.h4, fontWeight: '800', color: alertColor }}>
+                      {alert.daysRemaining}j
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           )}
 
