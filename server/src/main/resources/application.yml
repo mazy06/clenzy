@@ -112,6 +112,11 @@ resilience4j:
 firebase:
   credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
 
+# ─── Module fiscal multi-pays ────────────────────────────────────────────────
+fiscal:
+  multi-country:
+    enabled: false
+
 springdoc:
   api-docs:
     enabled: true

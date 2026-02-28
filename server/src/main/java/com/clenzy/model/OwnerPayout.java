@@ -47,6 +47,9 @@ public class OwnerPayout {
     @Column(name = "net_amount", precision = 10, scale = 2, nullable = false)
     private BigDecimal netAmount = BigDecimal.ZERO;
 
+    @Column(name = "currency", nullable = false, length = 3)
+    private String currency = "EUR";
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private PayoutStatus status = PayoutStatus.PENDING;
@@ -106,6 +109,8 @@ public class OwnerPayout {
     public void setPaidAt(Instant paidAt) { this.paidAt = paidAt; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

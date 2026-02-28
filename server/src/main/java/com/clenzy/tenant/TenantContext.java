@@ -19,6 +19,11 @@ public class TenantContext {
     private boolean superAdmin = false;
     private boolean systemOrg = false;
 
+    // --- Fiscal context (enrichi depuis FiscalProfile) ---
+    private String countryCode = "FR";
+    private String defaultCurrency = "EUR";
+    private boolean vatRegistered = true;
+
     public Long getOrganizationId() {
         return organizationId;
     }
@@ -46,6 +51,32 @@ public class TenantContext {
 
     public void setSystemOrg(boolean systemOrg) {
         this.systemOrg = systemOrg;
+    }
+
+    // --- Fiscal getters/setters ---
+
+    public String getCountryCode() {
+        return countryCode;
+    }
+
+    public void setCountryCode(String countryCode) {
+        this.countryCode = countryCode;
+    }
+
+    public String getDefaultCurrency() {
+        return defaultCurrency;
+    }
+
+    public void setDefaultCurrency(String defaultCurrency) {
+        this.defaultCurrency = defaultCurrency;
+    }
+
+    public boolean isVatRegistered() {
+        return vatRegistered;
+    }
+
+    public void setVatRegistered(boolean vatRegistered) {
+        this.vatRegistered = vatRegistered;
     }
 
     /**
