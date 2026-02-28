@@ -15,3 +15,4 @@ export { noiseAlertConfigApi, type NoiseAlertConfigDto, type SaveNoiseAlertConfi
 export { ratePlanApi, type RatePlanDto, type RatePlanType, type PricingCalendarDay, type CreateRatePlanRequest, type UpdateRatePlanRequest } from './ratePlanApi';
 export { aiMessagingApi, type IntentDetectionResult, type SuggestedResponseResult } from './aiMessagingApi';
 export { reviewsApi, type GuestReview, type ReviewStats, type SentimentLabel } from './reviewsApi';
+export { aiAnalyticsApi, type RevenueAnalytics, type OccupancyForecast } from './aiAnalyticsApi';
