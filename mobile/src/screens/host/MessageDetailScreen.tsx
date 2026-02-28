@@ -7,6 +7,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { File as ExpoFile, Paths } from 'expo-file-system';
 import { useReplyMessage, useMarkAsRead } from '@/hooks/useMessages';
+import { useSuggestResponse } from '@/hooks/useAiMessaging';
 import { useAuthStore } from '@/store/authStore';
 import { API_CONFIG } from '@/config/api';
 import { contactApi } from '@/api/endpoints/contactApi';
@@ -341,6 +342,7 @@ export function MessageDetailScreen() {
 
   const replyMutation = useReplyMessage();
   const markAsReadMutation = useMarkAsRead();
+  const suggestMutation = useSuggestResponse();
 
   // Mark as read on open (for inbox messages)
   useEffect(() => {
@@ -348,6 +350,20 @@ export function MessageDetailScreen() {
       markAsReadMutation.mutate(message.id);
     }
   }, [message.id]);
+
+  const handleAiSuggest = useCallback(() => {
+    suggestMutation.mutate(
+      { message: message.message },
+      {
+        onSuccess: (result) => {
+          setReplyText(result.suggestedResponse);
+        },
+        onError: () => {
+          Alert.alert('Erreur', 'Impossible de generer une suggestion. Reessayez.');
+        },
+      },
+    );
+  }, [message.message, suggestMutation]);
 
   const contactName = isSent ? message.recipientName : message.senderName;
   const priorityCfg = PRIORITY_CONFIG[message.priority];
@@ -713,6 +729,32 @@ export function MessageDetailScreen() {
               paddingVertical: theme.SPACING.sm,
               gap: theme.SPACING.sm,
             }}>
+              {/* AI Suggest button */}
+              <Pressable
+                onPress={handleAiSuggest}
+                disabled={suggestMutation.isPending}
+                hitSlop={8}
+                style={({ pressed }) => ({
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: pressed
+                    ? `${theme.colors.secondary.main}25`
+                    : suggestMutation.isPending
+                    ? `${theme.colors.secondary.main}10`
+                    : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 4,
+                })}
+              >
+                {suggestMutation.isPending ? (
+                  <ActivityIndicator size="small" color={theme.colors.secondary.main} />
+                ) : (
+                  <Ionicons name="sparkles" size={20} color={theme.colors.secondary.main} />
+                )}
+              </Pressable>
+
               {/* Attachment button */}
               <Pressable
                 onPress={showAttachmentPicker}
