@@ -14,3 +14,4 @@ export { noiseApi, type NoiseChartData, type NoiseAlertDto, type NoiseAlertPage,
 export { noiseAlertConfigApi, type NoiseAlertConfigDto, type SaveNoiseAlertConfigRequest, type TimeWindowDto } from './noiseAlertConfigApi';
 export { ratePlanApi, type RatePlanDto, type RatePlanType, type PricingCalendarDay, type CreateRatePlanRequest, type UpdateRatePlanRequest } from './ratePlanApi';
 export { aiMessagingApi, type IntentDetectionResult, type SuggestedResponseResult } from './aiMessagingApi';
+export { reviewsApi, type GuestReview, type ReviewStats, type SentimentLabel } from './reviewsApi';
