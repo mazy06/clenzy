@@ -62,7 +62,7 @@ public class Reservation {
     private BigDecimal totalPrice = BigDecimal.ZERO;
 
     // --- Multi-currency & fiscal breakdown (V84) ---
-    @Column(name = "currency", nullable = false, length = 3)
+    @Column(name = "currency", nullable = false, length = 3, columnDefinition = "varchar(3) default 'EUR'")
     private String currency = "EUR";
 
     @Column(name = "room_revenue", precision = 10, scale = 2)

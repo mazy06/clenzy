@@ -23,6 +23,7 @@ import {
   Hub,
   ChatBubbleOutline,
   Storage,
+  Receipt,
 } from '@mui/icons-material';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -160,6 +161,14 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
     permission: 'payments:view',
     translationKey: 'navigation.payments',
+    group: 'management',
+  },
+  {
+    icon: <Receipt />,
+    path: '/invoices',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
+    permission: 'reports:view',
+    translationKey: 'navigation.invoices',
     group: 'management',
   },
   {

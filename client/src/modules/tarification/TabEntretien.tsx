@@ -38,9 +38,10 @@ interface TabEntretienProps {
   teams: Team[];
   canEdit: boolean;
   onUpdate: (partial: Partial<PricingConfig>) => void;
+  currencySymbol: string;
 }
 
-export default function TabEntretien({ config, teams, canEdit, onUpdate }: TabEntretienProps) {
+export default function TabEntretien({ config, teams, canEdit, onUpdate, currencySymbol }: TabEntretienProps) {
   const { t } = useTranslation();
   const [expandedSection, setExpandedSection] = useState<string | false>('basePrices');
 
@@ -121,16 +122,16 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate }: TabEn
         <AccordionDetails>
           <Grid container spacing={1.5}>
             <Grid item xs={6}>
-              <TextField label={t('tarification.basePrices.essentiel')} type="number" size="small" fullWidth value={config.basePriceEssentiel} onChange={(e) => updateNumericField('basePriceEssentiel', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }} />
+              <TextField label={t('tarification.basePrices.essentiel')} type="number" size="small" fullWidth value={config.basePriceEssentiel} onChange={(e) => updateNumericField('basePriceEssentiel', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }} />
             </Grid>
             <Grid item xs={6}>
-              <TextField label={t('tarification.basePrices.confort')} type="number" size="small" fullWidth value={config.basePriceConfort} onChange={(e) => updateNumericField('basePriceConfort', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }} />
+              <TextField label={t('tarification.basePrices.confort')} type="number" size="small" fullWidth value={config.basePriceConfort} onChange={(e) => updateNumericField('basePriceConfort', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }} />
             </Grid>
             <Grid item xs={6}>
-              <TextField label={t('tarification.basePrices.premium')} type="number" size="small" fullWidth value={config.basePricePremium} onChange={(e) => updateNumericField('basePricePremium', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }} />
+              <TextField label={t('tarification.basePrices.premium')} type="number" size="small" fullWidth value={config.basePricePremium} onChange={(e) => updateNumericField('basePricePremium', e.target.value)} disabled={!canEdit} InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }} />
             </Grid>
             <Grid item xs={6}>
-              <TextField label={t('tarification.basePrices.minPrice')} type="number" size="small" fullWidth value={config.minPrice} onChange={(e) => updateNumericField('minPrice', e.target.value)} disabled={!canEdit} helperText={t('tarification.basePrices.minPriceHelp')} InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }} />
+              <TextField label={t('tarification.basePrices.minPrice')} type="number" size="small" fullWidth value={config.minPrice} onChange={(e) => updateNumericField('minPrice', e.target.value)} disabled={!canEdit} helperText={t('tarification.basePrices.minPriceHelp')} InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }} />
             </Grid>
           </Grid>
         </AccordionDetails>
@@ -169,6 +170,7 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate }: TabEn
                 availableSurcharges={config.availableSurcharges || []}
                 onAddPrestation={handleAddPrestation}
                 onAddSurcharge={handleAddSurcharge}
+                currencySymbol={currencySymbol}
               />
             </AccordionDetails>
           </Accordion>

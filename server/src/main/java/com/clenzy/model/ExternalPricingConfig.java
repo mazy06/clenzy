@@ -35,6 +35,9 @@ public class ExternalPricingConfig {
     @Column(name = "property_mappings", columnDefinition = "jsonb")
     private Map<String, String> propertyMappings = new HashMap<>();
 
+    @Column(length = 3)
+    private String currency = "EUR";
+
     @Column(nullable = false)
     private Boolean enabled = false;
 
@@ -74,6 +77,8 @@ public class ExternalPricingConfig {
     public void setApiUrl(String apiUrl) { this.apiUrl = apiUrl; }
     public Map<String, String> getPropertyMappings() { return propertyMappings; }
     public void setPropertyMappings(Map<String, String> propertyMappings) { this.propertyMappings = propertyMappings; }
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency; }
     public Boolean getEnabled() { return enabled; }
     public void setEnabled(Boolean enabled) { this.enabled = enabled; }
     public Instant getLastSyncAt() { return lastSyncAt; }

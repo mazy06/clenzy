@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Grid, Card, CardContent, CardHeader, CardActionArea } from '@mui/material';
-import { 
+import {
   Assessment as AssessmentIcon,
   TrendingUp as TrendingUpIcon,
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
   People as PeopleIcon,
-  Home as HomeIcon
+  Home as HomeIcon,
+  AccountBalance as AccountBalanceIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -82,6 +83,15 @@ const Reports: React.FC = () => {
       permission: 'reports:view',
       canView: permissions['reports:view'],
       route: '/reports/properties'
+    },
+    {
+      id: 'fiscal',
+      title: t('reports.sections.fiscal.title', 'Rapport Fiscal'),
+      icon: <AccountBalanceIcon color="secondary" />,
+      description: t('reports.sections.fiscal.description', 'TVA, taxes et declarations fiscales'),
+      permission: 'reports:view',
+      canView: permissions['reports:view'],
+      route: '/reports/fiscal'
     }
   ];
 

@@ -27,9 +27,10 @@ interface TabBlanchisserieProps {
   config: PricingConfig;
   canEdit: boolean;
   onUpdate: (partial: Partial<PricingConfig>) => void;
+  currencySymbol: string;
 }
 
-export default function TabBlanchisserie({ config, canEdit, onUpdate }: TabBlanchisserieProps) {
+export default function TabBlanchisserie({ config, canEdit, onUpdate, currencySymbol }: TabBlanchisserieProps) {
   const { t } = useTranslation();
 
   const items = config.blanchisserieConfig || [];
@@ -124,7 +125,7 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate }: TabBlanc
                     }}
                     disabled={!canEdit || !item.enabled}
                     inputProps={{ step: 0.5, min: 0, style: { textAlign: 'right' } }}
-                    InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
+                    InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
                     sx={{ width: 120 }}
                   />
                 </TableCell>
@@ -175,7 +176,7 @@ export default function TabBlanchisserie({ config, canEdit, onUpdate }: TabBlanc
             onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
             size="small"
             fullWidth
-            InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
+            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
           />
         </DialogContent>
         <DialogActions>

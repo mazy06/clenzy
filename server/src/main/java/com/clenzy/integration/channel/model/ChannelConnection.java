@@ -16,12 +16,19 @@ import java.time.LocalDateTime;
  * Pour Booking/VRBO, credentials_ref pointera vers un vault key.
  */
 @Entity
-@Table(name = "channel_connections")
+@Table(
+    name = "channel_connections",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"organization_id", "channel"})
+)
 @org.hibernate.annotations.Filter(
     name = "organizationFilter",
     condition = "organization_id = :orgId"
 )
 public class ChannelConnection {
+
+    public enum ConnectionStatus {
+        ACTIVE, INACTIVE, ERROR
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,11 +41,15 @@ public class ChannelConnection {
     @Column(nullable = false, length = 30)
     private ChannelName channel;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String status = "ACTIVE";
+    private ConnectionStatus status = ConnectionStatus.ACTIVE;
 
     @Column(name = "credentials_ref", length = 255)
     private String credentialsRef;
+
+    @Column(name = "external_property_id", length = 255)
+    private String externalPropertyId;
 
     @Column(name = "webhook_url")
     private String webhookUrl;
@@ -78,11 +89,14 @@ public class ChannelConnection {
     public ChannelName getChannel() { return channel; }
     public void setChannel(ChannelName channel) { this.channel = channel; }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public ConnectionStatus getStatus() { return status; }
+    public void setStatus(ConnectionStatus status) { this.status = status; }
 
     public String getCredentialsRef() { return credentialsRef; }
     public void setCredentialsRef(String credentialsRef) { this.credentialsRef = credentialsRef; }
+
+    public String getExternalPropertyId() { return externalPropertyId; }
+    public void setExternalPropertyId(String externalPropertyId) { this.externalPropertyId = externalPropertyId; }
 
     public String getWebhookUrl() { return webhookUrl; }
     public void setWebhookUrl(String webhookUrl) { this.webhookUrl = webhookUrl; }
@@ -100,12 +114,12 @@ public class ChannelConnection {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
     public boolean isActive() {
-        return "ACTIVE".equals(status);
+        return ConnectionStatus.ACTIVE == status;
     }
 
     @Override
     public String toString() {
         return "ChannelConnection{id=" + id + ", channel=" + channel
-                + ", orgId=" + organizationId + ", status='" + status + "'}";
+                + ", orgId=" + organizationId + ", status=" + status + "}";
     }
 }

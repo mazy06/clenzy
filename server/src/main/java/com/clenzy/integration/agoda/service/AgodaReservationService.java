@@ -6,6 +6,7 @@ import com.clenzy.integration.agoda.repository.AgodaConnectionRepository;
 import com.clenzy.service.AuditLogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +27,11 @@ import java.util.Optional;
  *
  * Les reservations Agoda sont recuperees par polling periodique
  * (pas de webhooks temps reel disponibles sur l'API Supply).
+ *
+ * Desactive par defaut — activer via agoda.sync.enabled=true.
  */
 @Service
+@ConditionalOnProperty(name = "agoda.sync.enabled", havingValue = "true")
 public class AgodaReservationService {
 
     private static final Logger log = LoggerFactory.getLogger(AgodaReservationService.class);

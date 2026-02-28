@@ -13,6 +13,11 @@ import {
   IconButton,
   Tooltip,
   Collapse,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Snackbar,
 } from '@mui/material';
 import {
   LinkOff as LinkOffIcon,
@@ -37,6 +42,10 @@ import { airbnbApi } from '../../services/api/airbnbApi';
 import type { AirbnbConnectionStatus, AirbnbListingMapping } from '../../services/api/airbnbApi';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
+import { useChannelConnections, useDisconnectChannel } from '../../hooks/useChannelConnections';
+import { CHANNEL_BACKEND_MAP } from '../../services/api/channelConnectionApi';
+import type { ChannelId } from '../../services/api/channelConnectionApi';
+import ChannelConnectDialog from './ChannelConnectDialog';
 
 // Logo imports
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.png';
@@ -80,7 +89,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     brandColor: '#003580',
     brandGradient: 'linear-gradient(135deg, #003580 0%, #0050B5 100%)',
     logo: bookingLogoSmall,
-    available: false,
+    available: true,
     descriptionKey: 'channels.ota.booking.description',
   },
   {
@@ -89,7 +98,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     brandColor: '#00355F',
     brandGradient: 'linear-gradient(135deg, #00355F 0%, #1A6199 100%)',
     logo: expediaLogo,
-    available: false,
+    available: true,
     descriptionKey: 'channels.ota.expedia.description',
   },
   {
@@ -98,7 +107,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     brandColor: '#191E3B',
     brandGradient: 'linear-gradient(135deg, #191E3B 0%, #3A4070 100%)',
     logo: hotelsComLogo,
-    available: false,
+    available: true,
     descriptionKey: 'channels.ota.hotels.description',
   },
   {
@@ -107,7 +116,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     brandColor: '#2067DA',
     brandGradient: 'linear-gradient(135deg, #2067DA 0%, #4D8AE8 100%)',
     logo: agodaLogo,
-    available: false,
+    available: true,
     descriptionKey: 'channels.ota.agoda.description',
   },
   {
@@ -125,7 +134,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     brandColor: '#1A2B49',
     brandGradient: 'linear-gradient(135deg, #1A2B49 0%, #3A5070 100%)',
     logo: vrboLogo,
-    available: false,
+    available: true,
     descriptionKey: 'channels.ota.vrbo.description',
   },
   {
@@ -134,7 +143,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     brandColor: '#1668E3',
     brandGradient: 'linear-gradient(135deg, #1668E3 0%, #4A8EF0 100%)',
     logo: abritelLogo,
-    available: false,
+    available: true,
     descriptionKey: 'channels.ota.abritel.description',
   },
   {
@@ -237,8 +246,9 @@ const OTA_CARD_CONTENT_SX = {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const ChannelsPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const navigate = useNavigate();
+  const dateLocale = currentLanguage === 'fr' ? 'fr-FR' : 'en-US';
 
   // Connection state
   const [connectionStatus, setConnectionStatus] = useState<AirbnbConnectionStatus | null>(null);
@@ -255,6 +265,14 @@ const ChannelsPage: React.FC = () => {
   // Properties for linking
   const [properties, setProperties] = useState<Property[]>([]);
   const [propertiesLoading, setPropertiesLoading] = useState(false);
+
+  // OTA channel connections (non-Airbnb)
+  const [connectDialogChannel, setConnectDialogChannel] = useState<OtaChannel | null>(null);
+  const [disconnectConfirmChannel, setDisconnectConfirmChannel] = useState<OtaChannel | null>(null);
+  const [disconnectingChannelId, setDisconnectingChannelId] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const { isConnected: isOtaConnected, getStatus: getOtaStatus, isLoading: otaConnectionsLoading } = useChannelConnections();
+  const disconnectChannelMutation = useDisconnectChannel();
 
   // Link dialog
   const [linkingPropertyId, setLinkingPropertyId] = useState<number | null>(null);
@@ -395,6 +413,46 @@ const ChannelsPage: React.FC = () => {
     }
   }, []);
 
+  // ── OTA channel handlers (non-Airbnb) ──
+  const handleOtaConnect = useCallback((ota: OtaChannel) => {
+    setConnectDialogChannel(ota);
+  }, []);
+
+  const handleOtaDisconnectRequest = useCallback((ota: OtaChannel) => {
+    setDisconnectConfirmChannel(ota);
+  }, []);
+
+  const handleOtaDisconnectConfirm = useCallback(() => {
+    if (!disconnectConfirmChannel) return;
+    const channelId = disconnectConfirmChannel.id;
+    const channelName = disconnectConfirmChannel.name;
+    if (channelId in CHANNEL_BACKEND_MAP) {
+      setDisconnectingChannelId(channelId);
+      disconnectChannelMutation.mutate(channelId as ChannelId, {
+        onSuccess: () => setSuccessMessage(t('channels.connect.successDisconnected', { channel: channelName })),
+        onError: () => setConnectionError(t('channels.connect.errorDisconnecting', { channel: channelName })),
+        onSettled: () => setDisconnectingChannelId(null),
+      });
+    }
+    setDisconnectConfirmChannel(null);
+  }, [disconnectConfirmChannel, disconnectChannelMutation, t]);
+
+  const handleOtaConnected = useCallback(() => {
+    if (connectDialogChannel) {
+      setSuccessMessage(t('channels.connect.successConnected', { channel: connectDialogChannel.name }));
+    }
+    setConnectDialogChannel(null);
+  }, [connectDialogChannel, t]);
+
+  /** Check if a channel shares its backend with another (Vrbo ↔ Abritel → HOMEAWAY) */
+  const getSharedChannelWarning = useCallback((channelId: string): string | null => {
+    if (channelId === 'vrbo' || channelId === 'abritel') {
+      const other = channelId === 'vrbo' ? 'Abritel' : 'Vrbo';
+      return t('channels.connect.sharedChannelWarning', { other });
+    }
+    return null;
+  }, [t]);
+
   // ── Derived ──
   const isConnected = connectionStatus?.connected === true;
   const linkedPropertyIds = new Set(listings.map((l) => l.propertyId));
@@ -446,20 +504,26 @@ const ChannelsPage: React.FC = () => {
         gap: 1.5,
         mb: 1.5,
       }}>
-        {OTA_CHANNELS.map((ota) => (
-          <OtaChannelCard
-            key={ota.id}
-            channel={ota}
-            isConnected={ota.id === 'airbnb' ? isConnected : false}
-            connectionStatus={ota.id === 'airbnb' ? connectionStatus : null}
-            connectionLoading={ota.id === 'airbnb' ? connectionLoading : false}
-            onConnect={ota.id === 'airbnb' ? handleConnect : undefined}
-            onDisconnect={ota.id === 'airbnb' ? handleDisconnect : undefined}
-            connecting={ota.id === 'airbnb' ? connecting : false}
-            disconnecting={ota.id === 'airbnb' ? disconnecting : false}
-            t={t}
-          />
-        ))}
+        {OTA_CHANNELS.map((ota) => {
+          const isAirbnb = ota.id === 'airbnb';
+          const isOtaChannel = (ota.id as string) in CHANNEL_BACKEND_MAP;
+          const otaStatus = isOtaChannel ? getOtaStatus(ota.id as ChannelId) : undefined;
+
+          return (
+            <OtaChannelCard
+              key={ota.id}
+              channel={ota}
+              isConnected={isAirbnb ? isConnected : isOtaChannel ? isOtaConnected(ota.id as ChannelId) : false}
+              connectionStatus={isAirbnb ? connectionStatus : otaStatus ? { status: otaStatus.status } : null}
+              connectionLoading={isAirbnb ? connectionLoading : isOtaChannel ? otaConnectionsLoading : false}
+              onConnect={isAirbnb ? handleConnect : isOtaChannel ? () => handleOtaConnect(ota) : undefined}
+              onDisconnect={isAirbnb ? handleDisconnect : isOtaChannel ? () => handleOtaDisconnectRequest(ota) : undefined}
+              connecting={isAirbnb ? connecting : false}
+              disconnecting={isAirbnb ? disconnecting : disconnectingChannelId === ota.id}
+              t={t}
+            />
+          );
+        })}
       </Box>
 
       {/* ═══════════════════════════════════════════════════════════════════════
@@ -482,11 +546,11 @@ const ChannelsPage: React.FC = () => {
             <DetailItem label={t('channels.airbnb.userId')} value={connectionStatus.airbnbUserId ?? '—'} />
             <DetailItem
               label={t('channels.airbnb.connectedSince')}
-              value={connectionStatus.connectedAt ? new Date(connectionStatus.connectedAt).toLocaleDateString('fr-FR') : '—'}
+              value={connectionStatus.connectedAt ? new Date(connectionStatus.connectedAt).toLocaleDateString(dateLocale) : '—'}
             />
             <DetailItem
               label={t('channels.airbnb.lastSync')}
-              value={connectionStatus.lastSyncAt ? new Date(connectionStatus.lastSyncAt).toLocaleString('fr-FR') : '—'}
+              value={connectionStatus.lastSyncAt ? new Date(connectionStatus.lastSyncAt).toLocaleString(dateLocale) : '—'}
             />
             <DetailItem
               label={t('channels.airbnb.linkedListings')}
@@ -500,6 +564,19 @@ const ChannelsPage: React.FC = () => {
           </Box>
         </Paper>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          TODO: Panneau de details pour les channels OTA non-Airbnb connectes.
+          Quand un channel OTA (Booking, Expedia, etc.) est connecte, afficher un panneau
+          similaire a celui d'Airbnb ci-dessus, avec les informations suivantes :
+          - connectedSince (date de connexion) → t('channels.connectionDetails.connectedSince')
+          - lastSync (derniere synchronisation) → t('channels.connectionDetails.lastSync')
+          - externalId (ID externe sur l'OTA) → t('channels.connectionDetails.externalId')
+          - status (statut de la connexion) → t('channels.connectionDetails.status')
+          Les cles i18n sont deja definies dans fr.json/en.json sous 'channels.connectionDetails.*'.
+          Les donnees sont disponibles via getOtaStatus(channelId) qui retourne
+          { connectedAt, lastSyncAt, externalPropertyId, status }.
+          ═══════════════════════════════════════════════════════════════════════ */}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           Section 2 : Propriétés liées (Listings)
@@ -593,12 +670,71 @@ const ChannelsPage: React.FC = () => {
                   listing={listing}
                   propertyName={property?.name ?? `Propriété #${listing.propertyId}`}
                   t={t}
+                  dateLocale={dateLocale}
                 />
               );
             })}
           </Box>
         </Paper>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          Channel Connect Dialog (non-Airbnb)
+          ═══════════════════════════════════════════════════════════════════════ */}
+      {connectDialogChannel && (
+        <ChannelConnectDialog
+          open={!!connectDialogChannel}
+          channel={connectDialogChannel}
+          onClose={() => setConnectDialogChannel(null)}
+          onConnected={handleOtaConnected}
+        />
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          Disconnect Confirmation Dialog
+          ═══════════════════════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════════════════════
+          Success Snackbar
+          ═══════════════════════════════════════════════════════════════════════ */}
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={4000}
+        onClose={() => setSuccessMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSuccessMessage(null)}
+          severity="success"
+          variant="filled"
+          sx={{ width: '100%', fontSize: '0.8125rem' }}
+        >
+          {successMessage}
+        </Alert>
+      </Snackbar>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          Disconnect Confirmation Dialog
+          ═══════════════════════════════════════════════════════════════════════ */}
+      <Dialog open={!!disconnectConfirmChannel} onClose={() => setDisconnectConfirmChannel(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
+          {t('channels.connect.disconnectConfirm', { channel: disconnectConfirmChannel?.name ?? '' })}
+        </DialogTitle>
+        <DialogContent>
+          {disconnectConfirmChannel && getSharedChannelWarning(disconnectConfirmChannel.id) && (
+            <Alert severity="warning" sx={{ fontSize: '0.8125rem' }}>
+              {getSharedChannelWarning(disconnectConfirmChannel.id)}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 2.5, pb: 2 }}>
+          <Button size="small" onClick={() => setDisconnectConfirmChannel(null)} sx={{ textTransform: 'none' }}>
+            {t('common.cancel')}
+          </Button>
+          <Button size="small" variant="contained" color="error" onClick={handleOtaDisconnectConfirm} sx={{ textTransform: 'none' }}>
+            {t('channels.airbnb.disconnect')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
@@ -655,13 +791,13 @@ function OtaChannelCard({
 }: {
   channel: OtaChannel;
   isConnected: boolean;
-  connectionStatus: AirbnbConnectionStatus | null;
+  connectionStatus: { status?: string | null } | null;
   connectionLoading: boolean;
   onConnect?: () => void;
   onDisconnect?: () => void;
   connecting: boolean;
   disconnecting: boolean;
-  t: (key: string) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   const isAvailable = channel.available;
 
@@ -843,7 +979,7 @@ function ListingCard({
   onToggleAutoInterventions: (propertyId: number, enabled: boolean) => void;
   onToggleAutoPushPricing: (propertyId: number, enabled: boolean) => void;
   onUnlink: (propertyId: number) => void;
-  t: (key: string) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   return (
     <Box
@@ -950,7 +1086,7 @@ function LinkPropertyForm({
   onFormChange: (form: { airbnbListingId: string; airbnbListingTitle: string; airbnbListingUrl: string }) => void;
   onSubmit: () => void;
   onCancel: () => void;
-  t: (key: string) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -1012,10 +1148,12 @@ function SyncStatusCard({
   listing,
   propertyName,
   t,
+  dateLocale,
 }: {
   listing: AirbnbListingMapping;
   propertyName: string;
-  t: (key: string) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
+  dateLocale: string;
 }) {
   const syncOk = listing.syncEnabled && listing.lastSyncAt;
   const StatusIcon = syncOk ? CheckCircleIcon : listing.syncEnabled ? WarningIcon : ErrorIcon;
@@ -1039,7 +1177,7 @@ function SyncStatusCard({
       </Box>
       <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
         {listing.syncEnabled ? t('channels.syncStatus.syncOn') : t('channels.syncStatus.syncOff')}
-        {listing.lastSyncAt && ` · ${t('channels.syncStatus.lastSync')}: ${new Date(listing.lastSyncAt).toLocaleString('fr-FR')}`}
+        {listing.lastSyncAt && ` · ${t('channels.syncStatus.lastSync')}: ${new Date(listing.lastSyncAt).toLocaleString(dateLocale)}`}
       </Typography>
       <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
         {listing.syncEnabled && <Chip label={<><SyncIcon sx={{ fontSize: '0.625rem' }} /> Sync</>} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} color="success" variant="outlined" />}

@@ -101,7 +101,7 @@ public class SyncAdminService {
             return new ConnectionSummaryDto(
                     cc.getId(),
                     cc.getChannel().name(),
-                    cc.getStatus(),
+                    cc.getStatus() != null ? cc.getStatus().name() : "ACTIVE",
                     cc.getLastSyncAt() != null ? cc.getLastSyncAt().toString() : null,
                     cc.getLastError(),
                     (int) mappingCount,
@@ -118,7 +118,7 @@ public class SyncAdminService {
                     cc.getId(),
                     cc.getOrganizationId(),
                     cc.getChannel().name(),
-                    cc.getStatus(),
+                    cc.getStatus() != null ? cc.getStatus().name() : "ACTIVE",
                     cc.getCredentialsRef(),
                     cc.getWebhookUrl(),
                     cc.getSyncConfig(),

@@ -35,6 +35,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import { interventionsKeys } from './useInterventionsList';
+import { formatCurrency } from '../../utils/currencyUtils';
 
 interface Intervention {
   id: number;
@@ -133,10 +134,7 @@ const InterventionsPendingPayment: React.FC = () => {
     }
   };
 
-  const formatCost = (cost: number | null | undefined) => {
-    if (cost === null || cost === undefined) return '--';
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cost);
-  };
+  const formatCost = (cost: number | null | undefined) => formatCurrency(cost);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '--';

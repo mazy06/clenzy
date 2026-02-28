@@ -573,7 +573,7 @@ class IntegrationDtoCoverageTest {
         @Test void isActive() {
             ChannelConnection cc = new ChannelConnection();
             assertThat(cc.isActive()).isTrue();
-            cc.setStatus("INACTIVE");
+            cc.setStatus(ChannelConnection.ConnectionStatus.INACTIVE);
             assertThat(cc.isActive()).isFalse();
         }
         @Test void setters() {
@@ -581,7 +581,7 @@ class IntegrationDtoCoverageTest {
             cc.setId(1L);
             cc.setOrganizationId(2L);
             cc.setChannel(ChannelName.BOOKING);
-            cc.setStatus("ERROR");
+            cc.setStatus(ChannelConnection.ConnectionStatus.ERROR);
             cc.setCredentialsRef("cred-ref");
             cc.setWebhookUrl("https://hook.com");
             cc.setSyncConfig("{\"auto\":true}");

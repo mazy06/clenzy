@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -50,7 +51,8 @@ class BookingChannelAdapterTest {
                 ChannelCapability.OUTBOUND_CALENDAR,
                 ChannelCapability.INBOUND_RESERVATIONS,
                 ChannelCapability.OUTBOUND_RESERVATIONS,
-                ChannelCapability.WEBHOOKS
+                ChannelCapability.WEBHOOKS,
+                ChannelCapability.PROMOTIONS
         );
     }
 
@@ -124,7 +126,10 @@ class BookingChannelAdapterTest {
             when(channelMappingRepository.findByPropertyIdAndChannel(propertyId, ChannelName.BOOKING, orgId))
                     .thenReturn(Optional.of(mapping));
             when(bookingConfig.isConfigured()).thenReturn(true);
+            when(priceEngine.resolvePriceRange(propertyId, from, to, orgId))
+                    .thenReturn(Map.of(from, new BigDecimal("100.00")));
             when(bookingApiClient.updateAvailability(anyList())).thenReturn(true);
+            when(bookingApiClient.updateRates(anyList())).thenReturn(true);
 
             SyncResult result = adapter.pushCalendarUpdate(propertyId, from, to, orgId);
 
@@ -139,12 +144,14 @@ class BookingChannelAdapterTest {
             when(channelMappingRepository.findByPropertyIdAndChannel(propertyId, ChannelName.BOOKING, orgId))
                     .thenReturn(Optional.of(mapping));
             when(bookingConfig.isConfigured()).thenReturn(true);
+            when(priceEngine.resolvePriceRange(propertyId, from, to, orgId))
+                    .thenReturn(Map.of(from, new BigDecimal("100.00")));
             when(bookingApiClient.updateAvailability(anyList())).thenReturn(false);
 
             SyncResult result = adapter.pushCalendarUpdate(propertyId, from, to, orgId);
 
             assertThat(result.getStatus()).isEqualTo(SyncResult.Status.FAILED);
-            assertThat(result.getMessage()).contains("Echec mise a jour");
+            assertThat(result.getMessage()).contains("Echec partiel");
         }
 
         @Test
@@ -155,6 +162,8 @@ class BookingChannelAdapterTest {
             when(channelMappingRepository.findByPropertyIdAndChannel(propertyId, ChannelName.BOOKING, orgId))
                     .thenReturn(Optional.of(mapping));
             when(bookingConfig.isConfigured()).thenReturn(true);
+            when(priceEngine.resolvePriceRange(propertyId, from, to, orgId))
+                    .thenReturn(Map.of(from, new BigDecimal("100.00")));
             when(bookingApiClient.updateAvailability(anyList()))
                     .thenThrow(new RuntimeException("Connection timeout"));
 

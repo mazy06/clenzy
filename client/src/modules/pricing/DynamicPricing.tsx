@@ -103,6 +103,12 @@ const DynamicPricing: React.FC = () => {
     deleteRatePlanLoading,
   } = useDynamicPricing();
 
+  // Derive currency from the first rate plan that has one, or fallback to 'EUR'
+  const selectedPropertyCurrency = useMemo(() => {
+    const planWithCurrency = ratePlans.find((p) => p.currency);
+    return planWithCurrency?.currency || 'EUR';
+  }, [ratePlans]);
+
   // Extract unique owners from properties
   const owners = useMemo<Owner[]>(() => {
     const map = new Map<number, string>();
@@ -298,6 +304,7 @@ const DynamicPricing: React.FC = () => {
                 calendarPricingLoading={calendarPricingLoading}
                 onUpdatePrice={updatePrice}
                 updatePriceLoading={updatePriceLoading}
+                currency={selectedPropertyCurrency}
               />
             </Box>
 

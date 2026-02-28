@@ -17,7 +17,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Service de reporting fiscal.
@@ -35,11 +34,14 @@ public class FiscalReportingService {
     private static final Logger log = LoggerFactory.getLogger(FiscalReportingService.class);
 
     private final InvoiceRepository invoiceRepository;
+    private final CurrencyConverterService currencyConverter;
     private final TenantContext tenantContext;
 
     public FiscalReportingService(InvoiceRepository invoiceRepository,
+                                   CurrencyConverterService currencyConverter,
                                    TenantContext tenantContext) {
         this.invoiceRepository = invoiceRepository;
+        this.currencyConverter = currencyConverter;
         this.tenantContext = tenantContext;
     }
 
@@ -72,18 +74,40 @@ public class FiscalReportingService {
         Map<String, VatAccumulator> breakdownMap = new LinkedHashMap<>();
 
         for (Invoice invoice : activeInvoices) {
-            totalHt = totalHt.add(invoice.getTotalHt());
-            totalTax = totalTax.add(invoice.getTotalTax());
-            totalTtc = totalTtc.add(invoice.getTotalTtc());
+            // Conversion multi-devise : si la facture n'est pas dans la devise de reporting,
+            // convertir les montants vers la devise de base de l'organisation
+            boolean needsConversion = !currency.equalsIgnoreCase(invoice.getCurrency());
+            LocalDate conversionDate = invoice.getInvoiceDate();
+
+            BigDecimal invHt = needsConversion
+                ? currencyConverter.convertToBase(invoice.getTotalHt(), invoice.getCurrency(), currency, conversionDate)
+                : invoice.getTotalHt();
+            BigDecimal invTax = needsConversion
+                ? currencyConverter.convertToBase(invoice.getTotalTax(), invoice.getCurrency(), currency, conversionDate)
+                : invoice.getTotalTax();
+            BigDecimal invTtc = needsConversion
+                ? currencyConverter.convertToBase(invoice.getTotalTtc(), invoice.getCurrency(), currency, conversionDate)
+                : invoice.getTotalTtc();
+
+            totalHt = totalHt.add(invHt);
+            totalTax = totalTax.add(invTax);
+            totalTtc = totalTtc.add(invTtc);
 
             for (InvoiceLine line : invoice.getLines()) {
+                BigDecimal lineHt = needsConversion
+                    ? currencyConverter.convertToBase(line.getTotalHt(), invoice.getCurrency(), currency, conversionDate)
+                    : line.getTotalHt();
+                BigDecimal lineTax = needsConversion
+                    ? currencyConverter.convertToBase(line.getTaxAmount(), invoice.getCurrency(), currency, conversionDate)
+                    : line.getTaxAmount();
+
                 String key = line.getTaxCategory() + "|" + line.getTaxRate().toPlainString();
                 breakdownMap.computeIfAbsent(key, k -> new VatAccumulator(
                     line.getTaxCategory(), line.getTaxRate()
                 ));
                 VatAccumulator acc = breakdownMap.get(key);
-                acc.baseAmount = acc.baseAmount.add(line.getTotalHt());
-                acc.taxAmount = acc.taxAmount.add(line.getTaxAmount());
+                acc.baseAmount = acc.baseAmount.add(lineHt);
+                acc.taxAmount = acc.taxAmount.add(lineTax);
                 acc.lineCount++;
             }
         }

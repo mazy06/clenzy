@@ -42,6 +42,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { propertiesApi } from '../../services/api';
 import { extractApiList } from '../../types';
 import type { Property } from '../../services/api/propertiesApi';
+import SmartLockAnimation from '../../components/SmartLockAnimation';
 
 // ─── Feature list helper ────────────────────────────────────────────────────
 
@@ -553,7 +554,7 @@ function SmartLockDevicesView({ devices, onRemoveDevice, onAddDevice, onToggleLo
           const hasExternalId = !!device.externalDeviceId;
 
           return (
-            <Grid item xs={12} sm={6} md={4} key={device.id}>
+            <Grid item xs={12} sm={6} md={4} lg={3} key={device.id}>
               <Paper
                 elevation={0}
                 sx={{
@@ -568,80 +569,90 @@ function SmartLockDevicesView({ devices, onRemoveDevice, onAddDevice, onToggleLo
                   },
                 }}
               >
-                {/* Device name + delete */}
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
-                  <Box>
-                    <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.875rem' }}>
-                      {device.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
-                      {device.propertyName}
-                      {device.roomName ? ` — ${device.roomName}` : ''}
-                    </Typography>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  {/* Colonne gauche — Animation serrure */}
+                  <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+                    <SmartLockAnimation size={130} animated />
                   </Box>
-                  <Tooltip title={t('dashboard.smartLock.confirmDelete')}>
-                    <IconButton
-                      size="small"
-                      onClick={() => onRemoveDevice(device.id)}
-                      sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}
-                    >
-                      <DeleteIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
 
-                {/* Status chips */}
-                <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
-                  <LockStateChip lockState={device.lockState} t={t} />
-                  <BatteryChip level={device.batteryLevel} />
-                  {hasExternalId && (
-                    <Chip
-                      size="small"
-                      icon={<Wifi sx={{ fontSize: 12 }} />}
-                      label="En ligne"
-                      color="info"
-                      variant="outlined"
-                      sx={{ fontSize: '0.6875rem', height: 22 }}
-                    />
-                  )}
-                </Box>
+                  {/* Colonne droite — Infos + actions */}
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    {/* Device name + delete */}
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.875rem' }}>
+                          {device.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+                          {device.propertyName}
+                          {device.roomName ? ` — ${device.roomName}` : ''}
+                        </Typography>
+                      </Box>
+                      <Tooltip title={t('dashboard.smartLock.confirmDelete')}>
+                        <IconButton
+                          size="small"
+                          onClick={() => onRemoveDevice(device.id)}
+                          sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}
+                        >
+                          <DeleteIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
 
-                {/* Lock / Unlock buttons */}
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  {isLocked ? (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="warning"
-                      fullWidth
-                      startIcon={isLocking ? <CircularProgress size={14} /> : <LockOpenIcon sx={{ fontSize: 14 }} />}
-                      onClick={() => onToggleLock(device.id, false)}
-                      disabled={isLocking || !hasExternalId}
-                      sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}
-                    >
-                      {t('dashboard.smartLock.unlockAction')}
-                    </Button>
-                  ) : (
-                    <Button
-                      size="small"
-                      variant="contained"
-                      color="success"
-                      fullWidth
-                      startIcon={isLocking ? <CircularProgress size={14} color="inherit" /> : <LockIcon sx={{ fontSize: 14 }} />}
-                      onClick={() => onToggleLock(device.id, true)}
-                      disabled={isLocking || !hasExternalId}
-                      sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}
-                    >
-                      {t('dashboard.smartLock.lockAction')}
-                    </Button>
-                  )}
-                </Box>
+                    {/* Status chips */}
+                    <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
+                      <LockStateChip lockState={device.lockState} t={t} />
+                      <BatteryChip level={device.batteryLevel} />
+                      {hasExternalId && (
+                        <Chip
+                          size="small"
+                          icon={<Wifi sx={{ fontSize: 12 }} />}
+                          label="En ligne"
+                          color="info"
+                          variant="outlined"
+                          sx={{ fontSize: '0.6875rem', height: 22 }}
+                        />
+                      )}
+                    </Box>
 
-                {!hasExternalId && (
-                  <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.75, fontSize: '0.625rem', fontStyle: 'italic' }}>
-                    ID Tuya non configure — commandes desactivees
-                  </Typography>
-                )}
+                    {/* Lock / Unlock buttons */}
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      {isLocked ? (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="warning"
+                          fullWidth
+                          startIcon={isLocking ? <CircularProgress size={14} /> : <LockOpenIcon sx={{ fontSize: 14 }} />}
+                          onClick={() => onToggleLock(device.id, false)}
+                          disabled={isLocking || !hasExternalId}
+                          sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}
+                        >
+                          {t('dashboard.smartLock.unlockAction')}
+                        </Button>
+                      ) : (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="success"
+                          fullWidth
+                          startIcon={isLocking ? <CircularProgress size={14} color="inherit" /> : <LockIcon sx={{ fontSize: 14 }} />}
+                          onClick={() => onToggleLock(device.id, true)}
+                          disabled={isLocking || !hasExternalId}
+                          sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}
+                        >
+                          {t('dashboard.smartLock.lockAction')}
+                        </Button>
+                      )}
+                    </Box>
+
+                    {!hasExternalId && (
+                      <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.75, fontSize: '0.625rem', fontStyle: 'italic' }}>
+                        ID Tuya non configure — commandes desactivees
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
               </Paper>
             </Grid>
           );

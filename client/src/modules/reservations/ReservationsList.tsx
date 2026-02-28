@@ -39,6 +39,7 @@ import ReservationFormDialog from './ReservationFormDialog';
 import GuestProfileDialog from '../channels/GuestProfileDialog';
 import PageHeader from '../../components/PageHeader';
 import { SPACING } from '../../theme/spacing';
+import { formatCurrency } from '../../utils/currencyUtils';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
@@ -74,9 +75,9 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function formatPrice(price: number | undefined): string {
+function formatPrice(price: number | undefined, currency = 'EUR'): string {
   if (price === undefined || price === null) return '-';
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(price);
+  return formatCurrency(price, currency);
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────

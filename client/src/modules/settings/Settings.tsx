@@ -39,6 +39,7 @@ import {
   GroupAdd,
   ChatBubbleOutline,
   TrendingUp,
+  AccountBalance,
 } from '@mui/icons-material';
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import type { MessagingAutomationConfig } from '../../services/api/guestMessagingApi';
@@ -56,6 +57,7 @@ import NotificationPreferencesCard from './NotificationPreferencesCard';
 import type { NotificationPreferencesHandle } from './NotificationPreferencesCard';
 import OrganizationSection from '../organization/OrganizationSection';
 import MessagingAutomationSection from '../messaging/MessagingAutomationSection';
+import FiscalProfileSection from './FiscalProfileSection';
 
 // ─── TabPanel ─────────────────────────────────────────────────────────────────
 
@@ -353,10 +355,18 @@ export default function Settings() {
           />
           {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
             <Tab
+              icon={<AccountBalance sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label="Fiscal"
+              {...a11yProps(3)}
+            />
+          )}
+          {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
+            <Tab
               icon={<GroupAdd sx={{ fontSize: 18 }} />}
               iconPosition="start"
               label="Organisation"
-              {...a11yProps(3)}
+              {...a11yProps(4)}
             />
           )}
         </Tabs>
@@ -770,9 +780,16 @@ export default function Settings() {
         <MessagingAutomationSection />
       </TabPanel>
 
-      {/* ─── Onglet Organisation (ADMIN/MANAGER) ─────────────────────── */}
+      {/* ─── Onglet Fiscal (ADMIN/MANAGER) ────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
         <TabPanel value={tabValue} index={3}>
+          <FiscalProfileSection />
+        </TabPanel>
+      )}
+
+      {/* ─── Onglet Organisation (ADMIN/MANAGER) ─────────────────────── */}
+      {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
+        <TabPanel value={tabValue} index={4}>
           <OrganizationSection
             organizationId={user?.organizationId}
             organizationName={user?.organizationName}

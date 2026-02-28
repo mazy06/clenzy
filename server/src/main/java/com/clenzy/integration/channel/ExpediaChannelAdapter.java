@@ -51,7 +51,7 @@ public class ExpediaChannelAdapter implements ChannelConnector {
 
     @Override
     public ChannelName getChannelName() {
-        return ChannelName.VRBO;
+        return ChannelName.EXPEDIA;
     }
 
     @Override

@@ -72,6 +72,7 @@
       "fr": "French",
       "en": "English"
     },
+    "invoices": "Invoices",
     "channels": "Channels",
     "messaging": "Messaging",
     "messageTemplates": "Templates",
@@ -1425,6 +1426,10 @@
       "properties": {
         "title": "Property Reports",
         "description": "Status, maintenance and costs of properties"
+      },
+      "fiscal": {
+        "title": "Fiscal Report",
+        "description": "VAT, taxes and fiscal declarations"
       }
     },
     "selectReport": "Select a report to generate",
@@ -1933,6 +1938,53 @@
       "notAvailable": "Outbound price synchronization will be available soon.",
       "success": "Prices synced to Airbnb successfully",
       "error": "Failed to sync prices to Airbnb"
+    },
+    "ota": {
+      "comingSoon": "Coming soon",
+      "connected": "Connected",
+      "disconnected": "Not connected",
+      "booking": { "description": "Sync your Booking.com reservations, calendar and rates automatically." },
+      "expedia": { "description": "Sync your Expedia reservations, calendar and rates automatically." },
+      "hotels": { "description": "Sync your Hotels.com reservations, calendar and rates automatically." },
+      "agoda": { "description": "Sync your Agoda reservations, calendar and rates automatically." },
+      "tripcom": { "description": "Sync your Trip.com reservations, calendar and rates automatically." },
+      "vrbo": { "description": "Sync your Vrbo reservations, calendar and rates automatically." },
+      "abritel": { "description": "Sync your Abritel reservations, calendar and rates automatically." },
+      "hometogo": { "description": "Sync your HomeToGo reservations, calendar and rates automatically." },
+      "gathern": { "description": "Sync your Gathern.co reservations, calendar and rates automatically." },
+      "rentelly": { "description": "Sync your Rentelly reservations, calendar and rates automatically." },
+      "kease": { "description": "Sync your Kease.io reservations, calendar and rates automatically." },
+      "stay": { "description": "Sync your Stay.sa reservations, calendar and rates automatically." },
+      "mabeet": { "description": "Sync your Mabeet.sa reservations, calendar and rates automatically." }
+    },
+    "connect": {
+      "title": "Connect {{channel}}",
+      "description": "Enter your API credentials to connect {{channel}} to Clenzy.",
+      "hotelId": "Hotel ID",
+      "propertyId": "Property ID",
+      "username": "Username",
+      "password": "Password",
+      "apiKey": "API Key",
+      "apiSecret": "API Secret",
+      "listingId": "Listing ID",
+      "accessToken": "Access Token",
+      "refreshToken": "Refresh Token",
+      "testConnection": "Test connection",
+      "testSuccess": "Connection successful! Property: {{name}}",
+      "testFailed": "Test failed: {{error}}",
+      "connectButton": "Connect",
+      "disconnectConfirm": "Are you sure you want to disconnect {{channel}}? Synchronization will be stopped.",
+      "sharedChannelWarning": "Warning: {{other}} shares the same account. Disconnecting will affect both channels.",
+      "errorConnecting": "Error connecting to {{channel}}",
+      "errorDisconnecting": "Error disconnecting from {{channel}}",
+      "successConnected": "{{channel}} connected successfully",
+      "successDisconnected": "{{channel}} disconnected"
+    },
+    "connectionDetails": {
+      "connectedSince": "Connected since",
+      "lastSync": "Last sync",
+      "externalId": "External ID",
+      "status": "Status"
     }
   },
   "messaging": {
@@ -2017,6 +2069,94 @@
       "success": "Message sent successfully",
       "error": "Failed to send message",
       "loadError": "Failed to load templates"
+    }
+  },
+  "invoices": {
+    "title": "Invoices",
+    "subtitle": "Invoice and fiscal document management",
+    "from": "From",
+    "to": "To",
+    "empty": "No invoices found",
+    "loadError": "Failed to load invoices",
+    "stats": {
+      "total": "Total",
+      "draft": "Drafts",
+      "issued": "Issued",
+      "paid": "Paid",
+      "totalTtc": "Total incl. tax"
+    },
+    "columns": {
+      "number": "No.",
+      "date": "Date",
+      "buyer": "Customer",
+      "ht": "Excl. tax",
+      "tax": "VAT",
+      "ttc": "Incl. tax"
+    },
+    "actions": {
+      "issue": "Issue",
+      "markPaid": "Mark as paid",
+      "cancel": "Cancel",
+      "downloadPdf": "Download PDF"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "ISSUED": "Issued",
+      "PAID": "Paid",
+      "CANCELLED": "Cancelled",
+      "CREDIT_NOTE": "Credit note"
+    }
+  },
+  "fiscal": {
+    "profile": {
+      "title": "Fiscal Profile",
+      "country": "Country",
+      "currency": "Default currency",
+      "regime": "Fiscal regime",
+      "taxId": "SIRET / Tax ID number",
+      "vatNumber": "VAT number",
+      "vatRegistered": "VAT registered",
+      "vatFrequency": "VAT declaration frequency",
+      "legalName": "Legal entity name",
+      "legalAddress": "Registered address",
+      "invoiceLanguage": "Invoice language",
+      "invoicePrefix": "Invoice prefix",
+      "legalMentions": "Legal mentions",
+      "save": "Save fiscal profile",
+      "saving": "Saving...",
+      "saved": "Fiscal profile updated successfully",
+      "error": "Failed to update profile",
+      "loadError": "Unable to load fiscal profile",
+      "setupTitle": "Set up your fiscal profile",
+      "setupDescription": "To use invoicing and fiscal reporting features, please fill in the information below. You can update it at any time.",
+      "setupNotice": "Country and currency are required. Other fields can be filled in later.",
+      "sectionFiscalInfo": "Fiscal information",
+      "sectionLegalInfo": "Legal information",
+      "sectionInvoicing": "Invoicing",
+      "regimeStandard": "Standard",
+      "regimeMicro": "Micro-enterprise",
+      "regimeSimplified": "Simplified",
+      "freqMonthly": "Monthly",
+      "freqQuarterly": "Quarterly",
+      "freqAnnual": "Annual"
+    },
+    "reporting": {
+      "title": "Fiscal Report",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "annual": "Annual",
+      "period": "Period",
+      "invoiceCount": "Invoices",
+      "totalHt": "Total excl. tax",
+      "totalTax": "Total VAT",
+      "totalTtc": "Total incl. tax",
+      "category": "Category",
+      "taxName": "Tax",
+      "taxRate": "Rate",
+      "baseAmount": "Base amount",
+      "taxAmount": "Tax amount",
+      "lineCount": "Lines",
+      "noData": "No fiscal data for this period"
     }
   }
 }

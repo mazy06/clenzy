@@ -11,6 +11,7 @@ import com.clenzy.service.PriceEngine;
 import com.clenzy.service.RateDistributionService;
 import com.clenzy.service.YieldManagementScheduler;
 import com.clenzy.tenant.TenantContext;
+import org.springframework.lang.Nullable;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
@@ -62,7 +63,7 @@ public class RateManagerController {
 
     public RateManagerController(AdvancedRateManager advancedRateManager,
                                  RateDistributionService rateDistributionService,
-                                 YieldManagementScheduler yieldManagementScheduler,
+                                 @Nullable YieldManagementScheduler yieldManagementScheduler,
                                  PriceEngine priceEngine,
                                  ChannelRateModifierRepository channelRateModifierRepository,
                                  LengthOfStayDiscountRepository lengthOfStayDiscountRepository,
@@ -450,6 +451,9 @@ public class RateManagerController {
         validatePropertyAccess(propertyId, jwt.getSubject());
         Long orgId = tenantContext.getRequiredOrganizationId();
 
+        if (yieldManagementScheduler == null) {
+            return ResponseEntity.badRequest().build();
+        }
         yieldManagementScheduler.evaluateForProperty(propertyId, orgId);
         return ResponseEntity.accepted().build();
     }

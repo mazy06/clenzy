@@ -15,6 +15,7 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.service.AuditLogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,8 +39,11 @@ import java.util.Optional;
  *
  * orgId est resolu via ChannelMapping et BookingConnection
  * (pas de TenantContext en contexte Kafka).
+ *
+ * Desactive par defaut — activer via booking.sync.enabled=true.
  */
 @Service
+@ConditionalOnProperty(name = "booking.sync.enabled", havingValue = "true")
 public class BookingReservationService {
 
     private static final Logger log = LoggerFactory.getLogger(BookingReservationService.class);

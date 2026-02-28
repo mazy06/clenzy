@@ -44,6 +44,7 @@ interface PricingCalendarViewProps {
   calendarPricingLoading: boolean;
   onUpdatePrice: (data: { propertyId: number; from: string; to: string; nightlyPrice: number; source?: string }) => Promise<void>;
   updatePriceLoading: boolean;
+  currency?: string;
 }
 
 // ─── Calendar Helpers ───────────────────────────────────────────────────────
@@ -111,6 +112,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
   calendarPricingLoading,
   onUpdatePrice,
   updatePriceLoading,
+  currency = 'EUR',
 }) => {
   const { t, isFrench } = useTranslation();
 
@@ -358,6 +360,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
         onApply={handleApplyPrice}
         selectedDates={selectedDates}
         loading={updatePriceLoading}
+        currency={currency}
       />
     </Box>
   );
