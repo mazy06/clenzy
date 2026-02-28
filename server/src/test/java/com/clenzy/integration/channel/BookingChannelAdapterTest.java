@@ -6,6 +6,7 @@ import com.clenzy.integration.booking.repository.BookingConnectionRepository;
 import com.clenzy.integration.booking.service.BookingApiClient;
 import com.clenzy.integration.channel.model.ChannelMapping;
 import com.clenzy.integration.channel.repository.ChannelMappingRepository;
+import com.clenzy.service.PriceEngine;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -27,13 +28,14 @@ class BookingChannelAdapterTest {
     @Mock private BookingApiClient bookingApiClient;
     @Mock private BookingConnectionRepository bookingConnectionRepository;
     @Mock private ChannelMappingRepository channelMappingRepository;
+    @Mock private PriceEngine priceEngine;
 
     private BookingChannelAdapter adapter;
 
     @BeforeEach
     void setUp() {
         adapter = new BookingChannelAdapter(bookingConfig, bookingApiClient,
-                bookingConnectionRepository, channelMappingRepository);
+                bookingConnectionRepository, channelMappingRepository, priceEngine);
     }
 
     @Test
