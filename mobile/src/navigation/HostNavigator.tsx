@@ -32,6 +32,7 @@ import { ProfileDetailScreen } from '@/screens/common/ProfileDetailScreen';
 import { SubscriptionScreen } from '@/screens/common/SubscriptionScreen';
 import { SubscriptionCheckoutScreen } from '@/screens/common/SubscriptionCheckoutScreen';
 import { DeleteAccountScreen } from '@/screens/common/DeleteAccountScreen';
+import { ConversationDetailScreen } from '@/screens/shared/ConversationDetailScreen';
 import { HostSettingsScreen } from '@/screens/host/HostSettingsScreen';
 import { TeamManagementScreen } from '@/screens/host/TeamManagementScreen';
 import { ReviewsScreen } from '@/screens/host/ReviewsScreen';
@@ -72,6 +73,7 @@ export type PropertiesStackParamList = {
 export type MessagingStackParamList = {
   MessageList: undefined;
   MessageDetail: { message: ContactMessage; isSent: boolean };
+  ConversationDetail: { conversationId: number };
 };
 
 export type MoreStackParamList = {
@@ -126,6 +128,7 @@ function MessagingStackNavigator() {
     <MessagingStack.Navigator screenOptions={{ headerShown: false }}>
       <MessagingStack.Screen name="MessageList" component={MessagingScreen} />
       <MessagingStack.Screen name="MessageDetail" component={MessageDetailScreen} />
+      <MessagingStack.Screen name="ConversationDetail" component={ConversationDetailScreen} />
     </MessagingStack.Navigator>
   );
 }
