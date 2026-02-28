@@ -19,3 +19,4 @@ export { aiAnalyticsApi, type RevenueAnalytics, type OccupancyForecast } from '.
 export { regulatoryApi, type AlurCompliance, type AlurBookingCheck } from './regulatoryApi';
 export { aiPricingApi, type PricePrediction } from './aiPricingApi';
 export { conversationApi, type ConversationDto, type ConversationMessageDto, type ConversationChannel, type ConversationStatus, type MessageDirection, type PaginatedMessages, type UnreadCountResponse as ConversationUnreadCount } from './conversationApi';
+export { smartLockApi, type SmartLockDeviceDto, type CreateSmartLockDeviceDto, type SmartLockStatusDto, type SmartLockActionResult } from './smartLockApi';

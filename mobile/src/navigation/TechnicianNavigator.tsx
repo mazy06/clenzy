@@ -10,6 +10,7 @@ import { TicketQueueScreen } from '@/screens/technician/TicketQueueScreen';
 import { DiagnosticFormScreen } from '@/screens/technician/DiagnosticFormScreen';
 import { PhotoDocScreen } from '@/screens/technician/PhotoDocScreen';
 import { TechReportScreen } from '@/screens/technician/TechReportScreen';
+import { TechSignatureScreen } from '@/screens/technician/TechSignatureScreen';
 import { HistoryScreen } from '@/screens/housekeeper/HistoryScreen';
 import { ProfileScreen } from '@/screens/common/ProfileScreen';
 import { ProfileDetailScreen } from '@/screens/common/ProfileDetailScreen';
@@ -24,6 +25,7 @@ export type TicketsStackParamList = {
   DiagnosticForm: { interventionId: number };
   PhotoDoc: { interventionId: number };
   TechReport: { interventionId: number };
+  TechSignature: { interventionId: number };
 };
 
 export type MessagesStackParamList = {
@@ -39,6 +41,7 @@ function TicketsStackNavigator() {
       <TicketsStack.Screen name="DiagnosticForm" component={DiagnosticFormScreen} />
       <TicketsStack.Screen name="PhotoDoc" component={PhotoDocScreen} />
       <TicketsStack.Screen name="TechReport" component={TechReportScreen} />
+      <TicketsStack.Screen name="TechSignature" component={TechSignatureScreen} />
     </TicketsStack.Navigator>
   );
 }
