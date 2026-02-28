@@ -16,3 +16,4 @@ export { ratePlanApi, type RatePlanDto, type RatePlanType, type PricingCalendarD
 export { aiMessagingApi, type IntentDetectionResult, type SuggestedResponseResult } from './aiMessagingApi';
 export { reviewsApi, type GuestReview, type ReviewStats, type SentimentLabel } from './reviewsApi';
 export { aiAnalyticsApi, type RevenueAnalytics, type OccupancyForecast } from './aiAnalyticsApi';
+export { regulatoryApi, type AlurCompliance, type AlurBookingCheck } from './regulatoryApi';
