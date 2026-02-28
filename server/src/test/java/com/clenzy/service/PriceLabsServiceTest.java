@@ -3,8 +3,13 @@ package com.clenzy.service;
 import com.clenzy.dto.ExternalPriceRecommendation;
 import com.clenzy.model.ExternalPricingConfig;
 import com.clenzy.model.PricingProvider;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -12,13 +17,17 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@ExtendWith(MockitoExtension.class)
 class PriceLabsServiceTest {
+
+    @Mock private RestTemplate restTemplate;
+    @Mock private ObjectMapper objectMapper;
 
     private PriceLabsService service;
 
     @BeforeEach
     void setUp() {
-        service = new PriceLabsService();
+        service = new PriceLabsService(restTemplate, objectMapper);
     }
 
     private ExternalPricingConfig createConfig(Map<String, String> mappings) {
