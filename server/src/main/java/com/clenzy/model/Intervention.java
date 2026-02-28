@@ -134,7 +134,11 @@ public class Intervention {
     
     @Column(name = "actual_cost", precision = 10, scale = 2)
     private BigDecimal actualCost;
-    
+
+    // Multi-currency (V84)
+    @Column(name = "currency", nullable = false, length = 3)
+    private String currency = "EUR";
+
     @Column(name = "special_instructions", columnDefinition = "TEXT")
     private String specialInstructions;
     
@@ -313,6 +317,10 @@ public class Intervention {
     
     public void setActualCost(BigDecimal actualCost) {
         this.actualCost = actualCost;
+    }
+
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency;
     }
     
     public String getNotes() {
