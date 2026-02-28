@@ -18,3 +18,4 @@ export { reviewsApi, type GuestReview, type ReviewStats, type SentimentLabel } f
 export { aiAnalyticsApi, type RevenueAnalytics, type OccupancyForecast } from './aiAnalyticsApi';
 export { regulatoryApi, type AlurCompliance, type AlurBookingCheck } from './regulatoryApi';
 export { aiPricingApi, type PricePrediction } from './aiPricingApi';
+export { conversationApi, type ConversationDto, type ConversationMessageDto, type ConversationChannel, type ConversationStatus, type MessageDirection, type PaginatedMessages, type UnreadCountResponse as ConversationUnreadCount } from './conversationApi';
