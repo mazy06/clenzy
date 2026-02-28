@@ -21,11 +21,13 @@ import { SubscriptionCheckoutScreen } from '@/screens/common/SubscriptionCheckou
 import { DeleteAccountScreen } from '@/screens/common/DeleteAccountScreen';
 import { ConversationScreen } from '@/screens/shared/ConversationScreen';
 import { ConversationDetailScreen } from '@/screens/shared/ConversationDetailScreen';
+import { CreateInterventionScreen } from '@/screens/manager/CreateInterventionScreen';
 
 export type InterventionsStackParamList = {
   InterventionList: undefined;
   InterventionDetail: { interventionId: number };
   TaskValidation: { interventionId: number };
+  CreateIntervention: undefined;
 };
 
 export type TeamsStackParamList = {
@@ -55,6 +57,7 @@ function InterventionsStackNavigator() {
       <InterventionsStack.Screen name="InterventionList" component={InterventionListScreen} />
       <InterventionsStack.Screen name="InterventionDetail" component={InterventionDetailScreen} />
       <InterventionsStack.Screen name="TaskValidation" component={TaskValidationScreen} />
+      <InterventionsStack.Screen name="CreateIntervention" component={CreateInterventionScreen} />
     </InterventionsStack.Navigator>
   );
 }

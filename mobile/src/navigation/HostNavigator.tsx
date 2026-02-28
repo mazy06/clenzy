@@ -36,6 +36,8 @@ import { ConversationDetailScreen } from '@/screens/shared/ConversationDetailScr
 import { HostSettingsScreen } from '@/screens/host/HostSettingsScreen';
 import { TeamManagementScreen } from '@/screens/host/TeamManagementScreen';
 import { ReviewsScreen } from '@/screens/host/ReviewsScreen';
+import { SmartLockScreen } from '@/screens/host/SmartLockScreen';
+import { RatePlanManagementScreen } from '@/screens/host/RatePlanManagementScreen';
 import type { ContactMessage } from '@/api/endpoints/contactApi';
 
 export type DashboardStackParamList = {
@@ -59,6 +61,8 @@ export type DashboardStackParamList = {
   PaymentCheckout: { interventionId: number };
   Analytics: undefined;
   Reviews: undefined;
+  SmartLocks: undefined;
+  RatePlanManagement: { propertyId: number; propertyName: string };
 };
 
 export type PropertiesStackParamList = {
@@ -68,6 +72,7 @@ export type PropertiesStackParamList = {
   PropertyInterventions: { propertyId: number };
   PropertyChannels: { propertyId: number };
   PropertyInstructions: { propertyId: number };
+  PropertyRatePlans: { propertyId: number; propertyName: string };
 };
 
 export type MessagingStackParamList = {
@@ -104,6 +109,8 @@ function DashboardStackNavigator() {
       <DashboardStack.Screen name="PaymentCheckout" component={PaymentCheckoutScreen} />
       <DashboardStack.Screen name="Analytics" component={AnalyticsScreen} />
       <DashboardStack.Screen name="Reviews" component={ReviewsScreen} />
+      <DashboardStack.Screen name="SmartLocks" component={SmartLockScreen} />
+      <DashboardStack.Screen name="RatePlanManagement" component={RatePlanManagementScreen} />
     </DashboardStack.Navigator>
   );
 }
@@ -118,6 +125,7 @@ function PropertiesStackNavigator() {
       <PropertiesStack.Screen name="PropertyInterventions" component={PropertyInterventionsScreen} />
       <PropertiesStack.Screen name="PropertyChannels" component={PropertyChannelsScreen} />
       <PropertiesStack.Screen name="PropertyInstructions" component={PropertyInstructionsScreen} />
+      <PropertiesStack.Screen name="PropertyRatePlans" component={RatePlanManagementScreen} />
     </PropertiesStack.Navigator>
   );
 }

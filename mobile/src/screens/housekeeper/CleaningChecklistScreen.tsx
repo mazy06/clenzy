@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { View, Text, ScrollView, Alert, Pressable } from 'react-native';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, Alert, Pressable, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -17,6 +17,132 @@ import { createMMKV } from 'react-native-mmkv';
 import { useUnreadConversationCount } from '@/hooks/useConversations';
 
 const checklistStorage = createMMKV({ id: 'checklist-drafts' });
+
+/* ─── Timer Hook ─── */
+
+function useWorkTimer(interventionId: number, isRunning: boolean) {
+  const storageKey = `timer-${interventionId}`;
+  const [elapsed, setElapsed] = useState(() => {
+    const stored = checklistStorage.getString(storageKey);
+    if (stored) {
+      try {
+        const { elapsed: e, lastTick } = JSON.parse(stored);
+        // Account for time passed while app was in background
+        if (lastTick && isRunning) {
+          const diff = Math.floor((Date.now() - lastTick) / 1000);
+          return (e ?? 0) + diff;
+        }
+        return e ?? 0;
+      } catch { /* fallback */ }
+    }
+    return 0;
+  });
+
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (isRunning) {
+      intervalRef.current = setInterval(() => {
+        setElapsed((prev: number) => {
+          const next = prev + 1;
+          checklistStorage.set(storageKey, JSON.stringify({ elapsed: next, lastTick: Date.now() }));
+          return next;
+        });
+      }, 1000);
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isRunning, storageKey]);
+
+  // Handle app state changes (background/foreground)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && isRunning) {
+        const stored = checklistStorage.getString(storageKey);
+        if (stored) {
+          try {
+            const { elapsed: e, lastTick } = JSON.parse(stored);
+            const diff = Math.floor((Date.now() - lastTick) / 1000);
+            setElapsed((e ?? 0) + diff);
+          } catch { /* ignore */ }
+        }
+      }
+    });
+    return () => sub.remove();
+  }, [isRunning, storageKey]);
+
+  return elapsed;
+}
+
+function formatTimer(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+function TimerCard({ elapsed, estimatedHours, theme }: {
+  elapsed: number;
+  estimatedHours?: number;
+  theme: ReturnType<typeof import('@/theme').useTheme>;
+}) {
+  const elapsedHours = elapsed / 3600;
+  const isOvertime = estimatedHours != null && elapsedHours > estimatedHours;
+  const progressPct = estimatedHours
+    ? Math.min(Math.round((elapsedHours / estimatedHours) * 100), 100)
+    : 0;
+
+  return (
+    <Card style={{ marginBottom: theme.SPACING.md }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.SPACING.sm }}>
+          <View style={{
+            width: 36, height: 36, borderRadius: theme.BORDER_RADIUS.full,
+            backgroundColor: isOvertime ? `${theme.colors.warning.main}12` : `${theme.colors.primary.main}12`,
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Ionicons
+              name="timer-outline"
+              size={18}
+              color={isOvertime ? theme.colors.warning.main : theme.colors.primary.main}
+            />
+          </View>
+          <View>
+            <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>Temps ecoule</Text>
+            <Text style={{
+              ...theme.typography.h3,
+              color: isOvertime ? theme.colors.warning.main : theme.colors.text.primary,
+              fontVariant: ['tabular-nums'],
+            }}>
+              {formatTimer(elapsed)}
+            </Text>
+          </View>
+        </View>
+        {estimatedHours != null && (
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={{ ...theme.typography.caption, color: theme.colors.text.secondary }}>Estime</Text>
+            <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, fontWeight: '600' }}>
+              {estimatedHours}h
+            </Text>
+          </View>
+        )}
+      </View>
+      {estimatedHours != null && (
+        <View style={{ marginTop: theme.SPACING.sm }}>
+          <ProgressBar
+            progress={progressPct}
+            color={isOvertime ? 'warning' : 'primary'}
+          />
+        </View>
+      )}
+    </Card>
+  );
+}
 
 type RouteParams = {
   CleaningChecklist: { interventionId: number };
@@ -169,6 +295,9 @@ export function CleaningChecklistScreen() {
   const isPending = intervention.status === 'PENDING' || intervention.status === 'SCHEDULED';
   const isInProgress = intervention.status === 'IN_PROGRESS';
 
+  // Timer — runs when intervention is in progress
+  const elapsed = useWorkTimer(interventionId, isInProgress);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background.default }} edges={['top']}>
       <ScrollView contentContainerStyle={{ padding: theme.SPACING.lg, paddingBottom: 120 }}>
@@ -186,6 +315,11 @@ export function CleaningChecklistScreen() {
           <Text style={{ ...theme.typography.h5, color: theme.colors.text.primary, marginBottom: theme.SPACING.sm }}>Progression</Text>
           <MissionTimeline steps={timelineSteps} />
         </Card>
+
+        {/* Timer — shows during work */}
+        {isInProgress && (
+          <TimerCard elapsed={elapsed} estimatedHours={intervention.estimatedDurationHours} theme={theme} />
+        )}
 
         {/* Start / Photos avant */}
         {isPending && (
