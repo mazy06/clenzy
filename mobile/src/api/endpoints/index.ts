@@ -17,3 +17,4 @@ export { aiMessagingApi, type IntentDetectionResult, type SuggestedResponseResul
 export { reviewsApi, type GuestReview, type ReviewStats, type SentimentLabel } from './reviewsApi';
 export { aiAnalyticsApi, type RevenueAnalytics, type OccupancyForecast } from './aiAnalyticsApi';
 export { regulatoryApi, type AlurCompliance, type AlurBookingCheck } from './regulatoryApi';
+export { aiPricingApi, type PricePrediction } from './aiPricingApi';
