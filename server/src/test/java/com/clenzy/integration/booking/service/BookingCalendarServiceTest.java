@@ -6,6 +6,8 @@ import com.clenzy.integration.booking.repository.BookingConnectionRepository;
 import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.integration.channel.model.ChannelMapping;
 import com.clenzy.integration.channel.repository.ChannelMappingRepository;
+import com.clenzy.repository.BookingRestrictionRepository;
+import com.clenzy.repository.PropertyRepository;
 import com.clenzy.service.AuditLogService;
 import com.clenzy.service.CalendarEngine;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,8 @@ class BookingCalendarServiceTest {
     @Mock private BookingConnectionRepository bookingConnectionRepository;
     @Mock private AuditLogService auditLogService;
     @Mock private CalendarEngine calendarEngine;
+    @Mock private BookingRestrictionRepository bookingRestrictionRepository;
+    @Mock private PropertyRepository propertyRepository;
 
     private BookingCalendarService service;
 
@@ -47,7 +51,9 @@ class BookingCalendarServiceTest {
                 channelMappingRepository,
                 bookingConnectionRepository,
                 auditLogService,
-                calendarEngine
+                calendarEngine,
+                bookingRestrictionRepository,
+                propertyRepository
         );
     }
 

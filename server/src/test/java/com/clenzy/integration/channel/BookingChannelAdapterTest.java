@@ -6,6 +6,7 @@ import com.clenzy.integration.booking.repository.BookingConnectionRepository;
 import com.clenzy.integration.booking.service.BookingApiClient;
 import com.clenzy.integration.channel.model.ChannelMapping;
 import com.clenzy.integration.channel.repository.ChannelMappingRepository;
+import com.clenzy.repository.BookingRestrictionRepository;
 import com.clenzy.service.PriceEngine;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,13 +31,15 @@ class BookingChannelAdapterTest {
     @Mock private BookingConnectionRepository bookingConnectionRepository;
     @Mock private ChannelMappingRepository channelMappingRepository;
     @Mock private PriceEngine priceEngine;
+    @Mock private BookingRestrictionRepository bookingRestrictionRepository;
 
     private BookingChannelAdapter adapter;
 
     @BeforeEach
     void setUp() {
         adapter = new BookingChannelAdapter(bookingConfig, bookingApiClient,
-                bookingConnectionRepository, channelMappingRepository, priceEngine);
+                bookingConnectionRepository, channelMappingRepository, priceEngine,
+                bookingRestrictionRepository);
     }
 
     @Test
@@ -52,7 +55,11 @@ class BookingChannelAdapterTest {
                 ChannelCapability.INBOUND_RESERVATIONS,
                 ChannelCapability.OUTBOUND_RESERVATIONS,
                 ChannelCapability.WEBHOOKS,
-                ChannelCapability.PROMOTIONS
+                ChannelCapability.PROMOTIONS,
+                ChannelCapability.OUTBOUND_RESTRICTIONS,
+                ChannelCapability.CONTENT_SYNC,
+                ChannelCapability.FEES,
+                ChannelCapability.CANCELLATION_POLICIES
         );
     }
 
