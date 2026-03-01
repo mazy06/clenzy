@@ -59,6 +59,8 @@ export interface UpdateReservationData {
   status?: string;
   totalPrice?: number;
   notes?: string;
+  propertyId?: number;
+  propertyName?: string;
 }
 
 // ─── Planning Intervention Types ────────────────────────────────────────────
@@ -463,6 +465,8 @@ export interface MockPlanningProperty {
   address: string;
   city: string;
   ownerName?: string;
+  maxGuests: number;
+  type?: string;
 }
 
 function getMockPropertiesFromReservations(): MockPlanningProperty[] {
@@ -475,6 +479,18 @@ function getMockPropertiesFromReservations(): MockPlanningProperty[] {
     9: 'Paris 12e', 10: 'Paris 16e',
   };
 
+  const mockMaxGuests: Record<number, number> = {
+    1: 4, 2: 2, 3: 6, 4: 8,
+    5: 2, 6: 4, 7: 10, 8: 5,
+    9: 3, 10: 6,
+  };
+
+  const mockTypes: Record<number, string> = {
+    1: 'LOFT', 2: 'STUDIO', 3: 'APARTMENT', 4: 'HOUSE',
+    5: 'STUDIO', 6: 'APARTMENT', 7: 'VILLA', 8: 'DUPLEX',
+    9: 'APARTMENT', 10: 'PENTHOUSE',
+  };
+
   reservations.forEach((r) => {
     if (!seen.has(r.propertyId)) {
       seen.set(r.propertyId, {
@@ -482,6 +498,8 @@ function getMockPropertiesFromReservations(): MockPlanningProperty[] {
         name: r.propertyName,
         address: '',
         city: mockCities[r.propertyId] || 'Paris',
+        maxGuests: mockMaxGuests[r.propertyId] || 4,
+        type: mockTypes[r.propertyId] || 'APARTMENT',
       });
     }
   });

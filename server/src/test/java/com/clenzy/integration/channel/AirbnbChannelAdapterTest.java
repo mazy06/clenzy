@@ -5,6 +5,7 @@ import com.clenzy.integration.airbnb.service.AirbnbOAuthService;
 import com.clenzy.integration.airbnb.service.AirbnbTokenEncryptionService;
 import com.clenzy.integration.channel.model.ChannelMapping;
 import com.clenzy.integration.channel.repository.ChannelMappingRepository;
+import com.clenzy.repository.BookingRestrictionRepository;
 import com.clenzy.service.PriceEngine;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,13 +27,15 @@ class AirbnbChannelAdapterTest {
     @Mock private ChannelMappingRepository channelMappingRepository;
     @Mock private PriceEngine priceEngine;
     @Mock private RestTemplate restTemplate;
+    @Mock private BookingRestrictionRepository bookingRestrictionRepository;
 
     private AirbnbChannelAdapter adapter;
 
     @BeforeEach
     void setUp() {
         adapter = new AirbnbChannelAdapter(airbnbOAuthService, airbnbConnectionRepository,
-                tokenEncryptionService, channelMappingRepository, priceEngine, restTemplate);
+                tokenEncryptionService, channelMappingRepository, priceEngine, restTemplate,
+                bookingRestrictionRepository);
     }
 
     @Test void channelName() {
@@ -46,7 +49,12 @@ class AirbnbChannelAdapterTest {
                 ChannelCapability.INBOUND_RESERVATIONS,
                 ChannelCapability.WEBHOOKS,
                 ChannelCapability.OAUTH,
-                ChannelCapability.MESSAGING
+                ChannelCapability.MESSAGING,
+                ChannelCapability.PROMOTIONS,
+                ChannelCapability.OUTBOUND_RESTRICTIONS,
+                ChannelCapability.CONTENT_SYNC,
+                ChannelCapability.FEES,
+                ChannelCapability.CANCELLATION_POLICIES
         );
     }
 

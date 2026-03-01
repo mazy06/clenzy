@@ -77,9 +77,9 @@ export default function AcceptInvitationPage() {
     try {
       await invitationsApi.accept(token);
       setState('accepted');
-      // Rediriger vers le dashboard apres 2s
+      // Rediriger vers le planning apres 2s
       setTimeout(() => {
-        navigate('/dashboard', { replace: true });
+        navigate('/planning', { replace: true });
       }, 2000);
     } catch (err: unknown) {
       const apiErr = err as { message?: string };

@@ -7,6 +7,10 @@ import com.clenzy.integration.booking.repository.BookingConnectionRepository;
 import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.integration.channel.model.ChannelMapping;
 import com.clenzy.integration.channel.repository.ChannelMappingRepository;
+import com.clenzy.model.BookingRestriction;
+import com.clenzy.model.Property;
+import com.clenzy.repository.BookingRestrictionRepository;
+import com.clenzy.repository.PropertyRepository;
 import com.clenzy.service.AuditLogService;
 import com.clenzy.service.CalendarEngine;
 import org.slf4j.Logger;
@@ -48,15 +52,21 @@ public class BookingCalendarService {
     private final BookingConnectionRepository bookingConnectionRepository;
     private final AuditLogService auditLogService;
     private final CalendarEngine calendarEngine;
+    private final BookingRestrictionRepository bookingRestrictionRepository;
+    private final PropertyRepository propertyRepository;
 
     public BookingCalendarService(ChannelMappingRepository channelMappingRepository,
                                   BookingConnectionRepository bookingConnectionRepository,
                                   AuditLogService auditLogService,
-                                  CalendarEngine calendarEngine) {
+                                  CalendarEngine calendarEngine,
+                                  BookingRestrictionRepository bookingRestrictionRepository,
+                                  PropertyRepository propertyRepository) {
         this.channelMappingRepository = channelMappingRepository;
         this.bookingConnectionRepository = bookingConnectionRepository;
         this.auditLogService = auditLogService;
         this.calendarEngine = calendarEngine;
+        this.bookingRestrictionRepository = bookingRestrictionRepository;
+        this.propertyRepository = propertyRepository;
     }
 
     /**
@@ -201,15 +211,63 @@ public class BookingCalendarService {
     /**
      * Traite les mises a jour de restrictions (min/max stay, CTA, CTD).
      * Appele sur un evenement "restrictions.updated" de Booking.com.
+     *
+     * Parse le payload webhook Booking.com et upsert une BookingRestriction locale.
      */
     private void handleRestrictionsUpdated(ChannelMapping mapping, Map<String, Object> data) {
-        log.info("Restrictions Booking.com mises a jour pour propriete {} (room {})",
-                mapping.getInternalId(), mapping.getExternalId());
+        Long propertyId = mapping.getInternalId();
+        Long orgId = mapping.getOrganizationId();
 
-        // TODO : implementer la gestion des restrictions (min/max stay, CTA/CTD)
-        // quand le CalendarEngine supportera ces proprietes
+        log.info("Restrictions Booking.com mises a jour pour propriete {} (room {})",
+                propertyId, mapping.getExternalId());
+
+        LocalDate startDate = parseDateField(data, "start_date");
+        LocalDate endDate = parseDateField(data, "end_date");
+
+        if (startDate == null || endDate == null) {
+            log.warn("handleRestrictionsUpdated: dates manquantes pour mapping {}", mapping.getExternalId());
+            auditLogService.logSync("BookingCalendar", mapping.getExternalId(),
+                    "Restrictions Booking.com — dates manquantes pour propriete " + propertyId);
+            return;
+        }
+
+        // Parse restriction fields from Booking.com webhook payload
+        Integer minStay = parseIntField(data, "min_stay");
+        Integer maxStay = parseIntField(data, "max_stay");
+        Boolean closedToArrival = parseBoolField(data, "closed_to_arrival");
+        Boolean closedToDeparture = parseBoolField(data, "closed_to_departure");
+
+        // Upsert restriction locale
+        Property property = propertyRepository.findById(propertyId).orElse(null);
+        if (property == null) {
+            log.warn("handleRestrictionsUpdated: propriete {} introuvable", propertyId);
+            return;
+        }
+
+        // Chercher une restriction existante pour cette plage
+        java.util.List<BookingRestriction> existing = bookingRestrictionRepository
+                .findApplicable(propertyId, startDate, endDate, orgId);
+
+        BookingRestriction restriction;
+        if (!existing.isEmpty()) {
+            // Mettre a jour la restriction existante la plus prioritaire
+            restriction = existing.getFirst();
+        } else {
+            restriction = new BookingRestriction(property, startDate, endDate, orgId);
+        }
+
+        if (minStay != null) restriction.setMinStay(minStay);
+        if (maxStay != null) restriction.setMaxStay(maxStay);
+        if (closedToArrival != null) restriction.setClosedToArrival(closedToArrival);
+        if (closedToDeparture != null) restriction.setClosedToDeparture(closedToDeparture);
+
+        bookingRestrictionRepository.save(restriction);
+
+        log.info("Restriction upsertee pour propriete {} [{}, {}): minStay={}, maxStay={}, CTA={}, CTD={}",
+                propertyId, startDate, endDate, minStay, maxStay, closedToArrival, closedToDeparture);
+
         auditLogService.logSync("BookingCalendar", mapping.getExternalId(),
-                "Restrictions Booking.com mises a jour pour propriete " + mapping.getInternalId());
+                "Restrictions Booking.com synchronisees pour propriete " + propertyId);
     }
 
     // ================================================================
@@ -238,6 +296,31 @@ public class BookingCalendarService {
             log.warn("Format de date invalide pour '{}': {}", fieldName, value);
             return null;
         }
+    }
+
+    /**
+     * Parse un champ entier depuis le data Map.
+     */
+    private Integer parseIntField(Map<String, Object> data, String fieldName) {
+        Object value = data.get(fieldName);
+        if (value == null) return null;
+        try {
+            if (value instanceof Number number) return number.intValue();
+            return Integer.valueOf(value.toString());
+        } catch (NumberFormatException e) {
+            log.warn("Format entier invalide pour '{}': {}", fieldName, value);
+            return null;
+        }
+    }
+
+    /**
+     * Parse un champ booleen depuis le data Map.
+     */
+    private Boolean parseBoolField(Map<String, Object> data, String fieldName) {
+        Object value = data.get(fieldName);
+        if (value == null) return null;
+        if (value instanceof Boolean b) return b;
+        return Boolean.valueOf(value.toString());
     }
 
     /**

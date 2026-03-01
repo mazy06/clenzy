@@ -96,7 +96,12 @@ public class ChannelSyncService {
                 return;
             }
 
-            // Fan-out vers chaque channel qui supporte OUTBOUND_CALENDAR
+            // Determiner la capability cible selon l'action
+            boolean isRestrictionEvent = "RESTRICTION_UPDATED".equals(action)
+                    || "RESTRICTION_CREATED".equals(action)
+                    || "RESTRICTION_DELETED".equals(action);
+
+            // Fan-out vers chaque channel connecte
             String syncId = UUID.randomUUID().toString();
             MDC.put("syncId", syncId);
             try {
@@ -105,7 +110,36 @@ public class ChannelSyncService {
                     ChannelName channelName = connection.getChannel();
 
                     connectorRegistry.getConnector(channelName).ifPresent(connector -> {
-                        if (connector.supports(ChannelCapability.OUTBOUND_CALENDAR) && from != null && to != null) {
+                        if (from == null || to == null) return;
+
+                        // Pour les events restriction, fan-out vers OUTBOUND_RESTRICTIONS
+                        if (isRestrictionEvent && connector.supports(ChannelCapability.OUTBOUND_RESTRICTIONS)) {
+                            MDC.put("channel", channelName.toString());
+                            long startMs = System.currentTimeMillis();
+                            SyncResult result;
+                            try {
+                                result = connector.pushRestrictions(propertyId, from, to, orgId);
+                                long elapsed = System.currentTimeMillis() - startMs;
+                                syncMetrics.recordSyncSuccess(channelName.toString(),
+                                        result.getDurationMs() > 0 ? result.getDurationMs() : elapsed);
+                            } catch (Exception e) {
+                                long elapsed = System.currentTimeMillis() - startMs;
+                                result = SyncResult.failed(e.getMessage(), elapsed);
+                                syncMetrics.recordSyncFailure(channelName.toString(),
+                                        e.getClass().getSimpleName(), elapsed);
+                                log.error("ChannelSyncService: erreur push restrictions {} pour propriete {}: {}",
+                                        channelName, propertyId, e.getMessage());
+                            } finally {
+                                MDC.remove("channel");
+                            }
+
+                            logSync(connection, mapping, SyncDirection.OUTBOUND, action, result);
+                            log.info("ChannelSyncService: push restrictions {} propriete {} → {} ({})",
+                                    channelName, propertyId, result.getStatus(), result.getMessage());
+                        }
+
+                        // Pour les events calendrier classiques, fan-out vers OUTBOUND_CALENDAR
+                        if (!isRestrictionEvent && connector.supports(ChannelCapability.OUTBOUND_CALENDAR)) {
                             MDC.put("channel", channelName.toString());
                             long startMs = System.currentTimeMillis();
                             SyncResult result;
@@ -126,7 +160,6 @@ public class ChannelSyncService {
                             }
 
                             logSync(connection, mapping, SyncDirection.OUTBOUND, action, result);
-
                             log.info("ChannelSyncService: push {} propriete {} → {} ({})",
                                     channelName, propertyId, result.getStatus(), result.getMessage());
                         }

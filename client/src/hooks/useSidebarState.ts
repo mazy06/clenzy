@@ -17,11 +17,16 @@ export const SIDEBAR_WIDTH_COLLAPSED = 64;
 export function useSidebarState() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [isCollapsed, setIsCollapsed] = useState(getSavedCollapsed);
+  // Medium screens (md–lg): auto-collapse for better space usage
+  const isMediumScreen = useMediaQuery(theme.breakpoints.between('md', 'lg'));
+  const [userCollapsed, setUserCollapsed] = useState(getSavedCollapsed);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  // On medium screens, always collapsed; on large+, respect user preference
+  const isCollapsed = isMediumScreen || userCollapsed;
+
   const toggleCollapsed = useCallback(() => {
-    setIsCollapsed((prev) => {
+    setUserCollapsed((prev) => {
       const next = !prev;
       try {
         localStorage.setItem(SIDEBAR_KEY, String(next));
@@ -45,6 +50,7 @@ export function useSidebarState() {
     isCollapsed,
     isMobileOpen,
     isMobile,
+    isMediumScreen,
     sidebarWidth,
     toggleCollapsed,
     openMobile,
