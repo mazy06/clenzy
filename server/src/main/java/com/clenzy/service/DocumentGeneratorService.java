@@ -313,10 +313,11 @@ public class DocumentGeneratorService {
                     template.getDocumentType(), referenceId,
                     referenceType != null ? referenceType.name() : null);
 
-            // 3.5 [NF] Injecter les tags NF (numero legal, mentions legales)
+            // 3.5 Injecter les tags de conformite reglementaire (numero legal, mentions legales)
             if (legalNumber != null) {
-                Map<String, Object> nfTags = complianceService.resolveNfTags(
+                Map<String, Object> nfTags = complianceService.resolveComplianceTags(
                         template.getDocumentType(), legalNumber);
+                // Namespace "nf" conserve pour compatibilite avec les templates existants
                 context.put("nf", nfTags);
             }
 

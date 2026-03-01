@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" width="600" height="200">
+  <defs>
+    <!-- Gradient principal bleu-gris -->
+    <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A7C8E;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#5B8FA0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6DA3B4;stop-opacity:1" />
+    </linearGradient>
+    <!-- Gradient accent doré -->
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#C8924A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D4A65A;stop-opacity:1" />
+    </linearGradient>
+    <!-- Gradient pour l'icône -->
+    <linearGradient id="iconGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3D6B7A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6DA3B4;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Icône : goutte d'eau stylisée avec étincelle -->
+  <g transform="translate(30, 20)">
+    <!-- Goutte principale -->
+    <path d="M45 10 C45 10, 15 55, 15 80 C15 100, 28 115, 45 115 C62 115, 75 100, 75 80 C75 55, 45 10, 45 10 Z"
+          fill="url(#iconGradient)" opacity="0.9"/>
+    <!-- Reflet intérieur -->
+    <path d="M35 65 C35 65, 28 80, 30 90 C31 95, 35 98, 38 95 C42 90, 35 65, 35 65 Z"
+          fill="white" opacity="0.35"/>
+    <!-- Étincelles autour -->
+    <g fill="url(#accentGradient)">
+      <!-- Étincelle haut-droite -->
+      <path d="M72 25 L75 15 L78 25 L88 28 L78 31 L75 41 L72 31 L62 28 Z" />
+      <!-- Petite étincelle -->
+      <path d="M82 50 L83.5 45 L85 50 L90 51.5 L85 53 L83.5 58 L82 53 L77 51.5 Z" />
+      <!-- Mini étincelle -->
+      <circle cx="68" cy="8" r="2.5" />
+    </g>
+    <!-- Vague en bas de la goutte -->
+    <path d="M20 105 Q30 98, 45 105 Q60 112, 70 105"
+          fill="none" stroke="url(#accentGradient)" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Texte "Clenzy" -->
+  <text x="135" y="95" font-family="'Montserrat', 'Helvetica Neue', Arial, sans-serif"
+        font-size="72" font-weight="700" fill="url(#brandGradient)" letter-spacing="-1">
+    Clenzy
+  </text>
+
+  <!-- Ligne séparatrice dorée -->
+  <line x1="138" y1="112" x2="430" y2="112" stroke="url(#accentGradient)" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Sous-titre -->
+  <text x="138" y="138" font-family="'Montserrat', 'Helvetica Neue', Arial, sans-serif"
+        font-size="16" font-weight="500" fill="#4A7C8E" letter-spacing="5">
+    PROPRETE &amp; MULTISERVICES
+  </text>
+
+  <!-- Petit accent décoratif sous le texte -->
+  <g transform="translate(138, 150)" fill="url(#accentGradient)" opacity="0.6">
+    <circle cx="0" cy="0" r="2"/>
+    <circle cx="12" cy="0" r="2"/>
+    <circle cx="24" cy="0" r="2"/>
+  </g>
+</svg>

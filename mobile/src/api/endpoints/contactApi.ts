@@ -45,6 +45,17 @@ export interface Recipient {
   role: string;
 }
 
+export interface ContactThreadSummary {
+  counterpartKeycloakId: string;
+  counterpartFirstName: string;
+  counterpartLastName: string;
+  counterpartEmail: string;
+  lastMessagePreview: string | null;
+  lastMessageAt: string;
+  unreadCount: number;
+  totalMessages: number;
+}
+
 /* ─── API ─── */
 
 export const contactApi = {
@@ -107,6 +118,21 @@ export const contactApi = {
       originalName: string;
       size: number;
     }>(`/contact/messages/${messageId}/attachments/${attachmentId}/base64`);
+  },
+
+  /** List grouped conversation threads (WhatsApp-like) */
+  getThreads() {
+    return apiClient.get<ContactThreadSummary[]>('/contact/threads');
+  },
+
+  /** Get all messages for a thread with a specific counterpart */
+  getThreadMessages(counterpartKeycloakId: string) {
+    return apiClient.get<ContactMessage[]>(`/contact/threads/${counterpartKeycloakId}/messages`);
+  },
+
+  /** Mark all unread messages in a thread as read */
+  markThreadAsRead(counterpartKeycloakId: string) {
+    return apiClient.put<{ updatedCount: number }>(`/contact/threads/${counterpartKeycloakId}/mark-read`);
   },
 
   // ── Legacy simple contact endpoints (fallback) ──

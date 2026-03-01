@@ -157,18 +157,10 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   },
   {
     icon: <Payment />,
-    path: '/payments/history',
+    path: '/billing',
     roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
     permission: 'payments:view',
-    translationKey: 'navigation.payments',
-    group: 'management',
-  },
-  {
-    icon: <Receipt />,
-    path: '/invoices',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
-    permission: 'reports:view',
-    translationKey: 'navigation.invoices',
+    translationKey: 'navigation.billing',
     group: 'management',
   },
   {
@@ -179,14 +171,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.channels',
     group: 'management',
   },
-  {
-    icon: <ChatBubbleOutline />,
-    path: '/messaging/templates',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
-    permission: 'settings:view',
-    translationKey: 'navigation.messaging',
-    group: 'management',
-  },
+  // Messagerie fusionnee dans Documents — supprime de la sidebar
   // ── Admin ──
   {
     icon: <People />,

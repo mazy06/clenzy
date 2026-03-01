@@ -85,6 +85,8 @@ export interface ComplianceStats {
   documentsByType: Record<string, number>;
   lastCheckAt: string | null;
   averageComplianceScore: number;
+  countryCode: string;
+  complianceStandard: string;
 }
 
 export interface IntegrityVerification {

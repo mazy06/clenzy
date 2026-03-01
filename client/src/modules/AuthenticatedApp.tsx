@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SmartRedirect from '../components/SmartRedirect';
 
@@ -73,8 +73,8 @@ import PortfoliosPage from './portfolios/PortfoliosPage';
 import ClientPropertyAssignmentForm from './portfolios/ClientPropertyAssignmentForm';
 import TeamUserAssignmentForm from './portfolios/TeamUserAssignmentForm';
 
-// Payments
-import PaymentHistoryPage from './payments/PaymentHistoryPage';
+// Billing (Payments + Invoices)
+import BillingPage from './billing/BillingPage';
 
 // Reservations
 import ReservationsList from './reservations/ReservationsList';
@@ -93,9 +93,9 @@ import DatabaseAdminPage from './admin/DatabaseAdminPage';
 import ChannelsPage from './channels/ChannelsPage';
 import ReviewsPage from './channels/ReviewsPage';
 
-// Messaging
-import MessageTemplatesPage from './messaging/MessageTemplatesPage';
-import MessageHistoryPage from './messaging/MessageHistoryPage';
+// Messaging — pages now merged into Documents module (redirected via Navigate)
+// import MessageTemplatesPage from './messaging/MessageTemplatesPage';
+// import MessageHistoryPage from './messaging/MessageHistoryPage';
 
 // Channel Promotions
 import ChannelPromotionsPage from './promotions/ChannelPromotionsPage';
@@ -109,8 +109,7 @@ import OwnerPortalPage from './owner-portal/OwnerPortalPage';
 // Automation Rules
 import AutomationRulesPage from './automation/AutomationRulesPage';
 
-// Invoices (Fiscal)
-import InvoicesList from './invoices/InvoicesList';
+// InvoicesList import removed — now embedded in BillingPage
 
 
 const AuthenticatedApp: React.FC = () => {
@@ -236,11 +235,13 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/payments/history" element={
+        <Route path="/billing" element={
           <ProtectedRoute requiredPermission="payments:view">
-            <PaymentHistoryPage />
+            <BillingPage />
           </ProtectedRoute>
         } />
+        {/* Backward-compat redirects */}
+        <Route path="/payments/history" element={<Navigate to="/billing" replace />} />
 
         <Route path="/calendar" element={
           <ProtectedRoute requiredPermission="interventions:view">
@@ -419,21 +420,9 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/messaging/templates" element={
-          <ProtectedRoute requiredPermission="settings:view">
-            <ErrorBoundary>
-              <MessageTemplatesPage />
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
-
-        <Route path="/messaging/history" element={
-          <ProtectedRoute requiredPermission="settings:view">
-            <ErrorBoundary>
-              <MessageHistoryPage />
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
+        {/* Messaging routes — redirect to Documents unified page */}
+        <Route path="/messaging/templates" element={<Navigate to="/documents?tab=1" replace />} />
+        <Route path="/messaging/history" element={<Navigate to="/documents?tab=3" replace />} />
 
         <Route path="/promotions" element={
           <ProtectedRoute requiredPermission="pricing:view">
@@ -451,13 +440,8 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/invoices" element={
-          <ProtectedRoute requiredPermission="reports:view">
-            <ErrorBoundary>
-              <InvoicesList />
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
+        {/* Backward-compat redirect */}
+        <Route path="/invoices" element={<Navigate to="/billing?tab=1" replace />} />
 
         <Route path="/owner-portal" element={
           <ProtectedRoute requiredPermission="payments:view">

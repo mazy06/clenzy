@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import { extractApiList } from '../../types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -225,7 +226,10 @@ export const propertiesApi = {
       return Promise.resolve(data);
     }
 
-    return apiClient.get<Property[]>('/properties', { params });
+    // Backend returns Page<PropertyDto>; unwrap .content to return Property[]
+    return apiClient
+      .get('/properties', { params: { ...params, size: params?.size ?? 1000 } })
+      .then((data) => extractApiList<Property>(data));
   },
 
   getById(id: number) {

@@ -1,11 +1,14 @@
 package com.clenzy.service;
 
+import com.clenzy.compliance.ComplianceStrategyRegistry;
+import com.clenzy.compliance.CountryComplianceStrategy;
 import com.clenzy.dto.ComplianceReportDto;
 import com.clenzy.dto.ComplianceStatsDto;
 import com.clenzy.exception.DocumentComplianceException;
 import com.clenzy.exception.DocumentNotFoundException;
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
+import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -19,13 +22,16 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Service de conformite NF pour les documents generes.
+ * Service de conformite reglementaire pour les documents generes.
+ * <p>
+ * Delegue la logique specifique au pays via {@link CountryComplianceStrategy}
+ * resolu depuis {@link TenantContext#getCountryCode()}.
  * <p>
  * Responsabilites :
  * - Calcul et verification de hash SHA-256 (immutabilite)
  * - Verrouillage des documents comptables apres generation
- * - Validation de conformite des templates (mentions legales)
- * - Resolution des tags NF a injecter dans les documents
+ * - Validation de conformite des templates (mentions legales par pays)
+ * - Resolution des tags de conformite a injecter dans les documents
  * - Gestion des documents correctifs (avoir)
  * - Statistiques de conformite
  */
@@ -33,7 +39,6 @@ import java.util.stream.Collectors;
 public class DocumentComplianceService {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentComplianceService.class);
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final DocumentGenerationRepository generationRepository;
     private final DocumentLegalRequirementRepository legalRequirementRepository;
@@ -42,6 +47,8 @@ public class DocumentComplianceService {
     private final DocumentTemplateTagRepository templateTagRepository;
     private final DocumentStorageService storageService;
     private final AuditLogService auditLogService;
+    private final ComplianceStrategyRegistry strategyRegistry;
+    private final TenantContext tenantContext;
 
     public DocumentComplianceService(
             DocumentGenerationRepository generationRepository,
@@ -50,7 +57,9 @@ public class DocumentComplianceService {
             DocumentTemplateRepository templateRepository,
             DocumentTemplateTagRepository templateTagRepository,
             DocumentStorageService storageService,
-            AuditLogService auditLogService
+            AuditLogService auditLogService,
+            ComplianceStrategyRegistry strategyRegistry,
+            TenantContext tenantContext
     ) {
         this.generationRepository = generationRepository;
         this.legalRequirementRepository = legalRequirementRepository;
@@ -59,6 +68,8 @@ public class DocumentComplianceService {
         this.templateTagRepository = templateTagRepository;
         this.storageService = storageService;
         this.auditLogService = auditLogService;
+        this.strategyRegistry = strategyRegistry;
+        this.tenantContext = tenantContext;
     }
 
     // ─── Hash et immutabilite ───────────────────────────────────────────────
@@ -150,20 +161,24 @@ public class DocumentComplianceService {
                 .orElseThrow(() -> new DocumentNotFoundException("Template introuvable: " + templateId));
 
         DocumentType docType = template.getDocumentType();
+        String countryCode = tenantContext.getCountryCode();
+        CountryComplianceStrategy strategy = strategyRegistry.get(countryCode);
 
         List<DocumentTemplateTag> templateTags = templateTagRepository.findByTemplateId(templateId);
         Set<String> tagNames = templateTags.stream()
                 .map(t -> t.getTagName().toLowerCase())
                 .collect(Collectors.toSet());
 
+        // Query par pays
         List<DocumentLegalRequirement> requirements = legalRequirementRepository
-                .findByDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(docType);
+                .findByCountryCodeAndDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(countryCode, docType);
 
         List<String> missingTags = new ArrayList<>();
         List<String> missingMentions = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
 
-        Map<String, List<String>> mentionToTags = buildMentionTagMapping();
+        // Delegation au strategy pour le mapping mentions → tags
+        Map<String, List<String>> mentionToTags = strategy.buildMentionTagMapping();
 
         for (DocumentLegalRequirement req : requirements) {
             List<String> expectedTags = mentionToTags.getOrDefault(req.getRequirementKey(), Collections.emptyList());
@@ -201,72 +216,60 @@ public class DocumentComplianceService {
 
         auditLogService.logAction(AuditAction.COMPLIANCE_CHECK, "DocumentTemplate",
                 String.valueOf(templateId), null, null,
-                "Verification conformite: " + (compliant ? "CONFORME" : "NON CONFORME")
+                "Verification conformite " + strategy.getStandardName() + ": "
+                        + (compliant ? "CONFORME" : "NON CONFORME")
                         + " (score: " + score + "%) pour " + template.getName(),
                 AuditSource.WEB);
 
-        log.info("Conformite template {}: {} (score: {}%, {} mentions manquantes)",
-                template.getName(), compliant ? "CONFORME" : "NON CONFORME", score, missingMentions.size());
+        log.info("Conformite {} template {}: {} (score: {}%, {} mentions manquantes)",
+                strategy.getStandardName(), template.getName(),
+                compliant ? "CONFORME" : "NON CONFORME", score, missingMentions.size());
 
         return ComplianceReportDto.fromEntity(report, template.getName(), docType.name());
     }
 
-    private Map<String, List<String>> buildMentionTagMapping() {
-        Map<String, List<String>> mapping = new LinkedHashMap<>();
+    // ─── Tags de conformite ──────────────────────────────────────────────────
 
-        mapping.put("numero_facture", List.of("nf.numero_legal", "${nf.numero_legal}"));
-        mapping.put("date_emission", List.of("nf.date_emission", "system.date", "${nf.date_emission}", "${system.date}"));
-        mapping.put("identite_vendeur", List.of("entreprise.nom", "entreprise.adresse", "entreprise.siret",
-                "${entreprise.nom}", "${entreprise.adresse}", "${entreprise.siret}"));
-        mapping.put("identite_acheteur", List.of("client.nom", "client.nom_complet",
-                "${client.nom}", "${client.nom_complet}"));
-        mapping.put("designation_prestations", List.of("intervention.titre", "intervention.description",
-                "${intervention.titre}", "${intervention.description}"));
-        mapping.put("montant_total", List.of("paiement.montant", "intervention.cout_reel",
-                "${paiement.montant}", "${intervention.cout_reel}"));
-        mapping.put("conditions_paiement", List.of("nf.conditions_paiement", "${nf.conditions_paiement}"));
+    /**
+     * Resout les tags de conformite reglementaire a injecter dans le document.
+     * Delegue au {@link CountryComplianceStrategy} du pays de l'organisation,
+     * puis enrichit avec les valeurs par defaut de la BDD.
+     */
+    public Map<String, Object> resolveComplianceTags(DocumentType type, String legalNumber) {
+        String countryCode = tenantContext.getCountryCode();
+        CountryComplianceStrategy strategy = strategyRegistry.get(countryCode);
 
-        mapping.put("numero_devis", List.of("nf.numero_legal", "${nf.numero_legal}"));
-        mapping.put("duree_validite", List.of("nf.duree_validite", "${nf.duree_validite}"));
+        // Tags specifiques au pays (conditions paiement, validite devis, etc.)
+        Map<String, Object> tags = strategy.resolveComplianceTags(type, legalNumber);
 
-        mapping.put("identite_intervenant", List.of("technicien.nom", "technicien.nom_complet",
-                "${technicien.nom}", "${technicien.nom_complet}"));
-        mapping.put("description_travaux", List.of("intervention.description", "${intervention.description}"));
-        mapping.put("date_intervention", List.of("intervention.date_debut", "intervention.date_fin",
-                "${intervention.date_debut}", "${intervention.date_fin}"));
+        // Date d'emission au format du pays
+        DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern(strategy.getDateFormatPattern());
+        tags.put("date_emission", LocalDateTime.now().format(dateFormat));
 
-        return mapping;
-    }
-
-    // ─── Tags NF ────────────────────────────────────────────────────────────
-
-    public Map<String, Object> resolveNfTags(DocumentType type, String legalNumber) {
-        Map<String, Object> nfTags = new LinkedHashMap<>();
-
-        nfTags.put("numero_legal", legalNumber != null ? legalNumber : "");
-        nfTags.put("date_emission", LocalDateTime.now().format(DATE_FORMAT));
-
+        // Enrichir avec les valeurs par defaut de la BDD pour ce pays
         List<DocumentLegalRequirement> requirements = legalRequirementRepository
-                .findByDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(type);
+                .findByCountryCodeAndDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(countryCode, type);
 
         List<String> mentions = new ArrayList<>();
         for (DocumentLegalRequirement req : requirements) {
             if (req.getDefaultValue() != null && !req.getDefaultValue().isBlank()) {
-                nfTags.put(req.getRequirementKey(), req.getDefaultValue());
+                tags.putIfAbsent(req.getRequirementKey(), req.getDefaultValue());
                 mentions.add(req.getLabel());
             }
         }
-        nfTags.put("mentions", mentions);
+        tags.put("mentions", mentions);
+        tags.put("compliance_standard", strategy.getStandardName());
 
-        if (type == DocumentType.FACTURE) {
-            nfTags.putIfAbsent("conditions_paiement",
-                    "Paiement a reception. Penalites de retard : 3 fois le taux d'interet legal.");
-        } else if (type == DocumentType.DEVIS) {
-            nfTags.putIfAbsent("duree_validite",
-                    "Ce devis est valable 30 jours a compter de sa date d'emission.");
-        }
+        return tags;
+    }
 
-        return nfTags;
+    /**
+     * @deprecated Utiliser {@link #resolveComplianceTags(DocumentType, String)} a la place.
+     *             Conserve pour compatibilite avec les appelants existants.
+     */
+    @Deprecated
+    public Map<String, Object> resolveNfTags(DocumentType type, String legalNumber) {
+        return resolveComplianceTags(type, legalNumber);
     }
 
     // ─── Documents correctifs ───────────────────────────────────────────────
@@ -299,6 +302,9 @@ public class DocumentComplianceService {
 
     @Transactional(readOnly = true)
     public ComplianceStatsDto getComplianceStats() {
+        String countryCode = tenantContext.getCountryCode();
+        CountryComplianceStrategy strategy = strategyRegistry.get(countryCode);
+
         long totalDocuments = generationRepository.count();
         long totalLocked = generationRepository.countByLockedTrue();
 
@@ -323,7 +329,8 @@ public class DocumentComplianceService {
                 totalDocuments, totalLocked,
                 totalFactures, totalFacturesLocked,
                 totalDevis, totalDevisLocked,
-                documentsByType, lastCheckAt, avgScore
+                documentsByType, lastCheckAt, avgScore,
+                countryCode, strategy.getStandardName()
         );
     }
 
