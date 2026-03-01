@@ -11,6 +11,8 @@ import {
   Menu,
   MenuItem as MuiMenuItem,
   Badge,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   ChevronLeft,
@@ -61,6 +63,8 @@ export default function Sidebar({
   const location = useLocation();
   const { user, clearUser } = useAuth();
   const { t, changeLanguage, currentLanguage } = useTranslation();
+  const theme = useTheme();
+  const isXl = useMediaQuery(theme.breakpoints.up('xl'));
   const [langAnchorEl, setLangAnchorEl] = useState<null | HTMLElement>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -85,6 +89,18 @@ export default function Sidebar({
 
   const grouped = useMemo(() => groupMenuItems(menuItems), [menuItems]);
   const collapsed = isCollapsed && !isMobile;
+
+  // Responsive sizes — comfortable on xl+, compact on lg
+  const logoHeight = collapsed ? 24 : isXl ? 28 : 24;
+  const logoMaxWidth = collapsed ? 40 : isXl ? 140 : 120;
+  const headerHeight = isXl ? 56 : 48;
+  const avatarSize = collapsed ? 32 : isXl ? 36 : 32;
+  const avatarFontSize = collapsed ? '0.75rem' : isXl ? '0.875rem' : '0.75rem';
+  const userNameFontSize = isXl ? '0.8125rem' : '0.75rem';
+  const userEmailFontSize = isXl ? '0.6875rem' : '0.625rem';
+  const userRoleFontSize = isXl ? '0.625rem' : '0.5625rem';
+  const groupLabelFontSize = isXl ? '0.6875rem' : '0.625rem';
+  const actionIconSize = isXl ? 18 : 16;
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -137,8 +153,8 @@ export default function Sidebar({
           display: 'flex',
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'flex-start',
-          height: 56,
-          px: collapsed ? 1 : 2,
+          height: headerHeight,
+          px: collapsed ? 1 : isXl ? 2 : 1.5,
           flexShrink: 0,
           cursor: 'pointer',
           borderBottom: '1px solid',
@@ -152,9 +168,9 @@ export default function Sidebar({
           src={clenzyLogo}
           alt="Clenzy"
           style={{
-            height: collapsed ? 24 : 28,
+            height: logoHeight,
             width: 'auto',
-            maxWidth: collapsed ? 40 : 140,
+            maxWidth: logoMaxWidth,
             objectFit: 'contain',
             objectPosition: 'left center',
             transition: 'all 200ms',
@@ -191,10 +207,10 @@ export default function Sidebar({
                     variant="caption"
                     sx={{
                       display: 'block',
-                      px: 2.5,
-                      pt: groupIndex === 0 ? 0.5 : 2,
+                      px: isXl ? 2.5 : 2,
+                      pt: groupIndex === 0 ? 0.5 : isXl ? 2 : 1.5,
                       pb: 0.5,
-                      fontSize: '0.6875rem',
+                      fontSize: groupLabelFontSize,
                       fontWeight: 600,
                       color: 'text.disabled',
                       textTransform: 'uppercase',
@@ -238,9 +254,9 @@ export default function Sidebar({
           sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: 1.5,
-            px: collapsed ? 0 : 2,
-            py: 1.5,
+            gap: isXl ? 1.5 : 1,
+            px: collapsed ? 0 : isXl ? 2 : 1.5,
+            py: isXl ? 1.5 : 1,
             cursor: 'pointer',
             justifyContent: collapsed ? 'center' : 'flex-start',
             '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.04)' },
@@ -250,10 +266,10 @@ export default function Sidebar({
           <Tooltip title={collapsed ? (user?.firstName || user?.username || '') : ''} placement="right">
             <Avatar
               sx={{
-                width: collapsed ? 32 : 36,
-                height: collapsed ? 32 : 36,
+                width: avatarSize,
+                height: avatarSize,
                 bgcolor: 'secondary.main',
-                fontSize: collapsed ? '0.75rem' : '0.875rem',
+                fontSize: avatarFontSize,
                 fontWeight: 700,
                 border: '2px solid',
                 borderColor: 'secondary.light',
@@ -271,7 +287,7 @@ export default function Sidebar({
                 fontWeight={600}
                 sx={{
                   color: 'text.primary',
-                  fontSize: '0.8125rem',
+                  fontSize: userNameFontSize,
                   lineHeight: 1.3,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -285,7 +301,7 @@ export default function Sidebar({
                   variant="caption"
                   sx={{
                     color: 'text.secondary',
-                    fontSize: '0.6875rem',
+                    fontSize: userEmailFontSize,
                     lineHeight: 1.2,
                     display: 'block',
                     overflow: 'hidden',
@@ -301,7 +317,7 @@ export default function Sidebar({
                   variant="caption"
                   sx={{
                     color: 'secondary.main',
-                    fontSize: '0.625rem',
+                    fontSize: userRoleFontSize,
                     fontWeight: 600,
                     textTransform: 'uppercase',
                     letterSpacing: '0.03em',
@@ -337,7 +353,7 @@ export default function Sidebar({
                 '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.08)' },
               }}
             >
-              <LanguageIcon sx={{ fontSize: 18 }} />
+              <LanguageIcon sx={{ fontSize: actionIconSize }} />
             </IconButton>
           </Tooltip>
 
@@ -365,9 +381,9 @@ export default function Sidebar({
                 }}
               >
                 {unreadCount > 0 ? (
-                  <Notifications sx={{ fontSize: 18 }} />
+                  <Notifications sx={{ fontSize: actionIconSize }} />
                 ) : (
-                  <NotificationsNone sx={{ fontSize: 18 }} />
+                  <NotificationsNone sx={{ fontSize: actionIconSize }} />
                 )}
               </Badge>
             </IconButton>
@@ -383,7 +399,7 @@ export default function Sidebar({
                 '&:hover': { backgroundColor: 'rgba(201, 122, 122, 0.08)' },
               }}
             >
-              <Logout sx={{ fontSize: 18 }} />
+              <Logout sx={{ fontSize: actionIconSize }} />
             </IconButton>
           </Tooltip>
         </Box>
@@ -470,7 +486,8 @@ export default function Sidebar({
         ModalProps={{ keepMounted: true }}
         sx={{
           '& .MuiDrawer-paper': {
-            width: SIDEBAR_WIDTH_EXPANDED,
+            width: Math.min(SIDEBAR_WIDTH_EXPANDED, 280),
+            maxWidth: '80vw',
             backgroundColor: 'background.paper',
             borderRight: '1px solid',
             borderColor: 'divider',

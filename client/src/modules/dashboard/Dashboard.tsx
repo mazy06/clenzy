@@ -11,8 +11,6 @@ import {
   useTheme,
 } from '@mui/material';
 import {
-  CalendarMonth,
-  Timeline as TimelineIcon,
   BarChart as BarChartIcon,
   VolumeUp as VolumeUpIcon,
   LockOutlined as LockOutlinedIcon,
@@ -27,8 +25,6 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
-import DashboardPlanning from './DashboardPlanning';
-import DashboardActivityContent from './DashboardActivityContent';
 import DashboardAnalyticsContent from './DashboardAnalyticsContent';
 import DashboardNoiseTab from './DashboardNoiseTab';
 import DashboardSmartLockTab from './DashboardSmartLockTab';
@@ -37,7 +33,6 @@ import ICalImportModal from './ICalImportModal';
 import UpgradeBanner from './UpgradeBanner';
 import { useICalFeeds } from './useICalImport';
 import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';
-import type { ZoomLevel } from './PlanningToolbar';
 
 // ─── Source logos for connected iCal feeds ──────────────────────────────────
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.png';
@@ -70,12 +65,6 @@ function a11yProps(index: number) {
 
 // ─── Filter option configs ──────────────────────────────────────────────────
 
-const ZOOM_OPTIONS: DateFilterOption<ZoomLevel>[] = [
-  { value: 'compact', label: '1j' },
-  { value: 'standard', label: '1h' },
-  { value: 'detailed', label: '30min' },
-];
-
 const PERIOD_OPTIONS: DateFilterOption<DashboardPeriod>[] = [
   { value: 'week', label: '7j' },
   { value: 'month', label: '30j' },
@@ -92,7 +81,6 @@ const Dashboard: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [period, setPeriod] = useState<DashboardPeriod>('month');
-  const [zoomLevel, setZoomLevel] = useState<ZoomLevel>(isMobile ? 'compact' : 'standard');
   const [tabValue, setTabValue] = useState(0);
   const [analyticsSubTab, setAnalyticsSubTab] = useState(0);
   const [icalModalOpen, setIcalModalOpen] = useState(false);
@@ -155,18 +143,9 @@ const Dashboard: React.FC = () => {
     return t('dashboard.subtitle');
   };
 
-  // ─── Date filter: zoom chips on Planning (tab 0), period chips on Analytics (tab 2), none on Activité (tab 1)
+  // ─── Date filter: period chips on Analytics (tab 0), none on others
   const dateFilterElement = useMemo(() => {
     if (tabValue === 0) {
-      return (
-        <DashboardDateFilter<ZoomLevel>
-          value={zoomLevel}
-          onChange={setZoomLevel}
-          options={ZOOM_OPTIONS}
-        />
-      );
-    }
-    if (tabValue === 2) {
       return (
         <DashboardDateFilter<DashboardPeriod>
           value={period}
@@ -176,7 +155,7 @@ const Dashboard: React.FC = () => {
       );
     }
     return null;
-  }, [tabValue, zoomLevel, period]);
+  }, [tabValue, period]);
 
   return (
     <Box
@@ -276,7 +255,7 @@ const Dashboard: React.FC = () => {
         />
       </Box>
 
-      {/* ─── Tabs (4 onglets : Planning / Activité / Analytics / Bruit) ── */}
+      {/* ─── Tabs (3 onglets : Analytics / Nuisance sonore / Serrures) ── */}
       <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0, flexShrink: 0 }}>
         <Tabs
           value={tabValue}
@@ -304,39 +283,27 @@ const Dashboard: React.FC = () => {
           }}
         >
           <Tab
-            icon={<CalendarMonth sx={{ fontSize: 16 }} />}
-            iconPosition="start"
-            label={t('dashboard.tabs.planning') || 'Planning'}
-            {...a11yProps(0)}
-          />
-          <Tab
-            icon={<TimelineIcon sx={{ fontSize: 16 }} />}
-            iconPosition="start"
-            label={t('dashboard.tabs.activity') || 'Activité'}
-            {...a11yProps(1)}
-          />
-          <Tab
             icon={<BarChartIcon sx={{ fontSize: 16 }} />}
             iconPosition="start"
             label={t('dashboard.tabs.analytics') || 'Analytics'}
-            {...a11yProps(2)}
+            {...a11yProps(0)}
           />
           <Tab
             icon={<VolumeUpIcon sx={{ fontSize: 16 }} />}
             iconPosition="start"
             label={t('dashboard.tabs.noise') || 'Nuisance sonore'}
-            {...a11yProps(3)}
+            {...a11yProps(1)}
           />
           <Tab
             icon={<LockOutlinedIcon sx={{ fontSize: 16 }} />}
             iconPosition="start"
             label={t('dashboard.tabs.smartLock') || 'Serrures connectées'}
-            {...a11yProps(4)}
+            {...a11yProps(2)}
           />
         </Tabs>
 
         {/* ─── Analytics sub-tabs (dropdown-style continuation) ───────── */}
-        {tabValue === 2 && (
+        {tabValue === 0 && (
           <>
             <Divider sx={{ borderColor: 'divider' }} />
             <Box sx={{ bgcolor: 'rgba(107, 138, 154, 0.03)' }}>
@@ -399,73 +366,39 @@ const Dashboard: React.FC = () => {
         )}
       </Paper>
 
-      {/* ─── Tab 0: Planning ───────────────────────────────────────────── */}
+      {/* ─── Tab 0: Analytics ──────────────────────────────────────────── */}
       {tabValue === 0 && (
         <Box
           role="tabpanel"
           id="dashboard-tabpanel-0"
           aria-labelledby="dashboard-tab-0"
-          sx={{
-            pt: 1,
-            flex: 1,
-            minHeight: 0,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
+          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
         >
           {isHost && user?.forfait?.toLowerCase() === 'essentiel' && (
             <UpgradeBanner currentForfait={user.forfait} />
           )}
-          <DashboardPlanning
-            forfait={user?.forfait}
-            zoomLevel={zoomLevel}
-            onZoomChange={setZoomLevel}
-          />
+          <DashboardAnalyticsContent period={period} subTab={analyticsSubTab} />
         </Box>
       )}
 
-      {/* ─── Tab 1: Activité ──────────────────────────────────────────── */}
+      {/* ─── Tab 1: Nuisance sonore ──────────────────────────────────────── */}
       {tabValue === 1 && (
         <Box
           role="tabpanel"
           id="dashboard-tabpanel-1"
           aria-labelledby="dashboard-tab-1"
-          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
-        >
-          <DashboardActivityContent />
-        </Box>
-      )}
-
-      {/* ─── Tab 2: Analytics ──────────────────────────────────────────── */}
-      {tabValue === 2 && (
-        <Box
-          role="tabpanel"
-          id="dashboard-tabpanel-2"
-          aria-labelledby="dashboard-tab-2"
-          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
-        >
-          <DashboardAnalyticsContent period={period} subTab={analyticsSubTab} />
-        </Box>
-      )}
-
-      {/* ─── Tab 3: Nuisance sonore ──────────────────────────────────────── */}
-      {tabValue === 3 && (
-        <Box
-          role="tabpanel"
-          id="dashboard-tabpanel-3"
-          aria-labelledby="dashboard-tab-3"
           sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
         >
           <DashboardNoiseTab />
         </Box>
       )}
 
-      {/* ─── Tab 4: Serrures connectées ────────────────────────────────── */}
-      {tabValue === 4 && (
+      {/* ─── Tab 2: Serrures connectées ────────────────────────────────── */}
+      {tabValue === 2 && (
         <Box
           role="tabpanel"
-          id="dashboard-tabpanel-4"
-          aria-labelledby="dashboard-tab-4"
+          id="dashboard-tabpanel-2"
+          aria-labelledby="dashboard-tab-2"
           sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
         >
           <DashboardSmartLockTab />

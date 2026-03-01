@@ -4,6 +4,8 @@ import {
   ListItemIcon,
   ListItemText,
   Tooltip,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import type { MenuItem } from '../hooks/useNavigationMenu';
 
@@ -15,15 +17,23 @@ interface SidebarNavItemProps {
 }
 
 function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItemProps) {
+  const theme = useTheme();
+  const isXl = useMediaQuery(theme.breakpoints.up('xl'));
+
+  // Responsive sizes: slightly tighter on lg, comfortable on xl+
+  const itemHeight = isXl ? 40 : 36;
+  const iconSize = isXl ? 20 : 18;
+  const fontSize = isXl ? '0.8125rem' : '0.75rem';
+
   const content = (
     <ListItemButton
       onClick={() => onClick(item.path)}
       selected={isActive}
       sx={{
-        minHeight: 40,
-        px: isCollapsed ? 2.5 : 2,
-        py: 0.5,
-        mx: 1,
+        minHeight: itemHeight,
+        px: isCollapsed ? 2 : 1.5,
+        py: isXl ? 0.5 : 0.25,
+        mx: 0.75,
         borderRadius: '6px',
         justifyContent: isCollapsed ? 'center' : 'flex-start',
         borderLeft: isActive ? '3px solid' : '3px solid transparent',
@@ -46,10 +56,10 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
       <ListItemIcon
         sx={{
           minWidth: 0,
-          mr: isCollapsed ? 0 : 1.5,
+          mr: isCollapsed ? 0 : 1.25,
           justifyContent: 'center',
           color: isActive ? 'primary.main' : 'text.secondary',
-          '& .MuiSvgIcon-root': { fontSize: 20 },
+          '& .MuiSvgIcon-root': { fontSize: iconSize },
           transition: 'color 150ms',
         }}
       >
@@ -58,7 +68,7 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
       <ListItemText
         primary={item.text}
         primaryTypographyProps={{
-          fontSize: '0.8125rem',
+          fontSize,
           fontWeight: isActive ? 600 : 400,
           color: isActive ? 'text.primary' : 'text.secondary',
           noWrap: true,

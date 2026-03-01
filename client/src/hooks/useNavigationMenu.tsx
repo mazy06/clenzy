@@ -24,6 +24,7 @@ import {
   ChatBubbleOutline,
   Storage,
   Receipt,
+  CalendarViewWeek,
 } from '@mui/icons-material';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -58,6 +59,14 @@ interface UseNavigationMenuReturn {
 
 const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
   // ── Main ──
+  {
+    icon: <CalendarViewWeek />,
+    path: '/planning',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
+    permission: 'reservations:view',
+    translationKey: 'navigation.planning',
+    group: 'main',
+  },
   {
     icon: <Dashboard />,
     path: '/dashboard',

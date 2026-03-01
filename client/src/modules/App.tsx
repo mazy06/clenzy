@@ -206,7 +206,7 @@ const App: React.FC = () => {
               !authenticated || !keycloak.authenticated ? (
                 <Login />
               ) : (
-                <Navigate to="/dashboard" replace />
+                <Navigate to="/planning" replace />
               )
             }
           />
@@ -218,7 +218,7 @@ const App: React.FC = () => {
               !authenticated || !keycloak.authenticated ? (
                 <Inscription />
               ) : (
-                <Navigate to="/dashboard" replace />
+                <Navigate to="/planning" replace />
               )
             }
           />
