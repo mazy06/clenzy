@@ -1,0 +1,74 @@
+{
+  "_description": "Google Play Data Safety form + Apple App Privacy declarations",
+
+  "data_collected": {
+    "personal_info": {
+      "name": {
+        "collected": true,
+        "purpose": "App functionality, Account management",
+        "shared": false,
+        "optional": false
+      },
+      "email": {
+        "collected": true,
+        "purpose": "App functionality, Account management",
+        "shared": false,
+        "optional": false
+      }
+    },
+    "location": {
+      "approximate": {
+        "collected": false
+      },
+      "precise": {
+        "collected": false,
+        "note": "Location permissions declared but not collected in v1. Reserved for future on-site verification."
+      }
+    },
+    "photos": {
+      "collected": true,
+      "purpose": "App functionality (intervention documentation before/after photos)",
+      "shared": false,
+      "stored_on_server": true,
+      "optional": false,
+      "note": "Photos are taken in-app only. EXIF data is stripped. Photos are not saved to camera roll."
+    },
+    "device_identifiers": {
+      "fcm_token": {
+        "collected": true,
+        "purpose": "Push notifications",
+        "shared": false,
+        "note": "FCM token registered for push delivery. Deleted on logout or account deletion."
+      }
+    },
+    "app_activity": {
+      "in_app_search_history": false,
+      "installed_apps": false,
+      "other_actions": false
+    },
+    "financial_info": {
+      "collected": false,
+      "note": "No payment processing in mobile app. Revenue data displayed is read-only from server."
+    }
+  },
+
+  "security_practices": {
+    "data_encrypted_in_transit": true,
+    "data_deletion_available": true,
+    "deletion_mechanism": "In-app account deletion (DELETE /api/users/me)",
+    "independent_security_review": false
+  },
+
+  "apple_privacy_nutrition_labels": {
+    "data_used_to_track_you": [],
+    "data_linked_to_you": ["Name", "Email Address", "Photos"],
+    "data_not_linked_to_you": ["Push Notification Token"]
+  },
+
+  "google_play_data_safety": {
+    "app_collects_data": true,
+    "data_encrypted_in_transit": true,
+    "users_can_request_deletion": true,
+    "committed_to_play_families_policy": false
+  }
+}

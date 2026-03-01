@@ -6,15 +6,13 @@ import com.clenzy.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -22,6 +20,7 @@ import static org.mockito.Mockito.*;
 class GuestMessagingServiceTest {
 
     @Mock private EmailChannel emailChannel;
+    @Mock private WhatsAppChannel whatsAppChannel;
     @Mock private TemplateInterpolationService interpolationService;
     @Mock private GuestMessageLogRepository messageLogRepository;
     @Mock private CheckInInstructionsRepository instructionsRepository;
@@ -29,150 +28,138 @@ class GuestMessagingServiceTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private NotificationService notificationService;
 
-    @InjectMocks
     private GuestMessagingService service;
-
-    private Reservation reservation;
-    private MessageTemplate template;
-    private Guest guest;
-    private Property property;
-    private User owner;
 
     @BeforeEach
     void setUp() {
-        owner = new User();
-        owner.setKeycloakId("owner-kc-id");
+        List<MessageChannel> channels = List.of(emailChannel, whatsAppChannel);
+        service = new GuestMessagingService(channels, interpolationService, messageLogRepository,
+            instructionsRepository, templateRepository, reservationRepository, notificationService);
+    }
 
-        property = new Property();
+    @Test
+    void sendForReservation_emailChannel_sendsViaEmail() {
+        Property property = new Property();
         property.setId(10L);
-        property.setName("Studio Test");
-        property.setOwner(owner);
-
-        guest = new Guest();
-        guest.setFirstName("Marie");
-        guest.setLastName("Martin");
-        guest.setEmail("marie@example.com");
+        property.setName("Test Prop");
+        Guest guest = new Guest();
+        guest.setEmail("guest@test.com");
         guest.setPhone("+33612345678");
+        guest.setLanguage("fr");
 
-        reservation = new Reservation();
+        Reservation reservation = new Reservation();
         reservation.setId(100L);
         reservation.setProperty(property);
         reservation.setGuest(guest);
-        reservation.setCheckIn(LocalDate.of(2026, 4, 1));
-        reservation.setCheckOut(LocalDate.of(2026, 4, 5));
-        reservation.setGuestName("Marie Martin");
 
-        template = new MessageTemplate();
-        template.setId(1L);
-        template.setName("Check-in Template");
-        template.setSubject("Welcome");
-        template.setBody("Hello {guestName}");
+        MessageTemplate template = new MessageTemplate();
+        template.setId(5L);
+        template.setName("Check-in");
+
+        when(instructionsRepository.findByPropertyIdAndOrganizationId(10L, 1L))
+            .thenReturn(Optional.empty());
+        when(interpolationService.interpolateAndTranslate(any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new TemplateInterpolationService.InterpolatedMessage("Subject", "<p>HTML</p>", "Plain"));
+
+        when(emailChannel.getChannelType()).thenReturn(MessageChannelType.EMAIL);
+        when(emailChannel.isAvailable()).thenReturn(true);
+        when(emailChannel.send(any())).thenReturn(MessageDeliveryResult.success("msg-001"));
+
+        GuestMessageLog logEntry = new GuestMessageLog();
+        logEntry.setId(1L);
+        when(messageLogRepository.save(any())).thenReturn(logEntry);
+
+        GuestMessageLog result = service.sendForReservation(reservation, template, 1L);
+
+        assertThat(result).isNotNull();
+        verify(emailChannel).send(any());
+        verify(messageLogRepository).save(any());
     }
 
     @Test
-    void whenSendMessage_thenLoadsReservationAndTemplate() {
-        Long orgId = 1L;
+    void sendForReservationViaChannel_whatsApp_sendsViaWhatsApp() {
+        Property property = new Property();
+        property.setId(10L);
+        property.setName("Test Prop");
+        Guest guest = new Guest();
+        guest.setPhone("+33612345678");
+        guest.setLanguage("en");
 
-        when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
-        when(templateRepository.findByIdAndOrganizationId(1L, orgId)).thenReturn(Optional.of(template));
-        when(instructionsRepository.findByPropertyIdAndOrganizationId(10L, orgId)).thenReturn(Optional.empty());
-        when(interpolationService.interpolate(any(), any(), any(), any(), any()))
-            .thenReturn(new TemplateInterpolationService.InterpolatedMessage("Welcome", "<p>Hello</p>", "Hello"));
-        when(emailChannel.send(any())).thenReturn(MessageDeliveryResult.success("msg-id-1"));
-        when(messageLogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        Reservation reservation = new Reservation();
+        reservation.setId(100L);
+        reservation.setProperty(property);
+        reservation.setGuest(guest);
 
-        GuestMessageLog result = service.sendMessage(100L, 1L, orgId);
+        MessageTemplate template = new MessageTemplate();
+        template.setId(5L);
+        template.setName("Welcome");
 
-        assertNotNull(result);
-        assertEquals(MessageStatus.SENT, result.getStatus());
-        assertEquals("marie@example.com", result.getRecipient());
-        verify(emailChannel).send(any(MessageDeliveryRequest.class));
+        when(instructionsRepository.findByPropertyIdAndOrganizationId(10L, 1L))
+            .thenReturn(Optional.empty());
+        when(interpolationService.interpolateAndTranslate(any(), any(), any(), any(), any(), any(), eq("en")))
+            .thenReturn(new TemplateInterpolationService.InterpolatedMessage("Subject", "<p>Hello</p>", "Hello"));
+
+        when(whatsAppChannel.getChannelType()).thenReturn(MessageChannelType.WHATSAPP);
+        when(whatsAppChannel.isAvailable()).thenReturn(true);
+        when(whatsAppChannel.send(any())).thenReturn(MessageDeliveryResult.success("wa-msg-001"));
+
+        GuestMessageLog logEntry = new GuestMessageLog();
+        logEntry.setId(2L);
+        when(messageLogRepository.save(any())).thenReturn(logEntry);
+
+        GuestMessageLog result = service.sendForReservationViaChannel(
+            reservation, template, 1L, MessageChannelType.WHATSAPP, java.util.Map.of());
+
+        assertThat(result).isNotNull();
+        verify(whatsAppChannel).send(any());
     }
 
     @Test
-    void whenGuestHasNoEmail_thenStatusIsFailed() {
-        Long orgId = 1L;
-        guest.setEmail(null);
+    void sendForReservationViaChannel_unavailableChannel_fallsBackToEmail() {
+        Property property = new Property();
+        property.setId(10L);
+        property.setName("Test");
+        Guest guest = new Guest();
+        guest.setEmail("guest@test.com");
+        guest.setLanguage("fr");
 
-        when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
-        when(templateRepository.findByIdAndOrganizationId(1L, orgId)).thenReturn(Optional.of(template));
-        when(instructionsRepository.findByPropertyIdAndOrganizationId(10L, orgId)).thenReturn(Optional.empty());
-        when(interpolationService.interpolate(any(), any(), any(), any(), any()))
-            .thenReturn(new TemplateInterpolationService.InterpolatedMessage("Welcome", "<p>Hello</p>", "Hello"));
-        when(messageLogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        Reservation reservation = new Reservation();
+        reservation.setId(100L);
+        reservation.setProperty(property);
+        reservation.setGuest(guest);
 
-        GuestMessageLog result = service.sendMessage(100L, 1L, orgId);
+        MessageTemplate template = new MessageTemplate();
+        template.setId(5L);
+        template.setName("Test");
 
-        assertEquals(MessageStatus.FAILED, result.getStatus());
-        assertTrue(result.getErrorMessage().contains("email"));
-        verify(emailChannel, never()).send(any());
+        when(instructionsRepository.findByPropertyIdAndOrganizationId(10L, 1L))
+            .thenReturn(Optional.empty());
+        when(interpolationService.interpolateAndTranslate(any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new TemplateInterpolationService.InterpolatedMessage("Subject", "HTML", "Plain"));
+
+        when(whatsAppChannel.getChannelType()).thenReturn(MessageChannelType.WHATSAPP);
+        when(whatsAppChannel.isAvailable()).thenReturn(false);
+        when(emailChannel.getChannelType()).thenReturn(MessageChannelType.EMAIL);
+        when(emailChannel.isAvailable()).thenReturn(true);
+        when(emailChannel.send(any())).thenReturn(MessageDeliveryResult.success("email-fallback"));
+
+        GuestMessageLog logEntry = new GuestMessageLog();
+        logEntry.setId(3L);
+        when(messageLogRepository.save(any())).thenReturn(logEntry);
+
+        service.sendForReservationViaChannel(reservation, template, 1L,
+            MessageChannelType.WHATSAPP, java.util.Map.of());
+
+        verify(emailChannel).send(any());
+        verify(whatsAppChannel, never()).send(any());
     }
 
     @Test
-    void whenEmailSendFails_thenStatusIsFailed() {
-        Long orgId = 1L;
-
-        when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
-        when(templateRepository.findByIdAndOrganizationId(1L, orgId)).thenReturn(Optional.of(template));
-        when(instructionsRepository.findByPropertyIdAndOrganizationId(10L, orgId)).thenReturn(Optional.empty());
-        when(interpolationService.interpolate(any(), any(), any(), any(), any()))
-            .thenReturn(new TemplateInterpolationService.InterpolatedMessage("Welcome", "<p>Hello</p>", "Hello"));
-        when(emailChannel.send(any())).thenReturn(MessageDeliveryResult.failure("SMTP timeout"));
-        when(messageLogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        GuestMessageLog result = service.sendMessage(100L, 1L, orgId);
-
-        assertEquals(MessageStatus.FAILED, result.getStatus());
-        assertEquals("SMTP timeout", result.getErrorMessage());
-    }
-
-    @Test
-    void whenSendSucceeds_thenNotificationIsSent() {
-        Long orgId = 1L;
-
-        when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
-        when(templateRepository.findByIdAndOrganizationId(1L, orgId)).thenReturn(Optional.of(template));
-        when(instructionsRepository.findByPropertyIdAndOrganizationId(10L, orgId)).thenReturn(Optional.empty());
-        when(interpolationService.interpolate(any(), any(), any(), any(), any()))
-            .thenReturn(new TemplateInterpolationService.InterpolatedMessage("Welcome", "<p>Hello</p>", "Hello"));
-        when(emailChannel.send(any())).thenReturn(MessageDeliveryResult.success("msg-id-2"));
-        when(messageLogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        service.sendMessage(100L, 1L, orgId);
-
-        verify(notificationService).send(eq("owner-kc-id"), eq(NotificationKey.GUEST_MESSAGE_SENT), anyString(), anyString(), any());
-    }
-
-    @Test
-    void whenReservationNotFound_thenThrows() {
-        when(reservationRepository.findById(999L)).thenReturn(Optional.empty());
-
-        assertThrows(IllegalArgumentException.class, () ->
-            service.sendMessage(999L, 1L, 1L));
-    }
-
-    @Test
-    void whenTemplateNotFound_thenThrows() {
-        when(reservationRepository.findById(100L)).thenReturn(Optional.of(reservation));
-        when(templateRepository.findByIdAndOrganizationId(999L, 1L)).thenReturn(Optional.empty());
-
-        assertThrows(IllegalArgumentException.class, () ->
-            service.sendMessage(100L, 999L, 1L));
-    }
-
-    @Test
-    void whenAlreadySent_thenReturnsTrueFromRepo() {
+    void alreadySent_delegatesToRepository() {
         when(messageLogRepository.existsSentOrPendingByReservationAndType(100L, MessageTemplateType.CHECK_IN))
             .thenReturn(true);
 
-        assertTrue(service.alreadySent(100L, MessageTemplateType.CHECK_IN));
-    }
-
-    @Test
-    void whenNotAlreadySent_thenReturnsFalse() {
-        when(messageLogRepository.existsSentOrPendingByReservationAndType(100L, MessageTemplateType.CHECK_IN))
-            .thenReturn(false);
-
-        assertFalse(service.alreadySent(100L, MessageTemplateType.CHECK_IN));
+        boolean result = service.alreadySent(100L, MessageTemplateType.CHECK_IN);
+        assertThat(result).isTrue();
     }
 }

@@ -11,7 +11,9 @@ public enum NotificationCategory {
     CONTACT("contact"),
     DOCUMENT("document"),
     GUEST_MESSAGING("guest_messaging"),
-    NOISE_ALERT("noise_alert");
+    NOISE_ALERT("noise_alert"),
+    CONVERSATION("conversation"),
+    REVIEW("review");
 
     private final String value;
 

@@ -6,6 +6,8 @@ import { teamsApi } from '../services/api/teamsApi';
 import type { Team } from '../services/api/teamsApi';
 import { useAuth } from './useAuth';
 import { useTranslation } from './useTranslation';
+import { useFiscalProfile } from './useFiscalProfile';
+import { getCurrencySymbol } from '../utils/currencyUtils';
 
 // ============================================================================
 // Query keys
@@ -72,6 +74,10 @@ export interface UseTarificationReturn {
   error: string | null;
   canEdit: boolean;
   isSaving: boolean;
+  /** ISO 4217 currency code from fiscal profile (e.g. "EUR", "MAD") */
+  currency: string;
+  /** Currency symbol (e.g. "€", "MAD") */
+  currencySymbol: string;
   updateConfig: (partial: Partial<PricingConfig>) => void;
   saveConfig: () => void;
   resetConfig: () => void;
@@ -83,6 +89,11 @@ export function useTarification(): UseTarificationReturn {
   const { hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+
+  // ─── Currency from fiscal profile ─────────────────────────────────
+  const { data: fiscalProfile } = useFiscalProfile();
+  const currency = fiscalProfile?.defaultCurrency ?? 'EUR';
+  const currencySymbol = useMemo(() => getCurrencySymbol(currency), [currency]);
 
   // ─── Permission ─────────────────────────────────────────────────────
   const [canEdit, setCanEdit] = useState(false);
@@ -165,6 +176,8 @@ export function useTarification(): UseTarificationReturn {
     error: configQuery.error ? (configQuery.error as { message?: string }).message ?? 'Erreur de chargement' : null,
     canEdit,
     isSaving: saveMutation.isPending,
+    currency,
+    currencySymbol,
     updateConfig,
     saveConfig,
     resetConfig,
@@ -179,6 +192,8 @@ export function useTarification(): UseTarificationReturn {
     configQuery.error,
     canEdit,
     saveMutation.isPending,
+    currency,
+    currencySymbol,
     updateConfig,
     saveConfig,
     resetConfig,

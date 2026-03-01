@@ -23,7 +23,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useTemplates, useActivateTemplate, useDeleteTemplate } from './hooks/useDocuments';
 import TemplateUpload from './TemplateUpload';
-import TemplateCatalogAccordions from './TemplateCatalogAccordions';
 
 export interface TemplatesListRef {
   fetchTemplates: () => void;
@@ -80,8 +79,6 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
   return (
     <Box>
       {displayError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{displayError}</Alert>}
-
-      <TemplateCatalogAccordions templates={templates} onOpenUpload={() => setUploadOpen(true)} />
 
       <TableContainer component={Paper}>
         <Table>

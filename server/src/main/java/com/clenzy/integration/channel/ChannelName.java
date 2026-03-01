@@ -6,7 +6,14 @@ package com.clenzy.integration.channel;
 public enum ChannelName {
     AIRBNB,
     BOOKING,
+    EXPEDIA,
     VRBO,
     ICAL,
+    GOOGLE_VACATION_RENTALS,
+    HOMEAWAY,
+    TRIPADVISOR,
+    AGODA,
+    HOTELS_COM,
+    DIRECT,
     OTHER
 }

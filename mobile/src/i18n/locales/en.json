@@ -1,0 +1,94 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "search": "Search",
+    "noResults": "No results",
+    "pullToRefresh": "Pull to refresh",
+    "offline": "You are offline",
+    "syncPending": "Sync pending"
+  },
+  "auth": {
+    "login": "Sign in",
+    "logout": "Sign out",
+    "sessionExpired": "Session expired, please sign in again"
+  },
+  "tabs": {
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "calendar": "Calendar",
+    "reports": "Reports",
+    "more": "More",
+    "planning": "Planning",
+    "interventions": "Interventions",
+    "teams": "Teams",
+    "incidents": "Incidents",
+    "today": "Today",
+    "history": "History",
+    "profile": "Profile",
+    "tickets": "Tickets"
+  },
+  "intervention": {
+    "status": {
+      "PENDING": "Pending",
+      "SCHEDULED": "Scheduled",
+      "IN_PROGRESS": "In progress",
+      "AWAITING_VALIDATION": "Awaiting validation",
+      "AWAITING_PAYMENT": "Awaiting payment",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
+    "type": {
+      "CLEANING": "Cleaning",
+      "EXPRESS_CLEANING": "Express cleaning",
+      "DEEP_CLEANING": "Deep cleaning",
+      "MAINTENANCE": "Maintenance",
+      "REPAIR": "Repair",
+      "INSPECTION": "Inspection",
+      "EMERGENCY_REPAIR": "Emergency repair"
+    },
+    "priority": {
+      "LOW": "Low",
+      "NORMAL": "Normal",
+      "HIGH": "High",
+      "URGENT": "Urgent"
+    },
+    "startMission": "Start",
+    "completeMission": "Complete",
+    "viewDetails": "View details",
+    "takePhotosBefore": "Photos before",
+    "takePhotosAfter": "Photos after",
+    "reportAnomaly": "Report anomaly",
+    "sign": "Sign"
+  },
+  "property": {
+    "status": {
+      "ACTIVE": "Active",
+      "INACTIVE": "Inactive",
+      "MAINTENANCE": "Under maintenance",
+      "ARCHIVED": "Archived"
+    }
+  },
+  "notification": {
+    "title": "Notifications",
+    "markRead": "Mark as read",
+    "noNotifications": "No notifications"
+  },
+  "profile": {
+    "title": "Profile",
+    "settings": "Settings",
+    "darkMode": "Dark mode",
+    "language": "Language",
+    "notifications": "Notifications",
+    "about": "About"
+  }
+}

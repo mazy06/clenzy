@@ -2,6 +2,7 @@ package com.clenzy.scheduler;
 
 import com.clenzy.integration.airbnb.model.AirbnbListingMapping;
 import com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository;
+import com.clenzy.integration.channel.AirbnbChannelAdapter;
 import com.clenzy.model.MessagingAutomationConfig;
 import com.clenzy.repository.MessagingAutomationConfigRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,12 +30,14 @@ class PricingPushSchedulerTest {
     private AirbnbListingMappingRepository listingRepository;
     @Mock
     private MessagingAutomationConfigRepository configRepository;
+    @Mock
+    private AirbnbChannelAdapter airbnbChannelAdapter;
 
     private PricingPushScheduler scheduler;
 
     @BeforeEach
     void setUp() {
-        scheduler = new PricingPushScheduler(listingRepository, configRepository);
+        scheduler = new PricingPushScheduler(listingRepository, configRepository, airbnbChannelAdapter);
     }
 
     private AirbnbListingMapping createMapping(Long orgId, String listingId, Long propertyId) {

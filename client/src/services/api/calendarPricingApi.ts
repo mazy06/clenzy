@@ -8,6 +8,7 @@ export interface CalendarPricingDay {
   priceSource: string;
   status: string;
   reservationId?: number;
+  currency?: string;
 }
 
 export interface RatePlan {
@@ -31,6 +32,7 @@ export interface RateOverride {
   date: string;
   nightlyPrice: number;
   source?: string;
+  currency?: string;
 }
 
 export interface CreateRatePlanData {

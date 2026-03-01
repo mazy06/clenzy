@@ -26,6 +26,9 @@ export const STORAGE_KEYS = {
   // Noise devices (configured sensors)
   NOISE_DEVICES: 'clenzy_noise_devices',
 
+  // Smart lock devices (configured locks)
+  SMART_LOCK_DEVICES: 'clenzy_smart_lock_devices',
+
   // Cross-tab sync
   TOKEN_UPDATE: 'clenzy_token_update',
 } as const;

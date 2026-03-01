@@ -1,0 +1,84 @@
+{
+  "expo": {
+    "name": "Clenzy",
+    "slug": "clenzy-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "scheme": "clenzy",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6B8A9A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.clenzy.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Clenzy utilise la camera pour prendre des photos avant/apres les interventions.",
+        "NSPhotoLibraryUsageDescription": "Clenzy accede a la galerie pour selectionner des photos d'interventions.",
+        "NSLocationWhenInUseUsageDescription": "Clenzy utilise votre position pour verifier les interventions sur site.",
+        "NSFaceIDUsageDescription": "Clenzy utilise Face ID pour un acces securise a votre compte."
+      }
+    },
+    "android": {
+      "package": "com.clenzy.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#6B8A9A"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-camera",
+      "expo-image-picker",
+      "expo-localization",
+      "expo-notifications",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.clenzy.mobile",
+          "enableGooglePay": true
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "newArchEnabled": true
+          },
+          "android": {
+            "newArchEnabled": true
+          }
+        }
+      ]
+    ],
+    "updates": {
+      "url": "https://u.expo.dev/8e27c4c6-5b30-48f5-9949-eaee2c82851b"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8e27c4c6-5b30-48f5-9949-eaee2c82851b"
+      }
+    },
+    "owner": "toufik06300"
+  }
+}

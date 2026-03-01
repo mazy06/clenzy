@@ -1,0 +1,94 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "retry": "Reessayer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "back": "Retour",
+    "next": "Suivant",
+    "done": "Termine",
+    "search": "Rechercher",
+    "noResults": "Aucun resultat",
+    "pullToRefresh": "Tirer pour actualiser",
+    "offline": "Vous etes hors ligne",
+    "syncPending": "Synchronisation en attente"
+  },
+  "auth": {
+    "login": "Se connecter",
+    "logout": "Se deconnecter",
+    "sessionExpired": "Session expiree, veuillez vous reconnecter"
+  },
+  "tabs": {
+    "dashboard": "Dashboard",
+    "properties": "Proprietes",
+    "calendar": "Calendrier",
+    "reports": "Rapports",
+    "more": "Plus",
+    "planning": "Planning",
+    "interventions": "Interventions",
+    "teams": "Equipes",
+    "incidents": "Incidents",
+    "today": "Aujourd'hui",
+    "history": "Historique",
+    "profile": "Profil",
+    "tickets": "Tickets"
+  },
+  "intervention": {
+    "status": {
+      "PENDING": "En attente",
+      "SCHEDULED": "Planifiee",
+      "IN_PROGRESS": "En cours",
+      "AWAITING_VALIDATION": "En validation",
+      "AWAITING_PAYMENT": "En paiement",
+      "COMPLETED": "Terminee",
+      "CANCELLED": "Annulee"
+    },
+    "type": {
+      "CLEANING": "Menage",
+      "EXPRESS_CLEANING": "Menage express",
+      "DEEP_CLEANING": "Nettoyage en profondeur",
+      "MAINTENANCE": "Maintenance",
+      "REPAIR": "Reparation",
+      "INSPECTION": "Inspection",
+      "EMERGENCY_REPAIR": "Reparation urgente"
+    },
+    "priority": {
+      "LOW": "Basse",
+      "NORMAL": "Normale",
+      "HIGH": "Haute",
+      "URGENT": "Urgente"
+    },
+    "startMission": "Commencer",
+    "completeMission": "Terminer",
+    "viewDetails": "Voir details",
+    "takePhotosBefore": "Photos avant",
+    "takePhotosAfter": "Photos apres",
+    "reportAnomaly": "Signaler anomalie",
+    "sign": "Signer"
+  },
+  "property": {
+    "status": {
+      "ACTIVE": "Actif",
+      "INACTIVE": "Inactif",
+      "MAINTENANCE": "En maintenance",
+      "ARCHIVED": "Archive"
+    }
+  },
+  "notification": {
+    "title": "Notifications",
+    "markRead": "Marquer comme lu",
+    "noNotifications": "Aucune notification"
+  },
+  "profile": {
+    "title": "Profil",
+    "settings": "Parametres",
+    "darkMode": "Mode sombre",
+    "language": "Langue",
+    "notifications": "Notifications",
+    "about": "A propos"
+  }
+}

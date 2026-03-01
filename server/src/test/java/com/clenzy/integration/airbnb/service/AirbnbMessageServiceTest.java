@@ -2,6 +2,7 @@ package com.clenzy.integration.airbnb.service;
 
 import com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository;
 import com.clenzy.service.AuditLogService;
+import com.clenzy.service.messaging.ConversationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,12 +28,13 @@ class AirbnbMessageServiceTest {
     @Mock private AirbnbListingMappingRepository listingMappingRepository;
     @Mock private AirbnbWebhookService webhookService;
     @Mock private AuditLogService auditLogService;
+    @Mock private ConversationService conversationService;
 
     private AirbnbMessageService service;
 
     @BeforeEach
     void setUp() {
-        service = new AirbnbMessageService(listingMappingRepository, webhookService, auditLogService);
+        service = new AirbnbMessageService(listingMappingRepository, webhookService, auditLogService, conversationService);
     }
 
     private Map<String, Object> buildEvent(String eventType, String eventId, Map<String, Object> data) {

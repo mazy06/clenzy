@@ -11,9 +11,12 @@ import {
   Typography,
   Button,
   Tooltip,
+  Paper,
+  alpha,
 } from '@mui/material';
 import {
   CloudUpload as PushIcon,
+  FilterList as FilterIcon,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -103,6 +106,12 @@ const DynamicPricing: React.FC = () => {
     deleteRatePlanLoading,
   } = useDynamicPricing();
 
+  // Derive currency from the first rate plan that has one, or fallback to 'EUR'
+  const selectedPropertyCurrency = useMemo(() => {
+    const planWithCurrency = ratePlans.find((p) => p.currency);
+    return planWithCurrency?.currency || 'EUR';
+  }, [ratePlans]);
+
   // Extract unique owners from properties
   const owners = useMemo<Owner[]>(() => {
     const map = new Map<number, string>();
@@ -181,96 +190,111 @@ const DynamicPricing: React.FC = () => {
 
   return (
     <Box sx={{ p: SPACING.PAGE_PADDING }}>
-      {/* Header with Owner + Property selectors */}
+      {/* Header */}
       <PageHeader
         title={t('dynamicPricing.title')}
         subtitle={t('dynamicPricing.subtitle')}
         backPath="/dashboard"
         showBackButton={false}
         actions={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {/* Owner selector — platform staff only */}
-            {isPlatformStaff && (
-              <FormControl size="small" sx={{ minWidth: 180 }}>
-                <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.selectOwner')}</InputLabel>
-                <Select
-                  value={selectedOwnerId ?? ''}
-                  label={t('dynamicPricing.selectOwner')}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    handleOwnerChange(val === '' ? null : Number(val));
-                  }}
-                  sx={{ fontSize: '0.8125rem', '& .MuiSelect-select': { py: 0.75 } }}
-                >
-                  <MenuItem value="">
-                    <em>{t('dynamicPricing.allOwners')}</em>
-                  </MenuItem>
-                  {propertiesLoading && (
-                    <MenuItem disabled>
-                      <CircularProgress size={14} sx={{ mr: 1 }} /> {t('common.loading')}
-                    </MenuItem>
-                  )}
-                  {owners.map((o) => (
-                    <MenuItem key={o.id} value={o.id}>
-                      {o.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-
-            {/* Property selector */}
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.calendar.selectProperty')}</InputLabel>
-              <Select
-                value={selectedPropertyId ?? ''}
-                label={t('dynamicPricing.calendar.selectProperty')}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  handlePropertyChange(val === '' ? null : Number(val));
-                }}
-                disabled={isPlatformStaff && selectedOwnerId === null}
-                sx={{ fontSize: '0.8125rem', '& .MuiSelect-select': { py: 0.75 } }}
+          selectedPropertyId ? (
+            <Tooltip title={pushResult || t('channels.pushPricing.tooltip')}>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={pushLoading ? <CircularProgress size={14} /> : <PushIcon sx={{ fontSize: 16 }} />}
+                onClick={handlePushPricing}
+                disabled={pushLoading}
+                color={pushResult?.includes('succes') || pushResult?.includes('success') ? 'success' : 'primary'}
+                sx={{ textTransform: 'none', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
               >
-                {propertiesLoading && (
-                  <MenuItem disabled>
-                    <CircularProgress size={14} sx={{ mr: 1 }} /> {t('common.loading')}
-                  </MenuItem>
-                )}
-                {filteredProperties.map((p) => (
-                  <MenuItem key={p.id} value={p.id}>
-                    {p.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {/* Property count indicator */}
-            {isPlatformStaff && selectedOwnerId !== null && (
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
-                {filteredProperties.length} {t('dynamicPricing.propertiesCount')}
-              </Typography>
-            )}
-
-            {/* Push to Airbnb */}
-            {selectedPropertyId && (
-              <Tooltip title={pushResult || t('channels.pushPricing.tooltip')}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={pushLoading ? <CircularProgress size={14} /> : <PushIcon sx={{ fontSize: 16 }} />}
-                  onClick={handlePushPricing}
-                  disabled={pushLoading}
-                  color={pushResult?.includes('succes') || pushResult?.includes('success') ? 'success' : 'primary'}
-                  sx={{ textTransform: 'none', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
-                >
-                  {pushLoading ? t('channels.pushPricing.pushing') : t('channels.pushPricing.button')}
-                </Button>
-              </Tooltip>
-            )}
-          </Box>
+                {pushLoading ? t('channels.pushPricing.pushing') : t('channels.pushPricing.button')}
+              </Button>
+            </Tooltip>
+          ) : undefined
         }
       />
+
+      {/* ── Filter bar — Owner + Property selectors ── */}
+      <Paper
+        variant="outlined"
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          px: 2,
+          py: 1.25,
+          mb: 1.5,
+          borderRadius: 1.5,
+          borderColor: 'divider',
+          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
+        }}
+      >
+        <FilterIcon sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0 }} />
+
+        {/* Owner selector — platform staff only */}
+        {isPlatformStaff && (
+          <FormControl size="small" sx={{ minWidth: 220, maxWidth: 280 }}>
+            <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.selectOwner')}</InputLabel>
+            <Select
+              value={selectedOwnerId ?? ''}
+              label={t('dynamicPricing.selectOwner')}
+              onChange={(e) => {
+                const val = e.target.value;
+                handleOwnerChange(val === '' ? null : Number(val));
+              }}
+              sx={{ fontSize: '0.8125rem', '& .MuiSelect-select': { py: 0.75 } }}
+            >
+              <MenuItem value="">
+                <em>{t('dynamicPricing.allOwners')}</em>
+              </MenuItem>
+              {propertiesLoading && (
+                <MenuItem disabled>
+                  <CircularProgress size={14} sx={{ mr: 1 }} /> {t('common.loading')}
+                </MenuItem>
+              )}
+              {owners.map((o) => (
+                <MenuItem key={o.id} value={o.id}>
+                  {o.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+
+        {/* Property selector */}
+        <FormControl size="small" sx={{ minWidth: 240, maxWidth: 320 }}>
+          <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.calendar.selectProperty')}</InputLabel>
+          <Select
+            value={selectedPropertyId ?? ''}
+            label={t('dynamicPricing.calendar.selectProperty')}
+            onChange={(e) => {
+              const val = e.target.value;
+              handlePropertyChange(val === '' ? null : Number(val));
+            }}
+            disabled={isPlatformStaff && selectedOwnerId === null}
+            sx={{ fontSize: '0.8125rem', '& .MuiSelect-select': { py: 0.75 } }}
+          >
+            {propertiesLoading && (
+              <MenuItem disabled>
+                <CircularProgress size={14} sx={{ mr: 1 }} /> {t('common.loading')}
+              </MenuItem>
+            )}
+            {filteredProperties.map((p) => (
+              <MenuItem key={p.id} value={p.id}>
+                {p.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        {/* Property count indicator */}
+        {isPlatformStaff && selectedOwnerId !== null && (
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', whiteSpace: 'nowrap' }}>
+            {filteredProperties.length} {t('dynamicPricing.propertiesCount')}
+          </Typography>
+        )}
+      </Paper>
 
       {/* Tabs */}
       <Tabs
@@ -298,6 +322,7 @@ const DynamicPricing: React.FC = () => {
                 calendarPricingLoading={calendarPricingLoading}
                 onUpdatePrice={updatePrice}
                 updatePriceLoading={updatePriceLoading}
+                currency={selectedPropertyCurrency}
               />
             </Box>
 

@@ -44,6 +44,17 @@ export interface Recipient {
   role: string;
 }
 
+export interface ContactThreadSummary {
+  counterpartKeycloakId: string;
+  counterpartFirstName: string;
+  counterpartLastName: string;
+  counterpartEmail: string;
+  lastMessagePreview: string | null;
+  lastMessageAt: string;
+  unreadCount: number;
+  totalMessages: number;
+}
+
 export const contactApi = {
   /** Track whether the backend contact endpoints are available */
   _endpointAvailable: true,
@@ -145,6 +156,23 @@ export const contactApi = {
 
     return window.URL.createObjectURL(blob);
   },
+  // ── Threads (messagerie instantanee) ──────────────────────────────────
+
+  /** Liste des conversations groupees par interlocuteur */
+  getThreads(): Promise<ContactThreadSummary[]> {
+    return apiClient.get<ContactThreadSummary[]>('/contact/threads');
+  },
+
+  /** Messages d'une conversation avec un interlocuteur */
+  getThreadMessages(counterpartKeycloakId: string): Promise<ContactMessage[]> {
+    return apiClient.get<ContactMessage[]>(`/contact/threads/${counterpartKeycloakId}/messages`);
+  },
+
+  /** Marquer tous les messages non-lus d'un thread comme lus */
+  markThreadAsRead(counterpartKeycloakId: string): Promise<{ updatedCount: number }> {
+    return apiClient.put<{ updatedCount: number }>(`/contact/threads/${counterpartKeycloakId}/mark-read`);
+  },
+
   /** Reset availability flag */
   resetAvailability() {
     this._endpointAvailable = true;

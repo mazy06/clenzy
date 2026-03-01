@@ -204,6 +204,13 @@ export type {
   TestCoverageMetrics,
 } from './monitoringApi';
 
+export { smartLockApi } from './smartLockApi';
+export type {
+  SmartLockDeviceDto,
+  CreateSmartLockDeviceDto,
+  SmartLockStatusDto,
+} from './smartLockApi';
+
 export { airbnbApi } from './airbnbApi';
 export type {
   AirbnbConnectionStatus,
@@ -216,3 +223,60 @@ export type {
   CheckInInstructions,
   UpdateCheckInInstructions,
 } from './airbnbApi';
+
+export { channelPromotionsApi } from './channelPromotionsApi';
+export type {
+  ChannelPromotion,
+  CreateChannelPromotionData,
+  ChannelName,
+  PromotionType,
+  PromotionStatus,
+} from './channelPromotionsApi';
+
+export { accountingApi } from './accountingApi';
+export type {
+  OwnerPayout,
+  ChannelCommission,
+  PayoutStatus,
+} from './accountingApi';
+
+export { ownerPortalApi } from './ownerPortalApi';
+export type {
+  OwnerDashboard,
+  OwnerPropertySummary,
+  OwnerStatement,
+  StatementLine,
+} from './ownerPortalApi';
+
+export { automationRulesApi } from './automationRulesApi';
+export type {
+  AutomationRule,
+  CreateAutomationRuleData,
+  AutomationExecution,
+  AutomationExecutionPage,
+  AutomationTrigger,
+  AutomationAction,
+  MessageChannelType,
+} from './automationRulesApi';
+
+export { fiscalProfileApi } from './fiscalProfileApi';
+export type {
+  FiscalProfile,
+  FiscalProfileUpdate,
+  FiscalRegime,
+} from './fiscalProfileApi';
+
+export { invoicesApi, INVOICE_STATUS_COLORS } from './invoicesApi';
+export type {
+  Invoice,
+  InvoiceLine,
+  InvoiceStatus,
+  InvoiceFilters,
+  GenerateInvoiceRequest,
+} from './invoicesApi';
+
+export { fiscalReportingApi } from './fiscalReportingApi';
+export type {
+  VatSummary,
+  VatBreakdown,
+} from './fiscalReportingApi';

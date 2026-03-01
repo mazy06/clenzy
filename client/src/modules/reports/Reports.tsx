@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Grid, Card, CardContent, CardHeader, CardActionArea } from '@mui/material';
-import { 
-  Assessment as AssessmentIcon,
-  TrendingUp as TrendingUpIcon,
+import {
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
   People as PeopleIcon,
-  Home as HomeIcon
+  Home as HomeIcon,
+  AccountBalance as AccountBalanceIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -82,6 +82,15 @@ const Reports: React.FC = () => {
       permission: 'reports:view',
       canView: permissions['reports:view'],
       route: '/reports/properties'
+    },
+    {
+      id: 'fiscal',
+      title: t('reports.sections.fiscal.title', 'Rapport Fiscal'),
+      icon: <AccountBalanceIcon color="secondary" />,
+      description: t('reports.sections.fiscal.description', 'TVA, taxes et declarations fiscales'),
+      permission: 'reports:view',
+      canView: permissions['reports:view'],
+      route: '/reports/fiscal'
     }
   ];
 
@@ -93,18 +102,12 @@ const Reports: React.FC = () => {
 
   return (
     <Box>
-      {/* En-tête */}
-      <Box sx={{ mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-          <AssessmentIcon sx={{ fontSize: 24, color: 'primary.main', mr: 1.5 }} />
-          <Typography variant="h6" component="h1" color="primary.main" sx={{ fontWeight: 600, fontSize: '1.25rem' }}>
-            {t('reports.title')}
-          </Typography>
-        </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
-          {t('reports.subtitle')}
-        </Typography>
-      </Box>
+      <PageHeader
+        title={t('reports.title')}
+        subtitle={t('reports.subtitle')}
+        backPath="/dashboard"
+        showBackButton={false}
+      />
 
       {/* Grille des sections de rapports */}
       <Grid container spacing={2}>

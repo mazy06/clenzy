@@ -1,12 +1,16 @@
 package com.clenzy.integration.channel;
 
+import com.clenzy.integration.airbnb.repository.AirbnbConnectionRepository;
 import com.clenzy.integration.airbnb.service.AirbnbOAuthService;
+import com.clenzy.integration.airbnb.service.AirbnbTokenEncryptionService;
 import com.clenzy.integration.channel.model.ChannelMapping;
 import com.clenzy.integration.channel.repository.ChannelMappingRepository;
+import com.clenzy.service.PriceEngine;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Optional;
 
@@ -17,13 +21,18 @@ import static org.mockito.Mockito.*;
 class AirbnbChannelAdapterTest {
 
     @Mock private AirbnbOAuthService airbnbOAuthService;
+    @Mock private AirbnbConnectionRepository airbnbConnectionRepository;
+    @Mock private AirbnbTokenEncryptionService tokenEncryptionService;
     @Mock private ChannelMappingRepository channelMappingRepository;
+    @Mock private PriceEngine priceEngine;
+    @Mock private RestTemplate restTemplate;
 
     private AirbnbChannelAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        adapter = new AirbnbChannelAdapter(airbnbOAuthService, channelMappingRepository);
+        adapter = new AirbnbChannelAdapter(airbnbOAuthService, airbnbConnectionRepository,
+                tokenEncryptionService, channelMappingRepository, priceEngine, restTemplate);
     }
 
     @Test void channelName() {

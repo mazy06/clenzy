@@ -4,6 +4,7 @@ import com.clenzy.model.Organization;
 import com.clenzy.model.OrganizationType;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
+import com.clenzy.repository.FiscalProfileRepository;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -41,6 +42,9 @@ class TenantFilterTest {
     private OrganizationRepository organizationRepository;
 
     @Mock
+    private FiscalProfileRepository fiscalProfileRepository;
+
+    @Mock
     private EntityManager entityManager;
 
     @Mock
@@ -65,7 +69,7 @@ class TenantFilterTest {
     void setUp() {
         tenantContext = new TenantContext();
         tenantFilter = new TenantFilter(userRepository, organizationRepository,
-                entityManager, redisTemplate, tenantContext);
+                fiscalProfileRepository, entityManager, redisTemplate, tenantContext);
 
         lenient().when(entityManager.unwrap(Session.class)).thenReturn(session);
         lenient().when(session.enableFilter("organizationFilter")).thenReturn(hibernateFilter);

@@ -350,9 +350,10 @@ const CHANNEL_CONFIG: Record<string, { label: string; color: 'primary' | 'succes
 interface TemplateCatalogAccordionsProps {
   templates: DocumentTemplate[];
   onOpenUpload: () => void;
+  onSwitchToMessagingTab?: () => void;
 }
 
-const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ templates, onOpenUpload }) => {
+const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ templates, onOpenUpload, onSwitchToMessagingTab }) => {
   const navigate = useNavigate();
   const [expandedGroup, setExpandedGroup] = useState<string | false>(false);
 
@@ -525,14 +526,14 @@ const TemplateCatalogAccordions: React.FC<TemplateCatalogAccordionsProps> = ({ t
                         <>
                           <CheckCircle sx={{ fontSize: 18, color: 'info.main' }} />
                           <Typography sx={{ flex: 1, fontSize: '0.75rem', color: 'text.secondary' }}>
-                            Template de messagerie — configurable dans les parametres
+                            Template de messagerie — configurable dans l'onglet "Templates messages"
                           </Typography>
-                          {item.messageLink && (
+                          {onSwitchToMessagingTab && (
                             <Button
                               size="small"
                               variant="outlined"
                               startIcon={<OpenInNew sx={{ fontSize: 14 }} />}
-                              onClick={() => navigate(item.messageLink!)}
+                              onClick={onSwitchToMessagingTab}
                               sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
                             >
                               Gerer

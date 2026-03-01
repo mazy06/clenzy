@@ -450,7 +450,7 @@ public class PermissionService {
             return;
         }
         // Validation du format : chaque permission doit etre "module:action" avec uniquement des caracteres alphanumeriques
-        java.util.regex.Pattern validPattern = java.util.regex.Pattern.compile("^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$");
+        java.util.regex.Pattern validPattern = java.util.regex.Pattern.compile("^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$");
         for (String permission : permissions) {
             if (permission == null || permission.isBlank()) {
                 throw new IllegalArgumentException("Le nom de permission ne peut pas etre vide");

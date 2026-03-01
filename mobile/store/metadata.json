@@ -1,0 +1,46 @@
+{
+  "app_name": "Clenzy",
+  "subtitle": "Gestion de conciergerie",
+
+  "description": {
+    "fr": "Clenzy est l'application mobile de gestion de conciergerie pour les locations saisonnieres. Gerez vos interventions de menage et maintenance, suivez vos equipes terrain en temps reel, et pilotez votre activite de conciergerie depuis votre mobile.\n\nFonctionnalites principales :\n- Missions de menage : checklists interactives, photos avant/apres, signature de fin\n- Tickets techniques : diagnostic, documentation photo, rapports d'intervention\n- Planning equipes : assignation, suivi en temps reel, validation\n- Dashboard proprietaire : KPIs, revenus, occupation, calendrier\n- Notifications push en temps reel\n- Mode hors-ligne avec synchronisation automatique\n- Suppression de compte in-app",
+    "en": "Clenzy is the mobile property management app for vacation rental concierge services. Manage cleaning and maintenance tasks, track your field teams in real time, and run your concierge business from your phone.\n\nKey features:\n- Cleaning missions: interactive checklists, before/after photos, completion signature\n- Technical tickets: diagnostics, photo documentation, intervention reports\n- Team planning: assignment, real-time tracking, validation\n- Owner dashboard: KPIs, revenue, occupancy, calendar\n- Real-time push notifications\n- Offline mode with automatic sync\n- In-app account deletion"
+  },
+
+  "keywords": {
+    "fr": "conciergerie,location,saisonniere,menage,maintenance,gestion,propriete,airbnb,nettoyage,intervention,planning,equipe",
+    "en": "concierge,rental,vacation,cleaning,maintenance,management,property,airbnb,housekeeping,intervention,planning,team"
+  },
+
+  "category": {
+    "ios": "Business",
+    "android": "Business"
+  },
+
+  "content_rating": "Everyone",
+
+  "privacy_policy_url": "https://clenzy.com/privacy",
+  "terms_of_service_url": "https://clenzy.com/terms",
+  "support_url": "https://clenzy.com/support",
+
+  "contact_email": "support@clenzy.com",
+
+  "screenshots_required": {
+    "ios": {
+      "6.7_inch": "1290x2796 (iPhone 15 Pro Max) - 5 a 10 captures",
+      "6.5_inch": "1284x2778 (iPhone 14 Plus) - 5 a 10 captures",
+      "5.5_inch": "1242x2208 (iPhone 8 Plus) - optionnel",
+      "12.9_inch": "2048x2732 (iPad Pro) - si supportsTablet"
+    },
+    "android": {
+      "phone": "1080x1920 minimum - 4 a 8 captures",
+      "tablet_7": "optionnel",
+      "tablet_10": "optionnel"
+    }
+  },
+
+  "review_notes": {
+    "fr": "Application de gestion de conciergerie B2B. Compte de test fourni pour la review.\nIdentifiants demo :\n- Email: review@clenzy.com\n- Mot de passe: (a fournir lors de la soumission)\n\nL'application necessite un compte entreprise existant pour fonctionner. Les fonctionnalites principales accessibles avec le compte demo :\n1. Voir les missions de menage du jour\n2. Demarrer une mission et completer la checklist\n3. Prendre des photos avant/apres\n4. Signer la fin d'intervention\n5. Supprimer le compte depuis Profil > Supprimer mon compte",
+    "en": "B2B concierge management application. Test account provided for review.\nDemo credentials:\n- Email: review@clenzy.com\n- Password: (to be provided at submission)\n\nThe app requires an existing business account to function. Main features accessible with demo account:\n1. View today's cleaning missions\n2. Start a mission and complete the checklist\n3. Take before/after photos\n4. Sign off on the intervention\n5. Delete account from Profile > Delete my account"
+  }
+}

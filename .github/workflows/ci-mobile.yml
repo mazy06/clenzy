@@ -1,0 +1,208 @@
+# ===========================================
+# Clenzy — CI/CD Mobile (React Native + Expo + EAS)
+# ===========================================
+# Flux :
+#   - push main/develop  → CI (typecheck + lint + tests)
+#   - push production    → CI + EAS Build (iOS + Android) + EAS Submit
+#   - PR main/develop/production → CI obligatoire (gate de validation)
+#   - workflow_dispatch  → Build/submit manuel
+#
+# IMPORTANT : Les merges vers production ne sont autorisées que via Pull Request.
+
+name: CI Mobile
+
+on:
+  push:
+    branches: [main, develop, production]
+    paths:
+      - 'mobile/**'
+      - 'shared/**'
+      - '.github/workflows/ci-mobile.yml'
+  pull_request:
+    branches: [main, develop, production]
+    paths:
+      - 'mobile/**'
+      - 'shared/**'
+      - '.github/workflows/ci-mobile.yml'
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'EAS Build profile'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+      platform:
+        description: 'Platform to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - ios
+          - android
+      submit:
+        description: 'Submit to stores after build'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ─── Lint + TypeCheck + Tests ────────────────────────────────────
+  ci:
+    name: Lint, TypeCheck & Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npx jest --ci --coverage --maxWorkers=2
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: mobile/coverage/
+          retention-days: 7
+
+  # ─── EAS Build ───────────────────────────────────────────────────
+  build:
+    name: EAS Build (${{ matrix.platform }})
+    needs: ci
+    if: github.ref == 'refs/heads/production' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    strategy:
+      matrix:
+        platform: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.platform == 'all' && fromJSON('["ios", "android"]') || fromJSON(format('["{0}"]', github.event.inputs.platform))) || fromJSON('["ios", "android"]') }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Determine build profile
+        id: profile
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_PROFILE: ${{ github.event.inputs.profile }}
+          GIT_REF: ${{ github.ref }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "profile=$INPUT_PROFILE" >> "$GITHUB_OUTPUT"
+          elif [ "$GIT_REF" = "refs/heads/production" ]; then
+            echo "profile=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "profile=preview" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: EAS Build
+        run: eas build --platform ${{ matrix.platform }} --profile ${{ steps.profile.outputs.profile }} --non-interactive
+
+  # ─── EAS Submit (stores) ─────────────────────────────────────────
+  submit:
+    name: Submit to Stores
+    needs: build
+    if: |
+      (github.ref == 'refs/heads/production' && github.event_name == 'push') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.submit == 'true')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Submit iOS to App Store
+        run: eas submit --platform ios --profile production --non-interactive
+
+      - name: Submit Android to Google Play
+        run: eas submit --platform android --profile production --non-interactive
+
+  # ─── EAS Update (OTA) ───────────────────────────────────────────
+  update:
+    name: OTA Update
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish OTA update
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+        run: eas update --branch preview --message "OTA update from $COMMIT_SHA" --non-interactive

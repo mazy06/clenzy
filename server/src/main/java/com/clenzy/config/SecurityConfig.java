@@ -1,5 +1,6 @@
 package com.clenzy.config;
 
+import com.clenzy.repository.FiscalProfileRepository;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
@@ -54,10 +55,11 @@ public class SecurityConfig {
     @Bean
     public TenantFilter tenantFilter(UserRepository userRepository,
                                       OrganizationRepository organizationRepository,
+                                      FiscalProfileRepository fiscalProfileRepository,
                                       EntityManager entityManager,
                                       RedisTemplate<String, Object> redisTemplate,
                                       TenantContext tenantContext) {
-        return new TenantFilter(userRepository, organizationRepository, entityManager, redisTemplate, tenantContext);
+        return new TenantFilter(userRepository, organizationRepository, fiscalProfileRepository, entityManager, redisTemplate, tenantContext);
     }
 
     /**
@@ -146,9 +148,13 @@ public class SecurityConfig {
                     "/api/webhooks/stripe",
                     "/api/webhooks/airbnb",
                     "/api/webhooks/minut",
+                    "/api/webhooks/tripadvisor",
+                    "/api/webhooks/expedia",
+                    "/api/webhooks/whatsapp",
                     "/api/airbnb/callback",
                     "/api/minut/callback",
-                    "/api/public/**"
+                    "/api/public/**",
+                    "/ws/**"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

@@ -27,9 +27,10 @@ interface TabTravauxProps {
   config: PricingConfig;
   canEdit: boolean;
   onUpdate: (partial: Partial<PricingConfig>) => void;
+  currencySymbol: string;
 }
 
-export default function TabTravaux({ config, canEdit, onUpdate }: TabTravauxProps) {
+export default function TabTravaux({ config, canEdit, onUpdate, currencySymbol }: TabTravauxProps) {
   const { t } = useTranslation();
 
   const items = config.travauxConfig || [];
@@ -123,7 +124,7 @@ export default function TabTravaux({ config, canEdit, onUpdate }: TabTravauxProp
                     }}
                     disabled={!canEdit || !item.enabled}
                     inputProps={{ step: 1, min: 0, style: { textAlign: 'right' } }}
-                    InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
+                    InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
                     sx={{ width: 120 }}
                   />
                 </TableCell>
@@ -174,7 +175,7 @@ export default function TabTravaux({ config, canEdit, onUpdate }: TabTravauxProp
             onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
             size="small"
             fullWidth
-            InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
+            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
           />
         </DialogContent>
         <DialogActions>

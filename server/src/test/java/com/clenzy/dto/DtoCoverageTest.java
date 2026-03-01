@@ -25,12 +25,13 @@ class DtoCoverageTest {
     @DisplayName("Record DTOs")
     class RecordDtos {
         @Test void rateOverrideDto() {
-            RateOverrideDto dto = new RateOverrideDto(1L, 2L, "2026-03-15", 150.0, "MANUAL");
+            RateOverrideDto dto = new RateOverrideDto(1L, 2L, "2026-03-15", 150.0, "MANUAL", "EUR");
             assertThat(dto.id()).isEqualTo(1L);
             assertThat(dto.propertyId()).isEqualTo(2L);
             assertThat(dto.date()).isEqualTo("2026-03-15");
             assertThat(dto.nightlyPrice()).isEqualTo(150.0);
             assertThat(dto.source()).isEqualTo("MANUAL");
+            assertThat(dto.currency()).isEqualTo("EUR");
         }
         @Test void ratePlanDto() {
             RatePlanDto dto = new RatePlanDto(1L, 2L, "Summer Rate", "SEASONAL", 1,
@@ -154,9 +155,11 @@ class DtoCoverageTest {
         }
         @Test void complianceStatsDto() {
             ComplianceStatsDto dto = new ComplianceStatsDto(10, 8, 5, 4, 3, 2,
-                    Map.of("FACTURE", 5L), LocalDateTime.now(), 95);
+                    Map.of("FACTURE", 5L), LocalDateTime.now(), 95, "FR", "NF 525");
             assertThat(dto.totalDocuments()).isEqualTo(10);
             assertThat(dto.averageComplianceScore()).isEqualTo(95);
+            assertThat(dto.countryCode()).isEqualTo("FR");
+            assertThat(dto.complianceStandard()).isEqualTo("NF 525");
         }
 
         // Manager records

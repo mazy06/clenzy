@@ -106,6 +106,30 @@ public interface ChannelConnector {
     }
 
     /**
+     * Recupere les avis guests depuis le channel.
+     * Retourne une liste vide par defaut.
+     */
+    default java.util.List<com.clenzy.model.GuestReview> pullReviews(Long propertyId, Long orgId, java.time.LocalDate from) {
+        return java.util.List.of();
+    }
+
+    /**
+     * Pousse une promotion vers le channel (OUTBOUND).
+     * Retourne UNSUPPORTED par defaut.
+     */
+    default SyncResult pushPromotion(com.clenzy.model.ChannelPromotion promo, Long orgId) {
+        return SyncResult.unsupported("Promotion push not supported by " + getChannelName());
+    }
+
+    /**
+     * Recupere les promotions depuis le channel.
+     * Retourne une liste vide par defaut.
+     */
+    default java.util.List<com.clenzy.model.ChannelPromotion> pullPromotions(Long propertyId, Long orgId) {
+        return java.util.List.of();
+    }
+
+    /**
      * Teste si le channel supporte une capacite donnee.
      */
     default boolean supports(ChannelCapability capability) {

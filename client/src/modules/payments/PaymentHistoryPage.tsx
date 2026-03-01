@@ -47,7 +47,11 @@ import apiClient from '../../services/apiClient';
 import PageHeader from '../../components/PageHeader';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 
-const PaymentHistoryPage: React.FC = () => {
+interface PaymentHistoryPageProps {
+  embedded?: boolean;
+}
+
+const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -379,12 +383,14 @@ const PaymentHistoryPage: React.FC = () => {
   return (
     <Box>
       {/* Header */}
-      <PageHeader
-        title={t('payments.history.title')}
-        subtitle={t('payments.history.subtitle')}
-        backPath="/dashboard"
-        showBackButton={true}
-      />
+      {!embedded && (
+        <PageHeader
+          title={t('payments.history.title')}
+          subtitle={t('payments.history.subtitle')}
+          backPath="/dashboard"
+          showBackButton={true}
+        />
+      )}
 
       {payError && (
         <Alert

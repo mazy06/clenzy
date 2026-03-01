@@ -104,7 +104,7 @@ class RateOverrideControllerTest {
             when(saved.getSource()).thenReturn("MANUAL");
             when(rateOverrideRepository.save(any(RateOverride.class))).thenReturn(saved);
 
-            RateOverrideDto dto = new RateOverrideDto(null, 1L, "2026-03-15", 150.0, null);
+            RateOverrideDto dto = new RateOverrideDto(null, 1L, "2026-03-15", 150.0, null, null);
 
             ResponseEntity<RateOverrideDto> response = controller.create(dto, jwt);
 
