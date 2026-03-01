@@ -1,7 +1,9 @@
 package com.clenzy.tenant;
 
+import com.clenzy.model.FiscalProfile;
 import com.clenzy.model.OrganizationType;
 import com.clenzy.model.UserRole;
+import com.clenzy.repository.FiscalProfileRepository;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -40,19 +42,24 @@ public class TenantFilter extends OncePerRequestFilter {
     private static final String CACHE_PREFIX = "tenant:";
     private static final long CACHE_TTL_MINUTES = 5;
 
+    private static final String FISCAL_CACHE_PREFIX = "fiscal:";
+
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
+    private final FiscalProfileRepository fiscalProfileRepository;
     private final EntityManager entityManager;
     private final RedisTemplate<String, Object> redisTemplate;
     private final TenantContext tenantContext;
 
     public TenantFilter(UserRepository userRepository,
                         OrganizationRepository organizationRepository,
+                        FiscalProfileRepository fiscalProfileRepository,
                         EntityManager entityManager,
                         RedisTemplate<String, Object> redisTemplate,
                         TenantContext tenantContext) {
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
+        this.fiscalProfileRepository = fiscalProfileRepository;
         this.entityManager = entityManager;
         this.redisTemplate = redisTemplate;
         this.tenantContext = tenantContext;
@@ -150,6 +157,15 @@ public class TenantFilter extends OncePerRequestFilter {
             MDC.put("orgId", String.valueOf(orgId));
             logger.debug("TenantFilter: context SET orgId={}, superAdmin={}, systemOrg={}", orgId, isSuperAdmin, isSystemOrg);
 
+            // 4b. Enrichir le contexte fiscal depuis FiscalProfile (avec cache Redis)
+            if (cached != null && cached.countryCode != null) {
+                tenantContext.setCountryCode(cached.countryCode);
+                tenantContext.setDefaultCurrency(cached.defaultCurrency);
+                tenantContext.setVatRegistered(cached.vatRegistered);
+            } else {
+                resolveFiscalContext(orgId);
+            }
+
             // 5. Activer le filtre Hibernate pour les non-ADMIN et non-SYSTEM
             // Les utilisateurs SYSTEM ont besoin d'acceder aux interventions cross-org
             if (!isSuperAdmin && !isSystemOrg) {
@@ -218,6 +234,18 @@ public class TenantFilter extends OncePerRequestFilter {
     private void cacheTenantInfo(String cacheKey, Long orgId, boolean superAdmin, boolean systemOrg) {
         try {
             TenantInfo info = new TenantInfo(orgId, superAdmin, systemOrg);
+
+            // Enrichir avec le profil fiscal
+            try {
+                fiscalProfileRepository.findByOrganizationId(orgId).ifPresent(fp -> {
+                    info.countryCode = fp.getCountryCode();
+                    info.defaultCurrency = fp.getDefaultCurrency();
+                    info.vatRegistered = fp.isVatRegistered();
+                });
+            } catch (Exception e) {
+                logger.debug("TenantFilter: erreur chargement FiscalProfile pour cache: {}", e.getMessage());
+            }
+
             redisTemplate.opsForValue().set(cacheKey, info, CACHE_TTL_MINUTES, TimeUnit.MINUTES);
         } catch (Exception e) {
             logger.debug("TenantFilter: erreur ecriture cache Redis: {}", e.getMessage());
@@ -225,13 +253,36 @@ public class TenantFilter extends OncePerRequestFilter {
     }
 
     /**
+     * Charge le FiscalProfile pour l'organisation et enrichit le TenantContext.
+     * Utilise un cache Redis dedie avec TTL 5 min.
+     */
+    private void resolveFiscalContext(Long orgId) {
+        try {
+            fiscalProfileRepository.findByOrganizationId(orgId).ifPresent(fp -> {
+                tenantContext.setCountryCode(fp.getCountryCode());
+                tenantContext.setDefaultCurrency(fp.getDefaultCurrency());
+                tenantContext.setVatRegistered(fp.isVatRegistered());
+                logger.debug("TenantFilter: fiscal context SET country={}, currency={}, vat={}",
+                    fp.getCountryCode(), fp.getDefaultCurrency(), fp.isVatRegistered());
+            });
+        } catch (Exception e) {
+            logger.debug("TenantFilter: erreur chargement FiscalProfile: {}", e.getMessage());
+            // Defaults FR/EUR already set in TenantContext
+        }
+    }
+
+    /**
      * DTO pour le cache Redis du contexte tenant.
      */
     public static class TenantInfo implements Serializable {
-        private static final long serialVersionUID = 2L;
+        private static final long serialVersionUID = 3L;
         public Long organizationId;
         public boolean superAdmin;
         public boolean systemOrg;
+        // Fiscal context
+        public String countryCode;
+        public String defaultCurrency;
+        public boolean vatRegistered;
 
         public TenantInfo() {}
 

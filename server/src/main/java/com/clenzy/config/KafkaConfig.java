@@ -57,6 +57,20 @@ public class KafkaConfig {
     public static final String TOPIC_MINUT_NOISE_EVENTS = "minut.noise.events";
     public static final String TOPIC_CALENDAR_UPDATES = "calendar.updates";
 
+    // ---- Expedia/VRBO topics ----
+    public static final String TOPIC_EXPEDIA_RESERVATIONS = "expedia.reservations.sync";
+    public static final String TOPIC_EXPEDIA_CALENDAR = "expedia.calendar.sync";
+    public static final String TOPIC_EXPEDIA_DLQ = "expedia.dlq";
+
+    // ---- Conversation / WhatsApp topics ----
+    public static final String TOPIC_CONVERSATIONS = "conversations.events";
+    public static final String TOPIC_BOOKING_MESSAGES = "booking.messages.sync";
+    public static final String TOPIC_WHATSAPP_WEBHOOKS = "whatsapp.webhooks.incoming";
+
+    // ---- Reviews & Pricing topics ----
+    public static final String TOPIC_REVIEWS_SYNC = "reviews.sync";
+    public static final String TOPIC_PRICING_EXTERNAL = "pricing.external.sync";
+
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
 
@@ -204,6 +218,74 @@ public class KafkaConfig {
     @Bean
     public NewTopic calendarUpdatesTopic() {
         return TopicBuilder.name(TOPIC_CALENDAR_UPDATES)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    // ---- Expedia/VRBO topics ----
+
+    @Bean
+    public NewTopic expediaReservationsTopic() {
+        return TopicBuilder.name(TOPIC_EXPEDIA_RESERVATIONS)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic expediaCalendarTopic() {
+        return TopicBuilder.name(TOPIC_EXPEDIA_CALENDAR)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic expediaDlqTopic() {
+        return TopicBuilder.name(TOPIC_EXPEDIA_DLQ)
+                .partitions(1)
+                .replicas(1)
+                .build();
+    }
+
+    // ---- Conversation / WhatsApp topics ----
+
+    @Bean
+    public NewTopic conversationsTopic() {
+        return TopicBuilder.name(TOPIC_CONVERSATIONS)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic bookingMessagesTopic() {
+        return TopicBuilder.name(TOPIC_BOOKING_MESSAGES)
+                .partitions(1)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic whatsappWebhooksTopic() {
+        return TopicBuilder.name(TOPIC_WHATSAPP_WEBHOOKS)
+                .partitions(1)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic reviewsSyncTopic() {
+        return TopicBuilder.name(TOPIC_REVIEWS_SYNC)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic pricingExternalTopic() {
+        return TopicBuilder.name(TOPIC_PRICING_EXTERNAL)
                 .partitions(3)
                 .replicas(1)
                 .build();

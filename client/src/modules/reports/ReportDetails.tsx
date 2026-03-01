@@ -16,6 +16,7 @@ import {
   People as PeopleIcon,
   Home as HomeIcon,
   BarChart as BarChartIcon,
+  AccountBalance as AccountBalanceIcon,
 } from '@mui/icons-material';
 import {
   PieChart,
@@ -42,6 +43,7 @@ import {
   useTeamReport,
   useFinancialReport,
 } from './hooks/useReportData';
+import FiscalReportSection from './FiscalReportSection';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -582,6 +584,12 @@ const ReportDetails: React.FC = () => {
       icon: <HomeIcon color="warning" />,
       permission: 'reports:view',
       component: PropertiesReport,
+    },
+    fiscal: {
+      title: t('reports.sections.fiscal.title', 'Rapport Fiscal'),
+      icon: <AccountBalanceIcon color="secondary" />,
+      permission: 'reports:view',
+      component: FiscalReportSection,
     },
   };
 

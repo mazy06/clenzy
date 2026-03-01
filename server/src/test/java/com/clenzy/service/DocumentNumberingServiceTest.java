@@ -1,8 +1,11 @@
 package com.clenzy.service;
 
+import com.clenzy.compliance.ComplianceStrategyRegistry;
+import com.clenzy.compliance.country.FranceComplianceStrategy;
 import com.clenzy.model.DocumentNumberSequence;
 import com.clenzy.model.DocumentType;
 import com.clenzy.repository.DocumentNumberSequenceRepository;
+import com.clenzy.repository.FiscalProfileRepository;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -12,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,6 +29,7 @@ import static org.mockito.Mockito.when;
 class DocumentNumberingServiceTest {
 
     @Mock private DocumentNumberSequenceRepository sequenceRepository;
+    @Mock private FiscalProfileRepository fiscalProfileRepository;
 
     private TenantContext tenantContext;
     private DocumentNumberingService service;
@@ -34,7 +39,13 @@ class DocumentNumberingServiceTest {
     void setUp() {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
-        service = new DocumentNumberingService(sequenceRepository, tenantContext);
+        tenantContext.setCountryCode("FR");
+
+        ComplianceStrategyRegistry strategyRegistry = new ComplianceStrategyRegistry(
+                List.of(new FranceComplianceStrategy()));
+
+        service = new DocumentNumberingService(sequenceRepository, tenantContext,
+                strategyRegistry, fiscalProfileRepository);
     }
 
     // ===== REQUIRES LEGAL NUMBER =====

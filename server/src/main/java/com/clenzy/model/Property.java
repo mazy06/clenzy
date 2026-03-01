@@ -79,7 +79,10 @@ public class Property {
     
     @Column(name = "nightly_price", precision = 10, scale = 2)
     private BigDecimal nightlyPrice;
-    
+
+    @Column(name = "default_currency", nullable = false, length = 3, columnDefinition = "varchar(3) default 'EUR'")
+    private String defaultCurrency = "EUR";
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PropertyType type = PropertyType.APARTMENT;
@@ -323,6 +326,14 @@ public class Property {
         this.nightlyPrice = nightlyPrice;
     }
     
+    public String getDefaultCurrency() {
+        return defaultCurrency;
+    }
+
+    public void setDefaultCurrency(String defaultCurrency) {
+        this.defaultCurrency = defaultCurrency;
+    }
+
     public PropertyType getType() {
         return type;
     }

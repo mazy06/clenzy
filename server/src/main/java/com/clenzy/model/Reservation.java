@@ -61,6 +61,22 @@ public class Reservation {
     @Column(name = "total_price", precision = 10, scale = 2)
     private BigDecimal totalPrice = BigDecimal.ZERO;
 
+    // --- Multi-currency & fiscal breakdown (V84) ---
+    @Column(name = "currency", nullable = false, length = 3, columnDefinition = "varchar(3) default 'EUR'")
+    private String currency = "EUR";
+
+    @Column(name = "room_revenue", precision = 10, scale = 2)
+    private BigDecimal roomRevenue;
+
+    @Column(name = "cleaning_fee", precision = 10, scale = 2)
+    private BigDecimal cleaningFee;
+
+    @Column(name = "tax_amount", precision = 10, scale = 2)
+    private BigDecimal taxAmount;
+
+    @Column(name = "tourist_tax_amount", precision = 10, scale = 2)
+    private BigDecimal touristTaxAmount;
+
     @Column(name = "confirmation_code", length = 100)
     private String confirmationCode;
 
@@ -173,6 +189,21 @@ public class Reservation {
 
     public Integer getVersion() { return version; }
     public void setVersion(Integer version) { this.version = version; }
+
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency; }
+
+    public BigDecimal getRoomRevenue() { return roomRevenue; }
+    public void setRoomRevenue(BigDecimal roomRevenue) { this.roomRevenue = roomRevenue; }
+
+    public BigDecimal getCleaningFee() { return cleaningFee; }
+    public void setCleaningFee(BigDecimal cleaningFee) { this.cleaningFee = cleaningFee; }
+
+    public BigDecimal getTaxAmount() { return taxAmount; }
+    public void setTaxAmount(BigDecimal taxAmount) { this.taxAmount = taxAmount; }
+
+    public BigDecimal getTouristTaxAmount() { return touristTaxAmount; }
+    public void setTouristTaxAmount(BigDecimal touristTaxAmount) { this.touristTaxAmount = touristTaxAmount; }
 
     @Override
     public String toString() {

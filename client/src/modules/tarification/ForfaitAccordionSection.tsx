@@ -74,12 +74,13 @@ interface ForfaitAccordionSectionProps {
   availableSurcharges: SurchargeOption[];
   onAddPrestation: (prestation: PrestationOption) => void;
   onAddSurcharge: (surcharge: SurchargeOption) => void;
+  currencySymbol: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.memo(
-  ({ forfait, teams, canEdit, onChange, availablePrestations, availableSurcharges, onAddPrestation, onAddSurcharge }) => {
+  ({ forfait, teams, canEdit, onChange, availablePrestations, availableSurcharges, onAddPrestation, onAddSurcharge, currencySymbol }) => {
     const { t } = useTranslation();
     const primaryColor = '#6B8A9A';
 
@@ -185,7 +186,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
     // ─── Add surcharge handler ────────────────────────────────────────
     const handleAddSurcharge = useCallback(() => {
       if (!newSurchargeKey.trim() || !newSurchargeLabel.trim()) return;
-      onAddSurcharge({ key: newSurchargeKey.trim(), label: newSurchargeLabel.trim(), unit: '€' });
+      onAddSurcharge({ key: newSurchargeKey.trim(), label: newSurchargeLabel.trim(), unit: currencySymbol });
       setNewSurchargeKey('');
       setNewSurchargeLabel('');
       setAddSurchargeOpen(false);
@@ -426,7 +427,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                         disabled={!canEdit}
                         inputProps={{ min: 0, style: { textAlign: 'right' } }}
                         sx={{ width: 100 }}
-                        InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
+                        InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
                       />
                     </TableCell>
                     {canEdit && (

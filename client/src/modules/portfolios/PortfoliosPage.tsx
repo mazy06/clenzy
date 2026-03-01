@@ -118,6 +118,7 @@ function EmptyState({ icon, message, action }: EmptyStateProps) {
         border: '2px dashed',
         borderColor: 'grey.200',
         borderRadius: 2,
+        flex: 1,
       }}
     >
       <Box sx={{ color: 'text.disabled', mb: 1 }}>{icon}</Box>
@@ -262,7 +263,7 @@ const PortfoliosPage: React.FC = () => {
           ) : (
             <Grid container spacing={3}>
               {/* Clients */}
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column' }}>
                 <SectionHeader
                   icon={<Person sx={{ fontSize: 20 }} />}
                   title={t('portfolios.sections.clients')}
@@ -368,7 +369,7 @@ const PortfoliosPage: React.FC = () => {
               </Grid>
 
               {/* Properties grouped by client */}
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={6} sx={{ display: 'flex', flexDirection: 'column' }}>
                 <SectionHeader
                   icon={<Home sx={{ fontSize: 20 }} />}
                   title={t('portfolios.sections.propertiesByClient')}

@@ -41,18 +41,19 @@ public class TemplateInterpolationService {
         new TemplateVariable("departureInstructions", "Instructions de depart", "Laisser les cles..."),
         new TemplateVariable("houseRules", "Regles de la maison", "Pas de fete, pas de bruit..."),
         new TemplateVariable("emergencyContact", "Contact d'urgence", "+33 6 12 34 56 78"),
-        new TemplateVariable("confirmationCode", "Code de confirmation", "ABC123")
+        new TemplateVariable("confirmationCode", "Code de confirmation", "ABC123"),
+        new TemplateVariable("checkInLink", "Lien check-in en ligne", "https://app.clenzy.fr/checkin/abc123"),
+        new TemplateVariable("guideLink", "Lien guide d'accueil", "https://app.clenzy.fr/guide/xyz789")
     );
+
+    private final TranslationService translationService;
+
+    public TemplateInterpolationService(TranslationService translationService) {
+        this.translationService = translationService;
+    }
 
     /**
      * Interpole un template avec les donnees de la reservation.
-     *
-     * @param template     le modele de message
-     * @param reservation  la reservation
-     * @param guest        le voyageur (nullable)
-     * @param property     la propriete
-     * @param instructions les instructions check-in (nullable)
-     * @return le message interpole (subject + htmlBody + plainBody)
      */
     public InterpolatedMessage interpolate(
             MessageTemplate template,
@@ -61,13 +62,54 @@ public class TemplateInterpolationService {
             Property property,
             CheckInInstructions instructions
     ) {
+        return interpolate(template, reservation, guest, property, instructions, Map.of());
+    }
+
+    /**
+     * Interpole un template avec des variables supplementaires (checkInLink, guideLink, etc.).
+     */
+    public InterpolatedMessage interpolate(
+            MessageTemplate template,
+            Reservation reservation,
+            Guest guest,
+            Property property,
+            CheckInInstructions instructions,
+            Map<String, String> extraVars
+    ) {
         Map<String, String> vars = buildVariableMap(reservation, guest, property, instructions);
+        vars.putAll(extraVars);
 
         String subject = replaceVariables(template.getSubject(), vars, false);
         String htmlBody = replaceVariables(template.getBody(), vars, true);
         String plainBody = replaceVariables(template.getBody(), vars, false);
 
         return new InterpolatedMessage(subject, htmlBody, plainBody);
+    }
+
+    /**
+     * Interpole un template puis traduit le resultat dans la langue du guest.
+     * Si la traduction est desactivee ou si la langue est celle du template, retourne sans traduire.
+     */
+    public InterpolatedMessage interpolateAndTranslate(
+            MessageTemplate template,
+            Reservation reservation,
+            Guest guest,
+            Property property,
+            CheckInInstructions instructions,
+            Map<String, String> extraVars,
+            String targetLanguage
+    ) {
+        InterpolatedMessage interpolated = interpolate(template, reservation, guest, property, instructions, extraVars);
+
+        if (targetLanguage == null || targetLanguage.equalsIgnoreCase("fr")) {
+            return interpolated;
+        }
+
+        String translatedSubject = translationService.translate(interpolated.subject(), targetLanguage);
+        String translatedHtml = translationService.translate(interpolated.htmlBody(), targetLanguage);
+        String translatedPlain = translationService.translate(interpolated.plainBody(), targetLanguage);
+
+        return new InterpolatedMessage(translatedSubject, translatedHtml, translatedPlain);
     }
 
     private Map<String, String> buildVariableMap(

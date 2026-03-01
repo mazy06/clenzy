@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '../components/ProtectedRoute';
 import SmartRedirect from '../components/SmartRedirect';
 
@@ -73,8 +73,8 @@ import PortfoliosPage from './portfolios/PortfoliosPage';
 import ClientPropertyAssignmentForm from './portfolios/ClientPropertyAssignmentForm';
 import TeamUserAssignmentForm from './portfolios/TeamUserAssignmentForm';
 
-// Payments
-import PaymentHistoryPage from './payments/PaymentHistoryPage';
+// Billing (Payments + Invoices)
+import BillingPage from './billing/BillingPage';
 
 // Reservations
 import ReservationsList from './reservations/ReservationsList';
@@ -93,9 +93,23 @@ import DatabaseAdminPage from './admin/DatabaseAdminPage';
 import ChannelsPage from './channels/ChannelsPage';
 import ReviewsPage from './channels/ReviewsPage';
 
-// Messaging
-import MessageTemplatesPage from './messaging/MessageTemplatesPage';
-import MessageHistoryPage from './messaging/MessageHistoryPage';
+// Messaging — pages now merged into Documents module (redirected via Navigate)
+// import MessageTemplatesPage from './messaging/MessageTemplatesPage';
+// import MessageHistoryPage from './messaging/MessageHistoryPage';
+
+// Channel Promotions
+import ChannelPromotionsPage from './promotions/ChannelPromotionsPage';
+
+// Accounting
+import AccountingPage from './accounting/AccountingPage';
+
+// Owner Portal
+import OwnerPortalPage from './owner-portal/OwnerPortalPage';
+
+// Automation Rules
+import AutomationRulesPage from './automation/AutomationRulesPage';
+
+// InvoicesList import removed — now embedded in BillingPage
 
 
 const AuthenticatedApp: React.FC = () => {
@@ -221,11 +235,13 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/payments/history" element={
+        <Route path="/billing" element={
           <ProtectedRoute requiredPermission="payments:view">
-            <PaymentHistoryPage />
+            <BillingPage />
           </ProtectedRoute>
         } />
+        {/* Backward-compat redirects */}
+        <Route path="/payments/history" element={<Navigate to="/billing" replace />} />
 
         <Route path="/calendar" element={
           <ProtectedRoute requiredPermission="interventions:view">
@@ -404,18 +420,41 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/messaging/templates" element={
-          <ProtectedRoute requiredPermission="settings:view">
+        {/* Messaging routes — redirect to Documents unified page */}
+        <Route path="/messaging/templates" element={<Navigate to="/documents?tab=1" replace />} />
+        <Route path="/messaging/history" element={<Navigate to="/documents?tab=3" replace />} />
+
+        <Route path="/promotions" element={
+          <ProtectedRoute requiredPermission="pricing:view">
             <ErrorBoundary>
-              <MessageTemplatesPage />
+              <ChannelPromotionsPage />
             </ErrorBoundary>
           </ProtectedRoute>
         } />
 
-        <Route path="/messaging/history" element={
+        <Route path="/accounting" element={
+          <ProtectedRoute requiredPermission="payments:view">
+            <ErrorBoundary>
+              <AccountingPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        {/* Backward-compat redirect */}
+        <Route path="/invoices" element={<Navigate to="/billing?tab=1" replace />} />
+
+        <Route path="/owner-portal" element={
+          <ProtectedRoute requiredPermission="payments:view">
+            <ErrorBoundary>
+              <OwnerPortalPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/automation-rules" element={
           <ProtectedRoute requiredPermission="settings:view">
             <ErrorBoundary>
-              <MessageHistoryPage />
+              <AutomationRulesPage />
             </ErrorBoundary>
           </ProtectedRoute>
         } />

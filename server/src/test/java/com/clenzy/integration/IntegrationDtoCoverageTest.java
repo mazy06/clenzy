@@ -533,11 +533,18 @@ class IntegrationDtoCoverageTest {
     @DisplayName("ChannelName enum")
     class ChannelNameTest {
         @Test void allValues() {
-            assertThat(ChannelName.values()).hasSize(5);
+            assertThat(ChannelName.values()).hasSize(12);
             assertThat(ChannelName.valueOf("AIRBNB")).isEqualTo(ChannelName.AIRBNB);
             assertThat(ChannelName.valueOf("BOOKING")).isEqualTo(ChannelName.BOOKING);
+            assertThat(ChannelName.valueOf("EXPEDIA")).isEqualTo(ChannelName.EXPEDIA);
             assertThat(ChannelName.valueOf("VRBO")).isEqualTo(ChannelName.VRBO);
             assertThat(ChannelName.valueOf("ICAL")).isEqualTo(ChannelName.ICAL);
+            assertThat(ChannelName.valueOf("GOOGLE_VACATION_RENTALS")).isEqualTo(ChannelName.GOOGLE_VACATION_RENTALS);
+            assertThat(ChannelName.valueOf("HOMEAWAY")).isEqualTo(ChannelName.HOMEAWAY);
+            assertThat(ChannelName.valueOf("TRIPADVISOR")).isEqualTo(ChannelName.TRIPADVISOR);
+            assertThat(ChannelName.valueOf("AGODA")).isEqualTo(ChannelName.AGODA);
+            assertThat(ChannelName.valueOf("HOTELS_COM")).isEqualTo(ChannelName.HOTELS_COM);
+            assertThat(ChannelName.valueOf("DIRECT")).isEqualTo(ChannelName.DIRECT);
             assertThat(ChannelName.valueOf("OTHER")).isEqualTo(ChannelName.OTHER);
         }
     }
@@ -557,7 +564,7 @@ class IntegrationDtoCoverageTest {
     class ChannelConnectionTest {
         @Test void defaultConstructor() {
             ChannelConnection cc = new ChannelConnection();
-            assertThat(cc.getStatus()).isEqualTo("ACTIVE");
+            assertThat(cc.getStatus()).isEqualTo(ChannelConnection.ConnectionStatus.ACTIVE);
         }
         @Test void parameterizedConstructor() {
             ChannelConnection cc = new ChannelConnection(1L, ChannelName.AIRBNB);
@@ -567,7 +574,7 @@ class IntegrationDtoCoverageTest {
         @Test void isActive() {
             ChannelConnection cc = new ChannelConnection();
             assertThat(cc.isActive()).isTrue();
-            cc.setStatus("INACTIVE");
+            cc.setStatus(ChannelConnection.ConnectionStatus.INACTIVE);
             assertThat(cc.isActive()).isFalse();
         }
         @Test void setters() {
@@ -575,7 +582,7 @@ class IntegrationDtoCoverageTest {
             cc.setId(1L);
             cc.setOrganizationId(2L);
             cc.setChannel(ChannelName.BOOKING);
-            cc.setStatus("ERROR");
+            cc.setStatus(ChannelConnection.ConnectionStatus.ERROR);
             cc.setCredentialsRef("cred-ref");
             cc.setWebhookUrl("https://hook.com");
             cc.setSyncConfig("{\"auto\":true}");

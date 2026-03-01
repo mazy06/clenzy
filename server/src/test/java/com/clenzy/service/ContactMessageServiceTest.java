@@ -43,6 +43,7 @@ class ContactMessageServiceTest {
     @Mock private ContactFileStorageService fileStorageService;
     @Mock private NotificationService notificationService;
     @Mock private TenantContext tenantContext;
+    @Mock private ContactMessageEventPublisher eventPublisher;
 
     private ContactMessageService service;
 
@@ -67,7 +68,8 @@ class ContactMessageServiceTest {
                 objectMapper,
                 fileStorageService,
                 notificationService,
-                tenantContext
+                tenantContext,
+                eventPublisher
         );
 
         // Build JWTs

@@ -47,6 +47,9 @@ public class RateOverride {
     @Column(length = 50, nullable = false)
     private String source = "MANUAL";
 
+    @Column(length = 3, nullable = false)
+    private String currency = "EUR";
+
     @Column(name = "created_by", length = 255)
     private String createdBy;
 
@@ -86,6 +89,9 @@ public class RateOverride {
 
     public String getSource() { return source; }
     public void setSource(String source) { this.source = source; }
+
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency; }
 
     public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }

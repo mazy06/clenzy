@@ -15,6 +15,7 @@ import {
   Timeline as TimelineIcon,
   BarChart as BarChartIcon,
   VolumeUp as VolumeUpIcon,
+  LockOutlined as LockOutlinedIcon,
   Sync as SyncIcon,
   CalendarToday as CalendarTodayIcon,
   Dashboard as DashboardIcon,
@@ -30,6 +31,7 @@ import DashboardPlanning from './DashboardPlanning';
 import DashboardActivityContent from './DashboardActivityContent';
 import DashboardAnalyticsContent from './DashboardAnalyticsContent';
 import DashboardNoiseTab from './DashboardNoiseTab';
+import DashboardSmartLockTab from './DashboardSmartLockTab';
 import DashboardDateFilter from './DashboardDateFilter';
 import ICalImportModal from './ICalImportModal';
 import UpgradeBanner from './UpgradeBanner';
@@ -325,6 +327,12 @@ const Dashboard: React.FC = () => {
             label={t('dashboard.tabs.noise') || 'Nuisance sonore'}
             {...a11yProps(3)}
           />
+          <Tab
+            icon={<LockOutlinedIcon sx={{ fontSize: 16 }} />}
+            iconPosition="start"
+            label={t('dashboard.tabs.smartLock') || 'Serrures connectées'}
+            {...a11yProps(4)}
+          />
         </Tabs>
 
         {/* ─── Analytics sub-tabs (dropdown-style continuation) ───────── */}
@@ -449,6 +457,18 @@ const Dashboard: React.FC = () => {
           sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
         >
           <DashboardNoiseTab />
+        </Box>
+      )}
+
+      {/* ─── Tab 4: Serrures connectées ────────────────────────────────── */}
+      {tabValue === 4 && (
+        <Box
+          role="tabpanel"
+          id="dashboard-tabpanel-4"
+          aria-labelledby="dashboard-tab-4"
+          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
+        >
+          <DashboardSmartLockTab />
         </Box>
       )}
 

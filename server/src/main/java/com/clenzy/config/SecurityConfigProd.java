@@ -18,6 +18,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.filter.CorsFilter;
+import com.clenzy.repository.FiscalProfileRepository;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
@@ -50,10 +51,11 @@ public class SecurityConfigProd {
     @Bean
     public TenantFilter tenantFilter(UserRepository userRepository,
                                       OrganizationRepository organizationRepository,
+                                      FiscalProfileRepository fiscalProfileRepository,
                                       EntityManager entityManager,
                                       RedisTemplate<String, Object> redisTemplate,
                                       TenantContext tenantContext) {
-        return new TenantFilter(userRepository, organizationRepository, entityManager, redisTemplate, tenantContext);
+        return new TenantFilter(userRepository, organizationRepository, fiscalProfileRepository, entityManager, redisTemplate, tenantContext);
     }
 
     /**
@@ -111,7 +113,10 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/api/webhooks/stripe").permitAll()
+                        .requestMatchers("/api/webhooks/expedia").permitAll()
+                        .requestMatchers("/api/webhooks/whatsapp").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
                         // Invitations : info publique (sans JWT), accept authentifie
                         .requestMatchers(HttpMethod.GET, "/api/invitations/info").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/invitations/accept").authenticated()

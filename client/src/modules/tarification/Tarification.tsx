@@ -50,6 +50,7 @@ export default function Tarification() {
     isLoading,
     canEdit,
     isSaving,
+    currencySymbol,
     updateConfig,
     saveConfig,
     resetConfig,
@@ -140,22 +141,22 @@ export default function Tarification() {
         {/* ─── Tab Content ───────────────────────────────────────────── */}
         <Box sx={{ p: 2 }}>
           {activeTab === 0 && (
-            <TabPMS config={config} canEdit={canEdit} onUpdate={updateConfig} />
+            <TabPMS config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
           {activeTab === 1 && (
-            <TabEntretien config={config} teams={teams} canEdit={canEdit} onUpdate={updateConfig} />
+            <TabEntretien config={config} teams={teams} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
           {activeTab === 2 && (
-            <TabTravaux config={config} canEdit={canEdit} onUpdate={updateConfig} />
+            <TabTravaux config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
           {activeTab === 3 && (
-            <TabExterieur config={config} canEdit={canEdit} onUpdate={updateConfig} />
+            <TabExterieur config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
           {activeTab === 4 && (
-            <TabBlanchisserie config={config} canEdit={canEdit} onUpdate={updateConfig} />
+            <TabBlanchisserie config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
           {activeTab === 5 && (
-            <TabMonitoring config={config} canEdit={canEdit} onUpdate={updateConfig} />
+            <TabMonitoring config={config} canEdit={canEdit} onUpdate={updateConfig} currencySymbol={currencySymbol} />
           )}
         </Box>
       </Paper>

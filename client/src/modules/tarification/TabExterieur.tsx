@@ -27,9 +27,10 @@ interface TabExterieurProps {
   config: PricingConfig;
   canEdit: boolean;
   onUpdate: (partial: Partial<PricingConfig>) => void;
+  currencySymbol: string;
 }
 
-export default function TabExterieur({ config, canEdit, onUpdate }: TabExterieurProps) {
+export default function TabExterieur({ config, canEdit, onUpdate, currencySymbol }: TabExterieurProps) {
   const { t } = useTranslation();
 
   const items = config.exterieurConfig || [];
@@ -123,7 +124,7 @@ export default function TabExterieur({ config, canEdit, onUpdate }: TabExterieur
                     }}
                     disabled={!canEdit || !item.enabled}
                     inputProps={{ step: 1, min: 0, style: { textAlign: 'right' } }}
-                    InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
+                    InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
                     sx={{ width: 120 }}
                   />
                 </TableCell>
@@ -174,7 +175,7 @@ export default function TabExterieur({ config, canEdit, onUpdate }: TabExterieur
             onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
             size="small"
             fullWidth
-            InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
+            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
           />
         </DialogContent>
         <DialogActions>

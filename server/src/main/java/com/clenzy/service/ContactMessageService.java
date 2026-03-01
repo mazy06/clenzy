@@ -24,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.clenzy.dto.ContactThreadSummaryDto;
+
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -45,6 +47,7 @@ public class ContactMessageService {
     private final ContactFileStorageService fileStorageService;
     private final NotificationService notificationService;
     private final TenantContext tenantContext;
+    private final ContactMessageEventPublisher eventPublisher;
 
     @Value("${clenzy.mail.contact.max-attachments:10}")
     private int maxAttachments;
@@ -61,7 +64,8 @@ public class ContactMessageService {
             ObjectMapper objectMapper,
             ContactFileStorageService fileStorageService,
             NotificationService notificationService,
-            TenantContext tenantContext
+            TenantContext tenantContext,
+            ContactMessageEventPublisher eventPublisher
     ) {
         this.contactMessageRepository = contactMessageRepository;
         this.attachmentFileRepository = attachmentFileRepository;
@@ -72,6 +76,7 @@ public class ContactMessageService {
         this.fileStorageService = fileStorageService;
         this.notificationService = notificationService;
         this.tenantContext = tenantContext;
+        this.eventPublisher = eventPublisher;
     }
 
     // ─── Lecture ─────────────────────────────────────────────────────────────
@@ -219,7 +224,11 @@ public class ContactMessageService {
                 "Votre message \"" + normalizedSubject + "\" a ete envoye avec succes",
                 "/contact?tab=1");
 
-        return ContactMessageDto.fromEntity(contactMessage);
+        // Publication temps reel via WebSocket
+        ContactMessageDto dto = ContactMessageDto.fromEntity(contactMessage);
+        eventPublisher.publishNewMessage(contactMessage, dto);
+
+        return dto;
     }
 
     @Transactional
@@ -285,7 +294,11 @@ public class ContactMessageService {
                     "/contact");
         }
 
-        return ContactMessageDto.fromEntity(reply);
+        // Publication temps reel via WebSocket
+        ContactMessageDto dto = ContactMessageDto.fromEntity(reply);
+        eventPublisher.publishNewMessage(reply, dto);
+
+        return dto;
     }
 
     // ─── Actions ────────────────────────────────────────────────────────────
@@ -350,6 +363,36 @@ public class ContactMessageService {
         return Map.of("deletedCount", deletedCount);
     }
 
+    /**
+     * Marque tous les messages non-lus d'un thread comme READ.
+     * Seul le destinataire peut marquer ses messages comme lus (garanti par la query).
+     *
+     * @return le nombre de messages mis a jour
+     */
+    @Transactional
+    public int markThreadAsRead(Jwt jwt, String counterpartKeycloakId) {
+        String userId = requireUserId(jwt);
+        Long orgId = tenantContext.getOrganizationId();
+
+        List<ContactMessage> unread = contactMessageRepository
+                .findUnreadThreadMessages(userId, counterpartKeycloakId, orgId);
+
+        if (unread.isEmpty()) {
+            return 0;
+        }
+
+        for (ContactMessage message : unread) {
+            applyStatus(message, ContactMessageStatus.READ);
+        }
+
+        contactMessageRepository.saveAll(unread);
+
+        // Notifier l'expediteur via WebSocket que ses messages ont ete lus
+        eventPublisher.publishThreadRead(userId, counterpartKeycloakId, orgId, unread.size());
+
+        return unread.size();
+    }
+
     @Transactional
     public ContactMessageDto archiveMessage(Jwt jwt, Long id) {
         String userId = requireUserId(jwt);
@@ -409,6 +452,90 @@ public class ContactMessageService {
             case REPLIED -> { if (message.getRepliedAt() == null) message.setRepliedAt(now); }
             case SENT -> { /* pas de timestamp supplementaire */ }
         }
+    }
+
+    // ─── Threads (messagerie instantanee) ─────────────────────────────────
+
+    /**
+     * Liste des conversations groupees par interlocuteur.
+     * Pour chaque paire (user, counterpart), retourne un resume
+     * avec le dernier message, le compteur de non-lus et le total.
+     */
+    @Transactional(readOnly = true)
+    public List<ContactThreadSummaryDto> getThreads(Jwt jwt) {
+        String userId = requireUserId(jwt);
+        Long orgId = tenantContext.getOrganizationId();
+
+        List<ContactMessage> allMessages = contactMessageRepository.findAllForUser(userId, orgId);
+        if (allMessages.isEmpty()) return List.of();
+
+        // Grouper par interlocuteur (keycloakId de l'autre personne)
+        Map<String, List<ContactMessage>> byCounterpart = new LinkedHashMap<>();
+        for (ContactMessage m : allMessages) {
+            String counterpartId = m.getSenderKeycloakId().equals(userId)
+                    ? m.getRecipientKeycloakId()
+                    : m.getSenderKeycloakId();
+            byCounterpart.computeIfAbsent(counterpartId, k -> new ArrayList<>()).add(m);
+        }
+
+        List<ContactThreadSummaryDto> threads = new ArrayList<>();
+        for (var entry : byCounterpart.entrySet()) {
+            List<ContactMessage> msgs = entry.getValue();
+            // Le premier message est le plus recent (ORDER BY createdAt DESC)
+            ContactMessage latest = msgs.get(0);
+
+            String counterpartId = entry.getKey();
+            String firstName, lastName, email;
+            if (latest.getSenderKeycloakId().equals(counterpartId)) {
+                firstName = latest.getSenderFirstName();
+                lastName = latest.getSenderLastName();
+                email = latest.getSenderEmail();
+            } else {
+                firstName = latest.getRecipientFirstName();
+                lastName = latest.getRecipientLastName();
+                email = latest.getRecipientEmail();
+            }
+
+            long unreadCount = msgs.stream()
+                    .filter(m -> m.getRecipientKeycloakId().equals(userId))
+                    .filter(m -> m.getStatus() == ContactMessageStatus.SENT
+                              || m.getStatus() == ContactMessageStatus.DELIVERED)
+                    .count();
+
+            String preview = latest.getMessage();
+            if (preview != null && preview.length() > 200) {
+                preview = preview.substring(0, 200) + "...";
+            }
+
+            threads.add(new ContactThreadSummaryDto(
+                    counterpartId,
+                    firstName != null ? firstName : "Utilisateur",
+                    lastName != null ? lastName : "",
+                    email != null ? email : "",
+                    preview,
+                    latest.getCreatedAt(),
+                    unreadCount,
+                    msgs.size()
+            ));
+        }
+
+        return threads;
+    }
+
+    /**
+     * Messages d'une conversation avec un interlocuteur, tries par date croissante (chat).
+     */
+    @Transactional(readOnly = true)
+    public List<ContactMessageDto> getThreadMessages(Jwt jwt, String counterpartKeycloakId) {
+        String userId = requireUserId(jwt);
+        Long orgId = tenantContext.getOrganizationId();
+
+        List<ContactMessage> messages = contactMessageRepository
+                .findThreadMessages(userId, counterpartKeycloakId, orgId);
+
+        return messages.stream()
+                .map(ContactMessageDto::fromEntity)
+                .toList();
     }
 
     // ─── Auth helpers ───────────────────────────────────────────────────────

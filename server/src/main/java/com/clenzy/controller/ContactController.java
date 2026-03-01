@@ -5,6 +5,7 @@ import com.clenzy.dto.ContactBulkDeleteRequest;
 import com.clenzy.dto.ContactBulkStatusRequest;
 import com.clenzy.dto.ContactMessageDto;
 import com.clenzy.dto.ContactSendRequest;
+import com.clenzy.dto.ContactThreadSummaryDto;
 import com.clenzy.model.ContactAttachmentFile;
 import com.clenzy.model.ContactMessage;
 import com.clenzy.repository.ContactAttachmentFileRepository;
@@ -135,6 +136,36 @@ public class ContactController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
     public ResponseEntity<ContactMessageDto> unarchiveMessage(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         return ResponseEntity.ok(contactMessageService.unarchiveMessage(jwt, id));
+    }
+
+    // ─── Threads (messagerie instantanee) ──────────────────────────────────
+
+    @GetMapping("/threads")
+    @Operation(summary = "Liste des conversations groupees par interlocuteur")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
+    public ResponseEntity<List<ContactThreadSummaryDto>> getThreads(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(contactMessageService.getThreads(jwt));
+    }
+
+    @GetMapping("/threads/{counterpartKeycloakId}/messages")
+    @Operation(summary = "Messages d'une conversation avec un interlocuteur")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
+    public ResponseEntity<List<ContactMessageDto>> getThreadMessages(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String counterpartKeycloakId
+    ) {
+        return ResponseEntity.ok(contactMessageService.getThreadMessages(jwt, counterpartKeycloakId));
+    }
+
+    @PutMapping("/threads/{counterpartKeycloakId}/mark-read")
+    @Operation(summary = "Marquer tous les messages non-lus d'un thread comme lus")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST','TECHNICIAN','HOUSEKEEPER','SUPERVISOR','LAUNDRY','EXTERIOR_TECH')")
+    public ResponseEntity<Map<String, Object>> markThreadAsRead(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String counterpartKeycloakId
+    ) {
+        int count = contactMessageService.markThreadAsRead(jwt, counterpartKeycloakId);
+        return ResponseEntity.ok(Map.of("updatedCount", count));
     }
 
     // ─── Telechargement pieces jointes ─────────────────────────────────────

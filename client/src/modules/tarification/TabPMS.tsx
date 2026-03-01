@@ -15,9 +15,10 @@ interface TabPMSProps {
   config: PricingConfig;
   canEdit: boolean;
   onUpdate: (partial: Partial<PricingConfig>) => void;
+  currencySymbol: string;
 }
 
-export default function TabPMS({ config, canEdit, onUpdate }: TabPMSProps) {
+export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: TabPMSProps) {
   const { t } = useTranslation();
 
   return (
@@ -47,7 +48,7 @@ export default function TabPMS({ config, canEdit, onUpdate }: TabPMSProps) {
             }}
             disabled={!canEdit}
             helperText={t('tarification.pms.monthlyHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end">€/mois</InputAdornment> }}
+            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}/mois</InputAdornment> }}
           />
         </Grid>
         <Grid item xs={6}>
@@ -63,7 +64,7 @@ export default function TabPMS({ config, canEdit, onUpdate }: TabPMSProps) {
             }}
             disabled={!canEdit}
             helperText={t('tarification.pms.syncHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end">€/mois</InputAdornment> }}
+            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}/mois</InputAdornment> }}
           />
         </Grid>
       </Grid>
@@ -95,7 +96,7 @@ export default function TabPMS({ config, canEdit, onUpdate }: TabPMSProps) {
             }}
             disabled={!canEdit}
             helperText={t('tarification.automation.basicHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
+            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
           />
         </Grid>
         <Grid item xs={6}>
@@ -111,7 +112,7 @@ export default function TabPMS({ config, canEdit, onUpdate }: TabPMSProps) {
             }}
             disabled={!canEdit}
             helperText={t('tarification.automation.fullHelp')}
-            InputProps={{ endAdornment: <InputAdornment position="end">€</InputAdornment> }}
+            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}</InputAdornment> }}
           />
         </Grid>
       </Grid>

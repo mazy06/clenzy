@@ -196,7 +196,7 @@ class DocumentControllerTest {
 
         @Test
         void whenGetStats_thenDelegates() {
-            ComplianceStatsDto stats = new ComplianceStatsDto(10, 5, 3, 2, 4, 3, Map.of(), null, 95);
+            ComplianceStatsDto stats = new ComplianceStatsDto(10, 5, 3, 2, 4, 3, Map.of(), null, 95, "FR", "NF 525");
             when(complianceService.getComplianceStats()).thenReturn(stats);
 
             ResponseEntity<ComplianceStatsDto> response = controller.getComplianceStats();

@@ -46,11 +46,12 @@
     "rolesPermissions": "Roles & Permissions",
     "tarification": "Tarification",
     "payments": "Paiements",
+    "billing": "Facturation",
     "monitoring": "Monitoring",
     "syncDiagnostics": "Sync & Diagnostics",
     "kpiReadiness": "KPI Readiness",
     "database": "Base de données",
-    "documents": "Documents",
+    "documents": "Documents & Communications",
     "myProfile": "Mon profil",
     "logout": "Déconnexion",
     "menu": "Menu",
@@ -71,6 +72,7 @@
       "fr": "Français",
       "en": "Anglais"
     },
+    "invoices": "Factures",
     "channels": "Channels",
     "messaging": "Messagerie",
     "messageTemplates": "Templates",
@@ -285,7 +287,8 @@
       "activity": "Activité",
       "operations": "Opérations",
       "noise": "Nuisance sonore",
-      "analytics": "Analytics"
+      "analytics": "Analytics",
+      "smartLock": "Serrures connectées"
     },
     "noise": {
       "offersTitle": "Monitoring sonore",
@@ -336,6 +339,32 @@
         "back": "Retour",
         "next": "Suivant",
         "cancel": "Annuler"
+      }
+    },
+    "smartLock": {
+      "title": "Serrures connectées",
+      "subtitle": "Configurez et contrôlez vos serrures connectées Tuya par propriété.",
+      "offersTitle": "Serrures connectées Tuya",
+      "offersSubtitle": "Gérez l'accès à vos propriétés avec des serrures connectées compatibles Tuya.",
+      "feature1": "Verrouillage/déverrouillage à distance",
+      "feature2": "Monitoring du niveau de batterie",
+      "feature3": "Statut en temps réel (en ligne/hors ligne)",
+      "feature4": "Compatible toutes serrures Tuya",
+      "configure": "Configurer",
+      "addDevice": "Ajouter une serrure",
+      "locked": "Verrouillée",
+      "unlocked": "Déverrouillée",
+      "offline": "Hors ligne",
+      "unknown": "Inconnu",
+      "battery": "Batterie",
+      "lockAction": "Verrouiller",
+      "unlockAction": "Déverrouiller",
+      "confirmDelete": "Supprimer cette serrure ?",
+      "config": {
+        "stepProperty": "Propriété",
+        "stepRoom": "Pièce",
+        "stepDevice": "Appareil",
+        "stepConfirm": "Confirmation"
       }
     },
     "planning": {
@@ -982,7 +1011,8 @@
     },
     "calendar": {
       "selectProperty": "Sélectionner une propriété",
-      "noProperty": "Veuillez sélectionner une propriété",
+      "noProperty": "Sélectionnez une propriété pour commencer",
+      "noPropertyHint": "Choisissez une propriété dans le filtre ci-dessus pour visualiser et ajuster le calendrier des prix.",
       "editPrice": "Modifier le prix",
       "pricePerNight": "Prix par nuit",
       "applyRange": "Appliquer sur la période"
@@ -1340,7 +1370,28 @@
     "replyPlaceholder": "Écrire une réponse...",
     "noMessages": "Aucun message",
     "noMessagesDesc": "Votre boîte de réception est vide",
-    "message": "Message"
+    "message": "Message",
+    "channelMessages": "Messagerie OTA",
+    "internalChat": "Messagerie",
+    "selectConversation": "Selectionnez une conversation",
+    "noConversations": "Aucune conversation",
+    "noConversationsHint": "Vos echanges avec les membres de l'organisation apparaitront ici",
+    "searchContacts": "Rechercher un contact...",
+    "typeMessage": "Votre message...",
+    "unreadMessages": "messages non lus"
+  },
+  "channelInbox": {
+    "title": "Messagerie des plateformes",
+    "noConversations": "Aucune conversation",
+    "noConversationsHint": "Les messages de vos plateformes connectées apparaîtront ici",
+    "errorLoading": "Erreur de chargement des conversations",
+    "messages": "messages",
+    "guest": "Voyageur",
+    "host": "Hôte",
+    "unread": "Non lu",
+    "markAsRead": "Marquer comme lu",
+    "viewMessages": "Voir les messages",
+    "lastMessage": "Dernier message"
   },
   "users": {
     "title": "Utilisateurs",
@@ -1427,6 +1478,10 @@
       "properties": {
         "title": "Rapports de Propriétés",
         "description": "État, maintenance et coûts des propriétés"
+      },
+      "fiscal": {
+        "title": "Rapport Fiscal",
+        "description": "TVA, taxes et declarations fiscales"
       }
     },
     "selectReport": "Sélectionnez un rapport à générer",
@@ -1539,6 +1594,14 @@
     "success": "Export réussi",
     "noData": "Aucune donnée à exporter",
     "fileName": "export"
+  },
+  "billing": {
+    "title": "Facturation",
+    "subtitle": "Paiements et factures",
+    "tabs": {
+      "payments": "Paiements",
+      "invoices": "Factures"
+    }
   },
   "payments": {
     "history": {
@@ -1910,6 +1973,35 @@
         "description": "Synchronisez vos réservations Mabeet.sa, calendrier et tarifs automatiquement."
       }
     },
+    "connect": {
+      "title": "Connecter {{channel}}",
+      "description": "Entrez vos identifiants API pour connecter {{channel}} a Clenzy.",
+      "hotelId": "ID Hotel",
+      "propertyId": "ID Propriete",
+      "username": "Nom d'utilisateur",
+      "password": "Mot de passe",
+      "apiKey": "Cle API",
+      "apiSecret": "Secret API",
+      "listingId": "ID Annonce",
+      "accessToken": "Token d'acces",
+      "refreshToken": "Token de rafraichissement",
+      "testConnection": "Tester la connexion",
+      "testSuccess": "Connexion reussie ! Propriete : {{name}}",
+      "testFailed": "Echec du test : {{error}}",
+      "connectButton": "Connecter",
+      "disconnectConfirm": "Etes-vous sur de vouloir deconnecter {{channel}} ? La synchronisation sera arretee.",
+      "sharedChannelWarning": "Attention : {{other}} partage le meme compte. La deconnexion affectera les deux canaux.",
+      "errorConnecting": "Erreur lors de la connexion a {{channel}}",
+      "errorDisconnecting": "Erreur lors de la deconnexion de {{channel}}",
+      "successConnected": "{{channel}} connecte avec succes",
+      "successDisconnected": "{{channel}} deconnecte"
+    },
+    "connectionDetails": {
+      "connectedSince": "Connecte depuis",
+      "lastSync": "Derniere sync",
+      "externalId": "ID externe",
+      "status": "Statut"
+    },
     "reviews": {
       "title": "Avis & Notes",
       "subtitle": "Consultez et répondez aux avis de vos voyageurs",
@@ -1979,6 +2071,64 @@
       "notAvailable": "La synchronisation sortante des prix sera disponible prochainement.",
       "success": "Prix synchronises avec succes vers Airbnb",
       "error": "Erreur lors de la synchronisation des prix"
+    }
+  },
+  "documents": {
+    "title": "Documents & Communications",
+    "subtitle": "Templates, historique et conformite reglementaire",
+    "tabs": {
+      "catalog": "Catalogue",
+      "messageTemplates": "Templates messages",
+      "documentTemplates": "Templates documents",
+      "history": "Historique",
+      "variablesAndTags": "Variables & Tags",
+      "compliance": "Conformite",
+      "newDocTemplate": "Nouveau template",
+      "generateDoc": "Generer un document",
+      "searchTag": "Rechercher un tag..."
+    },
+    "history": {
+      "filterAll": "Tous",
+      "filterMessages": "Messages",
+      "filterDocuments": "Documents",
+      "typeMessage": "Message",
+      "typeDocument": "Document",
+      "empty": "Aucun historique",
+      "emptyDesc": "Les messages envoyes et les documents generes apparaitront ici.",
+      "colDate": "Date",
+      "colName": "Nom / Sujet",
+      "colRecipient": "Destinataire",
+      "colChannel": "Canal",
+      "colStatus": "Statut"
+    },
+    "compliance": {
+      "sectionTitle": "Conformite reglementaire",
+      "totalDocuments": "Documents generes",
+      "totalLocked": "Documents verrouilles",
+      "invoicesLocked": "Factures verrouillees",
+      "averageScore": "Score moyen conformite",
+      "templateVerification": "Verification de conformite des templates",
+      "checkAction": "Verifier la conformite",
+      "checkError": "Erreur lors de la verification de conformite",
+      "loadError": "Erreur lors du chargement des donnees de conformite",
+      "searchNotFound": "Document non trouve avec ce numero legal",
+      "compliant": "Conforme",
+      "nonCompliant": "Non conforme",
+      "notChecked": "Non verifie",
+      "missingMentions": "mention(s) manquante(s)",
+      "missingMentionsLabel": "Mentions manquantes",
+      "allMentionsPresent": "Toutes les mentions legales sont presentes",
+      "standardLabel": "Norme",
+      "countryLabel": "Pays",
+      "activeLabel": "Statut",
+      "complianceLabel": "Conformite",
+      "noTemplates": "Aucun template",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "file": "Fichier",
+      "locked": "Verrouille",
+      "countryChanged": "Pays de conformite mis a jour avec succes",
+      "countryChangeError": "Erreur lors du changement de pays de conformite"
     }
   },
   "messaging": {
@@ -2063,6 +2213,94 @@
       "success": "Message envoye avec succes",
       "error": "Erreur lors de l'envoi du message",
       "loadError": "Erreur lors du chargement des templates"
+    }
+  },
+  "invoices": {
+    "title": "Factures",
+    "subtitle": "Gestion des factures et documents fiscaux",
+    "from": "Du",
+    "to": "Au",
+    "empty": "Aucune facture trouvee",
+    "loadError": "Erreur lors du chargement des factures",
+    "stats": {
+      "total": "Total",
+      "draft": "Brouillons",
+      "issued": "Emises",
+      "paid": "Payees",
+      "totalTtc": "Total TTC"
+    },
+    "columns": {
+      "number": "N\u00b0",
+      "date": "Date",
+      "buyer": "Client",
+      "ht": "HT",
+      "tax": "TVA",
+      "ttc": "TTC"
+    },
+    "actions": {
+      "issue": "Emettre",
+      "markPaid": "Marquer payee",
+      "cancel": "Annuler",
+      "downloadPdf": "Telecharger PDF"
+    },
+    "status": {
+      "DRAFT": "Brouillon",
+      "ISSUED": "Emise",
+      "PAID": "Payee",
+      "CANCELLED": "Annulee",
+      "CREDIT_NOTE": "Avoir"
+    }
+  },
+  "fiscal": {
+    "profile": {
+      "title": "Profil Fiscal",
+      "country": "Pays",
+      "currency": "Devise par defaut",
+      "regime": "Regime fiscal",
+      "taxId": "N\u00b0 SIRET / ID fiscal",
+      "vatNumber": "N\u00b0 de TVA intracommunautaire",
+      "vatRegistered": "Assujetti a la TVA",
+      "vatFrequency": "Frequence de declaration TVA",
+      "legalName": "Raison sociale",
+      "legalAddress": "Adresse du siege",
+      "invoiceLanguage": "Langue des factures",
+      "invoicePrefix": "Prefixe de facturation",
+      "legalMentions": "Mentions legales",
+      "save": "Enregistrer le profil fiscal",
+      "saving": "Sauvegarde...",
+      "saved": "Profil fiscal mis a jour avec succes",
+      "error": "Erreur lors de la mise a jour",
+      "loadError": "Impossible de charger le profil fiscal",
+      "setupTitle": "Configurez votre profil fiscal",
+      "setupDescription": "Pour utiliser les fonctionnalites de facturation et de reporting fiscal, veuillez renseigner les informations ci-dessous. Vous pourrez les modifier a tout moment.",
+      "setupNotice": "Les champs obligatoires sont le pays et la devise. Les autres informations peuvent etre renseignees ulterieurement.",
+      "sectionFiscalInfo": "Informations fiscales",
+      "sectionLegalInfo": "Informations legales",
+      "sectionInvoicing": "Facturation",
+      "regimeStandard": "Standard (regime reel)",
+      "regimeMicro": "Micro-entreprise",
+      "regimeSimplified": "Simplifie",
+      "freqMonthly": "Mensuelle",
+      "freqQuarterly": "Trimestrielle",
+      "freqAnnual": "Annuelle"
+    },
+    "reporting": {
+      "title": "Rapport Fiscal",
+      "monthly": "Mensuel",
+      "quarterly": "Trimestriel",
+      "annual": "Annuel",
+      "period": "Periode",
+      "invoiceCount": "Factures",
+      "totalHt": "Total HT",
+      "totalTax": "Total TVA",
+      "totalTtc": "Total TTC",
+      "category": "Categorie",
+      "taxName": "Taxe",
+      "taxRate": "Taux",
+      "baseAmount": "Base HT",
+      "taxAmount": "Montant TVA",
+      "lineCount": "Lignes",
+      "noData": "Aucune donnee fiscale pour cette periode"
     }
   }
 }
