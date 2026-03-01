@@ -408,8 +408,8 @@ export function PaymentCheckoutScreen() {
           variant="contained"
           size="large"
           fullWidth
-          disabled={amount <= 0 || state === 'loading' || state === 'presenting'}
-          loading={state === 'loading'}
+          disabled={amount <= 0}
+          loading={false}
           icon={<Ionicons name="lock-closed" size={18} color="#FFFFFF" />}
         />
       </ScrollView>

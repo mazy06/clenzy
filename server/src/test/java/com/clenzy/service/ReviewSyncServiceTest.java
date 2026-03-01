@@ -128,7 +128,6 @@ class ReviewSyncServiceTest {
 
         when(connectorRegistry.getConnectorsWithCapability(ChannelCapability.REVIEWS))
             .thenReturn(List.of(connector));
-        when(connector.getChannelName()).thenReturn(ChannelName.AIRBNB);
         when(connector.pullReviews(eq(PROPERTY_ID), eq(ORG_ID), any(LocalDate.class)))
             .thenReturn(List.of());
 
