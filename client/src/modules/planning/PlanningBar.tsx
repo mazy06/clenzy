@@ -5,6 +5,7 @@ import { AutoAwesome, Handyman, Lock as LockIcon } from '@mui/icons-material';
 import type { BarLayout, PlanningEvent, ZoomLevel, DragBarData } from './types';
 import { BAR_BORDER_RADIUS } from './constants';
 import { hexToRgba } from './utils/colorUtils';
+import { getSourceLogo } from './utils/sourceLogos';
 
 interface PlanningBarProps {
   layout: BarLayout;
@@ -189,21 +190,37 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         </Typography>
       )}
 
-      {showSublabel && event.sublabel && (
-        <Typography
-          sx={{
-            fontSize: '0.5rem',
-            fontWeight: 400,
-            color: 'text.secondary',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            flexShrink: 0,
-          }}
-        >
-          {event.sublabel}
-        </Typography>
-      )}
+      {showSublabel && event.sublabel && (() => {
+        const sourceLogo = getSourceLogo(event.reservation?.source);
+        return sourceLogo ? (
+          <Box
+            component="img"
+            src={sourceLogo}
+            alt={event.sublabel}
+            sx={{
+              height: 10,
+              maxWidth: 40,
+              objectFit: 'contain',
+              flexShrink: 0,
+              opacity: 0.85,
+            }}
+          />
+        ) : (
+          <Typography
+            sx={{
+              fontSize: '0.5rem',
+              fontWeight: 400,
+              color: 'text.secondary',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              flexShrink: 0,
+            }}
+          >
+            {event.sublabel}
+          </Typography>
+        );
+      })()}
 
       {/* Resize handle (right edge) — reservations only, hidden during move drag */}
       {isReservation && !isDragging && (
