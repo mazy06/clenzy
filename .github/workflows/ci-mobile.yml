@@ -103,7 +103,8 @@ jobs:
 
     strategy:
       matrix:
-        platform: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.platform == 'all' && fromJSON('["ios", "android"]') || fromJSON(format('["{0}"]', github.event.inputs.platform))) || fromJSON('["ios", "android"]') }}
+        # iOS disabled until Apple Developer account is configured
+        platform: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.platform == 'all' && fromJSON('["android"]') || fromJSON(format('["{0}"]', github.event.inputs.platform))) || fromJSON('["android"]') }}
 
     steps:
       - uses: actions/checkout@v4
@@ -169,8 +170,9 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Submit iOS to App Store
-        run: eas submit --platform ios --profile production --non-interactive
+      # iOS submit disabled until Apple Developer account is configured
+      # - name: Submit iOS to App Store
+      #   run: eas submit --platform ios --profile production --non-interactive
 
       - name: Submit Android to Google Play
         run: eas submit --platform android --profile production --non-interactive
