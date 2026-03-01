@@ -24,5 +24,13 @@ public enum ChannelCapability {
     /** Le channel supporte la recuperation d'avis guests */
     REVIEWS,
     /** Le channel supporte les promotions (Genius, Preferred, etc.) */
-    PROMOTIONS
+    PROMOTIONS,
+    /** Le channel supporte le push de restrictions de sejour (min/max stay, CTA, CTD) */
+    OUTBOUND_RESTRICTIONS,
+    /** Le channel supporte la sync de contenu (descriptions, photos, amenities) */
+    CONTENT_SYNC,
+    /** Le channel supporte la sync de frais supplementaires (menage, animaux, etc.) */
+    FEES,
+    /** Le channel supporte la sync de politiques d'annulation */
+    CANCELLATION_POLICIES
 }

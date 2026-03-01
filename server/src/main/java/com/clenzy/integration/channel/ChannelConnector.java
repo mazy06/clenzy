@@ -129,6 +129,79 @@ public interface ChannelConnector {
         return java.util.List.of();
     }
 
+    // ── Restrictions ─────────────────────────────────────────────────────────
+
+    /**
+     * Pousse les restrictions de sejour vers le channel (OUTBOUND).
+     * Retourne UNSUPPORTED par defaut.
+     *
+     * @param propertyId propriete PMS
+     * @param from       debut de la plage (inclus)
+     * @param to         fin de la plage (exclus)
+     * @param orgId      organisation
+     * @return resultat de la synchronisation
+     */
+    default SyncResult pushRestrictions(Long propertyId, LocalDate from,
+                                         LocalDate to, Long orgId) {
+        return SyncResult.unsupported("Restriction push not supported by " + getChannelName());
+    }
+
+    // ── Contenu ──────────────────────────────────────────────────────────────
+
+    /**
+     * Pousse le contenu (description, photos, amenities) vers le channel.
+     * Retourne UNSUPPORTED par defaut.
+     */
+    default SyncResult pushContent(com.clenzy.model.ChannelContentMapping content, Long orgId) {
+        return SyncResult.unsupported("Content push not supported by " + getChannelName());
+    }
+
+    /**
+     * Recupere le contenu depuis le channel pour une propriete.
+     * Retourne UNSUPPORTED par defaut.
+     */
+    default SyncResult pullContent(Long propertyId, Long orgId) {
+        return SyncResult.unsupported("Content pull not supported by " + getChannelName());
+    }
+
+    // ── Frais / Extras ───────────────────────────────────────────────────────
+
+    /**
+     * Pousse les frais supplementaires vers le channel.
+     * Retourne UNSUPPORTED par defaut.
+     */
+    default SyncResult pushFees(java.util.List<com.clenzy.model.ChannelFee> fees, Long orgId) {
+        return SyncResult.unsupported("Fees push not supported by " + getChannelName());
+    }
+
+    /**
+     * Recupere les frais supplementaires depuis le channel.
+     * Retourne une liste vide par defaut.
+     */
+    default java.util.List<com.clenzy.model.ChannelFee> pullFees(Long propertyId, Long orgId) {
+        return java.util.List.of();
+    }
+
+    // ── Politiques d'annulation ──────────────────────────────────────────────
+
+    /**
+     * Pousse une politique d'annulation vers le channel.
+     * Retourne UNSUPPORTED par defaut.
+     */
+    default SyncResult pushCancellationPolicy(com.clenzy.model.ChannelCancellationPolicy policy, Long orgId) {
+        return SyncResult.unsupported("Cancellation policy push not supported by " + getChannelName());
+    }
+
+    /**
+     * Recupere les politiques d'annulation depuis le channel.
+     * Retourne une liste vide par defaut.
+     */
+    default java.util.List<com.clenzy.model.ChannelCancellationPolicy> pullCancellationPolicies(Long propertyId, Long orgId) {
+        return java.util.List.of();
+    }
+
+    // ── Utilitaires ──────────────────────────────────────────────────────────
+
     /**
      * Teste si le channel supporte une capacite donnee.
      */

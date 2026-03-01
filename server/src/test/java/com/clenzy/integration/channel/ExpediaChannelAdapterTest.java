@@ -2,6 +2,7 @@ package com.clenzy.integration.channel;
 
 import com.clenzy.integration.channel.model.ChannelMapping;
 import com.clenzy.integration.channel.repository.ChannelMappingRepository;
+import com.clenzy.repository.BookingRestrictionRepository;
 import com.clenzy.integration.expedia.config.ExpediaConfig;
 import com.clenzy.integration.expedia.model.ExpediaConnection;
 import com.clenzy.integration.expedia.model.ExpediaConnection.ExpediaConnectionStatus;
@@ -27,13 +28,15 @@ class ExpediaChannelAdapterTest {
     @Mock private ExpediaApiClient expediaApiClient;
     @Mock private ExpediaConnectionRepository expediaConnectionRepository;
     @Mock private ChannelMappingRepository channelMappingRepository;
+    @Mock private BookingRestrictionRepository bookingRestrictionRepository;
 
     private ExpediaChannelAdapter adapter;
 
     @BeforeEach
     void setUp() {
         adapter = new ExpediaChannelAdapter(expediaConfig, expediaApiClient,
-                expediaConnectionRepository, channelMappingRepository);
+                expediaConnectionRepository, channelMappingRepository,
+                bookingRestrictionRepository);
     }
 
     @Test
@@ -49,7 +52,8 @@ class ExpediaChannelAdapterTest {
                 ChannelCapability.INBOUND_RESERVATIONS,
                 ChannelCapability.OUTBOUND_RESERVATIONS,
                 ChannelCapability.WEBHOOKS,
-                ChannelCapability.OAUTH
+                ChannelCapability.OAUTH,
+                ChannelCapability.OUTBOUND_RESTRICTIONS
         );
     }
 

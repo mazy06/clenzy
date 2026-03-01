@@ -125,9 +125,9 @@ export default function InscriptionConfirm() {
 
       setStatus('success');
 
-      // Redirect vers le dashboard apres un court delai
+      // Redirect vers le planning apres un court delai
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = '/planning';
       }, 1500);
     } catch (err) {
       const apiErr = err as ApiError;
