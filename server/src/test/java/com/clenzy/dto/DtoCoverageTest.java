@@ -155,9 +155,11 @@ class DtoCoverageTest {
         }
         @Test void complianceStatsDto() {
             ComplianceStatsDto dto = new ComplianceStatsDto(10, 8, 5, 4, 3, 2,
-                    Map.of("FACTURE", 5L), LocalDateTime.now(), 95);
+                    Map.of("FACTURE", 5L), LocalDateTime.now(), 95, "FR", "NF 525");
             assertThat(dto.totalDocuments()).isEqualTo(10);
             assertThat(dto.averageComplianceScore()).isEqualTo(95);
+            assertThat(dto.countryCode()).isEqualTo("FR");
+            assertThat(dto.complianceStandard()).isEqualTo("NF 525");
         }
 
         // Manager records

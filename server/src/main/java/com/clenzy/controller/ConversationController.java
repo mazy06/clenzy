@@ -4,6 +4,7 @@ import com.clenzy.dto.ConversationDto;
 import com.clenzy.dto.ConversationMessageDto;
 import com.clenzy.dto.SendConversationMessageRequest;
 import com.clenzy.model.Conversation;
+import com.clenzy.model.ConversationChannel;
 import com.clenzy.model.ConversationMessage;
 import com.clenzy.model.ConversationStatus;
 import com.clenzy.service.messaging.ConversationService;
@@ -17,6 +18,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -34,13 +36,18 @@ public class ConversationController {
     @GetMapping
     public ResponseEntity<Page<ConversationDto>> getInbox(
             @RequestParam(required = false) ConversationStatus status,
+            @RequestParam(required = false) List<ConversationChannel> channels,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Long orgId = tenantContext.getOrganizationId();
         Pageable pageable = PageRequest.of(page, Math.min(size, 50));
-        Page<ConversationDto> result = conversationService.getInbox(orgId, status, pageable)
-            .map(ConversationDto::from);
-        return ResponseEntity.ok(result);
+        Page<Conversation> conversations;
+        if (channels != null && !channels.isEmpty()) {
+            conversations = conversationService.getInboxByChannels(orgId, channels, status, pageable);
+        } else {
+            conversations = conversationService.getInbox(orgId, status, pageable);
+        }
+        return ResponseEntity.ok(conversations.map(ConversationDto::from));
     }
 
     @GetMapping("/mine")

@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
- * DTO pour les statistiques globales de conformite NF.
+ * DTO pour les statistiques globales de conformite reglementaire.
  */
 public record ComplianceStatsDto(
         long totalDocuments,
@@ -15,5 +15,7 @@ public record ComplianceStatsDto(
         long totalDevisLocked,
         Map<String, Long> documentsByType,
         LocalDateTime lastCheckAt,
-        int averageComplianceScore
+        int averageComplianceScore,
+        String countryCode,
+        String complianceStandard
 ) {}

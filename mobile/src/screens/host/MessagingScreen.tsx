@@ -1,17 +1,17 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
-import { View, Text, Pressable, RefreshControl, FlatList, Animated, Alert } from 'react-native';
+import { View, Text, Pressable, RefreshControl, FlatList, Animated, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
-import { useInbox, useSentMessages, useGuestMessageHistory, useArchiveMessage, useDeleteMessage } from '@/hooks/useMessages';
+import { useInbox, useSentMessages, useGuestMessageHistory, useArchiveMessage, useDeleteMessage, useContactThreads } from '@/hooks/useMessages';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Card } from '@/components/ui/Card';
 import { NotificationBell } from '@/components/ui/NotificationBell';
 import { useTheme } from '@/theme';
-import type { ContactMessage } from '@/api/endpoints/contactApi';
+import type { ContactMessage, ContactThreadSummary } from '@/api/endpoints/contactApi';
 import type { GuestMessageLog } from '@/api/endpoints/guestMessagingApi';
 import type { MessagingStackParamList } from '@/navigation/HostNavigator';
 import { ConversationScreen } from '@/screens/shared/ConversationScreen';
@@ -499,112 +499,212 @@ function MessageListSkeleton({ theme }: { theme: ReturnType<typeof useTheme> }) 
   );
 }
 
-/* ─── Tab: Interne ─── */
+/* ─── Avatar colors for threads ─── */
+
+const THREAD_AVATAR_COLORS = [
+  '#1976d2', '#388e3c', '#d32f2f', '#7b1fa2',
+  '#c2185b', '#0097a7', '#f57c00', '#5d4037',
+  '#455a64', '#00838f', '#ad1457', '#6a1b9a',
+];
+
+function getThreadAvatarColor(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return THREAD_AVATAR_COLORS[Math.abs(hash) % THREAD_AVATAR_COLORS.length];
+}
+
+function getThreadInitials(firstName: string, lastName: string): string {
+  return `${(firstName || '').charAt(0)}${(lastName || '').charAt(0)}`.toUpperCase() || '?';
+}
+
+/* ─── Tab: Interne (WhatsApp-like thread list) ─── */
 
 function InterneTab({ theme, navigation }: { theme: ReturnType<typeof useTheme>; navigation: MessagingNavProp }) {
-  const [subFilter, setSubFilter] = useState<'inbox' | 'sent'>('inbox');
-  const { data: inboxData, isLoading: inboxLoading, isRefetching: inboxRefetching, refetch: refetchInbox } = useInbox();
-  const { data: sentData, isLoading: sentLoading, isRefetching: sentRefetching, refetch: refetchSent } = useSentMessages();
-  const archiveMutation = useArchiveMessage();
-  const deleteMutation = useDeleteMessage();
+  const [search, setSearch] = useState('');
+  const { data: threads, isLoading, isRefetching, refetch } = useContactThreads();
 
-  const handleArchive = useCallback((id: number) => {
-    archiveMutation.mutate(id);
-  }, [archiveMutation]);
+  const filteredThreads = useMemo(() => {
+    if (!threads) return [];
+    if (!search.trim()) return threads;
+    const q = search.toLowerCase();
+    return threads.filter(
+      (th) =>
+        `${th.counterpartFirstName} ${th.counterpartLastName}`.toLowerCase().includes(q) ||
+        th.counterpartEmail.toLowerCase().includes(q),
+    );
+  }, [threads, search]);
 
-  const handleDelete = useCallback((id: number) => {
-    deleteMutation.mutate(id);
-  }, [deleteMutation]);
+  const handleOpenThread = useCallback((thread: ContactThreadSummary) => {
+    navigation.navigate('InternalChat', { thread });
+  }, [navigation]);
 
-  const isLoading = subFilter === 'inbox' ? inboxLoading : sentLoading;
-  const isRefetching = subFilter === 'inbox' ? inboxRefetching : sentRefetching;
-  const refetch = subFilter === 'inbox' ? refetchInbox : refetchSent;
+  const renderThread = useCallback(({ item }: { item: ContactThreadSummary }) => {
+    const avatarColor = getThreadAvatarColor(item.counterpartKeycloakId);
+    const hasUnread = item.unreadCount > 0;
+    const fullName = `${item.counterpartFirstName} ${item.counterpartLastName}`.trim();
 
-  const messages = useMemo(() => {
-    if (subFilter === 'inbox') {
-      return inboxData?.pages.flatMap((p) => p.content) ?? [];
-    }
-    return sentData?.pages.flatMap((p) => p.content) ?? [];
-  }, [subFilter, inboxData, sentData]);
+    return (
+      <Pressable
+        onPress={() => handleOpenThread(item)}
+        style={({ pressed }) => ({
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.SPACING.md,
+          paddingHorizontal: theme.SPACING.lg,
+          paddingVertical: theme.SPACING.md,
+          backgroundColor: pressed ? theme.colors.background.surface : 'transparent',
+          borderLeftWidth: hasUnread ? 3 : 0,
+          borderLeftColor: hasUnread ? theme.colors.primary.main : 'transparent',
+        })}
+      >
+        {/* Avatar */}
+        <View style={{ position: 'relative' }}>
+          <View style={{
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            backgroundColor: `${avatarColor}18`,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Text style={{
+              fontSize: 16,
+              fontWeight: '700',
+              color: avatarColor,
+            }}>
+              {getThreadInitials(item.counterpartFirstName, item.counterpartLastName)}
+            </Text>
+          </View>
+          {/* Unread badge */}
+          {hasUnread && (
+            <View style={{
+              position: 'absolute',
+              top: -2,
+              right: -4,
+              minWidth: 20,
+              height: 20,
+              borderRadius: 10,
+              backgroundColor: theme.colors.error.main,
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingHorizontal: 5,
+              borderWidth: 2,
+              borderColor: theme.colors.background.paper,
+            }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: '#fff' }}>
+                {item.unreadCount > 99 ? '99+' : item.unreadCount}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Content */}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+            <Text
+              style={{
+                ...theme.typography.body2,
+                fontWeight: hasUnread ? '700' : '600',
+                color: theme.colors.text.primary,
+                flex: 1,
+                marginRight: theme.SPACING.sm,
+              }}
+              numberOfLines={1}
+            >
+              {fullName || 'Inconnu'}
+            </Text>
+            <Text style={{
+              ...theme.typography.caption,
+              color: hasUnread ? theme.colors.primary.main : theme.colors.text.disabled,
+              fontWeight: hasUnread ? '600' : '400',
+            }}>
+              {formatRelativeDate(item.lastMessageAt)}
+            </Text>
+          </View>
+
+          <Text
+            style={{
+              ...theme.typography.caption,
+              color: theme.colors.text.secondary,
+              lineHeight: 18,
+              fontWeight: hasUnread ? '500' : '400',
+            }}
+            numberOfLines={2}
+          >
+            {item.lastMessagePreview || '\u2014'}
+          </Text>
+        </View>
+
+        {/* Chevron */}
+        <Ionicons name="chevron-forward" size={16} color={theme.colors.text.disabled} />
+      </Pressable>
+    );
+  }, [theme, handleOpenThread]);
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Sub-filter chips: Reçus / Envoyés */}
+      {/* Search bar */}
       <View style={{
-        flexDirection: 'row',
         paddingHorizontal: theme.SPACING.lg,
         paddingTop: theme.SPACING.md,
         paddingBottom: theme.SPACING.sm,
-        gap: theme.SPACING.sm,
       }}>
-        {([
-          { key: 'inbox' as const, label: 'Recus', icon: 'arrow-down-outline' as IoniconsName },
-          { key: 'sent' as const, label: 'Envoyes', icon: 'arrow-up-outline' as IoniconsName },
-        ]).map((f) => {
-          const active = subFilter === f.key;
-          return (
-            <Pressable
-              key={f.key}
-              onPress={() => setSubFilter(f.key)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: theme.BORDER_RADIUS.full,
-                backgroundColor: active ? `${theme.colors.primary.main}12` : theme.colors.background.surface,
-                borderWidth: 1,
-                borderColor: active ? theme.colors.primary.main : theme.colors.border.light,
-              }}
-            >
-              <Ionicons
-                name={f.icon}
-                size={13}
-                color={active ? theme.colors.primary.main : theme.colors.text.disabled}
-              />
-              <Text style={{
-                ...theme.typography.caption,
-                fontWeight: active ? '700' : '500',
-                color: active ? theme.colors.primary.main : theme.colors.text.secondary,
-              }}>
-                {f.label}
-              </Text>
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: theme.colors.background.surface,
+          borderRadius: theme.BORDER_RADIUS.lg,
+          paddingHorizontal: theme.SPACING.md,
+          height: 40,
+          gap: 8,
+        }}>
+          <Ionicons name="search" size={16} color={theme.colors.text.disabled} />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Rechercher un contact..."
+            placeholderTextColor={theme.colors.text.disabled}
+            style={{
+              flex: 1,
+              ...theme.typography.body2,
+              color: theme.colors.text.primary,
+              paddingVertical: 0,
+            }}
+          />
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch('')} hitSlop={8}>
+              <Ionicons name="close-circle" size={16} color={theme.colors.text.disabled} />
             </Pressable>
-          );
-        })}
+          )}
+        </View>
       </View>
 
       {isLoading ? (
         <MessageListSkeleton theme={theme} />
-      ) : messages.length === 0 ? (
+      ) : filteredThreads.length === 0 ? (
         <View style={{ flex: 1, justifyContent: 'center', paddingBottom: 40 }}>
           <EmptyState
-            iconName={subFilter === 'inbox' ? 'mail-open-outline' : 'send-outline'}
-            title={subFilter === 'inbox' ? 'Aucun message recu' : 'Aucun message envoye'}
-            description={
-              subFilter === 'inbox'
-                ? 'Les messages de votre equipe et du manager apparaitront ici'
-                : 'Vos messages envoyes apparaitront ici'
-            }
+            iconName="chatbubbles-outline"
+            title="Aucune conversation"
+            description="Vos echanges avec les membres de l'organisation apparaitront ici"
           />
         </View>
       ) : (
         <FlatList
-          data={messages}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => (
-            <SwipeableMessageCard
-              message={item}
-              isSent={subFilter === 'sent'}
-              onPress={() => navigation.navigate('MessageDetail', { message: item, isSent: subFilter === 'sent' })}
-              onArchive={handleArchive}
-              onDelete={handleDelete}
-              theme={theme}
-            />
-          )}
-          contentContainerStyle={{ padding: theme.SPACING.lg, paddingBottom: 100 }}
+          data={filteredThreads}
+          keyExtractor={(item) => item.counterpartKeycloakId}
+          renderItem={renderThread}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          ItemSeparatorComponent={() => (
+            <View style={{
+              height: 0.5,
+              backgroundColor: theme.colors.border.light,
+              marginLeft: 80,
+            }} />
+          )}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}

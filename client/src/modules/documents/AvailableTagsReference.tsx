@@ -27,6 +27,7 @@ import {
   Business,
   Computer,
   GppGood,
+  Email,
 } from '@mui/icons-material';
 
 // ─── Définition de tous les tags disponibles (miroir de TagResolverService.java) ───
@@ -49,9 +50,37 @@ interface TagCategory {
 
 const TAG_CATEGORIES: TagCategory[] = [
   {
+    id: 'messaging',
+    label: 'Messagerie guest',
+    description: 'Variables pour les templates de messagerie envoyés aux voyageurs. Syntaxe : {variable}',
+    icon: <Email />,
+    color: '#1976d2',
+    tags: [
+      { tag: '{guestName}', description: 'Nom complet du voyageur', example: 'Jean Dupont', type: 'text' },
+      { tag: '{guestFirstName}', description: 'Prénom du voyageur', example: 'Jean', type: 'text' },
+      { tag: '{propertyName}', description: 'Nom de la propriété', example: 'Villa Méditerranée', type: 'text' },
+      { tag: '{propertyAddress}', description: 'Adresse de la propriété', example: '12 rue de la Mer, 06000 Nice', type: 'text' },
+      { tag: '{checkInDate}', description: 'Date d\'arrivée', example: '15/03/2025', type: 'date' },
+      { tag: '{checkOutDate}', description: 'Date de départ', example: '20/03/2025', type: 'date' },
+      { tag: '{checkInTime}', description: 'Heure d\'arrivée', example: '15:00', type: 'text' },
+      { tag: '{checkOutTime}', description: 'Heure de départ', example: '11:00', type: 'text' },
+      { tag: '{accessCode}', description: 'Code d\'accès au logement', example: '4521', type: 'text' },
+      { tag: '{wifiName}', description: 'Nom du réseau WiFi', example: 'Villa-Guest', type: 'text' },
+      { tag: '{wifiPassword}', description: 'Mot de passe WiFi', example: 'welcome2025', type: 'text' },
+      { tag: '{parkingInfo}', description: 'Informations parking', example: 'Place n°12, sous-sol -1', type: 'text' },
+      { tag: '{arrivalInstructions}', description: 'Instructions d\'arrivée', example: 'Entrez le code à la porte...', type: 'text' },
+      { tag: '{departureInstructions}', description: 'Instructions de départ', example: 'Laissez les clés sur...', type: 'text' },
+      { tag: '{houseRules}', description: 'Règlement intérieur', example: 'Pas de bruit après 22h...', type: 'text' },
+      { tag: '{emergencyContact}', description: 'Contact d\'urgence', example: '+33 6 12 34 56 78', type: 'text' },
+      { tag: '{confirmationCode}', description: 'Code de confirmation de la réservation', example: 'RES-2025-001', type: 'text' },
+      { tag: '{checkInLink}', description: 'Lien de check-in en ligne', example: 'https://app.clenzy.com/checkin/abc123', type: 'text' },
+      { tag: '{guideLink}', description: 'Lien du guide voyageur', example: 'https://app.clenzy.com/guide/abc123', type: 'text' },
+    ],
+  },
+  {
     id: 'system',
     label: 'Système',
-    description: 'Tags automatiques générés à chaque document',
+    description: 'Tags automatiques générés à chaque document. Syntaxe : ${category.field}',
     icon: <Computer />,
     color: '#607d8b',
     tags: [

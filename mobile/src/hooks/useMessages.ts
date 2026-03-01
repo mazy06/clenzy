@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
-import { contactApi, type ContactMessage, type ContactFormData, type Recipient } from '@/api/endpoints/contactApi';
+import { contactApi, type ContactMessage, type ContactFormData, type Recipient, type ContactThreadSummary } from '@/api/endpoints/contactApi';
 import { guestMessagingApi, type GuestMessageLog } from '@/api/endpoints/guestMessagingApi';
 
 /* ─── Query Keys ─── */
@@ -9,6 +9,8 @@ const KEYS = {
   inbox: ['contact', 'inbox'] as const,
   sent: ['contact', 'sent'] as const,
   recipients: ['contact', 'recipients'] as const,
+  threads: ['contact', 'threads'] as const,
+  threadMessages: (counterpartId: string) => ['contact', 'threads', counterpartId, 'messages'] as const,
   // Guest messaging
   guestHistory: ['guest-messaging', 'history'] as const,
   // Legacy
@@ -70,6 +72,54 @@ export function useReplyMessage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KEYS.inbox });
       queryClient.invalidateQueries({ queryKey: KEYS.sent });
+      queryClient.invalidateQueries({ queryKey: KEYS.threads });
+    },
+  });
+}
+
+/** List of grouped conversation threads (WhatsApp-like) */
+export function useContactThreads() {
+  return useQuery<ContactThreadSummary[]>({
+    queryKey: KEYS.threads,
+    queryFn: () => contactApi.getThreads(),
+    staleTime: 30_000,
+    refetchInterval: 60_000,      // fallback polling 60s (WebSocket gere le temps reel)
+  });
+}
+
+/** Messages for a specific thread (by counterpart keycloakId) */
+export function useThreadMessages(counterpartKeycloakId: string | null) {
+  return useQuery<ContactMessage[]>({
+    queryKey: KEYS.threadMessages(counterpartKeycloakId!),
+    queryFn: () => contactApi.getThreadMessages(counterpartKeycloakId!),
+    staleTime: 15_000,
+    refetchInterval: 30_000,      // fallback polling 30s (WebSocket gere le temps reel)
+    enabled: counterpartKeycloakId != null,
+  });
+}
+
+/** Mark all unread messages in a thread as read */
+export function useMarkThreadAsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (counterpartKeycloakId: string) =>
+      contactApi.markThreadAsRead(counterpartKeycloakId),
+    onMutate: (counterpartKeycloakId) => {
+      // Mise a jour optimiste : badge non-lu → 0 instantanement
+      queryClient.setQueryData<ContactThreadSummary[]>(
+        KEYS.threads,
+        (old) => {
+          if (!old) return old;
+          return old.map((th) =>
+            th.counterpartKeycloakId === counterpartKeycloakId
+              ? { ...th, unreadCount: 0 }
+              : th
+          );
+        }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KEYS.threads });
     },
   });
 }

@@ -1,11 +1,14 @@
 package com.clenzy.service;
 
+import com.clenzy.compliance.ComplianceStrategyRegistry;
+import com.clenzy.compliance.country.FranceComplianceStrategy;
 import com.clenzy.dto.ComplianceReportDto;
 import com.clenzy.dto.ComplianceStatsDto;
 import com.clenzy.exception.DocumentComplianceException;
 import com.clenzy.exception.DocumentNotFoundException;
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
+import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -37,14 +40,22 @@ class DocumentComplianceServiceTest {
     @Mock private DocumentTemplateTagRepository templateTagRepository;
     @Mock private DocumentStorageService storageService;
     @Mock private AuditLogService auditLogService;
+    @Mock private TenantContext tenantContext;
 
     private DocumentComplianceService service;
 
     @BeforeEach
     void setUp() {
+        // Create a registry with France strategy for testing
+        ComplianceStrategyRegistry strategyRegistry = new ComplianceStrategyRegistry(
+                List.of(new FranceComplianceStrategy()));
+
+        // Default to FR country code
+        lenient().when(tenantContext.getCountryCode()).thenReturn("FR");
+
         service = new DocumentComplianceService(generationRepository, legalRequirementRepository,
                 complianceReportRepository, templateRepository, templateTagRepository,
-                storageService, auditLogService);
+                storageService, auditLogService, strategyRegistry, tenantContext);
     }
 
     // ===== COMPUTE HASH =====
@@ -283,7 +294,7 @@ class DocumentComplianceServiceTest {
             DocumentLegalRequirement req3 = buildRequirement("identite_acheteur", "Identite acheteur", true, null);
             DocumentLegalRequirement req4 = buildRequirement("designation_prestations", "Designation", true, null);
             DocumentLegalRequirement req5 = buildRequirement("montant_total", "Montant total", true, null);
-            when(legalRequirementRepository.findByDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(DocumentType.FACTURE))
+            when(legalRequirementRepository.findByCountryCodeAndDocumentTypeAndActiveTrueOrderByDisplayOrderAsc("FR", DocumentType.FACTURE))
                     .thenReturn(List.of(req1, req2, req3, req4, req5));
 
             when(complianceReportRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -314,7 +325,7 @@ class DocumentComplianceServiceTest {
 
             // Multiple required requirements
             DocumentLegalRequirement req = buildRequirement("numero_facture", "Numero facture", true, null);
-            when(legalRequirementRepository.findByDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(DocumentType.FACTURE))
+            when(legalRequirementRepository.findByCountryCodeAndDocumentTypeAndActiveTrueOrderByDisplayOrderAsc("FR", DocumentType.FACTURE))
                     .thenReturn(List.of(req));
 
             when(complianceReportRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -337,7 +348,7 @@ class DocumentComplianceServiceTest {
             template.setDocumentType(DocumentType.DEVIS);
             when(templateRepository.findById(1L)).thenReturn(Optional.of(template));
             when(templateTagRepository.findByTemplateId(1L)).thenReturn(List.of());
-            when(legalRequirementRepository.findByDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(DocumentType.DEVIS))
+            when(legalRequirementRepository.findByCountryCodeAndDocumentTypeAndActiveTrueOrderByDisplayOrderAsc("FR", DocumentType.DEVIS))
                     .thenReturn(List.of());
             when(complianceReportRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -363,34 +374,35 @@ class DocumentComplianceServiceTest {
     // ===== RESOLVE NF TAGS =====
 
     @Nested
-    @DisplayName("resolveNfTags")
-    class ResolveNfTags {
+    @DisplayName("resolveComplianceTags / resolveNfTags")
+    class ResolveComplianceTags {
 
         @Test
         @DisplayName("includes conditions_paiement for FACTURE")
         void whenFacture_thenIncludesConditionsPaiement() {
             // Arrange
-            when(legalRequirementRepository.findByDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(DocumentType.FACTURE))
+            when(legalRequirementRepository.findByCountryCodeAndDocumentTypeAndActiveTrueOrderByDisplayOrderAsc("FR", DocumentType.FACTURE))
                     .thenReturn(List.of());
 
             // Act
-            Map<String, Object> nfTags = service.resolveNfTags(DocumentType.FACTURE, "FAC-2026-0001");
+            Map<String, Object> nfTags = service.resolveComplianceTags(DocumentType.FACTURE, "FAC-2026-0001");
 
             // Assert
             assertThat(nfTags.get("numero_legal")).isEqualTo("FAC-2026-0001");
             assertThat(nfTags.get("date_emission")).isNotNull();
             assertThat((String) nfTags.get("conditions_paiement")).contains("Paiement");
+            assertThat(nfTags.get("compliance_standard")).isEqualTo("NF 525");
         }
 
         @Test
         @DisplayName("includes duree_validite for DEVIS")
         void whenDevis_thenIncludesDureeValidite() {
             // Arrange
-            when(legalRequirementRepository.findByDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(DocumentType.DEVIS))
+            when(legalRequirementRepository.findByCountryCodeAndDocumentTypeAndActiveTrueOrderByDisplayOrderAsc("FR", DocumentType.DEVIS))
                     .thenReturn(List.of());
 
             // Act
-            Map<String, Object> nfTags = service.resolveNfTags(DocumentType.DEVIS, "DEV-2026-0001");
+            Map<String, Object> nfTags = service.resolveComplianceTags(DocumentType.DEVIS, "DEV-2026-0001");
 
             // Assert
             assertThat(nfTags.get("numero_legal")).isEqualTo("DEV-2026-0001");
@@ -401,11 +413,11 @@ class DocumentComplianceServiceTest {
         @DisplayName("uses empty string when legal number is null")
         void whenNullLegalNumber_thenEmptyString() {
             // Arrange
-            when(legalRequirementRepository.findByDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(any()))
+            when(legalRequirementRepository.findByCountryCodeAndDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(eq("FR"), any()))
                     .thenReturn(List.of());
 
             // Act
-            Map<String, Object> nfTags = service.resolveNfTags(DocumentType.BON_INTERVENTION, null);
+            Map<String, Object> nfTags = service.resolveComplianceTags(DocumentType.BON_INTERVENTION, null);
 
             // Assert
             assertThat(nfTags.get("numero_legal")).isEqualTo("");
@@ -419,17 +431,33 @@ class DocumentComplianceServiceTest {
             req.setRequirementKey("custom_key");
             req.setLabel("Custom label");
             req.setDefaultValue("Default text");
-            when(legalRequirementRepository.findByDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(DocumentType.FACTURE))
+            when(legalRequirementRepository.findByCountryCodeAndDocumentTypeAndActiveTrueOrderByDisplayOrderAsc("FR", DocumentType.FACTURE))
                     .thenReturn(List.of(req));
 
             // Act
-            Map<String, Object> nfTags = service.resolveNfTags(DocumentType.FACTURE, "FAC-001");
+            Map<String, Object> nfTags = service.resolveComplianceTags(DocumentType.FACTURE, "FAC-001");
 
             // Assert
             assertThat(nfTags.get("custom_key")).isEqualTo("Default text");
             @SuppressWarnings("unchecked")
             List<String> mentions = (List<String>) nfTags.get("mentions");
             assertThat(mentions).contains("Custom label");
+        }
+
+        @Test
+        @DisplayName("deprecated resolveNfTags delegates to resolveComplianceTags")
+        void resolveNfTagsDelegatesToResolveComplianceTags() {
+            // Arrange
+            when(legalRequirementRepository.findByCountryCodeAndDocumentTypeAndActiveTrueOrderByDisplayOrderAsc("FR", DocumentType.FACTURE))
+                    .thenReturn(List.of());
+
+            // Act
+            @SuppressWarnings("deprecation")
+            Map<String, Object> nfTags = service.resolveNfTags(DocumentType.FACTURE, "FAC-001");
+
+            // Assert
+            assertThat(nfTags.get("numero_legal")).isEqualTo("FAC-001");
+            assertThat(nfTags.get("compliance_standard")).isEqualTo("NF 525");
         }
     }
 

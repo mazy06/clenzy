@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -38,10 +38,20 @@ import { Star as StarIcon } from '@mui/icons-material';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { SPACING } from '../../theme/spacing';
-import { airbnbApi } from '../../services/api/airbnbApi';
 import type { AirbnbConnectionStatus, AirbnbListingMapping } from '../../services/api/airbnbApi';
-import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
+import {
+  useAirbnbConnectionStatus,
+  useAirbnbListings,
+  useChannelProperties,
+  useAirbnbConnect,
+  useAirbnbDisconnect,
+  useToggleSync,
+  useToggleAutoInterventions,
+  useToggleAutoPushPricing,
+  useLinkListing,
+  useUnlinkListing,
+} from '../../hooks/useAirbnb';
 import { useChannelConnections, useDisconnectChannel } from '../../hooks/useChannelConnections';
 import { CHANNEL_BACKEND_MAP } from '../../services/api/channelConnectionApi';
 import type { ChannelId } from '../../services/api/channelConnectionApi';
@@ -250,21 +260,31 @@ const ChannelsPage: React.FC = () => {
   const navigate = useNavigate();
   const dateLocale = currentLanguage === 'fr' ? 'fr-FR' : 'en-US';
 
-  // Connection state
-  const [connectionStatus, setConnectionStatus] = useState<AirbnbConnectionStatus | null>(null);
-  const [connectionLoading, setConnectionLoading] = useState(true);
+  // ── React Query: Airbnb ──
+  const {
+    data: connectionStatus = null,
+    isLoading: connectionLoading,
+    error: connectionQueryError,
+    refetch: refetchStatus,
+  } = useAirbnbConnectionStatus();
+  const {
+    data: listings = [],
+    isLoading: listingsLoading,
+    refetch: refetchListings,
+  } = useAirbnbListings();
+  const { data: properties = [] } = useChannelProperties();
+
+  const connectMutation = useAirbnbConnect();
+  const disconnectMutation = useAirbnbDisconnect();
+  const toggleSyncMutation = useToggleSync();
+  const toggleAutoInterventionsMutation = useToggleAutoInterventions();
+  const toggleAutoPushPricingMutation = useToggleAutoPushPricing();
+  const linkListingMutation = useLinkListing();
+  const unlinkListingMutation = useUnlinkListing();
+
+  // UI state
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [connecting, setConnecting] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
-
-  // Listings state
-  const [listings, setListings] = useState<AirbnbListingMapping[]>([]);
-  const [listingsLoading, setListingsLoading] = useState(false);
   const [expandedListings, setExpandedListings] = useState(true);
-
-  // Properties for linking
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [propertiesLoading, setPropertiesLoading] = useState(false);
 
   // OTA channel connections (non-Airbnb)
   const [connectDialogChannel, setConnectDialogChannel] = useState<OtaChannel | null>(null);
@@ -277,141 +297,61 @@ const ChannelsPage: React.FC = () => {
   // Link dialog
   const [linkingPropertyId, setLinkingPropertyId] = useState<number | null>(null);
   const [linkForm, setLinkForm] = useState({ airbnbListingId: '', airbnbListingTitle: '', airbnbListingUrl: '' });
-  const [linkLoading, setLinkLoading] = useState(false);
 
-  // ── Fetch connection status ──
-  const fetchStatus = useCallback(async () => {
-    setConnectionLoading(true);
-    setConnectionError(null);
-    try {
-      const status = await airbnbApi.getConnectionStatus();
-      setConnectionStatus(status);
-    } catch {
-      setConnectionError(t('channels.airbnb.errorFetchingStatus'));
-    } finally {
-      setConnectionLoading(false);
-    }
-  }, [t]);
+  // ── Handlers ──
 
-  // ── Fetch listings ──
-  const fetchListings = useCallback(async () => {
-    setListingsLoading(true);
-    try {
-      const data = await airbnbApi.getListings();
-      setListings(data);
-    } catch {
-      // Silently fail — listings section shows empty
-    } finally {
-      setListingsLoading(false);
-    }
-  }, []);
+  const handleConnect = useCallback(() => {
+    connectMutation.mutate(undefined, {
+      onSuccess: ({ authorizationUrl }) => {
+        window.location.href = authorizationUrl;
+      },
+      onError: () => {
+        setConnectionError(t('channels.airbnb.errorConnecting'));
+      },
+    });
+  }, [connectMutation, t]);
 
-  // ── Fetch properties ──
-  const fetchProperties = useCallback(async () => {
-    setPropertiesLoading(true);
-    try {
-      const data = await propertiesApi.getAll();
-      setProperties(data);
-    } catch {
-      // Silently fail
-    } finally {
-      setPropertiesLoading(false);
-    }
-  }, []);
+  const handleDisconnect = useCallback(() => {
+    disconnectMutation.mutate(undefined, {
+      onError: () => {
+        setConnectionError(t('channels.airbnb.errorDisconnecting'));
+      },
+    });
+  }, [disconnectMutation, t]);
 
-  useEffect(() => {
-    fetchStatus();
-    fetchListings();
-    fetchProperties();
-  }, [fetchStatus, fetchListings, fetchProperties]);
+  const handleToggleSync = useCallback((propertyId: number, enabled: boolean) => {
+    toggleSyncMutation.mutate({ propertyId, enabled });
+  }, [toggleSyncMutation]);
 
-  // ── Connect ──
-  const handleConnect = useCallback(async () => {
-    setConnecting(true);
-    try {
-      const { authorizationUrl } = await airbnbApi.connect();
-      window.location.href = authorizationUrl;
-    } catch {
-      setConnectionError(t('channels.airbnb.errorConnecting'));
-      setConnecting(false);
-    }
-  }, [t]);
+  const handleToggleAutoInterventions = useCallback((propertyId: number, enabled: boolean) => {
+    toggleAutoInterventionsMutation.mutate({ propertyId, enabled });
+  }, [toggleAutoInterventionsMutation]);
 
-  // ── Disconnect ──
-  const handleDisconnect = useCallback(async () => {
-    setDisconnecting(true);
-    try {
-      await airbnbApi.disconnect();
-      setConnectionStatus(null);
-      setListings([]);
-      await fetchStatus();
-    } catch {
-      setConnectionError(t('channels.airbnb.errorDisconnecting'));
-    } finally {
-      setDisconnecting(false);
-    }
-  }, [fetchStatus, t]);
+  const handleToggleAutoPushPricing = useCallback((propertyId: number, enabled: boolean) => {
+    toggleAutoPushPricingMutation.mutate({ propertyId, enabled });
+  }, [toggleAutoPushPricingMutation]);
 
-  // ── Toggle sync ──
-  const handleToggleSync = useCallback(async (propertyId: number, enabled: boolean) => {
-    try {
-      const updated = await airbnbApi.toggleSync(propertyId, enabled);
-      setListings((prev) => prev.map((l) => (l.propertyId === propertyId ? { ...l, ...updated } : l)));
-    } catch {
-      // Revert will happen on next fetch
-    }
-  }, []);
-
-  // ── Toggle auto-interventions ──
-  const handleToggleAutoInterventions = useCallback(async (propertyId: number, enabled: boolean) => {
-    try {
-      const updated = await airbnbApi.toggleAutoInterventions(propertyId, enabled);
-      setListings((prev) => prev.map((l) => (l.propertyId === propertyId ? { ...l, ...updated } : l)));
-    } catch {
-      // Revert will happen on next fetch
-    }
-  }, []);
-
-  // ── Toggle auto-push pricing ──
-  const handleToggleAutoPushPricing = useCallback(async (propertyId: number, enabled: boolean) => {
-    try {
-      const updated = await airbnbApi.toggleAutoPushPricing(propertyId, enabled);
-      setListings((prev) => prev.map((l) => (l.propertyId === propertyId ? { ...l, ...updated } : l)));
-    } catch {
-      // Revert will happen on next fetch
-    }
-  }, []);
-
-  // ── Link property ──
-  const handleLink = useCallback(async () => {
+  const handleLink = useCallback(() => {
     if (!linkingPropertyId || !linkForm.airbnbListingId) return;
-    setLinkLoading(true);
-    try {
-      const mapping = await airbnbApi.linkListing({
+    linkListingMutation.mutate(
+      {
         propertyId: linkingPropertyId,
         airbnbListingId: linkForm.airbnbListingId,
         airbnbListingTitle: linkForm.airbnbListingTitle,
         airbnbListingUrl: linkForm.airbnbListingUrl,
-      });
-      setListings((prev) => [...prev, mapping]);
-      setLinkingPropertyId(null);
-      setLinkForm({ airbnbListingId: '', airbnbListingTitle: '', airbnbListingUrl: '' });
-    } catch {
-      // Error handling
-    } finally {
-      setLinkLoading(false);
-    }
-  }, [linkingPropertyId, linkForm]);
+      },
+      {
+        onSuccess: () => {
+          setLinkingPropertyId(null);
+          setLinkForm({ airbnbListingId: '', airbnbListingTitle: '', airbnbListingUrl: '' });
+        },
+      },
+    );
+  }, [linkingPropertyId, linkForm, linkListingMutation]);
 
-  // ── Unlink property ──
-  const handleUnlink = useCallback(async (propertyId: number) => {
-    try {
-      await airbnbApi.unlinkListing(propertyId);
-      setListings((prev) => prev.filter((l) => l.propertyId !== propertyId));
-    } catch {
-      // Error handling
-    }
-  }, []);
+  const handleUnlink = useCallback((propertyId: number) => {
+    unlinkListingMutation.mutate(propertyId);
+  }, [unlinkListingMutation]);
 
   // ── OTA channel handlers (non-Airbnb) ──
   const handleOtaConnect = useCallback((ota: OtaChannel) => {
@@ -480,7 +420,7 @@ const ChannelsPage: React.FC = () => {
               size="small"
               variant="outlined"
               startIcon={<RefreshIcon />}
-              onClick={() => { fetchStatus(); fetchListings(); }}
+              onClick={() => { refetchStatus(); refetchListings(); }}
               sx={{ textTransform: 'none', fontSize: '0.75rem' }}
             >
               {t('common.refresh')}
@@ -489,9 +429,9 @@ const ChannelsPage: React.FC = () => {
         }
       />
 
-      {connectionError && (
+      {(connectionError || connectionQueryError) && (
         <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => setConnectionError(null)}>
-          {connectionError}
+          {connectionError || t('channels.airbnb.errorFetchingStatus')}
         </Alert>
       )}
 
@@ -518,8 +458,8 @@ const ChannelsPage: React.FC = () => {
               connectionLoading={isAirbnb ? connectionLoading : isOtaChannel ? otaConnectionsLoading : false}
               onConnect={isAirbnb ? handleConnect : isOtaChannel ? () => handleOtaConnect(ota) : undefined}
               onDisconnect={isAirbnb ? handleDisconnect : isOtaChannel ? () => handleOtaDisconnectRequest(ota) : undefined}
-              connecting={isAirbnb ? connecting : false}
-              disconnecting={isAirbnb ? disconnecting : disconnectingChannelId === ota.id}
+              connecting={isAirbnb ? connectMutation.isPending : false}
+              disconnecting={isAirbnb ? disconnectMutation.isPending : disconnectingChannelId === ota.id}
               t={t}
             />
           );
@@ -639,7 +579,7 @@ const ChannelsPage: React.FC = () => {
                     properties={unlinkableProperties}
                     selectedPropertyId={linkingPropertyId}
                     form={linkForm}
-                    loading={linkLoading}
+                    loading={linkListingMutation.isPending}
                     onPropertyChange={setLinkingPropertyId}
                     onFormChange={setLinkForm}
                     onSubmit={handleLink}

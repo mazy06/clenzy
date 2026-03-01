@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -34,4 +35,11 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
     long countUnreadByOrganizationId(@Param("orgId") Long organizationId);
 
     Optional<Conversation> findByIdAndOrganizationId(Long id, Long organizationId);
+
+    Page<Conversation> findByOrganizationIdAndChannelInOrderByLastMessageAtDesc(
+        Long organizationId, List<ConversationChannel> channels, Pageable pageable);
+
+    Page<Conversation> findByOrganizationIdAndChannelInAndStatusOrderByLastMessageAtDesc(
+        Long organizationId, List<ConversationChannel> channels,
+        ConversationStatus status, Pageable pageable);
 }

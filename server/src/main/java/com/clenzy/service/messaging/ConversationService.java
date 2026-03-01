@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -208,6 +209,19 @@ public class ConversationService {
             return conversationRepository.findByOrganizationIdAndStatusOrderByLastMessageAtDesc(orgId, status, pageable);
         }
         return conversationRepository.findByOrganizationIdOrderByLastMessageAtDesc(orgId, pageable);
+    }
+
+    /**
+     * Inbox filtre par liste de channels (ex: AIRBNB, BOOKING).
+     */
+    public Page<Conversation> getInboxByChannels(Long orgId, List<ConversationChannel> channels,
+                                                   ConversationStatus status, Pageable pageable) {
+        if (status != null) {
+            return conversationRepository.findByOrganizationIdAndChannelInAndStatusOrderByLastMessageAtDesc(
+                orgId, channels, status, pageable);
+        }
+        return conversationRepository.findByOrganizationIdAndChannelInOrderByLastMessageAtDesc(
+            orgId, channels, pageable);
     }
 
     public Page<Conversation> getMyConversations(Long orgId, String keycloakId, Pageable pageable) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -24,7 +24,8 @@ import {
   Phone as PhoneIcon,
   LocationOn as LocationIcon,
 } from '@mui/icons-material';
-import { receivedFormsApi, type ReceivedForm } from '../../services/api/receivedFormsApi';
+import type { ReceivedForm } from '../../services/api/receivedFormsApi';
+import { useReceivedForms, useUpdateFormStatus, useResetFormsAvailability } from '../../hooks/useReceivedForms';
 
 // ─── Config types & statuts (tokens MUI palette) ─────────────────────────────
 
@@ -63,34 +64,25 @@ const SUPPORT_LABELS: Record<string, string> = {
 // ─── Composant principal ─────────────────────────────────────────────────────
 
 const ReceivedFormsTab: React.FC = () => {
-  const [forms, setForms] = useState<ReceivedForm[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedForm, setSelectedForm] = useState<ReceivedForm | null>(null);
   const [filterType, setFilterType] = useState<string>('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
-  const [updating, setUpdating] = useState(false);
   const rowsPerPage = 20;
 
-  // ─── Chargement ──────────────────────────────────────────────
+  // ─── React Query hooks ─────────────────────────────────────
+  const queryParams = useMemo(() => ({
+    page,
+    size: rowsPerPage,
+    type: filterType || undefined,
+  }), [page, filterType]);
 
-  const loadForms = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await receivedFormsApi.list({
-        page,
-        size: rowsPerPage,
-        type: filterType || undefined,
-      });
-      setForms(result.content);
-      setTotalElements(result.totalElements);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, filterType]);
+  const { data: formsPage, isLoading } = useReceivedForms(queryParams);
+  const updateStatusMutation = useUpdateFormStatus();
+  const resetAvailabilityMutation = useResetFormsAvailability();
 
-  useEffect(() => { loadForms(); }, [loadForms]);
+  const forms = formsPage?.content ?? [];
+  const totalElements = formsPage?.totalElements ?? 0;
 
   // ─── Filtrage client ─────────────────────────────────────────
 
@@ -106,26 +98,25 @@ const ReceivedFormsTab: React.FC = () => {
 
   // ─── Handlers ────────────────────────────────────────────────
 
-  const handleSelect = async (form: ReceivedForm) => {
+  const handleSelect = (form: ReceivedForm) => {
     setSelectedForm(form);
     if (form.status === 'NEW') {
-      const updated = await receivedFormsApi.updateStatus(form.id, 'READ');
-      if (updated) {
-        setForms(prev => prev.map(f => f.id === form.id ? { ...f, status: 'READ', readAt: updated.readAt } : f));
-        setSelectedForm(prev => prev && prev.id === form.id ? { ...prev, status: 'READ', readAt: updated.readAt } : prev);
-      }
+      updateStatusMutation.mutate({ id: form.id, status: 'READ' });
     }
   };
 
-  const handleUpdateStatus = async (status: string) => {
+  const handleUpdateStatus = (status: string) => {
     if (!selectedForm) return;
-    setUpdating(true);
-    const updated = await receivedFormsApi.updateStatus(selectedForm.id, status);
-    if (updated) {
-      setForms(prev => prev.map(f => f.id === selectedForm.id ? { ...f, ...updated } : f));
-      setSelectedForm({ ...selectedForm, ...updated });
-    }
-    setUpdating(false);
+    updateStatusMutation.mutate(
+      { id: selectedForm.id, status },
+      {
+        onSuccess: (updated) => {
+          if (updated) {
+            setSelectedForm(prev => prev && prev.id === selectedForm.id ? { ...prev, ...updated } : prev);
+          }
+        },
+      },
+    );
   };
 
   // ─── Format date ─────────────────────────────────────────────
@@ -210,14 +201,14 @@ const ReceivedFormsTab: React.FC = () => {
           );
         })}
         <Tooltip title="Rafraichir">
-          <IconButton size="small" onClick={() => { receivedFormsApi.resetAvailability(); loadForms(); }}>
+          <IconButton size="small" onClick={() => resetAvailabilityMutation.mutate()}>
             <RefreshIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
           </IconButton>
         </Tooltip>
       </Box>
 
       {/* Content */}
-      {loading ? (
+      {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
           <CircularProgress size={32} color="primary" />
         </Box>
@@ -377,7 +368,7 @@ const ReceivedFormsTab: React.FC = () => {
                       color="success"
                       startIcon={<CheckCircleIcon sx={{ fontSize: 16 }} />}
                       onClick={() => handleUpdateStatus('PROCESSED')}
-                      disabled={updating}
+                      disabled={updateStatusMutation.isPending}
                       sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, borderRadius: '8px' }}
                     >
                       Marquer traite
@@ -389,7 +380,7 @@ const ReceivedFormsTab: React.FC = () => {
                       variant="outlined"
                       startIcon={<ArchiveIcon sx={{ fontSize: 16 }} />}
                       onClick={() => handleUpdateStatus('ARCHIVED')}
-                      disabled={updating}
+                      disabled={updateStatusMutation.isPending}
                       sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
                     >
                       Archiver

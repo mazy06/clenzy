@@ -1,9 +1,25 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Box, Paper, Typography, Button, Chip, IconButton, Tooltip,
-  MenuItem, Select, FormControl, InputLabel, CircularProgress, Alert,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Box,
+  Paper,
+  Typography,
+  Button,
+  Chip,
+  IconButton,
+  Tooltip,
+  MenuItem,
+  CircularProgress,
+  Alert,
+  Card,
+  CardContent,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
+  useTheme,
 } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
@@ -11,7 +27,9 @@ import {
   Send as SendIcon,
   CheckCircle as PaidIcon,
   Cancel as CancelIcon,
-  Visibility as ViewIcon,
+  Clear as ClearIcon,
+  HourglassEmpty as DraftIcon,
+  AttachMoney as MoneyIcon,
 } from '@mui/icons-material';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -39,16 +57,35 @@ const STATUS_LABELS: Record<InvoiceStatus, string> = {
   CREDIT_NOTE: 'Avoir',
 };
 
-const CELL_SX = { fontSize: '0.8125rem', py: 1.25 } as const;
-const HEAD_CELL_SX = { fontSize: '0.75rem', fontWeight: 700, py: 1, color: 'text.secondary' } as const;
-
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('fr-FR') : '\u2014';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const InvoicesList: React.FC = () => {
+interface InvoicesListProps {
+  embedded?: boolean;
+}
+
+const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
   const { t } = useTranslation();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
+  // ─── Theme-aware colours (aligned with PaymentHistoryPage) ─────────────
+  const C = {
+    primary: theme.palette.primary.main,
+    primaryLight: isDark ? theme.palette.primary.light : '#8BA3B3',
+    success: theme.palette.success.main,
+    warning: theme.palette.warning.main,
+    info: theme.palette.info.main,
+    error: theme.palette.error.main,
+    textPrimary: theme.palette.text.primary,
+    textSecondary: theme.palette.text.secondary,
+    gray50: isDark ? theme.palette.grey[100] : '#F8FAFC',
+    gray100: isDark ? theme.palette.grey[200] : '#F1F5F9',
+    gray200: isDark ? theme.palette.grey[300] : '#E2E8F0',
+  };
+
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | ''>('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -78,6 +115,14 @@ const InvoicesList: React.FC = () => {
     }
   };
 
+  const handleClearFilters = () => {
+    setStatusFilter('');
+    setDateFrom('');
+    setDateTo('');
+  };
+
+  const hasActiveFilters = statusFilter || dateFrom || dateTo;
+
   // ─── Stats ──────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     if (!invoices) return null;
@@ -90,75 +135,135 @@ const InvoicesList: React.FC = () => {
     return { total, draft, issued, paid, totalTtc, currency };
   }, [invoices]);
 
+  const summaryCards = stats
+    ? [
+        { label: t('invoices.stats.total', 'Total'), value: String(stats.total), color: C.primary, icon: <ReceiptIcon sx={{ fontSize: 20, color: C.primary }} /> },
+        { label: t('invoices.stats.draft', 'Brouillons'), value: String(stats.draft), color: C.warning, icon: <DraftIcon sx={{ fontSize: 20, color: C.warning }} /> },
+        { label: t('invoices.stats.issued', 'Emises'), value: String(stats.issued), color: C.info, icon: <SendIcon sx={{ fontSize: 20, color: C.info }} /> },
+        { label: t('invoices.stats.paid', 'Payees'), value: String(stats.paid), color: C.success, icon: <PaidIcon sx={{ fontSize: 20, color: C.success }} /> },
+        { label: t('invoices.stats.totalTtc', 'Total TTC'), value: formatCurrency(stats.totalTtc, stats.currency), color: C.primary, icon: <MoneyIcon sx={{ fontSize: 20, color: C.primary }} /> },
+      ]
+    : [];
+
+  // ─── Common input sx ──────────────────────────────────────────────────
+  const inputSx = {
+    '& .MuiOutlinedInput-root': {
+      fontSize: '0.8125rem',
+      borderRadius: '8px',
+      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+    },
+    '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
+  };
+
   return (
     <Box>
-      <PageHeader
-        title={t('invoices.title', 'Factures')}
-        subtitle={t('invoices.subtitle', 'Gestion des factures et documents fiscaux')}
-        backPath="/"
-        showBackButton={false}
-      />
+      {!embedded && (
+        <PageHeader
+          title={t('invoices.title', 'Factures')}
+          subtitle={t('invoices.subtitle', 'Gestion des factures et documents fiscaux')}
+          backPath="/"
+          showBackButton={false}
+        />
+      )}
 
-      {/* ─── Filtres ─────────────────────────────────────────────────────── */}
-      <Paper sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5 }}>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-          <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel>{t('common.status', 'Statut')}</InputLabel>
-            <Select
-              value={statusFilter}
-              label={t('common.status', 'Statut')}
-              onChange={(e) => setStatusFilter(e.target.value as InvoiceStatus | '')}
-            >
-              {STATUS_OPTIONS.map(opt => (
-                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            type="date"
-            label={t('invoices.from', 'Du')}
-            size="small"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ width: 160 }}
-          />
-          <TextField
-            type="date"
-            label={t('invoices.to', 'Au')}
-            size="small"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ width: 160 }}
-          />
-        </Box>
-      </Paper>
-
-      {/* ─── Stats Cards ─────────────────────────────────────────────────── */}
+      {/* ─── Summary cards ─────────────────────────────────────────────── */}
       {stats && (
-        <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-          {[
-            { label: t('invoices.stats.total', 'Total'), value: stats.total, color: 'text.primary' },
-            { label: t('invoices.stats.draft', 'Brouillons'), value: stats.draft, color: INVOICE_STATUS_COLORS.DRAFT },
-            { label: t('invoices.stats.issued', 'Emises'), value: stats.issued, color: INVOICE_STATUS_COLORS.ISSUED },
-            { label: t('invoices.stats.paid', 'Payees'), value: stats.paid, color: INVOICE_STATUS_COLORS.PAID },
-          ].map(s => (
-            <Paper key={s.label} sx={{ p: 1.5, flex: 1, minWidth: 120, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, textAlign: 'center' }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>{s.label}</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: s.color, fontSize: '1.1rem' }}>{s.value}</Typography>
-            </Paper>
+        <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
+          {summaryCards.map((card) => (
+            <Card key={card.label} sx={{ flex: '1 1 140px', borderLeft: `4px solid ${card.color}` }}>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+                <Box
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    bgcolor: `${card.color}14`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {card.icon}
+                </Box>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.125rem', color: C.textPrimary, lineHeight: 1.2 }}>
+                    {card.value}
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: '0.75rem', color: C.textSecondary }}>
+                    {card.label}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
           ))}
-          <Paper sx={{ p: 1.5, flex: 1, minWidth: 160, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, textAlign: 'center' }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-              {t('invoices.stats.totalTtc', 'Total TTC')}
-            </Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', fontSize: '1.1rem' }}>
-              {formatCurrency(stats.totalTtc, stats.currency)}
-            </Typography>
-          </Paper>
         </Box>
       )}
+
+      {/* ─── Filters ─────────────────────────────────────────────────────── */}
+      <Paper
+        sx={{
+          p: 1.5,
+          mb: 2,
+          display: 'flex',
+          gap: 1.5,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          borderRadius: '12px',
+          boxShadow: '0 1px 4px rgba(107,138,154,0.10)',
+        }}
+      >
+        <TextField
+          select
+          size="small"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as InvoiceStatus | '')}
+          label={t('common.status', 'Statut')}
+          sx={{ minWidth: 150, ...inputSx }}
+        >
+          {STATUS_OPTIONS.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: '0.8125rem' }}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          size="small"
+          type="date"
+          label={t('invoices.from', 'Du')}
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 140, ...inputSx }}
+        />
+        <TextField
+          size="small"
+          type="date"
+          label={t('invoices.to', 'Au')}
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 140, ...inputSx }}
+        />
+        {hasActiveFilters && (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<ClearIcon sx={{ fontSize: 16 }} />}
+            onClick={handleClearFilters}
+            sx={{
+              textTransform: 'none',
+              fontSize: '0.8125rem',
+              borderColor: C.gray200,
+              color: C.textSecondary,
+              borderRadius: '8px',
+              '&:hover': { borderColor: C.primary, color: C.primary },
+            }}
+          >
+            {t('payments.history.clearFilters')}
+          </Button>
+        )}
+      </Paper>
 
       {/* ─── Table ───────────────────────────────────────────────────────── */}
       {isLoading ? (
@@ -166,58 +271,108 @@ const InvoicesList: React.FC = () => {
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2, borderRadius: '8px', fontSize: '0.8125rem' }}>
           {t('invoices.loadError', 'Erreur lors du chargement des factures')}
         </Alert>
       ) : !invoices?.length ? (
-        <Paper sx={{ p: 4, textAlign: 'center', border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5 }}>
-          <ReceiptIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-          <Typography color="text.secondary">
-            {t('invoices.empty', 'Aucune facture trouvee')}
-          </Typography>
-        </Paper>
+        <Card sx={{ borderRadius: '12px' }}>
+          <CardContent sx={{ textAlign: 'center', py: 6 }}>
+            <Box
+              sx={{
+                width: 56,
+                height: 56,
+                borderRadius: '50%',
+                bgcolor: `${C.primary}14`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mx: 'auto',
+                mb: 2,
+              }}
+            >
+              <ReceiptIcon sx={{ fontSize: 28, color: C.primary }} />
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: C.textPrimary, mb: 0.5 }}>
+              {t('invoices.empty', 'Aucune facture trouvee')}
+            </Typography>
+          </CardContent>
+        </Card>
       ) : (
-        <TableContainer component={Paper} sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5 }}>
+        <TableContainer
+          component={Paper}
+          sx={{
+            borderRadius: '12px',
+            boxShadow: '0 1px 4px rgba(107,138,154,0.10)',
+            '& .MuiTableHead-root': {
+              bgcolor: C.gray50,
+            },
+            '& .MuiTableCell-head': {
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              color: C.textSecondary,
+              borderBottom: `2px solid ${C.gray200}`,
+              py: 1.25,
+              whiteSpace: 'nowrap',
+            },
+            '& .MuiTableCell-body': {
+              fontSize: '0.8125rem',
+              color: C.textPrimary,
+              py: 1.25,
+              borderBottom: `1px solid ${C.gray100}`,
+            },
+          }}
+        >
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={HEAD_CELL_SX}>{t('invoices.columns.number', 'N\u00B0')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('invoices.columns.date', 'Date')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('invoices.columns.buyer', 'Client')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('invoices.columns.ht', 'HT')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('invoices.columns.tax', 'TVA')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('invoices.columns.ttc', 'TTC')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('common.status', 'Statut')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('common.actions', 'Actions')}</TableCell>
+                <TableCell>{t('invoices.columns.number', 'N\u00B0')}</TableCell>
+                <TableCell>{t('invoices.columns.date', 'Date')}</TableCell>
+                <TableCell>{t('invoices.columns.buyer', 'Client')}</TableCell>
+                <TableCell align="right">{t('invoices.columns.ht', 'HT')}</TableCell>
+                <TableCell align="right">{t('invoices.columns.tax', 'TVA')}</TableCell>
+                <TableCell align="right">{t('invoices.columns.ttc', 'TTC')}</TableCell>
+                <TableCell>{t('common.status', 'Statut')}</TableCell>
+                <TableCell align="right">{t('common.actions', 'Actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {invoices.map((inv: Invoice) => (
-                <TableRow key={inv.id} hover>
-                  <TableCell sx={CELL_SX}>
+                <TableRow
+                  key={inv.id}
+                  hover
+                  sx={{
+                    cursor: 'default',
+                    transition: 'background-color 0.15s ease',
+                    '&:hover': { bgcolor: 'rgba(107,138,154,0.04)' },
+                  }}
+                >
+                  <TableCell>
                     <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
                       {inv.invoiceNumber}
                     </Typography>
                   </TableCell>
-                  <TableCell sx={CELL_SX}>{fmtDate(inv.invoiceDate)}</TableCell>
-                  <TableCell sx={CELL_SX}>{inv.buyerName}</TableCell>
-                  <TableCell sx={CELL_SX} align="right">{formatCurrency(inv.totalHt, inv.currency)}</TableCell>
-                  <TableCell sx={CELL_SX} align="right">{formatCurrency(inv.totalTax, inv.currency)}</TableCell>
-                  <TableCell sx={{ ...CELL_SX, fontWeight: 600 }} align="right">{formatCurrency(inv.totalTtc, inv.currency)}</TableCell>
-                  <TableCell sx={CELL_SX}>
+                  <TableCell>{fmtDate(inv.invoiceDate)}</TableCell>
+                  <TableCell>{inv.buyerName}</TableCell>
+                  <TableCell align="right">{formatCurrency(inv.totalHt, inv.currency)}</TableCell>
+                  <TableCell align="right">{formatCurrency(inv.totalTax, inv.currency)}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }} align="right">{formatCurrency(inv.totalTtc, inv.currency)}</TableCell>
+                  <TableCell>
                     <Chip
                       label={STATUS_LABELS[inv.status]}
                       size="small"
+                      variant="outlined"
                       sx={{
-                        bgcolor: INVOICE_STATUS_COLORS[inv.status],
-                        color: '#fff',
-                        fontWeight: 600,
-                        fontSize: '0.7rem',
+                        fontSize: '0.6875rem',
                         height: 22,
+                        fontWeight: 500,
+                        borderWidth: 1.5,
+                        borderColor: INVOICE_STATUS_COLORS[inv.status],
+                        color: INVOICE_STATUS_COLORS[inv.status],
+                        '& .MuiChip-label': { px: 0.75 },
                       }}
                     />
                   </TableCell>
-                  <TableCell sx={CELL_SX} align="right">
+                  <TableCell align="right">
                     <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
                       {inv.status === 'DRAFT' && (
                         <Tooltip title={t('invoices.actions.issue', 'Emettre')}>

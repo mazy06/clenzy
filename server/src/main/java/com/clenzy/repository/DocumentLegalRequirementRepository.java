@@ -8,9 +8,19 @@ import java.util.List;
 
 public interface DocumentLegalRequirementRepository extends JpaRepository<DocumentLegalRequirement, Long> {
 
+    // Legacy methods (backward compat — queries all countries)
     List<DocumentLegalRequirement> findByDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(DocumentType documentType);
 
     List<DocumentLegalRequirement> findAllByActiveTrueOrderByDocumentTypeAscDisplayOrderAsc();
 
     long countByDocumentTypeAndActiveTrue(DocumentType documentType);
+
+    // Country-scoped methods
+    List<DocumentLegalRequirement> findByCountryCodeAndDocumentTypeAndActiveTrueOrderByDisplayOrderAsc(
+            String countryCode, DocumentType documentType);
+
+    List<DocumentLegalRequirement> findByCountryCodeAndActiveTrueOrderByDocumentTypeAscDisplayOrderAsc(
+            String countryCode);
+
+    long countByCountryCodeAndDocumentTypeAndActiveTrue(String countryCode, DocumentType documentType);
 }

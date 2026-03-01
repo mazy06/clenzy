@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -32,6 +32,16 @@ import {
 } from '@mui/icons-material';
 import { contactApi } from '../../services/api';
 import { useTranslation } from '../../hooks/useTranslation';
+import {
+  useContactMessages as useContactMessagesQuery,
+  useUpdateMessageStatus,
+  useArchiveMessage,
+  useUnarchiveMessage,
+  useDeleteMessage,
+  useReplyMessage,
+  useBulkUpdateStatus,
+  useBulkDeleteMessages,
+} from '../../hooks/useContactMessages';
 import ContactMessageThread from './ContactMessageThread';
 import type { ContactMessageItem } from './ContactMessageThread';
 import PhotoLightbox from '../../components/PhotoLightbox';
@@ -80,18 +90,14 @@ interface ContactMessagesProps {
 
 const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountChange }) => {
   const { t } = useTranslation();
-  const [messages, setMessages] = useState<ContactMessageItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<ContactMessageItem | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
   const rowsPerPage = 20;
 
   // Thread dialog
   const [threadDialogOpen, setThreadDialogOpen] = useState(false);
-  const [replyLoading, setReplyLoading] = useState(false);
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -102,40 +108,45 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const blobUrlsRef = useRef<string[]>([]);
 
-  // ─── Chargement ──────────────────────────────────────────────
+  // ─── React Query ───────────────────────────────────────────────
 
-  const loadMessages = useCallback(async () => {
-    setLoading(true);
-    try {
-      let endpoint: 'inbox' | 'sent' | 'archived';
-      if (type === 'archived') endpoint = 'archived';
-      else if (type === 'sent') endpoint = 'sent';
-      else endpoint = 'inbox';
+  const endpoint = useMemo<'inbox' | 'sent' | 'archived'>(() => {
+    if (type === 'archived') return 'archived';
+    if (type === 'sent') return 'sent';
+    return 'inbox';
+  }, [type]);
 
-      const data = await contactApi.getMessages(endpoint, { page, size: rowsPerPage });
-      // API returns ContactMessage with sender/recipient objects at runtime,
-      // but the TS type is narrower — cast through unknown to bridge the gap
-      const content = (data.content || []) as unknown as ContactMessageItem[];
-      setMessages(content);
-      setTotalElements(data.totalElements || 0);
+  const { data, isLoading, refetch } = useContactMessagesQuery(endpoint, page, rowsPerPage);
 
-      if (type === 'received' && onUnreadCountChange) {
-        const unreadCount = content.filter((m: ContactMessageItem) =>
-          m.status !== 'READ' && m.status !== 'REPLIED'
-        ).length;
-        onUnreadCountChange(unreadCount);
-      }
-    } catch (_err) {
-      // silent
-    } finally {
-      setLoading(false);
-    }
-  }, [page, type, rowsPerPage, onUnreadCountChange]);
+  const messages = useMemo(
+    () => (data?.content || []) as unknown as ContactMessageItem[],
+    [data],
+  );
+  const totalElements = data?.totalElements || 0;
 
+  // Mutations
+  const updateStatusMutation = useUpdateMessageStatus();
+  const archiveMutation = useArchiveMessage();
+  const unarchiveMutation = useUnarchiveMessage();
+  const deleteMutation = useDeleteMessage();
+  const replyMutation = useReplyMessage();
+  const bulkUpdateStatusMutation = useBulkUpdateStatus();
+  const bulkDeleteMutation = useBulkDeleteMessages();
+
+  // Clear selection when data changes
   useEffect(() => {
-    loadMessages();
     setSelectedIds(new Set());
-  }, [loadMessages]);
+  }, [data]);
+
+  // Notify parent of unread count
+  useEffect(() => {
+    if (type === 'received' && onUnreadCountChange && messages.length > 0) {
+      const unreadCount = messages.filter(
+        (m) => m.status !== 'READ' && m.status !== 'REPLIED',
+      ).length;
+      onUnreadCountChange(unreadCount);
+    }
+  }, [messages, type, onUnreadCountChange]);
 
   // Load image blob URLs when selected message changes
   useEffect(() => {
@@ -184,14 +195,16 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
     setSelectedMessage(message);
     // Auto mark as read for received messages
     if (type === 'received' && message.status !== 'READ' && message.status !== 'REPLIED') {
-      contactApi.updateStatus(Number(message.id), 'READ').then(() => {
-        setMessages(prev => prev.map(m =>
-          m.id === message.id ? { ...m, status: 'READ' as const } : m
-        ));
-        setSelectedMessage(prev =>
-          prev && prev.id === message.id ? { ...prev, status: 'READ' as const } : prev
-        );
-      }).catch(() => { /* silent */ });
+      updateStatusMutation.mutate(
+        { id: Number(message.id), status: 'READ' },
+        {
+          onSuccess: () => {
+            setSelectedMessage(prev =>
+              prev && prev.id === message.id ? { ...prev, status: 'READ' as const } : prev
+            );
+          },
+        },
+      );
     }
   };
 
@@ -202,52 +215,41 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
 
   const handleThreadReply = async (messageText: string, attachments?: File[]) => {
     if (!selectedMessage) return;
-    try {
-      setReplyLoading(true);
-      await contactApi.reply(Number(selectedMessage.id), { message: messageText, attachments });
-      loadMessages();
-      setThreadDialogOpen(false);
-      setSelectedMessage(null);
-    } catch (_err) {
-      // silent
-    } finally {
-      setReplyLoading(false);
-    }
+    replyMutation.mutate(
+      { id: Number(selectedMessage.id), data: { message: messageText, attachments } },
+      {
+        onSuccess: () => {
+          setThreadDialogOpen(false);
+          setSelectedMessage(null);
+        },
+      },
+    );
   };
 
-  const handleMarkAsRead = async () => {
+  const handleMarkAsRead = () => {
     if (!selectedMessage) return;
-    try {
-      await contactApi.updateStatus(Number(selectedMessage.id), 'READ');
-      loadMessages();
-    } catch (_err) { /* silent */ }
+    updateStatusMutation.mutate({ id: Number(selectedMessage.id), status: 'READ' });
   };
 
-  const handleArchive = async () => {
+  const handleArchive = () => {
     if (!selectedMessage) return;
-    try {
-      await contactApi.archive(Number(selectedMessage.id));
-      setSelectedMessage(null);
-      loadMessages();
-    } catch (_err) { /* silent */ }
+    archiveMutation.mutate(Number(selectedMessage.id), {
+      onSuccess: () => setSelectedMessage(null),
+    });
   };
 
-  const handleUnarchive = async () => {
+  const handleUnarchive = () => {
     if (!selectedMessage) return;
-    try {
-      await contactApi.unarchive(Number(selectedMessage.id));
-      setSelectedMessage(null);
-      loadMessages();
-    } catch (_err) { /* silent */ }
+    unarchiveMutation.mutate(Number(selectedMessage.id), {
+      onSuccess: () => setSelectedMessage(null),
+    });
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!selectedMessage) return;
-    try {
-      await contactApi.delete(Number(selectedMessage.id));
-      setSelectedMessage(null);
-      loadMessages();
-    } catch (_err) { /* silent */ }
+    deleteMutation.mutate(Number(selectedMessage.id), {
+      onSuccess: () => setSelectedMessage(null),
+    });
   };
 
   // ─── Bulk actions ────────────────────────────────────────────
@@ -270,22 +272,20 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
     }
   };
 
-  const handleBulkMarkAsRead = async () => {
+  const handleBulkMarkAsRead = () => {
     if (selectedIds.size === 0) return;
-    try {
-      await contactApi.bulkUpdateStatus(Array.from(selectedIds).map(Number), 'READ');
-      setSelectedIds(new Set());
-      loadMessages();
-    } catch (_err) { /* silent */ }
+    bulkUpdateStatusMutation.mutate(
+      { ids: Array.from(selectedIds).map(Number), status: 'READ' },
+      { onSuccess: () => setSelectedIds(new Set()) },
+    );
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;
-    try {
-      await contactApi.bulkDelete(Array.from(selectedIds).map(Number));
-      setSelectedIds(new Set());
-      loadMessages();
-    } catch (_err) { /* silent */ }
+    bulkDeleteMutation.mutate(
+      Array.from(selectedIds).map(Number),
+      { onSuccess: () => setSelectedIds(new Set()) },
+    );
   };
 
   // ─── Format date ─────────────────────────────────────────────
@@ -348,7 +348,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
           );
         })}
         <Tooltip title="Rafraichir">
-          <IconButton size="small" onClick={loadMessages}>
+          <IconButton size="small" onClick={() => refetch()}>
             <RefreshIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
           </IconButton>
         </Tooltip>
@@ -375,6 +375,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
               size="small"
               variant="outlined"
               onClick={handleBulkMarkAsRead}
+              disabled={bulkUpdateStatusMutation.isPending}
               startIcon={<MarkAsReadIcon sx={{ fontSize: 14 }} />}
               sx={{
                 textTransform: 'none', fontSize: '0.75rem', fontWeight: 500,
@@ -389,6 +390,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
             variant="outlined"
             color="error"
             onClick={handleBulkDelete}
+            disabled={bulkDeleteMutation.isPending}
             startIcon={<DeleteIcon sx={{ fontSize: 14 }} />}
             sx={{
               textTransform: 'none', fontSize: '0.75rem', fontWeight: 500,
@@ -401,7 +403,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
       )}
 
       {/* Content */}
-      {loading ? (
+      {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
           <CircularProgress size={32} color="primary" />
         </Box>
@@ -762,6 +764,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                       size="small"
                       variant="outlined"
                       color="success"
+                      disabled={updateStatusMutation.isPending}
                       startIcon={<MarkAsReadIcon sx={{ fontSize: 16 }} />}
                       onClick={handleMarkAsRead}
                       sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
@@ -775,6 +778,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                     <Button
                       size="small"
                       variant="outlined"
+                      disabled={archiveMutation.isPending}
                       startIcon={<ArchiveIcon sx={{ fontSize: 16 }} />}
                       onClick={handleArchive}
                       sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
@@ -785,6 +789,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                     <Button
                       size="small"
                       variant="outlined"
+                      disabled={unarchiveMutation.isPending}
                       startIcon={<UnarchiveIcon sx={{ fontSize: 16 }} />}
                       onClick={handleUnarchive}
                       sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
@@ -798,6 +803,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
                     size="small"
                     variant="outlined"
                     color="error"
+                    disabled={deleteMutation.isPending}
                     startIcon={<DeleteIcon sx={{ fontSize: 16 }} />}
                     onClick={handleDelete}
                     sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
@@ -838,7 +844,7 @@ const ContactMessages: React.FC<ContactMessagesProps> = ({ type, onUnreadCountCh
               onClose={() => {
                 setThreadDialogOpen(false);
               }}
-              loading={replyLoading}
+              loading={replyMutation.isPending}
             />
           )}
         </DialogContent>

@@ -38,7 +38,8 @@ import { TeamManagementScreen } from '@/screens/host/TeamManagementScreen';
 import { ReviewsScreen } from '@/screens/host/ReviewsScreen';
 import { SmartLockScreen } from '@/screens/host/SmartLockScreen';
 import { RatePlanManagementScreen } from '@/screens/host/RatePlanManagementScreen';
-import type { ContactMessage } from '@/api/endpoints/contactApi';
+import { InternalChatScreen } from '@/screens/host/InternalChatScreen';
+import type { ContactMessage, ContactThreadSummary } from '@/api/endpoints/contactApi';
 
 export type DashboardStackParamList = {
   DashboardHome: undefined;
@@ -78,6 +79,7 @@ export type PropertiesStackParamList = {
 export type MessagingStackParamList = {
   MessageList: undefined;
   MessageDetail: { message: ContactMessage; isSent: boolean };
+  InternalChat: { thread: ContactThreadSummary };
   ConversationDetail: { conversationId: number };
 };
 
@@ -136,6 +138,7 @@ function MessagingStackNavigator() {
     <MessagingStack.Navigator screenOptions={{ headerShown: false }}>
       <MessagingStack.Screen name="MessageList" component={MessagingScreen} />
       <MessagingStack.Screen name="MessageDetail" component={MessageDetailScreen} />
+      <MessagingStack.Screen name="InternalChat" component={InternalChatScreen} />
       <MessagingStack.Screen name="ConversationDetail" component={ConversationDetailScreen} />
     </MessagingStack.Navigator>
   );

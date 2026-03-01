@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { CalendarPricingDay } from '../../services/api/calendarPricingApi';
 import PricingEditDialog from './PricingEditDialog';
@@ -199,11 +200,34 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
         </Box>
       </Paper>
 
-      {/* ── No property selected ── */}
+      {/* ── No property selected — engaging empty state ── */}
       {!selectedPropertyId && (
-        <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
+        <Paper
+          sx={{
+            ...CARD_SX,
+            py: 6,
+            px: 3,
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 1.5,
+            flex: 1,
+            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
+          }}
+        >
+          <CalendarMonthIcon
+            sx={{
+              fontSize: 48,
+              color: (theme) => alpha(theme.palette.primary.main, 0.25),
+              mb: 0.5,
+            }}
+          />
+          <Typography variant="body1" fontWeight={600} color="text.primary" sx={{ fontSize: '0.875rem' }}>
             {t('dynamicPricing.calendar.noProperty')}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', maxWidth: 320 }}>
+            {t('dynamicPricing.calendar.noPropertyHint')}
           </Typography>
         </Paper>
       )}

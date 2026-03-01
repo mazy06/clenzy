@@ -47,11 +47,12 @@
     "rolesPermissions": "Roles & Permissions",
     "tarification": "Pricing",
     "payments": "Payments",
+    "billing": "Billing",
     "monitoring": "Monitoring",
     "syncDiagnostics": "Sync & Diagnostics",
     "kpiReadiness": "KPI Readiness",
     "database": "Database",
-    "documents": "Documents",
+    "documents": "Documents & Communications",
     "myProfile": "My Profile",
     "logout": "Logout",
     "menu": "Menu",
@@ -981,7 +982,8 @@
     },
     "calendar": {
       "selectProperty": "Select a property",
-      "noProperty": "Please select a property",
+      "noProperty": "Select a property to get started",
+      "noPropertyHint": "Choose a property from the filter above to view and adjust the pricing calendar.",
       "editPrice": "Edit price",
       "pricePerNight": "Price per night",
       "applyRange": "Apply to range"
@@ -1339,7 +1341,28 @@
     "replyPlaceholder": "Write a reply...",
     "noMessages": "No messages",
     "noMessagesDesc": "Your inbox is empty",
-    "message": "Message"
+    "message": "Message",
+    "channelMessages": "OTA Messaging",
+    "internalChat": "Messaging",
+    "selectConversation": "Select a conversation",
+    "noConversations": "No conversations",
+    "noConversationsHint": "Your exchanges with organization members will appear here",
+    "searchContacts": "Search contacts...",
+    "typeMessage": "Your message...",
+    "unreadMessages": "unread messages"
+  },
+  "channelInbox": {
+    "title": "Platform messaging",
+    "noConversations": "No conversations",
+    "noConversationsHint": "Messages from your connected platforms will appear here",
+    "errorLoading": "Error loading conversations",
+    "messages": "messages",
+    "guest": "Guest",
+    "host": "Host",
+    "unread": "Unread",
+    "markAsRead": "Mark as read",
+    "viewMessages": "View messages",
+    "lastMessage": "Last message"
   },
   "users": {
     "title": "Users",
@@ -1542,6 +1565,14 @@
     "success": "Export successful",
     "noData": "No data to export",
     "fileName": "export"
+  },
+  "billing": {
+    "title": "Billing",
+    "subtitle": "Payments and invoices",
+    "tabs": {
+      "payments": "Payments",
+      "invoices": "Invoices"
+    }
   },
   "payments": {
     "history": {
@@ -1985,6 +2016,64 @@
       "lastSync": "Last sync",
       "externalId": "External ID",
       "status": "Status"
+    }
+  },
+  "documents": {
+    "title": "Documents & Communications",
+    "subtitle": "Templates, history and regulatory compliance",
+    "tabs": {
+      "catalog": "Catalog",
+      "messageTemplates": "Message templates",
+      "documentTemplates": "Document templates",
+      "history": "History",
+      "variablesAndTags": "Variables & Tags",
+      "compliance": "Compliance",
+      "newDocTemplate": "New template",
+      "generateDoc": "Generate document",
+      "searchTag": "Search a tag..."
+    },
+    "history": {
+      "filterAll": "All",
+      "filterMessages": "Messages",
+      "filterDocuments": "Documents",
+      "typeMessage": "Message",
+      "typeDocument": "Document",
+      "empty": "No history",
+      "emptyDesc": "Sent messages and generated documents will appear here.",
+      "colDate": "Date",
+      "colName": "Name / Subject",
+      "colRecipient": "Recipient",
+      "colChannel": "Channel",
+      "colStatus": "Status"
+    },
+    "compliance": {
+      "sectionTitle": "Regulatory Compliance",
+      "totalDocuments": "Documents generated",
+      "totalLocked": "Locked documents",
+      "invoicesLocked": "Locked invoices",
+      "averageScore": "Average compliance score",
+      "templateVerification": "Template compliance verification",
+      "checkAction": "Check compliance",
+      "checkError": "Error during compliance check",
+      "loadError": "Error loading compliance data",
+      "searchNotFound": "Document not found with this legal number",
+      "compliant": "Compliant",
+      "nonCompliant": "Non-compliant",
+      "notChecked": "Not checked",
+      "missingMentions": "missing mention(s)",
+      "missingMentionsLabel": "Missing mentions",
+      "allMentionsPresent": "All legal mentions are present",
+      "standardLabel": "Standard",
+      "countryLabel": "Country",
+      "activeLabel": "Status",
+      "complianceLabel": "Compliance",
+      "noTemplates": "No templates",
+      "active": "Active",
+      "inactive": "Inactive",
+      "file": "File",
+      "locked": "Locked",
+      "countryChanged": "Compliance country updated successfully",
+      "countryChangeError": "Error updating compliance country"
     }
   },
   "messaging": {
