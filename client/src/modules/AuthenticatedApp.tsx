@@ -79,6 +79,9 @@ import BillingPage from './billing/BillingPage';
 // Reservations
 import ReservationsList from './reservations/ReservationsList';
 
+// Planning
+import PlanningPage from './planning/PlanningPage';
+
 // Dynamic Pricing
 import DynamicPricing from './pricing/DynamicPricing';
 
@@ -223,6 +226,14 @@ const AuthenticatedApp: React.FC = () => {
           <ProtectedRoute requiredPermission="reservations:view">
             <ErrorBoundary>
               <ReservationsList />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/planning" element={
+          <ProtectedRoute requiredPermission="reservations:view">
+            <ErrorBoundary>
+              <PlanningPage />
             </ErrorBoundary>
           </ProtectedRoute>
         } />
