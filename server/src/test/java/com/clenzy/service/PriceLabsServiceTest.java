@@ -9,6 +9,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
@@ -16,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PriceLabsServiceTest {
@@ -42,9 +47,16 @@ class PriceLabsServiceTest {
         return config;
     }
 
+    @SuppressWarnings("unchecked")
+    private void mockRestTemplateExchange() {
+        when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), eq(String.class)))
+            .thenReturn(ResponseEntity.ok("[]"));
+    }
+
     @Test
     void fetchRecommendations_withMapping_returnsEmptyMvp() {
         ExternalPricingConfig config = createConfig(Map.of("100", "pl-listing-123"));
+        mockRestTemplateExchange();
 
         List<ExternalPriceRecommendation> result = service.fetchRecommendations(
             config, 100L, LocalDate.now(), LocalDate.now().plusDays(30));
@@ -77,6 +89,7 @@ class PriceLabsServiceTest {
     @Test
     void pushListingData_withMapping_doesNotThrow() {
         ExternalPricingConfig config = createConfig(Map.of("100", "pl-listing-123"));
+        mockRestTemplateExchange();
 
         assertDoesNotThrow(() -> service.pushListingData(config, 100L));
     }

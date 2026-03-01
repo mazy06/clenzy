@@ -38,7 +38,7 @@ class ExpediaChannelAdapterTest {
 
     @Test
     void channelName() {
-        assertThat(adapter.getChannelName()).isEqualTo(ChannelName.VRBO);
+        assertThat(adapter.getChannelName()).isEqualTo(ChannelName.EXPEDIA);
     }
 
     @Test

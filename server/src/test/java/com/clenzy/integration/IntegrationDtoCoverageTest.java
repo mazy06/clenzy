@@ -533,9 +533,10 @@ class IntegrationDtoCoverageTest {
     @DisplayName("ChannelName enum")
     class ChannelNameTest {
         @Test void allValues() {
-            assertThat(ChannelName.values()).hasSize(11);
+            assertThat(ChannelName.values()).hasSize(12);
             assertThat(ChannelName.valueOf("AIRBNB")).isEqualTo(ChannelName.AIRBNB);
             assertThat(ChannelName.valueOf("BOOKING")).isEqualTo(ChannelName.BOOKING);
+            assertThat(ChannelName.valueOf("EXPEDIA")).isEqualTo(ChannelName.EXPEDIA);
             assertThat(ChannelName.valueOf("VRBO")).isEqualTo(ChannelName.VRBO);
             assertThat(ChannelName.valueOf("ICAL")).isEqualTo(ChannelName.ICAL);
             assertThat(ChannelName.valueOf("GOOGLE_VACATION_RENTALS")).isEqualTo(ChannelName.GOOGLE_VACATION_RENTALS);
@@ -563,7 +564,7 @@ class IntegrationDtoCoverageTest {
     class ChannelConnectionTest {
         @Test void defaultConstructor() {
             ChannelConnection cc = new ChannelConnection();
-            assertThat(cc.getStatus()).isEqualTo("ACTIVE");
+            assertThat(cc.getStatus()).isEqualTo(ChannelConnection.ConnectionStatus.ACTIVE);
         }
         @Test void parameterizedConstructor() {
             ChannelConnection cc = new ChannelConnection(1L, ChannelName.AIRBNB);

@@ -224,7 +224,6 @@ export function TodayMissionsScreen() {
       <FlashList
         data={missions}
         extraData={selectedDate}
-        estimatedItemSize={120}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
         contentContainerStyle={{ paddingHorizontal: theme.SPACING.lg, paddingBottom: theme.SPACING['3xl'] }}
