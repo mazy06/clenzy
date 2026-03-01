@@ -7,6 +7,8 @@ import com.clenzy.integration.expedia.dto.ExpediaAvailabilityDto;
 import com.clenzy.integration.expedia.model.ExpediaConnection;
 import com.clenzy.integration.expedia.repository.ExpediaConnectionRepository;
 import com.clenzy.integration.expedia.service.ExpediaApiClient;
+import com.clenzy.model.BookingRestriction;
+import com.clenzy.repository.BookingRestrictionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -38,15 +40,18 @@ public class ExpediaChannelAdapter implements ChannelConnector {
     private final ExpediaApiClient expediaApiClient;
     private final ExpediaConnectionRepository expediaConnectionRepository;
     private final ChannelMappingRepository channelMappingRepository;
+    private final BookingRestrictionRepository bookingRestrictionRepository;
 
     public ExpediaChannelAdapter(ExpediaConfig expediaConfig,
                                  ExpediaApiClient expediaApiClient,
                                  ExpediaConnectionRepository expediaConnectionRepository,
-                                 ChannelMappingRepository channelMappingRepository) {
+                                 ChannelMappingRepository channelMappingRepository,
+                                 BookingRestrictionRepository bookingRestrictionRepository) {
         this.expediaConfig = expediaConfig;
         this.expediaApiClient = expediaApiClient;
         this.expediaConnectionRepository = expediaConnectionRepository;
         this.channelMappingRepository = channelMappingRepository;
+        this.bookingRestrictionRepository = bookingRestrictionRepository;
     }
 
     @Override
@@ -62,7 +67,8 @@ public class ExpediaChannelAdapter implements ChannelConnector {
                 ChannelCapability.INBOUND_RESERVATIONS,
                 ChannelCapability.OUTBOUND_RESERVATIONS,
                 ChannelCapability.WEBHOOKS,
-                ChannelCapability.OAUTH
+                ChannelCapability.OAUTH,
+                ChannelCapability.OUTBOUND_RESTRICTIONS
         );
     }
 
@@ -180,6 +186,48 @@ public class ExpediaChannelAdapter implements ChannelConnector {
         }
     }
 
+    // ── Restrictions ────────────────────────────────────────────────────────
+
+    /**
+     * Pousse les restrictions de sejour vers Expedia (OUTBOUND).
+     * Utilise PUT /v3/properties/{id}/availability avec minLOS, maxLOS, closedToArrival, closedToDeparture.
+     */
+    @Override
+    public SyncResult pushRestrictions(Long propertyId, LocalDate from,
+                                         LocalDate to, Long orgId) {
+        long startTime = System.currentTimeMillis();
+
+        Optional<ChannelMapping> mappingOpt = resolveMapping(propertyId, orgId);
+        if (mappingOpt.isEmpty()) {
+            return SyncResult.skipped("Aucun mapping Expedia/VRBO pour propriete " + propertyId);
+        }
+
+        if (!expediaConfig.isConfigured()) {
+            return SyncResult.skipped("Expedia non configure");
+        }
+
+        String expediaPropertyId = mappingOpt.get().getExternalId();
+
+        try {
+            List<ExpediaAvailabilityDto> availabilities = buildAvailabilityUpdates(
+                    expediaPropertyId, from, to, propertyId, orgId);
+
+            boolean success = expediaApiClient.updateAvailability(expediaPropertyId, availabilities);
+            long duration = System.currentTimeMillis() - startTime;
+
+            if (success) {
+                log.info("Restrictions Expedia mises a jour pour propriete {} ({} jours)", propertyId, availabilities.size());
+                return SyncResult.success(availabilities.size(), duration);
+            }
+            return SyncResult.failed("Echec mise a jour restrictions Expedia pour " + expediaPropertyId, duration);
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            log.error("Erreur push restrictions Expedia propriete {}: {}", propertyId, e.getMessage());
+            return SyncResult.failed("Erreur API Expedia: " + e.getMessage(), duration);
+        }
+    }
+
     // ================================================================
     // Helpers
     // ================================================================
@@ -191,26 +239,53 @@ public class ExpediaChannelAdapter implements ChannelConnector {
     private List<ExpediaAvailabilityDto> buildAvailabilityUpdates(String expediaPropertyId,
                                                                     LocalDate from,
                                                                     LocalDate to) {
-        List<ExpediaAvailabilityDto> updates = new ArrayList<>();
-        LocalDate current = from;
+        return buildAvailabilityUpdates(expediaPropertyId, from, to, null, null);
+    }
 
+    private List<ExpediaAvailabilityDto> buildAvailabilityUpdates(String expediaPropertyId,
+                                                                    LocalDate from,
+                                                                    LocalDate to,
+                                                                    Long propertyId,
+                                                                    Long orgId) {
+        List<ExpediaAvailabilityDto> updates = new ArrayList<>();
+        List<BookingRestriction> restrictions = (propertyId != null && orgId != null)
+                ? bookingRestrictionRepository.findApplicable(propertyId, from, to, orgId)
+                : List.of();
+
+        LocalDate current = from;
         while (current.isBefore(to)) {
+            BookingRestriction restriction = findApplicableRestriction(restrictions, current);
+            int minLOS = restriction != null && restriction.getMinStay() != null ? restriction.getMinStay() : 1;
+            int maxLOS = restriction != null && restriction.getMaxStay() != null ? restriction.getMaxStay() : 365;
+            boolean cta = restriction != null && Boolean.TRUE.equals(restriction.getClosedToArrival());
+            boolean ctd = restriction != null && Boolean.TRUE.equals(restriction.getClosedToDeparture());
+
             updates.add(new ExpediaAvailabilityDto(
                     expediaPropertyId,
-                    null,           // roomTypeId — sera resolu depuis le mapping config
+                    null,
                     current,
-                    1,              // totalInventoryAvailable — defaut 1 pour location courte duree
-                    null,           // ratePlanId
-                    BigDecimal.ZERO, // pricePerNight — sera lu depuis CalendarEngine
+                    1,
+                    null,
+                    BigDecimal.ZERO,
                     "EUR",
-                    1,              // minLOS
-                    365,            // maxLOS
-                    false,          // closedToArrival
-                    false           // closedToDeparture
+                    minLOS,
+                    maxLOS,
+                    cta,
+                    ctd
             ));
             current = current.plusDays(1);
         }
 
         return updates;
+    }
+
+    /**
+     * Trouve la restriction applicable pour une date donnee.
+     */
+    private BookingRestriction findApplicableRestriction(List<BookingRestriction> restrictions, LocalDate date) {
+        return restrictions.stream()
+                .filter(r -> r.appliesTo(date))
+                .findFirst()
+                .orElse(null);
     }
 }
