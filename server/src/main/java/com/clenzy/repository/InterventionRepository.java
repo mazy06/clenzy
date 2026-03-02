@@ -219,7 +219,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     /**
      * Interventions pour le planning : filtrees par proprietes et plage de dates
      */
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner " +
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser " +
            "WHERE i.property.id IN :propertyIds " +
            "AND i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
            "AND i.organizationId = :orgId " +
@@ -233,7 +233,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     /**
      * Toutes les interventions pour le planning dans une plage de dates (admin/manager)
      */
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner " +
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser " +
            "WHERE i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
            "AND i.organizationId = :orgId " +
            "ORDER BY i.scheduledDate ASC")
@@ -245,7 +245,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     /**
      * Interventions pour le planning d'un owner specifique
      */
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner " +
+    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser " +
            "WHERE p.owner.keycloakId = :keycloakId " +
            "AND i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
            "AND i.organizationId = :orgId " +
