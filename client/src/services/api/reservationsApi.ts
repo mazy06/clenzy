@@ -628,8 +628,6 @@ export const reservationsApi = {
       return new Promise((resolve) => setTimeout(() => resolve(data), 200));
     }
 
-    // Pas encore d'endpoint backend dedié pour les interventions de planning
-    // Retourner un tableau vide — les réservations sont le contenu principal du planning
     try {
       const params: Record<string, string | number | boolean | null | undefined> = {};
       if (filters?.propertyIds && filters.propertyIds.length > 0) {
@@ -640,7 +638,8 @@ export const reservationsApi = {
       if (filters?.type) params.type = filters.type;
 
       return await apiClient.get<PlanningIntervention[]>('/interventions/planning', { params });
-    } catch {
+    } catch (error) {
+      console.error('[Planning] Failed to fetch interventions:', error);
       return [];
     }
   },
