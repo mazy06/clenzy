@@ -198,11 +198,11 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
             src={sourceLogo}
             alt={event.sublabel}
             sx={{
-              height: 10,
-              maxWidth: 40,
+              height: '80%',
+              maxWidth: '40%',
               objectFit: 'contain',
               flexShrink: 0,
-              opacity: 0.85,
+              opacity: 0.9,
             }}
           />
         ) : (
