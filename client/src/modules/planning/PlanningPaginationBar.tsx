@@ -24,8 +24,6 @@ const PlanningPaginationBar: React.FC<PlanningPaginationBarProps> = React.memo((
 }) => {
   const theme = useTheme();
 
-  if (totalPages <= 1) return null;
-
   return (
     <Box
       sx={{

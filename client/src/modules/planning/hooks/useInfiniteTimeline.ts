@@ -159,9 +159,8 @@ export function useInfiniteTimeline({
       );
 
       if (targetIndex >= 0) {
-        const containerWidth = el.clientWidth - propertyColWidth;
-        // Position the target date ~1/3 from the left for context
-        const targetScrollLeft = Math.max(0, targetIndex * dayWidth - containerWidth / 3);
+        // Position today as the 3rd column (offset by 2 day columns)
+        const targetScrollLeft = Math.max(0, (targetIndex - 2) * dayWidth);
         el.scrollLeft = targetScrollLeft;
       }
     },
@@ -181,8 +180,8 @@ export function useInfiniteTimeline({
       );
 
       if (targetIndex >= 0) {
-        const containerWidth = el.clientWidth - propertyColWidth;
-        const targetScrollLeft = Math.max(0, targetIndex * dayWidth - containerWidth / 3);
+        // Position today as the 3rd column (offset by 2 day columns)
+        const targetScrollLeft = Math.max(0, (targetIndex - 2) * dayWidth);
         el.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
       }
       // If not in buffer, the anchorDate change will trigger buffer recenter

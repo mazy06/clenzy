@@ -32,6 +32,9 @@ export interface UsePlanningPaginationReturn {
 
 // ─── Page size computation ──────────────────────────────────────────────────
 
+// Extra spacing added by the layout: toolbar mb(8) + pagination mt(8) + container pb(8) + border(2)
+const LAYOUT_SPACING = 26;
+
 function computePageSize(
   viewportHeight: number,
   density: DensityMode,
@@ -39,12 +42,14 @@ function computePageSize(
   showPrices: boolean,
 ): number {
   const rowHeight = ROW_CONFIG[density].rowHeight + (showPrices ? PRICE_LINE_HEIGHT[density] : 0);
+  // The page container height is already `100vh - APP_HEADER_HEIGHT` (or 100vh in fullscreen),
+  // so we only subtract the chrome elements *inside* the planning page.
   const chrome =
     TOOLBAR_HEIGHT +
     DATE_HEADER_HEIGHT +
     PAGINATION_BAR_HEIGHT +
-    (isFullscreen ? 0 : APP_HEADER_HEIGHT);
-  const available = viewportHeight - chrome;
+    LAYOUT_SPACING;
+  const available = viewportHeight - (isFullscreen ? 0 : APP_HEADER_HEIGHT) - chrome;
   return Math.max(1, Math.floor(available / rowHeight));
 }
 

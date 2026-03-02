@@ -20,7 +20,7 @@ export interface UsePlanningNavigationReturn {
 
 export function usePlanningNavigation(): UsePlanningNavigationReturn {
   const [currentDate, setCurrentDate] = useState(() => new Date());
-  const [zoom, setZoom] = useState<ZoomLevel>('month');
+  const [zoom, setZoom] = useState<ZoomLevel>('week');
   const [density, setDensity] = useState<DensityMode>('normal');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
