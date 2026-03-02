@@ -58,6 +58,37 @@ export function wouldConflict(
   allEvents: PlanningEvent[],
   interventions?: PlanningIntervention[],
 ): boolean {
+  const isInterventionEvent =
+    modifiedEvent.type === 'cleaning' || modifiedEvent.type === 'maintenance';
+
+  // ── Intervention conflict detection ──────────────────────────────────────
+  if (isInterventionEvent) {
+    // 1. Check overlap with reservations on the same property
+    const reservations = allEvents.filter(
+      (e) => e.propertyId === modifiedEvent.propertyId && e.type === 'reservation',
+    );
+    const overlapsReservation = reservations.some(
+      (e) => modifiedEvent.startDate < e.endDate && modifiedEvent.endDate > e.startDate,
+    );
+    if (overlapsReservation) return true;
+
+    // 2. Check overlap with other interventions on the same property
+    if (interventions && interventions.length > 0) {
+      const numericId = parseInt(modifiedEvent.id.replace('int-', ''), 10);
+      const overlapsIntervention = interventions.some(
+        (i) =>
+          i.id !== numericId &&
+          i.propertyId === modifiedEvent.propertyId &&
+          modifiedEvent.startDate < i.endDate &&
+          modifiedEvent.endDate > i.startDate,
+      );
+      if (overlapsIntervention) return true;
+    }
+
+    return false;
+  }
+
+  // ── Reservation conflict detection (existing logic) ──────────────────────
   const others = allEvents.filter(
     (e) =>
       e.id !== modifiedEvent.id &&
@@ -225,6 +256,62 @@ export function validateReservationUpdate(
           };
         }
       }
+    }
+  }
+
+  return { valid: true, error: null };
+}
+
+// ─── Validation for intervention updates (panel edits) ────────────────────
+
+/**
+ * Validate that an intervention update doesn't:
+ * 1. Overlap with a reservation on the same property
+ * 2. Overlap with another intervention on the same property
+ */
+export function validateInterventionUpdate(
+  interventionId: number,
+  propertyId: number,
+  newStartDate: string,
+  newEndDate: string,
+  newStartTime: string | undefined,
+  newEndTime: string | undefined,
+  allEvents: PlanningEvent[],
+  interventions: PlanningIntervention[],
+): UpdateValidation {
+  const newStart = toTimestamp(newStartDate, newStartTime);
+  const newEnd = toTimestamp(newEndDate, newEndTime);
+
+  // 1. Check overlap with reservations on the same property
+  const reservations = allEvents.filter(
+    (e) => e.propertyId === propertyId && e.type === 'reservation',
+  );
+
+  for (const res of reservations) {
+    const resStart = toTimestamp(res.startDate, res.startTime);
+    const resEnd = toTimestamp(res.endDate, res.endTime);
+
+    if (newStart < resEnd && resStart < newEnd) {
+      return {
+        valid: false,
+        error: `Conflit avec la reservation de ${res.label} (${res.startDate} - ${res.endDate})`,
+      };
+    }
+  }
+
+  // 2. Check overlap with other interventions on the same property
+  for (const intv of interventions) {
+    if (intv.id === interventionId) continue;
+    if (intv.propertyId !== propertyId) continue;
+
+    const intvStart = toTimestamp(intv.startDate, intv.startTime);
+    const intvEnd = toTimestamp(intv.endDate, intv.endTime);
+
+    if (newStart < intvEnd && intvStart < newEnd) {
+      return {
+        valid: false,
+        error: `Conflit avec l'intervention "${intv.title}" (${intv.startDate} - ${intv.endDate})`,
+      };
     }
   }
 

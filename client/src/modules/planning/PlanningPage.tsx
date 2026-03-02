@@ -98,6 +98,7 @@ const PlanningPage: React.FC = () => {
     createIntervention,
     assignIntervention,
     setPriority,
+    updateInterventionDates,
     updateInterventionNotes,
   } = useInterventionActions(filteredEvents, interventions);
 
@@ -248,6 +249,7 @@ const PlanningPage: React.FC = () => {
         onAssignIntervention={assignIntervention}
         onSetPriority={setPriority}
         onUpdateInterventionNotes={updateInterventionNotes}
+        onUpdateInterventionDates={updateInterventionDates}
         onDuplicateReservation={duplicateReservation}
       />
 
