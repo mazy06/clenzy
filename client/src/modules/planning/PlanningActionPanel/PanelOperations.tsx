@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -34,10 +34,15 @@ import {
   Close,
   Check,
   AutoFixHigh,
+  CalendarMonth,
+  Schedule,
+  SwapHoriz,
+  Edit,
 } from '@mui/icons-material';
 import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
 import { useWorkflowSettings } from '../../../hooks/useWorkflowSettings';
+import { useAuth } from '../../../hooks/useAuth';
 import CreateInterventionDialog from './CreateInterventionDialog';
 
 // ── Staff list (shared with CreateInterventionDialog) ──────────────────────
@@ -88,6 +93,12 @@ interface PanelOperationsProps {
   onAssignIntervention?: (interventionId: number, assigneeName: string) => Promise<{ success: boolean; error: string | null }>;
   onSetPriority?: (interventionId: number, priority: 'normale' | 'haute' | 'urgente') => Promise<{ success: boolean; error: string | null }>;
   onUpdateInterventionNotes?: (interventionId: number, notes: string) => Promise<{ success: boolean; error: string | null }>;
+  onUpdateInterventionDates?: (interventionId: number, updates: {
+    startDate?: string;
+    endDate?: string;
+    startTime?: string;
+    endTime?: string;
+  }) => Promise<{ success: boolean; error: string | null }>;
 }
 
 const PanelOperations: React.FC<PanelOperationsProps> = ({
@@ -99,10 +110,17 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
   onAssignIntervention,
   onSetPriority,
   onUpdateInterventionNotes,
+  onUpdateInterventionDates,
 }) => {
   const isReservation = event.type === 'reservation';
   const intervention = event.intervention;
   const reservation = event.reservation;
+
+  // ── Role check: only SUPER_ADMIN, SUPER_MANAGER, or org ADMIN can edit interventions ──
+  const { user } = useAuth();
+  const canEditIntervention =
+    user?.roles?.some(r => ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(r)) ||
+    user?.orgRole === 'ADMIN';
 
   // ── Workflow settings (auto-assign feature flag) ───────────────────────────
   const { settings: workflowSettings } = useWorkflowSettings();
@@ -354,6 +372,203 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
 
   const today = new Date().toISOString().split('T')[0];
 
+  // ── Editable Intervention Dates Section ─────────────────────────────────
+  const EditableInterventionDatesSection: React.FC = () => {
+    const intv = intervention!;
+    const [editing, setEditing] = useState(false);
+    const [startDate, setStartDate] = useState(intv.startDate);
+    const [endDate, setEndDate] = useState(intv.endDate);
+    const [startTime, setStartTime] = useState(intv.startTime || '');
+    const [endTime, setEndTime] = useState(intv.endTime || '');
+    const [validationError, setValidationError] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+
+    // Reset when intervention changes
+    useEffect(() => {
+      setStartDate(intv.startDate);
+      setEndDate(intv.endDate);
+      setStartTime(intv.startTime || '');
+      setEndTime(intv.endTime || '');
+      setEditing(false);
+      setValidationError(null);
+    }, [intv.id, intv.startDate, intv.endDate, intv.startTime, intv.endTime]);
+
+    const hasChanges =
+      startDate !== intv.startDate ||
+      endDate !== intv.endDate ||
+      startTime !== (intv.startTime || '') ||
+      endTime !== (intv.endTime || '');
+
+    const handleSave = async () => {
+      if (!onUpdateInterventionDates || !hasChanges) return;
+      setValidationError(null);
+      setSaving(true);
+
+      const updates: { startDate?: string; endDate?: string; startTime?: string; endTime?: string } = {};
+      if (startDate !== intv.startDate) updates.startDate = startDate;
+      if (endDate !== intv.endDate) updates.endDate = endDate;
+      if (startTime !== (intv.startTime || '')) updates.startTime = startTime;
+      if (endTime !== (intv.endTime || '')) updates.endTime = endTime;
+
+      const result = await onUpdateInterventionDates(intv.id, updates);
+      setSaving(false);
+      if (result.success) {
+        setEditing(false);
+        showSnackbar('Dates mises a jour');
+      } else {
+        setValidationError(result.error);
+      }
+    };
+
+    const handleCancel = () => {
+      setStartDate(intv.startDate);
+      setEndDate(intv.endDate);
+      setStartTime(intv.startTime || '');
+      setEndTime(intv.endTime || '');
+      setEditing(false);
+      setValidationError(null);
+    };
+
+    return (
+      <Box sx={{ mt: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <CalendarMonth sx={{ fontSize: 18, color: 'text.secondary' }} />
+          <Typography variant="body2" sx={{ fontWeight: 600, flex: 1, fontSize: '0.8125rem' }}>
+            Dates & Horaires
+          </Typography>
+          {!editing ? (
+            <IconButton size="small" onClick={() => setEditing(true)} sx={{ p: 0.25 }}>
+              <Edit sx={{ fontSize: 14, color: 'text.secondary' }} />
+            </IconButton>
+          ) : (
+            <Box sx={{ display: 'flex', gap: 0.25 }}>
+              <IconButton
+                size="small"
+                onClick={handleSave}
+                disabled={!hasChanges || saving}
+                sx={{ p: 0.25, color: 'success.main' }}
+              >
+                {saving ? <CircularProgress size={14} /> : <Check sx={{ fontSize: 16 }} />}
+              </IconButton>
+              <IconButton size="small" onClick={handleCancel} sx={{ p: 0.25, color: 'error.main' }}>
+                <Close sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Box>
+          )}
+        </Box>
+
+        {!editing ? (
+          /* Display mode */
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box>
+              <Typography variant="caption" color="text.secondary">Debut</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+                {intv.startDate}
+              </Typography>
+              {intv.startTime && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                  <Schedule sx={{ fontSize: 12, color: 'text.secondary' }} />
+                  <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                    {intv.startTime}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+            <SwapHoriz sx={{ color: 'text.disabled' }} />
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="caption" color="text.secondary">Fin</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+                {intv.endDate}
+              </Typography>
+              {intv.endTime && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25, justifyContent: 'flex-end' }}>
+                  <Schedule sx={{ fontSize: 12, color: 'text.secondary' }} />
+                  <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                    {intv.endTime}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        ) : (
+          /* Edit mode */
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.25, display: 'block' }}>
+                Debut
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <TextField
+                  type="date"
+                  size="small"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
+                  inputProps={{ style: { padding: '6px 8px' } }}
+                />
+                <TextField
+                  type="time"
+                  size="small"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  placeholder="HH:mm"
+                  sx={{ width: 100, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
+                  inputProps={{ style: { padding: '6px 8px' } }}
+                />
+              </Box>
+            </Box>
+
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.25, display: 'block' }}>
+                Fin
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <TextField
+                  type="date"
+                  size="small"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
+                  inputProps={{ style: { padding: '6px 8px' } }}
+                />
+                <TextField
+                  type="time"
+                  size="small"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  placeholder="HH:mm"
+                  sx={{ width: 100, '& .MuiOutlinedInput-root': { fontSize: '0.75rem' } }}
+                  inputProps={{ style: { padding: '6px 8px' } }}
+                />
+              </Box>
+            </Box>
+
+            {validationError && (
+              <Alert
+                severity="error"
+                onClose={() => setValidationError(null)}
+                sx={{
+                  fontSize: '0.75rem',
+                  py: 0,
+                  '& .MuiAlert-message': { fontSize: '0.75rem' },
+                  '& .MuiAlert-icon': { fontSize: '1rem', py: 0.5 },
+                }}
+              >
+                {validationError}
+              </Alert>
+            )}
+
+            {hasChanges && intv.linkedReservationId && !validationError && (
+              <Typography variant="caption" color="warning.main" sx={{ fontSize: '0.625rem' }}>
+                L'intervention sera deliee de sa reservation si les dates sont modifiees.
+              </Typography>
+            )}
+          </Box>
+        )}
+      </Box>
+    );
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* Intervention info (if clicking on an intervention) */}
@@ -381,6 +596,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
               {intervention.notes}
             </Typography>
           )}
+          {canEditIntervention && <EditableInterventionDatesSection />}
           <Divider sx={{ my: 1 }} />
         </Box>
       )}
