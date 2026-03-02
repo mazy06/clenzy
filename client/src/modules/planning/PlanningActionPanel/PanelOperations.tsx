@@ -22,6 +22,7 @@ import {
   Switch,
   FormControlLabel,
   Tooltip,
+  LinearProgress,
 } from '@mui/material';
 import {
   AutoAwesome,
@@ -38,6 +39,11 @@ import {
   Schedule,
   SwapHoriz,
   Edit,
+  CheckCircle,
+  ChevronRight,
+  Search as InspectIcon,
+  MeetingRoom,
+  CameraAlt,
 } from '@mui/icons-material';
 import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
@@ -99,6 +105,7 @@ interface PanelOperationsProps {
     startTime?: string;
     endTime?: string;
   }) => Promise<{ success: boolean; error: string | null }>;
+  onNavigate?: (view: import('../types').PanelView) => void;
 }
 
 const PanelOperations: React.FC<PanelOperationsProps> = ({
@@ -111,6 +118,7 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
   onSetPriority,
   onUpdateInterventionNotes,
   onUpdateInterventionDates,
+  onNavigate,
 }) => {
   const isReservation = event.type === 'reservation';
   const intervention = event.intervention;
@@ -605,21 +613,122 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
       {isReservation && linkedInterventions.length > 0 && (
         <Box>
           <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 0.5 }}>
-            Interventions liees ({linkedInterventions.length})
+            Interventions liées ({linkedInterventions.length})
           </Typography>
-          {linkedInterventions.map((li) => (
-            <Box key={li.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
-              {li.type === 'cleaning' ? (
-                <AutoAwesome sx={{ fontSize: 14, color: '#9B7FC4' }} />
-              ) : (
-                <Handyman sx={{ fontSize: 14, color: '#7EBAD0' }} />
-              )}
-              <Typography variant="caption" sx={{ fontSize: '0.6875rem' }}>
-                {li.title} — {li.assigneeName}
-              </Typography>
-              <Chip label={li.status} size="small" sx={{ fontSize: '0.5625rem', height: 18 }} />
-            </Box>
-          ))}
+          {linkedInterventions.map((li) => {
+            const steps = new Set((li.completedSteps || '').split(',').filter(Boolean));
+            const inspDone = steps.has('inspection');
+            const roomsDone = steps.has('rooms');
+            const photosDone = steps.has('after_photos');
+            const progress = (inspDone ? 33 : 0) + (roomsDone ? 33 : 0) + (photosDone ? 34 : 0);
+            const isInProgress = ['in_progress', 'awaiting_validation'].includes(li.status);
+            const isDone = li.status === 'completed' || li.status === 'awaiting_validation';
+
+            return (
+              <Box
+                key={li.id}
+                onClick={() => onNavigate?.({ type: 'intervention-detail', interventionId: li.id })}
+                sx={{
+                  mb: 0.75,
+                  p: 1,
+                  borderRadius: 1.5,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  cursor: onNavigate ? 'pointer' : 'default',
+                  transition: 'all 0.15s ease',
+                  '&:hover': onNavigate ? {
+                    backgroundColor: 'action.hover',
+                    borderColor: 'primary.main',
+                    '& .drill-arrow': { opacity: 1, transform: 'translateX(2px)' },
+                  } : {},
+                }}
+              >
+                {/* Header row: icon + title + arrow */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+                  {li.type === 'cleaning' ? (
+                    <AutoAwesome sx={{ fontSize: 14, color: '#9B7FC4' }} />
+                  ) : (
+                    <Handyman sx={{ fontSize: 14, color: '#7EBAD0' }} />
+                  )}
+                  <Typography variant="caption" sx={{ flex: 1, fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {li.title} — {li.assigneeName}
+                  </Typography>
+                  <ChevronRight
+                    className="drill-arrow"
+                    sx={{ fontSize: 16, color: 'text.secondary', opacity: 0.4, transition: 'all 0.15s ease' }}
+                  />
+                </Box>
+
+                {/* Progress bar */}
+                {isInProgress && (
+                  <Box sx={{ mb: 0.75 }}>
+                    <LinearProgress
+                      variant="determinate"
+                      value={progress}
+                      sx={{
+                        height: 4,
+                        borderRadius: 2,
+                        backgroundColor: 'action.hover',
+                        '& .MuiLinearProgress-bar': {
+                          borderRadius: 2,
+                          backgroundColor: progress === 100 ? 'success.main' : 'primary.main',
+                        },
+                      }}
+                    />
+                  </Box>
+                )}
+
+                {/* Mini steps row */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  {[
+                    { done: inspDone, icon: <InspectIcon sx={{ fontSize: 11 }} />, label: 'Inspection' },
+                    { done: roomsDone, icon: <MeetingRoom sx={{ fontSize: 11 }} />, label: 'Pièces' },
+                    { done: photosDone, icon: <CameraAlt sx={{ fontSize: 11 }} />, label: 'Photos' },
+                  ].map((step, idx) => (
+                    <Chip
+                      key={idx}
+                      icon={step.done ? <CheckCircle sx={{ fontSize: 11, color: 'success.main' }} /> : step.icon}
+                      label={step.label}
+                      size="small"
+                      variant={step.done ? 'filled' : 'outlined'}
+                      sx={{
+                        fontSize: '0.5625rem',
+                        height: 20,
+                        '& .MuiChip-icon': {
+                          fontSize: 11,
+                          ml: 0.25,
+                          ...(step.done ? { color: '#fff !important' } : {}),
+                        },
+                        '& .MuiChip-label': { px: 0.5 },
+                        ...(step.done ? {
+                          backgroundColor: 'success.main',
+                          color: '#fff',
+                        } : {
+                          opacity: 0.6,
+                        }),
+                      }}
+                    />
+                  ))}
+                  {isDone && (
+                    <Chip
+                      label="Terminée"
+                      size="small"
+                      color="success"
+                      sx={{ fontSize: '0.5625rem', height: 20, ml: 'auto', '& .MuiChip-label': { px: 0.75 } }}
+                    />
+                  )}
+                  {!isDone && li.status === 'scheduled' && (
+                    <Chip
+                      label="Planifiée"
+                      size="small"
+                      variant="outlined"
+                      sx={{ fontSize: '0.5625rem', height: 20, ml: 'auto', '& .MuiChip-label': { px: 0.75 } }}
+                    />
+                  )}
+                </Box>
+              </Box>
+            );
+          })}
           <Divider sx={{ mt: 1, mb: 0.5 }} />
         </Box>
       )}

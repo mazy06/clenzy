@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   Drawer,
   Box,
@@ -14,18 +14,31 @@ import {
   Info,
   Build,
   AccountBalance,
-  History,
-  MoreHoriz,
+  Home,
+  TrendingUp,
+  PhotoLibrary,
+  Payment,
 } from '@mui/icons-material';
-import type { PlanningEvent, PanelTab, PlanningProperty } from './types';
+import type { PlanningEvent, PanelTab, PlanningProperty, PlanningEventType, PanelView } from './types';
 import type { PlanningIntervention } from '../../services/api';
 import PanelReservationInfo from './PlanningActionPanel/PanelReservationInfo';
 import PanelOperations from './PlanningActionPanel/PanelOperations';
 import PanelFinancial from './PlanningActionPanel/PanelFinancial';
 import PanelHistory from './PlanningActionPanel/PanelHistory';
 import PanelActions from './PlanningActionPanel/PanelActions';
+import PanelPropertyDetails from './PlanningActionPanel/PanelPropertyDetails';
+import PanelInterventionProgress from './PlanningActionPanel/PanelInterventionProgress';
+import PanelInterventionRecap from './PlanningActionPanel/PanelInterventionRecap';
+import PanelPayment from './PlanningActionPanel/PanelPayment';
+import PanelSubViewHeader from './PlanningActionPanel/PanelSubViewHeader';
+import PanelInterventionDetail from './PlanningActionPanel/PanelInterventionDetail';
+import { usePanelNavigation } from './PlanningActionPanel/usePanelNavigation';
 import { ACTION_PANEL_WIDTH } from './constants';
 import { hexToRgba } from './utils/colorUtils';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type ActionResult = { success: boolean; error: string | null };
 
 interface PlanningActionPanelProps {
   open: boolean;
@@ -36,50 +49,73 @@ interface PlanningActionPanelProps {
   allEvents: PlanningEvent[];
   properties?: PlanningProperty[];
   interventions?: PlanningIntervention[];
+  // Reservation actions
   onUpdateReservation?: (reservationId: number, updates: {
-    checkIn?: string;
-    checkOut?: string;
-    checkInTime?: string;
-    checkOutTime?: string;
-  }) => Promise<{ success: boolean; error: string | null }>;
-  onChangeProperty?: (reservationId: number, newPropertyId: number, newPropertyName: string) => Promise<{ success: boolean; error: string | null }>;
-  onCancelReservation?: (reservationId: number) => Promise<{ success: boolean; error: string | null }>;
-  onUpdateNotes?: (reservationId: number, notes: string) => Promise<{ success: boolean; error: string | null }>;
+    checkIn?: string; checkOut?: string; checkInTime?: string; checkOutTime?: string;
+  }) => Promise<ActionResult>;
+  onChangeProperty?: (reservationId: number, newPropertyId: number, newPropertyName: string) => Promise<ActionResult>;
+  onCancelReservation?: (reservationId: number) => Promise<ActionResult>;
+  onUpdateNotes?: (reservationId: number, notes: string) => Promise<ActionResult>;
   // Intervention actions
-  onCreateAutoCleaning?: (reservationId: number) => Promise<{ success: boolean; error: string | null }>;
+  onCreateAutoCleaning?: (reservationId: number) => Promise<ActionResult>;
   onCreateIntervention?: (data: {
-    propertyId: number;
-    propertyName: string;
-    type: 'cleaning' | 'maintenance';
-    title: string;
-    assigneeName: string;
-    startDate: string;
-    endDate: string;
-    startTime?: string;
-    endTime?: string;
-    estimatedDurationHours: number;
-    notes?: string;
-    linkedReservationId?: number;
-  }) => Promise<{ success: boolean; error: string | null }>;
-  onAssignIntervention?: (interventionId: number, assigneeName: string) => Promise<{ success: boolean; error: string | null }>;
-  onSetPriority?: (interventionId: number, priority: 'normale' | 'haute' | 'urgente') => Promise<{ success: boolean; error: string | null }>;
-  onUpdateInterventionNotes?: (interventionId: number, notes: string) => Promise<{ success: boolean; error: string | null }>;
+    propertyId: number; propertyName: string; type: 'cleaning' | 'maintenance';
+    title: string; assigneeName: string; startDate: string; endDate: string;
+    startTime?: string; endTime?: string; estimatedDurationHours: number;
+    notes?: string; linkedReservationId?: number;
+  }) => Promise<ActionResult>;
+  onAssignIntervention?: (interventionId: number, assigneeName: string) => Promise<ActionResult>;
+  onSetPriority?: (interventionId: number, priority: 'normale' | 'haute' | 'urgente') => Promise<ActionResult>;
+  onUpdateInterventionNotes?: (interventionId: number, notes: string) => Promise<ActionResult>;
   onUpdateInterventionDates?: (interventionId: number, updates: {
-    startDate?: string;
-    endDate?: string;
-    startTime?: string;
-    endTime?: string;
-  }) => Promise<{ success: boolean; error: string | null }>;
+    startDate?: string; endDate?: string; startTime?: string; endTime?: string;
+  }) => Promise<ActionResult>;
+  // Lifecycle actions
+  onStartIntervention?: (interventionId: number) => Promise<ActionResult>;
+  onCompleteIntervention?: (interventionId: number) => Promise<ActionResult>;
+  onValidateIntervention?: (interventionId: number, estimatedCost: number) => Promise<ActionResult>;
+  onUploadPhotos?: (interventionId: number, photos: File[], type: 'before' | 'after') => Promise<ActionResult>;
+  onUpdateInterventionProgress?: (interventionId: number, progress: number) => Promise<ActionResult>;
+  onCreatePaymentSession?: (interventionIds: number[], total: number) => Promise<{ url: string; sessionId: string }>;
   // Actions (PanelActions)
-  onDuplicateReservation?: (reservationId: number, newCheckIn: string, newCheckOut: string) => Promise<{ success: boolean; error: string | null }>;
+  onDuplicateReservation?: (reservationId: number, newCheckIn: string, newCheckOut: string) => Promise<ActionResult>;
 }
 
-const TAB_CONFIG: { value: PanelTab; label: string; icon: React.ReactElement }[] = [
-  { value: 'info', label: 'Infos', icon: <Info sx={{ fontSize: 16 }} /> },
-  { value: 'operations', label: 'Operations', icon: <Build sx={{ fontSize: 16 }} /> },
-  { value: 'financial', label: 'Financier', icon: <AccountBalance sx={{ fontSize: 16 }} /> },
-  { value: 'history', label: 'Historique', icon: <History sx={{ fontSize: 16 }} /> },
+// ─── Tab configs ──────────────────────────────────────────────────────────────
+
+const ICON_SX = { fontSize: 16 };
+
+const RESERVATION_TABS: { value: PanelTab; label: string; icon: React.ReactElement }[] = [
+  { value: 'info', label: 'Infos', icon: <Info sx={ICON_SX} /> },
+  { value: 'property', label: 'Logement', icon: <Home sx={ICON_SX} /> },
+  { value: 'operations', label: 'Opérations', icon: <Build sx={ICON_SX} /> },
+  { value: 'financial', label: 'Financier', icon: <AccountBalance sx={ICON_SX} /> },
 ];
+
+const INTERVENTION_TABS: { value: PanelTab; label: string; icon: React.ReactElement }[] = [
+  { value: 'info', label: 'Infos', icon: <Info sx={ICON_SX} /> },
+  { value: 'progress', label: 'Avancement', icon: <TrendingUp sx={ICON_SX} /> },
+  { value: 'recap', label: 'Récap', icon: <PhotoLibrary sx={ICON_SX} /> },
+  { value: 'payment', label: 'Paiement', icon: <Payment sx={ICON_SX} /> },
+];
+
+const getTabConfig = (eventType: PlanningEventType) =>
+  eventType === 'reservation' ? RESERVATION_TABS : INTERVENTION_TABS;
+
+const getValidTabs = (eventType: PlanningEventType): PanelTab[] =>
+  getTabConfig(eventType).map((t) => t.value);
+
+// ─── Sub-view title helper ────────────────────────────────────────────────────
+
+const getSubViewTitle = (view: PanelView): string => {
+  switch (view.type) {
+    case 'property-details': return 'Détails du logement';
+    case 'intervention-detail': return 'Détail intervention';
+    default: return '';
+  }
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   open,
@@ -100,14 +136,163 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   onSetPriority,
   onUpdateInterventionNotes,
   onUpdateInterventionDates,
+  onStartIntervention,
+  onCompleteIntervention,
+  onValidateIntervention,
+  onUploadPhotos,
+  onUpdateInterventionProgress,
+  onCreatePaymentSession,
   onDuplicateReservation,
 }) => {
   const theme = useTheme();
+  const { currentView, isSubView, pushView, popView } = usePanelNavigation(event?.id ?? null);
+
+  // Auto-reset to valid tab when event type changes
+  const validTabs = useMemo(
+    () => (event ? getValidTabs(event.type) : []),
+    [event?.type],
+  );
+
+  useEffect(() => {
+    if (event && !validTabs.includes(activeTab)) {
+      onTabChange('info');
+    }
+  }, [event?.id, event?.type]);
 
   if (!event) return null;
 
   const isReservation = event.type === 'reservation';
-  const title = isReservation ? event.label : event.label;
+  const tabConfig = getTabConfig(event.type);
+
+  // ── Sub-view content ──────────────────────────────────────────────────
+  const renderSubView = () => {
+    switch (currentView.type) {
+      case 'property-details':
+        return (
+          <PanelPropertyDetails
+            propertyId={currentView.propertyId}
+            onDrillDown={(view) => pushView(view)}
+          />
+        );
+      case 'intervention-detail':
+        return (
+          <PanelInterventionDetail
+            interventionId={currentView.interventionId}
+            event={event}
+            allEvents={allEvents}
+            interventions={interventions}
+            onStartIntervention={onStartIntervention}
+            onCompleteIntervention={onCompleteIntervention}
+            onValidateIntervention={onValidateIntervention}
+            onUploadPhotos={onUploadPhotos}
+            onUpdateInterventionProgress={onUpdateInterventionProgress}
+            onAssignIntervention={onAssignIntervention}
+            onSetPriority={onSetPriority}
+            onUpdateInterventionNotes={onUpdateInterventionNotes}
+            onUpdateInterventionDates={onUpdateInterventionDates}
+            onCreatePaymentSession={onCreatePaymentSession}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  // ── Root tab content ──────────────────────────────────────────────────
+  const renderTabContent = () => {
+    // ── Reservation tabs ──
+    if (isReservation) {
+      switch (activeTab) {
+        case 'info':
+          return (
+            <PanelReservationInfo
+              event={event}
+              allEvents={allEvents}
+              properties={properties}
+              onUpdateReservation={onUpdateReservation}
+              onChangeProperty={onChangeProperty}
+              onCancelReservation={onCancelReservation}
+              onUpdateNotes={onUpdateNotes}
+              onNavigate={pushView}
+            />
+          );
+        case 'property':
+          return (
+            <PanelPropertyDetails
+              propertyId={event.propertyId}
+              onDrillDown={pushView}
+            />
+          );
+        case 'operations':
+          return (
+            <PanelOperations
+              event={event}
+              allEvents={allEvents}
+              interventions={interventions}
+              onCreateAutoCleaning={onCreateAutoCleaning}
+              onCreateIntervention={onCreateIntervention}
+              onAssignIntervention={onAssignIntervention}
+              onSetPriority={onSetPriority}
+              onUpdateInterventionNotes={onUpdateInterventionNotes}
+              onUpdateInterventionDates={onUpdateInterventionDates}
+              onNavigate={pushView}
+            />
+          );
+        case 'financial':
+          return (
+            <PanelFinancial
+              event={event}
+              interventions={interventions}
+              onCreatePaymentSession={onCreatePaymentSession}
+            />
+          );
+        default:
+          return null;
+      }
+    }
+
+    // ── Intervention tabs ──
+    switch (activeTab) {
+      case 'info':
+        return (
+          <PanelOperations
+            event={event}
+            allEvents={allEvents}
+            interventions={interventions}
+            onCreateAutoCleaning={onCreateAutoCleaning}
+            onCreateIntervention={onCreateIntervention}
+            onAssignIntervention={onAssignIntervention}
+            onSetPriority={onSetPriority}
+            onUpdateInterventionNotes={onUpdateInterventionNotes}
+            onUpdateInterventionDates={onUpdateInterventionDates}
+            onNavigate={pushView}
+          />
+        );
+      case 'progress':
+        return (
+          <PanelInterventionProgress
+            event={event}
+            onStartIntervention={onStartIntervention}
+            onCompleteIntervention={onCompleteIntervention}
+            onUploadPhotos={onUploadPhotos}
+            onUpdateInterventionProgress={onUpdateInterventionProgress}
+          />
+        );
+      case 'recap':
+        return <PanelInterventionRecap event={event} />;
+      case 'payment':
+        return (
+          <PanelPayment
+            event={event}
+            interventions={interventions}
+            onCreatePaymentSession={onCreatePaymentSession}
+            onValidateIntervention={onValidateIntervention}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <Drawer
@@ -116,8 +301,12 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
       onClose={onClose}
       variant="persistent"
       sx={{
+        // Keep drawer overlay (not push content) in all modes
+        position: 'relative',
+        zIndex: theme.zIndex.drawer + 1,
         '& .MuiDrawer-paper': {
           width: ACTION_PANEL_WIDTH,
+          position: 'fixed',
           borderLeft: '1px solid',
           borderColor: 'divider',
           backgroundColor: 'background.paper',
@@ -161,10 +350,10 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
                 whiteSpace: 'nowrap',
               }}
             >
-              {title}
+              {event.label}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
-              {isReservation ? 'Reservation' : event.type === 'cleaning' ? 'Menage' : 'Maintenance'}
+              {isReservation ? 'Reservation' : event.type === 'cleaning' ? 'Ménage' : 'Maintenance'}
               {' · '}
               {event.startDate} → {event.endDate}
             </Typography>
@@ -175,63 +364,47 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
         </IconButton>
       </Box>
 
-      {/* Tabs */}
-      <Tabs
-        value={activeTab}
-        onChange={(_, value) => onTabChange(value)}
-        variant="fullWidth"
-        sx={{
-          minHeight: 40,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          '& .MuiTab-root': {
+      {/* Tabs or Sub-view Header */}
+      {isSubView ? (
+        <PanelSubViewHeader title={getSubViewTitle(currentView)} onBack={popView} />
+      ) : (
+        <Tabs
+          value={activeTab}
+          onChange={(_, value) => onTabChange(value)}
+          variant="fullWidth"
+          sx={{
             minHeight: 40,
-            fontSize: '0.625rem',
-            fontWeight: 600,
-            textTransform: 'none',
-            letterSpacing: '0.01em',
-            py: 0.5,
-          },
-          '& .MuiTab-root .MuiTab-iconWrapper': {
-            marginBottom: 0,
-            marginRight: 0.5,
-          },
-        }}
-      >
-        {TAB_CONFIG.map((tab) => (
-          <Tab
-            key={tab.value}
-            value={tab.value}
-            label={tab.label}
-            icon={tab.icon}
-            iconPosition="start"
-          />
-        ))}
-      </Tabs>
-
-      {/* Tab content */}
-      <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-        {activeTab === 'info' && (
-          event.type === 'reservation'
-            ? <PanelReservationInfo event={event} allEvents={allEvents} properties={properties} onUpdateReservation={onUpdateReservation} onChangeProperty={onChangeProperty} onCancelReservation={onCancelReservation} onUpdateNotes={onUpdateNotes} />
-            : <PanelOperations event={event} allEvents={allEvents} interventions={interventions} onCreateAutoCleaning={onCreateAutoCleaning} onCreateIntervention={onCreateIntervention} onAssignIntervention={onAssignIntervention} onSetPriority={onSetPriority} onUpdateInterventionNotes={onUpdateInterventionNotes} onUpdateInterventionDates={onUpdateInterventionDates} />
-        )}
-        {activeTab === 'operations' && <PanelOperations event={event} allEvents={allEvents} interventions={interventions} onCreateAutoCleaning={onCreateAutoCleaning} onCreateIntervention={onCreateIntervention} onAssignIntervention={onAssignIntervention} onSetPriority={onSetPriority} onUpdateInterventionNotes={onUpdateInterventionNotes} onUpdateInterventionDates={onUpdateInterventionDates} />}
-        {activeTab === 'financial' && <PanelFinancial event={event} />}
-        {activeTab === 'history' && (
-          <>
-            <PanelHistory event={event} />
-            <Divider sx={{ my: 2 }} />
-            <PanelActions
-              event={event}
-              allEvents={allEvents}
-              onUpdateReservation={onUpdateReservation}
-              onUpdateNotes={onUpdateNotes}
-              onCreateIntervention={onCreateIntervention}
-              onDuplicateReservation={onDuplicateReservation}
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            '& .MuiTab-root': {
+              minHeight: 40,
+              fontSize: '0.625rem',
+              fontWeight: 600,
+              textTransform: 'none',
+              letterSpacing: '0.01em',
+              py: 0.5,
+            },
+            '& .MuiTab-root .MuiTab-iconWrapper': {
+              marginBottom: 0,
+              marginRight: 0.5,
+            },
+          }}
+        >
+          {tabConfig.map((tab) => (
+            <Tab
+              key={tab.value}
+              value={tab.value}
+              label={tab.label}
+              icon={tab.icon}
+              iconPosition="start"
             />
-          </>
-        )}
+          ))}
+        </Tabs>
+      )}
+
+      {/* Content */}
+      <Box sx={{ flex: 1, overflow: 'auto', p: 2, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+        {isSubView ? renderSubView() : renderTabContent()}
       </Box>
     </Drawer>
   );

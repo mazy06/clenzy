@@ -48,9 +48,10 @@ interface PanelReservationInfoProps {
   onChangeProperty?: (reservationId: number, newPropertyId: number, newPropertyName: string) => Promise<{ success: boolean; error: string | null }>;
   onCancelReservation?: (reservationId: number) => Promise<{ success: boolean; error: string | null }>;
   onUpdateNotes?: (reservationId: number, notes: string) => Promise<{ success: boolean; error: string | null }>;
+  onNavigate?: (view: import('../types').PanelView) => void;
 }
 
-const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allEvents, properties, onUpdateReservation, onChangeProperty, onCancelReservation, onUpdateNotes }) => {
+const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allEvents, properties, onUpdateReservation, onChangeProperty, onCancelReservation, onUpdateNotes, onNavigate }) => {
   const reservation = event.reservation;
   const [guestCardOpen, setGuestCardOpen] = useState(false);
   const [changePropertyOpen, setChangePropertyOpen] = useState(false);
@@ -111,9 +112,21 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
 
       {/* Property */}
       <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <Home sx={{ fontSize: 18, color: 'text.secondary' }} />
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        <Box
+          onClick={() => onNavigate?.({ type: 'property-details', propertyId: event.propertyId })}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            mb: 0.5,
+            cursor: onNavigate ? 'pointer' : 'default',
+            p: 0.5,
+            borderRadius: 1,
+            '&:hover': onNavigate ? { backgroundColor: 'action.hover' } : {},
+          }}
+        >
+          <Home sx={{ fontSize: 18, color: 'primary.main' }} />
+          <Typography variant="body2" sx={{ fontWeight: 600, color: onNavigate ? 'primary.main' : 'text.primary', textDecoration: onNavigate ? 'underline' : 'none', textDecorationStyle: 'dotted' as const }}>
             {reservation.propertyName}
           </Typography>
         </Box>
