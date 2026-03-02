@@ -92,10 +92,12 @@ let mockFinancialId = 5000;
 // ── Props ──────────────────────────────────────────────────────────────────
 interface PanelFinancialProps {
   event: PlanningEvent;
+  interventions?: import('../../../services/api').PlanningIntervention[];
   onFinancialAction?: (action: string, data: Record<string, unknown>) => Promise<{ success: boolean; error: string | null }>;
+  onCreatePaymentSession?: (interventionIds: number[], total: number) => Promise<{ url: string; sessionId: string }>;
 }
 
-const PanelFinancial: React.FC<PanelFinancialProps> = ({ event, onFinancialAction }) => {
+const PanelFinancial: React.FC<PanelFinancialProps> = ({ event, interventions, onFinancialAction, onCreatePaymentSession }) => {
   const reservation = event.reservation;
   const intervention = event.intervention;
 
@@ -474,6 +476,34 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({ event, onFinancialActio
           </Button>
         </Box>
       </Box>
+
+      {/* ── Payment cart for pending interventions ───────────────────────── */}
+      {reservation && interventions && onCreatePaymentSession && (() => {
+        const awaitingPayment = (interventions || []).filter(
+          (i) => i.propertyId === event.propertyId && i.status === 'awaiting_payment',
+        );
+        if (awaitingPayment.length === 0) return null;
+        return (
+          <>
+            <Divider />
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+                Interventions en attente de paiement ({awaitingPayment.length})
+              </Typography>
+              {awaitingPayment.map((intv) => (
+                <Box key={intv.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5, p: 0.5, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                  <Typography sx={{ fontSize: '0.6875rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {intv.title}
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, ml: 1 }}>
+                    {intv.estimatedDurationHours ? (intv.estimatedDurationHours * 25).toFixed(0) : '—'} €
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </>
+        );
+      })()}
 
       {/* ── Dialogs ─────────────────────────────────────────────────────────── */}
 

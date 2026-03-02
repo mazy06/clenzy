@@ -69,7 +69,7 @@ export interface UpdateReservationData {
 // interventions backend + les auto-générations post-séjour.
 
 export type PlanningInterventionType = 'cleaning' | 'maintenance';
-export type PlanningInterventionStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+export type PlanningInterventionStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'pending' | 'assigned' | 'awaiting_payment' | 'awaiting_validation';
 
 export interface PlanningIntervention {
   id: number;
@@ -86,6 +86,15 @@ export interface PlanningIntervention {
   linkedReservationId?: number;  // Si lié à un check-out
   estimatedDurationHours: number;
   notes?: string;
+  // Extended fields for progress tracking and recap
+  progressPercentage?: number;
+  completedSteps?: string;       // Comma-separated: 'inspection,rooms,after_photos'
+  validatedRooms?: string;       // Comma-separated room indices
+  beforePhotosUrls?: string[] | string;
+  afterPhotosUrls?: string[] | string;
+  paymentStatus?: string;
+  estimatedCost?: number;
+  actualCost?: number;
 }
 
 // ─── Status helpers ──────────────────────────────────────────────────────────
@@ -124,10 +133,14 @@ export const INTERVENTION_TYPE_LABELS: Record<PlanningInterventionType, string> 
 };
 
 export const INTERVENTION_STATUS_COLORS: Record<PlanningInterventionStatus, string> = {
-  scheduled: '#7BA3C2',   // bleu harmonieux (thème info) — statut planifié
-  in_progress: '#6B8A9A', // bleu-gris (thème primary) — en cours
-  completed: '#4A9B8E',   // teal (thème success) — terminé
-  cancelled: '#9e9e9e',   // grey — annulé
+  scheduled: '#7BA3C2',           // bleu harmonieux (thème info) — statut planifié
+  in_progress: '#6B8A9A',        // bleu-gris (thème primary) — en cours
+  completed: '#4A9B8E',          // teal (thème success) — terminé
+  cancelled: '#9e9e9e',          // grey — annulé
+  pending: '#D4A574',            // ambre chaud — en attente
+  assigned: '#7BA3C2',           // bleu — assigné
+  awaiting_payment: '#F59E0B',   // orange — en attente de paiement
+  awaiting_validation: '#8B5CF6', // violet — en attente de validation
 };
 
 export const INTERVENTION_STATUS_LABELS: Record<PlanningInterventionStatus, string> = {
@@ -135,6 +148,10 @@ export const INTERVENTION_STATUS_LABELS: Record<PlanningInterventionStatus, stri
   in_progress: 'En cours',
   completed: 'Terminée',
   cancelled: 'Annulée',
+  pending: 'En attente',
+  assigned: 'Assignée',
+  awaiting_payment: 'Attente paiement',
+  awaiting_validation: 'Attente validation',
 };
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
