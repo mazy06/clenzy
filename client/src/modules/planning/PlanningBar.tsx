@@ -6,6 +6,7 @@ import type { BarLayout, PlanningEvent, ZoomLevel, DragBarData } from './types';
 import { BAR_BORDER_RADIUS } from './constants';
 import { hexToRgba } from './utils/colorUtils';
 import { getSourceLogo } from './utils/sourceLogos';
+import { useAuth } from '../../hooks/useAuth';
 
 interface PlanningBarProps {
   layout: BarLayout;
@@ -86,11 +87,19 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   const isIntervention = event.type !== 'reservation';
   const isReservation = event.type === 'reservation';
 
+  // Role check: only SUPER_ADMIN, SUPER_MANAGER, or org ADMIN can drag interventions
+  const { user } = useAuth();
+  const canEditIntervention = isReservation || (
+    user?.roles?.some(r => ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(r)) ||
+    user?.orgRole === 'ADMIN'
+  );
+
   // Draggable for move (whole bar body)
+  const isDragDisabled = event.type === 'blocked' || (isIntervention && !canEditIntervention);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: event.id,
     data: { type: 'move', event, layout } satisfies DragBarData,
-    disabled: !isReservation,
+    disabled: isDragDisabled,
   });
 
   // Use resizeWidth if this bar is being resized, otherwise original width
@@ -119,8 +128,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   return (
     <Box
       ref={setNodeRef}
-      {...(isReservation ? listeners : {})}
-      {...(isReservation ? attributes : {})}
+      {...(!isDragDisabled ? listeners : {})}
+      {...(!isDragDisabled ? attributes : {})}
       onClick={(e) => {
         // Don't trigger click if a drag just happened
         if (isDragActive) return;
@@ -137,7 +146,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         border: `${isCompactBar ? 1 : 1.5}px solid ${borderColor}`,
         borderLeft: `${isCompactBar ? 2 : 3}px solid ${event.color}`,
         borderRadius: `${isCompactBar ? 3 : BAR_BORDER_RADIUS}px`,
-        cursor: isResizing ? 'col-resize' : isReservation ? 'grab' : 'pointer',
+        cursor: isResizing ? 'col-resize' : isDragDisabled ? 'pointer' : 'grab',
         overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',
@@ -222,8 +231,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         );
       })()}
 
-      {/* Resize handle (right edge) — reservations only, hidden during move drag */}
-      {isReservation && !isDragging && (
+      {/* Resize handle (right edge) — hidden during move drag, respects role permissions */}
+      {!isDragDisabled && !isDragging && (
         <ResizeHandle eventId={event.id} event={event} layout={layout} />
       )}
     </Box>

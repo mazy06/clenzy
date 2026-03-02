@@ -190,7 +190,52 @@ export function useInterventionActions(
     [queryClient],
   );
 
-  // ── 5. Mettre a jour les notes d'une intervention ──────────────────────
+  // ── 5. Mettre a jour les dates/heures d'une intervention ───────────────
+  const updateInterventionDates = useCallback(
+    async (
+      interventionId: number,
+      updates: {
+        startDate?: string;
+        endDate?: string;
+        startTime?: string;
+        endTime?: string;
+      },
+    ): Promise<ActionResult> => {
+      const intervention = interventions.find((i) => i.id === interventionId);
+      if (!intervention) {
+        return { success: false, error: 'Intervention introuvable' };
+      }
+
+      try {
+        if (reservationsApi.isMockMode()) {
+          queryClient.setQueriesData(
+            { queryKey: [...planningKeys.all, 'interventions'] },
+            (old: unknown) => {
+              if (!Array.isArray(old)) return old;
+              return old.map((i: any) => {
+                if (i.id !== interventionId) return i;
+                const updated = { ...i, ...updates };
+                // If startDate changed and intervention is linked, unlink it
+                if (updates.startDate !== undefined && i.linkedReservationId) {
+                  updated.linkedReservationId = undefined;
+                }
+                return updated;
+              });
+            },
+          );
+        } else {
+          // TODO: call real API when available
+          queryClient.invalidateQueries({ queryKey: planningKeys.all });
+        }
+        return { success: true, error: null };
+      } catch {
+        return { success: false, error: 'Erreur lors de la mise a jour des dates' };
+      }
+    },
+    [queryClient, interventions],
+  );
+
+  // ── 6. Mettre a jour les notes d'une intervention ──────────────────────
   const updateInterventionNotes = useCallback(
     async (interventionId: number, notes: string): Promise<ActionResult> => {
       try {
@@ -221,6 +266,7 @@ export function useInterventionActions(
     createIntervention,
     assignIntervention,
     setPriority,
+    updateInterventionDates,
     updateInterventionNotes,
   };
 }

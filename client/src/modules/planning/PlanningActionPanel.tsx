@@ -64,6 +64,12 @@ interface PlanningActionPanelProps {
   onAssignIntervention?: (interventionId: number, assigneeName: string) => Promise<{ success: boolean; error: string | null }>;
   onSetPriority?: (interventionId: number, priority: 'normale' | 'haute' | 'urgente') => Promise<{ success: boolean; error: string | null }>;
   onUpdateInterventionNotes?: (interventionId: number, notes: string) => Promise<{ success: boolean; error: string | null }>;
+  onUpdateInterventionDates?: (interventionId: number, updates: {
+    startDate?: string;
+    endDate?: string;
+    startTime?: string;
+    endTime?: string;
+  }) => Promise<{ success: boolean; error: string | null }>;
   // Actions (PanelActions)
   onDuplicateReservation?: (reservationId: number, newCheckIn: string, newCheckOut: string) => Promise<{ success: boolean; error: string | null }>;
 }
@@ -93,6 +99,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   onAssignIntervention,
   onSetPriority,
   onUpdateInterventionNotes,
+  onUpdateInterventionDates,
   onDuplicateReservation,
 }) => {
   const theme = useTheme();
@@ -207,9 +214,9 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
         {activeTab === 'info' && (
           event.type === 'reservation'
             ? <PanelReservationInfo event={event} allEvents={allEvents} properties={properties} onUpdateReservation={onUpdateReservation} onChangeProperty={onChangeProperty} onCancelReservation={onCancelReservation} onUpdateNotes={onUpdateNotes} />
-            : <PanelOperations event={event} allEvents={allEvents} interventions={interventions} onCreateAutoCleaning={onCreateAutoCleaning} onCreateIntervention={onCreateIntervention} onAssignIntervention={onAssignIntervention} onSetPriority={onSetPriority} onUpdateInterventionNotes={onUpdateInterventionNotes} />
+            : <PanelOperations event={event} allEvents={allEvents} interventions={interventions} onCreateAutoCleaning={onCreateAutoCleaning} onCreateIntervention={onCreateIntervention} onAssignIntervention={onAssignIntervention} onSetPriority={onSetPriority} onUpdateInterventionNotes={onUpdateInterventionNotes} onUpdateInterventionDates={onUpdateInterventionDates} />
         )}
-        {activeTab === 'operations' && <PanelOperations event={event} allEvents={allEvents} interventions={interventions} onCreateAutoCleaning={onCreateAutoCleaning} onCreateIntervention={onCreateIntervention} onAssignIntervention={onAssignIntervention} onSetPriority={onSetPriority} onUpdateInterventionNotes={onUpdateInterventionNotes} />}
+        {activeTab === 'operations' && <PanelOperations event={event} allEvents={allEvents} interventions={interventions} onCreateAutoCleaning={onCreateAutoCleaning} onCreateIntervention={onCreateIntervention} onAssignIntervention={onAssignIntervention} onSetPriority={onSetPriority} onUpdateInterventionNotes={onUpdateInterventionNotes} onUpdateInterventionDates={onUpdateInterventionDates} />}
         {activeTab === 'financial' && <PanelFinancial event={event} />}
         {activeTab === 'history' && (
           <>
