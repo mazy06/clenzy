@@ -30,6 +30,7 @@ interface PlanningTimelineProps {
   propertyColWidth: number;
   showPrices: boolean;
   pricingMap: PricingMap;
+  pageSize?: number;
 }
 
 const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
@@ -50,11 +51,15 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   propertyColWidth,
   showPrices,
   pricingMap,
+  pageSize,
 }) => {
   const config = ROW_CONFIG[density];
   const priceLineHeight = showPrices ? PRICE_LINE_HEIGHT[density] : 0;
   const effectiveRowHeight = config.rowHeight + priceLineHeight;
-  const totalRowsHeight = properties.length * effectiveRowHeight;
+  // Fill remaining space with empty rows
+  const emptyRowCount = pageSize ? Math.max(0, pageSize - properties.length) : 0;
+  const totalDisplayRows = properties.length + emptyRowCount;
+  const totalRowsHeight = totalDisplayRows * effectiveRowHeight;
 
   // Detect conflicts
   const conflictEventIds = useMemo(() => {
@@ -98,6 +103,8 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
             overflowY: 'hidden',
             position: 'relative',
             WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',           // Firefox
+            '&::-webkit-scrollbar': { display: 'none' },  // Chrome/Safari
           }}
         >
           {/* Scrollable content: headers + rows */}
@@ -120,6 +127,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                 selectedPropertyId={null}
                 colWidth={propertyColWidth}
                 effectiveRowHeight={effectiveRowHeight}
+                emptyRowCount={emptyRowCount}
               />
 
               {/* Grid rows */}
@@ -152,6 +160,22 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                     showPrices={showPrices}
                     pricingMap={pricingMap}
                     effectiveRowHeight={effectiveRowHeight}
+                  />
+                ))}
+
+                {/* Empty filler rows to fill remaining space */}
+                {Array.from({ length: emptyRowCount }, (_, i) => (
+                  <Box
+                    key={`empty-grid-${i}`}
+                    sx={{
+                      height: effectiveRowHeight,
+                      width: totalGridWidth,
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                      backgroundColor: (properties.length + i) % 2 === 0
+                        ? 'transparent'
+                        : 'rgba(255,255,255,0.015)',
+                    }}
                   />
                 ))}
               </Box>

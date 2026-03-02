@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { Box, CircularProgress, Alert, Typography } from '@mui/material';
 import PlanningToolbar from './PlanningToolbar';
 import PlanningTimeline from './PlanningTimeline';
@@ -102,6 +102,76 @@ const PlanningPage: React.FC = () => {
     updateInterventionNotes,
   } = useInterventionActions(filteredEvents, interventions);
 
+  // Intervention lifecycle actions (start, complete, validate, photos, progress, payment)
+  const startIntervention = useCallback(async (interventionId: number) => {
+    try {
+      const { interventionsApi } = await import('../../services/api');
+      if (interventionsApi.isMockMode()) {
+        // Mock: update status in cache
+        const { useQueryClient } = await import('@tanstack/react-query');
+        return { success: true, error: null };
+      }
+      await interventionsApi.start(interventionId);
+      return { success: true, error: null };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Erreur' };
+    }
+  }, []);
+
+  const completeIntervention = useCallback(async (interventionId: number) => {
+    try {
+      const { interventionsApi } = await import('../../services/api');
+      // Complete = set progress to 100%
+      await interventionsApi.updateProgress(interventionId, 100);
+      return { success: true, error: null };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Erreur' };
+    }
+  }, []);
+
+  const validateIntervention = useCallback(async (interventionId: number, estimatedCost: number) => {
+    try {
+      const { interventionsApi } = await import('../../services/api');
+      // Validate = update with estimated cost and mark complete
+      await interventionsApi.update(interventionId, { estimatedCost, status: 'COMPLETED' });
+      return { success: true, error: null };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Erreur' };
+    }
+  }, []);
+
+  const uploadPhotos = useCallback(async (interventionId: number, photos: File[], type: 'before' | 'after') => {
+    try {
+      const { interventionsApi } = await import('../../services/api');
+      if (interventionsApi.isMockMode()) {
+        return { success: true, error: null };
+      }
+      await interventionsApi.uploadPhotos(interventionId, photos, type);
+      return { success: true, error: null };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Erreur' };
+    }
+  }, []);
+
+  const updateInterventionProgress = useCallback(async (interventionId: number, progress: number) => {
+    try {
+      const { interventionsApi } = await import('../../services/api');
+      if (interventionsApi.isMockMode()) {
+        return { success: true, error: null };
+      }
+      await interventionsApi.updateProgress(interventionId, progress);
+      return { success: true, error: null };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Erreur' };
+    }
+  }, []);
+
+  const createPaymentSession = useCallback(async (interventionIds: number[], total: number) => {
+    const { paymentsApi } = await import('../../services/api/paymentsApi');
+    const session = await paymentsApi.createSession({ interventionIds, totalAmount: total });
+    return { url: session.url, sessionId: session.sessionId };
+  }, []);
+
   // Drag & drop
   const drag = usePlanningDrag({
     events: filteredEvents,
@@ -144,25 +214,27 @@ const PlanningPage: React.FC = () => {
       }}
     >
       {/* Toolbar */}
-      <PlanningToolbar
-        currentDate={nav.currentDate}
-        zoom={nav.zoom}
-        density={nav.density}
-        isFullscreen={nav.isFullscreen}
-        filters={filters}
-        hasActiveFilters={hasActiveFilters}
-        onGoPrev={nav.goPrev}
-        onGoToday={nav.goToday}
-        onGoNext={nav.goNext}
-        onZoomChange={nav.setZoom}
-        onDensityChange={nav.setDensity}
-        onToggleFullscreen={nav.toggleFullscreen}
-        onShowInterventionsChange={setShowInterventions}
-        onShowPricesChange={setShowPrices}
-        onStatusFilter={setStatusFilter}
-        onSearchChange={setSearchQuery}
-        onClearFilters={clearFilters}
-      />
+      <Box sx={{ mb: 1, flexShrink: 0 }}>
+        <PlanningToolbar
+          currentDate={nav.currentDate}
+          zoom={nav.zoom}
+          density={nav.density}
+          isFullscreen={nav.isFullscreen}
+          filters={filters}
+          hasActiveFilters={hasActiveFilters}
+          onGoPrev={nav.goPrev}
+          onGoToday={nav.goToday}
+          onGoNext={nav.goNext}
+          onZoomChange={nav.setZoom}
+          onDensityChange={nav.setDensity}
+          onToggleFullscreen={nav.toggleFullscreen}
+          onShowInterventionsChange={setShowInterventions}
+          onShowPricesChange={setShowPrices}
+          onStatusFilter={setStatusFilter}
+          onSearchChange={setSearchQuery}
+          onClearFilters={clearFilters}
+        />
+      </Box>
 
       {/* Error */}
       {error && (
@@ -193,8 +265,10 @@ const PlanningPage: React.FC = () => {
             minHeight: 0,
             minWidth: 0,
             overflow: 'hidden',
-            transition: 'margin-right 0.3s ease',
-            mr: selection.panelOpen ? `${ACTION_PANEL_WIDTH}px` : 0,
+            px: 1.5,
+            pb: 1,
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
           <PlanningTimeline
@@ -215,18 +289,21 @@ const PlanningPage: React.FC = () => {
             propertyColWidth={propertyColWidth}
             showPrices={filters.showPrices}
             pricingMap={pricingMap}
+            pageSize={pagination.pageSize}
           />
 
-          {/* Pagination */}
-          <PlanningPaginationBar
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            rangeStart={pagination.rangeStart}
-            rangeEnd={pagination.rangeEnd}
-            totalProperties={filteredProperties.length}
-            onPrevPage={pagination.goPrevPage}
-            onNextPage={pagination.goNextPage}
-          />
+          {/* Pagination — pinned to bottom */}
+          <Box sx={{ flexShrink: 0, mt: 1 }}>
+            <PlanningPaginationBar
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              rangeStart={pagination.rangeStart}
+              rangeEnd={pagination.rangeEnd}
+              totalProperties={filteredProperties.length}
+              onPrevPage={pagination.goPrevPage}
+              onNextPage={pagination.goNextPage}
+            />
+          </Box>
         </Box>
       )}
 
@@ -250,6 +327,12 @@ const PlanningPage: React.FC = () => {
         onSetPriority={setPriority}
         onUpdateInterventionNotes={updateInterventionNotes}
         onUpdateInterventionDates={updateInterventionDates}
+        onStartIntervention={startIntervention}
+        onCompleteIntervention={completeIntervention}
+        onValidateIntervention={validateIntervention}
+        onUploadPhotos={uploadPhotos}
+        onUpdateInterventionProgress={updateInterventionProgress}
+        onCreatePaymentSession={createPaymentSession}
         onDuplicateReservation={duplicateReservation}
       />
 

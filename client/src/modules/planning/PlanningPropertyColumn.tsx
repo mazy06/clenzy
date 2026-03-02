@@ -9,6 +9,7 @@ interface PlanningPropertyColumnProps {
   selectedPropertyId?: number | null;
   colWidth: number;
   effectiveRowHeight: number;
+  emptyRowCount?: number;
 }
 
 const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo(({
@@ -17,6 +18,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
   selectedPropertyId,
   colWidth,
   effectiveRowHeight,
+  emptyRowCount = 0,
 }) => {
   const theme = useTheme();
   const config = ROW_CONFIG[density];
@@ -105,6 +107,20 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             </>
           )}
         </Box>
+      ))}
+      {/* Empty filler rows */}
+      {Array.from({ length: emptyRowCount }, (_, i) => (
+        <Box
+          key={`empty-${i}`}
+          sx={{
+            height: effectiveRowHeight,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            backgroundColor: (properties.length + i) % 2 === 0
+              ? 'transparent'
+              : theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)',
+          }}
+        />
       ))}
     </Box>
   );

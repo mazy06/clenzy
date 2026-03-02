@@ -8,7 +8,7 @@ const DEFAULT_FILTERS: PlanningFilters = {
   propertyIds: [],
   searchQuery: '',
   showInterventions: true,
-  showPrices: false,
+  showPrices: true,
 };
 
 export interface UsePlanningFiltersReturn {
@@ -64,7 +64,7 @@ export function usePlanningFilters(
     || filters.propertyIds.length > 0
     || filters.searchQuery.length > 0
     || !filters.showInterventions
-    || filters.showPrices;
+    || !filters.showPrices;
 
   const filteredEvents = useMemo(() => {
     let result = events;

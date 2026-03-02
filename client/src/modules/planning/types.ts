@@ -62,13 +62,25 @@ export interface PlanningFilters {
 
 // ─── Selection ───────────────────────────────────────────────────────────────
 
-export type PanelTab = 'info' | 'operations' | 'financial' | 'history';
+// Tabs when a reservation is selected
+export type ReservationPanelTab = 'info' | 'property' | 'operations' | 'financial';
+// Tabs when an intervention is selected
+export type InterventionPanelTab = 'info' | 'progress' | 'recap' | 'payment';
+// Union of all panel tabs
+export type PanelTab = ReservationPanelTab | InterventionPanelTab;
 
 export interface PlanningSelection {
   selectedEventId: string | null;
   panelOpen: boolean;
   panelTab: PanelTab;
 }
+
+// ─── Panel drill-down navigation ────────────────────────────────────────────
+
+export type PanelView =
+  | { type: 'root' }
+  | { type: 'property-details'; propertyId: number }
+  | { type: 'intervention-detail'; interventionId: number };
 
 // ─── Quick create ────────────────────────────────────────────────────────────
 

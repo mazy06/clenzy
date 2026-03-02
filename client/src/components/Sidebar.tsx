@@ -185,11 +185,8 @@ export default function Sidebar({
           overflowY: 'auto',
           overflowX: 'hidden',
           py: 1,
-          '&::-webkit-scrollbar': { width: 4 },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: 'rgba(0,0,0,0.15)',
-            borderRadius: 2,
-          },
+          scrollbarWidth: 'none',           // Firefox
+          '&::-webkit-scrollbar': { display: 'none' },  // Chrome/Safari
         }}
       >
         {GROUP_ORDER.map((groupKey, groupIndex) => {
