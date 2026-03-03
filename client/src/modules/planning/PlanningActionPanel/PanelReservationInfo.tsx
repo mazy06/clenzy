@@ -79,23 +79,24 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
             label={statusLabel}
             size="small"
             sx={{
-              backgroundColor: statusColor,
-              color: '#fff',
+              backgroundColor: `${statusColor}18`,
+              color: statusColor,
+              border: `1px solid ${statusColor}40`,
+              borderRadius: '6px',
               fontWeight: 600,
               fontSize: '0.6875rem',
+              '& .MuiChip-label': { px: 0.75 },
             }}
           />
           <Chip
             label={sourceLabel}
             size="small"
-            variant="outlined"
-            sx={{ fontSize: '0.6875rem' }}
+            sx={{ fontSize: '0.6875rem', fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
           />
           <Chip
             label={`${reservation.guestCount} voyageur${reservation.guestCount > 1 ? 's' : ''}`}
             size="small"
-            variant="outlined"
-            sx={{ fontSize: '0.6875rem' }}
+            sx={{ fontSize: '0.6875rem', fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
           />
         </Box>
       </Box>

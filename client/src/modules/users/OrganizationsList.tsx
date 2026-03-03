@@ -45,11 +45,11 @@ import type { ChipColor } from '../../types';
 
 // ─── Types d'organisation ─────────────────────────────────────────────────────
 
-const orgTypes: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor }> = [
-  { value: 'INDIVIDUAL', label: 'Particulier', icon: <Person />, color: 'info' },
-  { value: 'CONCIERGE', label: 'Conciergerie', icon: <Business />, color: 'primary' },
-  { value: 'CLEANING_COMPANY', label: 'Societe de menage', icon: <CleaningServices />, color: 'success' },
-  { value: 'SYSTEM', label: 'Systeme', icon: <Settings />, color: 'error' },
+const orgTypes: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor; hex: string }> = [
+  { value: 'INDIVIDUAL', label: 'Particulier', icon: <Person />, color: 'info', hex: '#0288d1' },
+  { value: 'CONCIERGE', label: 'Conciergerie', icon: <Business />, color: 'primary', hex: '#1976d2' },
+  { value: 'CLEANING_COMPANY', label: 'Societe de menage', icon: <CleaningServices />, color: 'success', hex: '#4A9B8E' },
+  { value: 'SYSTEM', label: 'Systeme', icon: <Settings />, color: 'error', hex: '#d32f2f' },
 ];
 
 const getTypeInfo = (type: string) => {
@@ -327,20 +327,20 @@ const OrganizationsList = forwardRef<OrganizationsListHandle>((_, ref) => {
 
                     {/* Type et membres */}
                     <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
+                      {(() => { const c = typeInfo.hex; return (
+                        <Chip
+                          icon={typeInfo.icon}
+                          label={typeInfo.label}
+                          size="small"
+                          sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-icon': { color: `${c} !important` } }}
+                        />
+                      ); })()}
                       <Chip
-                        icon={typeInfo.icon}
-                        label={typeInfo.label}
-                        color={typeInfo.color}
-                        size="small"
-                        sx={{ height: 20, fontSize: '0.7rem' }}
-                      />
-                      <Chip
-                        icon={<People sx={{ fontSize: '14px !important' }} />}
+                        icon={<People sx={{ fontSize: '14px !important', color: '#0288d1 !important' }} />}
                         label={`${org.memberCount} membre${org.memberCount !== 1 ? 's' : ''}`}
                         size="small"
-                        variant="outlined"
                         onClick={() => setMembersDialogOrg(org)}
-                        sx={{ height: 20, fontSize: '0.7rem', cursor: 'pointer' }}
+                        sx={{ height: 20, fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
                       />
                     </Box>
 
@@ -538,17 +538,17 @@ const OrganizationsList = forwardRef<OrganizationsListHandle>((_, ref) => {
                     Membres de {membersDialogOrg.name}
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-                    <Chip
-                      label={getTypeInfo(membersDialogOrg.type).label}
-                      color={getTypeInfo(membersDialogOrg.type).color}
-                      size="small"
-                      sx={{ height: 20, fontSize: '0.7rem' }}
-                    />
+                    {(() => { const ti = getTypeInfo(membersDialogOrg.type); const c = ti.hex; return (
+                      <Chip
+                        label={ti.label}
+                        size="small"
+                        sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+                      />
+                    ); })()}
                     <Chip
                       label={`${membersDialogOrg.memberCount} membre${membersDialogOrg.memberCount !== 1 ? 's' : ''}`}
                       size="small"
-                      variant="outlined"
-                      sx={{ height: 20, fontSize: '0.7rem' }}
+                      sx={{ height: 20, fontSize: '0.7rem', fontWeight: 600, backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
                     />
                   </Box>
                 </Box>

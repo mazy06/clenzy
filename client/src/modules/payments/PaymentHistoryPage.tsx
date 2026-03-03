@@ -262,27 +262,36 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   };
 
   const getStatusChip = (status: PaymentRecord['status']) => {
-    const config: Record<string, { color: 'success' | 'warning' | 'info' | 'error' | 'default'; label: string }> = {
-      PAID: { color: 'success', label: t('payments.history.paid') },
-      PENDING: { color: 'warning', label: t('payments.history.pending') },
-      PROCESSING: { color: 'info', label: t('payments.history.processing') },
-      FAILED: { color: 'error', label: t('payments.history.failed') },
-      REFUNDED: { color: 'info', label: t('payments.history.refunded') },
-      CANCELLED: { color: 'default', label: t('payments.history.cancelled') },
+    const hexMap: Record<string, string> = {
+      PAID: '#4A9B8E',
+      PENDING: '#ED6C02',
+      PROCESSING: '#0288d1',
+      FAILED: '#d32f2f',
+      REFUNDED: '#7B61FF',
+      CANCELLED: '#757575',
     };
-    const c = config[status] || { color: 'default' as const, label: status };
+    const labelMap: Record<string, string> = {
+      PAID: t('payments.history.paid'),
+      PENDING: t('payments.history.pending'),
+      PROCESSING: t('payments.history.processing'),
+      FAILED: t('payments.history.failed'),
+      REFUNDED: t('payments.history.refunded'),
+      CANCELLED: t('payments.history.cancelled'),
+    };
+    const c = hexMap[status] || '#757575';
     return (
       <Chip
-        label={c.label}
+        label={labelMap[status] || status}
         size="small"
-        variant="outlined"
-        color={c.color}
         sx={{
-          fontSize: '0.6875rem',
-          height: 22,
-          fontWeight: 500,
-          borderWidth: 1.5,
-          '& .MuiChip-label': { px: 0.75 },
+          backgroundColor: `${c}18`,
+          color: c,
+          border: `1px solid ${c}40`,
+          borderRadius: '6px',
+          fontWeight: 600,
+          fontSize: '0.75rem',
+          height: 24,
+          '& .MuiChip-label': { px: 1 },
         }}
       />
     );

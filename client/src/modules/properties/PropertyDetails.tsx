@@ -56,15 +56,15 @@ import { formatDate } from '../../utils/formatUtils';
 import DescriptionNotesDisplay from '../../components/DescriptionNotesDisplay';
 import CheckInInstructionsForm from '../channels/CheckInInstructionsForm';
 import {
-  getPropertyStatusColor,
   getPropertyStatusLabel,
+  getPropertyStatusHex,
   getPropertyTypeLabel,
   getCleaningFrequencyLabel,
-  getInterventionStatusColor,
   getInterventionStatusLabel,
+  getInterventionStatusHex,
   getInterventionTypeLabel,
+  getAmenityHex,
 } from '../../utils/statusUtils';
-import type { ChipColor } from '../../types';
 import { airbnbApi } from '../../services/api/airbnbApi';
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
@@ -194,32 +194,6 @@ const CARD_SX = {
   p: 1.5,
 } as const;
 
-const FEATURE_CHIP_SX = {
-  height: 24,
-  fontSize: '0.6875rem',
-  fontWeight: 500,
-  '& .MuiChip-label': { px: 1 },
-} as const;
-
-// ─── Amenity → category color mapping ───────────────────────────────────────
-
-const AMENITY_CATEGORY_MAP: Record<string, ChipColor> = {
-  // Confort → primary (bleu Clenzy)
-  WIFI: 'primary', TV: 'primary', AIR_CONDITIONING: 'primary', HEATING: 'primary',
-  // Cuisine → success (vert)
-  EQUIPPED_KITCHEN: 'success', DISHWASHER: 'success', MICROWAVE: 'success', OVEN: 'success',
-  // Électroménager → info (bleu clair)
-  WASHING_MACHINE: 'info', DRYER: 'info', IRON: 'info', HAIR_DRYER: 'info',
-  // Extérieur → warning (orange)
-  PARKING: 'warning', POOL: 'warning', JACUZZI: 'warning', GARDEN_TERRACE: 'warning', BARBECUE: 'warning',
-  // Sécurité & Famille → secondary (violet)
-  SAFE: 'secondary', BABY_BED: 'secondary', HIGH_CHAIR: 'secondary',
-};
-
-function getAmenityColor(amenity: string): ChipColor {
-  return AMENITY_CATEGORY_MAP[amenity] || 'default';
-}
-
 // ─── Cleaning price estimation (mirrored from CleaningPriceEstimator) ───────
 
 const SURFACE_BASE_PRICE: { maxSurface: number | null; base: number }[] = [
@@ -348,23 +322,23 @@ const PropertyDetails: React.FC = () => {
   // ─── Feature chips (active options) ─────────────────────────────────────
   const featureChips = useMemo(() => {
     if (!property) return [];
-    const chips: { label: string; color: 'primary' | 'secondary' | 'default' | 'info' | 'success' | 'warning' }[] = [];
+    const chips: { label: string; hex: string }[] = [];
 
-    if (property.hasExterior) chips.push({ label: t('properties.hasExterior'), color: 'success' });
-    if (property.hasLaundry) chips.push({ label: t('properties.hasLaundry'), color: 'info' });
+    if (property.hasExterior) chips.push({ label: t('properties.hasExterior'), hex: '#4A9B8E' });
+    if (property.hasLaundry) chips.push({ label: t('properties.hasLaundry'), hex: '#0288d1' });
     if ((property.windowCount ?? 0) > 0 || (property.frenchDoorCount ?? 0) > 0 || (property.slidingDoorCount ?? 0) > 0) {
       const parts = [
         (property.windowCount ?? 0) > 0 && `${property.windowCount} ${t('properties.addOnServices.windowCountShort')}`,
         (property.frenchDoorCount ?? 0) > 0 && `${property.frenchDoorCount} ${t('properties.addOnServices.frenchDoorCountShort')}`,
         (property.slidingDoorCount ?? 0) > 0 && `${property.slidingDoorCount} ${t('properties.addOnServices.slidingDoorCountShort')}`,
       ].filter(Boolean).join(', ');
-      chips.push({ label: `${t('properties.addOnServices.windows')}: ${parts}`, color: 'default' });
+      chips.push({ label: `${t('properties.addOnServices.windows')}: ${parts}`, hex: '#757575' });
     }
-    if (property.hasIroning) chips.push({ label: t('properties.addOnServices.hasIroning'), color: 'warning' });
-    if (property.hasDeepKitchen) chips.push({ label: t('properties.addOnServices.hasDeepKitchen'), color: 'warning' });
-    if (property.hasDisinfection) chips.push({ label: t('properties.addOnServices.hasDisinfection'), color: 'secondary' });
+    if (property.hasIroning) chips.push({ label: t('properties.addOnServices.hasIroning'), hex: '#ED6C02' });
+    if (property.hasDeepKitchen) chips.push({ label: t('properties.addOnServices.hasDeepKitchen'), hex: '#ED6C02' });
+    if (property.hasDisinfection) chips.push({ label: t('properties.addOnServices.hasDisinfection'), hex: '#7B61FF' });
     if (property.numberOfFloors != null && property.numberOfFloors > 1) {
-      chips.push({ label: `${property.numberOfFloors} ${t('properties.numberOfFloors').toLowerCase()}`, color: 'default' });
+      chips.push({ label: `${property.numberOfFloors} ${t('properties.numberOfFloors').toLowerCase()}`, hex: '#757575' });
     }
 
     return chips;
@@ -408,13 +382,13 @@ const PropertyDetails: React.FC = () => {
           backPath="/properties"
           actions={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-              <Chip
-                label={getPropertyStatusLabel(property.status, t)}
-                color={getPropertyStatusColor(property.status)}
-                size="small"
-                variant="outlined"
-                sx={STATUS_CHIP_SX}
-              />
+              {(() => { const c = getPropertyStatusHex(property.status); return (
+                <Chip
+                  label={getPropertyStatusLabel(property.status, t)}
+                  size="small"
+                  sx={{ ...STATUS_CHIP_SX, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+                />
+              ); })()}
               {canEdit && (
                 <Button
                   variant="outlined"
@@ -532,10 +506,17 @@ const PropertyDetails: React.FC = () => {
                 <Chip
                   key={i}
                   label={chip.label}
-                  color={chip.color}
                   size="small"
-                  variant="outlined"
-                  sx={FEATURE_CHIP_SX}
+                  sx={{
+                    backgroundColor: `${chip.hex}18`,
+                    color: chip.hex,
+                    border: `1px solid ${chip.hex}40`,
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    fontSize: '0.6875rem',
+                    height: 24,
+                    '& .MuiChip-label': { px: 1 },
+                  }}
                 />
               ))}
             </Box>
@@ -616,22 +597,26 @@ const PropertyDetails: React.FC = () => {
                     {t('properties.amenities.title')}
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                    {property.amenities.map((amenity, index) => (
+                    {property.amenities.map((amenity, index) => {
+                      const c = getAmenityHex(amenity);
+                      return (
                       <Chip
                         key={index}
                         label={t(`properties.amenities.items.${amenity}`)}
                         size="small"
-                        color={getAmenityColor(amenity)}
-                        variant="outlined"
                         sx={{
-                          height: 26,
+                          backgroundColor: `${c}18`,
+                          color: c,
+                          border: `1px solid ${c}40`,
+                          borderRadius: '6px',
+                          fontWeight: 600,
                           fontSize: '0.6875rem',
-                          fontWeight: 500,
-                          borderWidth: 1.5,
+                          height: 26,
                           '& .MuiChip-label': { px: 1 },
                         }}
                       />
-                    ))}
+                      );
+                    })}
                   </Box>
                 </Paper>
               )}
@@ -648,13 +633,13 @@ const PropertyDetails: React.FC = () => {
                 <Box sx={{ ...INFO_ROW_SX, justifyContent: 'space-between' }}>
                   <Box>
                     <Typography sx={INFO_LABEL_SX}>{t('properties.status')}</Typography>
-                    <Chip
-                      label={getPropertyStatusLabel(property.status, t)}
-                      color={getPropertyStatusColor(property.status)}
-                      size="small"
-                      variant="outlined"
-                      sx={{ ...STATUS_CHIP_SX, mt: 0.5 }}
-                    />
+                    {(() => { const c = getPropertyStatusHex(property.status); return (
+                      <Chip
+                        label={getPropertyStatusLabel(property.status, t)}
+                        size="small"
+                        sx={{ ...STATUS_CHIP_SX, mt: 0.5, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+                      />
+                    ); })()}
                   </Box>
                 </Box>
 
@@ -858,13 +843,13 @@ const PropertyDetails: React.FC = () => {
                         <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary' }}>
                           {getInterventionTypeLabel(intervention.type, t)}
                         </Typography>
-                        <Chip
-                          label={getInterventionStatusLabel(intervention.status, t)}
-                          color={getInterventionStatusColor(intervention.status)}
-                          size="small"
-                          variant="outlined"
-                          sx={STATUS_CHIP_SX}
-                        />
+                        {(() => { const c = getInterventionStatusHex(intervention.status); return (
+                          <Chip
+                            label={getInterventionStatusLabel(intervention.status, t)}
+                            size="small"
+                            sx={{ ...STATUS_CHIP_SX, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+                          />
+                        ); })()}
                       </Box>
 
                       {/* Description */}

@@ -32,6 +32,20 @@ export function getPropertyStatusColor(status: string): ChipColor {
   return PROPERTY_STATUS_COLORS[status.toUpperCase()] ?? 'default';
 }
 
+const PROPERTY_STATUS_HEX: Record<string, string> = {
+  ACTIVE: '#4A9B8E',
+  INACTIVE: '#757575',
+  MAINTENANCE: '#ED6C02',
+  UNDER_MAINTENANCE: '#ED6C02',
+  RENTED: '#0288d1',
+  SOLD: '#d32f2f',
+  ARCHIVED: '#d32f2f',
+};
+
+export function getPropertyStatusHex(status: string): string {
+  return PROPERTY_STATUS_HEX[status?.toUpperCase()] ?? '#757575';
+}
+
 export function getPropertyStatusLabel(status: string, t: TranslationFn): string {
   const key = `properties.statuses.${status.toUpperCase()}`;
   const translated = t(key);
@@ -53,6 +67,25 @@ const PROPERTY_TYPE_KEYS: Record<string, string> = {
   OTHER: 'properties.types.other',
 };
 
+const PROPERTY_TYPE_HEX: Record<string, string> = {
+  APARTMENT: '#1976d2',
+  APPARTEMENT: '#1976d2',
+  HOUSE: '#4A9B8E',
+  MAISON: '#4A9B8E',
+  VILLA: '#7B61FF',
+  STUDIO: '#0288d1',
+  LOFT: '#D4A574',
+  GUEST_ROOM: '#ED6C02',
+  COTTAGE: '#2E7D32',
+  CHALET: '#D4A574',
+  BOAT: '#0288d1',
+  OTHER: '#757575',
+};
+
+export function getPropertyTypeHex(type: string): string {
+  return PROPERTY_TYPE_HEX[type?.toUpperCase()] ?? '#757575';
+}
+
 export function getPropertyTypeLabel(type: string, t: TranslationFn): string {
   const key = PROPERTY_TYPE_KEYS[type.toUpperCase()];
   if (key) {
@@ -70,6 +103,19 @@ const CLEANING_FREQ_KEYS: Record<string, string> = {
   ON_DEMAND: 'properties.cleaningFrequencies.onDemand',
   DAILY: 'properties.cleaningFrequencies.daily',
 };
+
+const CLEANING_FREQ_HEX: Record<string, string> = {
+  AFTER_EACH_STAY: '#4A9B8E',
+  WEEKLY: '#0288d1',
+  BIWEEKLY: '#0288d1',
+  MONTHLY: '#7B61FF',
+  ON_DEMAND: '#ED6C02',
+  DAILY: '#1976d2',
+};
+
+export function getCleaningFrequencyHex(freq: string): string {
+  return CLEANING_FREQ_HEX[freq?.toUpperCase()] ?? '#757575';
+}
 
 export function getCleaningFrequencyLabel(freq: string, t: TranslationFn): string {
   const key = CLEANING_FREQ_KEYS[freq.toUpperCase()];
@@ -96,6 +142,21 @@ const SR_STATUS_COLORS: Record<string, ChipColor> = {
 
 export function getServiceRequestStatusColor(status: string): ChipColor {
   return SR_STATUS_COLORS[status?.toLowerCase()] ?? 'default';
+}
+
+// Hex colors for soft-filled chip style (same design as reservation chips)
+const SR_STATUS_HEX: Record<string, string> = {
+  pending: '#ED6C02',
+  approved: '#0288d1',
+  devis_accepted: '#4A9B8E',
+  in_progress: '#1976d2',
+  completed: '#4A9B8E',
+  cancelled: '#757575',
+  rejected: '#d32f2f',
+};
+
+export function getServiceRequestStatusHex(status: string): string {
+  return SR_STATUS_HEX[status?.toLowerCase()] ?? '#757575';
 }
 
 export function getServiceRequestStatusLabel(status: string, t: TranslationFn): string {
@@ -125,6 +186,19 @@ const SR_PRIORITY_COLORS: Record<string, ChipColor> = {
 
 export function getServiceRequestPriorityColor(priority: string): ChipColor {
   return SR_PRIORITY_COLORS[priority?.toLowerCase()] ?? 'default';
+}
+
+const SR_PRIORITY_HEX: Record<string, string> = {
+  low: '#4A9B8E',
+  normal: '#0288d1',
+  medium: '#0288d1',
+  high: '#ED6C02',
+  urgent: '#d32f2f',
+  critical: '#d32f2f',
+};
+
+export function getServiceRequestPriorityHex(priority: string): string {
+  return SR_PRIORITY_HEX[priority?.toLowerCase()] ?? '#757575';
 }
 
 export function getServiceRequestPriorityLabel(priority: string, t: TranslationFn): string {
@@ -161,6 +235,22 @@ export function getInterventionStatusColor(status: string): ChipColor {
   return INT_STATUS_COLORS[status?.toUpperCase()] ?? 'default';
 }
 
+// Hex colors for soft-filled chip style (same design as reservation chips)
+const INT_STATUS_HEX: Record<string, string> = {
+  PENDING: '#ED6C02',
+  AWAITING_VALIDATION: '#D4A574',
+  AWAITING_PAYMENT: '#D4A574',
+  SCHEDULED: '#0288d1',
+  IN_PROGRESS: '#1976d2',
+  ON_HOLD: '#ED6C02',
+  COMPLETED: '#4A9B8E',
+  CANCELLED: '#d32f2f',
+};
+
+export function getInterventionStatusHex(status: string): string {
+  return INT_STATUS_HEX[status?.toUpperCase()] ?? '#757575';
+}
+
 export function getInterventionStatusLabel(status: string, t: TranslationFn): string {
   const key = `interventions.statuses.${status?.toUpperCase()}`;
   const translated = t(key);
@@ -177,6 +267,18 @@ const INT_PRIORITY_COLORS: Record<string, ChipColor> = {
 
 export function getInterventionPriorityColor(priority: string): ChipColor {
   return INT_PRIORITY_COLORS[priority?.toUpperCase()] ?? 'default';
+}
+
+const INT_PRIORITY_HEX: Record<string, string> = {
+  LOW: '#4A9B8E',
+  NORMAL: '#0288d1',
+  HIGH: '#ED6C02',
+  URGENT: '#d32f2f',
+  CRITICAL: '#d32f2f',
+};
+
+export function getInterventionPriorityHex(priority: string): string {
+  return INT_PRIORITY_HEX[priority?.toUpperCase()] ?? '#757575';
 }
 
 export function getInterventionPriorityLabel(priority: string, t: TranslationFn): string {
@@ -210,6 +312,39 @@ const INT_TYPE_KEYS: Record<string, string> = {
   OTHER: 'interventions.types.OTHER',
 };
 
+const INT_TYPE_HEX: Record<string, string> = {
+  // Nettoyage
+  CLEANING: '#4A9B8E',
+  EXPRESS_CLEANING: '#4A9B8E',
+  DEEP_CLEANING: '#4A9B8E',
+  WINDOW_CLEANING: '#4A9B8E',
+  FLOOR_CLEANING: '#4A9B8E',
+  KITCHEN_CLEANING: '#4A9B8E',
+  BATHROOM_CLEANING: '#4A9B8E',
+  EXTERIOR_CLEANING: '#4A9B8E',
+  DISINFECTION: '#4A9B8E',
+  // Maintenance
+  MAINTENANCE: '#ED6C02',
+  PREVENTIVE_MAINTENANCE: '#ED6C02',
+  // Réparation
+  REPAIR: '#1976d2',
+  EMERGENCY_REPAIR: '#d32f2f',
+  ELECTRICAL_REPAIR: '#1976d2',
+  PLUMBING_REPAIR: '#1976d2',
+  HVAC_REPAIR: '#1976d2',
+  APPLIANCE_REPAIR: '#1976d2',
+  // Autres
+  GARDENING: '#2E7D32',
+  PEST_CONTROL: '#7B61FF',
+  RESTORATION: '#D4A574',
+  INSPECTION: '#0288d1',
+  OTHER: '#757575',
+};
+
+export function getInterventionTypeHex(type: string): string {
+  return INT_TYPE_HEX[type?.toUpperCase()] ?? '#757575';
+}
+
 export function getInterventionTypeLabel(type: string, t: TranslationFn): string {
   const key = INT_TYPE_KEYS[type?.toUpperCase()];
   if (key) {
@@ -217,4 +352,40 @@ export function getInterventionTypeLabel(type: string, t: TranslationFn): string
     return translated !== key ? translated : type;
   }
   return type;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// AMENITY — hex colors by category
+// ═════════════════════════════════════════════════════════════════════════════
+
+const AMENITY_HEX: Record<string, string> = {
+  // Tech & confort
+  WIFI: '#1976d2',
+  TV: '#1976d2',
+  AIR_CONDITIONING: '#1976d2',
+  HEATING: '#1976d2',
+  // Cuisine
+  EQUIPPED_KITCHEN: '#4A9B8E',
+  DISHWASHER: '#4A9B8E',
+  MICROWAVE: '#4A9B8E',
+  OVEN: '#4A9B8E',
+  // Électroménager
+  WASHING_MACHINE: '#0288d1',
+  DRYER: '#0288d1',
+  IRON: '#0288d1',
+  HAIR_DRYER: '#0288d1',
+  // Extérieur
+  PARKING: '#ED6C02',
+  POOL: '#ED6C02',
+  JACUZZI: '#ED6C02',
+  GARDEN_TERRACE: '#ED6C02',
+  BARBECUE: '#ED6C02',
+  // Sécurité & Famille
+  SAFE: '#7B61FF',
+  BABY_BED: '#7B61FF',
+  HIGH_CHAIR: '#7B61FF',
+};
+
+export function getAmenityHex(amenity: string): string {
+  return AMENITY_HEX[amenity?.toUpperCase()] ?? '#757575';
 }

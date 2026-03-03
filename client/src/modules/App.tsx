@@ -12,12 +12,16 @@ import InscriptionSuccess from './auth/InscriptionSuccess';
 import InscriptionConfirm from './auth/InscriptionConfirm';
 import Support from './auth/Support';
 import AcceptInvitationPage from './invitations/AcceptInvitationPage';
+import PublicKeyVerification from '../pages/PublicKeyVerification';
 import MainLayoutFull from './layout/MainLayoutFull';
 import AuthenticatedApp from './AuthenticatedApp';
 import { clearTokens, setItem, STORAGE_KEYS } from '../services/storageService';
 
 // Routes publiques accessibles sans authentification
 const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/support', '/accept-invitation'];
+
+// Routes publiques avec paramètres (prefix match)
+const PUBLIC_ROUTE_PREFIXES = ['/verify-key/'];
 
 const App: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -27,7 +31,8 @@ const App: React.FC = () => {
   const location = useLocation();
 
   // Déterminer si on est sur une route publique
-  const isPublicRoute = PUBLIC_ROUTES.includes(location.pathname);
+  const isPublicRoute = PUBLIC_ROUTES.includes(location.pathname)
+    || PUBLIC_ROUTE_PREFIXES.some(prefix => location.pathname.startsWith(prefix));
 
   // Refs pour les fonctions de token management
   const stopTokenMonitoringRef = useRef<(() => void) | null>(null);
@@ -234,6 +239,9 @@ const App: React.FC = () => {
 
           {/* Route publique/semi-publique pour accepter une invitation */}
           <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
+
+          {/* Route publique pour la verification de code par les commercants */}
+          <Route path="/verify-key/:token" element={<PublicKeyVerification />} />
         
         {/* Routes protégées */}
         <Route 

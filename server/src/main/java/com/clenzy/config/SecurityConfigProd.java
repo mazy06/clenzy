@@ -115,6 +115,7 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/webhooks/stripe").permitAll()
                         .requestMatchers("/api/webhooks/expedia").permitAll()
                         .requestMatchers("/api/webhooks/whatsapp").permitAll()
+                        .requestMatchers("/api/webhooks/keynest").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         // Invitations : info publique (sans JWT), accept authentifie

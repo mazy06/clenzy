@@ -71,12 +71,12 @@ const PAYMENT_METHODS = [
   { value: 'other', label: 'Autre' },
 ];
 
-const STATUS_COLORS: Record<string, 'success' | 'warning' | 'error' | 'default' | 'info'> = {
-  PAID: 'success',
-  PENDING: 'warning',
-  REFUNDED: 'error',
-  DRAFT: 'default',
-  ISSUED: 'info',
+const STATUS_HEX: Record<string, string> = {
+  PAID: '#4A9B8E',
+  PENDING: '#ED6C02',
+  REFUNDED: '#d32f2f',
+  DRAFT: '#757575',
+  ISSUED: '#0288d1',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -166,7 +166,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({ event, interventions, o
   const balanceDue = grandTotal - totalPaid + totalRefunded;
 
   const paymentStatus = balanceDue <= 0 ? 'Solde' : totalPaid > 0 ? 'Partiel' : 'En attente';
-  const paymentStatusColor = balanceDue <= 0 ? 'success' : totalPaid > 0 ? 'info' : 'warning';
+  const paymentStatusHex = balanceDue <= 0 ? '#4A9B8E' : totalPaid > 0 ? '#0288d1' : '#ED6C02';
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -338,8 +338,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({ event, interventions, o
               <Chip
                 label={paymentStatus}
                 size="small"
-                color={paymentStatusColor}
-                sx={{ fontSize: '0.625rem', height: 20 }}
+                sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600, backgroundColor: `${paymentStatusHex}18`, color: paymentStatusHex, border: `1px solid ${paymentStatusHex}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
               />
             </Box>
           </Box>
@@ -356,12 +355,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({ event, interventions, o
                   <Typography variant="caption" sx={{ fontSize: '0.6875rem' }}>
                     {inv.number}
                   </Typography>
+                  {(() => { const c = STATUS_HEX[inv.status] || '#757575'; return (
                   <Chip
                     label={STATUS_LABELS[inv.status] || inv.status}
                     size="small"
-                    color={STATUS_COLORS[inv.status] || 'default'}
-                    sx={{ fontSize: '0.5625rem', height: 16 }}
+                    sx={{ fontSize: '0.5625rem', height: 16, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
                   />
+                  ); })()}
                   <Typography variant="caption" sx={{ fontSize: '0.6875rem', ml: 'auto' }}>
                     {inv.totalTtc.toFixed(2)} EUR
                   </Typography>
@@ -416,8 +416,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({ event, interventions, o
               <Chip
                 label={payments.length}
                 size="small"
-                color="primary"
-                sx={{ fontSize: '0.5625rem', height: 18, ml: 'auto' }}
+                sx={{ fontSize: '0.5625rem', height: 18, ml: 'auto', fontWeight: 600, backgroundColor: '#1976d218', color: '#1976d2', border: '1px solid #1976d240', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
               />
             )}
           </Button>
@@ -557,12 +556,13 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({ event, interventions, o
                         {p.status === 'REFUNDED' ? '-' : ''}{p.amount.toFixed(2)} EUR
                       </TableCell>
                       <TableCell>
+                        {(() => { const c = STATUS_HEX[p.status] || '#757575'; return (
                         <Chip
                           label={STATUS_LABELS[p.status] || p.status}
                           size="small"
-                          color={STATUS_COLORS[p.status] || 'default'}
-                          sx={{ fontSize: '0.5625rem', height: 18 }}
+                          sx={{ fontSize: '0.5625rem', height: 18, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
                         />
+                        ); })()}
                       </TableCell>
                     </TableRow>
                   ))}

@@ -287,7 +287,9 @@
       "planning": "Planning",
       "overview": "Overview",
       "noise": "Noise monitoring",
-      "analytics": "Analytics"
+      "analytics": "Analytics",
+      "smartLock": "Smart locks",
+      "keyExchange": "Key management"
     },
     "noise": {
       "offersTitle": "Noise monitoring",
@@ -338,6 +340,96 @@
         "back": "Back",
         "next": "Next",
         "cancel": "Cancel"
+      }
+    },
+    "keyExchange": {
+      "title": "Key Management",
+      "subtitle": "Set up a key storage point for your properties without a smart lock.",
+      "keyvault": {
+        "title": "Clenzy KeyVault — Partner Merchants",
+        "description": "Manage your own network of trusted merchants. Integrated PMS solution at no extra cost.",
+        "free": "Free",
+        "includedInPlan": "Included in your plan",
+        "unlimitedCodes": "Unlimited merchants & codes",
+        "feature1": "Register your trusted merchants",
+        "feature2": "6-digit codes with expiration",
+        "feature3": "Merchant verification page (no app needed)",
+        "feature4": "Real-time key movement tracking",
+        "configureMerchant": "Set up a merchant",
+        "addMerchant": "Add a merchant",
+        "addMerchantTitle": "Add a partner merchant",
+        "noMerchants": "No merchant configured. Add your first partner.",
+        "merchantName": "Merchant name",
+        "property": "Property",
+        "address": "Address",
+        "phone": "Phone",
+        "openingHours": "Opening hours",
+        "copyVerificationLink": "Copy verification link",
+        "qrCode": "QR Code",
+        "codes": "Codes",
+        "activeCodes": "active codes"
+      },
+      "keynest": {
+        "title": "KeyNest — Drop-off Point Network",
+        "description": "Network of 5,500+ drop-off points in local shops. Professional service with integrated API.",
+        "external": "External",
+        "feature1": "5,500+ drop-off points in Europe",
+        "feature2": "Automatic code integration",
+        "feature3": "Real-time notifications (webhooks)",
+        "feature4": "Compatible with all rental platforms",
+        "configure": "Set up KeyNest",
+        "configuredPoints": "Configured KeyNest points",
+        "searchTitle": "Search for a KeyNest point near a property",
+        "search": "Search",
+        "associate": "Associate",
+        "dissociate": "Dissociate this point",
+        "noResults": "No KeyNest points found near this property.",
+        "noGps": "This property has no GPS coordinates. Please set them in the property settings.",
+        "resultsFound": "{{count}} point(s) found nearby",
+        "pricing": "KeyNest Pricing",
+        "pricingPayAsYouGo": "Per collection",
+        "pricingMonthly": "Monthly (unlimited)",
+        "pricingYearly": "Yearly (unlimited)"
+      },
+      "codes": {
+        "title": "Exchange Codes",
+        "generateCode": "Generate code",
+        "guestName": "Guest name",
+        "noCodes": "No active codes",
+        "cancel": "Cancel",
+        "status": {
+          "ACTIVE": "Active",
+          "USED": "Used",
+          "EXPIRED": "Expired",
+          "CANCELLED": "Cancelled"
+        }
+      },
+      "history": {
+        "title": "Key Movement History",
+        "noEvents": "No events recorded.",
+        "filterByProperty": "Filter by property",
+        "allProperties": "All properties",
+        "eventType": "Type",
+        "actor": "Actor",
+        "point": "Point",
+        "property": "Property",
+        "date": "Date",
+        "source": "Source",
+        "notes": "Notes",
+        "types": {
+          "KEY_DEPOSITED": "Key deposited",
+          "KEY_COLLECTED": "Key collected",
+          "KEY_RETURNED": "Key returned",
+          "CODE_GENERATED": "Code generated",
+          "CODE_CANCELLED": "Code cancelled",
+          "CODE_EXPIRED": "Code expired"
+        },
+        "sources": {
+          "MANUAL": "Manual",
+          "WEBHOOK": "Webhook",
+          "API_POLL": "API",
+          "PUBLIC_PAGE": "Public page"
+        }
       }
     },
     "planning": {
@@ -1678,12 +1770,16 @@
     },
     "propertyType": {
       "title": "Property Type Coefficients",
-      "subtitle": "Weighting based on property type (villa, apartment, etc.)",
+      "subtitle": "Weighting based on property type — affects cleaning duration and price",
       "studio": "Studio",
       "appartement": "Apartment",
       "maison": "House",
-      "duplex": "Duplex",
+      "loft": "Loft",
       "villa": "Villa",
+      "chambre-hote": "Guest Room",
+      "gite": "Cottage",
+      "chalet": "Chalet",
+      "bateau": "Boat / Houseboat",
       "autre": "Other"
     },
     "propertyCount": {

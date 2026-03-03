@@ -62,11 +62,12 @@ import ExportButton from '../../components/ExportButton';
 import { useInterventionsList, interventionsKeys } from './useInterventionsList';
 import type { Intervention } from './useInterventionsList';
 import {
-  getInterventionStatusColor,
   getInterventionStatusLabel,
-  getInterventionPriorityColor,
+  getInterventionStatusHex,
   getInterventionPriorityLabel,
+  getInterventionPriorityHex,
   getInterventionTypeLabel,
+  getInterventionTypeHex,
 } from '../../utils/statusUtils';
 
 const paginationSx = {
@@ -554,12 +555,22 @@ export default function InterventionsList() {
                             </Typography>
                           </TableCell>
                           <TableCell>
+                            {(() => { const c = getInterventionTypeHex(intervention.type); return (
                             <Chip
                               label={getInterventionTypeLabel(intervention.type, t)}
                               size="small"
-                              variant="outlined"
-                              sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                              sx={{
+                                backgroundColor: `${c}18`,
+                                color: c,
+                                border: `1px solid ${c}40`,
+                                borderRadius: '6px',
+                                fontWeight: 600,
+                                fontSize: '0.62rem',
+                                height: 22,
+                                '& .MuiChip-label': { px: 0.75 },
+                              }}
                             />
+                            ); })()}
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
@@ -580,22 +591,40 @@ export default function InterventionsList() {
                             )}
                           </TableCell>
                           <TableCell align="center">
-                            <Chip
-                              label={getInterventionStatusLabel(intervention.status, t)}
-                              color={getInterventionStatusColor(intervention.status)}
-                              size="small"
-                              variant="outlined"
-                              sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
-                            />
+                            {(() => { const c = getInterventionStatusHex(intervention.status); return (
+                              <Chip
+                                label={getInterventionStatusLabel(intervention.status, t)}
+                                size="small"
+                                sx={{
+                                  backgroundColor: `${c}18`,
+                                  color: c,
+                                  border: `1px solid ${c}40`,
+                                  borderRadius: '6px',
+                                  fontWeight: 600,
+                                  fontSize: '0.75rem',
+                                  height: 24,
+                                  '& .MuiChip-label': { px: 1 },
+                                }}
+                              />
+                            ); })()}
                           </TableCell>
                           <TableCell align="center">
-                            <Chip
-                              label={getInterventionPriorityLabel(intervention.priority, t)}
-                              color={getInterventionPriorityColor(intervention.priority)}
-                              size="small"
-                              variant="outlined"
-                              sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
-                            />
+                            {(() => { const c = getInterventionPriorityHex(intervention.priority); return (
+                              <Chip
+                                label={getInterventionPriorityLabel(intervention.priority, t)}
+                                size="small"
+                                sx={{
+                                  backgroundColor: `${c}18`,
+                                  color: c,
+                                  border: `1px solid ${c}40`,
+                                  borderRadius: '6px',
+                                  fontWeight: 600,
+                                  fontSize: '0.75rem',
+                                  height: 24,
+                                  '& .MuiChip-label': { px: 1 },
+                                }}
+                              />
+                            ); })()}
                           </TableCell>
                           <TableCell align="center">
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 80 }}>
@@ -737,12 +766,22 @@ export default function InterventionsList() {
                             </Typography>
                           </TableCell>
                           <TableCell>
+                            {(() => { const c = getInterventionTypeHex(intervention.type); return (
                             <Chip
                               label={getInterventionTypeLabel(intervention.type, t)}
                               size="small"
-                              variant="outlined"
-                              sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                              sx={{
+                                backgroundColor: `${c}18`,
+                                color: c,
+                                border: `1px solid ${c}40`,
+                                borderRadius: '6px',
+                                fontWeight: 600,
+                                fontSize: '0.62rem',
+                                height: 22,
+                                '& .MuiChip-label': { px: 0.75 },
+                              }}
                             />
+                            ); })()}
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>

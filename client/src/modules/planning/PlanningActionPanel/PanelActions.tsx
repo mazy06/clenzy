@@ -405,8 +405,8 @@ const PanelActions: React.FC<PanelActionsProps> = ({
           Marqueurs
           {(isVip || hasAttention) && (
             <Box component="span" sx={{ ml: 1 }}>
-              {isVip && <Chip label="VIP" size="small" sx={{ fontSize: '0.5625rem', height: 18, bgcolor: '#FFB800', color: '#fff', mr: 0.5 }} />}
-              {hasAttention && <Chip label="ATTENTION" size="small" sx={{ fontSize: '0.5625rem', height: 18, bgcolor: '#EF4444', color: '#fff' }} />}
+              {isVip && <Chip label="VIP" size="small" sx={{ fontSize: '0.5625rem', height: 18, fontWeight: 600, backgroundColor: '#FFB80018', color: '#FFB800', border: '1px solid #FFB80040', borderRadius: '6px', mr: 0.5, '& .MuiChip-label': { px: 0.75 } }} />}
+              {hasAttention && <Chip label="ATTENTION" size="small" sx={{ fontSize: '0.5625rem', height: 18, fontWeight: 600, backgroundColor: '#EF444418', color: '#EF4444', border: '1px solid #EF444440', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />}
             </Box>
           )}
         </Typography>

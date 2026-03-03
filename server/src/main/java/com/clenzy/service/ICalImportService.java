@@ -19,7 +19,6 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.net.InetAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -245,24 +244,30 @@ public class ICalImportService {
         response.setFeedId(feed.getId());
 
         // Notify user about import result
+        // Only notify when there are actual new reservations or errors — skip silent syncs with 0 new
         try {
-            if (errors.isEmpty()) {
-                notificationService.notify(
-                    keycloakId,
-                    NotificationKey.ICAL_IMPORT_SUCCESS,
-                    "Import iCal reussi",
-                    imported + " reservations importees pour " + property.getName(),
-                    "/dashboard"
-                );
-            } else {
+            if (!errors.isEmpty()) {
+                // Errors occurred — always notify
                 notificationService.notify(
                     keycloakId,
                     NotificationKey.ICAL_IMPORT_FAILED,
-                    "Import iCal partiel",
-                    imported + " importees, " + errors.size() + " erreurs pour " + property.getName(),
-                    "/dashboard"
+                    "Import iCal partiel — " + property.getName(),
+                    imported + " nouvelle(s) reservation(s) importee(s), " + errors.size() + " erreur(s) via " + request.getSourceName(),
+                    "/planning"
+                );
+            } else if (imported > 0) {
+                // New reservations found — notify
+                String plural = imported > 1 ? "s" : "";
+                notificationService.notify(
+                    keycloakId,
+                    NotificationKey.ICAL_IMPORT_SUCCESS,
+                    imported + " nouvelle" + plural + " reservation" + plural + " — " + property.getName(),
+                    imported + " reservation" + plural + " importee" + plural + " via " + request.getSourceName()
+                        + (request.isAutoCreateInterventions() ? " (menages crees automatiquement)" : ""),
+                    "/planning"
                 );
             }
+            // imported == 0 && no errors → silent sync, no notification needed
         } catch (Exception e) {
             log.warn("Erreur notification import iCal: {}", e.getMessage());
         }
@@ -274,20 +279,17 @@ public class ICalImportService {
      * Telecharge et parse un fichier iCal depuis une URL.
      * Inclut : validation SSRF (via ICalUrlValidator), limite de taille,
      * parsing des evenements (via ICalEventParser).
-     * Protection DNS rebinding : on resout le DNS une seule fois dans ICalUrlValidator,
-     * puis on force la meme IP dans la requete HTTP pour eviter le TOCTOU.
+     * La validation SSRF resout le DNS et verifie que l'IP n'est pas privee/loopback.
+     * La requete HTTP utilise l'URL originale pour garantir un SNI TLS correct.
      */
     @CircuitBreaker(name = "ical-import")
     public List<ICalEventPreview> fetchAndParseICalFeed(String url) {
-        // Validate URL and resolve DNS (SSRF + DNS rebinding protection)
-        InetAddress resolvedAddress = ICalUrlValidator.validateAndResolve(url);
+        // Validate URL and resolve DNS (SSRF protection: rejects private/loopback IPs)
+        ICalUrlValidator.validateAndResolve(url);
 
         try {
-            InputStream limitedStream = downloadICalContent(url, resolvedAddress);
+            InputStream limitedStream = downloadICalContent(url);
             return ICalEventParser.parseEvents(limitedStream);
-        } catch (java.net.URISyntaxException e) {
-            log.error("Erreur construction URI resolue depuis {}: {}", url, e.getMessage());
-            throw new RuntimeException("URL iCal invalide : " + e.getMessage());
         } catch (IOException | InterruptedException e) {
             log.error("Erreur telechargement iCal depuis {}: {}", url, e.getMessage());
             throw new RuntimeException("Impossible de telecharger le calendrier iCal : " + e.getMessage());
@@ -295,28 +297,19 @@ public class ICalImportService {
     }
 
     /**
-     * Downloads iCal content from the given URL using the pre-resolved IP address.
+     * Downloads iCal content from the given URL (already validated by ICalUrlValidator).
+     * Uses the original URL to ensure correct TLS SNI hostname.
      * Returns a size-limited InputStream to prevent memory exhaustion.
      */
-    private InputStream downloadICalContent(String url, InetAddress resolvedAddress)
-            throws java.net.URISyntaxException, IOException, InterruptedException {
+    private InputStream downloadICalContent(String url)
+            throws IOException, InterruptedException {
         URI originalUri = URI.create(url.trim());
-        URI resolvedUri = new URI(
-                originalUri.getScheme(),
-                null, // userInfo
-                resolvedAddress.getHostAddress(),
-                originalUri.getPort() == -1 ? 443 : originalUri.getPort(),
-                originalUri.getPath(),
-                originalUri.getQuery(),
-                null
-        );
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(resolvedUri)
+                .uri(originalUri)
                 .GET()
                 .timeout(Duration.ofSeconds(30))
                 .header("User-Agent", "Clenzy-PMS/1.0")
-                .header("Host", originalUri.getHost()) // Keep original Host for SNI/TLS
                 .build();
 
         HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
@@ -363,9 +356,16 @@ public class ICalImportService {
         LocalTime checkOutTime = LocalTime.parse(defaultCheckOutTime);
         LocalDateTime scheduledDate = LocalDateTime.of(checkOut, checkOutTime);
 
-        // Estimer la duree et le cout
-        int guestCount = property.getMaxGuests() != null ? property.getMaxGuests() : 2;
-        int estimatedDuration = estimateCleaningDuration(property, guestCount).intValue();
+        // Duree estimee : utiliser cleaningDurationMinutes de la propriete (calcule par PropertyService)
+        // Convertir minutes -> heures arrondi au superieur (ex: 150 min -> 3h)
+        int estimatedDuration;
+        if (property.getCleaningDurationMinutes() != null && property.getCleaningDurationMinutes() > 0) {
+            estimatedDuration = (int) Math.ceil(property.getCleaningDurationMinutes() / 60.0);
+        } else {
+            // Fallback si le champ n'est pas renseigne
+            estimatedDuration = 2;
+            log.debug("Property {} n'a pas de cleaningDurationMinutes, fallback a {}h", property.getName(), estimatedDuration);
+        }
         BigDecimal estimatedCost = estimateCleaningCost(property);
 
         // Instructions speciales avec UID pour dedoublonnage
@@ -463,24 +463,6 @@ public class ICalImportService {
     }
 
     /**
-     * Estime la duree de menage.
-     * Meme formule que AirbnbReservationService.estimateCleaningDuration().
-     */
-    private BigDecimal estimateCleaningDuration(Property property, int guestCount) {
-        double base = 1.5;
-        if (property.getBedroomCount() != null) {
-            base += property.getBedroomCount() * 0.5;
-        }
-        if (guestCount > 2) {
-            base += (guestCount - 2) * 0.25;
-        }
-        if (property.getSquareMeters() != null && property.getSquareMeters() > 80) {
-            base += 0.5;
-        }
-        return BigDecimal.valueOf(Math.ceil(base * 2) / 2);
-    }
-
-    /**
      * Estime le cout de menage en euros via PricingConfigService.
      * Formule : basePrix(forfait) x typeCoeff x surfaceCoeff x guestCoeff
      * Prix minimum et arrondi au multiple de 5 EUR.
@@ -532,7 +514,12 @@ public class ICalImportService {
             case HOUSE: return "maison";
             case STUDIO: return "studio";
             case VILLA: return "villa";
-            default: return "autre"; // LOFT, GUEST_ROOM, COTTAGE, CHALET, BOAT, OTHER
+            case LOFT: return "loft";
+            case GUEST_ROOM: return "chambre-hote";
+            case COTTAGE: return "gite";
+            case CHALET: return "chalet";
+            case BOAT: return "bateau";
+            default: return "autre";
         }
     }
 
@@ -640,21 +627,8 @@ public class ICalImportService {
         request.setSourceName(feed.getSourceName());
         request.setAutoCreateInterventions(feed.isAutoCreateInterventions());
 
-        ImportResponse response = importICalFeed(request, keycloakId);
-
-        try {
-            notificationService.notify(
-                keycloakId,
-                NotificationKey.ICAL_SYNC_COMPLETED,
-                "Synchronisation iCal terminee",
-                "Feed " + feed.getSourceName() + " synchronise : " + response.getImported() + " importees",
-                "/dashboard"
-            );
-        } catch (Exception e) {
-            log.warn("Erreur notification ICAL_SYNC_COMPLETED: {}", e.getMessage());
-        }
-
-        return response;
+        // importICalFeed handles notifications: notifies only when new reservations found or errors
+        return importICalFeed(request, keycloakId);
     }
 
     /**

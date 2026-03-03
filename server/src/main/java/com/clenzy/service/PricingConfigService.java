@@ -30,7 +30,8 @@ public class PricingConfigService {
 
     private static final Map<String, Double> DEFAULT_PROPERTY_TYPE_COEFFS = Map.of(
             "studio", 0.85, "appartement", 1.0, "maison", 1.15,
-            "duplex", 1.20, "villa", 1.35, "autre", 1.0
+            "loft", 1.10, "villa", 1.35, "chambre-hote", 0.80,
+            "gite", 1.15, "chalet", 1.20, "bateau", 1.10, "autre", 1.0
     );
 
     private static final Map<String, Double> DEFAULT_PROPERTY_COUNT_COEFFS = Map.of(

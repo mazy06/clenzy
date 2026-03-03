@@ -2,9 +2,12 @@
 export {
   getInterventionStatusColor as getStatusColor,
   getInterventionStatusLabel as getStatusLabel,
+  getInterventionStatusHex as getStatusHex,
   getInterventionPriorityColor as getPriorityColor,
   getInterventionPriorityLabel as getPriorityLabel,
+  getInterventionPriorityHex as getPriorityHex,
   getInterventionTypeLabel as getTypeLabel,
+  getInterventionTypeHex as getTypeHex,
 } from '../../utils/statusUtils';
 export type { ChipColor } from '../../types';
 export { formatDateTime as formatDate, formatDuration } from '../../utils/formatUtils';

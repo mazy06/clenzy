@@ -357,20 +357,22 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                   <TableCell align="right">{formatCurrency(inv.totalTax, inv.currency)}</TableCell>
                   <TableCell sx={{ fontWeight: 700 }} align="right">{formatCurrency(inv.totalTtc, inv.currency)}</TableCell>
                   <TableCell>
-                    <Chip
-                      label={STATUS_LABELS[inv.status]}
-                      size="small"
-                      variant="outlined"
-                      sx={{
-                        fontSize: '0.6875rem',
-                        height: 22,
-                        fontWeight: 500,
-                        borderWidth: 1.5,
-                        borderColor: INVOICE_STATUS_COLORS[inv.status],
-                        color: INVOICE_STATUS_COLORS[inv.status],
-                        '& .MuiChip-label': { px: 0.75 },
-                      }}
-                    />
+                    {(() => { const c = INVOICE_STATUS_COLORS[inv.status]; return (
+                      <Chip
+                        label={STATUS_LABELS[inv.status]}
+                        size="small"
+                        sx={{
+                          backgroundColor: `${c}18`,
+                          color: c,
+                          border: `1px solid ${c}40`,
+                          borderRadius: '6px',
+                          fontWeight: 600,
+                          fontSize: '0.75rem',
+                          height: 24,
+                          '& .MuiChip-label': { px: 1 },
+                        }}
+                      />
+                    ); })()}
                   </TableCell>
                   <TableCell align="right">
                     <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>

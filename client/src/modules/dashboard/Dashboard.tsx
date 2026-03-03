@@ -14,6 +14,7 @@ import {
   BarChart as BarChartIcon,
   VolumeUp as VolumeUpIcon,
   LockOutlined as LockOutlinedIcon,
+  VpnKey as VpnKeyIcon,
   Sync as SyncIcon,
   CalendarToday as CalendarTodayIcon,
   Dashboard as DashboardIcon,
@@ -28,6 +29,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import DashboardAnalyticsContent from './DashboardAnalyticsContent';
 import DashboardNoiseTab from './DashboardNoiseTab';
 import DashboardSmartLockTab from './DashboardSmartLockTab';
+import DashboardKeyExchangeTab from './DashboardKeyExchangeTab';
 import DashboardDateFilter from './DashboardDateFilter';
 import ICalImportModal from './ICalImportModal';
 import UpgradeBanner from './UpgradeBanner';
@@ -255,7 +257,7 @@ const Dashboard: React.FC = () => {
         />
       </Box>
 
-      {/* ─── Tabs (3 onglets : Analytics / Nuisance sonore / Serrures) ── */}
+      {/* ─── Tabs (4 onglets : Analytics / Nuisance sonore / Serrures / Clés) ── */}
       <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0, flexShrink: 0 }}>
         <Tabs
           value={tabValue}
@@ -299,6 +301,12 @@ const Dashboard: React.FC = () => {
             iconPosition="start"
             label={t('dashboard.tabs.smartLock') || 'Serrures connectées'}
             {...a11yProps(2)}
+          />
+          <Tab
+            icon={<VpnKeyIcon sx={{ fontSize: 16 }} />}
+            iconPosition="start"
+            label={t('dashboard.tabs.keyExchange') || 'Gestion des clés'}
+            {...a11yProps(3)}
           />
         </Tabs>
 
@@ -402,6 +410,18 @@ const Dashboard: React.FC = () => {
           sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
         >
           <DashboardSmartLockTab />
+        </Box>
+      )}
+
+      {/* ─── Tab 3: Gestion des clés ─────────────────────────────────── */}
+      {tabValue === 3 && (
+        <Box
+          role="tabpanel"
+          id="dashboard-tabpanel-3"
+          aria-labelledby="dashboard-tab-3"
+          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
+        >
+          <DashboardKeyExchangeTab />
         </Box>
       )}
 

@@ -4,6 +4,7 @@ import com.clenzy.model.ICalFeed;
 import com.clenzy.model.Property;
 import com.clenzy.repository.ICalFeedRepository;
 import com.clenzy.service.ICalImportService;
+import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -28,12 +29,14 @@ class ICalSyncSchedulerTest {
     private ICalImportService iCalImportService;
     @Mock
     private ICalFeedRepository iCalFeedRepository;
+    @Mock
+    private TenantContext tenantContext;
 
     private ICalSyncScheduler scheduler;
 
     @BeforeEach
     void setUp() {
-        scheduler = new ICalSyncScheduler(iCalImportService, iCalFeedRepository);
+        scheduler = new ICalSyncScheduler(iCalImportService, iCalFeedRepository, tenantContext);
     }
 
     private ICalFeed createFeed(Long orgId) {

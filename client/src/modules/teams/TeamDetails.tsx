@@ -26,6 +26,8 @@ import TeamWorkloadCard from './TeamWorkloadCard';
 import TeamPerformanceChart from './TeamPerformanceChart';
 import TeamMembersList from './TeamMembersList';
 import { teamsKeys } from './useTeamsList';
+import { getInterventionTypeHex, getInterventionTypeLabel } from '../../utils/statusUtils';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface Team {
   id: number;
@@ -42,6 +44,7 @@ const TeamDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
+  const { t } = useTranslation();
 
   // ─── Permissions (useEffect — NOT React Query) ──────────────────────────
   const [canEdit, setCanEdit] = useState(false);
@@ -82,14 +85,6 @@ const TeamDetails: React.FC = () => {
     }
   };
 
-  const getInterventionTypeLabel = (type: string) => {
-    switch (type) {
-      case 'CLEANING': return 'Nettoyage';
-      case 'MAINTENANCE': return 'Maintenance';
-      case 'REPAIR': return 'Réparation';
-      default: return type;
-    }
-  };
 
   if (loading) {
     return (
@@ -148,13 +143,13 @@ const TeamDetails: React.FC = () => {
                 {team.name}
               </Typography>
             </Box>
+            {(() => { const c = getInterventionTypeHex(team.interventionType); return (
             <Chip
-              label={getInterventionTypeLabel(team.interventionType)}
-              color="primary"
-              variant="outlined"
+              label={getInterventionTypeLabel(team.interventionType, t)}
               size="medium"
-              sx={{ borderWidth: 1.5, '& .MuiChip-label': { px: 1 } }}
+              sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, '& .MuiChip-label': { px: 1 } }}
             />
+            ); })()}
           </Box>
 
           <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.200' }}>
@@ -177,7 +172,7 @@ const TeamDetails: React.FC = () => {
             <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center' }}>
                 <Build sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
-                <Typography variant="body2" fontWeight={500}>{getInterventionTypeLabel(team.interventionType)}</Typography>
+                <Typography variant="body2" fontWeight={500}>{getInterventionTypeLabel(team.interventionType, t)}</Typography>
                 <Typography variant="caption" color="text.secondary">Spécialité</Typography>
               </Box>
             </Grid>

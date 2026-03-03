@@ -280,3 +280,14 @@ export type {
   VatSummary,
   VatBreakdown,
 } from './fiscalReportingApi';
+
+export { keyExchangeApi } from './keyExchangeApi';
+export type {
+  KeyExchangePointDto,
+  CreateKeyExchangePointDto,
+  KeyExchangeCodeDto,
+  CreateKeyExchangeCodeDto,
+  KeyExchangeEventDto,
+  KeyExchangeEventsPage,
+  KeyNestStoreDto,
+} from './keyExchangeApi';

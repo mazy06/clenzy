@@ -17,6 +17,8 @@ public interface SmartLockDeviceRepository extends JpaRepository<SmartLockDevice
 
     List<SmartLockDevice> findByPropertyId(Long propertyId);
 
+    List<SmartLockDevice> findByPropertyIdAndStatus(Long propertyId, DeviceStatus status);
+
     Optional<SmartLockDevice> findByIdAndUserId(Long id, String userId);
 
     long countByUserId(String userId);

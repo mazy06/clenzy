@@ -43,7 +43,13 @@ public class TemplateInterpolationService {
         new TemplateVariable("emergencyContact", "Contact d'urgence", "+33 6 12 34 56 78"),
         new TemplateVariable("confirmationCode", "Code de confirmation", "ABC123"),
         new TemplateVariable("checkInLink", "Lien check-in en ligne", "https://app.clenzy.fr/checkin/abc123"),
-        new TemplateVariable("guideLink", "Lien guide d'accueil", "https://app.clenzy.fr/guide/xyz789")
+        new TemplateVariable("guideLink", "Lien guide d'accueil", "https://app.clenzy.fr/guide/xyz789"),
+        // Variables d'acces dynamiques (resolues par AccessCodeResolverService via extraVars)
+        new TemplateVariable("accessMethod", "Methode d'acces (SMART_LOCK, KEY_EXCHANGE, STATIC, ou vide)", "SMART_LOCK"),
+        new TemplateVariable("keyExchangeStoreName", "Nom du point d'echange de cles", "Tabac de la Gare"),
+        new TemplateVariable("keyExchangeStoreAddress", "Adresse du point d'echange", "5 rue de la Gare, 75010 Paris"),
+        new TemplateVariable("keyExchangeStorePhone", "Telephone du point d'echange", "+33 1 42 00 00 00"),
+        new TemplateVariable("keyExchangeStoreHours", "Horaires du point d'echange", "Lun-Sam 8h-20h")
     );
 
     private final TranslationService translationService;

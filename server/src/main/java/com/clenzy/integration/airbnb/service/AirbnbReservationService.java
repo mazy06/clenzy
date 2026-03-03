@@ -18,7 +18,6 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -173,11 +172,10 @@ public class AirbnbReservationService {
                     intervention.setGuestCheckinTime(LocalDateTime.of(newCheckIn, LocalTime.of(15, 0)));
                 }
 
-                // Recalculer la duree estimee
-                Object guestCountObj = data.get("guest_count");
-                if (guestCountObj instanceof Number) {
-                    int guestCount = ((Number) guestCountObj).intValue();
-                    intervention.setEstimatedDurationHours(estimateCleaningDuration(mapping.getPropertyId(), guestCount).intValue());
+                // Recalculer la duree estimee depuis cleaningDurationMinutes de la propriete
+                Property prop = propertyRepository.findById(mapping.getPropertyId()).orElse(null);
+                if (prop != null && prop.getCleaningDurationMinutes() != null && prop.getCleaningDurationMinutes() > 0) {
+                    intervention.setEstimatedDurationHours((int) Math.ceil(prop.getCleaningDurationMinutes() / 60.0));
                 }
 
                 interventionRepository.save(intervention);
@@ -271,7 +269,12 @@ public class AirbnbReservationService {
         intervention.setScheduledDate(LocalDateTime.of(checkOut, LocalTime.of(11, 0)));
         intervention.setGuestCheckoutTime(LocalDateTime.of(checkOut, LocalTime.of(11, 0)));
         intervention.setGuestCheckinTime(LocalDateTime.of(checkOut, LocalTime.of(15, 0))); // Prochain check-in
-        intervention.setEstimatedDurationHours(estimateCleaningDuration(property.getId(), guestCount).intValue());
+        // Duree depuis cleaningDurationMinutes de la propriete (calcule par PropertyService)
+        if (property.getCleaningDurationMinutes() != null && property.getCleaningDurationMinutes() > 0) {
+            intervention.setEstimatedDurationHours((int) Math.ceil(property.getCleaningDurationMinutes() / 60.0));
+        } else {
+            intervention.setEstimatedDurationHours(2); // Fallback 2h
+        }
         intervention.setSpecialInstructions("[AIRBNB:" + confirmationCode + "] "
                 + (guestCount > 0 ? guestCount + " guests" : "")
                 + (property.getAccessInstructions() != null ? " | Acces: " + property.getAccessInstructions() : ""));
@@ -302,29 +305,4 @@ public class AirbnbReservationService {
                 .orElse(null);
     }
 
-    /**
-     * Estime la duree de menage en fonction de la taille du logement et du nombre de guests.
-     */
-    private BigDecimal estimateCleaningDuration(Long propertyId, int guestCount) {
-        Property property = propertyRepository.findById(propertyId).orElse(null);
-        if (property == null) {
-            return new BigDecimal("2.0"); // Defaut : 2h
-        }
-
-        // Formule : base 1.5h + 0.5h par chambre + 0.25h par guest au-dela de 2
-        double base = 1.5;
-        if (property.getBedroomCount() != null) {
-            base += property.getBedroomCount() * 0.5;
-        }
-        if (guestCount > 2) {
-            base += (guestCount - 2) * 0.25;
-        }
-
-        // Surface : +0.5h si > 80m²
-        if (property.getSquareMeters() != null && property.getSquareMeters() > 80) {
-            base += 0.5;
-        }
-
-        return BigDecimal.valueOf(Math.ceil(base * 2) / 2); // Arrondi au 0.5h pres
-    }
 }
