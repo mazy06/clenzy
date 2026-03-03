@@ -3,12 +3,15 @@ package com.clenzy.service.messaging;
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
 import com.clenzy.service.NotificationService;
+import com.clenzy.service.access.AccessCodeResolverService;
+import com.clenzy.service.access.AccessCodeResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +34,7 @@ public class GuestMessagingService {
     private final MessageTemplateRepository templateRepository;
     private final ReservationRepository reservationRepository;
     private final NotificationService notificationService;
+    private final AccessCodeResolverService accessCodeResolverService;
 
     public GuestMessagingService(
             List<MessageChannel> channels,
@@ -39,7 +43,8 @@ public class GuestMessagingService {
             CheckInInstructionsRepository instructionsRepository,
             MessageTemplateRepository templateRepository,
             ReservationRepository reservationRepository,
-            NotificationService notificationService
+            NotificationService notificationService,
+            AccessCodeResolverService accessCodeResolverService
     ) {
         this.channels = channels;
         this.interpolationService = interpolationService;
@@ -48,6 +53,7 @@ public class GuestMessagingService {
         this.templateRepository = templateRepository;
         this.reservationRepository = reservationRepository;
         this.notificationService = notificationService;
+        this.accessCodeResolverService = accessCodeResolverService;
     }
 
     /**
@@ -96,12 +102,26 @@ public class GuestMessagingService {
             .findByPropertyIdAndOrganizationId(property.getId(), orgId)
             .orElse(null);
 
+        // Resoudre le code d'acces dynamique (serrure connectee, echange de cles, ou manuel)
+        Map<String, String> resolvedVars = new LinkedHashMap<>(extraVars);
+        try {
+            AccessCodeResult accessResult = accessCodeResolverService
+                    .resolveForReservation(property, reservation, instructions);
+            resolvedVars.putAll(accessResult.templateVariables());
+            log.debug("Code d'acces resolu: method={}, property={}, reservation={}",
+                    accessResult.method(), property.getId(), reservation.getId());
+        } catch (Exception e) {
+            log.error("Erreur resolution code d'acces pour reservation={}: {}",
+                    reservation.getId(), e.getMessage());
+            // Continue sans code dynamique — le code statique de CheckInInstructions sera utilise
+        }
+
         // Interpoler et traduire
         String guestLanguage = guest != null ? guest.getLanguage() : "fr";
         TemplateInterpolationService.InterpolatedMessage interpolated =
             interpolationService.interpolateAndTranslate(
                 template, reservation, guest, property, instructions,
-                extraVars, guestLanguage);
+                resolvedVars, guestLanguage);
 
         // Construire la requete d'envoi
         MessageDeliveryRequest request = new MessageDeliveryRequest(

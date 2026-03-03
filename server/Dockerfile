@@ -6,7 +6,12 @@ WORKDIR /workspace
 COPY pom.xml /workspace/pom.xml
 
 # 2. Telecharger les dependances (layer cachee tant que pom.xml ne change pas)
-RUN mvn -B dependency:go-offline -DskipTests
+#    Retry up to 3 times — Maven Central peut renvoyer des 522 transitoires
+RUN for i in 1 2 3; do \
+      echo "=== Attempt $i/3: downloading dependencies ===" && \
+      mvn -B dependency:go-offline -DskipTests && break || \
+      { echo "=== Attempt $i failed, waiting 10s ===" && sleep 10; }; \
+    done
 
 # 3. Copier le code source
 COPY src /workspace/src

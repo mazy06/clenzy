@@ -40,15 +40,18 @@ import ExportButton from '../../components/ExportButton';
 import type { ExportColumn } from '../../utils/exportUtils';
 import PropertyCard from './PropertyCard';
 import type { PropertyDetails } from './PropertyCard';
-import { estimateCleaningPrice, estimateCleaningDuration, formatDuration, getAmenityColor } from './PropertyCard';
+import { estimateCleaningPrice, estimateCleaningDuration, formatDuration } from './PropertyCard';
 import ThemedTooltip from '../../components/ThemedTooltip';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import {
-  getPropertyStatusColor,
   getPropertyStatusLabel,
+  getPropertyStatusHex,
   getPropertyTypeLabel,
+  getPropertyTypeHex,
   getCleaningFrequencyLabel,
+  getCleaningFrequencyHex,
+  getAmenityHex,
 } from '../../utils/statusUtils';
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
@@ -414,12 +417,22 @@ export default function PropertiesList() {
                         </Typography>
                       </TableCell>
                       <TableCell>
+                        {(() => { const c = getPropertyTypeHex(property.type); return (
                         <Chip
                           label={getPropertyTypeLabel(property.type, t)}
                           size="small"
-                          variant="outlined"
-                          sx={{ height: 22, fontSize: '0.68rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                          sx={{
+                            backgroundColor: `${c}18`,
+                            color: c,
+                            border: `1px solid ${c}40`,
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            fontSize: '0.68rem',
+                            height: 22,
+                            '& .MuiChip-label': { px: 0.75 },
+                          }}
                         />
+                        ); })()}
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
@@ -429,30 +442,50 @@ export default function PropertiesList() {
                       <TableCell>
                         {property.amenities && property.amenities.length > 0 ? (
                           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', alignItems: 'center' }}>
-                            {property.amenities.slice(0, 3).map((amenity, i) => (
+                            {property.amenities.slice(0, 3).map((amenity, i) => {
+                              const c = getAmenityHex(amenity);
+                              return (
                               <Chip
                                 key={i}
                                 label={t(`properties.amenities.items.${amenity}`)}
                                 size="small"
-                                color={getAmenityColor(amenity)}
-                                variant="outlined"
-                                sx={{ height: 22, fontSize: '0.62rem', borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                                sx={{
+                                  backgroundColor: `${c}18`,
+                                  color: c,
+                                  border: `1px solid ${c}40`,
+                                  borderRadius: '6px',
+                                  fontWeight: 600,
+                                  fontSize: '0.62rem',
+                                  height: 22,
+                                  '& .MuiChip-label': { px: 0.75 },
+                                }}
                               />
-                            ))}
+                              );
+                            })}
                             {property.amenities.length > 3 && (
                               <ThemedTooltip
                                 title={
                                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                    {property.amenities.map((a, i) => (
+                                    {property.amenities.map((a, i) => {
+                                      const c = getAmenityHex(a);
+                                      return (
                                       <Chip
                                         key={i}
                                         label={t(`properties.amenities.items.${a}`)}
-                                        color={getAmenityColor(a)}
-                                        variant="outlined"
                                         size="small"
-                                        sx={{ fontSize: '0.6rem', height: 20, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                                        sx={{
+                                          backgroundColor: `${c}18`,
+                                          color: c,
+                                          border: `1px solid ${c}40`,
+                                          borderRadius: '6px',
+                                          fontWeight: 600,
+                                          fontSize: '0.6rem',
+                                          height: 20,
+                                          '& .MuiChip-label': { px: 0.75 },
+                                        }}
                                       />
-                                    ))}
+                                      );
+                                    })}
                                   </Box>
                                 }
                                 arrow
@@ -461,8 +494,7 @@ export default function PropertiesList() {
                                 <Chip
                                   label={`+${property.amenities.length - 3}`}
                                   size="small"
-                                  variant="outlined"
-                                  sx={{ height: 22, fontSize: '0.62rem', borderWidth: 1.5, borderColor: 'grey.300', color: 'text.secondary', '& .MuiChip-label': { px: 0.75 }, cursor: 'default' }}
+                                  sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 }, cursor: 'default' }}
                                 />
                               </ThemedTooltip>
                             )}
@@ -493,22 +525,40 @@ export default function PropertiesList() {
                         )}
                       </TableCell>
                       <TableCell align="center">
-                        <Chip
-                          label={getCleaningFrequencyLabel(property.cleaningFrequency || 'ON_DEMAND', t)}
-                          size="small"
-                          color={property.cleaningFrequency === 'AFTER_EACH_STAY' ? 'success' : 'default'}
-                          variant="outlined"
-                          sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
-                        />
+                        {(() => { const c = getCleaningFrequencyHex(property.cleaningFrequency || 'ON_DEMAND'); return (
+                          <Chip
+                            label={getCleaningFrequencyLabel(property.cleaningFrequency || 'ON_DEMAND', t)}
+                            size="small"
+                            sx={{
+                              backgroundColor: `${c}18`,
+                              color: c,
+                              border: `1px solid ${c}40`,
+                              borderRadius: '6px',
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              height: 24,
+                              '& .MuiChip-label': { px: 1 },
+                            }}
+                          />
+                        ); })()}
                       </TableCell>
                       <TableCell align="center">
-                        <Chip
-                          label={getPropertyStatusLabel(property.status, t)}
-                          color={getPropertyStatusColor(property.status)}
-                          size="small"
-                          variant="outlined"
-                          sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
-                        />
+                        {(() => { const c = getPropertyStatusHex(property.status); return (
+                          <Chip
+                            label={getPropertyStatusLabel(property.status, t)}
+                            size="small"
+                            sx={{
+                              backgroundColor: `${c}18`,
+                              color: c,
+                              border: `1px solid ${c}40`,
+                              borderRadius: '6px',
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              height: 24,
+                              '& .MuiChip-label': { px: 1 },
+                            }}
+                          />
+                        ); })()}
                       </TableCell>
                       <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
                         <Tooltip title="Détails">

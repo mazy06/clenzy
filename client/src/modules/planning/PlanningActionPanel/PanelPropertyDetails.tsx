@@ -29,17 +29,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePropertyDetails } from '../../../hooks/usePropertyDetails';
 import type { PanelView } from '../types';
 
-// ─── Amenity colors (from PropertyCard pattern) ─────────────────────────────
-
-const getAmenityColor = (amenity: string): 'primary' | 'success' | 'info' | 'warning' | 'secondary' | 'default' => {
-  const upper = amenity.toUpperCase();
-  if (['WIFI', 'TV', 'AIR_CONDITIONING', 'HEATING'].includes(upper)) return 'primary';
-  if (['EQUIPPED_KITCHEN', 'DISHWASHER', 'MICROWAVE', 'OVEN'].includes(upper)) return 'success';
-  if (['WASHING_MACHINE', 'DRYER', 'IRON', 'HAIR_DRYER'].includes(upper)) return 'info';
-  if (['PARKING', 'POOL', 'JACUZZI', 'GARDEN_TERRACE', 'BARBECUE'].includes(upper)) return 'warning';
-  if (['SAFE', 'BABY_BED', 'HIGH_CHAIR'].includes(upper)) return 'secondary';
-  return 'default';
-};
+import { getAmenityHex } from '../../../utils/statusUtils';
 
 const formatAmenity = (s: string) =>
   s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -116,12 +106,13 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: '0.875rem', flex: 1 }}>
           {property.name}
         </Typography>
+        {(() => { const c = property.status === 'active' ? '#4A9B8E' : '#757575'; return (
         <Chip
           label={property.status}
           size="small"
-          color={property.status === 'active' ? 'success' : 'default'}
-          sx={{ fontSize: '0.625rem', height: 20 }}
+          sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
         />
+        ); })()}
       </Box>
 
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5, fontSize: '0.6875rem' }}>
@@ -169,16 +160,26 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         <>
           <Typography sx={SECTION_TITLE_SX}>Équipements</Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
-            {property.amenities.map((a) => (
+            {property.amenities.map((a) => {
+              const c = getAmenityHex(a);
+              return (
               <Chip
                 key={a}
                 label={formatAmenity(a)}
                 size="small"
-                color={getAmenityColor(a)}
-                variant="outlined"
-                sx={{ fontSize: '0.5625rem', height: 22 }}
+                sx={{
+                  backgroundColor: `${c}18`,
+                  color: c,
+                  border: `1px solid ${c}40`,
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  fontSize: '0.5625rem',
+                  height: 22,
+                  '& .MuiChip-label': { px: 0.75 },
+                }}
               />
-            ))}
+              );
+            })}
           </Box>
         </>
       )}
@@ -232,7 +233,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
           {cleaningFeatures.length > 0 && (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
               {cleaningFeatures.map((f) => (
-                <Chip key={f as string} label={f as string} size="small" variant="outlined" sx={{ fontSize: '0.5625rem', height: 20 }} />
+                <Chip key={f as string} label={f as string} size="small" sx={{ fontSize: '0.5625rem', height: 20, fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />
               ))}
             </Box>
           )}
@@ -296,17 +297,13 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
                   {intv.scheduledDate} {intv.assignedTo ? `· ${intv.assignedTo}` : ''}
                 </Typography>
               </Box>
+              {(() => { const c = intv.status === 'completed' ? '#4A9B8E' : intv.status === 'in_progress' ? '#0288d1' : intv.status === 'cancelled' ? '#d32f2f' : '#ED6C02'; return (
               <Chip
                 label={intv.status}
                 size="small"
-                color={
-                  intv.status === 'completed' ? 'success'
-                    : intv.status === 'in_progress' ? 'info'
-                      : intv.status === 'cancelled' ? 'error'
-                        : 'warning'
-                }
-                sx={{ fontSize: '0.5625rem', height: 20 }}
+                sx={{ fontSize: '0.5625rem', height: 20, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
               />
+              ); })()}
             </Box>
           ))}
           {interventions.length > 8 && (

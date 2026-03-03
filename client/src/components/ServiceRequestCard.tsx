@@ -60,11 +60,12 @@ function getICalSourceLogo(description: string): string | null {
 }
 
 import {
-  getServiceRequestStatusColor,
   getServiceRequestStatusLabel,
-  getServiceRequestPriorityColor,
+  getServiceRequestStatusHex,
   getServiceRequestPriorityLabel,
+  getServiceRequestPriorityHex,
   getInterventionTypeLabel,
+  getInterventionTypeHex,
 } from '../utils/statusUtils';
 
 interface ServiceRequest {
@@ -360,8 +361,8 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
 
   const statusLabel = statuses.find(s => s.value === request.status)?.label || request.status;
   const priorityLabel = priorities.find(p => p.value === request.priority)?.label || request.priority;
-  const statusChipColor = getServiceRequestStatusColor(request.status);
-  const priorityChipColor = getServiceRequestPriorityColor(request.priority);
+  const statusHex = getServiceRequestStatusHex(request.status);
+  const priorityHex = getServiceRequestPriorityHex(request.priority);
 
   const handleViewDetails = () => {
     navigate(`/service-requests/${request.id}`);
@@ -400,29 +401,34 @@ const ServiceRequestCard: React.FC<ServiceRequestCardProps> = React.memo(({
         <Box sx={styles.badgeBarLeft}>
           <Chip
             label={statusLabel}
-            color={statusChipColor}
             size="small"
-            variant="outlined"
-            sx={styles.statusChip}
+            sx={{ ...styles.statusChip, backgroundColor: `${statusHex}18`, color: statusHex, border: `1px solid ${statusHex}40`, borderRadius: '6px' }}
           />
           <Chip
             label={priorityLabel}
-            color={priorityChipColor}
             size="small"
-            variant="outlined"
-            sx={styles.priorityChip}
+            sx={{ ...styles.priorityChip, backgroundColor: `${priorityHex}18`, color: priorityHex, border: `1px solid ${priorityHex}40`, borderRadius: '6px' }}
           />
         </Box>
 
         {/* Droite : type + date d'échéance */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+          {(() => { const c = getInterventionTypeHex(request.type); return (
           <Chip
             label={getInterventionTypeLabel(request.type, t)}
             size="small"
-            color="info"
-            variant="outlined"
-            sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+            sx={{
+              backgroundColor: `${c}18`,
+              color: c,
+              border: `1px solid ${c}40`,
+              borderRadius: '6px',
+              fontWeight: 600,
+              fontSize: '0.62rem',
+              height: 22,
+              '& .MuiChip-label': { px: 0.75 },
+            }}
           />
+          ); })()}
           <Box sx={styles.dateBox}>
             <CalendarToday sx={{ fontSize: 13, color: 'text.secondary' }} />
             <Typography variant="caption" sx={styles.dateText}>

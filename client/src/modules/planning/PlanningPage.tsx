@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, CircularProgress, Alert, Typography } from '@mui/material';
 import PlanningToolbar from './PlanningToolbar';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningActionPanel from './PlanningActionPanel';
 import PlanningQuickCreateDialog from './PlanningQuickCreateDialog';
 import PlanningPaginationBar from './PlanningPaginationBar';
+import ICalImportModal from '../dashboard/ICalImportModal';
 import { usePlanningNavigation } from './hooks/usePlanningNavigation';
 import { useInfiniteTimeline } from './hooks/useInfiniteTimeline';
 import { usePlanningData } from './hooks/usePlanningData';
@@ -20,6 +21,9 @@ import { usePropertyColWidth } from './hooks/usePropertyColWidth';
 import { ACTION_PANEL_WIDTH } from './constants';
 
 const PlanningPage: React.FC = () => {
+  // iCal import modal
+  const [icalModalOpen, setIcalModalOpen] = useState(false);
+
   // Navigation (dates, zoom, density)
   const nav = usePlanningNavigation();
 
@@ -233,6 +237,7 @@ const PlanningPage: React.FC = () => {
           onStatusFilter={setStatusFilter}
           onSearchChange={setSearchQuery}
           onClearFilters={clearFilters}
+          onImportICal={() => setIcalModalOpen(true)}
         />
       </Box>
 
@@ -341,6 +346,12 @@ const PlanningPage: React.FC = () => {
         open={!!quickCreateData}
         data={quickCreateData}
         onClose={closeQuickCreate}
+      />
+
+      {/* iCal Import Modal */}
+      <ICalImportModal
+        open={icalModalOpen}
+        onClose={() => setIcalModalOpen(false)}
       />
     </Box>
   );

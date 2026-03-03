@@ -41,10 +41,12 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { getPropertyTypeBannerUrl } from '../../utils/propertyTypeBanner';
 import { formatDate } from '../../utils/formatUtils';
 import {
-  getPropertyStatusColor,
   getPropertyStatusLabel,
+  getPropertyStatusHex,
   getPropertyTypeLabel,
   getCleaningFrequencyLabel,
+  getCleaningFrequencyHex,
+  getAmenityHex,
 } from '../../utils/statusUtils';
 import ThemedTooltip from '../../components/ThemedTooltip';
 
@@ -432,13 +434,13 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
         <Box sx={styles.badgeBar}>
           {/* Gauche : statut + prix nuit (si renseigné) */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-            <Chip
-              label={getPropertyStatusLabel(property.status, t)}
-              color={getPropertyStatusColor(property.status)}
-              size="small"
-              variant="outlined"
-              sx={styles.statusChip}
-            />
+            {(() => { const c = getPropertyStatusHex(property.status); return (
+              <Chip
+                label={getPropertyStatusLabel(property.status, t)}
+                size="small"
+                sx={{ ...styles.statusChip, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+              />
+            ); })()}
             {property.nightlyPrice > 0 && (
               <Chip
                 label={`${property.nightlyPrice}€/nuit`}
@@ -584,30 +586,50 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             {/* Colonne droite : commodités */}
             {property.amenities && property.amenities.length > 0 && (
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, flex: 1, minWidth: 0, justifyContent: 'flex-end' }}>
-                {property.amenities.slice(0, 3).map((amenity, index) => (
+                {property.amenities.slice(0, 3).map((amenity, index) => {
+                  const c = getAmenityHex(amenity);
+                  return (
                   <Chip
                     key={index}
                     label={t(`properties.amenities.items.${amenity}`)}
                     size="small"
-                    color={getAmenityColor(amenity)}
-                    variant="outlined"
-                    sx={{ fontSize: '0.62rem', height: 22, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                    sx={{
+                      backgroundColor: `${c}18`,
+                      color: c,
+                      border: `1px solid ${c}40`,
+                      borderRadius: '6px',
+                      fontWeight: 600,
+                      fontSize: '0.62rem',
+                      height: 22,
+                      '& .MuiChip-label': { px: 0.75 },
+                    }}
                   />
-                ))}
+                  );
+                })}
                 {property.amenities.length > 3 && (
                   <ThemedTooltip
                     title={
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {property.amenities.map((a, i) => (
+                        {property.amenities.map((a, i) => {
+                          const c = getAmenityHex(a);
+                          return (
                           <Chip
                             key={i}
                             label={t(`properties.amenities.items.${a}`)}
-                            color={getAmenityColor(a)}
-                            variant="outlined"
                             size="small"
-                            sx={{ fontSize: '0.6rem', height: 20, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                            sx={{
+                              backgroundColor: `${c}18`,
+                              color: c,
+                              border: `1px solid ${c}40`,
+                              borderRadius: '6px',
+                              fontWeight: 600,
+                              fontSize: '0.6rem',
+                              height: 20,
+                              '& .MuiChip-label': { px: 0.75 },
+                            }}
                           />
-                        ))}
+                          );
+                        })}
                       </Box>
                     }
                     arrow
@@ -616,8 +638,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                     <Chip
                       label={`+${property.amenities.length - 3}`}
                       size="small"
-                      variant="outlined"
-                      sx={{ fontSize: '0.62rem', height: 22, borderWidth: 1.5, borderColor: 'grey.300', color: 'text.secondary', '& .MuiChip-label': { px: 0.75 }, cursor: 'default' }}
+                      sx={{ fontSize: '0.62rem', height: 22, fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 }, cursor: 'default' }}
                     />
                   </ThemedTooltip>
                 )}
@@ -626,22 +647,25 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
           </Box>
 
           {/* Fréquence de nettoyage */}
-          <Chip
-            icon={<AutoAwesome sx={{ fontSize: 12 }} />}
-            label={getCleaningFrequencyLabel(property.cleaningFrequency, t)}
-            size="small"
-            variant="outlined"
-            color="primary"
-            sx={{
-              alignSelf: 'flex-start',
-              height: 22,
-              fontSize: '0.62rem',
-              fontWeight: 600,
-              borderWidth: 1.5,
-              '& .MuiChip-icon': { fontSize: 12, ml: 0.5 },
-              '& .MuiChip-label': { px: 0.75 },
-            }}
-          />
+          {(() => { const c = getCleaningFrequencyHex(property.cleaningFrequency); return (
+            <Chip
+              icon={<AutoAwesome sx={{ fontSize: 12, color: `${c} !important` }} />}
+              label={getCleaningFrequencyLabel(property.cleaningFrequency, t)}
+              size="small"
+              sx={{
+                alignSelf: 'flex-start',
+                height: 24,
+                fontSize: '0.62rem',
+                fontWeight: 600,
+                backgroundColor: `${c}18`,
+                color: c,
+                border: `1px solid ${c}40`,
+                borderRadius: '6px',
+                '& .MuiChip-icon': { fontSize: 12, ml: 0.5 },
+                '& .MuiChip-label': { px: 0.75 },
+              }}
+            />
+          ); })()}
         </CardContent>
 
         {/* ─── Zone actions ─── */}
@@ -791,16 +815,26 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                     Commodités
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                    {property.amenities.map((amenity, index) => (
+                    {property.amenities.map((amenity, index) => {
+                      const c = getAmenityHex(amenity);
+                      return (
                       <Chip
                         key={index}
                         label={t(`properties.amenities.items.${amenity}`)}
-                        color={getAmenityColor(amenity)}
-                        variant="outlined"
                         size="small"
-                        sx={{ fontSize: '0.72rem', height: 24, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                        sx={{
+                          backgroundColor: `${c}18`,
+                          color: c,
+                          border: `1px solid ${c}40`,
+                          borderRadius: '6px',
+                          fontWeight: 600,
+                          fontSize: '0.72rem',
+                          height: 24,
+                          '& .MuiChip-label': { px: 0.75 },
+                        }}
                       />
-                    ))}
+                      );
+                    })}
                   </Box>
                 </Grid>
               </>

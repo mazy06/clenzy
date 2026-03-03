@@ -134,12 +134,13 @@ const TemplateDetails: React.FC = () => {
             Retour
           </Button>
           <Typography variant="h5" fontWeight={600}>{template.name}</Typography>
+          {(() => { const c = template.active ? '#4A9B8E' : '#757575'; return (
           <Chip
             label={template.active ? 'Actif' : 'Inactif'}
-            color={template.active ? 'success' : 'default'}
             size="small"
-            variant="outlined"
+            sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }}
           />
+          ); })()}
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
           {!template.active && (

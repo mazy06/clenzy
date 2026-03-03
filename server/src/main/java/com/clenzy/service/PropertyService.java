@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.PropertyDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Property;
+import com.clenzy.model.PropertyType;
 import com.clenzy.model.User;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
@@ -375,7 +376,32 @@ public class PropertyService {
         int floors = property.getNumberOfFloors() != null ? property.getNumberOfFloors() : 1;
         baseMins += Math.max(0, floors - 1) * 15;
 
+        // Coefficient type de propriété (cohérent avec PricingConfigService.DEFAULT_PROPERTY_TYPE_COEFFS)
+        double typeCoeff = getPropertyTypeCoeff(property.getType());
+        baseMins = (int) Math.round(baseMins * typeCoeff);
+
         return baseMins;
+    }
+
+    /**
+     * Retourne le coefficient de durée selon le type de propriété.
+     * Cohérent avec PricingConfigService.DEFAULT_PROPERTY_TYPE_COEFFS
+     * et le frontend CleaningPriceEstimator PROPERTY_TYPE_COEFFS.
+     */
+    private double getPropertyTypeCoeff(PropertyType type) {
+        if (type == null) return 1.0;
+        switch (type) {
+            case STUDIO:     return 0.85;
+            case APARTMENT:  return 1.0;
+            case HOUSE:      return 1.15;
+            case VILLA:      return 1.35;
+            case LOFT:       return 1.10;
+            case GUEST_ROOM: return 0.80;
+            case COTTAGE:    return 1.15;
+            case CHALET:     return 1.20;
+            case BOAT:       return 1.10;
+            default:         return 1.0;
+        }
     }
 
     private PropertyDto toDtoWithManager(Property p) {

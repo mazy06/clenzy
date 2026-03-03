@@ -593,10 +593,12 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-            <Chip label={intervention.status} size="small" variant="outlined" sx={{ fontSize: '0.625rem' }} />
-            <Chip label={intervention.assigneeName} size="small" variant="outlined" sx={{ fontSize: '0.625rem' }} />
+            {(() => { const c = intervention.status === 'completed' ? '#4A9B8E' : intervention.status === 'in_progress' ? '#1976d2' : intervention.status === 'cancelled' ? '#d32f2f' : '#ED6C02'; return (
+            <Chip label={intervention.status} size="small" sx={{ fontSize: '0.625rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />
+            ); })()}
+            <Chip label={intervention.assigneeName} size="small" sx={{ fontSize: '0.625rem', fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />
             {intervention.estimatedDurationHours && (
-              <Chip label={`${intervention.estimatedDurationHours}h`} size="small" variant="outlined" sx={{ fontSize: '0.625rem' }} />
+              <Chip label={`${intervention.estimatedDurationHours}h`} size="small" sx={{ fontSize: '0.625rem', fontWeight: 600, backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />
             )}
           </Box>
           {intervention.notes && (
@@ -684,45 +686,40 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                     { done: inspDone, icon: <InspectIcon sx={{ fontSize: 11 }} />, label: 'Inspection' },
                     { done: roomsDone, icon: <MeetingRoom sx={{ fontSize: 11 }} />, label: 'Pièces' },
                     { done: photosDone, icon: <CameraAlt sx={{ fontSize: 11 }} />, label: 'Photos' },
-                  ].map((step, idx) => (
+                  ].map((step, idx) => {
+                    const c = step.done ? '#4A9B8E' : '#757575';
+                    return (
                     <Chip
                       key={idx}
-                      icon={step.done ? <CheckCircle sx={{ fontSize: 11, color: 'success.main' }} /> : step.icon}
+                      icon={step.done ? <CheckCircle sx={{ fontSize: 11, color: `${c} !important` }} /> : React.cloneElement(step.icon, { sx: { fontSize: 11, color: `${c} !important` } })}
                       label={step.label}
                       size="small"
-                      variant={step.done ? 'filled' : 'outlined'}
                       sx={{
                         fontSize: '0.5625rem',
                         height: 20,
-                        '& .MuiChip-icon': {
-                          fontSize: 11,
-                          ml: 0.25,
-                          ...(step.done ? { color: '#fff !important' } : {}),
-                        },
+                        fontWeight: 600,
+                        backgroundColor: `${c}18`,
+                        color: c,
+                        border: `1px solid ${c}40`,
+                        borderRadius: '6px',
+                        '& .MuiChip-icon': { fontSize: 11, ml: 0.25 },
                         '& .MuiChip-label': { px: 0.5 },
-                        ...(step.done ? {
-                          backgroundColor: 'success.main',
-                          color: '#fff',
-                        } : {
-                          opacity: 0.6,
-                        }),
                       }}
                     />
-                  ))}
+                    );
+                  })}
                   {isDone && (
                     <Chip
                       label="Terminée"
                       size="small"
-                      color="success"
-                      sx={{ fontSize: '0.5625rem', height: 20, ml: 'auto', '& .MuiChip-label': { px: 0.75 } }}
+                      sx={{ fontSize: '0.5625rem', height: 20, ml: 'auto', fontWeight: 600, backgroundColor: '#4A9B8E18', color: '#4A9B8E', border: '1px solid #4A9B8E40', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
                     />
                   )}
                   {!isDone && li.status === 'scheduled' && (
                     <Chip
                       label="Planifiée"
                       size="small"
-                      variant="outlined"
-                      sx={{ fontSize: '0.5625rem', height: 20, ml: 'auto', '& .MuiChip-label': { px: 0.75 } }}
+                      sx={{ fontSize: '0.5625rem', height: 20, ml: 'auto', fontWeight: 600, backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
                     />
                   )}
                 </Box>

@@ -289,7 +289,8 @@
       "operations": "Opérations",
       "noise": "Nuisance sonore",
       "analytics": "Analytics",
-      "smartLock": "Serrures connectées"
+      "smartLock": "Serrures connectées",
+      "keyExchange": "Gestion des clés"
     },
     "noise": {
       "offersTitle": "Monitoring sonore",
@@ -366,6 +367,103 @@
         "stepRoom": "Pièce",
         "stepDevice": "Appareil",
         "stepConfirm": "Confirmation"
+      }
+    },
+    "keyExchange": {
+      "title": "Gestion des clés",
+      "subtitle": "Configurez un point de gardiennage de clés pour vos logements sans serrure connectée.",
+      "keyvault": {
+        "title": "Clenzy KeyVault — Gardiens de clés",
+        "description": "Gérez votre propre réseau de gardiens de clés — commerçants ou particuliers à proximité. Solution intégrée au PMS, sans coût supplémentaire.",
+        "free": "Gratuit",
+        "includedInPlan": "Inclus dans votre abonnement",
+        "unlimitedCodes": "Partenaires & codes illimités",
+        "feature1": "Enregistrez vos partenaires de confiance",
+        "feature2": "Commerçants et particuliers dans le quartier",
+        "feature3": "Codes à 6 chiffres avec durée de validité",
+        "feature4": "Page de vérification pour le gardien (sans appli)",
+        "feature5": "Suivi en temps réel des mouvements de clés",
+        "configureGuardian": "Configurer un gardien",
+        "addGuardian": "Ajouter un gardien",
+        "addGuardianTitle": "Ajouter un gardien de clés",
+        "noGuardians": "Aucun gardien configuré. Ajoutez votre premier partenaire (commerçant ou particulier).",
+        "guardianTypeMerchant": "Commerçant",
+        "guardianTypeIndividual": "Particulier",
+        "guardianTypeMerchantHint": "Tabac, boulangerie...",
+        "guardianTypeIndividualHint": "Voisin, gardien...",
+        "merchantName": "Nom du commerçant",
+        "individualName": "Nom du gardien",
+        "property": "Logement",
+        "address": "Adresse",
+        "phone": "Téléphone",
+        "openingHours": "Horaires d'ouverture",
+        "availability": "Disponibilités",
+        "copyVerificationLink": "Copier le lien de vérification",
+        "qrCode": "QR Code",
+        "codes": "Codes",
+        "activeCodes": "codes actifs"
+      },
+      "keynest": {
+        "title": "KeyNest — Réseau de points de dépôt",
+        "description": "Réseau de 5 500+ points de dépôt dans les commerces de proximité. Service professionnel avec API intégrée.",
+        "external": "Externe",
+        "feature1": "5 500+ points de dépôt en Europe",
+        "feature2": "Intégration automatique des codes",
+        "feature3": "Notifications en temps réel (webhooks)",
+        "feature4": "Compatible toutes plateformes de location",
+        "configure": "Configurer KeyNest",
+        "configuredPoints": "Points KeyNest configurés",
+        "searchTitle": "Rechercher un point KeyNest proche d'un logement",
+        "search": "Rechercher",
+        "associate": "Associer",
+        "dissociate": "Dissocier ce point",
+        "noResults": "Aucun point KeyNest trouvé à proximité de ce logement.",
+        "noGps": "Ce logement n'a pas de coordonnées GPS. Veuillez les renseigner dans les paramètres du logement.",
+        "resultsFound": "{{count}} point(s) trouvé(s) à proximité",
+        "pricing": "Tarification KeyNest",
+        "pricingPayAsYouGo": "À la collecte",
+        "pricingMonthly": "Mensuel (illimité)",
+        "pricingYearly": "Annuel (illimité)"
+      },
+      "codes": {
+        "title": "Codes d'échange",
+        "generateCode": "Générer code",
+        "guestName": "Nom du voyageur",
+        "noCodes": "Aucun code actif",
+        "cancel": "Annuler",
+        "status": {
+          "ACTIVE": "Actif",
+          "USED": "Utilisé",
+          "EXPIRED": "Expiré",
+          "CANCELLED": "Annulé"
+        }
+      },
+      "history": {
+        "title": "Historique des mouvements de clés",
+        "noEvents": "Aucun événement enregistré.",
+        "filterByProperty": "Filtrer par logement",
+        "allProperties": "Tous les logements",
+        "eventType": "Type",
+        "actor": "Acteur",
+        "point": "Point",
+        "property": "Logement",
+        "date": "Date",
+        "source": "Source",
+        "notes": "Notes",
+        "types": {
+          "KEY_DEPOSITED": "Clé déposée",
+          "KEY_COLLECTED": "Clé récupérée",
+          "KEY_RETURNED": "Clé retournée",
+          "CODE_GENERATED": "Code généré",
+          "CODE_CANCELLED": "Code annulé",
+          "CODE_EXPIRED": "Code expiré"
+        },
+        "sources": {
+          "MANUAL": "Manuel",
+          "WEBHOOK": "Webhook",
+          "API_POLL": "API",
+          "PUBLIC_PAGE": "Page publique"
+        }
       }
     },
     "planning": {
@@ -1707,12 +1805,16 @@
     },
     "propertyType": {
       "title": "Coefficients type de logement",
-      "subtitle": "Pondération selon le type de bien (villa, appartement, etc.)",
+      "subtitle": "Pondération selon le type de bien — affecte la durée et le prix du ménage",
       "studio": "Studio",
       "appartement": "Appartement",
       "maison": "Maison",
-      "duplex": "Duplex",
+      "loft": "Loft",
       "villa": "Villa",
+      "chambre-hote": "Chambre d'hôte",
+      "gite": "Gîte rural",
+      "chalet": "Chalet",
+      "bateau": "Bateau / Péniche",
       "autre": "Autre"
     },
     "propertyCount": {

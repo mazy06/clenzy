@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.LinkedHashMap;
 import java.util.regex.Pattern;
 
 /**
@@ -186,6 +187,50 @@ public class TuyaApiService {
         validateDeviceId(deviceId);
         Map<String, Object> body = Map.of("commands", commands);
         return doPost("/v1.0/devices/" + deviceId + "/commands", body);
+    }
+
+    // ─── Door Lock — Temporary Password ─────────────────────────
+
+    /**
+     * Cree un mot de passe temporaire sur une serrure Tuya.
+     * POST /v1.0/devices/{device_id}/door-lock/temp-password
+     *
+     * Genere un code 6 chiffres aleatoire (SecureRandom) et l'enregistre
+     * sur le device pour la fenetre de validite donnee.
+     *
+     * @param deviceId      Tuya external device ID
+     * @param effectiveTime Debut de validite (epoch seconds)
+     * @param invalidTime   Fin de validite (epoch seconds)
+     * @param name          Nom descriptif (ex: "Clenzy-Jean Dupont")
+     * @return Reponse Tuya enrichie avec le champ "password" contenant le code genere
+     */
+    @CircuitBreaker(name = "tuya-api")
+    public Map<String, Object> createTemporaryPassword(
+            String deviceId, long effectiveTime, long invalidTime, String name
+    ) {
+        validateDeviceId(deviceId);
+
+        // Genere un code 6 chiffres aleatoire
+        String password = String.format("%06d", new java.security.SecureRandom().nextInt(1_000_000));
+
+        Map<String, Object> body = Map.of(
+                "password", password,
+                "effective_time", effectiveTime,
+                "invalid_time", invalidTime,
+                "name", name != null ? name : "Clenzy Guest"
+        );
+
+        String path = "/v1.0/devices/" + deviceId + "/door-lock/temp-password";
+        Map<String, Object> result = doPost(path, body);
+
+        // Enrichir le resultat avec le code genere (pour le caller)
+        Map<String, Object> enrichedResult = new LinkedHashMap<>(result);
+        enrichedResult.put("password", password);
+
+        log.info("Mot de passe temporaire Tuya cree pour device={} (validite: {} -> {})",
+                deviceId, effectiveTime, invalidTime);
+
+        return enrichedResult;
     }
 
     // ─── Connection Management ──────────────────────────────────

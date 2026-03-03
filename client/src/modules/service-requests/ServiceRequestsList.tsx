@@ -44,10 +44,10 @@ import { createSpacing } from '../../theme/spacing';
 import { useServiceRequestsList } from './useServiceRequestsList';
 import { statusColors, priorityColors, typeIcons } from './serviceRequestsUtils';
 import {
-  getServiceRequestStatusColor,
   getServiceRequestStatusLabel,
-  getServiceRequestPriorityColor,
+  getServiceRequestStatusHex,
   getServiceRequestPriorityLabel,
+  getServiceRequestPriorityHex,
 } from '../../utils/statusUtils';
 import {
   DeleteConfirmDialog,
@@ -405,22 +405,40 @@ export default function ServiceRequestsList() {
                       </Typography>
                     </TableCell>
                     <TableCell align="center">
-                      <Chip
-                        label={getServiceRequestStatusLabel(request.status, t)}
-                        color={getServiceRequestStatusColor(request.status)}
-                        size="small"
-                        variant="outlined"
-                        sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
-                      />
+                      {(() => { const c = getServiceRequestStatusHex(request.status); return (
+                        <Chip
+                          label={getServiceRequestStatusLabel(request.status, t)}
+                          size="small"
+                          sx={{
+                            backgroundColor: `${c}18`,
+                            color: c,
+                            border: `1px solid ${c}40`,
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            height: 24,
+                            '& .MuiChip-label': { px: 1 },
+                          }}
+                        />
+                      ); })()}
                     </TableCell>
                     <TableCell align="center">
-                      <Chip
-                        label={getServiceRequestPriorityLabel(request.priority, t)}
-                        color={getServiceRequestPriorityColor(request.priority)}
-                        size="small"
-                        variant="outlined"
-                        sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
-                      />
+                      {(() => { const c = getServiceRequestPriorityHex(request.priority); return (
+                        <Chip
+                          label={getServiceRequestPriorityLabel(request.priority, t)}
+                          size="small"
+                          sx={{
+                            backgroundColor: `${c}18`,
+                            color: c,
+                            border: `1px solid ${c}40`,
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            height: 24,
+                            '& .MuiChip-label': { px: 1 },
+                          }}
+                        />
+                      ); })()}
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.82rem' }}>

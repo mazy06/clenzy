@@ -66,16 +66,25 @@ interface User {
   createdAt: string;
 }
 
-const userRoles: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor }> = [
-  { value: 'SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error' },
-  { value: 'SUPER_MANAGER', label: 'Super Manager', icon: <SupervisorAccount />, color: 'secondary' },
-  { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info' },
-  { value: 'TECHNICIAN', label: 'Technicien', icon: <Build />, color: 'primary' },
-  { value: 'HOUSEKEEPER', label: 'Agent de ménage', icon: <CleaningServices />, color: 'default' },
-  { value: 'LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default' },
-  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', icon: <Build />, color: 'primary' },
-  { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
+const userRoles: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor; hex: string }> = [
+  { value: 'SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error', hex: '#d32f2f' },
+  { value: 'SUPER_MANAGER', label: 'Super Manager', icon: <SupervisorAccount />, color: 'secondary', hex: '#7B61FF' },
+  { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info', hex: '#0288d1' },
+  { value: 'TECHNICIAN', label: 'Technicien', icon: <Build />, color: 'primary', hex: '#1976d2' },
+  { value: 'HOUSEKEEPER', label: 'Agent de ménage', icon: <CleaningServices />, color: 'default', hex: '#757575' },
+  { value: 'LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default', hex: '#757575' },
+  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', icon: <Build />, color: 'primary', hex: '#1976d2' },
+  { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success', hex: '#4A9B8E' },
 ];
+
+const USER_STATUS_HEX: Record<string, string> = {
+  ACTIVE: '#4A9B8E',
+  PENDING_VERIFICATION: '#ED6C02',
+  SUSPENDED: '#ED6C02',
+  INACTIVE: '#757575',
+  BLOCKED: '#d32f2f',
+  DELETED: '#d32f2f',
+};
 
 // Utilisation des enums partagés pour les statuts utilisateur
 const userStatuses = USER_STATUS_OPTIONS.map(option => ({
@@ -432,20 +441,21 @@ const UsersList = forwardRef<UsersListHandle>((_, ref) => {
 
                   {/* Rôle et statut */}
                   <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
-                    <Chip
-                      icon={getRoleInfo(user.role).icon}
-                      label={getRoleInfo(user.role).label}
-                      color={getRoleInfo(user.role).color}
-                      size="small"
-                      sx={{ height: 20, fontSize: '0.7rem' }}
-                    />
-                    <Chip
-                      label={getStatusInfo(user.status).label}
-                      color={getStatusInfo(user.status).color}
-                      size="small"
-                      variant="outlined"
-                      sx={{ height: 20, fontSize: '0.7rem' }}
-                    />
+                    {(() => { const r = getRoleInfo(user.role); const c = r.hex; return (
+                      <Chip
+                        icon={r.icon}
+                        label={r.label}
+                        size="small"
+                        sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-icon': { color: `${c} !important` } }}
+                      />
+                    ); })()}
+                    {(() => { const s = getStatusInfo(user.status); const c = USER_STATUS_HEX[user.status] || '#757575'; return (
+                      <Chip
+                        label={s.label}
+                        size="small"
+                        sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+                      />
+                    ); })()}
                   </Box>
 
                   {/* Informations supplémentaires */}

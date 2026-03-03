@@ -25,7 +25,7 @@ export const tarificationKeys = {
 
 const DEFAULT_CONFIG: PricingConfig = {
   id: null,
-  propertyTypeCoeffs: { studio: 0.85, appartement: 1.0, maison: 1.15, duplex: 1.20, villa: 1.35, autre: 1.0 },
+  propertyTypeCoeffs: { studio: 0.85, appartement: 1.0, maison: 1.15, loft: 1.10, villa: 1.35, 'chambre-hote': 0.80, gite: 1.15, chalet: 1.20, bateau: 1.10, autre: 1.0 },
   propertyCountCoeffs: { '1': 1.0, '2': 0.95, '3-5': 0.90, '6+': 0.85 },
   guestCapacityCoeffs: { '1-2': 0.90, '3-4': 1.0, '5-6': 1.10, '7+': 1.25 },
   frequencyCoeffs: { 'tres-frequent': 0.85, regulier: 0.92, 'nouvelle-annonce': 1.0, occasionnel: 1.10 },
