@@ -109,6 +109,47 @@ public class StripeService {
     }
     
     /**
+     * Crée une session de paiement Stripe pour une réservation (envoi par email au guest).
+     * Ne modifie pas la réservation (c'est le controller qui le fait).
+     */
+    @CircuitBreaker(name = "stripe-api")
+    public Session createReservationCheckoutSession(Long reservationId, BigDecimal amount,
+                                                     String customerEmail, String guestName,
+                                                     String propertyName) throws StripeException {
+        Stripe.apiKey = stripeSecretKey;
+
+        long amountInCents = amount.multiply(BigDecimal.valueOf(100)).longValue();
+
+        SessionCreateParams params = SessionCreateParams.builder()
+            .setMode(SessionCreateParams.Mode.PAYMENT)
+            .setSuccessUrl(successUrl)
+            .setCancelUrl(cancelUrl)
+            .addLineItem(
+                SessionCreateParams.LineItem.builder()
+                    .setQuantity(1L)
+                    .setPriceData(
+                        SessionCreateParams.LineItem.PriceData.builder()
+                            .setCurrency(currency.toLowerCase())
+                            .setUnitAmount(amountInCents)
+                            .setProductData(
+                                SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                    .setName("Reservation: " + propertyName)
+                                    .setDescription("Paiement pour la reservation de "
+                                            + (guestName != null ? guestName : "guest"))
+                                    .build()
+                            )
+                            .build()
+                    )
+                    .build()
+            )
+            .setCustomerEmail(customerEmail)
+            .putMetadata("reservation_id", reservationId.toString())
+            .build();
+
+        return Session.create(params);
+    }
+
+    /**
      * Confirme le paiement d'une intervention après réception du webhook
      */
     public void confirmPayment(String sessionId) {

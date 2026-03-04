@@ -46,7 +46,7 @@ class DtoCoverageTest {
                     null, null, null, 2,
                     "2026-03-01", "2026-03-05", "14:00", "11:00",
                     "CONFIRMED", "AIRBNB", "Airbnb", 500.0, "ABC123", "Notes",
-                    50.0, 12.0, true);
+                    50.0, 12.0, true, null, null);
             assertThat(dto.id()).isEqualTo(1L);
             assertThat(dto.propertyId()).isEqualTo(2L);
             assertThat(dto.guestName()).isEqualTo("Jean");

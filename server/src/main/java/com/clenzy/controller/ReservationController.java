@@ -9,9 +9,12 @@ import com.clenzy.repository.GuestRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.EmailService;
 import com.clenzy.service.ReservationMapper;
 import com.clenzy.service.ReservationService;
+import com.clenzy.service.StripeService;
 import com.clenzy.tenant.TenantContext;
+import com.stripe.model.checkout.Session;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -22,8 +25,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -38,6 +44,8 @@ public class ReservationController {
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final GuestRepository guestRepository;
+    private final StripeService stripeService;
+    private final EmailService emailService;
     private final TenantContext tenantContext;
 
     public ReservationController(ReservationService reservationService,
@@ -46,6 +54,8 @@ public class ReservationController {
                                  PropertyRepository propertyRepository,
                                  UserRepository userRepository,
                                  GuestRepository guestRepository,
+                                 StripeService stripeService,
+                                 EmailService emailService,
                                  TenantContext tenantContext) {
         this.reservationService = reservationService;
         this.reservationMapper = reservationMapper;
@@ -53,6 +63,8 @@ public class ReservationController {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.guestRepository = guestRepository;
+        this.stripeService = stripeService;
+        this.emailService = emailService;
         this.tenantContext = tenantContext;
     }
 
@@ -197,6 +209,100 @@ public class ReservationController {
         Reservation cancelled = reservationRepository.findByIdFetchAll(id)
                 .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
         return ResponseEntity.ok(reservationMapper.toDto(cancelled));
+    }
+
+    // ── POST : envoyer le lien de paiement par email ───────────────────────
+
+    @PostMapping("/{id}/send-payment-link")
+    @Operation(summary = "Envoyer un lien de paiement Stripe par email",
+            description = "Cree une session Stripe Checkout pour le montant de la reservation "
+                    + "et envoie le lien par email au guest. Peut etre renvoye a une adresse differente.")
+    public ResponseEntity<ReservationDto> sendPaymentLink(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        Reservation reservation = reservationRepository.findByIdFetchAll(id)
+                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
+
+        validatePropertyAccess(reservation.getProperty().getId(), jwt.getSubject());
+
+        // Determine email: use provided email or fall back to guest email
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            if (reservation.getGuest() != null && reservation.getGuest().getEmail() != null) {
+                email = reservation.getGuest().getEmail();
+            } else {
+                throw new IllegalArgumentException("Aucune adresse email disponible pour ce guest");
+            }
+        }
+
+        BigDecimal amount = reservation.getTotalPrice();
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Le montant de la reservation doit etre superieur a 0");
+        }
+
+        try {
+            // Create Stripe checkout session for the reservation
+            Session session = stripeService.createReservationCheckoutSession(
+                    reservation.getId(), amount, email, reservation.getGuestName(),
+                    reservation.getProperty().getName());
+
+            String paymentUrl = session.getUrl();
+
+            // Send the payment link email
+            String subject = "Lien de paiement - Reservation " + reservation.getProperty().getName();
+            String htmlBody = buildPaymentEmailBody(
+                    reservation.getGuestName(), reservation.getProperty().getName(),
+                    reservation.getCheckIn().toString(), reservation.getCheckOut().toString(),
+                    amount.toPlainString(), reservation.getCurrency(), paymentUrl);
+
+            emailService.sendSimpleHtmlEmail(email, subject, htmlBody);
+
+            // Update reservation tracking
+            reservation.setPaymentLinkSentAt(LocalDateTime.now());
+            reservation.setPaymentLinkEmail(email);
+            reservation.setStripeSessionId(session.getId());
+            reservationRepository.save(reservation);
+
+            // Re-load with all relations
+            Reservation result = reservationRepository.findByIdFetchAll(id).orElse(reservation);
+            return ResponseEntity.ok(reservationMapper.toDto(result));
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de l'envoi du lien de paiement: " + e.getMessage(), e);
+        }
+    }
+
+    private String buildPaymentEmailBody(String guestName, String propertyName,
+                                         String checkIn, String checkOut,
+                                         String amount, String currency, String paymentUrl) {
+        return """
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #6B8A9A;">Lien de paiement</h2>
+                <p>Bonjour %s,</p>
+                <p>Veuillez trouver ci-dessous le lien pour proceder au paiement de votre reservation :</p>
+                <table style="width: 100%%; border-collapse: collapse; margin: 20px 0;">
+                    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Logement</strong></td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">%s</td></tr>
+                    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Check-in</strong></td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">%s</td></tr>
+                    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Check-out</strong></td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">%s</td></tr>
+                    <tr><td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Montant</strong></td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">%s %s</td></tr>
+                </table>
+                <p style="text-align: center; margin: 30px 0;">
+                    <a href="%s" style="background-color: #6B8A9A; color: white; padding: 12px 30px;
+                       text-decoration: none; border-radius: 6px; font-weight: bold;">
+                       Payer maintenant
+                    </a>
+                </p>
+                <p style="color: #888; font-size: 12px;">
+                    Ce lien est securise et vous redirigera vers la plateforme de paiement Stripe.
+                </p>
+            </div>
+            """.formatted(guestName, propertyName, checkIn, checkOut, amount, currency, paymentUrl);
     }
 
     // ── Ownership validation ────────────────────────────────────────────────

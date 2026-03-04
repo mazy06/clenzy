@@ -50,7 +50,9 @@ public class ReservationMapper {
             entity.getNotes(),
             entity.getCleaningFee() != null ? entity.getCleaningFee().doubleValue() : null,
             entity.getTouristTaxAmount() != null ? entity.getTouristTaxAmount().doubleValue() : null,
-            null // createCleaning — input-only field, never returned
+            null, // createCleaning — input-only field, never returned
+            entity.getPaymentLinkSentAt() != null ? entity.getPaymentLinkSentAt().toString() : null,
+            entity.getPaymentLinkEmail()
         );
     }
 

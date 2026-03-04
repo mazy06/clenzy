@@ -25,5 +25,8 @@ public record ReservationDto(
     String notes,
     Double cleaningFee,
     Double touristTaxAmount,
-    Boolean createCleaning
+    Boolean createCleaning,
+    // Payment link tracking
+    String paymentLinkSentAt,
+    String paymentLinkEmail
 ) {}
