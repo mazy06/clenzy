@@ -5,6 +5,7 @@ import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.User;
+import com.clenzy.repository.GuestRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
@@ -36,6 +37,7 @@ public class ReservationController {
     private final ReservationRepository reservationRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final GuestRepository guestRepository;
     private final TenantContext tenantContext;
 
     public ReservationController(ReservationService reservationService,
@@ -43,12 +45,14 @@ public class ReservationController {
                                  ReservationRepository reservationRepository,
                                  PropertyRepository propertyRepository,
                                  UserRepository userRepository,
+                                 GuestRepository guestRepository,
                                  TenantContext tenantContext) {
         this.reservationService = reservationService;
         this.reservationMapper = reservationMapper;
         this.reservationRepository = reservationRepository;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
+        this.guestRepository = guestRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -100,7 +104,7 @@ public class ReservationController {
     @GetMapping("/{id}")
     @Operation(summary = "Detail d'une reservation")
     public ResponseEntity<ReservationDto> getById(@PathVariable Long id) {
-        Reservation reservation = reservationRepository.findById(id)
+        Reservation reservation = reservationRepository.findByIdFetchAll(id)
                 .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
         return ResponseEntity.ok(reservationMapper.toDto(reservation));
     }
@@ -117,13 +121,29 @@ public class ReservationController {
 
         validatePropertyAccess(dto.propertyId(), jwt.getSubject());
 
+        // Valider que le guest appartient a la meme organisation
+        if (dto.guestId() != null) {
+            Long orgId = tenantContext.getRequiredOrganizationId();
+            guestRepository.findByIdAndOrganizationId(dto.guestId(), orgId)
+                    .orElseThrow(() -> new NotFoundException("Guest introuvable: " + dto.guestId()));
+        }
+
         Reservation reservation = new Reservation();
         reservationMapper.apply(dto, reservation);
         reservation.setSource("direct");
-        reservation.setStatus("confirmed");
+        reservation.setStatus(dto.status() != null ? dto.status() : "confirmed");
 
         Reservation saved = reservationService.save(reservation);
-        return ResponseEntity.ok(reservationMapper.toDto(saved));
+
+        // Auto-create cleaning intervention if requested
+        if (Boolean.TRUE.equals(dto.createCleaning())) {
+            reservationService.createCleaningForReservation(saved, jwt.getSubject());
+        }
+
+        // Re-load with all relations to avoid LazyInitializationException (open-in-view=false)
+        Reservation result = reservationRepository.findByIdFetchAll(saved.getId())
+                .orElse(saved);
+        return ResponseEntity.ok(reservationMapper.toDto(result));
     }
 
     // ── PUT : mise a jour ───────────────────────────────────────────────────
@@ -137,7 +157,7 @@ public class ReservationController {
             @RequestBody ReservationDto dto,
             @AuthenticationPrincipal Jwt jwt) {
 
-        Reservation existing = reservationRepository.findById(id)
+        Reservation existing = reservationRepository.findByIdFetchAll(id)
                 .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
 
         validatePropertyAccess(existing.getProperty().getId(), jwt.getSubject());
@@ -152,7 +172,10 @@ public class ReservationController {
         }
 
         Reservation saved = reservationRepository.save(existing);
-        return ResponseEntity.ok(reservationMapper.toDto(saved));
+        // Re-load with all relations for DTO conversion
+        Reservation result = reservationRepository.findByIdFetchAll(saved.getId())
+                .orElse(saved);
+        return ResponseEntity.ok(reservationMapper.toDto(result));
     }
 
     // ── DELETE : annulation ──────────────────────────────────────────────────
@@ -164,12 +187,15 @@ public class ReservationController {
             @PathVariable Long id,
             @AuthenticationPrincipal Jwt jwt) {
 
-        Reservation existing = reservationRepository.findById(id)
+        Reservation existing = reservationRepository.findByIdFetchAll(id)
                 .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
 
         validatePropertyAccess(existing.getProperty().getId(), jwt.getSubject());
 
-        Reservation cancelled = reservationService.cancel(id);
+        reservationService.cancel(id);
+        // Re-load with all relations for DTO conversion
+        Reservation cancelled = reservationRepository.findByIdFetchAll(id)
+                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
         return ResponseEntity.ok(reservationMapper.toDto(cancelled));
     }
 

@@ -41,6 +41,7 @@
     "teams": "Teams",
     "portfolios": "Portfolios",
     "contact": "Contact",
+    "guests": "Guests",
     "reports": "Reports",
     "users": "Users",
     "usersAndOrganizations": "Users & Organizations",
@@ -340,6 +341,40 @@
         "back": "Back",
         "next": "Next",
         "cancel": "Cancel"
+      }
+    },
+    "smartLock": {
+      "title": "Smart Locks",
+      "subtitle": "Configure and control your smart locks per property.",
+      "offersTitle": "Tuya Smart Locks",
+      "offersSubtitle": "Manage access to your properties with Tuya-compatible smart locks.",
+      "feature1": "Remote lock/unlock",
+      "feature2": "Battery level monitoring",
+      "feature3": "Real-time status (online/offline)",
+      "feature4": "Compatible with all Tuya locks",
+      "configure": "Configure",
+      "addDevice": "Add a lock",
+      "locked": "Locked",
+      "unlocked": "Unlocked",
+      "offline": "Offline",
+      "unknown": "Unknown",
+      "battery": "Battery",
+      "lockAction": "Lock",
+      "unlockAction": "Unlock",
+      "confirmDelete": "Delete this lock?",
+      "nuki": {
+        "offersTitle": "Nuki Smart Locks",
+        "offersSubtitle": "Integrate your Nuki Smart Lock for professional access control via the Nuki Web API.",
+        "feature1": "Compatible Nuki Smart Lock 3.0 / 4.0",
+        "feature2": "Temporary access codes via Nuki Web API",
+        "feature3": "Auto-lock and activity logs",
+        "feature4": "WiFi and Bluetooth bridge integration"
+      },
+      "config": {
+        "stepProperty": "Property",
+        "stepRoom": "Room",
+        "stepDevice": "Device",
+        "stepConfirm": "Confirmation"
       }
     },
     "keyExchange": {

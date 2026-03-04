@@ -23,6 +23,7 @@ import { InterventionType } from '../../types/interventionTypes';
 import { InterventionStatus, Priority } from '../../types/statusEnums';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
+import { trackEvent } from '../../providers/PostHogProvider';
 import { interventionsKeys } from './useInterventionsList';
 import InterventionFormMainInfo from './InterventionFormMainInfo';
 import InterventionFormPropertyRequestor from './InterventionFormPropertyRequestor';
@@ -276,6 +277,16 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
     onSuccess: async (result, formData) => {
       // Invalidate interventions cache
       queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
+
+      // PostHog tracking
+      if (result.type === 'create') {
+        trackEvent.interventionScheduled({
+          type: formData.type || '',
+          teamId: formData.assignedToType === 'team' ? formData.assignedToId : undefined,
+          propertyId: formData.propertyId ?? undefined,
+          estimatedCost: formData.estimatedCost ?? undefined,
+        });
+      }
 
       if (result.type === 'update') {
         if (onSuccess) {

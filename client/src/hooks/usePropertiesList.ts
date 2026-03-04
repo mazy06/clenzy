@@ -40,6 +40,8 @@ export interface PropertyListItem {
   hasLaundry?: boolean;
   defaultCheckInTime?: string;
   defaultCheckOutTime?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 // ============================================================================
@@ -86,6 +88,8 @@ function convertProperty(raw: ApiProperty): PropertyListItem {
     hasLaundry: raw.hasLaundry,
     defaultCheckInTime: raw.defaultCheckInTime,
     defaultCheckOutTime: raw.defaultCheckOutTime,
+    latitude: raw.latitude,
+    longitude: raw.longitude,
   };
 }
 

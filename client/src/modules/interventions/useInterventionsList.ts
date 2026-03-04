@@ -26,6 +26,8 @@ export interface Intervention {
   propertyType?: string;
   propertyName: string;
   propertyAddress: string;
+  propertyLatitude?: number;
+  propertyLongitude?: number;
   requestorName: string;
   assignedToName: string;
   assignedToType: 'user' | 'team';

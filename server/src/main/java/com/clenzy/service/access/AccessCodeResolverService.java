@@ -162,6 +162,9 @@ public class AccessCodeResolverService {
             vars.put("keyExchangeStoreAddress", nullToEmpty(point.getStoreAddress()));
             vars.put("keyExchangeStorePhone", nullToEmpty(point.getStorePhone()));
             vars.put("keyExchangeStoreHours", nullToEmpty(point.getStoreOpeningHours()));
+            // Coordonnees GPS du point d'echange pour la carte Mapbox
+            vars.put("keyExchangeStoreLat", point.getStoreLat() != null ? point.getStoreLat().toString() : "");
+            vars.put("keyExchangeStoreLng", point.getStoreLng() != null ? point.getStoreLng().toString() : "");
 
             log.info("Code d'echange genere pour reservation={}, point={} ({})",
                     reservation.getId(), point.getId(), point.getStoreName());

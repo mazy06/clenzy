@@ -89,6 +89,11 @@ export interface QuickCreateData {
   propertyName: string;
   startDate: string;
   endDate: string;
+  nightlyPrice: number;
+  defaultCheckInTime?: string;
+  defaultCheckOutTime?: string;
+  cleaningFrequency?: string;
+  cleaningBasePrice?: number;
 }
 
 // ─── Planning property (lightweight) ─────────────────────────────────────────
@@ -101,6 +106,12 @@ export interface PlanningProperty {
   ownerName?: string;
   maxGuests: number;
   type?: string;
+  nightlyPrice?: number;
+  minimumNights?: number;
+  defaultCheckInTime?: string;
+  defaultCheckOutTime?: string;
+  cleaningFrequency?: string;
+  cleaningBasePrice?: number;
 }
 
 // ─── Month separator (for date headers) ──────────────────────────────────────

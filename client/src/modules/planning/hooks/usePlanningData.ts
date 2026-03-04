@@ -39,6 +39,12 @@ function mapToPlanning(list: Property[]): PlanningProperty[] {
     ownerName: p.ownerName || '',
     maxGuests: p.maxGuests,
     type: p.type,
+    nightlyPrice: p.nightlyPrice,
+    minimumNights: p.minimumNights,
+    defaultCheckInTime: p.defaultCheckInTime,
+    defaultCheckOutTime: p.defaultCheckOutTime,
+    cleaningFrequency: p.cleaningFrequency,
+    cleaningBasePrice: p.cleaningBasePrice,
   }));
 }
 
@@ -61,6 +67,10 @@ async function fetchProperties(
       ownerName: p.ownerName || '',
       maxGuests: p.maxGuests,
       type: p.type,
+      nightlyPrice: 0,
+      minimumNights: 1,
+      defaultCheckInTime: '15:00',
+      defaultCheckOutTime: '11:00',
     }));
   }
 
@@ -105,15 +115,18 @@ async function fetchProperties(
 
 // ─── Transform reservations + interventions → PlanningEvent[] ────────────────
 
-function reservationToEvent(r: Reservation): PlanningEvent {
+function reservationToEvent(
+  r: Reservation,
+  propertyDefaults?: { defaultCheckInTime?: string; defaultCheckOutTime?: string },
+): PlanningEvent {
   return {
     id: `res-${r.id}`,
     type: 'reservation',
     propertyId: r.propertyId,
     startDate: r.checkIn,
     endDate: r.checkOut,
-    startTime: r.checkInTime,
-    endTime: r.checkOutTime,
+    startTime: r.checkInTime || propertyDefaults?.defaultCheckInTime || '15:00',
+    endTime: r.checkOutTime || propertyDefaults?.defaultCheckOutTime || '11:00',
     label: r.guestName,
     sublabel: r.source !== 'other' ? r.sourceName || r.source : undefined,
     status: r.status,
@@ -123,6 +136,23 @@ function reservationToEvent(r: Reservation): PlanningEvent {
 }
 
 function interventionToEvent(i: PlanningIntervention): PlanningEvent {
+  // Compute a reliable endTime:
+  // 1) Use the API-provided endTime if available
+  // 2) Otherwise compute from startTime + estimatedDurationHours
+  // 3) Fallback: startTime + 3h (typical cleaning duration)
+  let endTime = i.endTime;
+  if (!endTime && i.startTime && i.estimatedDurationHours) {
+    const [h, m] = i.startTime.split(':').map(Number);
+    const endH = Math.min(h + i.estimatedDurationHours, 23);
+    endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  } else if (!endTime && i.startTime) {
+    // No duration info — assume 3h for cleaning, 2h for maintenance
+    const defaultHours = i.type === 'cleaning' ? 3 : 2;
+    const [h, m] = i.startTime.split(':').map(Number);
+    const endH = Math.min(h + defaultHours, 23);
+    endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
   return {
     id: `int-${i.id}`,
     type: i.type === 'cleaning' ? 'cleaning' : 'maintenance',
@@ -130,7 +160,7 @@ function interventionToEvent(i: PlanningIntervention): PlanningEvent {
     startDate: i.startDate,
     endDate: i.endDate,
     startTime: i.startTime,
-    endTime: i.endTime,
+    endTime,
     label: i.title,
     sublabel: i.assigneeName,
     status: i.status,
@@ -236,12 +266,26 @@ export function usePlanningData(
     return dedup(allChunkData);
   }, [interventionQueries]);
 
+  // Build a property defaults lookup for check-in/check-out time fallback
+  const propertyDefaultsMap = useMemo(() => {
+    const map = new Map<number, { defaultCheckInTime?: string; defaultCheckOutTime?: string }>();
+    for (const p of properties) {
+      map.set(p.id, {
+        defaultCheckInTime: p.defaultCheckInTime,
+        defaultCheckOutTime: p.defaultCheckOutTime,
+      });
+    }
+    return map;
+  }, [properties]);
+
   // Merge into PlanningEvent[]
   const events = useMemo(() => {
-    const resEvents = reservations.map(reservationToEvent);
+    const resEvents = reservations.map((r) =>
+      reservationToEvent(r, propertyDefaultsMap.get(r.propertyId)),
+    );
     const intEvents = interventions.map(interventionToEvent);
     return [...resEvents, ...intEvents];
-  }, [reservations, interventions]);
+  }, [reservations, interventions, propertyDefaultsMap]);
 
   // Loading: only on initial load (all chunks loading). After initial, chunks load in background.
   const reservationsInitialLoading = propertyIds.length > 0 &&

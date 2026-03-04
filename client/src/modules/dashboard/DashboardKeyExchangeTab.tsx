@@ -57,6 +57,8 @@ import {
   formatOpeningHoursDisplay,
   type OpeningHoursMap,
 } from '../../components/OpeningHoursEditor';
+import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
+import type { PropertyMarker } from '../../components/MapboxPropertyMap';
 
 // ─── Feature list helper ────────────────────────────────────────────────────
 
@@ -841,6 +843,25 @@ function KeyNestView({
           <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, mb: 1, color: 'text.primary' }}>
             Points KeyNest configurés
           </Typography>
+
+          {/* Carte des points configurés */}
+          {(() => {
+            const configuredMarkers: PropertyMarker[] = points
+              .filter((pt) => pt.storeLat != null && pt.storeLng != null)
+              .map((pt) => ({
+                lat: pt.storeLat!,
+                lng: pt.storeLng!,
+                name: `${pt.storeName} — ${pt.propertyName}`,
+                id: pt.id,
+                type: 'key_exchange' as const,
+              }));
+            return configuredMarkers.length > 0 ? (
+              <Box sx={{ mb: 1.5, borderRadius: 1.5, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                <MapboxPropertyMap properties={configuredMarkers} height={240} />
+              </Box>
+            ) : null;
+          })()}
+
           <Grid container spacing={1.5}>
             {points.map((point) => {
               const c = '#D4A574';
@@ -969,6 +990,32 @@ function KeyNestView({
             <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mb: 1 }}>
               {searchResults.length} point{searchResults.length > 1 ? 's' : ''} trouvé{searchResults.length > 1 ? 's' : ''} à proximité
             </Typography>
+
+            {/* Carte Mapbox : propriété + magasins KeyNest */}
+            {(() => {
+              const lat = (selectedProperty as any)?.latitude ?? (selectedProperty as any)?.lat;
+              const lng = (selectedProperty as any)?.longitude ?? (selectedProperty as any)?.lng;
+              const markers: PropertyMarker[] = [
+                ...(lat != null && lng != null
+                  ? [{ lat: lat as number, lng: lng as number, name: selectedProperty?.name ?? 'Logement', type: 'property' as const }]
+                  : []),
+                ...searchResults.map((s) => ({
+                  lat: s.lat,
+                  lng: s.lng,
+                  name: s.name,
+                  type: 'key_exchange' as const,
+                })),
+              ];
+              return markers.length > 0 ? (
+                <Box sx={{ mb: 2, borderRadius: 1.5, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+                  <MapboxPropertyMap
+                    properties={markers}
+                    height={280}
+                  />
+                </Box>
+              ) : null;
+            })()}
+
             {searchResults.map((store) => (
               <Paper
                 key={store.storeId}

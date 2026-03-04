@@ -289,10 +289,12 @@ const PlanningPage: React.FC = () => {
             drag={drag}
             onEventClick={selectEvent}
             onEmptyClick={openQuickCreate}
+            quickCreateOpen={!!quickCreateData}
             scrollRef={timeline.scrollRef}
             onScroll={timeline.handleScroll}
             propertyColWidth={propertyColWidth}
             showPrices={filters.showPrices}
+            showInterventions={filters.showInterventions}
             pricingMap={pricingMap}
             pageSize={pagination.pageSize}
           />
@@ -346,6 +348,7 @@ const PlanningPage: React.FC = () => {
         open={!!quickCreateData}
         data={quickCreateData}
         onClose={closeQuickCreate}
+        events={filteredEvents}
       />
 
       {/* iCal Import Modal */}

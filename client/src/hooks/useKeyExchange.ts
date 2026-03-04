@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { keyExchangeApi } from '../services/api/keyExchangeApi';
+import { trackEvent } from '../providers/PostHogProvider';
 import type {
   KeyExchangePointDto,
   CreateKeyExchangePointDto,
@@ -109,6 +110,10 @@ export function useKeyExchange() {
       const created = await keyExchangeApi.createPoint(data);
       setPoints(prev => [...prev, created]);
       setKeyVaultForm(INITIAL_KEYVAULT_FORM);
+      trackEvent.keyExchangePointConfigured({
+        provider: data.provider || 'KEYVAULT',
+        pointId: created.id,
+      });
       return created;
     } catch (e: any) {
       const msg = e?.message || 'Erreur lors de la creation du point';
@@ -156,6 +161,11 @@ export function useKeyExchange() {
       const created = await keyExchangeApi.generateCode(data);
       setActiveCodes(prev => [...prev, created]);
       setCodeForm(INITIAL_CODE_FORM);
+      trackEvent.keyCodeGenerated({
+        provider: data.pointId ? 'keyvault' : 'keynest',
+        method: 'manual',
+        pointId: data.pointId ?? undefined,
+      });
       return created;
     } catch (e: any) {
       setError(e?.message || 'Erreur lors de la generation du code');

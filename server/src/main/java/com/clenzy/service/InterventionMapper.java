@@ -153,12 +153,15 @@ public class InterventionMapper {
 
             // Relations
             if (intervention.getProperty() != null) {
-                dto.propertyId = intervention.getProperty().getId();
-                dto.propertyName = intervention.getProperty().getName();
-                dto.propertyAddress = intervention.getProperty().getAddress();
-                if (intervention.getProperty().getType() != null) {
-                    dto.propertyType = intervention.getProperty().getType().name().toLowerCase();
+                Property prop = intervention.getProperty();
+                dto.propertyId = prop.getId();
+                dto.propertyName = prop.getName();
+                dto.propertyAddress = prop.getAddress();
+                if (prop.getType() != null) {
+                    dto.propertyType = prop.getType().name().toLowerCase();
                 }
+                dto.propertyLatitude = prop.getLatitude() != null ? prop.getLatitude().doubleValue() : null;
+                dto.propertyLongitude = prop.getLongitude() != null ? prop.getLongitude().doubleValue() : null;
             }
 
             if (intervention.getRequestor() != null) {

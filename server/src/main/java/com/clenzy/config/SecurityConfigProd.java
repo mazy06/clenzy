@@ -116,6 +116,10 @@ public class SecurityConfigProd {
                         .requestMatchers("/api/webhooks/expedia").permitAll()
                         .requestMatchers("/api/webhooks/whatsapp").permitAll()
                         .requestMatchers("/api/webhooks/keynest").permitAll()
+                        .requestMatchers("/api/webhooks/twilio/**").permitAll()
+                        .requestMatchers("/api/webhooks/nuki/**").permitAll()
+                        .requestMatchers("/api/webhooks/hubspot/**").permitAll()
+                        .requestMatchers("/api/webhooks/pennylane/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         // Invitations : info publique (sans JWT), accept authentifie

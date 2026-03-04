@@ -178,6 +178,9 @@ export type {
   BulkRateOverrideData,
 } from './calendarPricingApi';
 
+export { guestsApi } from './guestsApi';
+export type { GuestDto, CreateGuestData, GuestListDto, GuestListParams } from './guestsApi';
+
 export { guestMessagingApi } from './guestMessagingApi';
 export type {
   MessageTemplate,

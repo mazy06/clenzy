@@ -171,7 +171,17 @@ export function useNoiseDevices() {
 
   const removeDevice = useCallback(
     async (id: string) => {
-      // Try backend first
+      // Snapshot pour revert en cas d'echec
+      const previousDevices = devices;
+
+      // Optimistic update — retirer immediatement de l'UI
+      setDevices((prev) => {
+        const updated = prev.filter((d) => d.id !== id);
+        saveDevices(updated);
+        return updated;
+      });
+
+      // Tenter la suppression backend
       if (useBackend) {
         try {
           const numericId = parseInt(id, 10);
@@ -179,17 +189,15 @@ export function useNoiseDevices() {
             await noiseDevicesApi.delete(numericId);
           }
         } catch {
-          // Continue with local removal even if backend fails
+          // Backend a echoue → restaurer l'etat precedent
+          setDevices(previousDevices);
+          saveDevices(previousDevices);
+          console.error(`Failed to delete noise device ${id} from backend — reverted`);
+          return;
         }
       }
-
-      setDevices((prev) => {
-        const updated = prev.filter((d) => d.id !== id);
-        saveDevices(updated);
-        return updated;
-      });
     },
-    [useBackend],
+    [useBackend, devices],
   );
 
   // ── Form helpers ──

@@ -578,16 +578,19 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
             {preview.propertyName}
           </Typography>
           <Chip
-            icon={<EventIcon sx={{ fontSize: 14 }} />}
+            icon={<EventIcon sx={{ fontSize: 14, color: '#6B8A9A' }} />}
             label={`${totalCount} réservation${totalCount > 1 ? 's' : ''}`}
-            color="primary"
             size="small"
-            variant="outlined"
             sx={{
-              fontSize: '0.6875rem',
+              backgroundColor: '#6B8A9A18',
+              color: '#6B8A9A',
+              border: '1px solid #6B8A9A40',
+              borderRadius: '6px',
               fontWeight: 600,
+              fontSize: '0.6875rem',
               height: 24,
               '& .MuiChip-icon': { fontSize: 14 },
+              '& .MuiChip-label': { px: 0.75 },
             }}
           />
         </Box>

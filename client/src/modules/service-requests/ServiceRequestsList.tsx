@@ -181,7 +181,7 @@ export default function ServiceRequestsList() {
   } = useServiceRequestsList();
 
   const [page, setPage] = useState(0);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('list');
   const [rowsPerPage, setRowsPerPage] = useState(LIST_DEFAULT_ROWS);
   const theme = useTheme();
   const ITEMS_PER_PAGE = 6;

@@ -36,6 +36,7 @@ export interface ReservationFilters {
 export interface CreateReservationData {
   propertyId: number;
   guestName: string;
+  guestId?: number;
   guestEmail?: string;
   guestPhone?: string;
   guestCount: number;
@@ -43,7 +44,12 @@ export interface CreateReservationData {
   checkOut: string;
   checkInTime?: string;
   checkOutTime?: string;
+  status?: string;
   totalPrice?: number;
+  cleaningFee?: number;
+  touristTaxAmount?: number;
+  confirmationCode?: string;
+  createCleaning?: boolean;
   notes?: string;
 }
 

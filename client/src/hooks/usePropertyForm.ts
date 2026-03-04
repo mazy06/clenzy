@@ -64,6 +64,7 @@ const DEFAULT_VALUES: PropertyFormValues = {
   bathroomCount: 1,
   squareMeters: 0,
   nightlyPrice: 0,
+  minimumNights: 1,
   description: '',
   maxGuests: 2,
   cleaningFrequency: 'AFTER_EACH_STAY',
@@ -151,6 +152,7 @@ export function usePropertyForm({
       bathroomCount: p.bathroomCount || 1,
       squareMeters: p.squareMeters || 0,
       nightlyPrice: p.nightlyPrice || 0,
+      minimumNights: p.minimumNights || 1,
       description: p.description || '',
       maxGuests: p.maxGuests || 2,
       cleaningFrequency: p.cleaningFrequency?.toUpperCase() || 'AFTER_EACH_STAY',
@@ -169,6 +171,11 @@ export function usePropertyForm({
       hasDisinfection: p.hasDisinfection ?? false,
       amenities: p.amenities || [],
       cleaningNotes: p.cleaningNotes ?? undefined,
+      // Geolocalisation
+      latitude: p.latitude ?? undefined,
+      longitude: p.longitude ?? undefined,
+      department: p.department ?? undefined,
+      arrondissement: p.arrondissement ?? undefined,
     });
   }, [propertyQuery.data, reset]);
 
@@ -187,6 +194,7 @@ export function usePropertyForm({
         bathroomCount: formData.bathroomCount,
         squareMeters: formData.squareMeters,
         nightlyPrice: formData.nightlyPrice,
+        minimumNights: formData.minimumNights,
         description: formData.description,
         maxGuests: formData.maxGuests,
         cleaningFrequency: formData.cleaningFrequency,
@@ -205,6 +213,11 @@ export function usePropertyForm({
         hasDisinfection: formData.hasDisinfection,
         amenities: formData.amenities,
         cleaningNotes: formData.cleaningNotes,
+        // Geolocalisation
+        latitude: formData.latitude ?? undefined,
+        longitude: formData.longitude ?? undefined,
+        department: formData.department ?? undefined,
+        arrondissement: formData.arrondissement ?? undefined,
       };
 
       if (isEditMode && propertyId) {

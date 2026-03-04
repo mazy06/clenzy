@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -39,6 +39,8 @@ import {
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import InterventionCard from './InterventionCard';
+import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
+import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 import {
   Add as AddIcon,
   Visibility as VisibilityIcon,
@@ -51,6 +53,7 @@ import {
   Refresh,
   MoreVert,
   CheckCircle as CheckCircleIcon,
+  LocationOn,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { interventionsApi } from '../../services/api';
@@ -173,12 +176,57 @@ export default function InterventionsList() {
     user,
   } = useInterventionsList();
 
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('list');
   const [listRowsPerPage, setListRowsPerPage] = useState(LIST_DEFAULT_ROWS);
   const [listPage, setListPage] = useState(0);
   const [activeTab, setActiveTab] = useState(0);
+  const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
   const theme = useTheme();
   const queryClient = useQueryClient();
+
+  // ─── Map bounds tracking (debounced) ──────────────────────────────────────
+  const boundsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleBoundsChange = useCallback((bounds: MapBounds) => {
+    if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current);
+    boundsTimerRef.current = setTimeout(() => setMapBounds(bounds), 300);
+  }, []);
+
+  useEffect(() => {
+    return () => { if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current); };
+  }, []);
+
+  // Reset mapBounds when leaving map view
+  useEffect(() => {
+    if (viewMode !== 'map') setMapBounds(null);
+  }, [viewMode]);
+
+  const mapMarkers: PropertyMarker[] = useMemo(
+    () =>
+      filteredInterventions
+        .filter((i) => i.propertyLatitude && i.propertyLongitude)
+        .map((i) => ({
+          lat: i.propertyLatitude!,
+          lng: i.propertyLongitude!,
+          name: `${i.title} — ${i.propertyName}`,
+          id: i.id,
+          type: 'property' as const,
+        })),
+    [filteredInterventions],
+  );
+
+  const viewportInterventions = useMemo(() => {
+    const withCoords = filteredInterventions.filter((i) => i.propertyLatitude && i.propertyLongitude);
+    if (!mapBounds) return withCoords;
+    // Small padding (~500m) so markers at the viewport edge are included
+    const pad = 0.005;
+    return withCoords.filter((i) => (
+      i.propertyLatitude! >= mapBounds.south - pad &&
+      i.propertyLatitude! <= mapBounds.north + pad &&
+      i.propertyLongitude! >= mapBounds.west - pad &&
+      i.propertyLongitude! <= mapBounds.east + pad
+    ));
+  }, [filteredInterventions, mapBounds]);
 
   // ─── Pending validation query ───────────────────────────────────────────────
   const pendingQuery = useQuery({
@@ -464,6 +512,185 @@ export default function InterventionsList() {
                 </Typography>
               </CardContent>
             </Card>
+          ) : viewMode === 'map' ? (
+            /* ─── Vue carte (sticky) + liste viewport (scrollable) ─── */
+            <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 140px)', minHeight: 500 }}>
+              {/* Carte fixe en haut */}
+              <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 0, overflow: 'hidden', flexShrink: 0 }}>
+                {mapMarkers.length > 0 ? (
+                  <MapboxPropertyMap
+                    properties={mapMarkers}
+                    height={400}
+                    onMarkerClick={(marker) => {
+                      if (marker.id) navigate(`/interventions/${marker.id}`);
+                    }}
+                    onBoundsChange={handleBoundsChange}
+                  />
+                ) : (
+                  <Box sx={{ height: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                    <Build sx={{ fontSize: 36, color: 'text.secondary', opacity: 0.5 }} />
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+                      Aucune intervention avec coordonnées GPS
+                    </Typography>
+                  </Box>
+                )}
+              </Paper>
+
+              {/* Liste scrollable en dessous */}
+              {mapMarkers.length > 0 && (
+                <Box sx={{ mt: 1.5, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ mb: 1, fontSize: '0.8125rem', fontWeight: 600, color: 'text.secondary', flexShrink: 0 }}
+                  >
+                    {viewportInterventions.length} {viewportInterventions.length > 1 ? 'interventions' : 'intervention'} dans la zone visible
+                  </Typography>
+
+                  {viewportInterventions.length === 0 ? (
+                    <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 2, textAlign: 'center' }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+                        Aucune intervention dans cette zone. Déplacez ou dézoomez la carte.
+                      </Typography>
+                    </Paper>
+                  ) : (
+                    <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1, pr: 0.5 }}>
+                      {viewportInterventions.map((intervention) => {
+                        const statusColor = getInterventionStatusHex(intervention.status);
+                        const typeColor = getInterventionTypeHex(intervention.type);
+                        const priorityColor = getInterventionPriorityHex(intervention.priority);
+                        return (
+                          <Paper
+                            key={intervention.id}
+                            sx={{
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              boxShadow: 'none',
+                              borderRadius: 1.5,
+                              p: 1.5,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                              flexShrink: 0,
+                              '&:hover': {
+                                borderColor: 'primary.main',
+                                bgcolor: 'action.hover',
+                              },
+                            }}
+                            onClick={() => navigate(`/interventions/${intervention.id}`)}
+                          >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                              {/* Titre + adresse */}
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight={600}
+                                  sx={{ fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                >
+                                  {intervention.title}
+                                </Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                                  <LocationOn sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0 }} />
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    sx={{ fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                  >
+                                    {intervention.propertyName} — {intervention.propertyAddress}
+                                  </Typography>
+                                </Box>
+                              </Box>
+
+                              {/* Type + Statut + Priorité chips */}
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                                <Chip
+                                  label={getInterventionTypeLabel(intervention.type, t)}
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: `${typeColor}18`,
+                                    color: typeColor,
+                                    border: `1px solid ${typeColor}40`,
+                                    borderRadius: '6px',
+                                    fontWeight: 600,
+                                    fontSize: '0.62rem',
+                                    height: 22,
+                                    '& .MuiChip-label': { px: 0.75 },
+                                  }}
+                                />
+                                <Chip
+                                  label={getInterventionStatusLabel(intervention.status, t)}
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: `${statusColor}18`,
+                                    color: statusColor,
+                                    border: `1px solid ${statusColor}40`,
+                                    borderRadius: '6px',
+                                    fontWeight: 600,
+                                    fontSize: '0.62rem',
+                                    height: 22,
+                                    '& .MuiChip-label': { px: 0.75 },
+                                  }}
+                                />
+                                <Chip
+                                  label={getInterventionPriorityLabel(intervention.priority, t)}
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: `${priorityColor}18`,
+                                    color: priorityColor,
+                                    border: `1px solid ${priorityColor}40`,
+                                    borderRadius: '6px',
+                                    fontWeight: 600,
+                                    fontSize: '0.62rem',
+                                    height: 22,
+                                    '& .MuiChip-label': { px: 0.75 },
+                                  }}
+                                />
+                              </Box>
+
+                              {/* Progression + Assigné + Action */}
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 70 }}>
+                                  <LinearProgress
+                                    variant="determinate"
+                                    value={intervention.progressPercentage}
+                                    sx={{
+                                      flex: 1,
+                                      height: 5,
+                                      borderRadius: 3,
+                                      bgcolor: 'grey.200',
+                                      '& .MuiLinearProgress-bar': {
+                                        borderRadius: 3,
+                                        bgcolor: intervention.progressPercentage === 100 ? 'success.main'
+                                          : intervention.progressPercentage >= 50 ? 'info.main' : 'warning.main',
+                                      },
+                                    }}
+                                  />
+                                  <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.68rem', minWidth: 24 }}>
+                                    {intervention.progressPercentage}%
+                                  </Typography>
+                                </Box>
+                                {intervention.assignedToName && (
+                                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {intervention.assignedToName}
+                                  </Typography>
+                                )}
+                                <Tooltip title="Détails">
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
+                                    sx={{ p: 0.5 }}
+                                  >
+                                    <VisibilityIcon sx={{ fontSize: 16 }} />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </Box>
+                          </Paper>
+                        );
+                      })}
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </Box>
           ) : viewMode === 'grid' ? (
             <>
               <Grid container spacing={2}>
