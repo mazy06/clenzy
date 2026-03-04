@@ -328,8 +328,6 @@ const PlanningPage: React.FC = () => {
         onChangeProperty={changeProperty}
         onCancelReservation={cancelReservation}
         onUpdateNotes={updateNotes}
-        onCreateAutoCleaning={createAutoCleaning}
-        onCreateIntervention={createIntervention}
         onAssignIntervention={assignIntervention}
         onSetPriority={setPriority}
         onUpdateInterventionNotes={updateInterventionNotes}
