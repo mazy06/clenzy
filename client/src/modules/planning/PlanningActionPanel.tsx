@@ -57,13 +57,6 @@ interface PlanningActionPanelProps {
   onCancelReservation?: (reservationId: number) => Promise<ActionResult>;
   onUpdateNotes?: (reservationId: number, notes: string) => Promise<ActionResult>;
   // Intervention actions
-  onCreateAutoCleaning?: (reservationId: number) => Promise<ActionResult>;
-  onCreateIntervention?: (data: {
-    propertyId: number; propertyName: string; type: 'cleaning' | 'maintenance';
-    title: string; assigneeName: string; startDate: string; endDate: string;
-    startTime?: string; endTime?: string; estimatedDurationHours: number;
-    notes?: string; linkedReservationId?: number;
-  }) => Promise<ActionResult>;
   onAssignIntervention?: (interventionId: number, assigneeName: string) => Promise<ActionResult>;
   onSetPriority?: (interventionId: number, priority: 'normale' | 'haute' | 'urgente') => Promise<ActionResult>;
   onUpdateInterventionNotes?: (interventionId: number, notes: string) => Promise<ActionResult>;
@@ -130,8 +123,6 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   onChangeProperty,
   onCancelReservation,
   onUpdateNotes,
-  onCreateAutoCleaning,
-  onCreateIntervention,
   onAssignIntervention,
   onSetPriority,
   onUpdateInterventionNotes,
@@ -229,8 +220,6 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
               event={event}
               allEvents={allEvents}
               interventions={interventions}
-              onCreateAutoCleaning={onCreateAutoCleaning}
-              onCreateIntervention={onCreateIntervention}
               onAssignIntervention={onAssignIntervention}
               onSetPriority={onSetPriority}
               onUpdateInterventionNotes={onUpdateInterventionNotes}
@@ -259,8 +248,6 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
             event={event}
             allEvents={allEvents}
             interventions={interventions}
-            onCreateAutoCleaning={onCreateAutoCleaning}
-            onCreateIntervention={onCreateIntervention}
             onAssignIntervention={onAssignIntervention}
             onSetPriority={onSetPriority}
             onUpdateInterventionNotes={onUpdateInterventionNotes}

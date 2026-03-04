@@ -44,12 +44,17 @@ import {
   Search as InspectIcon,
   MeetingRoom,
   CameraAlt,
+  Send,
+  OpenInNew,
+  CleaningServices,
 } from '@mui/icons-material';
 import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
+import type { ServiceRequest } from '../../../services/api/serviceRequestsApi';
 import { useWorkflowSettings } from '../../../hooks/useWorkflowSettings';
 import { useAuth } from '../../../hooks/useAuth';
-import CreateInterventionDialog from './CreateInterventionDialog';
+import { useNavigate } from 'react-router-dom';
+import CreateServiceRequestDialog from './CreateServiceRequestDialog';
 
 // ── Staff list (shared with CreateInterventionDialog) ──────────────────────
 const STAFF_OPTIONS = [
@@ -77,25 +82,36 @@ const DEFAULT_CHECKLIST = [
   'Photo de controle',
 ];
 
+// ── Service request status colors ────────────────────────────────────────────
+const SR_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  PENDING: { label: 'En attente', color: '#F59E0B' },
+  APPROVED: { label: 'Approuvée', color: '#3B82F6' },
+  DEVIS_ACCEPTED: { label: 'Devis accepté', color: '#8B5CF6' },
+  IN_PROGRESS: { label: 'En cours', color: '#1976d2' },
+  COMPLETED: { label: 'Terminée', color: '#4A9B8E' },
+  CANCELLED: { label: 'Annulée', color: '#9e9e9e' },
+  REJECTED: { label: 'Rejetée', color: '#d32f2f' },
+};
+
+// ── Service type labels ─────────────────────────────────────────────────────
+const SERVICE_TYPE_LABELS: Record<string, string> = {
+  CLEANING: 'Ménage',
+  EXPRESS_CLEANING: 'Ménage express',
+  DEEP_CLEANING: 'Nettoyage profond',
+  PREVENTIVE_MAINTENANCE: 'Maintenance',
+  EMERGENCY_REPAIR: 'Réparation urgente',
+  ELECTRICAL_REPAIR: 'Électricité',
+  PLUMBING_REPAIR: 'Plomberie',
+  HVAC_REPAIR: 'Climatisation',
+  OTHER: 'Autre',
+};
+
 interface PanelOperationsProps {
   event: PlanningEvent;
   allEvents?: PlanningEvent[];
   interventions?: PlanningIntervention[];
-  onCreateAutoCleaning?: (reservationId: number) => Promise<{ success: boolean; error: string | null }>;
-  onCreateIntervention?: (data: {
-    propertyId: number;
-    propertyName: string;
-    type: 'cleaning' | 'maintenance';
-    title: string;
-    assigneeName: string;
-    startDate: string;
-    endDate: string;
-    startTime?: string;
-    endTime?: string;
-    estimatedDurationHours: number;
-    notes?: string;
-    linkedReservationId?: number;
-  }) => Promise<{ success: boolean; error: string | null }>;
+  /** Linked service requests for the current property (reservation view) */
+  serviceRequests?: ServiceRequest[];
   onAssignIntervention?: (interventionId: number, assigneeName: string) => Promise<{ success: boolean; error: string | null }>;
   onSetPriority?: (interventionId: number, priority: 'normale' | 'haute' | 'urgente') => Promise<{ success: boolean; error: string | null }>;
   onUpdateInterventionNotes?: (interventionId: number, notes: string) => Promise<{ success: boolean; error: string | null }>;
@@ -105,6 +121,8 @@ interface PanelOperationsProps {
     startTime?: string;
     endTime?: string;
   }) => Promise<{ success: boolean; error: string | null }>;
+  /** Called when a new service request is created from the planning sidebar */
+  onServiceRequestCreated?: () => void;
   onNavigate?: (view: import('../types').PanelView) => void;
 }
 
@@ -112,14 +130,15 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
   event,
   allEvents,
   interventions,
-  onCreateAutoCleaning,
-  onCreateIntervention,
+  serviceRequests,
   onAssignIntervention,
   onSetPriority,
   onUpdateInterventionNotes,
   onUpdateInterventionDates,
+  onServiceRequestCreated,
   onNavigate,
 }) => {
+  const navigate = useNavigate();
   const isReservation = event.type === 'reservation';
   const intervention = event.intervention;
   const reservation = event.reservation;
@@ -135,11 +154,8 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
   const autoAssignEnabled = workflowSettings.autoAssignInterventions;
 
   // ── Dialog states ──────────────────────────────────────────────────────────
-  const [autoCleaningLoading, setAutoCleaningLoading] = useState(false);
-  const [autoCleaningError, setAutoCleaningError] = useState<string | null>(null);
-
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [createDialogType, setCreateDialogType] = useState<'cleaning' | 'maintenance'>('maintenance');
+  const [srDialogOpen, setSrDialogOpen] = useState(false);
+  const [srDialogDefaultType, setSrDialogDefaultType] = useState<string | undefined>(undefined);
 
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [assignTarget, setAssignTarget] = useState<PlanningIntervention | null>(null);
@@ -229,30 +245,22 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
-  // 1. Planifier menage automatique
-  const handleAutoCleaningClick = async () => {
-    if (!reservation || !onCreateAutoCleaning) return;
-    setAutoCleaningLoading(true);
-    setAutoCleaningError(null);
-    const result = await onCreateAutoCleaning(reservation.id);
-    setAutoCleaningLoading(false);
-    if (result.success) {
-      showSnackbar('Menage automatique planifie avec succes');
-    } else {
-      setAutoCleaningError(result.error);
-    }
+  // 1. Demande de menage → open CreateServiceRequestDialog with type='CLEANING'
+  const handleCleaningRequestClick = () => {
+    setSrDialogDefaultType('CLEANING');
+    setSrDialogOpen(true);
   };
 
-  // 2. Planifier maintenance → open CreateInterventionDialog with type='maintenance'
-  const handleMaintenanceClick = () => {
-    setCreateDialogType('maintenance');
-    setCreateDialogOpen(true);
+  // 2. Demande de maintenance → open CreateServiceRequestDialog with type='PREVENTIVE_MAINTENANCE'
+  const handleMaintenanceRequestClick = () => {
+    setSrDialogDefaultType('PREVENTIVE_MAINTENANCE');
+    setSrDialogOpen(true);
   };
 
-  // 3. Creer intervention personnalisee → open CreateInterventionDialog
-  const handleCustomInterventionClick = () => {
-    setCreateDialogType('maintenance');
-    setCreateDialogOpen(true);
+  // 3. Nouvelle demande de service → open CreateServiceRequestDialog without pre-selection
+  const handleNewServiceRequestClick = () => {
+    setSrDialogDefaultType(undefined);
+    setSrDialogOpen(true);
   };
 
   // 4. Assigner equipe / prestataire
@@ -730,162 +738,232 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
         </Box>
       )}
 
-      {/* Quick operation actions */}
-      <Box>
-        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
-          {isReservation ? 'Planifier' : 'Actions'}
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-          {isReservation && (
-            <>
+      {/* ── Reservation view: Service request buttons ─────────────────────── */}
+      {isReservation && (
+        <>
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+              Demandes de service
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
               <Button
                 size="small"
                 variant="outlined"
-                startIcon={autoCleaningLoading ? <CircularProgress size={14} /> : <AutoAwesome sx={{ fontSize: 14 }} />}
+                startIcon={<CleaningServices sx={{ fontSize: 14 }} />}
                 fullWidth
-                disabled={autoCleaningLoading}
-                onClick={handleAutoCleaningClick}
+                onClick={handleCleaningRequestClick}
                 sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
               >
-                Planifier menage automatique
+                Demande de ménage
               </Button>
-              {autoCleaningError && (
-                <Alert severity="error" sx={{ fontSize: '0.6875rem', py: 0, '& .MuiAlert-message': { py: 0.5 } }}>
-                  {autoCleaningError}
-                </Alert>
-              )}
               <Button
                 size="small"
                 variant="outlined"
                 startIcon={<Handyman sx={{ fontSize: 14 }} />}
                 fullWidth
-                onClick={handleMaintenanceClick}
+                onClick={handleMaintenanceRequestClick}
                 sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
               >
-                Planifier maintenance
+                Demande de maintenance
               </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<Add sx={{ fontSize: 14 }} />}
+                fullWidth
+                onClick={handleNewServiceRequestClick}
+                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+              >
+                Nouvelle demande de service
+              </Button>
+            </Box>
+          </Box>
+
+          {/* Linked service requests */}
+          {(serviceRequests && serviceRequests.length > 0) && (
+            <>
+              <Divider />
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 0.5 }}>
+                  Demandes liées ({serviceRequests.length})
+                </Typography>
+                {serviceRequests.map((sr) => {
+                  const statusCfg = SR_STATUS_CONFIG[sr.status] || { label: sr.status, color: '#757575' };
+                  const typeLabel = SERVICE_TYPE_LABELS[sr.serviceType] || sr.serviceType;
+                  return (
+                    <Box
+                      key={sr.id}
+                      onClick={() => navigate(`/service-requests/${sr.id}`)}
+                      sx={{
+                        mb: 0.75,
+                        p: 1,
+                        borderRadius: 1.5,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        '&:hover': {
+                          backgroundColor: 'action.hover',
+                          borderColor: 'primary.main',
+                          '& .sr-arrow': { opacity: 1, transform: 'translateX(2px)' },
+                        },
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
+                        <Send sx={{ fontSize: 12, color: 'text.secondary' }} />
+                        <Typography variant="caption" sx={{ flex: 1, fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {sr.title}
+                        </Typography>
+                        <OpenInNew
+                          className="sr-arrow"
+                          sx={{ fontSize: 14, color: 'text.secondary', opacity: 0.4, transition: 'all 0.15s ease' }}
+                        />
+                      </Box>
+                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <Chip
+                          label={typeLabel}
+                          size="small"
+                          sx={{
+                            fontSize: '0.5625rem',
+                            height: 20,
+                            fontWeight: 600,
+                            backgroundColor: '#75757518',
+                            color: '#757575',
+                            border: '1px solid #75757540',
+                            borderRadius: '6px',
+                            '& .MuiChip-label': { px: 0.5 },
+                          }}
+                        />
+                        <Chip
+                          label={statusCfg.label}
+                          size="small"
+                          sx={{
+                            fontSize: '0.5625rem',
+                            height: 20,
+                            fontWeight: 600,
+                            backgroundColor: `${statusCfg.color}18`,
+                            color: statusCfg.color,
+                            border: `1px solid ${statusCfg.color}40`,
+                            borderRadius: '6px',
+                            '& .MuiChip-label': { px: 0.5 },
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
             </>
           )}
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<Add sx={{ fontSize: 14 }} />}
-            fullWidth
-            onClick={handleCustomInterventionClick}
-            sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
-          >
-            Creer intervention personnalisee
-          </Button>
-        </Box>
-      </Box>
+        </>
+      )}
 
-      <Divider />
+      {/* ── Intervention view: Actions (assign, priority, checklist, alerts) ── */}
+      {!isReservation && intervention && (
+        <>
+          <Divider />
 
-      {/* Assignment */}
-      <Box>
-        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
-          Assignation
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<Groups sx={{ fontSize: 14 }} />}
-            fullWidth
-            onClick={handleAssignClick}
-            sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
-          >
-            Assigner equipe / prestataire
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<PriorityHigh sx={{ fontSize: 14 }} />}
-            fullWidth
-            onClick={handlePriorityClick}
-            sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
-          >
-            Definir priorite
-          </Button>
-        </Box>
-      </Box>
+          {/* Assignment */}
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+              Assignation
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<Groups sx={{ fontSize: 14 }} />}
+                fullWidth
+                onClick={handleAssignClick}
+                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+              >
+                Assigner equipe / prestataire
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<PriorityHigh sx={{ fontSize: 14 }} />}
+                fullWidth
+                onClick={handlePriorityClick}
+                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+              >
+                Definir priorite
+              </Button>
+            </Box>
+          </Box>
 
-      <Divider />
+          <Divider />
 
-      {/* Checklist & alerts */}
-      <Box>
-        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
-          Suivi
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<CheckCircleOutline sx={{ fontSize: 14 }} />}
-            fullWidth
-            onClick={() => {
-              if (!targetIntervention) {
-                showSnackbar('Aucune intervention. Creez d\'abord une intervention.', 'error');
-                return;
-              }
-              // Parse existing checklist from notes
-              const existingChecklist = targetIntervention.notes?.match(/--- Checklist ---\n([\s\S]*?)$/);
-              if (existingChecklist) {
-                const items = existingChecklist[1].split('\n').filter(Boolean).map((line) => ({
-                  text: line.replace(/^\[.\] /, ''),
-                  checked: line.startsWith('[x]'),
-                }));
-                setChecklistItems(items);
-              } else {
-                setChecklistItems(DEFAULT_CHECKLIST.map((text) => ({ text, checked: false })));
-              }
-              setChecklistOpen(true);
-            }}
-            sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
-          >
-            Ajouter checklist operationnelle
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<NotificationsActive sx={{ fontSize: 14 }} />}
-            fullWidth
-            onClick={() => {
-              if (!targetIntervention) {
-                showSnackbar('Aucune intervention. Creez d\'abord une intervention.', 'error');
-                return;
-              }
-              setAlertDate(targetIntervention.startDate || today);
-              setAlertTime('09:00');
-              setAlertMessage('');
-              setAlertDialogOpen(true);
-            }}
-            sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
-          >
-            Ajouter alerte / rappel
-          </Button>
-        </Box>
-      </Box>
+          {/* Checklist & alerts */}
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 1 }}>
+              Suivi
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<CheckCircleOutline sx={{ fontSize: 14 }} />}
+                fullWidth
+                onClick={() => {
+                  if (!targetIntervention) {
+                    showSnackbar('Aucune intervention.', 'error');
+                    return;
+                  }
+                  // Parse existing checklist from notes
+                  const existingChecklist = targetIntervention.notes?.match(/--- Checklist ---\n([\s\S]*?)$/);
+                  if (existingChecklist) {
+                    const items = existingChecklist[1].split('\n').filter(Boolean).map((line) => ({
+                      text: line.replace(/^\[.\] /, ''),
+                      checked: line.startsWith('[x]'),
+                    }));
+                    setChecklistItems(items);
+                  } else {
+                    setChecklistItems(DEFAULT_CHECKLIST.map((text) => ({ text, checked: false })));
+                  }
+                  setChecklistOpen(true);
+                }}
+                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+              >
+                Ajouter checklist operationnelle
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<NotificationsActive sx={{ fontSize: 14 }} />}
+                fullWidth
+                onClick={() => {
+                  if (!targetIntervention) {
+                    showSnackbar('Aucune intervention.', 'error');
+                    return;
+                  }
+                  setAlertDate(targetIntervention.startDate || today);
+                  setAlertTime('09:00');
+                  setAlertMessage('');
+                  setAlertDialogOpen(true);
+                }}
+                sx={{ fontSize: '0.75rem', textTransform: 'none', justifyContent: 'flex-start' }}
+              >
+                Ajouter alerte / rappel
+              </Button>
+            </Box>
+          </Box>
+        </>
+      )}
 
       {/* ── Dialogs ─────────────────────────────────────────────────────────── */}
 
-      {/* Create Intervention Dialog */}
-      <CreateInterventionDialog
-        open={createDialogOpen}
-        onClose={() => setCreateDialogOpen(false)}
+      {/* Create Service Request Dialog */}
+      <CreateServiceRequestDialog
+        open={srDialogOpen}
+        onClose={() => setSrDialogOpen(false)}
         propertyId={propertyId}
         propertyName={propertyName}
-        defaultType={createDialogType}
-        linkedReservationId={isReservation ? reservation?.id : undefined}
-        defaultStartDate={isReservation ? reservation?.checkOut : intervention?.startDate}
-        defaultEndDate={isReservation ? reservation?.checkOut : intervention?.endDate}
-        onConfirm={async (data) => {
-          if (!onCreateIntervention) return { success: false, error: 'Non disponible' };
-          const result = await onCreateIntervention(data);
-          if (result.success) {
-            showSnackbar('Intervention creee avec succes');
-          }
-          return result;
+        defaultServiceType={srDialogDefaultType}
+        defaultDesiredDate={isReservation ? reservation?.checkOut : intervention?.startDate}
+        onCreated={() => {
+          showSnackbar('Demande de service créée avec succès');
+          onServiceRequestCreated?.();
         }}
       />
 
