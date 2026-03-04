@@ -144,7 +144,46 @@ logging:
     com.clenzy: info
     org.springframework.security: warn
 
+# Sentry — Error tracking (active uniquement si SENTRY_DSN est defini)
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:production}
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:0.1}
+  enable-tracing: true
+  send-default-pii: false
+  in-app-includes: com.clenzy
+
 clenzy:
+  # Twilio — SMS & WhatsApp messaging
+  twilio:
+    account-sid: ${TWILIO_ACCOUNT_SID:}
+    auth-token: ${TWILIO_AUTH_TOKEN:}
+    messaging-service-sid: ${TWILIO_MESSAGING_SERVICE_SID:}
+    whatsapp-from: ${TWILIO_WHATSAPP_FROM:}
+    verify-service-sid: ${TWILIO_VERIFY_SID:}
+  # Nuki — Smart Lock integration
+  nuki:
+    api-url: ${NUKI_API_URL:https://api.nuki.io}
+    client-id: ${NUKI_CLIENT_ID:}
+    client-secret: ${NUKI_CLIENT_SECRET:}
+  # HubSpot — CRM & Ticketing
+  hubspot:
+    api-key: ${HUBSPOT_API_KEY:}
+    portal-id: ${HUBSPOT_PORTAL_ID:}
+  # Signature electronique (Pennylane, extensible DocuSign/Odoo/Custom)
+  signature:
+    active-provider: ${SIGNATURE_PROVIDER:pennylane}
+  pennylane:
+    api-url: ${PENNYLANE_API_URL:https://app.pennylane.com/api}
+    client-id: ${PENNYLANE_CLIENT_ID:}
+    client-secret: ${PENNYLANE_CLIENT_SECRET:}
+  # Webhooks — Zapier & automation
+  webhooks:
+    enabled: ${WEBHOOKS_ENABLED:true}
+    max-subscriptions-per-org: 20
+    retry-attempts: 3
+  mapbox:
+    access-token: ${MAPBOX_ACCESS_TOKEN:}
   mail:
     provider: ${MAIL_PROVIDER:brevo}
     from: ${MAIL_FROM:info@clenzy.fr}

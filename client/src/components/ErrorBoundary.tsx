@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Box, Typography, Button, Alert } from '@mui/material';
 import { Refresh as RefreshIcon } from '@mui/icons-material';
+import * as Sentry from '@sentry/react';
 
 interface Props {
   children: ReactNode;
@@ -35,6 +36,15 @@ class ErrorBoundary extends Component<Props, State> {
     this.setState({
       error,
       errorInfo,
+    });
+
+    // Report to Sentry with component stack context
+    Sentry.captureException(error, {
+      contexts: {
+        react: {
+          componentStack: errorInfo.componentStack || undefined,
+        },
+      },
     });
   }
 

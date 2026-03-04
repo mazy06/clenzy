@@ -16,6 +16,7 @@ import com.clenzy.repository.PropertyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -86,9 +87,13 @@ public class NoiseDeviceService {
 
     /**
      * Supprime un capteur.
+     * Utilise findById (et non findByIdAndUserId) car getUserDevices() retourne
+     * tous les capteurs ACTIVE de l'organisation sans filtrer par userId.
+     * L'isolation multi-tenant est assuree par le filtre Hibernate organizationFilter.
      */
+    @Transactional
     public void deleteDevice(String userId, Long deviceId) {
-        NoiseDevice device = noiseDeviceRepository.findByIdAndUserId(deviceId, userId)
+        NoiseDevice device = noiseDeviceRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Capteur introuvable: " + deviceId));
 
         noiseDeviceRepository.delete(device);

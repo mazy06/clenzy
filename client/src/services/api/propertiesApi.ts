@@ -16,6 +16,7 @@ export interface Property {
   bathroomCount: number;
   squareMeters: number;
   nightlyPrice: number;
+  minimumNights?: number;
   description: string;
   maxGuests: number;
   cleaningFrequency: string;
@@ -59,6 +60,7 @@ export interface PropertyFormData {
   bathroomCount: number;
   squareMeters: number;
   nightlyPrice: number;
+  minimumNights?: number;
   description: string;
   maxGuests: number;
   cleaningFrequency: string;

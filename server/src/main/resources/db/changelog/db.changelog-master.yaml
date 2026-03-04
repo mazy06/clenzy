@@ -529,3 +529,30 @@ databaseChangeLog:
       sqlFile:
         path: changes/0059__inscription_email_confirmation.sql
         relativeToChangelogFile: true
+
+  # --- 0060 : Nuki smart lock integration ---
+  - changeSet:
+      id: "0060-nuki-integration"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0060__nuki_integration.sql
+        relativeToChangelogFile: true
+
+  # --- 0061 : Create webhook subscriptions and signature requests tables ---
+  - changeSet:
+      id: "0061-create-webhooks-signatures-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0061__create_webhooks_signatures_tables.sql
+        relativeToChangelogFile: true
+
+  # --- 0062 : Fix minut_connections organization_id column type ---
+  - changeSet:
+      id: "0062-fix-minut-connections-organization-id-type"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0062__fix_minut_connections_organization_id_type.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false

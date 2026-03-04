@@ -659,7 +659,7 @@ public class ICalImportService {
 
                 String ownerKeycloakId = property.getOwner().getKeycloakId();
                 if (ownerKeycloakId == null || !isUserAllowed(ownerKeycloakId)) {
-                    log.debug("Feed {} ignore : proprietaire sans forfait adequat", feed.getId());
+                    log.warn("Feed {} ignore : proprietaire sans forfait adequat (owner={})", feed.getId(), ownerKeycloakId);
                     continue;
                 }
 

@@ -11,7 +11,7 @@ import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
-    @Query("SELECT r FROM Reservation r JOIN FETCH r.property WHERE r.property.id IN :propertyIds " +
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest WHERE r.property.id IN :propertyIds " +
            "AND r.checkOut >= :from AND r.checkIn <= :to AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findByPropertyIdsAndDateRange(
             @Param("propertyIds") List<Long> propertyIds,
@@ -19,11 +19,11 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("to") LocalDate to,
             @Param("orgId") Long orgId);
 
-    @Query("SELECT r FROM Reservation r JOIN FETCH r.property WHERE r.property.id = :propertyId " +
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest WHERE r.property.id = :propertyId " +
            "AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 
-    @Query("SELECT r FROM Reservation r JOIN FETCH r.property WHERE r.property.owner.id = :ownerId " +
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest WHERE r.property.owner.id = :ownerId " +
            "AND r.checkOut >= :from AND r.checkIn <= :to AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findByOwnerIdAndDateRange(
             @Param("ownerId") Long ownerId,
@@ -31,7 +31,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("to") LocalDate to,
             @Param("orgId") Long orgId);
 
-    @Query("SELECT r FROM Reservation r JOIN FETCH r.property WHERE r.property.owner.keycloakId = :keycloakId " +
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest WHERE r.property.owner.keycloakId = :keycloakId " +
            "AND r.checkOut >= :from AND r.checkIn <= :to AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findByOwnerKeycloakIdAndDateRange(
             @Param("keycloakId") String keycloakId,
@@ -39,12 +39,15 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("to") LocalDate to,
             @Param("orgId") Long orgId);
 
-    @Query("SELECT r FROM Reservation r JOIN FETCH r.property " +
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
            "WHERE r.checkOut >= :from AND r.checkIn <= :to AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findAllByDateRange(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("orgId") Long orgId);
+
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest WHERE r.id = :id")
+    Optional<Reservation> findByIdFetchAll(@Param("id") Long id);
 
     Optional<Reservation> findByExternalUidAndPropertyId(String externalUid, Long propertyId);
 

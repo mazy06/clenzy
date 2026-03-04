@@ -25,10 +25,12 @@ interface PlanningTimelineProps {
   drag: UsePlanningDragReturn;
   onEventClick: (event: PlanningEvent) => void;
   onEmptyClick: (data: QuickCreateData) => void;
+  quickCreateOpen: boolean;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onScroll: () => void;
   propertyColWidth: number;
   showPrices: boolean;
+  showInterventions: boolean;
   pricingMap: PricingMap;
   pageSize?: number;
 }
@@ -46,16 +48,22 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   drag,
   onEventClick,
   onEmptyClick,
+  quickCreateOpen,
   scrollRef,
   onScroll,
   propertyColWidth,
   showPrices,
+  showInterventions,
   pricingMap,
   pageSize,
 }) => {
   const config = ROW_CONFIG[density];
   const priceLineHeight = showPrices ? PRICE_LINE_HEIGHT[density] : 0;
-  const effectiveRowHeight = config.rowHeight + priceLineHeight;
+  // When interventions are hidden, shrink the row to only reservation bar + padding
+  const baseRowHeight = showInterventions
+    ? config.rowHeight
+    : config.interventionTop + 2; // reservation bar area + small bottom padding
+  const effectiveRowHeight = baseRowHeight + priceLineHeight;
   // Fill remaining space with empty rows
   const emptyRowCount = pageSize ? Math.max(0, pageSize - properties.length) : 0;
   const totalDisplayRows = properties.length + emptyRowCount;
@@ -157,9 +165,12 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                     dragState={drag.state}
                     onEventClick={onEventClick}
                     onEmptyClick={onEmptyClick}
+                    quickCreateOpen={quickCreateOpen}
                     showPrices={showPrices}
+                    showInterventions={showInterventions}
                     pricingMap={pricingMap}
                     effectiveRowHeight={effectiveRowHeight}
+                    allEvents={events}
                   />
                 ))}
 

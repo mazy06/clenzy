@@ -2,9 +2,10 @@ package com.clenzy.service;
 
 import com.clenzy.config.SyncMetrics;
 import com.clenzy.exception.CalendarConflictException;
-import com.clenzy.model.Reservation;
-import com.clenzy.model.User;
+import com.clenzy.model.*;
+import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.clenzy.tenant.TenantContext;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -28,19 +30,25 @@ public class ReservationService {
     private final CalendarEngine calendarEngine;
     private final GuestService guestService;
     private final SyncMetrics syncMetrics;
+    private final ServiceRequestRepository serviceRequestRepository;
+    private final InterventionRepository interventionRepository;
 
     public ReservationService(ReservationRepository reservationRepository,
                               UserRepository userRepository,
                               TenantContext tenantContext,
                               CalendarEngine calendarEngine,
                               GuestService guestService,
-                              SyncMetrics syncMetrics) {
+                              SyncMetrics syncMetrics,
+                              ServiceRequestRepository serviceRequestRepository,
+                              InterventionRepository interventionRepository) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
         this.calendarEngine = calendarEngine;
         this.guestService = guestService;
         this.syncMetrics = syncMetrics;
+        this.serviceRequestRepository = serviceRequestRepository;
+        this.interventionRepository = interventionRepository;
     }
 
     /**
@@ -179,5 +187,86 @@ public class ReservationService {
     public boolean existsByExternalUid(String externalUid, Long propertyId) {
         if (externalUid == null || propertyId == null) return false;
         return reservationRepository.existsByExternalUidAndPropertyId(externalUid, propertyId);
+    }
+
+    // ── Auto-create cleaning intervention ────────────────────────────────
+
+    /**
+     * Cree automatiquement une ServiceRequest + Intervention de type CLEANING
+     * liee a la reservation, planifiee au jour du checkout.
+     */
+    @Transactional
+    public void createCleaningForReservation(Reservation reservation, String userSub) {
+        // Re-load the reservation in the current session to avoid
+        // LazyInitializationException on detached proxy (open-in-view=false)
+        Long reservationId = reservation.getId();
+        Reservation managedReservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation introuvable: " + reservationId));
+        Property property = managedReservation.getProperty();
+        Long orgId = managedReservation.getOrganizationId();
+
+        User requestor = userRepository.findByKeycloakId(userSub)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        LocalDateTime scheduledAt = managedReservation.getCheckOut()
+                .atTime(parseCheckoutHour(managedReservation.getCheckOutTime()), 0);
+
+        // 1. Create pre-approved ServiceRequest
+        ServiceRequest sr = new ServiceRequest(
+                "Menage - " + (managedReservation.getGuestName() != null ? managedReservation.getGuestName() : "Reservation"),
+                ServiceType.CLEANING,
+                scheduledAt,
+                requestor,
+                property
+        );
+        sr.setOrganizationId(orgId);
+        sr.setStatus(RequestStatus.APPROVED);
+        sr.setApprovedBy(userSub);
+        sr.setApprovedAt(LocalDateTime.now());
+        sr.setPriority(Priority.NORMAL);
+        if (property.getCleaningBasePrice() != null) {
+            sr.setEstimatedCost(property.getCleaningBasePrice());
+        }
+        sr = serviceRequestRepository.save(sr);
+
+        // 2. Create Intervention linked to ServiceRequest
+        Intervention intervention = new Intervention();
+        intervention.setTitle("Menage - " + property.getName());
+        intervention.setDescription("Menage post-depart"
+                + (managedReservation.getGuestName() != null ? " pour " + managedReservation.getGuestName() : ""));
+        intervention.setType("CLEANING");
+        intervention.setStatus(InterventionStatus.PENDING);
+        intervention.setPriority("NORMAL");
+        intervention.setProperty(property);
+        intervention.setRequestor(requestor);
+        intervention.setServiceRequest(sr);
+        intervention.setOrganizationId(orgId);
+        intervention.setScheduledDate(scheduledAt);
+        intervention.setStartTime(scheduledAt);
+        intervention.setCreatedAt(LocalDateTime.now());
+        if (property.getCleaningBasePrice() != null) {
+            intervention.setEstimatedCost(property.getCleaningBasePrice());
+        }
+        if (property.getCleaningDurationMinutes() != null) {
+            intervention.setEstimatedDurationHours(
+                    (int) Math.ceil(property.getCleaningDurationMinutes() / 60.0));
+        }
+        intervention = interventionRepository.save(intervention);
+
+        // 3. Link intervention to reservation
+        managedReservation.setIntervention(intervention);
+        reservationRepository.save(managedReservation);
+
+        log.info("Auto-created cleaning intervention {} for reservation {} (property {})",
+                intervention.getId(), managedReservation.getId(), property.getId());
+    }
+
+    private int parseCheckoutHour(String checkOutTime) {
+        if (checkOutTime == null) return 11;
+        try {
+            return Integer.parseInt(checkOutTime.split(":")[0]);
+        } catch (Exception e) {
+            return 11;
+        }
     }
 }

@@ -2,6 +2,7 @@ package com.clenzy.service.messaging;
 
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
+import com.clenzy.service.MapboxStaticImageService;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.access.AccessCodeResolverService;
 import com.clenzy.service.access.AccessCodeResult;
@@ -35,6 +36,7 @@ public class GuestMessagingService {
     private final ReservationRepository reservationRepository;
     private final NotificationService notificationService;
     private final AccessCodeResolverService accessCodeResolverService;
+    private final MapboxStaticImageService mapboxStaticImageService;
 
     public GuestMessagingService(
             List<MessageChannel> channels,
@@ -44,7 +46,8 @@ public class GuestMessagingService {
             MessageTemplateRepository templateRepository,
             ReservationRepository reservationRepository,
             NotificationService notificationService,
-            AccessCodeResolverService accessCodeResolverService
+            AccessCodeResolverService accessCodeResolverService,
+            MapboxStaticImageService mapboxStaticImageService
     ) {
         this.channels = channels;
         this.interpolationService = interpolationService;
@@ -54,6 +57,7 @@ public class GuestMessagingService {
         this.reservationRepository = reservationRepository;
         this.notificationService = notificationService;
         this.accessCodeResolverService = accessCodeResolverService;
+        this.mapboxStaticImageService = mapboxStaticImageService;
     }
 
     /**
@@ -114,6 +118,24 @@ public class GuestMessagingService {
             log.error("Erreur resolution code d'acces pour reservation={}: {}",
                     reservation.getId(), e.getMessage());
             // Continue sans code dynamique — le code statique de CheckInInstructions sera utilise
+        }
+
+        // Generer la carte de localisation Mapbox (propriete + point d'echange si applicable)
+        try {
+            Double storeLat = parseDoubleOrNull(resolvedVars.get("keyExchangeStoreLat"));
+            Double storeLng = parseDoubleOrNull(resolvedVars.get("keyExchangeStoreLng"));
+            String storeName = resolvedVars.get("keyExchangeStoreName");
+
+            String mapImageTag = mapboxStaticImageService.generateMapImageTag(
+                    property.getLatitude(), property.getLongitude(),
+                    storeLat, storeLng,
+                    property.getName(), storeName
+            );
+            resolvedVars.put("locationMap", mapImageTag);
+        } catch (Exception e) {
+            log.warn("Erreur generation carte Mapbox pour reservation={}: {}",
+                    reservation.getId(), e.getMessage());
+            resolvedVars.put("locationMap", "");
         }
 
         // Interpoler et traduire
@@ -207,6 +229,15 @@ public class GuestMessagingService {
             case EMAIL -> request.recipientEmail();
             case WHATSAPP, SMS -> request.recipientPhone();
         };
+    }
+
+    private static Double parseDoubleOrNull(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Double.parseDouble(value);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private GuestMessageLog createLog(

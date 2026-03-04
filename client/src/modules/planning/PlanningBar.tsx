@@ -128,6 +128,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   return (
     <Box
       ref={setNodeRef}
+      data-planning-bar
       {...(!isDragDisabled ? listeners : {})}
       {...(!isDragDisabled ? attributes : {})}
       onClick={(e) => {
@@ -147,6 +148,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         borderLeft: `${isCompactBar ? 2 : 3}px solid ${event.color}`,
         borderRadius: `${isCompactBar ? 3 : BAR_BORDER_RADIUS}px`,
         cursor: isResizing ? 'col-resize' : isDragDisabled ? 'pointer' : 'grab',
+        touchAction: 'none',
         overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',

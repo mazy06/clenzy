@@ -66,6 +66,7 @@ import {
   getAmenityHex,
 } from '../../utils/statusUtils';
 import { airbnbApi } from '../../services/api/airbnbApi';
+import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
@@ -580,6 +581,24 @@ const PropertyDetails: React.FC = () => {
                   </>
                 )}
               </Paper>
+
+              {/* Mini-carte Mapbox */}
+              {property.latitude != null && property.longitude != null && (
+                <Paper sx={{ ...CARD_SX, p: 0, overflow: 'hidden' }}>
+                  <MapboxPropertyMap
+                    properties={[{
+                      lat: property.latitude,
+                      lng: property.longitude,
+                      name: property.name,
+                      id: Number(property.id),
+                      type: 'property',
+                    }]}
+                    center={[property.longitude, property.latitude]}
+                    zoom={15}
+                    height={220}
+                  />
+                </Paper>
+              )}
 
               {/* Description du logement & Consignes de ménage */}
               {(property.description || property.cleaningNotes) && (

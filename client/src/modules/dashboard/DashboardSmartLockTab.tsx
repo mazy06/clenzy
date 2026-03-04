@@ -64,10 +64,11 @@ const ROOM_SUGGESTIONS = ['Entree', 'Porte principale', 'Chambre 1', 'Chambre 2'
 // ─── Offers view ─────────────────────────────────────────────────────────────
 
 interface OffersViewProps {
-  onConfigure: () => void;
+  onConfigureTuya: () => void;
+  onConfigureNuki: () => void;
 }
 
-function SmartLockOffersView({ onConfigure }: OffersViewProps) {
+function SmartLockOffersView({ onConfigureTuya, onConfigureNuki }: OffersViewProps) {
   const { t } = useTranslation();
 
   return (
@@ -83,6 +84,7 @@ function SmartLockOffersView({ onConfigure }: OffersViewProps) {
       </Typography>
 
       <Grid container spacing={2}>
+        {/* ── Carte Tuya ── */}
         <Grid item xs={12} md={6}>
           <Paper
             elevation={0}
@@ -131,7 +133,7 @@ function SmartLockOffersView({ onConfigure }: OffersViewProps) {
             <Button
               variant="contained"
               size="small"
-              onClick={onConfigure}
+              onClick={onConfigureTuya}
               sx={{
                 textTransform: 'none',
                 fontSize: '0.8125rem',
@@ -139,6 +141,74 @@ function SmartLockOffersView({ onConfigure }: OffersViewProps) {
                 py: 0.75,
                 bgcolor: '#6B8A9A',
                 '&:hover': { bgcolor: '#6B8A9A', filter: 'brightness(0.9)' },
+              }}
+            >
+              {t('dashboard.smartLock.configure')}
+            </Button>
+          </Paper>
+        </Grid>
+
+        {/* ── Carte Nuki ── */}
+        <Grid item xs={12} md={6}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2.5,
+              height: '100%',
+              border: '1.5px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              transition: 'border-color 0.2s, box-shadow 0.2s',
+              '&:hover': {
+                borderColor: '#1A1A2E',
+                boxShadow: '0 2px 12px rgba(26, 26, 46, 0.1)',
+              },
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <LockIcon sx={{ color: '#1A1A2E', fontSize: 22 }} />
+              <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
+                {t('dashboard.smartLock.nuki.offersTitle')}
+              </Typography>
+              <Chip
+                label="Nuki"
+                size="small"
+                sx={{
+                  fontSize: '0.6875rem',
+                  height: 22,
+                  bgcolor: '#1A1A2E',
+                  color: '#fff',
+                  fontWeight: 600,
+                }}
+              />
+            </Box>
+
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', mb: 2, lineHeight: 1.5 }}>
+              {t('dashboard.smartLock.nuki.offersSubtitle')}
+            </Typography>
+
+            <Divider sx={{ my: 1.5 }} />
+
+            <Box sx={{ mb: 2, flex: 1 }}>
+              <FeatureItem text={t('dashboard.smartLock.nuki.feature1')} />
+              <FeatureItem text={t('dashboard.smartLock.nuki.feature2')} />
+              <FeatureItem text={t('dashboard.smartLock.nuki.feature3')} />
+              <FeatureItem text={t('dashboard.smartLock.nuki.feature4')} />
+            </Box>
+
+            <Button
+              variant="contained"
+              size="small"
+              onClick={onConfigureNuki}
+              sx={{
+                textTransform: 'none',
+                fontSize: '0.8125rem',
+                fontWeight: 700,
+                py: 0.75,
+                bgcolor: '#1A1A2E',
+                '&:hover': { bgcolor: '#1A1A2E', filter: 'brightness(1.3)' },
               }}
             >
               {t('dashboard.smartLock.configure')}
@@ -274,7 +344,18 @@ function SmartLockConfigForm({
           </Box>
         );
 
-      case 2:
+      case 2: {
+        const isTuya = form.brand === 'TUYA';
+        const deviceIdLabel = isTuya
+          ? 'ID Device Tuya (optionnel)'
+          : 'Nuki Smart Lock ID (optionnel)';
+        const deviceIdPlaceholder = isTuya
+          ? 'ex: bf4c8e2a...'
+          : 'ex: 123456789';
+        const deviceIdHelper = isTuya
+          ? 'Identifiant du device dans votre compte Tuya. Vous pouvez le configurer plus tard.'
+          : 'Identifiant du Smart Lock dans votre compte Nuki Web. Vous pouvez le configurer plus tard.';
+
         return (
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.5 }}>
@@ -282,6 +363,17 @@ function SmartLockConfigForm({
               <Typography variant="subtitle2" fontWeight={600} sx={{ fontSize: '0.875rem' }}>
                 {t('dashboard.smartLock.config.stepDevice')}
               </Typography>
+              <Chip
+                label={form.brand}
+                size="small"
+                sx={{
+                  fontSize: '0.625rem',
+                  height: 20,
+                  ...(isTuya
+                    ? { borderColor: 'primary.main', color: 'primary.main', variant: 'outlined' }
+                    : { bgcolor: '#1A1A2E', color: '#fff' }),
+                }}
+              />
             </Box>
             <TextField
               fullWidth
@@ -295,15 +387,16 @@ function SmartLockConfigForm({
             <TextField
               fullWidth
               size="small"
-              label="ID Device Tuya (optionnel)"
-              placeholder="ex: bf4c8e2a..."
+              label={deviceIdLabel}
+              placeholder={deviceIdPlaceholder}
               value={form.externalDeviceId}
               onChange={(e) => setFormField('externalDeviceId', e.target.value)}
-              helperText="Identifiant du device dans votre compte Tuya. Vous pouvez le configurer plus tard."
+              helperText={deviceIdHelper}
               sx={{ '& .MuiInputBase-input': { fontSize: '0.8125rem' } }}
             />
           </Box>
         );
+      }
 
       case 3:
         return (
@@ -313,6 +406,24 @@ function SmartLockConfigForm({
             </Typography>
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5 }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <LockIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+                    <strong>Marque :</strong>{' '}
+                    <Chip
+                      label={form.brand}
+                      size="small"
+                      sx={{
+                        fontSize: '0.625rem',
+                        height: 18,
+                        ml: 0.5,
+                        ...(form.brand === 'TUYA'
+                          ? {}
+                          : { bgcolor: '#1A1A2E', color: '#fff' }),
+                      }}
+                    />
+                  </Typography>
+                </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                   <Home sx={{ fontSize: 16, color: 'text.secondary' }} />
                   <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
@@ -337,7 +448,7 @@ function SmartLockConfigForm({
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                     <LabelIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                     <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
-                      <strong>ID Tuya :</strong> {form.externalDeviceId}
+                      <strong>ID {form.brand === 'TUYA' ? 'Tuya' : 'Nuki'} :</strong> {form.externalDeviceId}
                     </Typography>
                   </Box>
                 )}
@@ -506,6 +617,7 @@ interface DevicesViewProps {
     name: string;
     propertyName: string;
     roomName: string | null;
+    brand: string;
     lockState: string;
     batteryLevel: number | null;
     externalDeviceId: string | null;
@@ -601,6 +713,18 @@ function SmartLockDevicesView({ devices, onRemoveDevice, onAddDevice, onToggleLo
 
                     {/* Status chips */}
                     <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
+                      <Chip
+                        size="small"
+                        label={device.brand || 'TUYA'}
+                        sx={{
+                          fontSize: '0.625rem',
+                          height: 20,
+                          fontWeight: 700,
+                          ...(device.brand === 'NUKI'
+                            ? { bgcolor: '#1A1A2E', color: '#fff' }
+                            : {}),
+                        }}
+                      />
                       <LockStateChip lockState={device.lockState} t={t} />
                       <BatteryChip level={device.batteryLevel} />
                       {hasExternalId && (
@@ -648,7 +772,7 @@ function SmartLockDevicesView({ devices, onRemoveDevice, onAddDevice, onToggleLo
 
                     {!hasExternalId && (
                       <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.75, fontSize: '0.625rem', fontStyle: 'italic' }}>
-                        ID Tuya non configure — commandes desactivees
+                        ID {device.brand === 'NUKI' ? 'Nuki' : 'Tuya'} non configure — commandes desactivees
                       </Typography>
                     )}
                   </Box>
@@ -699,7 +823,12 @@ const DashboardSmartLockTab: React.FC = () => {
 
   switch (currentView) {
     case 'offers':
-      return <SmartLockOffersView onConfigure={startConfigFlow} />;
+      return (
+        <SmartLockOffersView
+          onConfigureTuya={() => startConfigFlow('TUYA')}
+          onConfigureNuki={() => startConfigFlow('NUKI')}
+        />
+      );
 
     case 'config-form':
       return (
@@ -735,7 +864,12 @@ const DashboardSmartLockTab: React.FC = () => {
       );
 
     default:
-      return <SmartLockOffersView onConfigure={startConfigFlow} />;
+      return (
+        <SmartLockOffersView
+          onConfigureTuya={() => startConfigFlow('TUYA')}
+          onConfigureNuki={() => startConfigFlow('NUKI')}
+        />
+      );
   }
 };
 

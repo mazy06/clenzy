@@ -40,6 +40,7 @@
     "teams": "Équipes",
     "portfolios": "Portefeuilles",
     "contact": "Contact",
+    "guests": "Voyageurs",
     "reports": "Rapports",
     "users": "Utilisateurs",
     "usersAndOrganizations": "Utilisateurs et Organisations",
@@ -345,7 +346,7 @@
     },
     "smartLock": {
       "title": "Serrures connectées",
-      "subtitle": "Configurez et contrôlez vos serrures connectées Tuya par propriété.",
+      "subtitle": "Configurez et contrôlez vos serrures connectées par propriété.",
       "offersTitle": "Serrures connectées Tuya",
       "offersSubtitle": "Gérez l'accès à vos propriétés avec des serrures connectées compatibles Tuya.",
       "feature1": "Verrouillage/déverrouillage à distance",
@@ -362,6 +363,14 @@
       "lockAction": "Verrouiller",
       "unlockAction": "Déverrouiller",
       "confirmDelete": "Supprimer cette serrure ?",
+      "nuki": {
+        "offersTitle": "Serrures connectées Nuki",
+        "offersSubtitle": "Intégrez vos serrures Nuki Smart Lock pour un contrôle d'accès professionnel via l'API Nuki Web.",
+        "feature1": "Compatible Nuki Smart Lock 3.0 / 4.0",
+        "feature2": "Codes d'accès temporaires via Nuki Web API",
+        "feature3": "Verrouillage automatique et logs d'activité",
+        "feature4": "Intégration bridge WiFi et Bluetooth"
+      },
       "config": {
         "stepProperty": "Propriété",
         "stepRoom": "Pièce",

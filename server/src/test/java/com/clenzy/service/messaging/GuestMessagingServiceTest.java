@@ -2,6 +2,7 @@ package com.clenzy.service.messaging;
 
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
+import com.clenzy.service.MapboxStaticImageService;
 import com.clenzy.service.NotificationService;
 import com.clenzy.service.access.AccessCodeResolverService;
 import com.clenzy.service.access.AccessCodeResult;
@@ -31,6 +32,7 @@ class GuestMessagingServiceTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private NotificationService notificationService;
     @Mock private AccessCodeResolverService accessCodeResolverService;
+    @Mock private MapboxStaticImageService mapboxStaticImageService;
 
     private GuestMessagingService service;
 
@@ -39,7 +41,7 @@ class GuestMessagingServiceTest {
         List<MessageChannel> channels = List.of(emailChannel, whatsAppChannel);
         service = new GuestMessagingService(channels, interpolationService, messageLogRepository,
             instructionsRepository, templateRepository, reservationRepository, notificationService,
-            accessCodeResolverService);
+            accessCodeResolverService, mapboxStaticImageService);
 
         // Default : resolution manuelle (pas de code dynamique)
         lenient().when(accessCodeResolverService.resolveForReservation(any(), any(), any()))

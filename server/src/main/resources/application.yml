@@ -6,6 +6,11 @@ spring:
   threads:
     virtual:
       enabled: true
+  task:
+    scheduling:
+      pool:
+        size: 4          # 1 thread per scheduler (iCal, Noise, Pricing, Messaging)
+      thread-name-prefix: sched-
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
     enabled: false
@@ -93,6 +98,14 @@ resilience4j:
         slidingWindowSize: 20
         failureRateThreshold: 40
         waitDurationInOpenState: 60s
+      twilio-api:
+        baseConfig: external-api
+      nuki-api:
+        baseConfig: external-api
+      hubspot-api:
+        baseConfig: external-api
+      pennylane-api:
+        baseConfig: external-api
   retry:
     configs:
       default:

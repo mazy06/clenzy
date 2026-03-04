@@ -13,6 +13,7 @@ import {
   Bathroom,
   SquareFoot,
   Group,
+  NightsStay,
 } from '@mui/icons-material';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
@@ -182,6 +183,30 @@ const PropertyFormDetails: React.FC<PropertyFormDetailsProps> = React.memo(
                   }}
                   placeholder={t('properties.nightlyPricePlaceholder')}
                   inputProps={{ step: '0.01', min: '0' }}
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Controller
+              name="minimumNights"
+              control={control}
+              render={({ field, fieldState }) => (
+                <TextField
+                  {...field}
+                  fullWidth
+                  type="number"
+                  label="Nuitées minimum"
+                  onChange={(e) => field.onChange(Number(e.target.value))}
+                  size="small"
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+                  InputProps={{
+                    startAdornment: <NightsStay sx={{ mr: 0.75, color: 'text.secondary', fontSize: 16 }} />,
+                  }}
+                  placeholder="1"
+                  inputProps={{ step: '1', min: '1' }}
                 />
               )}
             />

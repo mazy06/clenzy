@@ -12,6 +12,7 @@ export const propertySchema = z.object({
   bathroomCount: z.number().int().min(0, 'Doit être positif'),
   squareMeters: z.number().min(0, 'Doit être positif'),
   nightlyPrice: z.number().min(0, 'Doit être positif'),
+  minimumNights: z.number().int().min(1, 'Au moins 1 nuit'),
   description: z.string(),
   maxGuests: z.number().int().min(1, 'Au moins 1 invité'),
   cleaningFrequency: z.string(),

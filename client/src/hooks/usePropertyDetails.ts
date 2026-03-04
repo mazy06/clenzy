@@ -50,6 +50,9 @@ export interface PropertyDetailsData {
   cleaningNotes?: string;
   createdAt?: string;
   updatedAt?: string;
+  // Geolocalisation
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface PropertyIntervention {
@@ -117,6 +120,8 @@ function convertProperty(raw: Property): PropertyDetailsData {
     cleaningNotes: raw.cleaningNotes,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
+    latitude: raw.latitude,
+    longitude: raw.longitude,
   };
 }
 

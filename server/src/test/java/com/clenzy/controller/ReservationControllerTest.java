@@ -5,6 +5,7 @@ import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.User;
+import com.clenzy.repository.GuestRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
@@ -38,6 +39,7 @@ class ReservationControllerTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private UserRepository userRepository;
+    @Mock private GuestRepository guestRepository;
     @Mock private TenantContext tenantContext;
 
     private ReservationController controller;
@@ -52,8 +54,9 @@ class ReservationControllerTest {
     }
 
     private ReservationDto sampleDto(String status) {
-        return new ReservationDto(1L, 1L, "Apt A", "Jean", 2, "2026-03-01", "2026-03-04",
-                "14:00", "11:00", status, "direct", null, 150.0, "ABC123", "notes");
+        return new ReservationDto(1L, 1L, "Apt A", "Jean", null, null, null, 2, "2026-03-01", "2026-03-04",
+                "14:00", "11:00", status, "direct", null, 150.0, "ABC123", "notes",
+                null, null, null);
     }
 
     private Property createOwnedProperty(String ownerKeycloakId) {
@@ -70,7 +73,7 @@ class ReservationControllerTest {
     @BeforeEach
     void setUp() {
         controller = new ReservationController(reservationService, reservationMapper,
-                reservationRepository, propertyRepository, userRepository, tenantContext);
+                reservationRepository, propertyRepository, userRepository, guestRepository, tenantContext);
     }
 
     @Nested
@@ -157,8 +160,9 @@ class ReservationControllerTest {
             when(reservationService.save(any(Reservation.class))).thenReturn(saved);
             when(reservationMapper.toDto(saved)).thenReturn(sampleDto("confirmed"));
 
-            ReservationDto inputDto = new ReservationDto(null, 1L, null, "Guest", 2,
-                    "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null);
+            ReservationDto inputDto = new ReservationDto(null, 1L, null, "Guest", null, null, null, 2,
+                    "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
+                    null, null, null);
             ResponseEntity<ReservationDto> response = controller.create(inputDto, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);

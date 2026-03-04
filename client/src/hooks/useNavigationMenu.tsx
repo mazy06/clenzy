@@ -25,6 +25,7 @@ import {
   Storage,
   Receipt,
   CalendarViewWeek,
+  PersonSearch,
 } from '@mui/icons-material';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -138,6 +139,14 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     roles: ['all'],
     permission: 'contact:view',
     translationKey: 'navigation.contact',
+    group: 'management',
+  },
+  {
+    icon: <PersonSearch />,
+    path: '/guests',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
+    permission: 'guests:view',
+    translationKey: 'navigation.guests',
     group: 'management',
   },
   {

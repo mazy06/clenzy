@@ -82,6 +82,9 @@ import ReservationsList from './reservations/ReservationsList';
 // Planning
 import PlanningPage from './planning/PlanningPage';
 
+// Guests
+import GuestsListPage from './guests/GuestsListPage';
+
 // Dynamic Pricing
 import DynamicPricing from './pricing/DynamicPricing';
 
@@ -234,6 +237,14 @@ const AuthenticatedApp: React.FC = () => {
           <ProtectedRoute requiredPermission="reservations:view">
             <ErrorBoundary>
               <PlanningPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/guests" element={
+          <ProtectedRoute requiredPermission="guests:view">
+            <ErrorBoundary>
+              <GuestsListPage />
             </ErrorBoundary>
           </ProtectedRoute>
         } />

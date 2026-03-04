@@ -42,9 +42,11 @@ class DtoCoverageTest {
             assertThat(dto.type()).isEqualTo("SEASONAL");
         }
         @Test void reservationDto() {
-            ReservationDto dto = new ReservationDto(1L, 2L, "Villa Bleue", "Jean", 2,
+            ReservationDto dto = new ReservationDto(1L, 2L, "Villa Bleue", "Jean",
+                    null, null, null, 2,
                     "2026-03-01", "2026-03-05", "14:00", "11:00",
-                    "CONFIRMED", "AIRBNB", "Airbnb", 500.0, "ABC123", "Notes");
+                    "CONFIRMED", "AIRBNB", "Airbnb", 500.0, "ABC123", "Notes",
+                    50.0, 12.0, true);
             assertThat(dto.id()).isEqualTo(1L);
             assertThat(dto.propertyId()).isEqualTo(2L);
             assertThat(dto.guestName()).isEqualTo("Jean");
