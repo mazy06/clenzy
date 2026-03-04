@@ -13,6 +13,7 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Tooltip,
 } from '@mui/material';
 import {
   CalendarMonth,
@@ -28,9 +29,12 @@ import {
   Schedule,
   Warning,
   Save,
+  Send,
+  MarkEmailRead,
+  Email,
 } from '@mui/icons-material';
 import type { PlanningEvent, PlanningProperty } from '../types';
-import { RESERVATION_STATUS_COLORS, RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS } from '../../../services/api/reservationsApi';
+import { reservationsApi, RESERVATION_STATUS_COLORS, RESERVATION_STATUS_LABELS, RESERVATION_SOURCE_LABELS } from '../../../services/api/reservationsApi';
 import type { ReservationStatus, ReservationSource } from '../../../services/api';
 import GuestCardDialog from './GuestCardDialog';
 import ChangePropertyDialog from './ChangePropertyDialog';
@@ -135,14 +139,17 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
 
       <Divider />
 
-      {/* Price */}
+      {/* Price & Payment link */}
       <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <AttachMoney sx={{ fontSize: 18, color: 'text.secondary' }} />
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
             {reservation.totalPrice?.toFixed(2)} EUR
           </Typography>
         </Box>
+
+        {/* Payment link status */}
+        <PaymentLinkSection reservation={reservation} />
       </Box>
 
       <Divider />
@@ -283,6 +290,173 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
           </Button>
         </DialogActions>
       </Dialog>
+    </Box>
+  );
+};
+
+// ─── Payment Link Section ────────────────────────────────────────────────────
+
+interface PaymentLinkSectionProps {
+  reservation: NonNullable<PlanningEvent['reservation']>;
+}
+
+const PaymentLinkSection: React.FC<PaymentLinkSectionProps> = ({ reservation }) => {
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [showEmailInput, setShowEmailInput] = useState(false);
+  const [customEmail, setCustomEmail] = useState('');
+  // Local state to track after send without needing parent re-render
+  const [lastSentAt, setLastSentAt] = useState<string | null>(reservation.paymentLinkSentAt || null);
+  const [lastSentEmail, setLastSentEmail] = useState<string | null>(reservation.paymentLinkEmail || null);
+
+  // Sync with prop changes (e.g. if parent re-fetches)
+  useEffect(() => {
+    setLastSentAt(reservation.paymentLinkSentAt || null);
+    setLastSentEmail(reservation.paymentLinkEmail || null);
+    setSuccess(false);
+    setError(null);
+    setShowEmailInput(false);
+    setCustomEmail('');
+  }, [reservation.id, reservation.paymentLinkSentAt, reservation.paymentLinkEmail]);
+
+  const handleSend = async (email?: string) => {
+    setSending(true);
+    setError(null);
+    setSuccess(false);
+    try {
+      const result = await reservationsApi.sendPaymentLink(reservation.id, email || undefined);
+      setLastSentAt(result.paymentLinkSentAt || new Date().toISOString());
+      setLastSentEmail(result.paymentLinkEmail || email || reservation.guestEmail || null);
+      setSuccess(true);
+      setShowEmailInput(false);
+      setCustomEmail('');
+      setTimeout(() => setSuccess(false), 4000);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erreur lors de l'envoi";
+      setError(message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const formatDate = (isoStr: string) => {
+    try {
+      const d = new Date(isoStr);
+      return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return isoStr;
+    }
+  };
+
+  const hasTotalPrice = reservation.totalPrice != null && reservation.totalPrice > 0;
+
+  return (
+    <Box sx={{ mt: 1 }}>
+      {/* Status indicator */}
+      {lastSentAt ? (
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
+          <MarkEmailRead sx={{ fontSize: 16, color: '#4A9B8E', mt: 0.25 }} />
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="caption" sx={{ color: '#4A9B8E', fontWeight: 600, fontSize: '0.6875rem', display: 'block' }}>
+              Lien de paiement envoye
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.625rem', display: 'block' }}>
+              Le {formatDate(lastSentAt)} a {lastSentEmail}
+            </Typography>
+          </Box>
+        </Box>
+      ) : (
+        hasTotalPrice && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <Email sx={{ fontSize: 16, color: 'text.disabled' }} />
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6875rem' }}>
+              Lien de paiement non envoye
+            </Typography>
+          </Box>
+        )
+      )}
+
+      {/* Action buttons */}
+      {hasTotalPrice && (
+        <>
+          {!showEmailInput ? (
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Tooltip title={lastSentAt ? 'Renvoyer le lien de paiement' : 'Envoyer un lien de paiement Stripe par email'}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={sending ? <CircularProgress size={12} /> : <Send sx={{ fontSize: 14 }} />}
+                  onClick={() => handleSend()}
+                  disabled={sending || !reservation.guestEmail}
+                  sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
+                >
+                  {lastSentAt ? 'Renvoyer' : 'Envoyer le lien'}
+                </Button>
+              </Tooltip>
+              <Tooltip title="Envoyer a une autre adresse email">
+                <Button
+                  size="small"
+                  variant="text"
+                  startIcon={<Edit sx={{ fontSize: 12 }} />}
+                  onClick={() => setShowEmailInput(true)}
+                  disabled={sending}
+                  sx={{ fontSize: '0.6875rem', textTransform: 'none', color: 'text.secondary' }}
+                >
+                  Autre email
+                </Button>
+              </Tooltip>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <TextField
+                size="small"
+                type="email"
+                placeholder="email@exemple.com"
+                value={customEmail}
+                onChange={(e) => setCustomEmail(e.target.value)}
+                fullWidth
+                autoFocus
+                sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
+                inputProps={{ style: { padding: '6px 10px' } }}
+              />
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  size="small"
+                  variant="contained"
+                  startIcon={sending ? <CircularProgress size={12} /> : <Send sx={{ fontSize: 14 }} />}
+                  onClick={() => handleSend(customEmail)}
+                  disabled={sending || !customEmail.trim() || !customEmail.includes('@')}
+                  sx={{ fontSize: '0.6875rem', textTransform: 'none', flex: 1 }}
+                >
+                  Envoyer
+                </Button>
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => { setShowEmailInput(false); setCustomEmail(''); }}
+                  disabled={sending}
+                  sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
+                >
+                  Annuler
+                </Button>
+              </Box>
+            </Box>
+          )}
+        </>
+      )}
+
+      {/* Feedback */}
+      {success && (
+        <Alert severity="success" sx={{ mt: 1, fontSize: '0.6875rem', py: 0, '& .MuiAlert-message': { fontSize: '0.6875rem' } }}>
+          Lien de paiement envoye avec succes
+        </Alert>
+      )}
+      {error && (
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mt: 1, fontSize: '0.6875rem', py: 0, '& .MuiAlert-message': { fontSize: '0.6875rem' } }}>
+          {error}
+        </Alert>
+      )}
     </Box>
   );
 };

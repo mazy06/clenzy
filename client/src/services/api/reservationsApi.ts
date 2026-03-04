@@ -23,6 +23,9 @@ export interface Reservation {
   confirmationCode?: string;
   totalPrice: number;
   notes?: string;
+  // Payment link tracking
+  paymentLinkSentAt?: string;  // ISO datetime string
+  paymentLinkEmail?: string;   // Email used for the last payment link
 }
 
 export interface ReservationFilters {
@@ -664,5 +667,13 @@ export const reservationsApi = {
 
   async cancel(id: number): Promise<void> {
     return apiClient.delete(`/reservations/${id}`);
+  },
+
+  /**
+   * Envoie (ou renvoie) un lien de paiement Stripe par email au guest.
+   * Si email est fourni, envoie à cette adresse ; sinon utilise l'email du guest.
+   */
+  async sendPaymentLink(id: number, email?: string): Promise<Reservation> {
+    return apiClient.post<Reservation>(`/reservations/${id}/send-payment-link`, { email: email || null });
   },
 };

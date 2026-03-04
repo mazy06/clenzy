@@ -98,6 +98,16 @@ public class Reservation {
     @JoinColumn(name = "ical_feed_id")
     private ICalFeed icalFeed;
 
+    // --- Payment link tracking ---
+    @Column(name = "payment_link_sent_at")
+    private LocalDateTime paymentLinkSentAt;
+
+    @Column(name = "payment_link_email", length = 255)
+    private String paymentLinkEmail;
+
+    @Column(name = "stripe_session_id", length = 255)
+    private String stripeSessionId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -204,6 +214,15 @@ public class Reservation {
 
     public BigDecimal getTouristTaxAmount() { return touristTaxAmount; }
     public void setTouristTaxAmount(BigDecimal touristTaxAmount) { this.touristTaxAmount = touristTaxAmount; }
+
+    public LocalDateTime getPaymentLinkSentAt() { return paymentLinkSentAt; }
+    public void setPaymentLinkSentAt(LocalDateTime paymentLinkSentAt) { this.paymentLinkSentAt = paymentLinkSentAt; }
+
+    public String getPaymentLinkEmail() { return paymentLinkEmail; }
+    public void setPaymentLinkEmail(String paymentLinkEmail) { this.paymentLinkEmail = paymentLinkEmail; }
+
+    public String getStripeSessionId() { return stripeSessionId; }
+    public void setStripeSessionId(String stripeSessionId) { this.stripeSessionId = stripeSessionId; }
 
     @Override
     public String toString() {

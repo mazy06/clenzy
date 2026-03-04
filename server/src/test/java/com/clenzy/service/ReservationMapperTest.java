@@ -177,7 +177,7 @@ class ReservationMapperTest {
                     "14:00", "10:00",
                     null, null, null,
                     200.0, "CONF123", "VIP guest",
-                    null, null, null
+                    null, null, null, null, null
             );
 
             Reservation entity = new Reservation();
@@ -206,7 +206,7 @@ class ReservationMapperTest {
                     null, null, null,
                     null, null, null, null, null,
                     null, null, null,
-                    null, null, null
+                    null, null, null, null, null
             );
 
             Reservation entity = new Reservation();
@@ -225,7 +225,7 @@ class ReservationMapperTest {
                     null, null, null,
                     null, null, null, null, null,
                     null, null, null,
-                    null, null, null
+                    null, null, null, null, null
             );
 
             Reservation entity = new Reservation();
@@ -243,7 +243,7 @@ class ReservationMapperTest {
                     null, null, null,
                     null, null, null, null, null,
                     null, null, null,
-                    null, null, null
+                    null, null, null, null, null
             );
 
             Reservation entity = createReservation();
