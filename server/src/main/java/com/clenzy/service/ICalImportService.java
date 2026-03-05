@@ -199,6 +199,17 @@ public class ICalImportService {
                 reservation.setOrganizationId(tenantContext.getOrganizationId());
                 reservation = reservationRepository2.save(reservation);
 
+                // Auto-masquer les reservations annulees qui chevauchent la nouvelle
+                List<Reservation> cancelledOverlapping = reservationRepository2.findCancelledOverlapping(
+                        property.getId(), reservation.getCheckIn(), reservation.getCheckOut(),
+                        tenantContext.getRequiredOrganizationId());
+                for (Reservation cancelled : cancelledOverlapping) {
+                    cancelled.setHiddenFromPlanning(true);
+                    reservationRepository2.save(cancelled);
+                    log.info("Auto-masque reservation annulee #{} (chevauche nouvelle OTA #{})",
+                            cancelled.getId(), reservation.getId());
+                }
+
                 // 2. Creer l'intervention de menage (si auto-create active ET pas deja existante)
                 if (request.isAutoCreateInterventions()) {
                     // Verifier si une intervention avec ce UID existe deja (via specialInstructions)
@@ -211,7 +222,9 @@ public class ICalImportService {
                                 .anyMatch(instr -> instr.contains("[ICAL:" + event.getUid() + "]"));
                     }
                     if (!interventionExists) {
-                        createCleaningIntervention(property, event, request.getSourceName(), true);
+                        Intervention interv = createCleaningIntervention(property, event, request.getSourceName(), true);
+                        reservation.setIntervention(interv);
+                        reservationRepository2.save(reservation);
                     }
                 }
 
@@ -346,7 +359,7 @@ public class ICalImportService {
      * Cree automatiquement une intervention de menage pour une reservation importee.
      * Suit le meme pattern que AirbnbReservationService.createCleaningIntervention()
      */
-    private void createCleaningIntervention(Property property, ICalEventPreview event,
+    private Intervention createCleaningIntervention(Property property, ICalEventPreview event,
                                             String sourceName, boolean autoSchedule) {
         User owner = property.getOwner();
 
@@ -455,11 +468,13 @@ public class ICalImportService {
         }
 
         intervention.setOrganizationId(tenantContext.getOrganizationId());
-        interventionRepository.save(intervention);
+        intervention = interventionRepository.save(intervention);
 
         log.info("Intervention menage #{} creee pour propriete {} ({}, {}, auto={})",
                 intervention.getId(), property.getName(), sourceName,
                 event.getGuestName() != null ? event.getGuestName() : "N/A", autoSchedule);
+
+        return intervention;
     }
 
     /**

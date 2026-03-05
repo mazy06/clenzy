@@ -42,7 +42,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { QuickCreateData, PlanningEvent } from './types';
 import type { CreateReservationData } from '../../services/api';
-import { reservationsApi, guestsApi } from '../../services/api';
+import { reservationsApi, guestsApi, propertiesApi } from '../../services/api';
 import type { GuestDto, CreateGuestData } from '../../services/api';
 import { planningKeys } from './hooks/usePlanningData';
 import MiniDateRangePicker from '../../components/MiniDateRangePicker';
@@ -130,6 +130,15 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  // ── Fetch fresh property details (for cleaningBasePrice fallback) ─────
+  const propertyId = data?.propertyId;
+  const freshPropertyQuery = useQuery({
+    queryKey: ['property-fresh', propertyId],
+    queryFn: () => propertiesApi.getById(propertyId!),
+    enabled: !!propertyId && open,
+    staleTime: 30_000,
+  });
+
   // ── Init state from data ──────────────────────────────────────────────
   useEffect(() => {
     if (data && open) {
@@ -197,7 +206,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
       setCheckInTime(adjustedCheckInTime);
       setCheckOutTime(defaultCheckOut);
       setStatus('pending');
-      setCreateCleaning(data.cleaningFrequency === 'AFTER_EACH_STAY');
+      setCreateCleaning(data.cleaningFrequency?.toUpperCase() === 'AFTER_EACH_STAY');
       setCleaningFee(data.cleaningBasePrice ? String(data.cleaningBasePrice) : '');
       setTouristTaxPerPerson('');
       setConfirmationCode(generateConfirmationCode());
@@ -215,6 +224,20 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
       setError(null);
     }
   }, [data, open, events]);
+
+  // ── Fallback: fill cleaning fields from fresh property data ───────────
+  const freshProp = freshPropertyQuery.data;
+  useEffect(() => {
+    if (!open || !freshProp) return;
+    // Only fill if not already set from planning data
+    if (!cleaningFee && freshProp.cleaningBasePrice) {
+      setCleaningFee(String(freshProp.cleaningBasePrice));
+    }
+    if (!createCleaning && freshProp.cleaningFrequency?.toUpperCase() === 'AFTER_EACH_STAY') {
+      setCreateCleaning(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [freshProp, open]);
 
   // ── Conflict detection (reservations + interventions) ─────────────────
   const conflictWarnings = useMemo(() => {
@@ -860,9 +883,9 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
             />
             <Collapse in={createCleaning}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {data.cleaningBasePrice != null && data.cleaningBasePrice > 0 && (
+                {((freshProp?.cleaningBasePrice ?? data.cleaningBasePrice) != null && (freshProp?.cleaningBasePrice ?? data.cleaningBasePrice)! > 0) && (
                   <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', fontStyle: 'italic' }}>
-                    Montant estime du logement : {data.cleaningBasePrice.toFixed(2)} EUR
+                    Montant estime du logement : {(freshProp?.cleaningBasePrice ?? data.cleaningBasePrice)!.toFixed(2)} EUR
                   </Typography>
                 )}
                 <TextField
@@ -877,7 +900,7 @@ const PlanningQuickCreateDialog: React.FC<PlanningQuickCreateDialogProps> = ({
                     startAdornment: <CleaningServices sx={{ fontSize: 14, color: 'text.secondary', mr: 0.5 }} />,
                   }}
                   InputLabelProps={{ shrink: true }}
-                  placeholder={data.cleaningBasePrice ? String(data.cleaningBasePrice) : ''}
+                  placeholder={(freshProp?.cleaningBasePrice ?? data.cleaningBasePrice) ? String(freshProp?.cleaningBasePrice ?? data.cleaningBasePrice) : ''}
                   sx={FIELD_SX}
                 />
               </Box>

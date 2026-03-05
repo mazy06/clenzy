@@ -44,6 +44,7 @@ vi.mock('../../../hooks/usePropertyDetails', () => ({
   usePropertyDetails: vi.fn(() => ({
     property: mockPropertyData,
     interventions: mockInterventions,
+    serviceRequests: [],
     isLoading: false,
     isError: false,
     error: null,

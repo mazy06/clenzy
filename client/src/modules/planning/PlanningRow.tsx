@@ -29,6 +29,7 @@ interface PlanningRowProps {
   isDragging: boolean;
   dragState: PlanningDragState;
   onEventClick: (event: PlanningEvent) => void;
+  onHideEvent?: (event: PlanningEvent) => void;
   onEmptyClick: (data: QuickCreateData) => void;
   quickCreateOpen: boolean;
   showPrices: boolean;
@@ -55,6 +56,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   isDragging,
   dragState,
   onEventClick,
+  onHideEvent,
   onEmptyClick,
   quickCreateOpen,
   showPrices,
@@ -500,6 +502,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
             resizeWidth={resizeWidth}
             resizeConflict={resizeConflict}
             onClick={onEventClick}
+            onHide={onHideEvent}
           />
         );
       })}

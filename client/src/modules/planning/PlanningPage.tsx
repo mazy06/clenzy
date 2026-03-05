@@ -94,7 +94,11 @@ const PlanningPage: React.FC = () => {
   } = usePlanningSelection(filteredEvents);
 
   // Reservation update (dates & times from panel, with validation)
-  const { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation } = useReservationUpdate(filteredEvents, interventions);
+  const { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation, hideReservation } = useReservationUpdate(filteredEvents, interventions);
+
+  const handleHideEvent = useCallback((event: { reservation?: { id: number } }) => {
+    if (event.reservation) hideReservation(event.reservation.id);
+  }, [hideReservation]);
 
   // Intervention actions (create, assign, priority, notes)
   const {
@@ -288,6 +292,7 @@ const PlanningPage: React.FC = () => {
             events={filteredEvents}
             drag={drag}
             onEventClick={selectEvent}
+            onHideEvent={handleHideEvent}
             onEmptyClick={openQuickCreate}
             quickCreateOpen={!!quickCreateData}
             scrollRef={timeline.scrollRef}

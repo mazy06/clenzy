@@ -26,6 +26,7 @@ export interface Reservation {
   // Payment link tracking
   paymentLinkSentAt?: string;  // ISO datetime string
   paymentLinkEmail?: string;   // Email used for the last payment link
+  hiddenFromPlanning?: boolean;
 }
 
 export interface ReservationFilters {
@@ -667,6 +668,10 @@ export const reservationsApi = {
 
   async cancel(id: number): Promise<void> {
     return apiClient.delete(`/reservations/${id}`);
+  },
+
+  async hideFromPlanning(id: number): Promise<Reservation> {
+    return apiClient.patch<Reservation>(`/reservations/${id}/hide`);
   },
 
   /**

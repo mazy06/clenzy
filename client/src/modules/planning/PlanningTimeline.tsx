@@ -24,6 +24,7 @@ interface PlanningTimelineProps {
   events: PlanningEvent[];
   drag: UsePlanningDragReturn;
   onEventClick: (event: PlanningEvent) => void;
+  onHideEvent?: (event: PlanningEvent) => void;
   onEmptyClick: (data: QuickCreateData) => void;
   quickCreateOpen: boolean;
   scrollRef: React.RefObject<HTMLDivElement | null>;
@@ -47,6 +48,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   events,
   drag,
   onEventClick,
+  onHideEvent,
   onEmptyClick,
   quickCreateOpen,
   scrollRef,
@@ -164,6 +166,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                     isDragging={drag.state.isDragging}
                     dragState={drag.state}
                     onEventClick={onEventClick}
+                    onHideEvent={onHideEvent}
                     onEmptyClick={onEmptyClick}
                     quickCreateOpen={quickCreateOpen}
                     showPrices={showPrices}

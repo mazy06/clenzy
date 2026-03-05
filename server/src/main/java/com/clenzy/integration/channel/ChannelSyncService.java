@@ -61,18 +61,21 @@ public class ChannelSyncService {
      * Consumer Kafka pour les events calendrier emis par le CalendarEngine
      * via OutboxRelay.
      *
-     * IMPORTANT : OutboxRelay envoie event.getPayload() (un String JSON brut)
-     * via KafkaTemplate<String, Object> + JsonSerializer.
-     * Le JsonSerializer double-serialise le String (l'enveloppe dans des quotes).
-     * Le JsonDeserializer cote consumer renvoie donc un String, pas un Map.
-     * On accepte String et on parse manuellement avec ObjectMapper.
+     * OutboxRelay parse le payload JSON en Object avant envoi, donc le
+     * JsonDeserializer côté consumer renvoie directement un Map.
      */
     @SuppressWarnings("unchecked")
     @Transactional
     @KafkaListener(topics = KafkaConfig.TOPIC_CALENDAR_UPDATES, groupId = "clenzy-channel-sync")
-    public void onCalendarUpdate(String rawPayload) {
+    public void onCalendarUpdate(Object payload) {
         try {
-            Map<String, Object> event = objectMapper.readValue(rawPayload, Map.class);
+            Map<String, Object> event;
+            if (payload instanceof Map) {
+                event = (Map<String, Object>) payload;
+            } else {
+                // Fallback pour les anciens messages double-serialises (String JSON)
+                event = objectMapper.readValue(payload.toString(), Map.class);
+            }
 
             Long propertyId = extractLong(event, "propertyId");
             Long orgId = extractLong(event, "orgId");
