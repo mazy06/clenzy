@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { serviceRequestsApi, teamsApi, usersApi } from '../../services/api';
@@ -28,6 +28,8 @@ export function useServiceRequestsList() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const propertyIdParam = searchParams.get('propertyId');
   const { user, isAdmin, isManager, isHost, hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
 
@@ -284,6 +286,9 @@ export function useServiceRequestsList() {
 
   const filteredServiceRequests = useMemo(() => {
     return serviceRequests.filter((request) => {
+      // Property filter (from URL query param)
+      if (propertyIdParam && request.propertyId !== Number(propertyIdParam)) return false;
+
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = request.title.toLowerCase().includes(searchLower) ||
                            request.description.toLowerCase().includes(searchLower) ||
@@ -293,7 +298,7 @@ export function useServiceRequestsList() {
       const matchesPriority = selectedPriority === 'all' || request.priority === selectedPriority;
       return matchesSearch && matchesType && matchesStatus && matchesPriority;
     });
-  }, [serviceRequests, searchTerm, selectedType, selectedStatus, selectedPriority]);
+  }, [serviceRequests, searchTerm, selectedType, selectedStatus, selectedPriority, propertyIdParam]);
 
   const canModifyServiceRequest = (request: ServiceRequest): boolean => {
     if (isAdmin() || isManager()) return true;

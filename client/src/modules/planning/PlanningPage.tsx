@@ -94,7 +94,7 @@ const PlanningPage: React.FC = () => {
   } = usePlanningSelection(filteredEvents);
 
   // Reservation update (dates & times from panel, with validation)
-  const { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation, hideReservation } = useReservationUpdate(filteredEvents, interventions);
+  const { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation, hideReservation, updateGuestInfo } = useReservationUpdate(filteredEvents, interventions);
 
   const handleHideEvent = useCallback((event: { reservation?: { id: number } }) => {
     if (event.reservation) hideReservation(event.reservation.id);
@@ -180,6 +180,34 @@ const PlanningPage: React.FC = () => {
     return { url: session.url, sessionId: session.sessionId };
   }, []);
 
+  const createEmbeddedSession = useCallback(async (interventionId: number, amount: number) => {
+    const { paymentsApi } = await import('../../services/api/paymentsApi');
+    const session = await paymentsApi.createEmbeddedSession({ interventionId, amount });
+    return { clientSecret: session.clientSecret || '', sessionId: session.sessionId };
+  }, []);
+
+  const sendPaymentLink = useCallback(async (reservationId: number, email?: string) => {
+    const { reservationsApi } = await import('../../services/api');
+    await reservationsApi.sendPaymentLink(reservationId, email);
+  }, []);
+
+  const generateInvoice = useCallback(async (data: {
+    documentType: string;
+    referenceId: number;
+    referenceType: string;
+    emailTo?: string;
+    sendEmail: boolean;
+  }) => {
+    const { documentsApi } = await import('../../services/api/documentsApi');
+    const result = await documentsApi.generateDocument(data);
+    return {
+      id: result.id,
+      fileName: result.fileName,
+      status: result.status,
+      legalNumber: result.legalNumber ?? null,
+    };
+  }, []);
+
   // Drag & drop
   const drag = usePlanningDrag({
     events: filteredEvents,
@@ -203,6 +231,15 @@ const PlanningPage: React.FC = () => {
       });
     }
   }, [loading, filteredProperties.length, timeline]);
+
+  // ── Auto-scroll: always position selected reservation at 3rd column ─────────
+  useEffect(() => {
+    if (!selectedEvent || !selection.panelOpen) return;
+
+    requestAnimationFrame(() => {
+      timeline.scrollToDate(new Date(selectedEvent.startDate));
+    });
+  }, [selectedEvent?.id, selection.panelOpen, timeline]);
 
   return (
     <Box
@@ -333,6 +370,7 @@ const PlanningPage: React.FC = () => {
         onChangeProperty={changeProperty}
         onCancelReservation={cancelReservation}
         onUpdateNotes={updateNotes}
+        onUpdateGuestInfo={updateGuestInfo}
         onAssignIntervention={assignIntervention}
         onSetPriority={setPriority}
         onUpdateInterventionNotes={updateInterventionNotes}
@@ -343,6 +381,9 @@ const PlanningPage: React.FC = () => {
         onUploadPhotos={uploadPhotos}
         onUpdateInterventionProgress={updateInterventionProgress}
         onCreatePaymentSession={createPaymentSession}
+        onCreateEmbeddedSession={createEmbeddedSession}
+        onSendPaymentLink={sendPaymentLink}
+        onGenerateInvoice={generateInvoice}
         onDuplicateReservation={duplicateReservation}
       />
 

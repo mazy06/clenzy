@@ -49,7 +49,7 @@ import {
 } from './useICalImport';
 
 // ─── Source logos ─────────────────────────────────────────────────────────────
-import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.png';
+import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogoSmall from '../../assets/logo/logo-booking-planning.png';
 import homeAwayLogo from '../../assets/logo/HomeAway-logo.png';
 import expediaLogo from '../../assets/logo/expedia-logo.png';

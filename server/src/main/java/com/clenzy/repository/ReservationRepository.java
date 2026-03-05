@@ -114,4 +114,15 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     List<Reservation> findByInterventionIdIn(
         @Param("interventionIds") List<Long> interventionIds,
         @Param("orgId") Long orgId);
+
+    /**
+     * Compte les reservations dont le guestName commence par un prefix donne, sur une propriete.
+     * Utilise par ICalImportService pour incrementer les noms generiques (Reserved #1, #2...).
+     */
+    @Query("SELECT COUNT(r) FROM Reservation r WHERE r.guestName LIKE CONCAT(:prefix, '%') " +
+           "AND r.property.id = :propertyId AND r.organizationId = :orgId")
+    long countByGuestNameStartingWithAndPropertyId(
+            @Param("prefix") String prefix,
+            @Param("propertyId") Long propertyId,
+            @Param("orgId") Long orgId);
 }

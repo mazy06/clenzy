@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -10,6 +10,8 @@ import {
   AccordionSummary,
   AccordionDetails,
   Alert,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import {
   Home,
@@ -25,6 +27,7 @@ import {
   OpenInNew,
   Handyman,
   Assignment,
+  ArrowForward,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { usePropertyDetails } from '../../../hooks/usePropertyDetails';
@@ -67,6 +70,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
   onDrillDown,
 }) => {
   const navigate = useNavigate();
+  const [activeSubTab, setActiveSubTab] = useState<'requests' | 'interventions'>('requests');
   const { property, interventions, serviceRequests = [], isLoading, isError, error } = usePropertyDetails(
     propertyId?.toString(),
   );
@@ -265,125 +269,170 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
 
       <Divider sx={{ my: 1.5 }} />
 
-      {/* Service requests for this property */}
-      <Typography sx={SECTION_TITLE_SX}>Demandes de service ({serviceRequests.length})</Typography>
-      {serviceRequests.length === 0 ? (
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
-          Aucune demande de service
-        </Typography>
-      ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-          {serviceRequests.slice(0, 8).map((sr) => {
-            const statusColors: Record<string, string> = {
-              PENDING: '#ED6C02',
-              APPROVED: '#0288d1',
-              DEVIS_ACCEPTED: '#7B1FA2',
-              IN_PROGRESS: '#1565C0',
-              COMPLETED: '#4A9B8E',
-              REJECTED: '#757575',
-              CANCELLED: '#757575',
-            };
-            const c = statusColors[sr.status] || '#ED6C02';
-            const statusLabels: Record<string, string> = {
-              PENDING: 'En attente',
-              APPROVED: 'Approuvée',
-              DEVIS_ACCEPTED: 'Devis accepté',
-              IN_PROGRESS: 'En cours',
-              COMPLETED: 'Terminée',
-              REJECTED: 'Rejetée',
-              CANCELLED: 'Annulée',
-            };
-            return (
-              <Box
-                key={sr.id}
-                onClick={() => navigate(`/service-requests/${sr.id}`)}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  p: 1,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 1,
-                  cursor: 'pointer',
-                  '&:hover': { backgroundColor: 'action.hover' },
-                }}
-              >
-                <Assignment sx={{ fontSize: 14, color: 'text.secondary' }} />
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {sr.title}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary' }}>
-                    {sr.serviceType?.replace(/_/g, ' ')} · {sr.desiredDate}
-                  </Typography>
-                </Box>
-                <Chip
-                  label={statusLabels[sr.status] || sr.status}
-                  size="small"
-                  sx={{ fontSize: '0.5625rem', height: 20, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-                />
-              </Box>
-            );
-          })}
-          {serviceRequests.length > 8 && (
-            <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', textAlign: 'center' }}>
-              +{serviceRequests.length - 8} autres
+      {/* Sub-tabs: Demandes / Interventions */}
+      <Tabs
+        value={activeSubTab}
+        onChange={(_, v) => setActiveSubTab(v)}
+        variant="fullWidth"
+        sx={{
+          minHeight: 32,
+          mb: 1.5,
+          '& .MuiTab-root': {
+            minHeight: 32,
+            fontSize: '0.6875rem',
+            textTransform: 'none',
+            fontWeight: 600,
+            py: 0.5,
+          },
+        }}
+      >
+        <Tab
+          icon={<Assignment sx={{ fontSize: 14 }} />}
+          iconPosition="start"
+          label={`Demandes (${serviceRequests.length})`}
+          value="requests"
+        />
+        <Tab
+          icon={<Handyman sx={{ fontSize: 14 }} />}
+          iconPosition="start"
+          label={`Interventions (${interventions.length})`}
+          value="interventions"
+        />
+      </Tabs>
+
+      {activeSubTab === 'requests' && (
+        <>
+          {serviceRequests.length === 0 ? (
+            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
+              Aucune demande de service
             </Typography>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+              {[...serviceRequests]
+                .sort((a, b) => new Date(b.desiredDate || '').getTime() - new Date(a.desiredDate || '').getTime())
+                .slice(0, 5)
+                .map((sr) => {
+                  const statusColors: Record<string, string> = {
+                    PENDING: '#ED6C02',
+                    APPROVED: '#0288d1',
+                    DEVIS_ACCEPTED: '#7B1FA2',
+                    IN_PROGRESS: '#1565C0',
+                    COMPLETED: '#4A9B8E',
+                    REJECTED: '#757575',
+                    CANCELLED: '#757575',
+                  };
+                  const c = statusColors[sr.status] || '#ED6C02';
+                  const statusLabels: Record<string, string> = {
+                    PENDING: 'En attente',
+                    APPROVED: 'Approuvée',
+                    DEVIS_ACCEPTED: 'Devis accepté',
+                    IN_PROGRESS: 'En cours',
+                    COMPLETED: 'Terminée',
+                    REJECTED: 'Rejetée',
+                    CANCELLED: 'Annulée',
+                  };
+                  return (
+                    <Box
+                      key={sr.id}
+                      onClick={() => navigate(`/service-requests/${sr.id}`)}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        p: 1,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        '&:hover': { backgroundColor: 'action.hover' },
+                      }}
+                    >
+                      <Assignment sx={{ fontSize: 14, color: 'text.secondary' }} />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {sr.title}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary' }}>
+                          {sr.serviceType?.replace(/_/g, ' ')} · {sr.desiredDate}
+                        </Typography>
+                      </Box>
+                      <Chip
+                        label={statusLabels[sr.status] || sr.status}
+                        size="small"
+                        sx={{ fontSize: '0.5625rem', height: 20, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+                      />
+                    </Box>
+                  );
+                })}
+              <Button
+                size="small"
+                endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+                onClick={() => navigate(`/service-requests?propertyId=${propertyId}`)}
+                sx={{ fontSize: '0.6875rem', textTransform: 'none', mt: 0.5, alignSelf: 'center' }}
+              >
+                Voir toutes les demandes
+              </Button>
+            </Box>
           )}
-        </Box>
+        </>
       )}
 
-      <Divider sx={{ my: 1.5 }} />
-
-      {/* Interventions for this property */}
-      <Typography sx={SECTION_TITLE_SX}>Interventions ({interventions.length})</Typography>
-      {interventions.length === 0 ? (
-        <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
-          Aucune intervention planifiée
-        </Typography>
-      ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-          {interventions.slice(0, 8).map((intv) => (
-            <Box
-              key={intv.id}
-              onClick={() => onDrillDown?.({ type: 'intervention-detail', interventionId: Number(intv.id) })}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                p: 1,
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 1,
-                cursor: 'pointer',
-                '&:hover': { backgroundColor: 'action.hover' },
-              }}
-            >
-              <Handyman sx={{ fontSize: 14, color: 'text.secondary' }} />
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {intv.description || intv.type}
-                </Typography>
-                <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary' }}>
-                  {intv.scheduledDate} {intv.assignedTo ? `· ${intv.assignedTo}` : ''}
-                </Typography>
-              </Box>
-              {(() => { const c = intv.status === 'completed' ? '#4A9B8E' : intv.status === 'in_progress' ? '#0288d1' : intv.status === 'cancelled' ? '#d32f2f' : '#ED6C02'; return (
-              <Chip
-                label={intv.status}
-                size="small"
-                sx={{ fontSize: '0.5625rem', height: 20, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
-              />
-              ); })()}
-            </Box>
-          ))}
-          {interventions.length > 8 && (
-            <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', textAlign: 'center' }}>
-              +{interventions.length - 8} autres
+      {activeSubTab === 'interventions' && (
+        <>
+          {interventions.length === 0 ? (
+            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
+              Aucune intervention planifiée
             </Typography>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+              {[...interventions]
+                .sort((a, b) => new Date(b.scheduledDate || '').getTime() - new Date(a.scheduledDate || '').getTime())
+                .slice(0, 5)
+                .map((intv) => (
+                  <Box
+                    key={intv.id}
+                    onClick={() => onDrillDown?.({ type: 'intervention-detail', interventionId: Number(intv.id) })}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 1,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      cursor: 'pointer',
+                      '&:hover': { backgroundColor: 'action.hover' },
+                    }}
+                  >
+                    <Handyman sx={{ fontSize: 14, color: 'text.secondary' }} />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {intv.description || intv.type}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary' }}>
+                        {intv.scheduledDate} {intv.assignedTo ? `· ${intv.assignedTo}` : ''}
+                      </Typography>
+                    </Box>
+                    {(() => { const c = intv.status === 'completed' ? '#4A9B8E' : intv.status === 'in_progress' ? '#0288d1' : intv.status === 'cancelled' ? '#d32f2f' : '#ED6C02'; return (
+                    <Chip
+                      label={intv.status}
+                      size="small"
+                      sx={{ fontSize: '0.5625rem', height: 20, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+                    />
+                    ); })()}
+                  </Box>
+                ))}
+              <Button
+                size="small"
+                endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+                onClick={() => navigate(`/interventions?propertyId=${propertyId}`)}
+                sx={{ fontSize: '0.6875rem', textTransform: 'none', mt: 0.5, alignSelf: 'center' }}
+              >
+                Voir toutes les interventions
+              </Button>
+            </Box>
           )}
-        </Box>
+        </>
       )}
 
       <Divider sx={{ my: 1.5 }} />

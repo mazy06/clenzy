@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.model.*;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
 import org.slf4j.Logger;
@@ -44,6 +45,7 @@ public class TagResolverService {
     private final PropertyRepository propertyRepository;
     private final InterventionRepository interventionRepository;
     private final ServiceRequestRepository serviceRequestRepository;
+    private final ReservationRepository reservationRepository;
 
     @Value("${clenzy.company.name:Clenzy}")
     private String companyName;
@@ -64,12 +66,14 @@ public class TagResolverService {
             UserRepository userRepository,
             PropertyRepository propertyRepository,
             InterventionRepository interventionRepository,
-            ServiceRequestRepository serviceRequestRepository
+            ServiceRequestRepository serviceRequestRepository,
+            ReservationRepository reservationRepository
     ) {
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
         this.interventionRepository = interventionRepository;
         this.serviceRequestRepository = serviceRequestRepository;
+        this.reservationRepository = reservationRepository;
     }
 
     /**
@@ -92,6 +96,7 @@ public class TagResolverService {
         // Resoudre selon le type de reference
         switch (referenceType != null ? referenceType.toLowerCase() : "") {
             case "intervention" -> resolveFromIntervention(referenceId, context);
+            case "reservation" -> resolveFromReservation(referenceId, context);
             case "service_request" -> resolveFromServiceRequest(referenceId, context);
             case "property" -> resolveFromProperty(referenceId, context);
             case "user" -> resolveFromUser(referenceId, context);
@@ -157,6 +162,40 @@ public class TagResolverService {
             if (property.getOwner() != null) {
                 context.put("client", resolveClientTags(property.getOwner()));
             }
+        });
+    }
+
+    private void resolveFromReservation(Long reservationId, Map<String, Object> context) {
+        if (reservationId == null) return;
+
+        reservationRepository.findByIdFetchAll(reservationId).ifPresent(reservation -> {
+            context.put("reservation", resolveReservationTags(reservation));
+
+            // Guest (voyageur) — fallback on guestName if no Guest entity
+            if (reservation.getGuest() != null) {
+                context.put("client", resolveGuestTags(reservation.getGuest(), reservation.getGuestName()));
+            } else {
+                Map<String, Object> guestFallback = new LinkedHashMap<>();
+                guestFallback.put("nom", safeStr(reservation.getGuestName()));
+                guestFallback.put("prenom", "");
+                guestFallback.put("nom_complet", safeStr(reservation.getGuestName()));
+                guestFallback.put("email", "");
+                guestFallback.put("telephone", "");
+                context.put("client", guestFallback);
+            }
+
+            // Property
+            if (reservation.getProperty() != null) {
+                context.put("property", resolvePropertyTags(reservation.getProperty()));
+
+                // Proprietaire
+                if (reservation.getProperty().getOwner() != null) {
+                    context.put("proprietaire", resolveClientTags(reservation.getProperty().getOwner()));
+                }
+            }
+
+            // Tags paiement
+            context.put("paiement", resolveReservationPaymentTags(reservation));
         });
     }
 
@@ -262,6 +301,59 @@ public class TagResolverService {
         tags.put("cout_reel", formatMoney(sr.getActualCost()));
         tags.put("instructions", safeStr(sr.getSpecialInstructions()));
         tags.put("date_creation", formatDateTime(sr.getCreatedAt()));
+        return tags;
+    }
+
+    private Map<String, Object> resolveReservationTags(Reservation reservation) {
+        Map<String, Object> tags = new LinkedHashMap<>();
+        tags.put("id", String.valueOf(reservation.getId()));
+        tags.put("guest_name", safeStr(reservation.getGuestName()));
+        tags.put("check_in", reservation.getCheckIn() != null ? reservation.getCheckIn().format(DATE_FORMAT) : "");
+        tags.put("check_out", reservation.getCheckOut() != null ? reservation.getCheckOut().format(DATE_FORMAT) : "");
+        tags.put("check_in_time", safeStr(reservation.getCheckInTime()));
+        tags.put("check_out_time", safeStr(reservation.getCheckOutTime()));
+        tags.put("statut", safeStr(reservation.getStatus()));
+        tags.put("source", safeStr(reservation.getSource()));
+        tags.put("code_confirmation", safeStr(reservation.getConfirmationCode()));
+        tags.put("prix_total", formatMoney(reservation.getTotalPrice()));
+        tags.put("devise", safeStr(reservation.getCurrency()));
+        // Nombre de nuits
+        long nights = 0;
+        if (reservation.getCheckIn() != null && reservation.getCheckOut() != null) {
+            nights = java.time.temporal.ChronoUnit.DAYS.between(reservation.getCheckIn(), reservation.getCheckOut());
+        }
+        tags.put("nuits", String.valueOf(nights));
+        tags.put("nombre_voyageurs", reservation.getGuestCount() != null ? String.valueOf(reservation.getGuestCount()) : "1");
+        tags.put("frais_menage", formatMoney(reservation.getCleaningFee()));
+        tags.put("taxe_sejour", formatMoney(reservation.getTouristTaxAmount()));
+        tags.put("revenu_chambre", formatMoney(reservation.getRoomRevenue()));
+        tags.put("notes", safeStr(reservation.getNotes()));
+        return tags;
+    }
+
+    private Map<String, Object> resolveGuestTags(Guest guest, String fallbackName) {
+        Map<String, Object> tags = new LinkedHashMap<>();
+        tags.put("nom", safeStr(guest.getLastName()));
+        tags.put("prenom", safeStr(guest.getFirstName()));
+        String fullName = guest.getFullName();
+        if (fullName == null || fullName.isBlank()) fullName = fallbackName;
+        tags.put("nom_complet", safeStr(fullName));
+        tags.put("email", safeStr(guest.getEmail()));
+        tags.put("telephone", safeStr(guest.getPhone()));
+        tags.put("langue", safeStr(guest.getLanguage()));
+        tags.put("pays", safeStr(guest.getCountryCode()));
+        return tags;
+    }
+
+    private Map<String, Object> resolveReservationPaymentTags(Reservation reservation) {
+        Map<String, Object> tags = new LinkedHashMap<>();
+        tags.put("montant", formatMoney(reservation.getTotalPrice()));
+        tags.put("devise", safeStr(reservation.getCurrency()));
+        // Payment link sent tracking
+        tags.put("lien_envoye_le", reservation.getPaymentLinkSentAt() != null
+                ? reservation.getPaymentLinkSentAt().format(DATETIME_FORMAT) : "");
+        tags.put("email_paiement", safeStr(reservation.getPaymentLinkEmail()));
+        tags.put("reference_stripe", safeStr(reservation.getStripeSessionId()));
         return tags;
     }
 

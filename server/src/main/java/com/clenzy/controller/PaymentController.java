@@ -126,6 +126,58 @@ public class PaymentController {
     }
     
     /**
+     * Cree une session de paiement Stripe en mode EMBEDDED (inline).
+     * Retourne un clientSecret pour le composant EmbeddedCheckout cote frontend.
+     */
+    @PostMapping("/create-embedded-session")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
+    public ResponseEntity<?> createEmbeddedPaymentSession(
+            @Valid @RequestBody PaymentSessionRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        try {
+            Intervention intervention = interventionRepository.findById(request.getInterventionId())
+                .orElseThrow(() -> new RuntimeException("Intervention non trouvee"));
+
+            if (intervention.getStatus() != com.clenzy.model.InterventionStatus.AWAITING_PAYMENT) {
+                return ResponseEntity.badRequest()
+                    .body("Cette intervention n'est pas en attente de paiement. Statut actuel: " + intervention.getStatus());
+            }
+
+            if (intervention.getPaymentStatus() == PaymentStatus.PAID) {
+                return ResponseEntity.badRequest()
+                    .body("Cette intervention est deja payee");
+            }
+
+            String customerEmail = jwt.getClaimAsString("email");
+            if (customerEmail == null || customerEmail.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body("Email utilisateur non trouve");
+            }
+
+            Session session = stripeService.createEmbeddedCheckoutSession(
+                request.getInterventionId(),
+                request.getAmount(),
+                customerEmail
+            );
+
+            PaymentSessionResponse response = new PaymentSessionResponse();
+            response.setSessionId(session.getId());
+            response.setClientSecret(session.getClientSecret());
+            response.setInterventionId(intervention.getId());
+
+            return ResponseEntity.ok(response);
+
+        } catch (StripeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Erreur lors de la creation de la session embedded: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Erreur: " + e.getMessage());
+        }
+    }
+
+    /**
      * Vérifie le statut d'une session de paiement.
      * Si le paiement est encore en PROCESSING, interroge directement l'API Stripe
      * pour vérifier si la session a été payée (fallback si le webhook n'a pas été reçu).

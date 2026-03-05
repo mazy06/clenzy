@@ -257,9 +257,9 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
     setSrDialogOpen(true);
   };
 
-  // 3. Nouvelle demande de service → open CreateServiceRequestDialog without pre-selection
+  // 3. Nouvelle demande de service → open CreateServiceRequestDialog with type='OTHER'
   const handleNewServiceRequestClick = () => {
-    setSrDialogDefaultType(undefined);
+    setSrDialogDefaultType('OTHER');
     setSrDialogOpen(true);
   };
 

@@ -7,6 +7,7 @@ import { getAccessToken } from '../storageService';
 export interface PaymentSession {
   sessionId: string;
   url: string;
+  clientSecret?: string;
 }
 
 export interface PaymentSessionStatus {
@@ -64,6 +65,11 @@ export interface HostOption {
 export const paymentsApi = {
   createSession(data: { interventionIds: number[]; totalAmount: number }) {
     return apiClient.post<PaymentSession>('/payments/create-session', data);
+  },
+
+  /** Cree une session Stripe en mode embedded (inline dans l'interface) */
+  createEmbeddedSession(data: { interventionId: number; amount: number }) {
+    return apiClient.post<PaymentSession>('/payments/create-embedded-session', data);
   },
 
   getSessionStatus(sessionId: string) {

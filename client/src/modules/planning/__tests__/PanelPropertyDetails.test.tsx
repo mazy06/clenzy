@@ -170,8 +170,10 @@ describe('PanelPropertyDetails', () => {
       expect(screen.getByText('Interventions (2)')).toBeInTheDocument();
     });
 
-    it('should display intervention descriptions', () => {
+    it('should display intervention descriptions when tab is active', () => {
       render(<PanelPropertyDetails propertyId={42} />);
+      // Click the Interventions tab to reveal the list
+      fireEvent.click(screen.getByText('Interventions (2)'));
       expect(screen.getByText('Ménage 01/06')).toBeInTheDocument();
       expect(screen.getByText('Réparation plomberie')).toBeInTheDocument();
     });
@@ -180,6 +182,8 @@ describe('PanelPropertyDetails', () => {
       const onDrillDown = vi.fn();
       render(<PanelPropertyDetails propertyId={42} onDrillDown={onDrillDown} />);
 
+      // Click the Interventions tab first
+      fireEvent.click(screen.getByText('Interventions (2)'));
       fireEvent.click(screen.getByText('Ménage 01/06'));
       expect(onDrillDown).toHaveBeenCalledWith({ type: 'intervention-detail', interventionId: 1 });
     });

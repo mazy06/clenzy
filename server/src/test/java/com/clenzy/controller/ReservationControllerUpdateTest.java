@@ -59,6 +59,8 @@ class ReservationControllerUpdateTest {
     @Mock private GuestRepository guestRepository;
     @Mock private StripeService stripeService;
     @Mock private EmailService emailService;
+    @Mock private com.clenzy.service.messaging.GuestMessagingService guestMessagingService;
+    @Mock private com.clenzy.repository.MessageTemplateRepository messageTemplateRepository;
     @Mock private TenantContext tenantContext;
 
     private ReservationController controller;
@@ -68,7 +70,8 @@ class ReservationControllerUpdateTest {
         controller = new ReservationController(
                 reservationService, reservationMapper, reservationRepository,
                 interventionRepository, propertyRepository, userRepository,
-                guestRepository, stripeService, emailService, tenantContext);
+                guestRepository, stripeService, emailService,
+                guestMessagingService, messageTemplateRepository, tenantContext);
     }
 
     private Jwt createJwt(String sub) {

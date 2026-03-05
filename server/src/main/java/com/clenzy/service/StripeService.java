@@ -107,7 +107,56 @@ public class StripeService {
         
         return session;
     }
-    
+
+    /**
+     * Cree une session de paiement Stripe en mode EMBEDDED (inline dans l'interface).
+     * Retourne une session avec un clientSecret utilisable cote frontend
+     * via EmbeddedCheckoutProvider de @stripe/react-stripe-js.
+     */
+    @CircuitBreaker(name = "stripe-api")
+    public Session createEmbeddedCheckoutSession(Long interventionId, BigDecimal amount, String customerEmail) throws StripeException {
+        Stripe.apiKey = stripeSecretKey;
+
+        Intervention intervention = interventionRepository.findById(interventionId)
+            .orElseThrow(() -> new RuntimeException("Intervention non trouvee: " + interventionId));
+
+        long amountInCents = amount.multiply(BigDecimal.valueOf(100)).longValue();
+
+        SessionCreateParams params = SessionCreateParams.builder()
+            .setMode(SessionCreateParams.Mode.PAYMENT)
+            .setUiMode(SessionCreateParams.UiMode.EMBEDDED)
+            .setReturnUrl(successUrl + "?session_id={CHECKOUT_SESSION_ID}")
+            .addLineItem(
+                SessionCreateParams.LineItem.builder()
+                    .setQuantity(1L)
+                    .setPriceData(
+                        SessionCreateParams.LineItem.PriceData.builder()
+                            .setCurrency(currency.toLowerCase())
+                            .setUnitAmount(amountInCents)
+                            .setProductData(
+                                SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                    .setName("Intervention: " + intervention.getTitle())
+                                    .setDescription(intervention.getDescription() != null ?
+                                        intervention.getDescription() : "Paiement pour l'intervention")
+                                    .build()
+                            )
+                            .build()
+                    )
+                    .build()
+            )
+            .setCustomerEmail(customerEmail)
+            .putMetadata("intervention_id", interventionId.toString())
+            .build();
+
+        Session session = Session.create(params);
+
+        intervention.setStripeSessionId(session.getId());
+        intervention.setPaymentStatus(PaymentStatus.PROCESSING);
+        interventionRepository.save(intervention);
+
+        return session;
+    }
+
     /**
      * Crée une session de paiement Stripe pour une réservation (envoi par email au guest).
      * Ne modifie pas la réservation (c'est le controller qui le fait).

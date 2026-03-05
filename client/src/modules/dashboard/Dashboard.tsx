@@ -37,7 +37,7 @@ import { useICalFeeds } from './useICalImport';
 import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';
 
 // ─── Source logos for connected iCal feeds ──────────────────────────────────
-import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.png';
+import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogoSmall from '../../assets/logo/logo-booking-planning.png';
 import clenzyLogo from '../../assets/logo/clenzy-logo.png';
 import homeAwayLogo from '../../assets/logo/HomeAway-logo.png';

@@ -179,7 +179,11 @@ public class ICalImportService {
                 // 1. Creer la Reservation
                 Reservation reservation = new Reservation();
                 reservation.setProperty(property);
-                reservation.setGuestName(event.getGuestName());
+
+                // Si le guest name est generique ("Reserved", "Not available", etc.),
+                // on l'incremente pour individualiser chaque fiche client
+                String guestName = disambiguateGuestName(event.getGuestName(), property.getId());
+                reservation.setGuestName(guestName);
                 reservation.setGuestCount(property.getMaxGuests() != null ? property.getMaxGuests() : 2);
                 reservation.setCheckIn(event.getDtStart());
                 LocalDate checkOut = event.getDtEnd() != null ? event.getDtEnd() : event.getDtStart().plusDays(1);
@@ -701,6 +705,35 @@ public class ICalImportService {
     }
 
     // ---- Helpers ----
+
+    /** Noms de guest generiques produits par les plateformes OTA (iCal) */
+    private static final Set<String> GENERIC_GUEST_NAMES = Set.of(
+            "reserved", "not available", "unavailable", "blocked",
+            "airbnb", "booking.com", "vrbo", "homeaway"
+    );
+
+    /**
+     * Si le nom du guest est generique (ex: "Reserved" via Airbnb iCal),
+     * on l'incremente en "Reserved #1", "Reserved #2", etc.
+     * Cela permet de separer les fiches clients dans le planning.
+     */
+    private String disambiguateGuestName(String originalName, Long propertyId) {
+        if (originalName == null || originalName.isBlank()) {
+            originalName = "Reserved";
+        }
+
+        String nameLower = originalName.trim().toLowerCase();
+        if (!GENERIC_GUEST_NAMES.contains(nameLower)) {
+            return originalName.trim(); // Nom reel, on ne touche pas
+        }
+
+        // Compter les reservations existantes avec ce prefix sur cette propriete
+        long orgId = tenantContext.getRequiredOrganizationId();
+        long count = reservationRepository2.countByGuestNameStartingWithAndPropertyId(
+                originalName.trim(), propertyId, orgId);
+
+        return originalName.trim() + " #" + (count + 1);
+    }
 
     private void checkOwnership(ICalFeed feed, String keycloakId) {
         User user = userRepository.findByKeycloakId(keycloakId)
