@@ -489,6 +489,7 @@ export default function Sidebar({
             borderRight: '1px solid',
             borderColor: 'divider',
             boxShadow: 'none',
+            borderRadius: 0,
           },
         }}
       >
@@ -513,6 +514,7 @@ export default function Sidebar({
           borderColor: 'divider',
           boxShadow: 'none',
           backgroundColor: 'background.paper',
+          borderRadius: 0,
         },
       }}
     >

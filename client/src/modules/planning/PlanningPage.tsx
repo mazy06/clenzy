@@ -93,6 +93,17 @@ const PlanningPage: React.FC = () => {
     closeQuickCreate,
   } = usePlanningSelection(filteredEvents);
 
+  // Click on property name → open panel on "Logement" tab
+  const handlePropertyClick = useCallback((propertyId: number) => {
+    // Find first event for this property to open the panel
+    const event = filteredEvents.find((e) => e.propertyId === propertyId);
+    if (event) {
+      selectEvent(event);
+      // Switch to property tab after selection (selectEvent defaults to 'info')
+      setTimeout(() => setPanelTab('property'), 0);
+    }
+  }, [filteredEvents, selectEvent, setPanelTab]);
+
   // Reservation update (dates & times from panel, with validation)
   const { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation, hideReservation, updateGuestInfo } = useReservationUpdate(filteredEvents, interventions);
 
@@ -246,7 +257,9 @@ const PlanningPage: React.FC = () => {
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        height: nav.isFullscreen ? '100vh' : 'calc(100vh - 64px)',
+        // Compenser le padding du MainLayoutFull <main> pour coller aux bords
+        m: { xs: -1.5, md: -2 },
+        height: nav.isFullscreen ? '100vh' : { xs: 'calc(100vh - 48px)', md: '100vh' },
         ...(nav.isFullscreen && {
           position: 'fixed',
           top: 0,
@@ -259,7 +272,7 @@ const PlanningPage: React.FC = () => {
       }}
     >
       {/* Toolbar */}
-      <Box sx={{ mb: 1, flexShrink: 0 }}>
+      <Box sx={{ flexShrink: 0, mb: 1 }}>
         <PlanningToolbar
           currentDate={nav.currentDate}
           zoom={nav.zoom}
@@ -312,7 +325,6 @@ const PlanningPage: React.FC = () => {
             minWidth: 0,
             overflow: 'hidden',
             px: 1.5,
-            pb: 1,
             display: 'flex',
             flexDirection: 'column',
           }}
@@ -339,10 +351,11 @@ const PlanningPage: React.FC = () => {
             showInterventions={filters.showInterventions}
             pricingMap={pricingMap}
             pageSize={pagination.pageSize}
+            onPropertyClick={handlePropertyClick}
           />
 
-          {/* Pagination — pinned to bottom */}
-          <Box sx={{ flexShrink: 0, mt: 1 }}>
+          {/* Pagination — pinned to bottom, full width (compensate parent px) */}
+          <Box sx={{ flexShrink: 0, mt: 1, mx: -1.5 }}>
             <PlanningPaginationBar
               currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}
