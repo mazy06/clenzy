@@ -35,6 +35,7 @@ const TYPE_COLORS: Record<string, 'success' | 'warning' | 'info' | 'default'> = 
   CHECK_IN: 'success',
   CHECK_OUT: 'warning',
   WELCOME: 'info',
+  PAYMENT_LINK: 'info',
   CUSTOM: 'default',
 };
 
@@ -42,6 +43,7 @@ const TYPE_LABELS: Record<string, string> = {
   CHECK_IN: 'Check-in',
   CHECK_OUT: 'Check-out',
   WELCOME: 'Bienvenue',
+  PAYMENT_LINK: 'Lien de paiement',
   CUSTOM: 'Personnalise',
 };
 

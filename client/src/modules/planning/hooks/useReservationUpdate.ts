@@ -359,5 +359,40 @@ export function useReservationUpdate(
     [queryClient],
   );
 
-  return { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation, hideReservation };
+  const updateGuestInfo = useCallback(
+    async (
+      reservationId: number,
+      updates: { guestName?: string; guestEmail?: string; guestPhone?: string },
+    ): Promise<UpdateResult> => {
+      try {
+        if (reservationsApi.isMockMode()) {
+          queryClient.setQueriesData(
+            { queryKey: [...planningKeys.all, 'reservations'] },
+            (old: unknown) => {
+              if (!Array.isArray(old)) return old;
+              return old.map((r: any) => {
+                if (r.id !== reservationId) return r;
+                return {
+                  ...r,
+                  ...(updates.guestName !== undefined && { guestName: updates.guestName }),
+                  ...(updates.guestEmail !== undefined && { guestEmail: updates.guestEmail }),
+                  ...(updates.guestPhone !== undefined && { guestPhone: updates.guestPhone }),
+                };
+              });
+            },
+          );
+        } else {
+          await reservationsApi.update(reservationId, updates);
+          queryClient.invalidateQueries({ queryKey: planningKeys.all });
+        }
+
+        return { success: true, error: null };
+      } catch {
+        return { success: false, error: 'Erreur lors de la mise a jour des infos client' };
+      }
+    },
+    [queryClient],
+  );
+
+  return { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation, hideReservation, updateGuestInfo };
 }

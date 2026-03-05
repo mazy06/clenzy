@@ -58,7 +58,7 @@ import type { ChannelId } from '../../services/api/channelConnectionApi';
 import ChannelConnectDialog from './ChannelConnectDialog';
 
 // Logo imports
-import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.png';
+import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogoSmall from '../../assets/logo/booking-logo-small.svg';
 import expediaLogo from '../../assets/logo/expedia-logo.png';
 import mabeetLogo from '../../assets/logo/mabeet-logo-small.png';

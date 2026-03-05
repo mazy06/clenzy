@@ -2,11 +2,10 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.ReservationDto;
 import com.clenzy.exception.NotFoundException;
-import com.clenzy.model.Property;
-import com.clenzy.model.Reservation;
-import com.clenzy.model.User;
+import com.clenzy.model.*;
 import com.clenzy.repository.GuestRepository;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.MessageTemplateRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
@@ -14,6 +13,7 @@ import com.clenzy.service.EmailService;
 import com.clenzy.service.ReservationMapper;
 import com.clenzy.service.ReservationService;
 import com.clenzy.service.StripeService;
+import com.clenzy.service.messaging.GuestMessagingService;
 import com.clenzy.tenant.TenantContext;
 import com.stripe.model.checkout.Session;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,6 +48,8 @@ public class ReservationController {
     private final GuestRepository guestRepository;
     private final StripeService stripeService;
     private final EmailService emailService;
+    private final GuestMessagingService guestMessagingService;
+    private final MessageTemplateRepository messageTemplateRepository;
     private final TenantContext tenantContext;
 
     public ReservationController(ReservationService reservationService,
@@ -59,6 +61,8 @@ public class ReservationController {
                                  GuestRepository guestRepository,
                                  StripeService stripeService,
                                  EmailService emailService,
+                                 GuestMessagingService guestMessagingService,
+                                 MessageTemplateRepository messageTemplateRepository,
                                  TenantContext tenantContext) {
         this.reservationService = reservationService;
         this.reservationMapper = reservationMapper;
@@ -69,6 +73,8 @@ public class ReservationController {
         this.guestRepository = guestRepository;
         this.stripeService = stripeService;
         this.emailService = emailService;
+        this.guestMessagingService = guestMessagingService;
+        this.messageTemplateRepository = messageTemplateRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -291,15 +297,39 @@ public class ReservationController {
                     reservation.getProperty().getName());
 
             String paymentUrl = session.getUrl();
+            Long orgId = tenantContext.getRequiredOrganizationId();
 
-            // Send the payment link email
-            String subject = "Lien de paiement - Reservation " + reservation.getProperty().getName();
-            String htmlBody = buildPaymentEmailBody(
-                    reservation.getGuestName(), reservation.getProperty().getName(),
-                    reservation.getCheckIn().toString(), reservation.getCheckOut().toString(),
-                    amount.toPlainString(), reservation.getCurrency(), paymentUrl);
+            // Try to use a PAYMENT_LINK messaging template if one is configured
+            List<MessageTemplate> paymentTemplates = messageTemplateRepository
+                    .findByOrganizationIdAndTypeAndIsActiveTrue(orgId, MessageTemplateType.PAYMENT_LINK);
 
-            emailService.sendSimpleHtmlEmail(email, subject, htmlBody);
+            if (!paymentTemplates.isEmpty()) {
+                // Use the first active PAYMENT_LINK template via GuestMessagingService
+                MessageTemplate template = paymentTemplates.get(0);
+                String currency = reservation.getCurrency() != null ? reservation.getCurrency() : "EUR";
+                String paymentButton = "<a href=\"" + paymentUrl
+                        + "\" style=\"background-color: #6B8A9A; color: white; padding: 12px 30px; "
+                        + "text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;\">"
+                        + "Payer maintenant</a>";
+
+                Map<String, String> extraVars = Map.of(
+                        "paymentLink", paymentButton,
+                        "paymentAmount", amount.toPlainString(),
+                        "paymentCurrency", currency
+                );
+
+                guestMessagingService.sendForReservationViaChannel(
+                        reservation, template, orgId, MessageChannelType.EMAIL, extraVars);
+            } else {
+                // Fallback: send hardcoded email if no template is configured
+                String subject = "Lien de paiement - Reservation " + reservation.getProperty().getName();
+                String htmlBody = buildPaymentEmailBody(
+                        reservation.getGuestName(), reservation.getProperty().getName(),
+                        reservation.getCheckIn().toString(), reservation.getCheckOut().toString(),
+                        amount.toPlainString(), reservation.getCurrency(), paymentUrl);
+
+                emailService.sendSimpleHtmlEmail(email, subject, htmlBody);
+            }
 
             // Update reservation tracking
             reservation.setPaymentLinkSentAt(LocalDateTime.now());

@@ -52,21 +52,27 @@ interface PanelReservationInfoProps {
   onChangeProperty?: (reservationId: number, newPropertyId: number, newPropertyName: string) => Promise<{ success: boolean; error: string | null }>;
   onCancelReservation?: (reservationId: number) => Promise<{ success: boolean; error: string | null }>;
   onUpdateNotes?: (reservationId: number, notes: string) => Promise<{ success: boolean; error: string | null }>;
+  onUpdateGuestInfo?: (reservationId: number, updates: { guestName?: string; guestEmail?: string; guestPhone?: string }) => Promise<{ success: boolean; error: string | null }>;
   onNavigate?: (view: import('../types').PanelView) => void;
 }
 
-const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allEvents, properties, onUpdateReservation, onChangeProperty, onCancelReservation, onUpdateNotes, onNavigate }) => {
+const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allEvents, properties, onUpdateReservation, onChangeProperty, onCancelReservation, onUpdateNotes, onUpdateGuestInfo, onNavigate }) => {
   const reservation = event.reservation;
   const [guestCardOpen, setGuestCardOpen] = useState(false);
   const [changePropertyOpen, setChangePropertyOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState('');
+  const [nameSaving, setNameSaving] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
   if (!reservation) return null;
 
   const statusColor = RESERVATION_STATUS_COLORS[reservation.status as ReservationStatus] || '#9e9e9e';
   const statusLabel = RESERVATION_STATUS_LABELS[reservation.status as ReservationStatus] || reservation.status;
   const sourceLabel = RESERVATION_SOURCE_LABELS[reservation.source as ReservationSource] || reservation.source;
+  const isICalSource = reservation.source === 'airbnb' || reservation.source === 'booking' || reservation.source === 'other';
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -74,9 +80,82 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <Person sx={{ fontSize: 20, color: 'primary.main' }} />
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '1rem' }}>
-            {reservation.guestName}
-          </Typography>
+          {editingName ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: 1 }}>
+              <input
+                ref={nameInputRef}
+                value={nameValue}
+                onChange={(e) => setNameValue(e.target.value)}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const trimmed = nameValue.trim();
+                    if (trimmed && trimmed !== reservation.guestName && onUpdateGuestInfo) {
+                      setNameSaving(true);
+                      await onUpdateGuestInfo(reservation.id, { guestName: trimmed });
+                      setNameSaving(false);
+                    }
+                    setEditingName(false);
+                  } else if (e.key === 'Escape') {
+                    setEditingName(false);
+                  }
+                }}
+                onBlur={async () => {
+                  const trimmed = nameValue.trim();
+                  if (trimmed && trimmed !== reservation.guestName && onUpdateGuestInfo) {
+                    setNameSaving(true);
+                    await onUpdateGuestInfo(reservation.id, { guestName: trimmed });
+                    setNameSaving(false);
+                  }
+                  setEditingName(false);
+                }}
+                disabled={nameSaving}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  borderBottom: '2px solid #6b8a9a',
+                  outline: 'none',
+                  background: 'transparent',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  fontFamily: 'inherit',
+                  padding: '2px 0',
+                }}
+              />
+              {nameSaving && <CircularProgress size={14} />}
+            </Box>
+          ) : (
+            <Box
+              onClick={() => {
+                if (onUpdateGuestInfo) {
+                  setNameValue(reservation.guestName);
+                  setEditingName(true);
+                  setTimeout(() => nameInputRef.current?.focus(), 0);
+                }
+              }}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                flex: 1,
+                cursor: onUpdateGuestInfo ? 'pointer' : 'default',
+                borderRadius: 0.5,
+                px: 0.5,
+                mx: -0.5,
+                '&:hover': onUpdateGuestInfo ? {
+                  bgcolor: 'action.hover',
+                  '& .edit-icon': { opacity: 1 },
+                } : {},
+              }}
+            >
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '1rem' }}>
+                {reservation.guestName}
+              </Typography>
+              {onUpdateGuestInfo && (
+                <Edit className="edit-icon" sx={{ fontSize: 14, color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }} />
+              )}
+            </Box>
+          )}
         </Box>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Chip
@@ -143,9 +222,15 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <AttachMoney sx={{ fontSize: 18, color: 'text.secondary' }} />
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            {reservation.totalPrice?.toFixed(2)} EUR
-          </Typography>
+          {(!reservation.totalPrice || reservation.totalPrice === 0) && isICalSource ? (
+            <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary', fontStyle: 'italic' }}>
+              Tarif à la nuitée non communiqué — import iCal
+            </Typography>
+          ) : (
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {reservation.totalPrice?.toFixed(2)} EUR
+            </Typography>
+          )}
         </Box>
 
         {/* Payment link status */}
@@ -206,6 +291,7 @@ const PanelReservationInfo: React.FC<PanelReservationInfoProps> = ({ event, allE
         onClose={() => setGuestCardOpen(false)}
         reservation={reservation}
         allEvents={allEvents}
+        onUpdateGuestInfo={onUpdateGuestInfo}
       />
 
       {/* Change Property Dialog */}
@@ -468,24 +554,45 @@ interface NotesSectionProps {
   onSave?: (reservationId: number, notes: string) => Promise<{ success: boolean; error: string | null }>;
 }
 
+const BULLET = '• ';
+
+/** Parse raw notes string into bullet items */
+function parseBullets(raw: string): string[] {
+  if (!raw.trim()) return [];
+  return raw.split('\n').filter(l => l.trim().length > 0).map(l =>
+    l.startsWith(BULLET) ? l.slice(BULLET.length) : l,
+  );
+}
+
+/** Serialize bullet items back to notes string */
+function serializeBullets(items: string[]): string {
+  if (items.length === 0) return '';
+  return items.map(i => `${BULLET}${i}`).join('\n');
+}
+
 const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
-  const [notes, setNotes] = useState(reservation.notes || '');
+  const [items, setItems] = useState<string[]>(() => parseBullets(reservation.notes || ''));
+  const [newItemText, setNewItemText] = useState('');
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const newInputRef = useRef<HTMLInputElement | null>(null);
+  const editInputRef = useRef<HTMLInputElement | null>(null);
 
   // Reset when reservation changes
   useEffect(() => {
-    setNotes(reservation.notes || '');
+    setItems(parseBullets(reservation.notes || ''));
+    setNewItemText('');
+    setEditingIdx(null);
     setSaved(false);
     setError(null);
   }, [reservation.id, reservation.notes]);
 
-  const hasChanges = notes !== (reservation.notes || '');
-
-  const saveNotes = useCallback(async (value: string) => {
+  const saveNotes = useCallback(async (nextItems: string[]) => {
     if (!onSave) return;
+    const value = serializeBullets(nextItems);
     if (value === (reservation.notes || '')) return;
     setSaving(true);
     setError(null);
@@ -500,47 +607,205 @@ const NotesSection: React.FC<NotesSectionProps> = ({ reservation, onSave }) => {
     }
   }, [onSave, reservation.id, reservation.notes]);
 
-  const handleChange = (value: string) => {
-    setNotes(value);
-    setSaved(false);
-    setError(null);
-    // Debounce auto-save (1.5s after last keystroke)
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      saveNotes(value);
-    }, 1500);
+  // ── Add new item ─────────────────────────────────────────────────────────
+  const addItem = useCallback(() => {
+    const text = newItemText.trim();
+    if (!text) return;
+    const next = [...items, text];
+    setItems(next);
+    setNewItemText('');
+    saveNotes(next);
+    // Re-focus input for rapid entry
+    setTimeout(() => newInputRef.current?.focus(), 0);
+  }, [newItemText, items, saveNotes]);
+
+  const handleNewKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addItem();
+    }
   };
 
-  const handleBlur = () => {
-    // Save immediately on blur if changed
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (hasChanges) {
-      saveNotes(notes);
+  // ── Delete item ──────────────────────────────────────────────────────────
+  const deleteItem = useCallback((idx: number) => {
+    const next = items.filter((_, i) => i !== idx);
+    setItems(next);
+    saveNotes(next);
+    // If we were editing this item, cancel edit
+    if (editingIdx === idx) {
+      setEditingIdx(null);
+      setEditingText('');
+    }
+  }, [items, saveNotes, editingIdx]);
+
+  // ── Inline edit item ─────────────────────────────────────────────────────
+  const startEditing = (idx: number) => {
+    setEditingIdx(idx);
+    setEditingText(items[idx]);
+    setTimeout(() => editInputRef.current?.focus(), 0);
+  };
+
+  const commitEdit = useCallback(() => {
+    if (editingIdx === null) return;
+    const text = editingText.trim();
+    if (!text) {
+      // Empty → delete the item
+      deleteItem(editingIdx);
+    } else if (text !== items[editingIdx]) {
+      const next = [...items];
+      next[editingIdx] = text;
+      setItems(next);
+      saveNotes(next);
+    }
+    setEditingIdx(null);
+    setEditingText('');
+  }, [editingIdx, editingText, items, saveNotes, deleteItem]);
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitEdit();
+    } else if (e.key === 'Escape') {
+      setEditingIdx(null);
+      setEditingText('');
     }
   };
 
   return (
     <Box>
+      {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <Typography variant="body2" sx={{ fontWeight: 600, flex: 1 }}>Notes</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 600, flex: 1 }}>
+          Notes
+          {items.length > 0 && (
+            <Chip
+              label={items.length}
+              size="small"
+              sx={{
+                ml: 0.75,
+                height: 18,
+                fontSize: '0.625rem',
+                fontWeight: 600,
+                bgcolor: 'primary.main',
+                color: 'white',
+                '& .MuiChip-label': { px: 0.5 },
+              }}
+            />
+          )}
+        </Typography>
         {saving && <CircularProgress size={12} />}
         {saved && <Check sx={{ fontSize: 14, color: 'success.main' }} />}
       </Box>
-      <TextField
-        multiline
-        rows={2}
-        fullWidth
-        size="small"
-        value={notes}
-        onChange={(e) => handleChange(e.target.value)}
-        onBlur={handleBlur}
-        placeholder="Ajouter une note..."
+
+      {/* Bullet list */}
+      <Box
         sx={{
-          '& .MuiOutlinedInput-root': {
-            fontSize: '0.8125rem',
-          },
+          border: '1px solid',
+          borderColor: 'grey.300',
+          borderRadius: 1,
+          bgcolor: items.length > 0 ? 'grey.50' : 'transparent',
+          maxHeight: 260,
+          overflowY: 'auto',
         }}
-      />
+      >
+        {items.map((item, idx) => (
+          <Box
+            key={idx}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              px: 1.5,
+              py: 0.5,
+              minHeight: 32,
+              borderBottom: idx < items.length - 1 ? '1px solid' : 'none',
+              borderColor: 'grey.200',
+              '&:hover': { bgcolor: 'grey.100' },
+              '&:hover .note-delete-btn': { opacity: 1 },
+              cursor: 'pointer',
+            }}
+            onClick={() => { if (editingIdx !== idx) startEditing(idx); }}
+          >
+            {/* Bullet dot */}
+            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'primary.main', flexShrink: 0 }} />
+
+            {/* Text or inline edit */}
+            {editingIdx === idx ? (
+              <input
+                ref={editInputRef}
+                value={editingText}
+                onChange={e => setEditingText(e.target.value)}
+                onBlur={commitEdit}
+                onKeyDown={handleEditKeyDown}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  fontSize: '0.8125rem',
+                  fontFamily: 'inherit',
+                  padding: 0,
+                  lineHeight: 1.5,
+                }}
+              />
+            ) : (
+              <Typography
+                sx={{
+                  flex: 1,
+                  fontSize: '0.8125rem',
+                  lineHeight: 1.5,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  userSelect: 'none',
+                }}
+              >
+                {item}
+              </Typography>
+            )}
+
+            {/* Delete button — visible on hover */}
+            <IconButton
+              className="note-delete-btn"
+              size="small"
+              onClick={(e) => { e.stopPropagation(); deleteItem(idx); }}
+              sx={{
+                opacity: 0,
+                transition: 'opacity 0.15s',
+                p: 0.25,
+                color: 'text.disabled',
+                '&:hover': { color: 'error.main', bgcolor: 'error.lighter' },
+              }}
+            >
+              <Close sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Box>
+        ))}
+
+        {/* New item input — always visible at the bottom */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.5, py: 0.5, minHeight: 34 }}>
+          <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'grey.300', flexShrink: 0 }} />
+          <input
+            ref={newInputRef}
+            value={newItemText}
+            onChange={e => setNewItemText(e.target.value)}
+            onKeyDown={handleNewKeyDown}
+            onBlur={() => { if (newItemText.trim()) addItem(); }}
+            placeholder={items.length === 0 ? 'Ajouter une note...' : 'Ajouter...'}
+            style={{
+              flex: 1,
+              border: 'none',
+              outline: 'none',
+              background: 'transparent',
+              fontSize: '0.8125rem',
+              fontFamily: 'inherit',
+              padding: 0,
+              lineHeight: 1.5,
+              color: 'inherit',
+            }}
+          />
+        </Box>
+      </Box>
+
       {error && (
         <Typography variant="caption" color="error" sx={{ fontSize: '0.625rem', mt: 0.25, display: 'block' }}>
           {error}

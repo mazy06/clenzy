@@ -22,7 +22,12 @@ vi.mock('react-router-dom', () => ({
 
 vi.mock('../../../hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
-    user: { roles: ['SUPER_ADMIN'], orgRole: 'ADMIN' },
+    user: { roles: ['SUPER_ADMIN'], orgRole: 'ADMIN', databaseId: 1 },
+    isAdmin: () => true,
+    isManager: () => false,
+    isHost: () => false,
+    hasRole: (role: string) => role === 'SUPER_ADMIN',
+    hasAnyRole: (roles: string[]) => roles.includes('SUPER_ADMIN'),
   })),
 }));
 

@@ -7,7 +7,8 @@ public enum MessageTemplateType {
     CHECK_OUT("CHECK_OUT"),
     WELCOME("WELCOME"),
     CUSTOM("CUSTOM"),
-    NOISE_ALERT("NOISE_ALERT");
+    NOISE_ALERT("NOISE_ALERT"),
+    PAYMENT_LINK("PAYMENT_LINK");
 
     private final String value;
 

@@ -170,6 +170,12 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         ...(isSelected && {
           boxShadow: `0 0 0 2px ${theme.palette.primary.main}, 0 4px 12px ${hexToRgba(theme.palette.primary.main, 0.3)}`,
           transform: 'translateY(-1px)',
+          animation: 'select-pop 0.3s ease-out',
+          '@keyframes select-pop': {
+            '0%': { transform: 'scale(1) translateY(0)' },
+            '40%': { transform: 'scale(1.05) translateY(-2px)' },
+            '100%': { transform: 'scale(1) translateY(-1px)' },
+          },
         }),
         ...((isConflict || resizeConflict) && {
           animation: 'pulse-conflict 2s ease-in-out infinite',

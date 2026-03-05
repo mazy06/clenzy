@@ -26,7 +26,7 @@ public class TemplateInterpolationService {
      * Variables dont la valeur est du HTML genere cote serveur (non saisie par l'utilisateur).
      * Elles ne doivent PAS etre echappees HTML pour ne pas casser le balisage.
      */
-    private static final Set<String> HTML_SAFE_VARIABLES = Set.of("locationMap");
+    private static final Set<String> HTML_SAFE_VARIABLES = Set.of("locationMap", "paymentLink");
 
     /**
      * Variables supportees avec leur description (pour l'endpoint /variables).
@@ -58,7 +58,11 @@ public class TemplateInterpolationService {
         new TemplateVariable("keyExchangeStorePhone", "Telephone du point d'echange", "+33 1 42 00 00 00"),
         new TemplateVariable("keyExchangeStoreHours", "Horaires du point d'echange", "Lun-Sam 8h-20h"),
         // Carte de localisation generee automatiquement (Mapbox Static Images)
-        new TemplateVariable("locationMap", "Carte de localisation (propriete + point de retrait des cles si applicable)", "[Image carte generee automatiquement]")
+        new TemplateVariable("locationMap", "Carte de localisation (propriete + point de retrait des cles si applicable)", "[Image carte generee automatiquement]"),
+        // Variables de paiement (resolues via extraVars par le controller)
+        new TemplateVariable("paymentLink", "Bouton HTML de paiement Stripe", "<a href=\"...\">Payer maintenant</a>"),
+        new TemplateVariable("paymentAmount", "Montant du paiement", "150.00"),
+        new TemplateVariable("paymentCurrency", "Devise du paiement", "EUR")
     );
 
     private final TranslationService translationService;
