@@ -35,8 +35,8 @@ export interface ServiceRequestFormData {
 }
 
 export const serviceRequestsApi = {
-  getAll() {
-    return apiClient.get<ServiceRequest[]>('/service-requests');
+  getAll(params?: { propertyId?: number; userId?: number; status?: string; serviceType?: string }) {
+    return apiClient.get<ServiceRequest[]>('/service-requests', { params });
   },
   getById(id: number) {
     return apiClient.get<ServiceRequest>(`/service-requests/${id}`);

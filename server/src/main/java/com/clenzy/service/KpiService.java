@@ -612,6 +612,9 @@ public class KpiService {
     }
 
     private BigDecimal toBigDecimal(double value) {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            return BigDecimal.ZERO;
+        }
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP);
     }
 

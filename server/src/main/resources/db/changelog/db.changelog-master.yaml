@@ -556,3 +556,11 @@ databaseChangeLog:
             relativeToChangelogFile: true
             splitStatements: false
             stripComments: false
+
+  # --- 0063 : Add hidden_from_planning to reservations ---
+  - changeSet:
+      id: "0063-add-hidden-from-planning"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0063__add_hidden_from_planning.sql
+        relativeToChangelogFile: true

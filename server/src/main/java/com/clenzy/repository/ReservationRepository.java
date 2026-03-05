@@ -12,7 +12,7 @@ import java.util.Optional;
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest WHERE r.property.id IN :propertyIds " +
-           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
+           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findByPropertyIdsAndDateRange(
             @Param("propertyIds") List<Long> propertyIds,
             @Param("from") LocalDate from,
@@ -32,7 +32,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("orgId") Long orgId);
 
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest WHERE r.property.owner.keycloakId = :keycloakId " +
-           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
+           "AND r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findByOwnerKeycloakIdAndDateRange(
             @Param("keycloakId") String keycloakId,
             @Param("from") LocalDate from,
@@ -40,13 +40,13 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("orgId") Long orgId);
 
     @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
-           "WHERE r.checkOut >= :from AND r.checkIn <= :to AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
+           "WHERE r.checkOut >= :from AND r.checkIn <= :to AND r.hiddenFromPlanning = false AND r.organizationId = :orgId ORDER BY r.checkIn ASC")
     List<Reservation> findAllByDateRange(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("orgId") Long orgId);
 
-    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest WHERE r.id = :id")
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest LEFT JOIN FETCH r.intervention WHERE r.id = :id")
     Optional<Reservation> findByIdFetchAll(@Param("id") Long id);
 
     Optional<Reservation> findByExternalUidAndPropertyId(String externalUid, Long propertyId);
@@ -96,6 +96,20 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
      * Reservations liees a des interventions (via intervention_id FK).
      * Utilise par le planning pour rattacher visuellement les interventions menage au checkout.
      */
+    /**
+     * Reservations annulees non masquees qui chevauchent une plage de dates sur une propriete.
+     * Utilise par ICalImportService pour auto-masquer les annulees lors d'un nouvel import.
+     */
+    @Query("SELECT r FROM Reservation r WHERE r.property.id = :propertyId " +
+           "AND r.status = 'cancelled' AND r.hiddenFromPlanning = false " +
+           "AND r.checkOut > :checkIn AND r.checkIn < :checkOut " +
+           "AND r.organizationId = :orgId")
+    List<Reservation> findCancelledOverlapping(
+            @Param("propertyId") Long propertyId,
+            @Param("checkIn") LocalDate checkIn,
+            @Param("checkOut") LocalDate checkOut,
+            @Param("orgId") Long orgId);
+
     @Query("SELECT r FROM Reservation r WHERE r.intervention.id IN :interventionIds AND r.organizationId = :orgId")
     List<Reservation> findByInterventionIdIn(
         @Param("interventionIds") List<Long> interventionIds,

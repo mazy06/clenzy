@@ -9,10 +9,15 @@ vi.mock('../../../hooks/usePropertyDetails', () => ({
   usePropertyDetails: vi.fn(() => ({
     property: null,
     interventions: [],
+    serviceRequests: [],
     isLoading: true,
     isError: false,
     error: null,
   })),
+}));
+
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn(),
 }));
 
 vi.mock('../../../hooks/useAuth', () => ({

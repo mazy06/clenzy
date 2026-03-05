@@ -3,7 +3,6 @@ package com.clenzy.service;
 import com.clenzy.config.SyncMetrics;
 import com.clenzy.exception.CalendarConflictException;
 import com.clenzy.model.*;
-import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
@@ -14,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.clenzy.tenant.TenantContext;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,7 +31,6 @@ public class ReservationService {
     private final GuestService guestService;
     private final SyncMetrics syncMetrics;
     private final ServiceRequestRepository serviceRequestRepository;
-    private final InterventionRepository interventionRepository;
 
     public ReservationService(ReservationRepository reservationRepository,
                               UserRepository userRepository,
@@ -39,8 +38,7 @@ public class ReservationService {
                               CalendarEngine calendarEngine,
                               GuestService guestService,
                               SyncMetrics syncMetrics,
-                              ServiceRequestRepository serviceRequestRepository,
-                              InterventionRepository interventionRepository) {
+                              ServiceRequestRepository serviceRequestRepository) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
@@ -48,7 +46,6 @@ public class ReservationService {
         this.guestService = guestService;
         this.syncMetrics = syncMetrics;
         this.serviceRequestRepository = serviceRequestRepository;
-        this.interventionRepository = interventionRepository;
     }
 
     /**
@@ -189,11 +186,12 @@ public class ReservationService {
         return reservationRepository.existsByExternalUidAndPropertyId(externalUid, propertyId);
     }
 
-    // ── Auto-create cleaning intervention ────────────────────────────────
+    // ── Auto-create cleaning service request ─────────────────────────────
 
     /**
-     * Cree automatiquement une ServiceRequest + Intervention de type CLEANING
-     * liee a la reservation, planifiee au jour du checkout.
+     * Cree automatiquement une ServiceRequest de type CLEANING en statut PENDING
+     * liee a la propriete de la reservation, planifiee au jour du checkout.
+     * L'intervention sera creee par le workflow de validation de la demande de service.
      */
     @Transactional
     public void createCleaningForReservation(Reservation reservation, String userSub) {
@@ -211,7 +209,7 @@ public class ReservationService {
         LocalDateTime scheduledAt = managedReservation.getCheckOut()
                 .atTime(parseCheckoutHour(managedReservation.getCheckOutTime()), 0);
 
-        // 1. Create pre-approved ServiceRequest
+        // Create ServiceRequest in PENDING status (goes through the full workflow)
         ServiceRequest sr = new ServiceRequest(
                 "Menage - " + (managedReservation.getGuestName() != null ? managedReservation.getGuestName() : "Reservation"),
                 ServiceType.CLEANING,
@@ -220,45 +218,26 @@ public class ReservationService {
                 property
         );
         sr.setOrganizationId(orgId);
-        sr.setStatus(RequestStatus.APPROVED);
-        sr.setApprovedBy(userSub);
-        sr.setApprovedAt(LocalDateTime.now());
+        sr.setStatus(RequestStatus.PENDING);
         sr.setPriority(Priority.NORMAL);
-        if (property.getCleaningBasePrice() != null) {
-            sr.setEstimatedCost(property.getCleaningBasePrice());
-        }
-        sr = serviceRequestRepository.save(sr);
 
-        // 2. Create Intervention linked to ServiceRequest
-        Intervention intervention = new Intervention();
-        intervention.setTitle("Menage - " + property.getName());
-        intervention.setDescription("Menage post-depart"
-                + (managedReservation.getGuestName() != null ? " pour " + managedReservation.getGuestName() : ""));
-        intervention.setType("CLEANING");
-        intervention.setStatus(InterventionStatus.PENDING);
-        intervention.setPriority("NORMAL");
-        intervention.setProperty(property);
-        intervention.setRequestor(requestor);
-        intervention.setServiceRequest(sr);
-        intervention.setOrganizationId(orgId);
-        intervention.setScheduledDate(scheduledAt);
-        intervention.setStartTime(scheduledAt);
-        intervention.setCreatedAt(LocalDateTime.now());
-        if (property.getCleaningBasePrice() != null) {
-            intervention.setEstimatedCost(property.getCleaningBasePrice());
+        // Use reservation cleaning fee if set, otherwise fallback to property base price
+        BigDecimal estimatedCost = managedReservation.getCleaningFee();
+        if (estimatedCost == null && property.getCleaningBasePrice() != null) {
+            estimatedCost = property.getCleaningBasePrice();
+        }
+        if (estimatedCost != null) {
+            sr.setEstimatedCost(estimatedCost);
         }
         if (property.getCleaningDurationMinutes() != null) {
-            intervention.setEstimatedDurationHours(
+            sr.setEstimatedDurationHours(
                     (int) Math.ceil(property.getCleaningDurationMinutes() / 60.0));
         }
-        intervention = interventionRepository.save(intervention);
 
-        // 3. Link intervention to reservation
-        managedReservation.setIntervention(intervention);
-        reservationRepository.save(managedReservation);
+        sr = serviceRequestRepository.save(sr);
 
-        log.info("Auto-created cleaning intervention {} for reservation {} (property {})",
-                intervention.getId(), managedReservation.getId(), property.getId());
+        log.info("Auto-created cleaning service request {} (PENDING) for reservation {} (property {})",
+                sr.getId(), managedReservation.getId(), property.getId());
     }
 
     private int parseCheckoutHour(String checkOutTime) {

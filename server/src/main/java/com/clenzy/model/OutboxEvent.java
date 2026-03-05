@@ -1,6 +1,8 @@
 package com.clenzy.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -43,6 +45,7 @@ public class OutboxEvent {
     private String partitionKey;
 
     /** Payload JSON de l'event */
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "payload", nullable = false, columnDefinition = "JSONB")
     private String payload;
 

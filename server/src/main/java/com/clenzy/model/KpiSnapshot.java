@@ -1,6 +1,8 @@
 package com.clenzy.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -71,6 +73,7 @@ public class KpiSnapshot {
 
     // ── Metadata ─────────────────────────────────────────────────────────────
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metrics_detail", columnDefinition = "JSONB")
     private String metricsDetail;
 

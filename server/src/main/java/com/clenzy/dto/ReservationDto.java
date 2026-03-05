@@ -28,5 +28,6 @@ public record ReservationDto(
     Boolean createCleaning,
     // Payment link tracking
     String paymentLinkSentAt,
-    String paymentLinkEmail
+    String paymentLinkEmail,
+    Boolean hiddenFromPlanning
 ) {}

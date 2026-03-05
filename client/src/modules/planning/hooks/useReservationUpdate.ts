@@ -242,7 +242,7 @@ export function useReservationUpdate(
             },
           );
         } else {
-          await reservationsApi.update(reservationId, { status: 'cancelled' });
+          await reservationsApi.cancel(reservationId);
           queryClient.invalidateQueries({ queryKey: planningKeys.all });
         }
 
@@ -336,5 +336,28 @@ export function useReservationUpdate(
     [queryClient, events],
   );
 
-  return { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation };
+  const hideReservation = useCallback(
+    async (reservationId: number): Promise<UpdateResult> => {
+      try {
+        if (reservationsApi.isMockMode()) {
+          queryClient.setQueriesData(
+            { queryKey: [...planningKeys.all, 'reservations'] },
+            (old: unknown) => {
+              if (!Array.isArray(old)) return old;
+              return old.filter((r: any) => r.id !== reservationId);
+            },
+          );
+        } else {
+          await reservationsApi.hideFromPlanning(reservationId);
+          queryClient.invalidateQueries({ queryKey: planningKeys.all });
+        }
+        return { success: true, error: null };
+      } catch {
+        return { success: false, error: 'Erreur lors du masquage' };
+      }
+    },
+    [queryClient],
+  );
+
+  return { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation, hideReservation };
 }

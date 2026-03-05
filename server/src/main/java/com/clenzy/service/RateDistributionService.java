@@ -122,8 +122,8 @@ public class RateDistributionService {
                     "to", to.toString(),
                     "orgId", orgId
             );
-            String payload = objectMapper.writeValueAsString(event);
-            kafkaTemplate.send("calendar.updates", String.valueOf(propertyId), payload);
+            // Envoyer le Map directement (JsonSerializer le serialise correctement)
+            kafkaTemplate.send("calendar.updates", String.valueOf(propertyId), event);
             log.debug("Event distribution tarifs publie pour property={} [{}, {})", propertyId, from, to);
         } catch (Exception e) {
             log.error("Erreur publication event distribution tarifs property={}: {}",

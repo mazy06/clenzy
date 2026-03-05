@@ -1,6 +1,8 @@
 package com.clenzy.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -54,6 +56,7 @@ public class ReconciliationRun {
     @Column(name = "divergence_pct", precision = 5, scale = 2)
     private BigDecimal divergencePct = BigDecimal.ZERO;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "details", columnDefinition = "JSONB")
     private String details;
 

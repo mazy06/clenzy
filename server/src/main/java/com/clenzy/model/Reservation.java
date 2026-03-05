@@ -120,6 +120,9 @@ public class Reservation {
     @Column(name = "version", nullable = false)
     private Integer version = 0;
 
+    @Column(name = "hidden_from_planning", nullable = false)
+    private Boolean hiddenFromPlanning = false;
+
     // Constructeurs
     public Reservation() {}
 
@@ -223,6 +226,9 @@ public class Reservation {
 
     public String getStripeSessionId() { return stripeSessionId; }
     public void setStripeSessionId(String stripeSessionId) { this.stripeSessionId = stripeSessionId; }
+
+    public Boolean getHiddenFromPlanning() { return hiddenFromPlanning; }
+    public void setHiddenFromPlanning(Boolean hiddenFromPlanning) { this.hiddenFromPlanning = hiddenFromPlanning; }
 
     @Override
     public String toString() {

@@ -6,6 +6,7 @@ import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.User;
 import com.clenzy.repository.GuestRepository;
+import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
@@ -41,6 +42,7 @@ public class ReservationController {
     private final ReservationService reservationService;
     private final ReservationMapper reservationMapper;
     private final ReservationRepository reservationRepository;
+    private final InterventionRepository interventionRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final GuestRepository guestRepository;
@@ -51,6 +53,7 @@ public class ReservationController {
     public ReservationController(ReservationService reservationService,
                                  ReservationMapper reservationMapper,
                                  ReservationRepository reservationRepository,
+                                 InterventionRepository interventionRepository,
                                  PropertyRepository propertyRepository,
                                  UserRepository userRepository,
                                  GuestRepository guestRepository,
@@ -60,6 +63,7 @@ public class ReservationController {
         this.reservationService = reservationService;
         this.reservationMapper = reservationMapper;
         this.reservationRepository = reservationRepository;
+        this.interventionRepository = interventionRepository;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.guestRepository = guestRepository;
@@ -162,8 +166,7 @@ public class ReservationController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Modifier une reservation",
-            description = "Reservations OTA : seuls notes et status modifiables. "
-                    + "Reservations directes : tous les champs modifiables.")
+            description = "Tous les champs sont modifiables (OTA et direct).")
     public ResponseEntity<ReservationDto> update(
             @PathVariable Long id,
             @RequestBody ReservationDto dto,
@@ -174,13 +177,28 @@ public class ReservationController {
 
         validatePropertyAccess(existing.getProperty().getId(), jwt.getSubject());
 
-        boolean isOta = !"direct".equals(existing.getSource());
-        if (isOta) {
-            // Reservations OTA : seuls notes et status modifiables
-            if (dto.notes() != null) existing.setNotes(dto.notes());
-            if (dto.status() != null) existing.setStatus(dto.status());
-        } else {
-            reservationMapper.apply(dto, existing);
+        // Sauvegarder l'ancien checkout pour detecter un changement
+        LocalDate oldCheckOut = existing.getCheckOut();
+
+        // Tous les champs sont modifiables (OTA et direct)
+        reservationMapper.apply(dto, existing);
+
+        // Si le checkout a change et qu'une intervention est liee, decaler l'intervention
+        if (existing.getIntervention() != null && !existing.getCheckOut().equals(oldCheckOut)) {
+            var intervention = existing.getIntervention();
+            // Garder la meme heure, changer la date au nouveau checkout
+            java.time.LocalTime timeOfDay = intervention.getScheduledDate() != null
+                    ? intervention.getScheduledDate().toLocalTime()
+                    : java.time.LocalTime.of(11, 0);
+            LocalDateTime newScheduled = existing.getCheckOut().atTime(timeOfDay);
+            intervention.setScheduledDate(newScheduled);
+            intervention.setGuestCheckoutTime(newScheduled);
+            // Mettre a jour startTime/endTime aussi pour coherence
+            intervention.setStartTime(newScheduled);
+            if (intervention.getEstimatedDurationHours() != null) {
+                intervention.setEndTime(newScheduled.plusHours(intervention.getEstimatedDurationHours()));
+            }
+            interventionRepository.save(intervention);
         }
 
         Reservation saved = reservationRepository.save(existing);
@@ -209,6 +227,30 @@ public class ReservationController {
         Reservation cancelled = reservationRepository.findByIdFetchAll(id)
                 .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
         return ResponseEntity.ok(reservationMapper.toDto(cancelled));
+    }
+
+    // ── PATCH : masquer une reservation annulee du planning ─────────────────
+
+    @PatchMapping("/{id}/hide")
+    @Operation(summary = "Masquer une reservation annulee du planning",
+            description = "Met hiddenFromPlanning=true. Restreint aux reservations cancelled.")
+    public ResponseEntity<ReservationDto> hideFromPlanning(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        Reservation existing = reservationRepository.findByIdFetchAll(id)
+                .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
+
+        validatePropertyAccess(existing.getProperty().getId(), jwt.getSubject());
+
+        if (!"cancelled".equals(existing.getStatus())) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        existing.setHiddenFromPlanning(true);
+        reservationRepository.save(existing);
+
+        return ResponseEntity.ok(reservationMapper.toDto(existing));
     }
 
     // ── POST : envoyer le lien de paiement par email ───────────────────────

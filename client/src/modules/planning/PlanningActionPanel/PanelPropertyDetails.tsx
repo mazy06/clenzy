@@ -24,6 +24,7 @@ import {
   ExpandMore,
   OpenInNew,
   Handyman,
+  Assignment,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { usePropertyDetails } from '../../../hooks/usePropertyDetails';
@@ -66,7 +67,7 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
   onDrillDown,
 }) => {
   const navigate = useNavigate();
-  const { property, interventions, isLoading, isError, error } = usePropertyDetails(
+  const { property, interventions, serviceRequests = [], isLoading, isError, error } = usePropertyDetails(
     propertyId?.toString(),
   );
 
@@ -260,6 +261,77 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
             <Typography sx={{ fontSize: '0.6875rem', whiteSpace: 'pre-wrap' }}>{property.cleaningNotes}</Typography>
           </AccordionDetails>
         </Accordion>
+      )}
+
+      <Divider sx={{ my: 1.5 }} />
+
+      {/* Service requests for this property */}
+      <Typography sx={SECTION_TITLE_SX}>Demandes de service ({serviceRequests.length})</Typography>
+      {serviceRequests.length === 0 ? (
+        <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
+          Aucune demande de service
+        </Typography>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+          {serviceRequests.slice(0, 8).map((sr) => {
+            const statusColors: Record<string, string> = {
+              PENDING: '#ED6C02',
+              APPROVED: '#0288d1',
+              DEVIS_ACCEPTED: '#7B1FA2',
+              IN_PROGRESS: '#1565C0',
+              COMPLETED: '#4A9B8E',
+              REJECTED: '#757575',
+              CANCELLED: '#757575',
+            };
+            const c = statusColors[sr.status] || '#ED6C02';
+            const statusLabels: Record<string, string> = {
+              PENDING: 'En attente',
+              APPROVED: 'Approuvée',
+              DEVIS_ACCEPTED: 'Devis accepté',
+              IN_PROGRESS: 'En cours',
+              COMPLETED: 'Terminée',
+              REJECTED: 'Rejetée',
+              CANCELLED: 'Annulée',
+            };
+            return (
+              <Box
+                key={sr.id}
+                onClick={() => navigate(`/service-requests/${sr.id}`)}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  p: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: 'action.hover' },
+                }}
+              >
+                <Assignment sx={{ fontSize: 14, color: 'text.secondary' }} />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {sr.title}
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary' }}>
+                    {sr.serviceType?.replace(/_/g, ' ')} · {sr.desiredDate}
+                  </Typography>
+                </Box>
+                <Chip
+                  label={statusLabels[sr.status] || sr.status}
+                  size="small"
+                  sx={{ fontSize: '0.5625rem', height: 20, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+                />
+              </Box>
+            );
+          })}
+          {serviceRequests.length > 8 && (
+            <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary', textAlign: 'center' }}>
+              +{serviceRequests.length - 8} autres
+            </Typography>
+          )}
+        </Box>
       )}
 
       <Divider sx={{ my: 1.5 }} />

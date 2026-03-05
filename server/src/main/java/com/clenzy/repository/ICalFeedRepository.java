@@ -16,6 +16,7 @@ public interface ICalFeedRepository extends JpaRepository<ICalFeed, Long> {
     @Query("SELECT f FROM ICalFeed f JOIN f.property p WHERE p.owner.id = :ownerId AND f.organizationId = :orgId ORDER BY f.createdAt DESC")
     List<ICalFeed> findByPropertyOwnerId(@Param("ownerId") Long ownerId, @Param("orgId") Long orgId);
 
+    @Query("SELECT f FROM ICalFeed f JOIN FETCH f.property WHERE f.syncEnabled = true")
     List<ICalFeed> findBySyncEnabledTrue();
 
     @Query("SELECT f FROM ICalFeed f WHERE f.property.id = :propertyId AND f.url = :url AND f.organizationId = :orgId")

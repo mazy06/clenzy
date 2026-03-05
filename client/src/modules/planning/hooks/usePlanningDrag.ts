@@ -227,66 +227,71 @@ export function usePlanningDrag({
             newDates.checkOut = newEvent.endDate;
           }
 
-          if (reservationsApi.isMockMode()) {
-            // Optimistic update for mock mode — do NOT invalidate
-            // because invalidation refetches mock data which regenerates originals
+          // 1. Optimistic cache update (immediate visual feedback)
+          queryClient.setQueriesData(
+            { queryKey: [...planningKeys.all, 'reservations'] },
+            (old: unknown) => {
+              if (!Array.isArray(old)) return old;
+              return old.map((r: any) =>
+                r.id === numericId
+                  ? {
+                      ...r,
+                      ...(newDates.checkIn && { checkIn: newDates.checkIn }),
+                      ...(newDates.checkOut && { checkOut: newDates.checkOut }),
+                    }
+                  : r,
+              );
+            },
+          );
 
-            // 1. Update the reservation
-            queryClient.setQueriesData(
-              { queryKey: [...planningKeys.all, 'reservations'] },
-              (old: unknown) => {
-                if (!Array.isArray(old)) return old;
-                return old.map((r: any) =>
-                  r.id === numericId
-                    ? {
-                        ...r,
-                        ...(newDates.checkIn && { checkIn: newDates.checkIn }),
-                        ...(newDates.checkOut && { checkOut: newDates.checkOut }),
-                      }
-                    : r,
-                );
-              },
-            );
+          // 2. Update linked interventions optimistically
+          queryClient.setQueriesData(
+            { queryKey: [...planningKeys.all, 'interventions'] },
+            (old: unknown) => {
+              if (!Array.isArray(old)) return old;
+              return old.map((i: any) => {
+                if (i.linkedReservationId !== numericId) return i;
 
-            // 2. Update linked interventions (e.g. cleaning after checkout)
-            queryClient.setQueriesData(
-              { queryKey: [...planningKeys.all, 'interventions'] },
-              (old: unknown) => {
-                if (!Array.isArray(old)) return old;
-                return old.map((i: any) => {
-                  if (i.linkedReservationId !== numericId) return i;
+                if (data.type === 'move') {
+                  return {
+                    ...i,
+                    startDate: addDaysToStr(i.startDate, daysDelta),
+                    endDate: addDaysToStr(i.endDate, daysDelta),
+                  };
+                } else {
+                  const interventionDuration =
+                    (new Date(i.endDate).getTime() - new Date(i.startDate).getTime()) /
+                    (1000 * 60 * 60 * 24);
+                  const newStartDate = newEvent.endDate;
+                  const newEndDate = addDaysToStr(newStartDate, interventionDuration);
+                  return {
+                    ...i,
+                    startDate: newStartDate,
+                    endDate: newEndDate,
+                  };
+                }
+              });
+            },
+          );
 
-                  if (data.type === 'move') {
-                    // Move: shift intervention dates by the same delta
-                    return {
-                      ...i,
-                      startDate: addDaysToStr(i.startDate, daysDelta),
-                      endDate: addDaysToStr(i.endDate, daysDelta),
-                    };
-                  } else {
-                    // Resize: intervention starts at new checkout date
-                    const interventionDuration =
-                      (new Date(i.endDate).getTime() - new Date(i.startDate).getTime()) /
-                      (1000 * 60 * 60 * 24);
-                    const newStartDate = newEvent.endDate;
-                    const newEndDate = addDaysToStr(newStartDate, interventionDuration);
-                    return {
-                      ...i,
-                      startDate: newStartDate,
-                      endDate: newEndDate,
-                    };
-                  }
-                });
-              },
-            );
-          } else {
-            await reservationsApi.update(numericId, newDates);
-            // Backend should handle linked interventions automatically
+          // 3. Persist to backend (skip in mock mode — mock data regenerates)
+          if (!reservationsApi.isMockMode()) {
+            try {
+              const result = await reservationsApi.update(numericId, newDates);
+            } catch (err) {
+              // API failed — rollback by refetching authoritative data
+              console.error('[drag-resize]', err);
+              queryClient.invalidateQueries({ queryKey: planningKeys.all });
+              setState(INITIAL_STATE);
+              return;
+            }
+            // 4. Refetch to sync with backend (linked interventions, etc.)
             queryClient.invalidateQueries({ queryKey: planningKeys.all });
           }
         }
       } catch {
-        // Silently fail, data will re-fetch
+        // Rollback: refetch authoritative data on any error
+        queryClient.invalidateQueries({ queryKey: planningKeys.all });
       }
 
       setState(INITIAL_STATE);

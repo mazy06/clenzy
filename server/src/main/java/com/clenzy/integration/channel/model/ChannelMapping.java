@@ -2,7 +2,9 @@ package com.clenzy.integration.channel.model;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -39,6 +41,7 @@ public class ChannelMapping {
     @Column(name = "external_id", nullable = false, length = 200)
     private String externalId;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "mapping_config", columnDefinition = "JSONB")
     private String mappingConfig;
 
