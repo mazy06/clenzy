@@ -333,6 +333,7 @@ const theme = createTheme({
           borderRight: '1px solid',
           borderColor: '#E2E8F0',
           boxShadow: 'none',
+          borderRadius: 0,
         },
       },
     },

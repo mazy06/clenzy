@@ -34,6 +34,7 @@ interface PlanningTimelineProps {
   showInterventions: boolean;
   pricingMap: PricingMap;
   pageSize?: number;
+  onPropertyClick?: (propertyId: number) => void;
 }
 
 const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
@@ -58,6 +59,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   showInterventions,
   pricingMap,
   pageSize,
+  onPropertyClick,
 }) => {
   const config = ROW_CONFIG[density];
   const priceLineHeight = showPrices ? PRICE_LINE_HEIGHT[density] : 0;
@@ -138,6 +140,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                 colWidth={propertyColWidth}
                 effectiveRowHeight={effectiveRowHeight}
                 emptyRowCount={emptyRowCount}
+                onPropertyClick={onPropertyClick}
               />
 
               {/* Grid rows */}
