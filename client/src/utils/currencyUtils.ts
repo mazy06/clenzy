@@ -81,9 +81,6 @@ export const CURRENCY_OPTIONS = [
   { code: 'EUR', label: 'Euro (EUR)', symbol: '\u20AC' },
   { code: 'MAD', label: 'Dirham marocain (MAD)', symbol: 'MAD' },
   { code: 'SAR', label: 'Riyal saoudien (SAR)', symbol: 'SAR' },
-  { code: 'USD', label: 'Dollar US (USD)', symbol: '$' },
-  { code: 'GBP', label: 'Livre sterling (GBP)', symbol: '\u00A3' },
-  { code: 'CHF', label: 'Franc suisse (CHF)', symbol: 'CHF' },
 ] as const;
 
 /**

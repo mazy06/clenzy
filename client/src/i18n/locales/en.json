@@ -70,6 +70,7 @@
       "MEMBER": "Member"
     },
     "language": "Language",
+    "languageAndCurrency": "Language & Currency",
     "languages": {
       "fr": "French",
       "en": "English"
