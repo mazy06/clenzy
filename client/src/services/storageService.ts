@@ -14,6 +14,9 @@ export const STORAGE_KEYS = {
   // i18n
   LANGUAGE: 'i18nextLng',
 
+  // Currency
+  CURRENCY: 'clenzy_currency',
+
   // Planning mock mode
   PLANNING_MOCK: 'clenzy_planning_mock',
 

@@ -21,10 +21,14 @@ import {
   Notifications,
   NotificationsNone,
   Language as LanguageIcon,
+  Euro as EuroIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from '../hooks/useTranslation';
+import { useCurrency } from '../hooks/useCurrency';
+import { CURRENCY_OPTIONS } from '../utils/currencyUtils';
+import type { CurrencyCode } from '../hooks/useCurrency';
 import { authApi, notificationsApi } from '../services/api';
 import keycloak from '../keycloak';
 import { clearTokens } from '../services/storageService';
@@ -63,9 +67,11 @@ export default function Sidebar({
   const location = useLocation();
   const { user, clearUser } = useAuth();
   const { t, changeLanguage, currentLanguage } = useTranslation();
+  const { currency, setCurrency } = useCurrency();
   const theme = useTheme();
   const isXl = useMediaQuery(theme.breakpoints.up('xl'));
   const [langAnchorEl, setLangAnchorEl] = useState<null | HTMLElement>(null);
+  const [currencyAnchorEl, setCurrencyAnchorEl] = useState<null | HTMLElement>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -134,6 +140,19 @@ export default function Sidebar({
   const handleLangChange = (lang: 'fr' | 'en') => {
     changeLanguage(lang);
     handleLangClose();
+  };
+
+  const handleCurrencyOpen = (e: React.MouseEvent<HTMLElement>) => {
+    setCurrencyAnchorEl(e.currentTarget);
+  };
+
+  const handleCurrencyClose = () => {
+    setCurrencyAnchorEl(null);
+  };
+
+  const handleCurrencyChange = (code: CurrencyCode) => {
+    setCurrency(code);
+    handleCurrencyClose();
   };
 
   // ─── Sidebar content (shared between permanent and temporary) ──────────
@@ -354,6 +373,20 @@ export default function Sidebar({
             </IconButton>
           </Tooltip>
 
+          {/* Currency */}
+          <Tooltip title={t('navigation.currency') || 'Devise'} placement={collapsed ? 'right' : 'top'}>
+            <IconButton
+              size="small"
+              onClick={handleCurrencyOpen}
+              sx={{
+                color: 'text.secondary',
+                '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.08)' },
+              }}
+            >
+              <EuroIcon sx={{ fontSize: actionIconSize }} />
+            </IconButton>
+          </Tooltip>
+
           {/* Notifications */}
           <Tooltip title="Notifications" placement={collapsed ? 'right' : 'top'}>
             <IconButton
@@ -438,6 +471,52 @@ export default function Sidebar({
           >
             English
           </MuiMenuItem>
+        </Menu>
+
+        {/* Currency menu popup */}
+        <Menu
+          anchorEl={currencyAnchorEl}
+          open={Boolean(currencyAnchorEl)}
+          onClose={handleCurrencyClose}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          slotProps={{
+            paper: {
+              elevation: 0,
+              sx: {
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: '6px',
+                minWidth: 180,
+                maxHeight: 280,
+                boxShadow: (theme) =>
+                  theme.palette.mode === 'dark'
+                    ? '0 4px 12px rgba(0,0,0,0.3)'
+                    : '0 4px 12px rgba(0,0,0,0.08)',
+              },
+            },
+          }}
+        >
+          {CURRENCY_OPTIONS.map((opt) => (
+            <MuiMenuItem
+              key={opt.code}
+              onClick={() => handleCurrencyChange(opt.code as CurrencyCode)}
+              selected={currency === opt.code}
+              sx={{ fontSize: '0.8125rem' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                <Typography
+                  component="span"
+                  sx={{ fontSize: '0.875rem', fontWeight: 600, minWidth: 24, textAlign: 'center' }}
+                >
+                  {opt.symbol}
+                </Typography>
+                <Typography component="span" sx={{ fontSize: '0.8125rem' }}>
+                  {opt.label}
+                </Typography>
+              </Box>
+            </MuiMenuItem>
+          ))}
         </Menu>
 
         {/* ── Collapse toggle (desktop only) ─────────────────────────── */}

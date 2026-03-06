@@ -37,10 +37,8 @@
     "reservations": "Réservations",
     "dynamicPricing": "Prix dynamiques",
     "planning": "Planning",
-    "teams": "Équipes",
-    "portfolios": "Portefeuilles",
+    "directory": "Annuaire",
     "contact": "Contact",
-    "guests": "Voyageurs",
     "reports": "Rapports",
     "users": "Utilisateurs",
     "usersAndOrganizations": "Utilisateurs et Organisations",
@@ -70,10 +68,12 @@
       "EXTERIOR_TECH": "Tech. Extérieur",
       "MEMBER": "Membre"
     },
+    "language": "Langue",
     "languages": {
       "fr": "Français",
       "en": "Anglais"
     },
+    "currency": "Devise",
     "invoices": "Factures",
     "channels": "Channels",
     "messaging": "Messagerie",
@@ -290,6 +290,7 @@
       "operations": "Opérations",
       "noise": "Nuisance sonore",
       "analytics": "Analytics",
+      "simulator": "Simulateur",
       "smartLock": "Serrures connectées",
       "keyExchange": "Gestion des clés"
     },
@@ -1709,6 +1710,33 @@
     "tabs": {
       "payments": "Paiements",
       "invoices": "Factures"
+    }
+  },
+  "workOrders": {
+    "title": "Interventions",
+    "subtitle": "Gestion des demandes de service et des interventions",
+    "tabs": {
+      "serviceRequests": "Demandes de service",
+      "interventions": "Interventions"
+    }
+  },
+  "propertiesPage": {
+    "title": "Propriétés",
+    "subtitle": "Gestion des propriétés et des tarifs dynamiques",
+    "tabs": {
+      "properties": "Propriétés",
+      "pricing": "Prix dynamique"
+    }
+  },
+  "directoryPage": {
+    "title": "Annuaire",
+    "subtitle": "Gestion des équipes, portefeuilles, voyageurs, utilisateurs et organisations",
+    "tabs": {
+      "teams": "Équipes",
+      "portfolios": "Portefeuilles",
+      "guests": "Voyageurs",
+      "users": "Utilisateurs",
+      "organizations": "Organisations"
     }
   },
   "payments": {

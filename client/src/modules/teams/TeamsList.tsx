@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
   Box,
   Grid,
@@ -41,7 +42,12 @@ const TEAM_FILTER_CATEGORIES = [
   { value: 'OTHER', label: 'Autre', icon: <Category sx={{ fontSize: 16 }} />, borderColor: 'info.main' },
 ];
 
-const TeamsList: React.FC = () => {
+interface TeamsListProps {
+  embedded?: boolean;
+  actionsContainer?: HTMLElement | null;
+}
+
+const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContainer }) => {
   const {
     loading,
     error,
@@ -86,28 +92,33 @@ const TeamsList: React.FC = () => {
 
   const totalPages = Math.ceil(filteredTeams.length / ITEMS_PER_PAGE);
 
+  const actionButtons = canCreateTeams ? (
+    <Button
+      variant="contained"
+      color="primary"
+      startIcon={<Add />}
+      onClick={() => navigate('/teams/new')}
+      size="small"
+      title={t('teams.create')}
+    >
+      {t('teams.create')}
+    </Button>
+  ) : null;
+
   return (
     <Box>
-      <PageHeader
-        title={t('teams.title')}
-        subtitle={t('teams.subtitle')}
-        backPath="/dashboard"
-        showBackButton={false}
-        actions={
-          canCreateTeams && (
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<Add />}
-              onClick={() => navigate('/teams/new')}
-              size="small"
-              title={t('teams.create')}
-            >
-              {t('teams.create')}
-            </Button>
-          )
-        }
-      />
+      {/* Portal actions into parent's PageHeader when embedded */}
+      {embedded && actionsContainer && actionButtons && createPortal(actionButtons, actionsContainer)}
+
+      {!embedded && (
+        <PageHeader
+          title={t('teams.title')}
+          subtitle={t('teams.subtitle')}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={actionButtons}
+        />
+      )}
 
       {/* Message d'erreur */}
       {error && (

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Box,
   Typography,
@@ -116,7 +117,12 @@ function formatDateShort(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-export default function InterventionsList() {
+interface InterventionsListProps {
+  embedded?: boolean;
+  actionsContainer?: HTMLElement | null;
+}
+
+export default function InterventionsList({ embedded = false, actionsContainer }: InterventionsListProps) {
   const {
     // State
     interventions,
@@ -385,56 +391,63 @@ export default function InterventionsList() {
     })),
   ];
 
+  const actionButtons = (
+    <Box sx={{ display: 'flex', gap: 1 }}>
+      <ExportButton
+        data={filteredInterventions}
+        columns={exportColumns}
+        fileName="interventions"
+      />
+      <Button
+        variant="outlined"
+        startIcon={<Refresh />}
+        onClick={loadInterventions}
+        disabled={loading}
+        size="small"
+        sx={{ textTransform: 'none' }}
+        title={t('common.refresh')}
+      >
+        {t('common.refresh')}
+      </Button>
+      {isHost() && (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => navigate('/interventions/pending-payment')}
+          title={t('interventions.pendingPayment.title')}
+        >
+          {t('interventions.pendingPayment.title')}
+        </Button>
+      )}
+      {/* Seuls les ADMIN et MANAGER peuvent créer des interventions manuellement */}
+      {canCreateInterventions && (isAdmin() || isManager()) && (
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={() => navigate('/interventions/new')}
+          title={t('interventions.create')}
+        >
+          {t('interventions.create')}
+        </Button>
+      )}
+    </Box>
+  );
+
   return (
     <Box>
-      <PageHeader
-        title={t('interventions.title')}
-        subtitle={t('interventions.subtitle')}
-        backPath="/dashboard"
-        showBackButton={false}
-        actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <ExportButton
-              data={filteredInterventions}
-              columns={exportColumns}
-              fileName="interventions"
-            />
-            <Button
-              variant="outlined"
-              startIcon={<Refresh />}
-              onClick={loadInterventions}
-              disabled={loading}
-              size="small"
-              sx={{ textTransform: 'none' }}
-              title={t('common.refresh')}
-            >
-              {t('common.refresh')}
-            </Button>
-            {isHost() && (
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => navigate('/interventions/pending-payment')}
-                title={t('interventions.pendingPayment.title')}
-              >
-                {t('interventions.pendingPayment.title')}
-              </Button>
-            )}
-            {/* Seuls les ADMIN et MANAGER peuvent créer des interventions manuellement */}
-            {canCreateInterventions && (isAdmin() || isManager()) && (
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={() => navigate('/interventions/new')}
-                title={t('interventions.create')}
-              >
-                {t('interventions.create')}
-              </Button>
-            )}
-          </Box>
-        }
-      />
+      {/* Portal actions into parent's PageHeader when embedded */}
+      {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+
+      {!embedded && (
+        <PageHeader
+          title={t('interventions.title')}
+          subtitle={t('interventions.subtitle')}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={actionButtons}
+        />
+      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 2, py: 1 }}>

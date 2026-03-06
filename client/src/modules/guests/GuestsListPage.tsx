@@ -69,7 +69,12 @@ function formatDate(dateStr?: string): string {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const GuestsListPage: React.FC = () => {
+interface GuestsListPageProps {
+  embedded?: boolean;
+  actionsContainer?: HTMLElement | null;
+}
+
+const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => {
   const { user } = useAuth();
   const isSuperAdmin = user?.platformRole === 'SUPER_ADMIN' || user?.platformRole === 'SUPER_MANAGER';
 
@@ -127,13 +132,15 @@ const GuestsListPage: React.FC = () => {
 
   // ── Render ──────────────────────────────────────────────────────────
   return (
-    <Box sx={{ p: SPACING.PAGE_PADDING }}>
-      <PageHeader
-        title="Voyageurs"
-        subtitle={`${filteredGuests.length} voyageur${filteredGuests.length !== 1 ? 's' : ''}`}
-        backPath="/dashboard"
-        showBackButton={false}
-      />
+    <Box sx={{ p: embedded ? 0 : SPACING.PAGE_PADDING }}>
+      {!embedded && (
+        <PageHeader
+          title="Voyageurs"
+          subtitle={`${filteredGuests.length} voyageur${filteredGuests.length !== 1 ? 's' : ''}`}
+          backPath="/dashboard"
+          showBackButton={false}
+        />
+      )}
 
       {/* Filters */}
       <Paper sx={{ ...CARD_SX, p: 2, mb: 2 }}>

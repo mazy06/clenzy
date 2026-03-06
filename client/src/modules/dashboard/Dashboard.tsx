@@ -6,34 +6,30 @@ import {
   Paper,
   Chip,
   Tooltip,
-  Divider,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
 import {
-  BarChart as BarChartIcon,
+  Calculate as CalculateIcon,
   VolumeUp as VolumeUpIcon,
   LockOutlined as LockOutlinedIcon,
   VpnKey as VpnKeyIcon,
   Sync as SyncIcon,
   CalendarToday as CalendarTodayIcon,
-  Dashboard as DashboardIcon,
-  Euro as EuroIcon,
-  Groups as GroupsIcon,
-  Tune as TuneIcon,
-  Calculate as CalculateIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
+import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
-import DashboardAnalyticsContent from './DashboardAnalyticsContent';
 import DashboardNoiseTab from './DashboardNoiseTab';
 import DashboardSmartLockTab from './DashboardSmartLockTab';
 import DashboardKeyExchangeTab from './DashboardKeyExchangeTab';
 import DashboardDateFilter from './DashboardDateFilter';
+import DashboardErrorBoundary from './DashboardErrorBoundary';
 import ICalImportModal from './ICalImportModal';
 import UpgradeBanner from './UpgradeBanner';
 import { useICalFeeds } from './useICalImport';
+import { AnalyticsSimulator } from './analytics';
 import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';
 
 // ─── Source logos for connected iCal feeds ──────────────────────────────────
@@ -74,6 +70,8 @@ const PERIOD_OPTIONS: DateFilterOption<DashboardPeriod>[] = [
   { value: 'year', label: '1 an' },
 ];
 
+const EMPTY_INTERVENTIONS: Array<{ estimatedCost?: number; actualCost?: number; type: string; status: string; scheduledDate?: string; createdAt?: string }> = [];
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 const Dashboard: React.FC = () => {
@@ -84,7 +82,6 @@ const Dashboard: React.FC = () => {
 
   const [period, setPeriod] = useState<DashboardPeriod>('month');
   const [tabValue, setTabValue] = useState(0);
-  const [analyticsSubTab, setAnalyticsSubTab] = useState(0);
   const [icalModalOpen, setIcalModalOpen] = useState(false);
 
   // Connected iCal feeds → unique source icons
@@ -109,20 +106,11 @@ const Dashboard: React.FC = () => {
   const isLaundry = user?.roles?.includes('LAUNDRY');
   const isExteriorTech = user?.roles?.includes('EXTERIOR_TECH');
 
-  // User role string
-  const userRole = (() => {
-    if (user?.roles?.includes('SUPER_ADMIN')) return 'SUPER_ADMIN';
-    if (isAdmin) return 'SUPER_ADMIN';
-    if (user?.roles?.includes('SUPER_MANAGER')) return 'SUPER_MANAGER';
-    if (isManager) return 'SUPER_MANAGER';
-    if (isSupervisor) return 'SUPERVISOR';
-    if (isTechnician) return 'TECHNICIAN';
-    if (isHousekeeper) return 'HOUSEKEEPER';
-    if (isHost) return 'HOST';
-    if (isLaundry) return 'LAUNDRY';
-    if (isExteriorTech) return 'EXTERIOR_TECH';
-    return 'USER';
-  })();
+  // Analytics engine (for simulator tab)
+  const { analytics } = useAnalyticsEngine({
+    period,
+    interventions: EMPTY_INTERVENTIONS,
+  });
 
   // ─── Titles ─────────────────────────────────────────────────────────────
   const getDashboardTitle = () => {
@@ -145,7 +133,7 @@ const Dashboard: React.FC = () => {
     return t('dashboard.subtitle');
   };
 
-  // ─── Date filter: period chips on Analytics (tab 0), none on others
+  // ─── Date filter: period chips on Simulator (tab 0), none on others
   const dateFilterElement = useMemo(() => {
     if (tabValue === 0) {
       return (
@@ -257,7 +245,7 @@ const Dashboard: React.FC = () => {
         />
       </Box>
 
-      {/* ─── Tabs (4 onglets : Analytics / Nuisance sonore / Serrures / Clés) ── */}
+      {/* ─── Tabs (4 onglets : Simulateur / Nuisance sonore / Serrures / Clés) ── */}
       <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0, flexShrink: 0 }}>
         <Tabs
           value={tabValue}
@@ -285,9 +273,9 @@ const Dashboard: React.FC = () => {
           }}
         >
           <Tab
-            icon={<BarChartIcon sx={{ fontSize: 16 }} />}
+            icon={<CalculateIcon sx={{ fontSize: 16 }} />}
             iconPosition="start"
-            label={t('dashboard.tabs.analytics') || 'Analytics'}
+            label={t('dashboard.tabs.simulator') || 'Simulateur'}
             {...a11yProps(0)}
           />
           <Tab
@@ -309,83 +297,22 @@ const Dashboard: React.FC = () => {
             {...a11yProps(3)}
           />
         </Tabs>
-
-        {/* ─── Analytics sub-tabs (dropdown-style continuation) ───────── */}
-        {tabValue === 0 && (
-          <>
-            <Divider sx={{ borderColor: 'divider' }} />
-            <Box sx={{ bgcolor: 'rgba(107, 138, 154, 0.03)' }}>
-              <Tabs
-                value={analyticsSubTab}
-                onChange={(_, v) => setAnalyticsSubTab(v)}
-                variant="scrollable"
-                scrollButtons="auto"
-                sx={{
-                  minHeight: 34,
-                  '& .MuiTab-root': {
-                    minHeight: 34,
-                    py: 0.5,
-                    px: 1.5,
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    textTransform: 'none',
-                    letterSpacing: '0.01em',
-                    color: 'text.secondary',
-                    '&.Mui-selected': {
-                      fontWeight: 700,
-                      color: '#6B8A9A',
-                    },
-                  },
-                  '& .MuiTabs-indicator': {
-                    height: 2,
-                    borderRadius: 1,
-                    bgcolor: '#6B8A9A',
-                  },
-                }}
-              >
-                <Tab
-                  icon={<DashboardIcon sx={{ fontSize: 15 }} />}
-                  iconPosition="start"
-                  label={t('dashboard.analytics.subTabs.overview')}
-                />
-                <Tab
-                  icon={<EuroIcon sx={{ fontSize: 15 }} />}
-                  iconPosition="start"
-                  label={t('dashboard.analytics.subTabs.revenueAndPricing')}
-                />
-                <Tab
-                  icon={<GroupsIcon sx={{ fontSize: 15 }} />}
-                  iconPosition="start"
-                  label={t('dashboard.analytics.subTabs.occupancyAndClients')}
-                />
-                <Tab
-                  icon={<TuneIcon sx={{ fontSize: 15 }} />}
-                  iconPosition="start"
-                  label={t('dashboard.analytics.subTabs.performanceAndTools')}
-                />
-                <Tab
-                  icon={<CalculateIcon sx={{ fontSize: 15 }} />}
-                  iconPosition="start"
-                  label={t('dashboard.analytics.subTabs.simulator')}
-                />
-              </Tabs>
-            </Box>
-          </>
-        )}
       </Paper>
 
-      {/* ─── Tab 0: Analytics ──────────────────────────────────────────── */}
+      {/* ─── Tab 0: Simulateur ───────────────────────────────────────────── */}
       {tabValue === 0 && (
         <Box
           role="tabpanel"
           id="dashboard-tabpanel-0"
           aria-labelledby="dashboard-tab-0"
-          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
         >
           {isHost && user?.forfait?.toLowerCase() === 'essentiel' && (
             <UpgradeBanner currentForfait={user.forfait} />
           )}
-          <DashboardAnalyticsContent period={period} subTab={analyticsSubTab} />
+          <DashboardErrorBoundary widgetName="Simulateur">
+            <AnalyticsSimulator data={analytics} />
+          </DashboardErrorBoundary>
         </Box>
       )}
 

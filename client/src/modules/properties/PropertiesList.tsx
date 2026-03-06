@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Box,
   Typography,
@@ -111,7 +112,12 @@ const LIST_PAPER_SX = {
   borderRadius: 1.5,
 } as const;
 
-export default function PropertiesList() {
+interface PropertiesListProps {
+  embedded?: boolean;
+  actionsContainer?: HTMLElement | null;
+}
+
+export default function PropertiesList({ embedded = false, actionsContainer }: PropertiesListProps) {
   // ─── React Query ──────────────────────────────────────────────────
   const { properties, isLoading, deleteProperty } = usePropertiesList();
 
@@ -278,34 +284,41 @@ export default function PropertiesList() {
 
   // ─── Render ───────────────────────────────────────────────────────
 
+  const actionButtons = (
+    <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
+      <ExportButton
+        data={filteredProperties}
+        columns={exportColumns}
+        fileName="proprietes"
+      />
+      <Button
+        variant="contained"
+        color="primary"
+        startIcon={<Add />}
+        onClick={() => navigate('/properties/new')}
+        size="small"
+        sx={ACTION_BUTTON_SX}
+        title={t('properties.create')}
+      >
+        {t('properties.create')}
+      </Button>
+    </Box>
+  );
+
   return (
     <Box>
-      <PageHeader
-        title={t('properties.title')}
-        subtitle={t('properties.subtitle')}
-        backPath="/dashboard"
-        showBackButton={false}
-        actions={
-          <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
-            <ExportButton
-              data={filteredProperties}
-              columns={exportColumns}
-              fileName="proprietes"
-            />
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<Add />}
-              onClick={() => navigate('/properties/new')}
-              size="small"
-              sx={ACTION_BUTTON_SX}
-              title={t('properties.create')}
-            >
-              {t('properties.create')}
-            </Button>
-          </Box>
-        }
-      />
+      {/* Portal actions into parent's PageHeader when embedded */}
+      {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+
+      {!embedded && (
+        <PageHeader
+          title={t('properties.title')}
+          subtitle={t('properties.subtitle')}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={actionButtons}
+        />
+      )}
 
       {/* Filtres et recherche */}
       <FilterSearchBar

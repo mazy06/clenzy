@@ -5,19 +5,18 @@ import SmartRedirect from '../components/SmartRedirect';
 
 // Pages principales
 import Dashboard from './dashboard/Dashboard';
-import PropertiesList from './properties/PropertiesList';
+import PropertiesPage from './properties/PropertiesPage';
 import PropertyCreate from './properties/PropertyCreate';
 import PropertyDetails from './properties/PropertyDetails';
 import PropertyEdit from './properties/PropertyEdit';
 
 // Service requests
-import ServiceRequestsList from './service-requests/ServiceRequestsList';
 import ServiceRequestCreate from './service-requests/ServiceRequestCreate';
 import ServiceRequestDetails from './service-requests/ServiceRequestDetails';
 import ServiceRequestEdit from './service-requests/ServiceRequestEdit';
 
-// Interventions
-import InterventionsList from './interventions/InterventionsList';
+// Interventions & Work Orders (unified page with tabs)
+import WorkOrdersPage from './work-orders/WorkOrdersPage';
 import InterventionForm from './interventions/InterventionForm';
 import InterventionDetails from './interventions/InterventionDetails';
 import InterventionEdit from './interventions/InterventionEdit';
@@ -26,10 +25,12 @@ import PaymentCancel from './interventions/PaymentCancel';
 import InterventionsPendingPayment from './interventions/InterventionsPendingPayment';
 
 // Teams
-import TeamsList from './teams/TeamsList';
 import TeamForm from './teams/TeamForm';
 import TeamDetails from './teams/TeamDetails';
 import TeamEdit from './teams/TeamEdit';
+
+// Directory (Annuaire — merged Teams + Portfolios + Guests)
+import DirectoryPage from './directory/DirectoryPage';
 
 // Reports
 import Reports from './reports/Reports';
@@ -37,7 +38,6 @@ import ReportDetails from './reports/ReportDetails';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 // Users
-import UsersAndOrganizations from './users/UsersAndOrganizations';
 import UserForm from './users/UserForm';
 import UserDetails from './users/UserDetails';
 import UserEdit from './users/UserEdit';
@@ -68,8 +68,7 @@ import NotificationsPage from './notifications/NotificationsPage';
 // Calendar
 import CalendarPage from './calendar/CalendarPage';
 
-// Portfolios
-import PortfoliosPage from './portfolios/PortfoliosPage';
+// Portfolios (sub-routes only — main list is inside DirectoryPage)
 import ClientPropertyAssignmentForm from './portfolios/ClientPropertyAssignmentForm';
 import TeamUserAssignmentForm from './portfolios/TeamUserAssignmentForm';
 
@@ -82,11 +81,10 @@ import ReservationsList from './reservations/ReservationsList';
 // Planning
 import PlanningPage from './planning/PlanningPage';
 
-// Guests
-import GuestsListPage from './guests/GuestsListPage';
+// Guests (main list is inside DirectoryPage)
 
 // Dynamic Pricing
-import DynamicPricing from './pricing/DynamicPricing';
+
 
 // Admin pages
 import TokenMonitoringPage from './admin/TokenMonitoringPage';
@@ -126,11 +124,9 @@ const AuthenticatedApp: React.FC = () => {
       } />
         
         <Route path="/properties" element={
-          <ProtectedRoute requiredPermission="properties:view">
-            <ErrorBoundary>
-              <PropertiesList />
-            </ErrorBoundary>
-          </ProtectedRoute>
+          <ErrorBoundary>
+            <PropertiesPage />
+          </ErrorBoundary>
         } />
         <Route path="/properties/new" element={
           <ProtectedRoute requiredPermission="properties:create">
@@ -154,13 +150,7 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        <Route path="/service-requests" element={
-          <ProtectedRoute requiredPermission="service-requests:view">
-            <ErrorBoundary>
-              <ServiceRequestsList />
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
+        <Route path="/service-requests" element={<Navigate to="/interventions?tab=0" replace />} />
         <Route path="/service-requests/new" element={
           <ProtectedRoute requiredPermission="service-requests:create">
             <ErrorBoundary>
@@ -184,11 +174,9 @@ const AuthenticatedApp: React.FC = () => {
         } />
         
         <Route path="/interventions" element={
-          <ProtectedRoute requiredPermission="interventions:view">
-            <ErrorBoundary>
-              <InterventionsList />
-            </ErrorBoundary>
-          </ProtectedRoute>
+          <ErrorBoundary>
+            <WorkOrdersPage />
+          </ErrorBoundary>
         } />
         <Route path="/interventions/new" element={
           <ProtectedRoute requiredPermission="interventions:create">
@@ -241,21 +229,12 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/guests" element={
-          <ProtectedRoute requiredPermission="guests:view">
-            <ErrorBoundary>
-              <GuestsListPage />
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
+        {/* Annuaire (Directory) — merged Teams + Portfolios + Guests */}
+        <Route path="/directory" element={<DirectoryPage />} />
+        {/* Backward-compat redirects for old URLs */}
+        <Route path="/guests" element={<Navigate to="/directory?tab=2" replace />} />
 
-        <Route path="/dynamic-pricing" element={
-          <ProtectedRoute requiredPermission="pricing:view">
-            <ErrorBoundary>
-              <DynamicPricing />
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
+        <Route path="/dynamic-pricing" element={<Navigate to="/properties?tab=1" replace />} />
 
         <Route path="/billing" element={
           <ProtectedRoute requiredPermission="payments:view">
@@ -271,11 +250,7 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/teams" element={
-          <ProtectedRoute requiredPermission="teams:view">
-            <TeamsList />
-          </ProtectedRoute>
-        } />
+        <Route path="/teams" element={<Navigate to="/directory?tab=0" replace />} />
         <Route path="/teams/new" element={
           <ProtectedRoute requiredPermission="teams:create">
             <TeamForm />
@@ -305,11 +280,7 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        <Route path="/users" element={
-          <ProtectedRoute requiredPermission="users:manage">
-            <UsersAndOrganizations />
-          </ProtectedRoute>
-        } />
+        <Route path="/users" element={<Navigate to="/directory" replace />} />
         <Route path="/users/new" element={
           <ProtectedRoute requiredPermission="users:manage">
             <UserForm />
@@ -374,11 +345,7 @@ const AuthenticatedApp: React.FC = () => {
           <NotificationsPage />
         } />
         
-        <Route path="/portfolios" element={
-          <ProtectedRoute requiredPermission="portfolios:view">
-            <PortfoliosPage />
-          </ProtectedRoute>
-        } />
+        <Route path="/portfolios" element={<Navigate to="/directory?tab=1" replace />} />
         <Route path="/portfolios/client-assignment" element={
           <ProtectedRoute requiredPermission="portfolios:manage">
             <ClientPropertyAssignmentForm />

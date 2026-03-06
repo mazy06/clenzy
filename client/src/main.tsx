@@ -11,6 +11,7 @@ import darkTheme from './theme/darkTheme'
 import ThemeSafetyWrapper from './components/ThemeSafetyWrapper'
 import { NotificationProvider } from './hooks/useNotification'
 import { ThemeModeProvider, useThemeMode } from './hooks/useThemeMode'
+import { CurrencyProvider } from './hooks/useCurrency'
 import './i18n/config'
 
 // ─── Sentry — Error tracking & performance monitoring ────────────────────────
@@ -82,13 +83,15 @@ function AppWithTheme() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={currentTheme}>
         <CssBaseline />
-        <NotificationProvider>
-          <ThemeSafetyWrapper>
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
-          </ThemeSafetyWrapper>
-        </NotificationProvider>
+        <CurrencyProvider>
+          <NotificationProvider>
+            <ThemeSafetyWrapper>
+              <BrowserRouter>
+                <App />
+              </BrowserRouter>
+            </ThemeSafetyWrapper>
+          </NotificationProvider>
+        </CurrencyProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

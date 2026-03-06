@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Box,
   Typography,
@@ -88,7 +89,12 @@ function formatPrice(price: number | undefined): string {
   return `${price}€`;
 }
 
-export default function ServiceRequestsList() {
+interface ServiceRequestsListProps {
+  embedded?: boolean;
+  actionsContainer?: HTMLElement | null;
+}
+
+export default function ServiceRequestsList({ embedded = false, actionsContainer }: ServiceRequestsListProps) {
   const {
     // Filter state
     searchTerm,
@@ -211,33 +217,40 @@ export default function ServiceRequestsList() {
     { key: 'createdAt', label: 'Date de création', formatter: (v: string) => v ? new Date(v).toLocaleDateString('fr-FR') : '' },
   ], []);
 
+  const actionButtons = (
+    <Box sx={{ display: 'flex', gap: 1 }}>
+      <ExportButton
+        data={filteredServiceRequests}
+        columns={exportColumns}
+        fileName="demandes-service"
+      />
+      <Button
+        variant="contained"
+        color="primary"
+        startIcon={<Add />}
+        onClick={() => navigate('/service-requests/new')}
+        size="small"
+        title={t('serviceRequests.create')}
+      >
+        {t('serviceRequests.create')}
+      </Button>
+    </Box>
+  );
+
   return (
     <Box>
-      <PageHeader
-        title={t('serviceRequests.title')}
-        subtitle={t('serviceRequests.subtitle')}
-        backPath="/dashboard"
-        showBackButton={false}
-        actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <ExportButton
-              data={filteredServiceRequests}
-              columns={exportColumns}
-              fileName="demandes-service"
-            />
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<Add />}
-              onClick={() => navigate('/service-requests/new')}
-              size="small"
-              title={t('serviceRequests.create')}
-            >
-              {t('serviceRequests.create')}
-            </Button>
-          </Box>
-        }
-      />
+      {/* Portal actions into parent's PageHeader when embedded */}
+      {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+
+      {!embedded && (
+        <PageHeader
+          title={t('serviceRequests.title')}
+          subtitle={t('serviceRequests.subtitle')}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={actionButtons}
+        />
+      )}
 
       {/* Filtres et recherche */}
       <FilterSearchBar

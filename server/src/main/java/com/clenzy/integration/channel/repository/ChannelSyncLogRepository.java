@@ -58,14 +58,22 @@ public interface ChannelSyncLogRepository extends JpaRepository<ChannelSyncLog, 
 
     /**
      * Recherche filtree cross-org (channel, status, date minimum).
+     * Native query avec CAST pour eviter "could not determine data type of parameter" sur PostgreSQL.
      */
-    @Query("SELECT sl FROM ChannelSyncLog sl JOIN sl.connection cc " +
-           "WHERE (:channel IS NULL OR cc.channel = :channel) " +
-           "AND (:status IS NULL OR sl.status = :status) " +
-           "AND (:from IS NULL OR sl.createdAt >= :from) " +
-           "ORDER BY sl.createdAt DESC")
+    @Query(value = "SELECT sl.* FROM channel_sync_log sl " +
+           "JOIN channel_connections cc ON sl.connection_id = cc.id " +
+           "WHERE (CAST(:channel AS VARCHAR) IS NULL OR cc.channel = CAST(:channel AS VARCHAR)) " +
+           "AND (CAST(:status AS VARCHAR) IS NULL OR sl.status = CAST(:status AS VARCHAR)) " +
+           "AND (CAST(:from AS TIMESTAMP) IS NULL OR sl.created_at >= CAST(:from AS TIMESTAMP)) " +
+           "ORDER BY sl.created_at DESC",
+           countQuery = "SELECT COUNT(*) FROM channel_sync_log sl " +
+           "JOIN channel_connections cc ON sl.connection_id = cc.id " +
+           "WHERE (CAST(:channel AS VARCHAR) IS NULL OR cc.channel = CAST(:channel AS VARCHAR)) " +
+           "AND (CAST(:status AS VARCHAR) IS NULL OR sl.status = CAST(:status AS VARCHAR)) " +
+           "AND (CAST(:from AS TIMESTAMP) IS NULL OR sl.created_at >= CAST(:from AS TIMESTAMP))",
+           nativeQuery = true)
     Page<ChannelSyncLog> findFiltered(
-            @Param("channel") ChannelName channel,
+            @Param("channel") String channel,
             @Param("status") String status,
             @Param("from") LocalDateTime from,
             Pageable pageable);
