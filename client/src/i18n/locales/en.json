@@ -38,10 +38,8 @@
     "reservations": "Reservations",
     "dynamicPricing": "Dynamic Pricing",
     "planning": "Planning",
-    "teams": "Teams",
-    "portfolios": "Portfolios",
+    "directory": "Directory",
     "contact": "Contact",
-    "guests": "Guests",
     "reports": "Reports",
     "users": "Users",
     "usersAndOrganizations": "Users & Organizations",
@@ -71,10 +69,12 @@
       "EXTERIOR_TECH": "Exterior Tech",
       "MEMBER": "Member"
     },
+    "language": "Language",
     "languages": {
       "fr": "French",
       "en": "English"
     },
+    "currency": "Currency",
     "invoices": "Invoices",
     "channels": "Channels",
     "messaging": "Messaging",
@@ -289,6 +289,7 @@
       "overview": "Overview",
       "noise": "Noise monitoring",
       "analytics": "Analytics",
+      "simulator": "Simulator",
       "smartLock": "Smart locks",
       "keyExchange": "Key management"
     },
@@ -1700,6 +1701,33 @@
     "tabs": {
       "payments": "Payments",
       "invoices": "Invoices"
+    }
+  },
+  "workOrders": {
+    "title": "Interventions",
+    "subtitle": "Manage service requests and interventions",
+    "tabs": {
+      "serviceRequests": "Service Requests",
+      "interventions": "Interventions"
+    }
+  },
+  "propertiesPage": {
+    "title": "Properties",
+    "subtitle": "Manage properties and dynamic pricing",
+    "tabs": {
+      "properties": "Properties",
+      "pricing": "Dynamic Pricing"
+    }
+  },
+  "directoryPage": {
+    "title": "Directory",
+    "subtitle": "Manage teams, portfolios, guests, users and organizations",
+    "tabs": {
+      "teams": "Teams",
+      "portfolios": "Portfolios",
+      "guests": "Guests",
+      "users": "Users",
+      "organizations": "Organizations"
     }
   },
   "payments": {

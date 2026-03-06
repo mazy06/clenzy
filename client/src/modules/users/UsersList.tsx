@@ -1,4 +1,5 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Box,
   Typography,
@@ -43,11 +44,14 @@ import {
   Build,
   CleaningServices,
   Home,
+  Add,
+  Sync,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
 import FilterSearchBar from '../../components/FilterSearchBar';
+import ExportButton from '../../components/ExportButton';
 import { usersApi, type UserFormData } from '../../services/api';
 import { extractApiList } from '../../types';
 import apiClient from '../../services/apiClient';
@@ -102,7 +106,12 @@ export interface UsersListHandle {
   exportColumns: ExportColumn[];
 }
 
-const UsersList = forwardRef<UsersListHandle>((_, ref) => {
+interface UsersListProps {
+  embedded?: boolean;
+  actionsContainer?: HTMLElement | null;
+}
+
+const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = false, actionsContainer }, ref) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -309,8 +318,44 @@ const UsersList = forwardRef<UsersListHandle>((_, ref) => {
     );
   }
 
+  const actionButtons = (
+    <Box sx={{ display: 'flex', gap: 1.5 }}>
+      <ExportButton
+        data={filteredUsers}
+        columns={exportColumns}
+        fileName="utilisateurs"
+      />
+      <Button
+        variant="outlined"
+        color="secondary"
+        size="small"
+        startIcon={<Sync sx={{ fontSize: 18 }} />}
+        onClick={handleSyncUsers}
+        disabled={syncing}
+        sx={{ fontSize: '0.8125rem' }}
+        title="Synchroniser"
+      >
+        {syncing ? 'Sync...' : 'Synchroniser'}
+      </Button>
+      <Button
+        variant="contained"
+        color="primary"
+        size="small"
+        startIcon={<Add sx={{ fontSize: 18 }} />}
+        onClick={() => navigate('/users/new')}
+        sx={{ fontSize: '0.8125rem' }}
+        title="Nouvel utilisateur"
+      >
+        Nouvel utilisateur
+      </Button>
+    </Box>
+  );
+
   return (
     <Box>
+      {/* Portal des actions dans le header parent */}
+      {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+
       {/* Statistiques */}
       <Box sx={{ mb: 2 }}>
         <Grid container spacing={2}>

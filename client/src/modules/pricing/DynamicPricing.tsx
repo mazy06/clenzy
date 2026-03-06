@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Box,
   Tabs,
@@ -63,7 +64,12 @@ interface Owner {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const DynamicPricing: React.FC = () => {
+interface DynamicPricingProps {
+  embedded?: boolean;
+  actionsContainer?: HTMLElement | null;
+}
+
+const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actionsContainer }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
@@ -188,32 +194,37 @@ const DynamicPricing: React.FC = () => {
     [editingPlan, updateRatePlan, createRatePlan],
   );
 
+  const actionButtons = selectedPropertyId ? (
+    <Tooltip title={pushResult || t('channels.pushPricing.tooltip')}>
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={pushLoading ? <CircularProgress size={14} /> : <PushIcon sx={{ fontSize: 16 }} />}
+        onClick={handlePushPricing}
+        disabled={pushLoading}
+        color={pushResult?.includes('succes') || pushResult?.includes('success') ? 'success' : 'primary'}
+        sx={{ textTransform: 'none', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+      >
+        {pushLoading ? t('channels.pushPricing.pushing') : t('channels.pushPricing.button')}
+      </Button>
+    </Tooltip>
+  ) : null;
+
   return (
-    <Box sx={{ p: SPACING.PAGE_PADDING }}>
+    <Box sx={{ p: embedded ? 0 : SPACING.PAGE_PADDING }}>
+      {/* Portal actions into parent's PageHeader when embedded */}
+      {embedded && actionsContainer && actionButtons && createPortal(actionButtons, actionsContainer)}
+
       {/* Header */}
-      <PageHeader
-        title={t('dynamicPricing.title')}
-        subtitle={t('dynamicPricing.subtitle')}
-        backPath="/dashboard"
-        showBackButton={false}
-        actions={
-          selectedPropertyId ? (
-            <Tooltip title={pushResult || t('channels.pushPricing.tooltip')}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={pushLoading ? <CircularProgress size={14} /> : <PushIcon sx={{ fontSize: 16 }} />}
-                onClick={handlePushPricing}
-                disabled={pushLoading}
-                color={pushResult?.includes('succes') || pushResult?.includes('success') ? 'success' : 'primary'}
-                sx={{ textTransform: 'none', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
-              >
-                {pushLoading ? t('channels.pushPricing.pushing') : t('channels.pushPricing.button')}
-              </Button>
-            </Tooltip>
-          ) : undefined
-        }
-      />
+      {!embedded && (
+        <PageHeader
+          title={t('dynamicPricing.title')}
+          subtitle={t('dynamicPricing.subtitle')}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={actionButtons}
+        />
+      )}
 
       {/* ── Filter bar — Owner + Property selectors ── */}
       <Paper

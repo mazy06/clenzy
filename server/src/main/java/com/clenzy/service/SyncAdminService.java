@@ -148,14 +148,15 @@ public class SyncAdminService {
 
     public Page<SyncLogDto> getSyncEvents(ChannelName channel, String status,
                                           LocalDateTime from, Pageable pageable) {
-        Page<ChannelSyncLog> page = syncLogRepository.findFiltered(channel, status, from, pageable);
+        String channelStr = channel != null ? channel.name() : null;
+        Page<ChannelSyncLog> page = syncLogRepository.findFiltered(channelStr, status, from, pageable);
         return page.map(this::toSyncLogDto);
     }
 
     public SyncEventStatsDto getSyncEventStats() {
         Map<String, Long> byChannel = new HashMap<>();
         for (ChannelName cn : ChannelName.values()) {
-            long count = syncLogRepository.findFiltered(cn, null, null,
+            long count = syncLogRepository.findFiltered(cn.name(), null, null,
                     Pageable.ofSize(1)).getTotalElements();
             if (count > 0) {
                 byChannel.put(cn.name(), count);

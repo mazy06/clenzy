@@ -1,0 +1,119 @@
+import React, { useState, useCallback, useEffect } from 'react';
+import {
+  Box,
+  Tabs,
+  Tab,
+  Paper,
+} from '@mui/material';
+import {
+  Assignment,
+  Build,
+} from '@mui/icons-material';
+import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from '../../hooks/useTranslation';
+import { useAuth } from '../../hooks/useAuth';
+import PageHeader from '../../components/PageHeader';
+import ServiceRequestsList from '../service-requests/ServiceRequestsList';
+import InterventionsList from '../interventions/InterventionsList';
+
+// ─── Portal container for child actions in PageHeader ────────────────────────
+const PORTAL_STYLE = { display: 'contents' } as const;
+
+// ─── Tab indices ────────────────────────────────────────────────────────────
+
+const TAB_SERVICE_REQUESTS = 0;
+const TAB_INTERVENTIONS = 1;
+
+// ─── Component ──────────────────────────────────────────────────────────────
+
+const WorkOrdersPage: React.FC = () => {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Permission checks
+  // HOST a service-requests:view mais pas interventions:view → il peut quand même voir les interventions (lecture seule)
+  const canViewServiceRequests = user?.permissions?.includes('service-requests:view') ?? false;
+  const canViewInterventions = (user?.permissions?.includes('interventions:view') || canViewServiceRequests) ?? false;
+  const showBothTabs = canViewServiceRequests && canViewInterventions;
+
+  const maxTab = showBothTabs ? TAB_INTERVENTIONS : 0;
+  const initialTab = parseInt(searchParams.get('tab') || '0', 10);
+  const [activeTab, setActiveTab] = useState(
+    isNaN(initialTab) ? 0 : Math.min(initialTab, maxTab)
+  );
+
+  // Portal container: child components render their actions into this DOM element
+  const [actionsContainer, setActionsContainer] = useState<HTMLDivElement | null>(null);
+
+  // Sync tab to URL param
+  const handleTabChange = useCallback((_: React.SyntheticEvent, v: number) => {
+    setActiveTab(v);
+    setSearchParams(v === 0 ? {} : { tab: String(v) }, { replace: true });
+  }, [setSearchParams]);
+
+  // Handle URL param changes (browser back/forward)
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      const parsed = parseInt(tabParam, 10);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= maxTab && parsed !== activeTab) {
+        setActiveTab(parsed);
+      }
+    }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Single-view: user can only see one module → render directly (no tabs) ──
+  if (!showBothTabs) {
+    if (canViewServiceRequests) return <ServiceRequestsList />;
+    return <InterventionsList />;
+  }
+
+  // ── Both tabs visible ─────────────────────────────────────────────────────
+  return (
+    <Box sx={{ p: 3 }}>
+      <PageHeader
+        title={t('workOrders.title')}
+        subtitle={t('workOrders.subtitle')}
+        backPath="/dashboard"
+        showBackButton={false}
+        actions={<div ref={setActionsContainer} style={PORTAL_STYLE} />}
+      />
+      <Paper sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
+            sx={{
+              flex: 1,
+              '& .MuiTab-root': { minHeight: 48, textTransform: 'none', fontSize: '0.8125rem' },
+            }}
+            variant="scrollable"
+            scrollButtons="auto"
+          >
+            <Tab
+              icon={<Assignment sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label={t('workOrders.tabs.serviceRequests')}
+            />
+            <Tab
+              icon={<Build sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label={t('workOrders.tabs.interventions')}
+            />
+          </Tabs>
+        </Box>
+      </Paper>
+
+      {/* ── Tab content ── */}
+      {activeTab === TAB_SERVICE_REQUESTS && (
+        <ServiceRequestsList embedded actionsContainer={actionsContainer} />
+      )}
+      {activeTab === TAB_INTERVENTIONS && (
+        <InterventionsList embedded actionsContainer={actionsContainer} />
+      )}
+    </Box>
+  );
+};
+
+export default WorkOrdersPage;

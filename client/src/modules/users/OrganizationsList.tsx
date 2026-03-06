@@ -1,4 +1,5 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Box,
   Typography,
@@ -33,6 +34,7 @@ import {
   CleaningServices,
   Settings,
   Visibility,
+  Add,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
@@ -71,7 +73,12 @@ export interface OrganizationsListHandle {
   create: () => void;
 }
 
-const OrganizationsList = forwardRef<OrganizationsListHandle>((_, ref) => {
+interface OrganizationsListProps {
+  embedded?: boolean;
+  actionsContainer?: HTMLElement | null;
+}
+
+const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListProps>(({ embedded = false, actionsContainer }, ref) => {
   const [organizations, setOrganizations] = useState<OrganizationDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -215,8 +222,24 @@ const OrganizationsList = forwardRef<OrganizationsListHandle>((_, ref) => {
     );
   }
 
+  const actionButtons = isAdmin() ? (
+    <Button
+      variant="contained"
+      color="primary"
+      size="small"
+      startIcon={<Add sx={{ fontSize: 18 }} />}
+      onClick={handleCreate}
+      sx={{ fontSize: '0.8125rem' }}
+    >
+      Nouvelle organisation
+    </Button>
+  ) : null;
+
   return (
     <Box>
+      {/* Portal des actions dans le header parent */}
+      {embedded && actionsContainer && actionButtons && createPortal(actionButtons, actionsContainer)}
+
       {/* Statistiques */}
       <Box sx={{ mb: 2 }}>
         <Grid container spacing={2}>
