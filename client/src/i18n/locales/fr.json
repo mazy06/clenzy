@@ -69,6 +69,7 @@
       "MEMBER": "Membre"
     },
     "language": "Langue",
+    "languageAndCurrency": "Langue & Devise",
     "languages": {
       "fr": "Français",
       "en": "Anglais"
