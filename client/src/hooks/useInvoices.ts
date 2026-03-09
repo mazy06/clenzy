@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { invoicesApi } from '../services/api/invoicesApi';
 import type { InvoiceFilters } from '../services/api/invoicesApi';
+import { trackEvent } from '../providers/PostHogProvider';
 
 // ─── Query Keys ─────────────────────────────────────────────────────────────
 
@@ -32,8 +33,9 @@ export function useGenerateInvoice() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (reservationId: number) => invoicesApi.generateFromReservation(reservationId),
-    onSuccess: () => {
+    onSuccess: (_result, reservationId) => {
       queryClient.invalidateQueries({ queryKey: invoiceKeys.all });
+      trackEvent.invoiceGenerated({ type: 'reservation', reservationId });
     },
   });
 }
@@ -45,6 +47,7 @@ export function useIssueInvoice() {
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: invoiceKeys.all });
       queryClient.invalidateQueries({ queryKey: invoiceKeys.detail(id) });
+      trackEvent.invoiceIssued({ invoiceId: id });
     },
   });
 }

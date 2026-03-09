@@ -114,8 +114,8 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Chip label={t.documentType} size="small" variant="outlined"
-                      sx={{ borderWidth: 1.5, borderColor: 'primary.main' }} />
+                    <Chip label={t.documentType} size="small"
+                      sx={{ backgroundColor: '#1976d218', color: '#1976d2', border: '1px solid #1976d240', borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }} />
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
@@ -123,17 +123,26 @@ const TemplatesList = forwardRef<TemplatesListRef>((_, ref) => {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Chip label={`${t.tags?.length || 0} tags`} size="small" variant="outlined"
-                      sx={{ borderWidth: 1.5, borderColor: 'info.main', color: 'info.main' }} />
+                    <Chip label={`${t.tags?.length || 0} tags`} size="small"
+                      sx={{ backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }} />
                   </TableCell>
                   <TableCell>
+                    {(() => { const c = t.active ? '#4A9B8E' : '#757575'; return (
                     <Chip
                       label={t.active ? 'Actif' : 'Inactif'}
                       size="small"
-                      variant="outlined"
-                      color={t.active ? 'success' : 'default'}
-                      sx={{ borderWidth: 1.5 }}
+                      sx={{
+                        backgroundColor: `${c}18`,
+                        color: c,
+                        border: `1px solid ${c}40`,
+                        borderRadius: '6px',
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                        height: 24,
+                        '& .MuiChip-label': { px: 1 },
+                      }}
                     />
+                    ); })()}
                   </TableCell>
                   <TableCell>v{t.version}</TableCell>
                   <TableCell>

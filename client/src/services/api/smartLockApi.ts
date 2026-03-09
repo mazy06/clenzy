@@ -2,6 +2,8 @@ import apiClient from '../apiClient';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+export type SmartLockBrand = 'TUYA' | 'NUKI' | 'TTLOCK' | 'YALE';
+
 export interface SmartLockDeviceDto {
   id: number;
   name: string;
@@ -9,6 +11,7 @@ export interface SmartLockDeviceDto {
   propertyName: string;
   roomName: string | null;
   externalDeviceId: string | null;
+  brand: SmartLockBrand;
   status: string;
   lockState: string;
   batteryLevel: number | null;
@@ -20,6 +23,7 @@ export interface CreateSmartLockDeviceDto {
   propertyId: number;
   roomName?: string;
   externalDeviceId?: string;
+  brand?: SmartLockBrand;
 }
 
 export interface SmartLockStatusDto {

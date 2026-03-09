@@ -12,7 +12,7 @@ import {
   IconButton,
 } from '@mui/material';
 import { SxProps, Theme } from '@mui/material/styles';
-import { Search, GridView, ViewList } from '@mui/icons-material';
+import { Search, GridView, ViewList, Map as MapIcon } from '@mui/icons-material';
 
 export interface FilterOption {
   value: string;
@@ -28,8 +28,8 @@ interface FilterConfig {
 }
 
 export interface ViewToggleConfig {
-  mode: 'grid' | 'list';
-  onChange: (mode: 'grid' | 'list') => void;
+  mode: 'grid' | 'list' | 'map';
+  onChange: (mode: 'grid' | 'list' | 'map') => void;
 }
 
 export interface FilterSearchBarProps {
@@ -213,6 +213,17 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
                 }}
               >
                 <ViewList />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={() => viewToggle.onChange('map')}
+                sx={{
+                  ...VIEW_TOGGLE_BUTTON_SX,
+                  color: viewToggle.mode === 'map' ? 'primary.main' : 'text.disabled',
+                  bgcolor: viewToggle.mode === 'map' ? 'rgba(107,138,154,0.08)' : 'transparent',
+                }}
+              >
+                <MapIcon />
               </IconButton>
             </Box>
           )}

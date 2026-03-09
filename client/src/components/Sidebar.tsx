@@ -21,10 +21,14 @@ import {
   Notifications,
   NotificationsNone,
   Language as LanguageIcon,
+  Check as CheckIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from '../hooks/useTranslation';
+import { useCurrency } from '../hooks/useCurrency';
+import { CURRENCY_OPTIONS } from '../utils/currencyUtils';
+import type { CurrencyCode } from '../hooks/useCurrency';
 import { authApi, notificationsApi } from '../services/api';
 import keycloak from '../keycloak';
 import { clearTokens } from '../services/storageService';
@@ -63,9 +67,11 @@ export default function Sidebar({
   const location = useLocation();
   const { user, clearUser } = useAuth();
   const { t, changeLanguage, currentLanguage } = useTranslation();
+  const { currency, setCurrency } = useCurrency();
   const theme = useTheme();
+  const isRtl = theme.direction === 'rtl';
   const isXl = useMediaQuery(theme.breakpoints.up('xl'));
-  const [langAnchorEl, setLangAnchorEl] = useState<null | HTMLElement>(null);
+  const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -123,17 +129,20 @@ export default function Sidebar({
     }
   };
 
-  const handleLangOpen = (e: React.MouseEvent<HTMLElement>) => {
-    setLangAnchorEl(e.currentTarget);
+  const handleSettingsOpen = (e: React.MouseEvent<HTMLElement>) => {
+    setSettingsAnchorEl(e.currentTarget);
   };
 
-  const handleLangClose = () => {
-    setLangAnchorEl(null);
+  const handleSettingsClose = () => {
+    setSettingsAnchorEl(null);
   };
 
-  const handleLangChange = (lang: 'fr' | 'en') => {
+  const handleLangChange = (lang: 'fr' | 'en' | 'ar') => {
     changeLanguage(lang);
-    handleLangClose();
+  };
+
+  const handleCurrencyChange = (code: CurrencyCode) => {
+    setCurrency(code);
   };
 
   // ─── Sidebar content (shared between permanent and temporary) ──────────
@@ -340,11 +349,11 @@ export default function Sidebar({
             pt: 0.5,
           }}
         >
-          {/* Language */}
-          <Tooltip title={t('navigation.language') || 'Langue'} placement={collapsed ? 'right' : 'top'}>
+          {/* Language & Currency */}
+          <Tooltip title={t('navigation.languageAndCurrency') || 'Langue & Devise'} placement={collapsed ? 'right' : 'top'}>
             <IconButton
               size="small"
-              onClick={handleLangOpen}
+              onClick={handleSettingsOpen}
               sx={{
                 color: 'text.secondary',
                 '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.08)' },
@@ -401,13 +410,13 @@ export default function Sidebar({
           </Tooltip>
         </Box>
 
-        {/* Language menu popup */}
+        {/* Language & Currency unified menu */}
         <Menu
-          anchorEl={langAnchorEl}
-          open={Boolean(langAnchorEl)}
-          onClose={handleLangClose}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          anchorEl={settingsAnchorEl}
+          open={Boolean(settingsAnchorEl)}
+          onClose={handleSettingsClose}
+          anchorOrigin={{ vertical: 'top', horizontal: isRtl ? 'left' : 'right' }}
+          transformOrigin={{ vertical: 'bottom', horizontal: isRtl ? 'right' : 'left' }}
           slotProps={{
             paper: {
               elevation: 0,
@@ -415,29 +424,105 @@ export default function Sidebar({
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: '6px',
-                minWidth: 140,
-                boxShadow: (theme) =>
-                  theme.palette.mode === 'dark'
+                minWidth: 200,
+                boxShadow: (th) =>
+                  th.palette.mode === 'dark'
                     ? '0 4px 12px rgba(0,0,0,0.3)'
                     : '0 4px 12px rgba(0,0,0,0.08)',
               },
             },
           }}
         >
+          {/* ── Section: Langue ── */}
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+              px: 2,
+              pt: 1,
+              pb: 0.5,
+              fontSize: '0.6875rem',
+              fontWeight: 700,
+              color: 'text.disabled',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              userSelect: 'none',
+            }}
+          >
+            {t('navigation.language') || 'Langue'}
+          </Typography>
           <MuiMenuItem
             onClick={() => handleLangChange('fr')}
             selected={currentLanguage === 'fr'}
-            sx={{ fontSize: '0.8125rem' }}
+            sx={{ fontSize: '0.8125rem', py: 0.75, minHeight: 0 }}
           >
-            Francais
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <span>Français</span>
+              {currentLanguage === 'fr' && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
+            </Box>
           </MuiMenuItem>
           <MuiMenuItem
             onClick={() => handleLangChange('en')}
             selected={currentLanguage === 'en'}
-            sx={{ fontSize: '0.8125rem' }}
+            sx={{ fontSize: '0.8125rem', py: 0.75, minHeight: 0 }}
           >
-            English
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <span>English</span>
+              {currentLanguage === 'en' && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
+            </Box>
           </MuiMenuItem>
+          <MuiMenuItem
+            onClick={() => handleLangChange('ar')}
+            selected={currentLanguage === 'ar'}
+            sx={{ fontSize: '0.8125rem', py: 0.75, minHeight: 0 }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <span>العربية</span>
+              {currentLanguage === 'ar' && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
+            </Box>
+          </MuiMenuItem>
+
+          <Divider sx={{ my: 0.5 }} />
+
+          {/* ── Section: Devise ── */}
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+              px: 2,
+              pt: 0.5,
+              pb: 0.5,
+              fontSize: '0.6875rem',
+              fontWeight: 700,
+              color: 'text.disabled',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              userSelect: 'none',
+            }}
+          >
+            {t('navigation.currency') || 'Devise'}
+          </Typography>
+          {CURRENCY_OPTIONS.map((opt) => (
+            <MuiMenuItem
+              key={opt.code}
+              onClick={() => handleCurrencyChange(opt.code as CurrencyCode)}
+              selected={currency === opt.code}
+              sx={{ fontSize: '0.8125rem', py: 0.75, minHeight: 0 }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography
+                    component="span"
+                    sx={{ fontSize: '0.8125rem', fontWeight: 600, minWidth: 28, textAlign: 'center' }}
+                  >
+                    {opt.symbol}
+                  </Typography>
+                  <span>{opt.label}</span>
+                </Box>
+                {currency === opt.code && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
+              </Box>
+            </MuiMenuItem>
+          ))}
         </Menu>
 
         {/* ── Collapse toggle (desktop only) ─────────────────────────── */}
@@ -463,7 +548,10 @@ export default function Sidebar({
                   '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.08)' },
                 }}
               >
-                {collapsed ? <ChevronRight fontSize="small" /> : <ChevronLeft fontSize="small" />}
+                {collapsed
+                  ? (isRtl ? <ChevronLeft fontSize="small" /> : <ChevronRight fontSize="small" />)
+                  : (isRtl ? <ChevronRight fontSize="small" /> : <ChevronLeft fontSize="small" />)
+                }
               </IconButton>
             </Tooltip>
           </Box>
@@ -489,6 +577,7 @@ export default function Sidebar({
             borderRight: '1px solid',
             borderColor: 'divider',
             boxShadow: 'none',
+            borderRadius: 0,
           },
         }}
       >
@@ -513,6 +602,7 @@ export default function Sidebar({
           borderColor: 'divider',
           boxShadow: 'none',
           backgroundColor: 'background.paper',
+          borderRadius: 0,
         },
       }}
     >

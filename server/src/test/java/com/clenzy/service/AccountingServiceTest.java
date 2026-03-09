@@ -33,6 +33,7 @@ class AccountingServiceTest {
     @Mock private ChannelCommissionRepository commissionRepository;
     @Mock private ReservationRepository reservationRepository;
     @Mock private PropertyRepository propertyRepository;
+    @Mock private ManagementContractService managementContractService;
 
     @InjectMocks
     private AccountingService service;
@@ -64,6 +65,9 @@ class AccountingServiceTest {
             .thenReturn(Optional.empty());
         when(reservationRepository.findByOwnerIdAndDateRange(OWNER_ID, from, to, ORG_ID))
             .thenReturn(List.of(r1, r2));
+        // No ManagementContract → uses default 20% commission rate
+        when(managementContractService.getActiveContract(anyLong(), eq(ORG_ID)))
+            .thenReturn(Optional.empty());
         when(payoutRepository.save(any(OwnerPayout.class))).thenAnswer(inv -> {
             OwnerPayout p = inv.getArgument(0);
             p.setId(1L);

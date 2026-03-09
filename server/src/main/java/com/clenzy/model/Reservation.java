@@ -98,6 +98,23 @@ public class Reservation {
     @JoinColumn(name = "ical_feed_id")
     private ICalFeed icalFeed;
 
+    // --- Payment link tracking ---
+    @Column(name = "payment_link_sent_at")
+    private LocalDateTime paymentLinkSentAt;
+
+    @Column(name = "payment_link_email", length = 255)
+    private String paymentLinkEmail;
+
+    @Column(name = "stripe_session_id", length = 255)
+    private String stripeSessionId;
+
+    @Column(name = "payment_status", length = 20)
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus paymentStatus;
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -109,6 +126,9 @@ public class Reservation {
     @Version
     @Column(name = "version", nullable = false)
     private Integer version = 0;
+
+    @Column(name = "hidden_from_planning", nullable = false)
+    private Boolean hiddenFromPlanning = false;
 
     // Constructeurs
     public Reservation() {}
@@ -204,6 +224,24 @@ public class Reservation {
 
     public BigDecimal getTouristTaxAmount() { return touristTaxAmount; }
     public void setTouristTaxAmount(BigDecimal touristTaxAmount) { this.touristTaxAmount = touristTaxAmount; }
+
+    public LocalDateTime getPaymentLinkSentAt() { return paymentLinkSentAt; }
+    public void setPaymentLinkSentAt(LocalDateTime paymentLinkSentAt) { this.paymentLinkSentAt = paymentLinkSentAt; }
+
+    public String getPaymentLinkEmail() { return paymentLinkEmail; }
+    public void setPaymentLinkEmail(String paymentLinkEmail) { this.paymentLinkEmail = paymentLinkEmail; }
+
+    public String getStripeSessionId() { return stripeSessionId; }
+    public void setStripeSessionId(String stripeSessionId) { this.stripeSessionId = stripeSessionId; }
+
+    public PaymentStatus getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public LocalDateTime getPaidAt() { return paidAt; }
+    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
+
+    public Boolean getHiddenFromPlanning() { return hiddenFromPlanning; }
+    public void setHiddenFromPlanning(Boolean hiddenFromPlanning) { this.hiddenFromPlanning = hiddenFromPlanning; }
 
     @Override
     public String toString() {

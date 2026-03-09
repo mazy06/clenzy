@@ -40,6 +40,7 @@ import {
   ChatBubbleOutline,
   TrendingUp,
   AccountBalance,
+  Payment,
 } from '@mui/icons-material';
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import type { MessagingAutomationConfig } from '../../services/api/guestMessagingApi';
@@ -58,6 +59,8 @@ import type { NotificationPreferencesHandle } from './NotificationPreferencesCar
 import OrganizationSection from '../organization/OrganizationSection';
 import MessagingAutomationSection from '../messaging/MessagingAutomationSection';
 import FiscalProfileSection from './FiscalProfileSection';
+import PaymentSettings from './PaymentSettings';
+import { CURRENCY_OPTIONS } from '../../utils/currencyUtils';
 
 // ─── TabPanel ─────────────────────────────────────────────────────────────────
 
@@ -369,6 +372,14 @@ export default function Settings() {
               {...a11yProps(4)}
             />
           )}
+          {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
+            <Tab
+              icon={<Payment sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label="Paiement"
+              {...a11yProps(5)}
+            />
+          )}
         </Tabs>
       </Box>
 
@@ -483,10 +494,9 @@ export default function Settings() {
                       native: true,
                     }}
                   >
-                    <option value="EUR">EUR (€)</option>
-                    <option value="USD">USD ($)</option>
-                    <option value="GBP">GBP (£)</option>
-                    <option value="JPY">JPY (¥)</option>
+                    {CURRENCY_OPTIONS.map(c => (
+                      <option key={c.code} value={c.code}>{c.label}</option>
+                    ))}
                   </TextField>
                 </Grid>
 
@@ -503,8 +513,7 @@ export default function Settings() {
                   >
                     <option value="fr">Français</option>
                     <option value="en">English</option>
-                    <option value="es">Español</option>
-                    <option value="de">Deutsch</option>
+                    <option value="ar">العربية</option>
                   </TextField>
                 </Grid>
               </Grid>
@@ -794,6 +803,13 @@ export default function Settings() {
             organizationId={user?.organizationId}
             organizationName={user?.organizationName}
           />
+        </TabPanel>
+      )}
+
+      {/* ─── Onglet Paiement (ADMIN/MANAGER) ─────────────────────────── */}
+      {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
+        <TabPanel value={tabValue} index={5}>
+          <PaymentSettings />
         </TabPanel>
       )}
 

@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -187,6 +188,52 @@ class TemplateInterpolationServiceTest {
         assertTrue(keys.contains("accessCode"));
         assertTrue(keys.contains("wifiPassword"));
         assertTrue(keys.contains("confirmationCode"));
-        assertEquals(19, keys.size());
+        // Variables d'acces dynamiques ajoutees
+        assertTrue(keys.contains("accessMethod"));
+        assertTrue(keys.contains("keyExchangeStoreName"));
+        assertTrue(keys.contains("keyExchangeStoreAddress"));
+        assertTrue(keys.contains("keyExchangeStorePhone"));
+        assertTrue(keys.contains("keyExchangeStoreHours"));
+        assertEquals(28, keys.size());
+    }
+
+    // ─── ExtraVars Override ──────────────────────────────────
+
+    @Test
+    void whenExtraVarsContainAccessCode_thenOverridesStaticCode() {
+        template.setBody("Code: {accessCode}, Methode: {accessMethod}");
+
+        var result = service.interpolate(
+            template, reservation, guest, property, instructions,
+            Map.of("accessCode", "987654", "accessMethod", "SMART_LOCK")
+        );
+
+        assertTrue(result.plainBody().contains("Code: 987654"));
+        assertTrue(result.plainBody().contains("Methode: SMART_LOCK"));
+        // Le code statique "1234" de CheckInInstructions est ecrase
+        assertFalse(result.plainBody().contains("1234"));
+    }
+
+    @Test
+    void whenExtraVarsContainKeyExchangeInfo_thenInterpolated() {
+        template.setBody("Recuperez vos cles chez {keyExchangeStoreName}, {keyExchangeStoreAddress}. "
+            + "Tel: {keyExchangeStorePhone}. Horaires: {keyExchangeStoreHours}.");
+
+        var result = service.interpolate(
+            template, reservation, guest, property, instructions,
+            Map.of(
+                "accessCode", "456789",
+                "accessMethod", "KEY_EXCHANGE",
+                "keyExchangeStoreName", "Tabac de la Gare",
+                "keyExchangeStoreAddress", "5 rue de la Gare, 75010 Paris",
+                "keyExchangeStorePhone", "+33 1 42 00 00 00",
+                "keyExchangeStoreHours", "Lun-Sam 8h-20h"
+            )
+        );
+
+        assertTrue(result.plainBody().contains("Tabac de la Gare"));
+        assertTrue(result.plainBody().contains("5 rue de la Gare, 75010 Paris"));
+        assertTrue(result.plainBody().contains("+33 1 42 00 00 00"));
+        assertTrue(result.plainBody().contains("Lun-Sam 8h-20h"));
     }
 }

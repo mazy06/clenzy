@@ -38,14 +38,17 @@ import PanelPaymentCart from './PanelPaymentCart';
 
 type ActionResult = { success: boolean; error: string | null };
 
-const STATUS_COLORS: Record<string, 'success' | 'warning' | 'error' | 'info' | 'default'> = {
-  PAID: 'success',
-  PENDING: 'warning',
-  AWAITING_PAYMENT: 'warning',
-  PROCESSING: 'info',
-  FAILED: 'error',
-  REFUNDED: 'error',
-  CANCELLED: 'default',
+const STATUS_HEX: Record<string, string> = {
+  PAID: '#4A9B8E',
+  PENDING: '#ED6C02',
+  AWAITING_PAYMENT: '#D4A574',
+  PROCESSING: '#0288d1',
+  FAILED: '#d32f2f',
+  REFUNDED: '#7B61FF',
+  CANCELLED: '#757575',
+  COMPLETED: '#4A9B8E',
+  SCHEDULED: '#0288d1',
+  IN_PROGRESS: '#1976d2',
 };
 
 // ─── Props ──────────────────────────────────────────────────────────────────
@@ -116,12 +119,13 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
         <Payment sx={{ fontSize: 18, color: 'primary.main' }} />
         <Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>Statut paiement</Typography>
+        {(() => { const c = STATUS_HEX[(intervention.paymentStatus || intervention.status)?.toUpperCase()] || '#757575'; return (
         <Chip
           label={intervention.paymentStatus || intervention.status}
           size="small"
-          color={STATUS_COLORS[intervention.paymentStatus || intervention.status] || 'default'}
-          sx={{ fontSize: '0.625rem', height: 22, ml: 'auto' }}
+          sx={{ fontSize: '0.625rem', height: 22, ml: 'auto', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
         />
+        ); })()}
       </Box>
 
       {/* Cost details */}
@@ -220,12 +224,13 @@ const PanelPayment: React.FC<PanelPaymentProps> = ({
                     {record.amount.toFixed(2)} €
                   </TableCell>
                   <TableCell sx={{ p: 0.5 }}>
+                    {(() => { const c = STATUS_HEX[record.status] || '#757575'; return (
                     <Chip
                       label={record.status}
                       size="small"
-                      color={STATUS_COLORS[record.status] || 'default'}
-                      sx={{ fontSize: '0.5rem', height: 18 }}
+                      sx={{ fontSize: '0.5rem', height: 18, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
                     />
+                    ); })()}
                   </TableCell>
                 </TableRow>
               ))}

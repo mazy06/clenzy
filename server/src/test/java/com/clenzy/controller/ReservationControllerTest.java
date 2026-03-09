@@ -5,11 +5,14 @@ import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.model.User;
+import com.clenzy.repository.GuestRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.EmailService;
 import com.clenzy.service.ReservationMapper;
 import com.clenzy.service.ReservationService;
+import com.clenzy.service.StripeService;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,8 +39,14 @@ class ReservationControllerTest {
     @Mock private ReservationService reservationService;
     @Mock private ReservationMapper reservationMapper;
     @Mock private ReservationRepository reservationRepository;
+    @Mock private com.clenzy.repository.InterventionRepository interventionRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private UserRepository userRepository;
+    @Mock private GuestRepository guestRepository;
+    @Mock private StripeService stripeService;
+    @Mock private EmailService emailService;
+    @Mock private com.clenzy.service.messaging.GuestMessagingService guestMessagingService;
+    @Mock private com.clenzy.repository.MessageTemplateRepository messageTemplateRepository;
     @Mock private TenantContext tenantContext;
 
     private ReservationController controller;
@@ -52,8 +61,9 @@ class ReservationControllerTest {
     }
 
     private ReservationDto sampleDto(String status) {
-        return new ReservationDto(1L, 1L, "Apt A", "Jean", 2, "2026-03-01", "2026-03-04",
-                "14:00", "11:00", status, "direct", null, 150.0, "ABC123", "notes");
+        return new ReservationDto(1L, 1L, "Apt A", "Jean", null, null, null, 2, "2026-03-01", "2026-03-04",
+                "14:00", "11:00", status, "direct", null, 150.0, "ABC123", "notes",
+                null, null, null, null, null, false, null, null);
     }
 
     private Property createOwnedProperty(String ownerKeycloakId) {
@@ -70,7 +80,8 @@ class ReservationControllerTest {
     @BeforeEach
     void setUp() {
         controller = new ReservationController(reservationService, reservationMapper,
-                reservationRepository, propertyRepository, userRepository, tenantContext);
+                reservationRepository, interventionRepository, propertyRepository, userRepository, guestRepository,
+                stripeService, emailService, guestMessagingService, messageTemplateRepository, tenantContext);
     }
 
     @Nested
@@ -125,7 +136,7 @@ class ReservationControllerTest {
         @Test
         void whenExists_thenReturnsDto() {
             Reservation reservation = new Reservation();
-            when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.of(reservation));
             when(reservationMapper.toDto(reservation)).thenReturn(sampleDto("confirmed"));
 
             ResponseEntity<ReservationDto> response = controller.getById(1L);
@@ -134,7 +145,7 @@ class ReservationControllerTest {
 
         @Test
         void whenNotFound_thenThrows() {
-            when(reservationRepository.findById(1L)).thenReturn(Optional.empty());
+            when(reservationRepository.findByIdFetchAll(1L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> controller.getById(1L))
                     .isInstanceOf(NotFoundException.class);
@@ -157,8 +168,9 @@ class ReservationControllerTest {
             when(reservationService.save(any(Reservation.class))).thenReturn(saved);
             when(reservationMapper.toDto(saved)).thenReturn(sampleDto("confirmed"));
 
-            ReservationDto inputDto = new ReservationDto(null, 1L, null, "Guest", 2,
-                    "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null);
+            ReservationDto inputDto = new ReservationDto(null, 1L, null, "Guest", null, null, null, 2,
+                    "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, false, null, null);
             ResponseEntity<ReservationDto> response = controller.create(inputDto, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);
@@ -174,13 +186,16 @@ class ReservationControllerTest {
             Property property = createOwnedProperty("user-123");
             Reservation existing = new Reservation();
             existing.setProperty(property);
-            when(reservationRepository.findById(1L)).thenReturn(Optional.of(existing));
+            // First call: find existing for access check; Second call: reload after cancel
+            Reservation cancelled = new Reservation();
+            when(reservationRepository.findByIdFetchAll(1L))
+                    .thenReturn(Optional.of(existing))
+                    .thenReturn(Optional.of(cancelled));
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(propertyRepository.findById(1L)).thenReturn(Optional.of(property));
             when(tenantContext.isSuperAdmin()).thenReturn(false);
             when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(property.getOwner()));
 
-            Reservation cancelled = new Reservation();
             when(reservationService.cancel(1L)).thenReturn(cancelled);
             when(reservationMapper.toDto(cancelled)).thenReturn(sampleDto("cancelled"));
 

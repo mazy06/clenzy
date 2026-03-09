@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.dto.ReservationDto;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
+import com.clenzy.repository.GuestRepository;
 import com.clenzy.repository.PropertyRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,11 +31,14 @@ class ReservationMapperTest {
     @Mock
     private PropertyRepository propertyRepository;
 
+    @Mock
+    private GuestRepository guestRepository;
+
     private ReservationMapper mapper;
 
     @BeforeEach
     void setUp() {
-        mapper = new ReservationMapper(propertyRepository);
+        mapper = new ReservationMapper(propertyRepository, guestRepository);
     }
 
     private Reservation createReservation() {
@@ -168,11 +172,12 @@ class ReservationMapperTest {
         void whenAllFieldsProvided_thenAppliesAll() {
             ReservationDto dto = new ReservationDto(
                     null, null, null,
-                    "Jane Smith", 3,
+                    "Jane Smith", null, null, null, 3,
                     "2026-04-01", "2026-04-05",
                     "14:00", "10:00",
                     null, null, null,
-                    200.0, "CONF123", "VIP guest"
+                    200.0, "CONF123", "VIP guest",
+                    null, null, null, null, null, false, null, null
             );
 
             Reservation entity = new Reservation();
@@ -198,8 +203,10 @@ class ReservationMapperTest {
             ReservationDto dto = new ReservationDto(
                     null, 7L, null,
                     null, null, null, null,
+                    null, null, null,
                     null, null, null, null, null,
-                    null, null, null
+                    null, null, null,
+                    null, null, null, null, null, false, null, null
             );
 
             Reservation entity = new Reservation();
@@ -215,8 +222,10 @@ class ReservationMapperTest {
             ReservationDto dto = new ReservationDto(
                     null, 999L, null,
                     null, null, null, null,
+                    null, null, null,
                     null, null, null, null, null,
-                    null, null, null
+                    null, null, null,
+                    null, null, null, null, null, false, null, null
             );
 
             Reservation entity = new Reservation();
@@ -231,8 +240,10 @@ class ReservationMapperTest {
             ReservationDto dto = new ReservationDto(
                     null, null, null,
                     null, null, null, null,
+                    null, null, null,
                     null, null, null, null, null,
-                    null, null, null
+                    null, null, null,
+                    null, null, null, null, null, false, null, null
             );
 
             Reservation entity = createReservation();

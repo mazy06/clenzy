@@ -1,5 +1,6 @@
 package com.clenzy.model;
 
+import com.clenzy.service.smartlock.SmartLockBrand;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -45,6 +46,10 @@ public class SmartLockDevice {
 
     @Column(name = "external_device_id")
     private String externalDeviceId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "brand", length = 20)
+    private SmartLockBrand brand = SmartLockBrand.TUYA;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -103,6 +108,9 @@ public class SmartLockDevice {
 
     public String getExternalDeviceId() { return externalDeviceId; }
     public void setExternalDeviceId(String externalDeviceId) { this.externalDeviceId = externalDeviceId; }
+
+    public SmartLockBrand getBrand() { return brand; }
+    public void setBrand(SmartLockBrand brand) { this.brand = brand; }
 
     public DeviceStatus getStatus() { return status; }
     public void setStatus(DeviceStatus status) { this.status = status; }

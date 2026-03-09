@@ -14,7 +14,6 @@ import {
   DialogActions,
   CircularProgress,
   Divider,
-  alpha,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -121,18 +120,23 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
             }}
           >
             {/* Type badge */}
+            {(() => { const c = TYPE_COLORS[plan.type] ?? '#8BA0B3'; return (
             <Chip
               label={t(`dynamicPricing.ratePlan.types.${plan.type}`)}
               size="small"
               sx={{
-                bgcolor: (theme) => alpha(TYPE_COLORS[plan.type] ?? '#8BA0B3', 0.15),
-                color: TYPE_COLORS[plan.type] ?? '#8BA0B3',
+                backgroundColor: `${c}18`,
+                color: c,
+                border: `1px solid ${c}40`,
+                borderRadius: '6px',
                 fontWeight: 700,
                 fontSize: '0.625rem',
                 height: 22,
                 minWidth: 80,
+                '& .MuiChip-label': { px: 0.75 },
               }}
             />
+            ); })()}
 
             {/* Name + date range */}
             <Box sx={{ flex: 1, minWidth: 0 }}>

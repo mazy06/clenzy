@@ -29,11 +29,11 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi } from '../../services/api';
-import apiClient from '../../services/apiClient';
 import { extractApiList } from '../../types';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
+import PaymentCheckoutModal from '../../components/PaymentCheckoutModal';
 import { interventionsKeys } from './useInterventionsList';
 import { formatCurrency } from '../../utils/currencyUtils';
 
@@ -84,6 +84,10 @@ const InterventionsPendingPayment: React.FC = () => {
   const [processingPayment, setProcessingPayment] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Payment modal state
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentTarget, setPaymentTarget] = useState<Intervention | null>(null);
+
   const hasAccess = isHost();
 
   // ─── React Query: list pending payment ─────────────────────────────────────
@@ -112,26 +116,21 @@ const InterventionsPendingPayment: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: interventionsKeys.pendingPayment() });
   };
 
-  const handlePay = async (intervention: Intervention) => {
+  const handlePay = (intervention: Intervention) => {
     if (!intervention.estimatedCost || intervention.estimatedCost <= 0) {
       setError("Le cout estime n'est pas defini pour cette intervention");
       return;
     }
+    setError(null);
+    setPaymentTarget(intervention);
+    setPaymentModalOpen(true);
+  };
 
-    try {
-      setProcessingPayment(intervention.id);
-      setError(null);
-
-      const paymentData = await apiClient.post<{ url: string }>('/payments/create-session', {
-        interventionId: intervention.id,
-        amount: intervention.estimatedCost
-      });
-
-      window.location.href = paymentData.url;
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erreur de connexion');
-      setProcessingPayment(null);
-    }
+  const handlePaymentSuccess = () => {
+    setPaymentModalOpen(false);
+    setPaymentTarget(null);
+    setProcessingPayment(null);
+    loadInterventions(); // Recharger la liste apres paiement
   };
 
   const formatCost = (cost: number | null | undefined) => formatCurrency(cost);
@@ -401,6 +400,18 @@ const InterventionsPendingPayment: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+
+      {/* Modal de paiement Stripe Embedded */}
+      {paymentTarget && (
+        <PaymentCheckoutModal
+          open={paymentModalOpen}
+          onClose={() => { setPaymentModalOpen(false); setPaymentTarget(null); setProcessingPayment(null); }}
+          onSuccess={handlePaymentSuccess}
+          interventionId={paymentTarget.id}
+          amount={paymentTarget.estimatedCost}
+          interventionTitle={paymentTarget.title}
+        />
       )}
     </Box>
   );

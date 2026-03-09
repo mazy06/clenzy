@@ -26,14 +26,14 @@ export interface GenerationsListRef {
   openGenerate: () => void;
 }
 
-const STATUS_COLORS: Record<string, 'default' | 'info' | 'success' | 'error' | 'warning'> = {
-  PENDING: 'default',
-  GENERATING: 'info',
-  COMPLETED: 'success',
-  FAILED: 'error',
-  SENT: 'success',
-  LOCKED: 'warning',
-  ARCHIVED: 'default',
+const STATUS_HEX: Record<string, string> = {
+  PENDING: '#757575',
+  GENERATING: '#0288d1',
+  COMPLETED: '#4A9B8E',
+  FAILED: '#d32f2f',
+  SENT: '#4A9B8E',
+  LOCKED: '#ED6C02',
+  ARCHIVED: '#757575',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -157,22 +157,22 @@ const GenerationsList = forwardRef<GenerationsListRef>((_, ref) => {
                       <TableCell>
                         {gen.legalNumber ? (
                           <Tooltip title={gen.locked ? `Verrouillé${gen.documentHash ? ' — SHA-256: ' + gen.documentHash.substring(0, 16) + '...' : ''}` : 'Non verrouillé'}>
+                            {(() => { const c = gen.locked ? '#ED6C02' : '#757575'; return (
                             <Chip
-                              icon={gen.locked ? <Lock sx={{ fontSize: 14 }} /> : undefined}
+                              icon={gen.locked ? <Lock sx={{ fontSize: 14, color: `${c} !important` }} /> : undefined}
                               label={gen.legalNumber}
                               size="small"
-                              color={gen.locked ? 'warning' : 'default'}
-                              variant="outlined"
-                              sx={{ fontFamily: 'monospace', fontWeight: 600, borderWidth: 1.5 }}
+                              sx={{ fontFamily: 'monospace', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
                             />
+                            ); })()}
                           </Tooltip>
                         ) : (
                           <Typography variant="body2" color="text.secondary">—</Typography>
                         )}
                       </TableCell>
                       <TableCell>
-                        <Chip label={gen.documentType} size="small" variant="outlined"
-                          sx={{ borderWidth: 1.5, borderColor: 'primary.main' }} />
+                        <Chip label={gen.documentType} size="small"
+                          sx={{ backgroundColor: '#1976d218', color: '#1976d2', border: '1px solid #1976d240', borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }} />
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
@@ -186,24 +186,24 @@ const GenerationsList = forwardRef<GenerationsListRef>((_, ref) => {
                       </TableCell>
                       <TableCell>{formatFileSize(gen.fileSize)}</TableCell>
                       <TableCell>
+                        {(() => { const c = STATUS_HEX[gen.status] ?? '#757575'; return (
                         <Chip
                           label={STATUS_LABELS[gen.status] || gen.status}
                           size="small"
-                          variant="outlined"
-                          color={STATUS_COLORS[gen.status] || 'default'}
-                          sx={{ borderWidth: 1.5 }}
+                          sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }}
                         />
+                        ); })()}
                       </TableCell>
                       <TableCell>
                         {gen.emailTo ? (
                           <Tooltip title={gen.emailTo}>
+                            {(() => { const c = gen.emailStatus === 'SENT' ? '#4A9B8E' : gen.emailStatus === 'FAILED' ? '#d32f2f' : '#757575'; return (
                             <Chip
                               label={gen.emailStatus === 'SENT' ? 'Envoyé' : gen.emailStatus || 'En attente'}
                               size="small"
-                              variant="outlined"
-                              color={gen.emailStatus === 'SENT' ? 'success' : gen.emailStatus === 'FAILED' ? 'error' : 'default'}
-                              sx={{ borderWidth: 1.5 }}
+                              sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }}
                             />
+                            ); })()}
                           </Tooltip>
                         ) : '—'}
                       </TableCell>

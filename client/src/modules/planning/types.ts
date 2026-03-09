@@ -1,4 +1,4 @@
-import type { Reservation, PlanningIntervention, ReservationStatus, PlanningInterventionType } from '../../services/api';
+import type { Reservation, PlanningIntervention, PlanningServiceRequest, ReservationStatus, PlanningInterventionType } from '../../services/api';
 
 // ─── Zoom ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +34,8 @@ export interface PlanningEvent {
   borderColor?: string;
   reservation?: Reservation;
   intervention?: PlanningIntervention;
+  isAwaitingPayment?: boolean;
+  serviceRequest?: PlanningServiceRequest;
 }
 
 // ─── Bar layout (computed pixel positions) ───────────────────────────────────
@@ -89,6 +91,11 @@ export interface QuickCreateData {
   propertyName: string;
   startDate: string;
   endDate: string;
+  nightlyPrice: number;
+  defaultCheckInTime?: string;
+  defaultCheckOutTime?: string;
+  cleaningFrequency?: string;
+  cleaningBasePrice?: number;
 }
 
 // ─── Planning property (lightweight) ─────────────────────────────────────────
@@ -101,6 +108,12 @@ export interface PlanningProperty {
   ownerName?: string;
   maxGuests: number;
   type?: string;
+  nightlyPrice?: number;
+  minimumNights?: number;
+  defaultCheckInTime?: string;
+  defaultCheckOutTime?: string;
+  cleaningFrequency?: string;
+  cleaningBasePrice?: number;
 }
 
 // ─── Month separator (for date headers) ──────────────────────────────────────

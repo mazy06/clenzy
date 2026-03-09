@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import jakarta.persistence.QueryHint;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, Long>, JpaSpecificationExecutor<ServiceRequest> {
     /**
@@ -84,4 +85,31 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     })
     List<ServiceRequest> findAllWithRelations(@Param("orgId") Long orgId);
+
+    /**
+     * Planning: SR en AWAITING_PAYMENT filtrees par propertyIds et plage de dates
+     */
+    @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user " +
+           "WHERE sr.status = :status AND sr.property.id IN :propertyIds " +
+           "AND sr.desiredDate BETWEEN :start AND :end AND sr.organizationId = :orgId")
+    List<ServiceRequest> findByStatusAndPropertyIdsAndDesiredDateBetween(
+        @Param("status") RequestStatus status,
+        @Param("propertyIds") List<Long> propertyIds,
+        @Param("start") LocalDateTime start,
+        @Param("end") LocalDateTime end,
+        @Param("orgId") Long orgId
+    );
+
+    /**
+     * Find service requests by property ID (for channel sync: Airbnb, Booking, iCal update/cancel)
+     */
+    @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user " +
+           "WHERE sr.property.id = :propertyId AND sr.organizationId = :orgId")
+    List<ServiceRequest> findByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
+
+    /**
+     * Find service request by Stripe session ID (for webhook callback, no orgId filter)
+     */
+    @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user WHERE sr.stripeSessionId = :sessionId")
+    Optional<ServiceRequest> findByStripeSessionId(@Param("sessionId") String sessionId);
 }

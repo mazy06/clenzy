@@ -56,15 +56,9 @@ interface PlanningActionPanelProps {
   onChangeProperty?: (reservationId: number, newPropertyId: number, newPropertyName: string) => Promise<ActionResult>;
   onCancelReservation?: (reservationId: number) => Promise<ActionResult>;
   onUpdateNotes?: (reservationId: number, notes: string) => Promise<ActionResult>;
+  onUpdateGuestInfo?: (reservationId: number, updates: { guestName?: string; guestEmail?: string; guestPhone?: string }) => Promise<ActionResult>;
   // Intervention actions
-  onCreateAutoCleaning?: (reservationId: number) => Promise<ActionResult>;
-  onCreateIntervention?: (data: {
-    propertyId: number; propertyName: string; type: 'cleaning' | 'maintenance';
-    title: string; assigneeName: string; startDate: string; endDate: string;
-    startTime?: string; endTime?: string; estimatedDurationHours: number;
-    notes?: string; linkedReservationId?: number;
-  }) => Promise<ActionResult>;
-  onAssignIntervention?: (interventionId: number, assigneeName: string) => Promise<ActionResult>;
+  onAssignIntervention?: (interventionId: number, assigneeName: string, options?: { userId?: number; teamId?: number }) => Promise<ActionResult>;
   onSetPriority?: (interventionId: number, priority: 'normale' | 'haute' | 'urgente') => Promise<ActionResult>;
   onUpdateInterventionNotes?: (interventionId: number, notes: string) => Promise<ActionResult>;
   onUpdateInterventionDates?: (interventionId: number, updates: {
@@ -77,6 +71,18 @@ interface PlanningActionPanelProps {
   onUploadPhotos?: (interventionId: number, photos: File[], type: 'before' | 'after') => Promise<ActionResult>;
   onUpdateInterventionProgress?: (interventionId: number, progress: number) => Promise<ActionResult>;
   onCreatePaymentSession?: (interventionIds: number[], total: number) => Promise<{ url: string; sessionId: string }>;
+  onCreateEmbeddedSession?: (interventionId: number, amount: number) => Promise<{ clientSecret: string; sessionId: string }>;
+  onSendPaymentLink?: (reservationId: number, email?: string) => Promise<void>;
+  // Document generation
+  onGenerateInvoice?: (data: {
+    documentType: string;
+    referenceId: number;
+    referenceType: string;
+    emailTo?: string;
+    sendEmail: boolean;
+  }) => Promise<{ id: number; fileName: string; status: string; legalNumber?: string | null }>;
+  // Payment complete (refresh data)
+  onPaymentComplete?: () => void;
   // Actions (PanelActions)
   onDuplicateReservation?: (reservationId: number, newCheckIn: string, newCheckOut: string) => Promise<ActionResult>;
 }
@@ -89,7 +95,7 @@ const RESERVATION_TABS: { value: PanelTab; label: string; icon: React.ReactEleme
   { value: 'info', label: 'Infos', icon: <Info sx={ICON_SX} /> },
   { value: 'property', label: 'Logement', icon: <Home sx={ICON_SX} /> },
   { value: 'operations', label: 'Opérations', icon: <Build sx={ICON_SX} /> },
-  { value: 'financial', label: 'Financier', icon: <AccountBalance sx={ICON_SX} /> },
+  { value: 'financial', label: 'Paiement', icon: <AccountBalance sx={ICON_SX} /> },
 ];
 
 const INTERVENTION_TABS: { value: PanelTab; label: string; icon: React.ReactElement }[] = [
@@ -130,8 +136,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   onChangeProperty,
   onCancelReservation,
   onUpdateNotes,
-  onCreateAutoCleaning,
-  onCreateIntervention,
+  onUpdateGuestInfo,
   onAssignIntervention,
   onSetPriority,
   onUpdateInterventionNotes,
@@ -142,6 +147,10 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   onUploadPhotos,
   onUpdateInterventionProgress,
   onCreatePaymentSession,
+  onCreateEmbeddedSession,
+  onSendPaymentLink,
+  onGenerateInvoice,
+  onPaymentComplete,
   onDuplicateReservation,
 }) => {
   const theme = useTheme();
@@ -213,6 +222,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
               onChangeProperty={onChangeProperty}
               onCancelReservation={onCancelReservation}
               onUpdateNotes={onUpdateNotes}
+              onUpdateGuestInfo={onUpdateGuestInfo}
               onNavigate={pushView}
             />
           );
@@ -229,8 +239,6 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
               event={event}
               allEvents={allEvents}
               interventions={interventions}
-              onCreateAutoCleaning={onCreateAutoCleaning}
-              onCreateIntervention={onCreateIntervention}
               onAssignIntervention={onAssignIntervention}
               onSetPriority={onSetPriority}
               onUpdateInterventionNotes={onUpdateInterventionNotes}
@@ -244,6 +252,10 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
               event={event}
               interventions={interventions}
               onCreatePaymentSession={onCreatePaymentSession}
+              onCreateEmbeddedSession={onCreateEmbeddedSession}
+              onSendPaymentLink={onSendPaymentLink}
+              onGenerateInvoice={onGenerateInvoice}
+              onPaymentComplete={onPaymentComplete}
             />
           );
         default:
@@ -259,8 +271,6 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
             event={event}
             allEvents={allEvents}
             interventions={interventions}
-            onCreateAutoCleaning={onCreateAutoCleaning}
-            onCreateIntervention={onCreateIntervention}
             onAssignIntervention={onAssignIntervention}
             onSetPriority={onSetPriority}
             onUpdateInterventionNotes={onUpdateInterventionNotes}

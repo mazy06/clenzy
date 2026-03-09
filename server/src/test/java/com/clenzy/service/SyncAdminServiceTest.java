@@ -251,7 +251,7 @@ class SyncAdminServiceTest {
             log.setDurationMs(150);
 
             Page<ChannelSyncLog> page = new PageImpl<>(List.of(log));
-            when(syncLogRepository.findFiltered(eq(ChannelName.AIRBNB), eq("SUCCESS"), any(), any()))
+            when(syncLogRepository.findFiltered(eq("AIRBNB"), eq("SUCCESS"), any(), any()))
                     .thenReturn(page);
 
             // Act
@@ -276,7 +276,7 @@ class SyncAdminServiceTest {
             // Arrange: stub each channel individually - AIRBNB has 5, others have 0
             for (ChannelName cn : ChannelName.values()) {
                 long total = cn == ChannelName.AIRBNB ? 5L : 0L;
-                when(syncLogRepository.findFiltered(eq(cn), isNull(), isNull(), any()))
+                when(syncLogRepository.findFiltered(eq(cn.name()), isNull(), isNull(), any()))
                         .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 1), total));
             }
 

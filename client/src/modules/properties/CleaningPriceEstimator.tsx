@@ -144,6 +144,20 @@ const DURATION_LABEL_SX = {
 
 // ─── Price calculation coefficients ─────────────────────────────────────────
 
+// Property type coefficients (mirrors backend PricingConfigService DEFAULT_PROPERTY_TYPE_COEFFS)
+const PROPERTY_TYPE_COEFFS: Record<string, number> = {
+  STUDIO:     0.85,
+  APARTMENT:  1.0,
+  HOUSE:      1.15,
+  LOFT:       1.10,
+  VILLA:      1.35,
+  GUEST_ROOM: 0.80,
+  COTTAGE:    1.15,
+  CHALET:     1.20,
+  BOAT:       1.10,
+  OTHER:      1.0,
+};
+
 // Type multipliers (how much cleaning type affects price)
 const CLEANING_TYPE_COEFFS: Record<string, { min: number; max: number }> = {
   CLEANING:         { min: 1.0,  max: 1.0 },   // Standard
@@ -199,7 +213,8 @@ function computeRange(
   hasExterior: boolean,
   hasLaundry: boolean,
   cleaningBasePrice: number | undefined,
-  type: CleaningType,
+  cleaningType: CleaningType,
+  propertyType: string,
 ): { min: number; max: number } {
   // If user set a manual base price, use it as anchor
   const base = (cleaningBasePrice != null && cleaningBasePrice > 0)
@@ -220,11 +235,16 @@ function computeRange(
   }
 
   const raw = base + surcharge;
-  const typeCoeff = CLEANING_TYPE_COEFFS[type] ?? CLEANING_TYPE_COEFFS.CLEANING;
+
+  // Apply property type coefficient
+  const propTypeCoeff = PROPERTY_TYPE_COEFFS[propertyType] ?? 1.0;
+  const adjusted = raw * propTypeCoeff;
+
+  const typeCoeff = CLEANING_TYPE_COEFFS[cleaningType] ?? CLEANING_TYPE_COEFFS.CLEANING;
 
   // Round to nearest 5
-  const min = Math.max(30, Math.round((raw * typeCoeff.min) / 5) * 5);
-  const max = Math.max(min, Math.round((raw * typeCoeff.max) / 5) * 5);
+  const min = Math.max(30, Math.round((adjusted * typeCoeff.min) / 5) * 5);
+  const max = Math.max(min, Math.round((adjusted * typeCoeff.max) / 5) * 5);
 
   return { min, max };
 }
@@ -244,6 +264,7 @@ function computeEstimatedDuration(
   hasIroning: boolean,
   hasDeepKitchen: boolean,
   hasDisinfection: boolean,
+  propertyType: string,
 ): number {
   // Base from bedroom count (type T)
   let baseMins: number;
@@ -275,6 +296,10 @@ function computeEstimatedDuration(
   if (hasDeepKitchen)  baseMins += 30;
   if (hasExterior)     baseMins += 25;
   if (hasDisinfection) baseMins += 40;
+
+  // Apply property type coefficient
+  const propTypeCoeff = PROPERTY_TYPE_COEFFS[propertyType] ?? 1.0;
+  baseMins = Math.round(baseMins * propTypeCoeff);
 
   return baseMins;
 }
@@ -312,6 +337,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
       'hasIroning',
       'hasDeepKitchen',
       'hasDisinfection',
+      'type',
     ],
   });
 
@@ -330,6 +356,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
     hasIroning,
     hasDeepKitchen,
     hasDisinfection,
+    propertyType,
   ] = watchedValues;
 
   // Check if we have enough data to show an estimate
@@ -353,14 +380,15 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
       hasIroning ?? false,
       hasDeepKitchen ?? false,
       hasDisinfection ?? false,
+      propertyType ?? 'OTHER',
     );
-  }, [bedroomCount, bathroomCount, squareMeters, numberOfFloors, hasExterior, hasLaundry, windowCount, frenchDoorCount, slidingDoorCount, hasIroning, hasDeepKitchen, hasDisinfection]);
+  }, [bedroomCount, bathroomCount, squareMeters, numberOfFloors, hasExterior, hasLaundry, windowCount, frenchDoorCount, slidingDoorCount, hasIroning, hasDeepKitchen, hasDisinfection, propertyType]);
 
   // Compute price ranges for each cleaning type
   const estimates = useMemo(() => {
     if (!hasEnoughData) return null;
 
-    return CLEANING_TYPES.map((type) => {
+    return CLEANING_TYPES.map((ct) => {
       const range = computeRange(
         squareMeters ?? 0,
         bedroomCount ?? 1,
@@ -370,11 +398,12 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
         hasExterior ?? false,
         hasLaundry ?? true,
         cleaningBasePrice ?? undefined,
-        type,
+        ct,
+        propertyType ?? 'OTHER',
       );
-      return { type, ...range };
+      return { type: ct, ...range };
     });
-  }, [squareMeters, bedroomCount, bathroomCount, maxGuests, numberOfFloors, hasExterior, hasLaundry, cleaningBasePrice, hasEnoughData]);
+  }, [squareMeters, bedroomCount, bathroomCount, maxGuests, numberOfFloors, hasExterior, hasLaundry, cleaningBasePrice, hasEnoughData, propertyType]);
 
   // ─── Render ─────────────────────────────────────────────────────────────
 

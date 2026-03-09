@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { useAuth } from '../../../hooks/useAuth';
-import { propertiesApi, managersApi, reservationsApi } from '../../../services/api';
-import type { Property, Reservation, PlanningIntervention } from '../../../services/api';
+import { propertiesApi, managersApi, reservationsApi, serviceRequestsApi } from '../../../services/api';
+import type { Property, Reservation, PlanningIntervention, PlanningServiceRequest } from '../../../services/api';
 import type { PlanningEvent, PlanningProperty } from '../types';
 import { getOverlappingChunks, toDateStr } from '../utils/dateUtils';
 import { getReservationColor, getInterventionColor } from '../utils/colorUtils';
@@ -18,6 +18,8 @@ export const planningKeys = {
     [...planningKeys.all, 'reservations', { propertyIds, from, to }] as const,
   interventions: (propertyIds: number[], from: string, to: string) =>
     [...planningKeys.all, 'interventions', { propertyIds, from, to }] as const,
+  awaitingPayment: (propertyIds: number[], from: string, to: string) =>
+    [...planningKeys.all, 'awaitingPayment', { propertyIds, from, to }] as const,
 };
 
 // ─── Fetch helpers ───────────────────────────────────────────────────────────
@@ -39,6 +41,12 @@ function mapToPlanning(list: Property[]): PlanningProperty[] {
     ownerName: p.ownerName || '',
     maxGuests: p.maxGuests,
     type: p.type,
+    nightlyPrice: p.nightlyPrice,
+    minimumNights: p.minimumNights,
+    defaultCheckInTime: p.defaultCheckInTime,
+    defaultCheckOutTime: p.defaultCheckOutTime,
+    cleaningFrequency: p.cleaningFrequency,
+    cleaningBasePrice: p.cleaningBasePrice,
   }));
 }
 
@@ -61,6 +69,10 @@ async function fetchProperties(
       ownerName: p.ownerName || '',
       maxGuests: p.maxGuests,
       type: p.type,
+      nightlyPrice: 0,
+      minimumNights: 1,
+      defaultCheckInTime: '15:00',
+      defaultCheckOutTime: '11:00',
     }));
   }
 
@@ -105,15 +117,18 @@ async function fetchProperties(
 
 // ─── Transform reservations + interventions → PlanningEvent[] ────────────────
 
-function reservationToEvent(r: Reservation): PlanningEvent {
+function reservationToEvent(
+  r: Reservation,
+  propertyDefaults?: { defaultCheckInTime?: string; defaultCheckOutTime?: string },
+): PlanningEvent {
   return {
     id: `res-${r.id}`,
     type: 'reservation',
     propertyId: r.propertyId,
     startDate: r.checkIn,
     endDate: r.checkOut,
-    startTime: r.checkInTime,
-    endTime: r.checkOutTime,
+    startTime: r.checkInTime || propertyDefaults?.defaultCheckInTime || '15:00',
+    endTime: r.checkOutTime || propertyDefaults?.defaultCheckOutTime || '11:00',
     label: r.guestName,
     sublabel: r.source !== 'other' ? r.sourceName || r.source : undefined,
     status: r.status,
@@ -123,6 +138,23 @@ function reservationToEvent(r: Reservation): PlanningEvent {
 }
 
 function interventionToEvent(i: PlanningIntervention): PlanningEvent {
+  // Compute a reliable endTime:
+  // 1) Use the API-provided endTime if available
+  // 2) Otherwise compute from startTime + estimatedDurationHours
+  // 3) Fallback: startTime + 3h (typical cleaning duration)
+  let endTime = i.endTime;
+  if (!endTime && i.startTime && i.estimatedDurationHours) {
+    const [h, m] = i.startTime.split(':').map(Number);
+    const endH = Math.min(h + i.estimatedDurationHours, 23);
+    endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  } else if (!endTime && i.startTime) {
+    // No duration info — assume 3h for cleaning, 2h for maintenance
+    const defaultHours = i.type === 'cleaning' ? 3 : 2;
+    const [h, m] = i.startTime.split(':').map(Number);
+    const endH = Math.min(h + defaultHours, 23);
+    endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
   return {
     id: `int-${i.id}`,
     type: i.type === 'cleaning' ? 'cleaning' : 'maintenance',
@@ -130,12 +162,44 @@ function interventionToEvent(i: PlanningIntervention): PlanningEvent {
     startDate: i.startDate,
     endDate: i.endDate,
     startTime: i.startTime,
-    endTime: i.endTime,
+    endTime,
     label: i.title,
     sublabel: i.assigneeName,
     status: i.status,
     color: getInterventionColor(i.type),
     intervention: i,
+  };
+}
+
+const CLEANING_SERVICE_TYPES = new Set([
+  'CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING', 'WINDOW_CLEANING',
+  'FLOOR_CLEANING', 'KITCHEN_CLEANING', 'BATHROOM_CLEANING', 'EXTERIOR_CLEANING', 'DISINFECTION',
+]);
+
+function serviceRequestToEvent(sr: PlanningServiceRequest): PlanningEvent {
+  const eventType = CLEANING_SERVICE_TYPES.has(sr.serviceType) ? 'cleaning' : 'maintenance';
+
+  let endTime = sr.endTime;
+  if (!endTime && sr.startTime && sr.estimatedDurationHours) {
+    const [h, m] = sr.startTime.split(':').map(Number);
+    const endH = Math.min(h + sr.estimatedDurationHours, 23);
+    endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
+  return {
+    id: `sr-${sr.id}`,
+    type: eventType,
+    propertyId: sr.propertyId,
+    startDate: sr.startDate,
+    endDate: sr.startDate,
+    startTime: sr.startTime,
+    endTime,
+    label: sr.title,
+    sublabel: sr.assignedToName || 'Att. paiement',
+    status: 'awaiting_payment',
+    color: getInterventionColor(eventType),
+    isAwaitingPayment: true,
+    serviceRequest: sr,
   };
 }
 
@@ -221,6 +285,17 @@ export function usePlanningData(
     })),
   });
 
+  // Query 4: Service Requests AWAITING_PAYMENT — one query per chunk
+  const awaitingPaymentQueries = useQueries({
+    queries: chunks.map((chunk) => ({
+      queryKey: planningKeys.awaitingPayment(propertyIds, chunk.from, chunk.to),
+      queryFn: () => serviceRequestsApi.getPlanningAwaitingPayment({ propertyIds, from: chunk.from, to: chunk.to }),
+      enabled: propertyIds.length > 0,
+      staleTime: 30_000,
+      gcTime: 5 * 60 * 1000,
+    })),
+  });
+
   // Merge + dedup all chunk results
   const reservations = useMemo(() => {
     const allChunkData = reservationQueries
@@ -236,12 +311,45 @@ export function usePlanningData(
     return dedup(allChunkData);
   }, [interventionQueries]);
 
+  const awaitingPaymentSRs = useMemo(() => {
+    const allChunkData = awaitingPaymentQueries
+      .map((q) => q.data)
+      .filter((d): d is PlanningServiceRequest[] => !!d);
+    return dedup(allChunkData);
+  }, [awaitingPaymentQueries]);
+
+  // Build a property defaults lookup for check-in/check-out time fallback
+  const propertyDefaultsMap = useMemo(() => {
+    const map = new Map<number, { defaultCheckInTime?: string; defaultCheckOutTime?: string }>();
+    for (const p of properties) {
+      map.set(p.id, {
+        defaultCheckInTime: p.defaultCheckInTime,
+        defaultCheckOutTime: p.defaultCheckOutTime,
+      });
+    }
+    return map;
+  }, [properties]);
+
   // Merge into PlanningEvent[]
+  // Interventions only appear on the Gantt when BOTH conditions are met:
+  //   1. Assigned to a contractor/team (assigneeName is set)
+  //   2. Payment settled (paymentStatus = PAID) — or no cost associated
   const events = useMemo(() => {
-    const resEvents = reservations.map(reservationToEvent);
-    const intEvents = interventions.map(interventionToEvent);
-    return [...resEvents, ...intEvents];
-  }, [reservations, interventions]);
+    const resEvents = reservations.map((r) =>
+      reservationToEvent(r, propertyDefaultsMap.get(r.propertyId)),
+    );
+    const visibleInterventions = interventions.filter((i) => {
+      // Must be assigned to a contractor/team
+      if (!i.assigneeName) return false;
+      // If the intervention has a cost, it must be paid
+      const cost = i.actualCost || i.estimatedCost || 0;
+      if (cost > 0 && i.paymentStatus !== 'PAID') return false;
+      return true;
+    });
+    const intEvents = visibleInterventions.map(interventionToEvent);
+    const srEvents = awaitingPaymentSRs.map(serviceRequestToEvent);
+    return [...resEvents, ...intEvents, ...srEvents];
+  }, [reservations, interventions, awaitingPaymentSRs, propertyDefaultsMap]);
 
   // Loading: only on initial load (all chunks loading). After initial, chunks load in background.
   const reservationsInitialLoading = propertyIds.length > 0 &&

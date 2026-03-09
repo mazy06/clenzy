@@ -500,6 +500,32 @@ public class EmailService {
     }
 
     /**
+     * Envoie un email HTML simple (sans piece jointe).
+     * Utilise pour les liens de paiement, confirmations, etc.
+     */
+    public void sendSimpleHtmlEmail(String toEmail, String subject, String htmlBody) {
+        try {
+            JavaMailSender ms = requireMailSender();
+            MimeMessage message = ms.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromAddress);
+            helper.setTo(toEmail);
+            helper.setSubject(sanitizeHeaderValue(subject));
+            helper.setText(htmlBody, true);
+
+            ms.send(message);
+            log.info("Simple HTML email sent to {} (subject: {})", toEmail, subject);
+        } catch (MessagingException e) {
+            log.error("Failed to send simple HTML email to {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi de l'email", e);
+        } catch (Exception e) {
+            log.error("Failed to send simple HTML email to {}: {}", toEmail, e.getMessage(), e);
+            throw new RuntimeException("Erreur d'envoi de l'email", e);
+        }
+    }
+
+    /**
      * Sanitise une valeur destinee a un header email pour prevenir l'injection de headers.
      * Supprime les caracteres CR/LF qui permettraient d'injecter des headers supplementaires.
      */

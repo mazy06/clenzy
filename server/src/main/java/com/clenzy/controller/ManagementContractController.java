@@ -6,13 +6,19 @@ import com.clenzy.model.ManagementContract.ContractStatus;
 import com.clenzy.service.ManagementContractService;
 import com.clenzy.tenant.TenantContext;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Management contract CRUD — SUPER_ADMIN/SUPER_MANAGER can create and manage contracts
+ * with per-property commission rates that drive the payment split engine.
+ */
 @RestController
 @RequestMapping("/api/management-contracts")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
 public class ManagementContractController {
 
     private final ManagementContractService contractService;

@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import storageService, { STORAGE_KEYS } from '../services/storageService';
 import { useTranslation } from './useTranslation';
-import { smartLockApi, type SmartLockDeviceDto } from '../services/api/smartLockApi';
+import { smartLockApi, type SmartLockDeviceDto, type SmartLockBrand } from '../services/api/smartLockApi';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -12,6 +12,7 @@ export interface SmartLockDevice {
   propertyName: string;
   roomName: string | null;
   externalDeviceId: string | null;
+  brand: SmartLockBrand;
   status: string;
   lockState: string;
   batteryLevel: number | null;
@@ -27,6 +28,7 @@ export interface SmartLockFormState {
   roomName: string;
   deviceName: string;
   externalDeviceId: string;
+  brand: SmartLockBrand;
 }
 
 const INITIAL_FORM: SmartLockFormState = {
@@ -36,6 +38,7 @@ const INITIAL_FORM: SmartLockFormState = {
   roomName: '',
   deviceName: '',
   externalDeviceId: '',
+  brand: 'TUYA',
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -61,6 +64,7 @@ function mapDtoToDevice(dto: SmartLockDeviceDto): SmartLockDevice {
     propertyName: dto.propertyName || `Propriete #${dto.propertyId}`,
     roomName: dto.roomName || null,
     externalDeviceId: dto.externalDeviceId || null,
+    brand: dto.brand || 'TUYA',
     status: dto.status,
     lockState: dto.lockState || 'UNKNOWN',
     batteryLevel: dto.batteryLevel,
@@ -136,6 +140,7 @@ export function useSmartLocks() {
             propertyId: device.propertyId,
             roomName: device.roomName || undefined,
             externalDeviceId: device.externalDeviceId || undefined,
+            brand: device.brand || 'TUYA',
           });
           const newDevice = mapDtoToDevice(dto);
           setDevices((prev) => {
@@ -152,6 +157,7 @@ export function useSmartLocks() {
       const newDevice: SmartLockDevice = {
         ...device,
         id: generateId(),
+        brand: device.brand || 'TUYA',
         status: 'ACTIVE',
         lockState: 'UNKNOWN',
         batteryLevel: null,
@@ -168,6 +174,17 @@ export function useSmartLocks() {
 
   const removeDevice = useCallback(
     async (id: string) => {
+      // Snapshot pour revert en cas d'echec
+      const previousDevices = devices;
+
+      // Optimistic update — retirer immediatement de l'UI
+      setDevices((prev) => {
+        const updated = prev.filter((d) => d.id !== id);
+        saveDevices(updated);
+        return updated;
+      });
+
+      // Tenter la suppression backend
       if (useBackend) {
         try {
           const numericId = parseInt(id, 10);
@@ -175,17 +192,15 @@ export function useSmartLocks() {
             await smartLockApi.delete(numericId);
           }
         } catch {
-          // Continue with local removal
+          // Backend a echoue → restaurer l'etat precedent
+          setDevices(previousDevices);
+          saveDevices(previousDevices);
+          console.error(`Failed to delete smart lock ${id} from backend — reverted`);
+          return;
         }
       }
-
-      setDevices((prev) => {
-        const updated = prev.filter((d) => d.id !== id);
-        saveDevices(updated);
-        return updated;
-      });
     },
-    [useBackend],
+    [useBackend, devices],
   );
 
   // ── Lock / Unlock ──
@@ -233,8 +248,8 @@ export function useSmartLocks() {
     setForm(INITIAL_FORM);
   }, []);
 
-  const startConfigFlow = useCallback(() => {
-    setForm(INITIAL_FORM);
+  const startConfigFlow = useCallback((brand: SmartLockBrand = 'TUYA') => {
+    setForm({ ...INITIAL_FORM, brand });
     setCurrentView('config-form');
   }, []);
 
@@ -285,6 +300,7 @@ export function useSmartLocks() {
       propertyName: form.selectedPropertyName,
       roomName: form.roomName.trim() || null,
       externalDeviceId: form.externalDeviceId.trim() || null,
+      brand: form.brand,
     });
     resetForm();
     setCurrentView('devices');

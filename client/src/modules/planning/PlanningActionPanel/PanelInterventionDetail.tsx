@@ -41,7 +41,7 @@ interface PanelInterventionDetailProps {
   onValidateIntervention?: (interventionId: number, estimatedCost: number) => Promise<ActionResult>;
   onUploadPhotos?: (interventionId: number, photos: File[], type: 'before' | 'after') => Promise<ActionResult>;
   onUpdateInterventionProgress?: (interventionId: number, progress: number) => Promise<ActionResult>;
-  onAssignIntervention?: (interventionId: number, assigneeName: string) => Promise<ActionResult>;
+  onAssignIntervention?: (interventionId: number, assigneeName: string, options?: { userId?: number; teamId?: number }) => Promise<ActionResult>;
   onSetPriority?: (interventionId: number, priority: 'normale' | 'haute' | 'urgente') => Promise<ActionResult>;
   onUpdateInterventionNotes?: (interventionId: number, notes: string) => Promise<ActionResult>;
   onUpdateInterventionDates?: (interventionId: number, updates: {
@@ -52,14 +52,15 @@ interface PanelInterventionDetailProps {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const STATUS_COLORS: Record<string, 'success' | 'info' | 'warning' | 'error' | 'default'> = {
-  COMPLETED: 'success',
-  IN_PROGRESS: 'info',
-  PENDING: 'warning',
-  AWAITING_PAYMENT: 'warning',
-  AWAITING_VALIDATION: 'info',
-  ASSIGNED: 'info',
-  CANCELLED: 'error',
+const STATUS_HEX: Record<string, string> = {
+  COMPLETED: '#4A9B8E',
+  IN_PROGRESS: '#1976d2',
+  PENDING: '#ED6C02',
+  AWAITING_PAYMENT: '#D4A574',
+  AWAITING_VALIDATION: '#D4A574',
+  ASSIGNED: '#0288d1',
+  SCHEDULED: '#0288d1',
+  CANCELLED: '#d32f2f',
 };
 
 const parseCompletedSteps = (steps?: string): Set<string> => {
@@ -157,37 +158,35 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
 
       {/* Chips row */}
       <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1.5 }}>
+        {(() => { const c = STATUS_HEX[intervention.status] ?? '#757575'; return (
         <Chip
           label={intervention.status}
           size="small"
-          color={STATUS_COLORS[intervention.status] || 'default'}
-          sx={{ fontSize: '0.5625rem', height: 22 }}
+          sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
         />
+        ); })()}
         {intervention.assigneeName && (
           <Chip
-            icon={<Person sx={{ fontSize: 12 }} />}
+            icon={<Person sx={{ fontSize: 12, color: '#757575 !important' }} />}
             label={intervention.assigneeName}
             size="small"
-            variant="outlined"
-            sx={{ fontSize: '0.5625rem', height: 22 }}
+            sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
           />
         )}
         {intervention.estimatedDurationHours && (
           <Chip
-            icon={<Schedule sx={{ fontSize: 12 }} />}
+            icon={<Schedule sx={{ fontSize: 12, color: '#0288d1 !important' }} />}
             label={`${intervention.estimatedDurationHours}h`}
             size="small"
-            variant="outlined"
-            sx={{ fontSize: '0.5625rem', height: 22 }}
+            sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
           />
         )}
         {estimatedCost > 0 && (
           <Chip
-            icon={<AttachMoney sx={{ fontSize: 12 }} />}
+            icon={<AttachMoney sx={{ fontSize: 12, color: '#4A9B8E !important' }} />}
             label={`${estimatedCost.toFixed(0)} €`}
             size="small"
-            variant="outlined"
-            sx={{ fontSize: '0.5625rem', height: 22 }}
+            sx={{ fontSize: '0.5625rem', height: 22, fontWeight: 600, backgroundColor: '#4A9B8E18', color: '#4A9B8E', border: '1px solid #4A9B8E40', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
           />
         )}
       </Box>
@@ -216,21 +215,22 @@ const PanelInterventionDetail: React.FC<PanelInterventionDetailProps> = ({
           <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'text.secondary' }}>
             Progression
           </Typography>
-          <Chip label={`${progress}%`} size="small" color={progress === 100 ? 'success' : 'default'} sx={{ fontSize: '0.5625rem', height: 18 }} />
+          {(() => { const c = progress === 100 ? '#4A9B8E' : '#757575'; return (
+          <Chip label={`${progress}%`} size="small" sx={{ fontSize: '0.5625rem', height: 18, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }} />
+          ); })()}
         </Box>
         <LinearProgress variant="determinate" value={progress} sx={{ height: 6, borderRadius: 3 }} />
         <Box sx={{ display: 'flex', gap: 0.5, mt: 0.75 }}>
           {['inspection', 'rooms', 'after_photos'].map((step) => {
             const done = completedSteps.has(step);
             const labels: Record<string, string> = { inspection: 'Inspection', rooms: 'Pièces', after_photos: 'Photos' };
+            const c = done ? '#4A9B8E' : '#757575';
             return (
               <Chip
                 key={step}
                 label={labels[step]}
                 size="small"
-                color={done ? 'success' : 'default'}
-                variant={done ? 'filled' : 'outlined'}
-                sx={{ fontSize: '0.5rem', height: 18 }}
+                sx={{ fontSize: '0.5rem', height: 18, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
               />
             );
           })}

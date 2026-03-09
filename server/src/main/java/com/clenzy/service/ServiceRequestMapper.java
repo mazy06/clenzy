@@ -45,9 +45,6 @@ public class ServiceRequestMapper {
         e.setGuestCheckoutTime(dto.guestCheckoutTime);
         e.setGuestCheckinTime(dto.guestCheckinTime);
         e.setUrgent(dto.urgent);
-        e.setRequiresApproval(dto.requiresApproval);
-        e.setApprovedBy(dto.approvedBy);
-        e.setApprovedAt(dto.approvedAt);
         if (dto.userId != null) {
             User user = userRepository.findById(dto.userId).orElseThrow(() -> new NotFoundException("User not found"));
             e.setUser(user);
@@ -56,6 +53,8 @@ public class ServiceRequestMapper {
             Property property = propertyRepository.findById(dto.propertyId).orElseThrow(() -> new NotFoundException("Property not found"));
             e.setProperty(property);
         }
+        // Reservation link
+        e.setReservationId(dto.reservationId);
         // Assignation
         e.setAssignedToId(dto.assignedToId);
         e.setAssignedToType(dto.assignedToType);
@@ -79,17 +78,16 @@ public class ServiceRequestMapper {
         dto.guestCheckoutTime = e.getGuestCheckoutTime();
         dto.guestCheckinTime = e.getGuestCheckinTime();
         dto.urgent = e.isUrgent();
-        dto.requiresApproval = e.isRequiresApproval();
-        dto.approvedBy = e.getApprovedBy();
-        dto.approvedAt = e.getApprovedAt();
-        dto.devisAcceptedBy = e.getDevisAcceptedBy();
-        dto.devisAcceptedAt = e.getDevisAcceptedAt();
         dto.userId = e.getUser() != null ? e.getUser().getId() : null;
         dto.propertyId = e.getProperty() != null ? e.getProperty().getId() : null;
+        dto.reservationId = e.getReservationId();
 
         // Assignation
         dto.assignedToId = e.getAssignedToId();
         dto.assignedToType = e.getAssignedToType();
+
+        // Paiement
+        dto.paymentStatus = e.getPaymentStatus();
 
         // Remplir les informations de l'assignation (utilisateur ou equipe)
         if (e.getAssignedToId() != null && e.getAssignedToType() != null) {

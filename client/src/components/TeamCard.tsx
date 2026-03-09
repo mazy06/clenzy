@@ -124,6 +124,15 @@ const getTeamStatus = (team: Team): string => {
   return 'active';
 };
 
+const getStatusHex = (status: string): string => {
+  switch (status) {
+    case 'active': return '#4A9B8E';
+    case 'inactive': return '#d32f2f';
+    case 'maintenance': return '#ED6C02';
+    default: return '#757575';
+  }
+};
+
 const getStatusColor = (status: string): ChipColor => {
   switch (status) {
     case 'active': return 'success';
@@ -379,27 +388,25 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
       <Box sx={styles.badgeBar}>
         {/* Gauche : statut */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-          <Chip
-            label={getStatusLabel(status)}
-            color={getStatusColor(status)}
-            size="small"
-            variant="outlined"
-            sx={styles.statusChip}
-          />
+          {(() => { const c = getStatusHex(status); return (
+            <Chip
+              label={getStatusLabel(status)}
+              size="small"
+              sx={{ ...styles.statusChip, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+            />
+          ); })()}
         </Box>
 
         {/* Droite : workload + date */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-          {activeInterventionsCount > 0 && (
+          {activeInterventionsCount > 0 && (() => { const c = activeInterventionsCount > 5 ? '#d32f2f' : activeInterventionsCount > 2 ? '#ED6C02' : '#0288d1'; return (
             <Chip
-              icon={<Assignment sx={{ fontSize: 12 }} />}
+              icon={<Assignment sx={{ fontSize: 12, color: `${c} !important` }} />}
               label={`${activeInterventionsCount} active${activeInterventionsCount > 1 ? 's' : ''}`}
               size="small"
-              color={activeInterventionsCount > 5 ? 'error' : activeInterventionsCount > 2 ? 'warning' : 'info'}
-              variant="outlined"
-              sx={styles.workloadChip}
+              sx={{ ...styles.workloadChip, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
             />
-          )}
+          ); })()}
           {team.createdAt && (
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.68rem', lineHeight: 1 }}>
               {formatShortDate(team.createdAt)}
@@ -468,16 +475,17 @@ const TeamCard: React.FC<TeamCardProps> = React.memo(({
           {/* Total interventions chip */}
           {(team.totalInterventions ?? 0) > 0 && (
             <Chip
-              icon={<Build sx={{ fontSize: 12 }} />}
+              icon={<Build sx={{ fontSize: 12, color: '#1976d2 !important' }} />}
               label={`${team.totalInterventions} interv.`}
               size="small"
-              color="primary"
-              variant="outlined"
               sx={{
-                height: 22,
+                height: 24,
                 fontSize: '0.62rem',
                 fontWeight: 600,
-                borderWidth: 1.5,
+                backgroundColor: '#1976d218',
+                color: '#1976d2',
+                border: '1px solid #1976d240',
+                borderRadius: '6px',
                 '& .MuiChip-label': { px: 0.75 },
                 '& .MuiChip-icon': { fontSize: 12, ml: 0.5 },
                 flexShrink: 0,

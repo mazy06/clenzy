@@ -8,6 +8,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,6 +21,12 @@ public class TemplateInterpolationService {
 
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{(\\w+)}");
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    /**
+     * Variables dont la valeur est du HTML genere cote serveur (non saisie par l'utilisateur).
+     * Elles ne doivent PAS etre echappees HTML pour ne pas casser le balisage.
+     */
+    private static final Set<String> HTML_SAFE_VARIABLES = Set.of("locationMap", "paymentLink");
 
     /**
      * Variables supportees avec leur description (pour l'endpoint /variables).
@@ -43,7 +50,19 @@ public class TemplateInterpolationService {
         new TemplateVariable("emergencyContact", "Contact d'urgence", "+33 6 12 34 56 78"),
         new TemplateVariable("confirmationCode", "Code de confirmation", "ABC123"),
         new TemplateVariable("checkInLink", "Lien check-in en ligne", "https://app.clenzy.fr/checkin/abc123"),
-        new TemplateVariable("guideLink", "Lien guide d'accueil", "https://app.clenzy.fr/guide/xyz789")
+        new TemplateVariable("guideLink", "Lien guide d'accueil", "https://app.clenzy.fr/guide/xyz789"),
+        // Variables d'acces dynamiques (resolues par AccessCodeResolverService via extraVars)
+        new TemplateVariable("accessMethod", "Methode d'acces (SMART_LOCK, KEY_EXCHANGE, STATIC, ou vide)", "SMART_LOCK"),
+        new TemplateVariable("keyExchangeStoreName", "Nom du point d'echange de cles", "Tabac de la Gare"),
+        new TemplateVariable("keyExchangeStoreAddress", "Adresse du point d'echange", "5 rue de la Gare, 75010 Paris"),
+        new TemplateVariable("keyExchangeStorePhone", "Telephone du point d'echange", "+33 1 42 00 00 00"),
+        new TemplateVariable("keyExchangeStoreHours", "Horaires du point d'echange", "Lun-Sam 8h-20h"),
+        // Carte de localisation generee automatiquement (Mapbox Static Images)
+        new TemplateVariable("locationMap", "Carte de localisation (propriete + point de retrait des cles si applicable)", "[Image carte generee automatiquement]"),
+        // Variables de paiement (resolues via extraVars par le controller)
+        new TemplateVariable("paymentLink", "Bouton HTML de paiement Stripe", "<a href=\"...\">Payer maintenant</a>"),
+        new TemplateVariable("paymentAmount", "Montant du paiement", "150.00"),
+        new TemplateVariable("paymentCurrency", "Devise du paiement", "EUR")
     );
 
     private final TranslationService translationService;
@@ -192,7 +211,7 @@ public class TemplateInterpolationService {
         while (matcher.find()) {
             String key = matcher.group(1);
             String value = vars.getOrDefault(key, "{" + key + "}");
-            if (escapeHtml) {
+            if (escapeHtml && !HTML_SAFE_VARIABLES.contains(key)) {
                 value = StringUtils.escapeHtml(value);
             }
             matcher.appendReplacement(sb, Matcher.quoteReplacement(value));

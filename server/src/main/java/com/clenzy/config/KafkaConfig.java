@@ -15,6 +15,7 @@ import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.util.backoff.FixedBackOff;
@@ -70,6 +71,8 @@ public class KafkaConfig {
     // ---- Reviews & Pricing topics ----
     public static final String TOPIC_REVIEWS_SYNC = "reviews.sync";
     public static final String TOPIC_PRICING_EXTERNAL = "pricing.external.sync";
+    // ---- Payment topics ----
+    public static final String TOPIC_PAYMENT_EVENTS = "payment.events";
 
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
@@ -99,7 +102,10 @@ public class KafkaConfig {
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "clenzy-backend");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        // ErrorHandlingDeserializer wraps JsonDeserializer to prevent infinite loops
+        // on deserialization errors (skips poisoned messages instead of retrying forever)
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class.getName());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.clenzy.*");
@@ -286,6 +292,16 @@ public class KafkaConfig {
     @Bean
     public NewTopic pricingExternalTopic() {
         return TopicBuilder.name(TOPIC_PRICING_EXTERNAL)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    // ---- Payment topics ----
+
+    @Bean
+    public NewTopic paymentEventsTopic() {
+        return TopicBuilder.name(TOPIC_PAYMENT_EVENTS)
                 .partitions(3)
                 .replicas(1)
                 .build();

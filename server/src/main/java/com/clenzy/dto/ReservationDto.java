@@ -9,6 +9,9 @@ public record ReservationDto(
     Long propertyId,
     String propertyName,
     String guestName,
+    Long guestId,
+    String guestEmail,
+    String guestPhone,
     Integer guestCount,
     String checkIn,
     String checkOut,
@@ -19,5 +22,15 @@ public record ReservationDto(
     String sourceName,
     Double totalPrice,
     String confirmationCode,
-    String notes
+    String notes,
+    Double cleaningFee,
+    Double touristTaxAmount,
+    Boolean createCleaning,
+    // Payment link tracking
+    String paymentLinkSentAt,
+    String paymentLinkEmail,
+    Boolean hiddenFromPlanning,
+    // Payment status (read-only output)
+    String paymentStatus,
+    String paidAt
 ) {}

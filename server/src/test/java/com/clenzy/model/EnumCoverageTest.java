@@ -275,19 +275,15 @@ class EnumCoverageTest {
             }
         }
         @Test void transitions_pending() {
-            assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.APPROVED)).isTrue();
+            assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.AWAITING_PAYMENT)).isTrue();
             assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.REJECTED)).isTrue();
             assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.CANCELLED)).isTrue();
             assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.COMPLETED)).isFalse();
         }
-        @Test void transitions_approved() {
-            assertThat(RequestStatus.APPROVED.canTransitionTo(RequestStatus.DEVIS_ACCEPTED)).isTrue();
-            assertThat(RequestStatus.APPROVED.canTransitionTo(RequestStatus.IN_PROGRESS)).isTrue();
-            assertThat(RequestStatus.APPROVED.canTransitionTo(RequestStatus.CANCELLED)).isTrue();
-        }
-        @Test void transitions_devisAccepted() {
-            assertThat(RequestStatus.DEVIS_ACCEPTED.canTransitionTo(RequestStatus.IN_PROGRESS)).isTrue();
-            assertThat(RequestStatus.DEVIS_ACCEPTED.canTransitionTo(RequestStatus.CANCELLED)).isTrue();
+        @Test void transitions_assigned() {
+            assertThat(RequestStatus.ASSIGNED.canTransitionTo(RequestStatus.AWAITING_PAYMENT)).isTrue();
+            assertThat(RequestStatus.ASSIGNED.canTransitionTo(RequestStatus.PENDING)).isTrue();
+            assertThat(RequestStatus.ASSIGNED.canTransitionTo(RequestStatus.CANCELLED)).isTrue();
         }
         @Test void transitions_inProgress() {
             assertThat(RequestStatus.IN_PROGRESS.canTransitionTo(RequestStatus.COMPLETED)).isTrue();
@@ -305,11 +301,11 @@ class EnumCoverageTest {
         }
         @Test void transitions_rejected() {
             assertThat(RequestStatus.REJECTED.canTransitionTo(RequestStatus.PENDING)).isTrue();
-            assertThat(RequestStatus.REJECTED.canTransitionTo(RequestStatus.APPROVED)).isFalse();
+            assertThat(RequestStatus.REJECTED.canTransitionTo(RequestStatus.COMPLETED)).isFalse();
         }
         @Test void fromString_valid() {
             assertThat(RequestStatus.fromString("PENDING")).isEqualTo(RequestStatus.PENDING);
-            assertThat(RequestStatus.fromString("approved")).isEqualTo(RequestStatus.APPROVED);
+            assertThat(RequestStatus.fromString("assigned")).isEqualTo(RequestStatus.ASSIGNED);
         }
         @Test void fromString_null() {
             assertThat(RequestStatus.fromString(null)).isNull();

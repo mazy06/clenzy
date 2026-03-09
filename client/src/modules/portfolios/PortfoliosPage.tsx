@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Box,
   Typography,
@@ -132,7 +133,12 @@ function EmptyState({ icon, message, action }: EmptyStateProps) {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-const PortfoliosPage: React.FC = () => {
+interface PortfoliosPageProps {
+  embedded?: boolean;
+  actionsContainer?: HTMLElement | null;
+}
+
+const PortfoliosPage: React.FC<PortfoliosPageProps> = ({ embedded = false, actionsContainer }) => {
   const {
     canView,
     t,
@@ -183,38 +189,45 @@ const PortfoliosPage: React.FC = () => {
     );
   }
 
+  const actionButtons = (
+    <Box display="flex" gap={1}>
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={<AssignmentIcon sx={{ fontSize: 16 }} />}
+        onClick={handleClientAssignment}
+        sx={{ fontSize: '0.8rem' }}
+        title={t('portfolios.associateClientsProperties')}
+      >
+        {t('portfolios.associateClientsProperties')}
+      </Button>
+      <Button
+        variant="outlined"
+        size="small"
+        startIcon={<PeopleIcon sx={{ fontSize: 16 }} />}
+        onClick={handleTeamAssignment}
+        sx={{ fontSize: '0.8rem' }}
+        title={t('portfolios.associateTeamsUsers')}
+      >
+        {t('portfolios.associateTeamsUsers')}
+      </Button>
+    </Box>
+  );
+
   return (
     <Box>
-      <PageHeader
-        title={t('portfolios.title')}
-        subtitle={t('portfolios.subtitle')}
-        backPath="/dashboard"
-        showBackButton={false}
-        actions={
-          <Box display="flex" gap={1}>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<AssignmentIcon sx={{ fontSize: 16 }} />}
-              onClick={handleClientAssignment}
-              sx={{ fontSize: '0.8rem' }}
-              title={t('portfolios.associateClientsProperties')}
-            >
-              {t('portfolios.associateClientsProperties')}
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<PeopleIcon sx={{ fontSize: 16 }} />}
-              onClick={handleTeamAssignment}
-              sx={{ fontSize: '0.8rem' }}
-              title={t('portfolios.associateTeamsUsers')}
-            >
-              {t('portfolios.associateTeamsUsers')}
-            </Button>
-          </Box>
-        }
-      />
+      {/* Portal actions into parent's PageHeader when embedded */}
+      {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+
+      {!embedded && (
+        <PageHeader
+          title={t('portfolios.title')}
+          subtitle={t('portfolios.subtitle')}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={actionButtons}
+        />
+      )}
 
       <Paper sx={{ width: '100%', mt: 2, borderRadius: 2, overflow: 'hidden' }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>

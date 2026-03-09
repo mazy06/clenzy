@@ -61,6 +61,8 @@ public class InterventionDto {
     public String propertyName;
     public String propertyAddress;
     public String propertyType;
+    public Double propertyLatitude;
+    public Double propertyLongitude;
     public String requestorName;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;

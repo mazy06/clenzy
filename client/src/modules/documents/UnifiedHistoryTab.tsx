@@ -44,7 +44,7 @@ interface UnifiedRow {
   recipient: string;
   channel: string;
   status: string;
-  statusColor: 'success' | 'warning' | 'error' | 'info' | 'default';
+  statusHex: string;
   errorMessage?: string;
   // Document-specific
   documentGeneration?: DocumentGeneration;
@@ -57,22 +57,22 @@ interface UnifiedRow {
 
 // ─── Status Configs ─────────────────────────────────────────────────────────
 
-const MSG_STATUS: Record<string, { color: 'success' | 'warning' | 'error' | 'info' | 'default'; label: string }> = {
-  SENT: { color: 'success', label: 'Envoye' },
-  DELIVERED: { color: 'success', label: 'Delivre' },
-  PENDING: { color: 'warning', label: 'En attente' },
-  FAILED: { color: 'error', label: 'Echoue' },
-  BOUNCED: { color: 'error', label: 'Rebondi' },
+const MSG_STATUS: Record<string, { hex: string; label: string }> = {
+  SENT: { hex: '#4A9B8E', label: 'Envoye' },
+  DELIVERED: { hex: '#4A9B8E', label: 'Delivre' },
+  PENDING: { hex: '#ED6C02', label: 'En attente' },
+  FAILED: { hex: '#d32f2f', label: 'Echoue' },
+  BOUNCED: { hex: '#d32f2f', label: 'Rebondi' },
 };
 
-const DOC_STATUS: Record<string, { color: 'success' | 'warning' | 'error' | 'info' | 'default'; label: string }> = {
-  PENDING: { color: 'default', label: 'En attente' },
-  GENERATING: { color: 'info', label: 'En cours' },
-  COMPLETED: { color: 'success', label: 'Termine' },
-  FAILED: { color: 'error', label: 'Echoue' },
-  SENT: { color: 'success', label: 'Envoye' },
-  LOCKED: { color: 'warning', label: 'Verrouille' },
-  ARCHIVED: { color: 'default', label: 'Archive' },
+const DOC_STATUS: Record<string, { hex: string; label: string }> = {
+  PENDING: { hex: '#757575', label: 'En attente' },
+  GENERATING: { hex: '#0288d1', label: 'En cours' },
+  COMPLETED: { hex: '#4A9B8E', label: 'Termine' },
+  FAILED: { hex: '#d32f2f', label: 'Echoue' },
+  SENT: { hex: '#4A9B8E', label: 'Envoye' },
+  LOCKED: { hex: '#ED6C02', label: 'Verrouille' },
+  ARCHIVED: { hex: '#757575', label: 'Archive' },
 };
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -142,7 +142,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
 
     if (filter !== 'documents') {
       for (const log of messageLogs) {
-        const statusConfig = MSG_STATUS[log.status] || { color: 'default' as const, label: log.status };
+        const statusConfig = MSG_STATUS[log.status] || { hex: '#757575', label: log.status };
         const dateStr = log.sentAt || log.createdAt;
         rows.push({
           id: `msg-${log.id}`,
@@ -153,7 +153,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           recipient: log.guestName || log.recipient || '—',
           channel: CHANNEL_LABELS[log.channel] || log.channel,
           status: statusConfig.label,
-          statusColor: statusConfig.color,
+          statusHex: statusConfig.hex,
           errorMessage: log.errorMessage || undefined,
         });
       }
@@ -161,7 +161,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
 
     if (filter !== 'messages') {
       for (const gen of generations) {
-        const statusConfig = DOC_STATUS[gen.status] || { color: 'default' as const, label: gen.status };
+        const statusConfig = DOC_STATUS[gen.status] || { hex: '#757575', label: gen.status };
         rows.push({
           id: `doc-${gen.id}`,
           kind: 'document',
@@ -171,7 +171,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           recipient: gen.emailTo || '—',
           channel: 'Document',
           status: statusConfig.label,
-          statusColor: statusConfig.color,
+          statusHex: statusConfig.hex,
           errorMessage: gen.errorMessage || undefined,
           documentGeneration: gen,
           legalNumber: gen.legalNumber ?? undefined,
@@ -306,16 +306,14 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                         <Typography variant="body2" fontWeight={500} noWrap sx={{ maxWidth: 200 }}>
                           {row.name}
                         </Typography>
-                        {row.legalNumber && (
+                        {row.legalNumber && (() => { const c = row.locked ? '#ED6C02' : '#757575'; return (
                           <Chip
-                            icon={row.locked ? <Lock sx={{ fontSize: 12 }} /> : undefined}
+                            icon={row.locked ? <Lock sx={{ fontSize: 12, color: `${c} !important` }} /> : undefined}
                             label={row.legalNumber}
                             size="small"
-                            variant="outlined"
-                            color={row.locked ? 'warning' : 'default'}
-                            sx={{ fontFamily: 'monospace', fontSize: '0.625rem', height: 20, borderWidth: 1.5 }}
+                            sx={{ fontFamily: 'monospace', fontSize: '0.625rem', height: 20, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
                           />
-                        )}
+                        ); })()}
                       </Box>
                       {row.fileSize ? (
                         <Typography variant="caption" color="text.secondary">
@@ -329,16 +327,14 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Chip label={row.channel} size="small" variant="outlined" sx={{ borderWidth: 1.5 }} />
+                      <Chip label={row.channel} size="small" sx={{ backgroundColor: '#0288d118', color: '#0288d1', border: '1px solid #0288d140', borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }} />
                     </TableCell>
                     <TableCell align="center">
                       <Tooltip title={row.errorMessage || ''}>
                         <Chip
                           label={row.status}
-                          color={row.statusColor}
                           size="small"
-                          variant="outlined"
-                          sx={{ borderWidth: 1.5 }}
+                          sx={{ backgroundColor: `${row.statusHex}18`, color: row.statusHex, border: `1px solid ${row.statusHex}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }}
                         />
                       </Tooltip>
                     </TableCell>

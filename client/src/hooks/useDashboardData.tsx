@@ -380,11 +380,11 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
       }).length;
 
       const pendingRequests = requests.filter((r) =>
-        ['PENDING', 'APPROVED', 'IN_PROGRESS'].includes(r.status || '')
+        ['PENDING', 'ASSIGNED', 'AWAITING_PAYMENT', 'IN_PROGRESS'].includes(r.status || '')
       ).length;
       const previousPendingRequests = requests.filter((r) => {
         if (!r.createdAt) return false;
-        return new Date(r.createdAt) < thirtyDaysAgo && ['PENDING', 'APPROVED', 'IN_PROGRESS'].includes(r.status || '');
+        return new Date(r.createdAt) < thirtyDaysAgo && ['PENDING', 'ASSIGNED', 'AWAITING_PAYMENT', 'IN_PROGRESS'].includes(r.status || '');
       }).length;
 
       const today = new Date();

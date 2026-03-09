@@ -11,7 +11,9 @@ import com.clenzy.model.InterventionType;
 import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.RequestStatus;
 import com.clenzy.model.UserRole;
+import com.clenzy.model.Reservation;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ReservationRepository;
 import com.clenzy.util.JwtRoleExtractor;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
@@ -47,6 +49,7 @@ public class ServiceRequestService {
     private final UserRepository userRepository;
     private final PropertyRepository propertyRepository;
     private final InterventionRepository interventionRepository;
+    private final ReservationRepository reservationRepository;
     private final TeamRepository teamRepository;
     private final NotificationService notificationService;
     private final PropertyTeamService propertyTeamService;
@@ -54,11 +57,12 @@ public class ServiceRequestService {
     private final TenantContext tenantContext;
     private final ServiceRequestMapper serviceRequestMapper;
 
-    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository, TeamRepository teamRepository, NotificationService notificationService, PropertyTeamService propertyTeamService, KafkaTemplate<String, Object> kafkaTemplate, TenantContext tenantContext, ServiceRequestMapper serviceRequestMapper) {
+    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository, ReservationRepository reservationRepository, TeamRepository teamRepository, NotificationService notificationService, PropertyTeamService propertyTeamService, KafkaTemplate<String, Object> kafkaTemplate, TenantContext tenantContext, ServiceRequestMapper serviceRequestMapper) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
         this.interventionRepository = interventionRepository;
+        this.reservationRepository = reservationRepository;
         this.teamRepository = teamRepository;
         this.notificationService = notificationService;
         this.propertyTeamService = propertyTeamService;
@@ -72,7 +76,6 @@ public class ServiceRequestService {
         serviceRequestMapper.apply(dto, entity);
         entity.setOrganizationId(tenantContext.getRequiredOrganizationId());
         entity = serviceRequestRepository.save(entity);
-        ServiceRequestDto result = serviceRequestMapper.toDto(entity);
 
         try {
             notificationService.notifyAdminsAndManagers(
@@ -85,7 +88,219 @@ public class ServiceRequestService {
             log.warn("Notification error SERVICE_REQUEST_CREATED: {}", e.getMessage());
         }
 
-        return result;
+        // ── Auto-assignation basée sur zone géographique + disponibilité ──
+        try {
+            if (entity.getAssignedToId() == null && entity.getProperty() != null && entity.getDesiredDate() != null) {
+                String svcType = entity.getServiceType() != null ? entity.getServiceType().name() : null;
+                Optional<Long> availableTeamId = propertyTeamService.findAvailableTeamForProperty(
+                    entity.getProperty().getId(),
+                    entity.getDesiredDate(),
+                    entity.getEstimatedDurationHours(),
+                    svcType
+                );
+                if (availableTeamId.isPresent()) {
+                    entity.setAssignedToId(availableTeamId.get());
+                    entity.setAssignedToType("team");
+                    entity.setStatus(RequestStatus.AWAITING_PAYMENT);
+                    entity = serviceRequestRepository.save(entity);
+                    log.info("Auto-assignment: team {} assigned to SR {} for property {}",
+                        availableTeamId.get(), entity.getId(), entity.getProperty().getId());
+
+                    try {
+                        Team assignedTeam = teamRepository.findById(availableTeamId.get()).orElse(null);
+                        String teamName = assignedTeam != null ? assignedTeam.getName() : "Equipe #" + availableTeamId.get();
+                        notificationService.notifyAdminsAndManagers(
+                            NotificationKey.SERVICE_REQUEST_CREATED,
+                            "Demande auto-assignee",
+                            "La demande \"" + entity.getTitle() + "\" a ete auto-assignee a " + teamName,
+                            "/service-requests/" + entity.getId()
+                        );
+                    } catch (Exception notifErr) {
+                        log.warn("Notification error auto-assignment: {}", notifErr.getMessage());
+                    }
+                } else {
+                    log.debug("Auto-assignment: no team available for property {} — SR stays PENDING",
+                        entity.getProperty().getId());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Auto-assignment failed for SR {}: {} — SR stays PENDING", entity.getId(), e.getMessage());
+            // Reset in-memory values to match DB state (save failed, entity has dirty values)
+            entity.setAssignedToId(null);
+            entity.setAssignedToType(null);
+            entity.setStatus(RequestStatus.PENDING);
+        }
+
+        return serviceRequestMapper.toDto(entity);
+    }
+
+    /**
+     * Refus d'une assignation par l'equipe/utilisateur assigne.
+     * Remet la SR en PENDING pour reassignation.
+     */
+    public ServiceRequestDto refuse(Long serviceRequestId) {
+        ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
+                .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
+
+        if (!RequestStatus.AWAITING_PAYMENT.equals(sr.getStatus()) && !RequestStatus.ASSIGNED.equals(sr.getStatus())) {
+            throw new IllegalStateException("Seules les demandes assignees peuvent etre refusees. Statut actuel: " + sr.getStatus());
+        }
+
+        Long previousAssignedToId = sr.getAssignedToId();
+        sr.setAssignedToId(null);
+        sr.setAssignedToType(null);
+        sr.setStatus(RequestStatus.PENDING);
+        sr = serviceRequestRepository.save(sr);
+
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.SERVICE_REQUEST_CREATED,
+                "Assignation refusee",
+                "L'equipe/utilisateur a refuse la demande \"" + sr.getTitle() + "\". Reassignation necessaire.",
+                "/service-requests/" + sr.getId()
+            );
+        } catch (Exception e) {
+            log.warn("Notification error REFUSE: {}", e.getMessage());
+        }
+
+        // Tenter une re-assignation automatique
+        try {
+            if (previousAssignedToId != null && sr.getProperty() != null && sr.getDesiredDate() != null) {
+                String svcType = sr.getServiceType() != null ? sr.getServiceType().name() : null;
+                Optional<Long> newTeamId = propertyTeamService.findAvailableTeamForProperty(
+                    sr.getProperty().getId(),
+                    sr.getDesiredDate(),
+                    sr.getEstimatedDurationHours(),
+                    svcType
+                );
+                if (newTeamId.isPresent() && !newTeamId.get().equals(previousAssignedToId)) {
+                    sr.setAssignedToId(newTeamId.get());
+                    sr.setAssignedToType("team");
+                    sr.setStatus(RequestStatus.AWAITING_PAYMENT);
+                    sr = serviceRequestRepository.save(sr);
+                    log.info("Re-assignment: team {} for SR {} after refusal", newTeamId.get(), sr.getId());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Re-assignment failed for SR {}: {}", sr.getId(), e.getMessage());
+        }
+
+        return serviceRequestMapper.toDto(sr);
+    }
+
+    /**
+     * Assignation manuelle par un admin/manager.
+     */
+    public ServiceRequestDto manualAssign(Long serviceRequestId, Long assignedToId, String assignedToType) {
+        ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
+                .orElseThrow(() -> new NotFoundException("Demande de service non trouvee"));
+
+        if (!RequestStatus.PENDING.equals(sr.getStatus()) && !RequestStatus.AWAITING_PAYMENT.equals(sr.getStatus()) && !RequestStatus.ASSIGNED.equals(sr.getStatus())) {
+            throw new IllegalStateException("Seules les demandes en attente ou en attente de paiement peuvent etre (re)assignees manuellement. Statut actuel: " + sr.getStatus());
+        }
+
+        sr.setAssignedToId(assignedToId);
+        sr.setAssignedToType(assignedToType);
+        sr.setStatus(RequestStatus.AWAITING_PAYMENT);
+        sr = serviceRequestRepository.save(sr);
+
+        log.info("Manual assignment: {} {} for SR {}", assignedToType, assignedToId, sr.getId());
+
+        return serviceRequestMapper.toDto(sr);
+    }
+
+    /**
+     * Cree une intervention a partir d'une SR payee.
+     * Appelee apres confirmation du paiement Stripe.
+     */
+    public Intervention createInterventionFromPaidServiceRequest(ServiceRequest sr) {
+        if (interventionRepository.existsByServiceRequestId(sr.getId())) {
+            log.warn("Intervention already exists for SR {} — skipping creation", sr.getId());
+            return null;
+        }
+
+        Intervention intervention = new Intervention();
+        String title = sr.getTitle();
+        intervention.setTitle(title != null && title.length() > 255 ? title.substring(0, 255) : title);
+        String description = sr.getDescription();
+        intervention.setDescription(description != null && description.length() > 500 ? description.substring(0, 500) : description);
+
+        String interventionType = mapServiceTypeToInterventionType(sr.getServiceType());
+        intervention.setType(interventionType);
+
+        intervention.setStatus(InterventionStatus.PENDING);
+        intervention.setPaymentStatus(com.clenzy.model.PaymentStatus.PAID);
+        intervention.setPaidAt(sr.getPaidAt());
+        intervention.setPriority(sr.getPriority().name());
+        intervention.setProperty(sr.getProperty());
+        intervention.setRequestor(sr.getUser());
+        intervention.setServiceRequest(sr);
+        intervention.setScheduledDate(sr.getDesiredDate());
+        intervention.setEstimatedDurationHours(sr.getEstimatedDurationHours());
+        intervention.setEstimatedCost(sr.getEstimatedCost());
+        intervention.setIsUrgent(sr.isUrgent());
+        intervention.setStartTime(sr.getDesiredDate());
+        intervention.setRequiresFollowUp(false);
+
+        // Assigner la meme equipe/user que la SR
+        if ("team".equals(sr.getAssignedToType()) && sr.getAssignedToId() != null) {
+            intervention.setTeamId(sr.getAssignedToId());
+        } else if ("user".equals(sr.getAssignedToType()) && sr.getAssignedToId() != null) {
+            User assignedUser = userRepository.findById(sr.getAssignedToId()).orElse(null);
+            if (assignedUser != null) {
+                intervention.setAssignedUser(assignedUser);
+                intervention.setAssignedTechnicianId(sr.getAssignedToId());
+            }
+        }
+
+        intervention.setOrganizationId(sr.getOrganizationId());
+        intervention = interventionRepository.save(intervention);
+        log.info("Intervention {} created from paid SR {}", intervention.getId(), sr.getId());
+
+        // Lier l'intervention a la reservation associee (pour affichage planning)
+        if (sr.getReservationId() != null) {
+            try {
+                Reservation reservation = reservationRepository.findById(sr.getReservationId()).orElse(null);
+                if (reservation != null) {
+                    reservation.setIntervention(intervention);
+                    reservationRepository.save(reservation);
+                    log.info("Intervention {} linked to reservation {}", intervention.getId(), sr.getReservationId());
+                }
+            } catch (Exception e) {
+                log.warn("Failed to link intervention {} to reservation {}: {}", intervention.getId(), sr.getReservationId(), e.getMessage());
+            }
+        }
+
+        // Generation FACTURE via Kafka
+        try {
+            String emailTo = sr.getUser() != null ? sr.getUser().getEmail() : null;
+            kafkaTemplate.send(
+                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
+                "facture-sr-" + sr.getId(),
+                Map.of(
+                    "documentType", "FACTURE",
+                    "referenceId", sr.getId(),
+                    "referenceType", "service_request",
+                    "emailTo", emailTo != null ? emailTo : ""
+                )
+            );
+        } catch (Exception e) {
+            log.warn("Kafka publish error FACTURE for SR {}: {}", sr.getId(), e.getMessage());
+        }
+
+        // Notifier les admins
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.INTERVENTION_AWAITING_VALIDATION,
+                "Intervention creee apres paiement",
+                "L'intervention \"" + intervention.getTitle() + "\" a ete creee suite au paiement de la demande de service.",
+                "/interventions/" + intervention.getId()
+            );
+        } catch (Exception e) {
+            log.warn("Notification error INTERVENTION_CREATED_FROM_SR: {}", e.getMessage());
+        }
+
+        return intervention;
     }
 
     public ServiceRequestDto update(Long id, ServiceRequestDto dto) {
@@ -159,6 +374,7 @@ public class ServiceRequestService {
 
     @Transactional(readOnly = true)
     public Page<ServiceRequestDto> searchWithRoleBasedAccess(Pageable pageable, Long userId, Long propertyId,
+                                                             Long reservationId,
                                                              com.clenzy.model.RequestStatus status,
                                                              com.clenzy.model.ServiceType serviceType,
                                                              Jwt jwt) {
@@ -209,6 +425,7 @@ public class ServiceRequestService {
             })
             .filter(sr -> userId == null || (sr.getUser() != null && sr.getUser().getId().equals(userId)))
             .filter(sr -> propertyId == null || (sr.getProperty() != null && sr.getProperty().getId().equals(propertyId)))
+            .filter(sr -> reservationId == null || (sr.getReservationId() != null && sr.getReservationId().equals(reservationId)))
             .filter(sr -> status == null || sr.getStatus().equals(status))
             .filter(sr -> serviceType == null || sr.getServiceType().equals(serviceType))
             .collect(Collectors.toList());
@@ -239,214 +456,7 @@ public class ServiceRequestService {
         serviceRequestRepository.deleteById(id);
     }
 
-    /**
-     * Valide une demande de service et crée automatiquement une intervention
-     * Seuls les managers et admins peuvent valider les demandes
-     */
-    public InterventionDto validateAndCreateIntervention(Long serviceRequestId, Long teamId, Long userId, boolean autoAssign, Jwt jwt) {
-        try {
-            log.debug("validateAndCreateIntervention - serviceRequestId: {}", serviceRequestId);
 
-            // Vérifier les droits d'accès
-            UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
-            log.debug("validateAndCreateIntervention - role: {}", userRole);
-
-            if (!userRole.isPlatformStaff()) {
-                log.debug("validateAndCreateIntervention - insufficient role: {}", userRole);
-                throw new UnauthorizedException("Seuls les administrateurs et managers peuvent valider les demandes de service");
-            }
-
-        // Récupérer la demande de service
-        ServiceRequest serviceRequest = serviceRequestRepository.findById(serviceRequestId)
-                .orElseThrow(() -> new NotFoundException("Demande de service non trouvée"));
-        log.debug("validateAndCreateIntervention - service request found: {}", serviceRequest.getTitle());
-
-        // Vérifier que la demande n'est pas déjà validée
-        if (RequestStatus.APPROVED.equals(serviceRequest.getStatus())) {
-            throw new IllegalStateException("Cette demande de service est déjà validée");
-        }
-
-        // Vérifier qu'il n'existe pas déjà une intervention pour cette demande
-        if (interventionRepository.existsByServiceRequestId(serviceRequestId)) {
-            throw new IllegalStateException("Une intervention existe déjà pour cette demande de service");
-        }
-
-        // Mettre à jour le statut de la demande
-        serviceRequest.setStatus(RequestStatus.APPROVED);
-        serviceRequest.setApprovedBy(jwt.getSubject());
-        serviceRequest.setApprovedAt(LocalDateTime.now());
-        serviceRequest = serviceRequestRepository.save(serviceRequest);
-
-        // Créer l'intervention
-        Intervention intervention = new Intervention();
-        String title = serviceRequest.getTitle();
-        intervention.setTitle(title != null && title.length() > 255 ? title.substring(0, 255) : title);
-        String description = serviceRequest.getDescription();
-        intervention.setDescription(description != null && description.length() > 500 ? description.substring(0, 500) : description);
-
-        String interventionType = mapServiceTypeToInterventionType(serviceRequest.getServiceType());
-        log.debug("validateAndCreateIntervention - intervention type mapped: {}", interventionType);
-        intervention.setType(interventionType);
-
-        intervention.setStatus(InterventionStatus.PENDING);
-        intervention.setPriority(serviceRequest.getPriority().name());
-        intervention.setProperty(serviceRequest.getProperty());
-        intervention.setRequestor(serviceRequest.getUser());
-        intervention.setServiceRequest(serviceRequest);
-        intervention.setScheduledDate(serviceRequest.getDesiredDate());
-        intervention.setEstimatedDurationHours(serviceRequest.getEstimatedDurationHours());
-        intervention.setEstimatedCost(serviceRequest.getEstimatedCost());
-        intervention.setIsUrgent(serviceRequest.isUrgent());
-        intervention.setStartTime(serviceRequest.getDesiredDate());
-        intervention.setRequiresFollowUp(false);
-
-        // Auto-assignation si aucune equipe/user fourni et toggle active
-        if (teamId == null && userId == null && autoAssign) {
-            String svcType = serviceRequest.getServiceType() != null ? serviceRequest.getServiceType().name() : null;
-            Optional<Long> availableTeamId = propertyTeamService.findAvailableTeamForProperty(
-                serviceRequest.getProperty().getId(),
-                serviceRequest.getDesiredDate(),
-                serviceRequest.getEstimatedDurationHours(),
-                svcType
-            );
-            if (availableTeamId.isPresent()) {
-                teamId = availableTeamId.get();
-                log.debug("Auto-assignment: team {} for property {}", teamId, serviceRequest.getProperty().getId());
-            } else {
-                log.debug("Auto-assignment: no team available for property {}", serviceRequest.getProperty().getId());
-            }
-        }
-
-        // Assigner l'équipe ou l'utilisateur si fourni
-        if (teamId != null) {
-            Team team = teamRepository.findById(teamId)
-                    .orElseThrow(() -> new NotFoundException("Équipe non trouvée"));
-            intervention.setTeamId(team.getId());
-            log.debug("validateAndCreateIntervention - team assigned: {}", team.getName());
-        } else if (userId != null) {
-            User assignedUser = userRepository.findById(userId)
-                    .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé"));
-            intervention.setAssignedUser(assignedUser);
-            intervention.setAssignedTechnicianId(userId);
-            log.debug("validateAndCreateIntervention - user assigned: {}", assignedUser.getFullName());
-        }
-
-        intervention.setOrganizationId(tenantContext.getRequiredOrganizationId());
-        intervention = interventionRepository.save(intervention);
-        log.debug("validateAndCreateIntervention - intervention saved, id: {}", intervention.getId());
-
-        // Convertir en DTO et retourner
-        InterventionDto dto = convertToInterventionDto(intervention);
-
-        // Notify requester of approval
-        try {
-            if (serviceRequest.getUser() != null && serviceRequest.getUser().getKeycloakId() != null) {
-                notificationService.notify(
-                    serviceRequest.getUser().getKeycloakId(),
-                    NotificationKey.SERVICE_REQUEST_APPROVED,
-                    "Demande de service approuvee",
-                    "Votre demande \"" + serviceRequest.getTitle() + "\" a ete approuvee et une intervention a ete creee",
-                    "/service-requests/" + serviceRequest.getId()
-                );
-            }
-        } catch (Exception e) {
-            log.warn("Notification error SERVICE_REQUEST_APPROVED: {}", e.getMessage());
-        }
-
-        // ─── Génération automatique du DEVIS ─────────────────────────────────
-        try {
-            String emailTo = serviceRequest.getUser() != null ? serviceRequest.getUser().getEmail() : null;
-            kafkaTemplate.send(
-                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
-                "devis-sr-" + serviceRequest.getId(),
-                Map.of(
-                    "documentType", "DEVIS",
-                    "referenceId", serviceRequest.getId(),
-                    "referenceType", "service_request",
-                    "emailTo", emailTo != null ? emailTo : ""
-                )
-            );
-            log.debug("Kafka DEVIS event published for service request: {}", serviceRequest.getId());
-        } catch (Exception e) {
-            log.warn("Kafka publish error DEVIS: {}", e.getMessage());
-        }
-
-        return dto;
-        } catch (Exception e) {
-            log.error("Error in validateAndCreateIntervention for id={}", serviceRequestId, e);
-            throw e;
-        }
-    }
-
-    /**
-     * Acceptation du devis par le Host.
-     * Change le statut de la demande de APPROVED à DEVIS_ACCEPTED
-     * et déclenche la génération de l'AUTORISATION_TRAVAUX.
-     */
-    public ServiceRequestDto acceptDevis(Long serviceRequestId, Jwt jwt) {
-        ServiceRequest serviceRequest = serviceRequestRepository.findById(serviceRequestId)
-                .orElseThrow(() -> new NotFoundException("Demande de service non trouvée"));
-
-        // Vérifier que la demande est bien au statut APPROVED (devis généré, en attente d'acceptation)
-        if (!RequestStatus.APPROVED.equals(serviceRequest.getStatus())) {
-            throw new IllegalStateException("Le devis ne peut être accepté que lorsque la demande est au statut APPROVED. Statut actuel: " + serviceRequest.getStatus());
-        }
-
-        // Vérifier que c'est bien le Host (propriétaire) qui accepte le devis
-        UserRole userRole = JwtRoleExtractor.extractUserRole(jwt);
-        String keycloakId = jwt.getSubject();
-
-        // Les admins/managers peuvent aussi accepter pour le host
-        if (userRole == UserRole.HOST) {
-            // Vérifier que le host est le propriétaire de la propriété
-            User currentUser = userRepository.findByKeycloakId(keycloakId).orElse(null);
-            if (currentUser == null || serviceRequest.getProperty() == null
-                    || serviceRequest.getProperty().getOwner() == null
-                    || !serviceRequest.getProperty().getOwner().getId().equals(currentUser.getId())) {
-                throw new com.clenzy.exception.UnauthorizedException("Vous n'êtes pas autorisé à accepter ce devis");
-            }
-        } else if (!userRole.isPlatformStaff()) {
-            throw new com.clenzy.exception.UnauthorizedException("Seuls le propriétaire, les managers et les admins peuvent accepter un devis");
-        }
-
-        // Mettre à jour le statut
-        serviceRequest.setStatus(RequestStatus.DEVIS_ACCEPTED);
-        serviceRequest.setDevisAcceptedBy(keycloakId);
-        serviceRequest.setDevisAcceptedAt(LocalDateTime.now());
-        serviceRequest = serviceRequestRepository.save(serviceRequest);
-
-        // ─── Notification ────────────────────────────────────────────────────
-        try {
-            notificationService.notifyAdminsAndManagers(
-                NotificationKey.SERVICE_REQUEST_APPROVED,
-                "Devis accepté",
-                "Le devis pour la demande \"" + serviceRequest.getTitle() + "\" a été accepté par le client",
-                "/service-requests/" + serviceRequest.getId()
-            );
-        } catch (Exception e) {
-            log.warn("Notification error DEVIS_ACCEPTED: {}", e.getMessage());
-        }
-
-        // ─── Génération automatique de l'AUTORISATION_TRAVAUX ────────────────
-        try {
-            String emailTo = serviceRequest.getUser() != null ? serviceRequest.getUser().getEmail() : null;
-            kafkaTemplate.send(
-                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
-                "autorisation-travaux-sr-" + serviceRequest.getId(),
-                Map.of(
-                    "documentType", "AUTORISATION_TRAVAUX",
-                    "referenceId", serviceRequest.getId(),
-                    "referenceType", "service_request",
-                    "emailTo", emailTo != null ? emailTo : ""
-                )
-            );
-            log.debug("Kafka AUTORISATION_TRAVAUX event published for service request: {}", serviceRequest.getId());
-        } catch (Exception e) {
-            log.warn("Kafka publish error AUTORISATION_TRAVAUX: {}", e.getMessage());
-        }
-
-        return serviceRequestMapper.toDto(serviceRequest);
-    }
 
     /**
      * Mappe le type de service vers le type d'intervention

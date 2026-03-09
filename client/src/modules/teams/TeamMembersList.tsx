@@ -115,6 +115,19 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
     return roleLabels[role?.toLowerCase()] || role;
   };
 
+  const getRoleHex = (role: string): string => {
+    const roleHexMap: Record<string, string> = {
+      housekeeper: '#4A9B8E',
+      technician: '#1976d2',
+      supervisor: '#ED6C02',
+      manager: '#d32f2f',
+      laundry: '#757575',
+      exterior_tech: '#1976d2',
+      leader: '#7B61FF',
+    };
+    return roleHexMap[role?.toLowerCase()] || '#757575';
+  };
+
   const getRoleColor = (role: string): ChipColor => {
     const roleColors: Record<string, ChipColor> = {
       housekeeper: 'success',
@@ -178,20 +191,20 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({
                           <Typography variant="body1" fontWeight={500}>
                             {member.firstName} {member.lastName}
                           </Typography>
-                          <Chip
-                            label={getRoleLabel(member.roleInTeam || member.role)}
-                            size="small"
-                            color={getRoleColor(member.roleInTeam || member.role)}
-                            variant="outlined"
-                            sx={{ height: 22, fontSize: '0.7rem', borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
-                          />
-                          <Chip
-                            label={isAvailable ? t('teams.workload.available') : t('teams.workload.busy')}
-                            size="small"
-                            variant="outlined"
-                            color={isAvailable ? 'success' : 'warning'}
-                            sx={{ height: 22, fontSize: '0.7rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
-                          />
+                          {(() => { const c = getRoleHex(member.roleInTeam || member.role); return (
+                            <Chip
+                              label={getRoleLabel(member.roleInTeam || member.role)}
+                              size="small"
+                              sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+                            />
+                          ); })()}
+                          {(() => { const c = isAvailable ? '#4A9B8E' : '#ED6C02'; return (
+                            <Chip
+                              label={isAvailable ? t('teams.workload.available') : t('teams.workload.busy')}
+                              size="small"
+                              sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
+                            />
+                          ); })()}
                         </Box>
                       }
                       secondary={

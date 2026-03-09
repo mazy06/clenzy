@@ -31,10 +31,10 @@ import LiveDashboardPulse from './LiveDashboardPulse';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatShortDate, formatTimeFromDate, formatDuration } from '../../utils/formatUtils';
 import {
-  getInterventionStatusColor,
   getInterventionStatusLabel,
-  getInterventionPriorityColor,
+  getInterventionStatusHex,
   getInterventionPriorityLabel,
+  getInterventionPriorityHex,
   getInterventionTypeLabel,
 } from '../../utils/statusUtils';
 
@@ -309,20 +309,20 @@ const InterventionCard: React.FC<InterventionCardProps> = React.memo(({
       <Box sx={styles.badgeBar}>
         {/* Gauche : statut + priorité */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
-          <Chip
-            label={getInterventionStatusLabel(intervention.status, t)}
-            color={getInterventionStatusColor(intervention.status)}
-            size="small"
-            variant="outlined"
-            sx={styles.statusChip}
-          />
-          <Chip
-            label={getInterventionPriorityLabel(intervention.priority, t)}
-            color={getInterventionPriorityColor(intervention.priority)}
-            size="small"
-            variant="outlined"
-            sx={styles.priorityChip}
-          />
+          {(() => { const c = getInterventionStatusHex(intervention.status); return (
+            <Chip
+              label={getInterventionStatusLabel(intervention.status, t)}
+              size="small"
+              sx={{ ...styles.statusChip, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+            />
+          ); })()}
+          {(() => { const c = getInterventionPriorityHex(intervention.priority); return (
+            <Chip
+              label={getInterventionPriorityLabel(intervention.priority, t)}
+              size="small"
+              sx={{ ...styles.priorityChip, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+            />
+          ); })()}
         </Box>
 
         {/* Droite : date planifiée (short + heure) */}

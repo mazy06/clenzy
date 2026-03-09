@@ -30,7 +30,6 @@ export interface ServiceRequest {
   estimatedCost?: number;
   dueDate: string;
   createdAt: string;
-  approvedAt?: string; // Date d'approbation pour calculer le delai d'annulation
 }
 
 export interface AssignTeam {

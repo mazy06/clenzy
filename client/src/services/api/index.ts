@@ -38,7 +38,7 @@ export { receivedFormsApi } from './receivedFormsApi';
 export type { ReceivedForm, ReceivedFormsPage, ReceivedFormsStats } from './receivedFormsApi';
 
 export { serviceRequestsApi } from './serviceRequestsApi';
-export type { ServiceRequest, ServiceRequestFormData } from './serviceRequestsApi';
+export type { ServiceRequest, ServiceRequestFormData, PlanningServiceRequest } from './serviceRequestsApi';
 
 export { teamsApi } from './teamsApi';
 export type { TeamMember, Team, TeamFormData, CoverageZone } from './teamsApi';
@@ -178,6 +178,9 @@ export type {
   BulkRateOverrideData,
 } from './calendarPricingApi';
 
+export { guestsApi } from './guestsApi';
+export type { GuestDto, CreateGuestData, GuestListDto, GuestListParams } from './guestsApi';
+
 export { guestMessagingApi } from './guestMessagingApi';
 export type {
   MessageTemplate,
@@ -280,3 +283,14 @@ export type {
   VatSummary,
   VatBreakdown,
 } from './fiscalReportingApi';
+
+export { keyExchangeApi } from './keyExchangeApi';
+export type {
+  KeyExchangePointDto,
+  CreateKeyExchangePointDto,
+  KeyExchangeCodeDto,
+  CreateKeyExchangeCodeDto,
+  KeyExchangeEventDto,
+  KeyExchangeEventsPage,
+  KeyNestStoreDto,
+} from './keyExchangeApi';

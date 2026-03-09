@@ -1,11 +1,8 @@
 package com.clenzy.service;
 
 import com.clenzy.integration.channel.ChannelName;
-import com.clenzy.model.ChannelCommission;
-import com.clenzy.model.OwnerPayout;
+import com.clenzy.model.*;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
-import com.clenzy.model.Property;
-import com.clenzy.model.Reservation;
 import com.clenzy.repository.ChannelCommissionRepository;
 import com.clenzy.repository.OwnerPayoutRepository;
 import com.clenzy.repository.PropertyRepository;
@@ -26,21 +23,29 @@ import java.util.*;
 public class AccountingService {
 
     private static final Logger log = LoggerFactory.getLogger(AccountingService.class);
+
+    /**
+     * Fallback commission rate used only when no ManagementContract exists.
+     * SUPER_ADMIN should configure this via ManagementContract or SplitConfiguration.
+     */
     private static final BigDecimal DEFAULT_COMMISSION_RATE = new BigDecimal("0.2000");
 
     private final OwnerPayoutRepository payoutRepository;
     private final ChannelCommissionRepository commissionRepository;
     private final ReservationRepository reservationRepository;
     private final PropertyRepository propertyRepository;
+    private final ManagementContractService managementContractService;
 
     public AccountingService(OwnerPayoutRepository payoutRepository,
                              ChannelCommissionRepository commissionRepository,
                              ReservationRepository reservationRepository,
-                             PropertyRepository propertyRepository) {
+                             PropertyRepository propertyRepository,
+                             ManagementContractService managementContractService) {
         this.payoutRepository = payoutRepository;
         this.commissionRepository = commissionRepository;
         this.reservationRepository = reservationRepository;
         this.propertyRepository = propertyRepository;
+        this.managementContractService = managementContractService;
     }
 
     // ── Owner Payouts ──────────────────────────────────────────────────────
@@ -62,6 +67,14 @@ public class AccountingService {
             .orElseThrow(() -> new IllegalArgumentException("Payout not found: " + id));
     }
 
+    /**
+     * Generate a payout for an owner, using the ManagementContract commission rate
+     * when available. Falls back to DEFAULT_COMMISSION_RATE (20%) if no contract exists.
+     *
+     * Commission resolution priority:
+     *   1. ManagementContract.commissionRate (per property — set by SUPER_ADMIN)
+     *   2. DEFAULT_COMMISSION_RATE (20% — hardcoded fallback)
+     */
     @Transactional
     public OwnerPayout generatePayout(Long ownerId, Long orgId, LocalDate from, LocalDate to) {
         // Check for existing payout
@@ -77,7 +90,8 @@ public class AccountingService {
             .filter(Objects::nonNull)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal commissionRate = DEFAULT_COMMISSION_RATE;
+        // Resolve commission rate from ManagementContract
+        BigDecimal commissionRate = resolveCommissionRate(ownerId, orgId, reservations);
         BigDecimal commissionAmount = grossRevenue.multiply(commissionRate).setScale(2, RoundingMode.HALF_UP);
         BigDecimal netAmount = grossRevenue.subtract(commissionAmount);
 
@@ -92,8 +106,8 @@ public class AccountingService {
         payout.setNetAmount(netAmount);
         payout.setStatus(PayoutStatus.PENDING);
 
-        log.info("Generated payout for owner {} period {}-{}: gross={} net={}",
-            ownerId, from, to, grossRevenue, netAmount);
+        log.info("Generated payout for owner {} period {}-{}: gross={} commission={}% net={}",
+            ownerId, from, to, grossRevenue, commissionRate.multiply(BigDecimal.valueOf(100)), netAmount);
         return payoutRepository.save(payout);
     }
 
@@ -126,5 +140,34 @@ public class AccountingService {
     @Transactional
     public ChannelCommission saveChannelCommission(ChannelCommission commission) {
         return commissionRepository.save(commission);
+    }
+
+    // ── Private Helpers ────────────────────────────────────────────────────
+
+    /**
+     * Resolves commission rate for a set of reservations belonging to an owner.
+     * Uses the first reservation's property to find the ManagementContract.
+     * If multiple properties have different rates, uses the first match.
+     */
+    private BigDecimal resolveCommissionRate(Long ownerId, Long orgId, List<Reservation> reservations) {
+        // Try to find a ManagementContract commission rate from the reservations' properties
+        for (Reservation reservation : reservations) {
+            if (reservation.getProperty() != null) {
+                Long propertyId = reservation.getProperty().getId();
+                Optional<ManagementContract> contractOpt =
+                    managementContractService.getActiveContract(propertyId, orgId);
+                if (contractOpt.isPresent() && contractOpt.get().getCommissionRate() != null) {
+                    BigDecimal contractRate = contractOpt.get().getCommissionRate();
+                    log.debug("Using ManagementContract commission rate {} for property {} owner {}",
+                        contractRate, propertyId, ownerId);
+                    return contractRate;
+                }
+            }
+        }
+
+        // Fallback to default
+        log.debug("No ManagementContract found for owner {}, using default commission rate {}",
+            ownerId, DEFAULT_COMMISSION_RATE);
+        return DEFAULT_COMMISSION_RATE;
     }
 }

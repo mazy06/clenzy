@@ -23,6 +23,13 @@ export interface Reservation {
   confirmationCode?: string;
   totalPrice: number;
   notes?: string;
+  // Payment link tracking
+  paymentLinkSentAt?: string;  // ISO datetime string
+  paymentLinkEmail?: string;   // Email used for the last payment link
+  hiddenFromPlanning?: boolean;
+  // Payment status (from Stripe)
+  paymentStatus?: string;      // PAID, PENDING, PROCESSING, FAILED, etc.
+  paidAt?: string;             // ISO datetime string
 }
 
 export interface ReservationFilters {
@@ -36,6 +43,7 @@ export interface ReservationFilters {
 export interface CreateReservationData {
   propertyId: number;
   guestName: string;
+  guestId?: number;
   guestEmail?: string;
   guestPhone?: string;
   guestCount: number;
@@ -43,7 +51,12 @@ export interface CreateReservationData {
   checkOut: string;
   checkInTime?: string;
   checkOutTime?: string;
+  status?: string;
   totalPrice?: number;
+  cleaningFee?: number;
+  touristTaxAmount?: number;
+  confirmationCode?: string;
+  createCleaning?: boolean;
   notes?: string;
 }
 
@@ -658,5 +671,26 @@ export const reservationsApi = {
 
   async cancel(id: number): Promise<void> {
     return apiClient.delete(`/reservations/${id}`);
+  },
+
+  async hideFromPlanning(id: number): Promise<Reservation> {
+    return apiClient.patch<Reservation>(`/reservations/${id}/hide`);
+  },
+
+  /**
+   * Envoie (ou renvoie) un lien de paiement Stripe par email au guest.
+   * Si email est fourni, envoie à cette adresse ; sinon utilise l'email du guest.
+   */
+  async sendPaymentLink(id: number, email?: string): Promise<Reservation> {
+    return apiClient.post<Reservation>(`/reservations/${id}/send-payment-link`, { email: email || null });
+  },
+
+  /**
+   * Vérifie le statut du paiement directement auprès de Stripe.
+   * Utile quand le webhook n'a pas été reçu (dev, timeout, etc.).
+   * Confirme automatiquement le paiement si Stripe indique "paid".
+   */
+  async checkPaymentStatus(id: number): Promise<{ paymentStatus: string; paidAt?: string; message: string }> {
+    return apiClient.post<{ paymentStatus: string; paidAt?: string; message: string }>(`/reservations/${id}/check-payment`);
   },
 };

@@ -10,6 +10,8 @@ import {
 import { useFiscalProfile, useUpdateFiscalProfile } from '../../hooks/useFiscalProfile';
 import { CURRENCY_OPTIONS, COUNTRY_OPTIONS } from '../../utils/currencyUtils';
 import { useTranslation } from '../../hooks/useTranslation';
+import { getCountryDefaults } from '../../utils/countryDefaults';
+import { STORAGE_KEYS, getItem } from '../../services/storageService';
 import type { FiscalProfileUpdate, FiscalRegime } from '../../services/api/fiscalProfileApi';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -80,6 +82,21 @@ const FiscalProfileSection: React.FC = () => {
       });
     }
   }, [profile]);
+
+  // Pre-fill with geo-detected country defaults on first setup
+  useEffect(() => {
+    if (!isFirstSetup) return;
+    const geoCountry = getItem(STORAGE_KEYS.GEO_COUNTRY);
+    if (!geoCountry) return;
+
+    const defaults = getCountryDefaults(geoCountry);
+    setForm(prev => ({
+      ...prev,
+      countryCode: defaults.fiscalCountry,
+      defaultCurrency: defaults.currency,
+      invoiceLanguage: defaults.language,
+    }));
+  }, [isFirstSetup]);
 
   const handleChange = (field: keyof FiscalProfileUpdate, value: string | boolean) => {
     setForm(prev => ({ ...prev, [field]: value }));

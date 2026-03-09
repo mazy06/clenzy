@@ -6,6 +6,7 @@ import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.Property;
 import com.clenzy.model.User;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,7 +28,10 @@ import static org.mockito.Mockito.*;
 class StripeServiceTest {
 
     @Mock private InterventionRepository interventionRepository;
+    @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
+    @Mock private ServiceRequestRepository serviceRequestRepository;
     @Mock private NotificationService notificationService;
+    @Mock private ServiceRequestService serviceRequestService;
     @Mock private KafkaTemplate<String, Object> kafkaTemplate;
 
     private TenantContext tenantContext;
@@ -38,7 +42,7 @@ class StripeServiceTest {
     void setUp() {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
-        stripeService = new StripeService(interventionRepository, notificationService, kafkaTemplate, tenantContext);
+        stripeService = new StripeService(interventionRepository, reservationRepository, serviceRequestRepository, notificationService, serviceRequestService, kafkaTemplate, tenantContext);
     }
 
     private Intervention buildIntervention(Long id, InterventionStatus status, PaymentStatus paymentStatus) {
@@ -72,7 +76,7 @@ class StripeServiceTest {
         void whenSessionFound_thenSetsPaidAndSaves() {
             // Arrange
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
-            when(interventionRepository.findByStripeSessionId("sess_123", ORG_ID))
+            when(interventionRepository.findByStripeSessionId("sess_123"))
                     .thenReturn(Optional.of(intervention));
 
             // Act
@@ -90,7 +94,7 @@ class StripeServiceTest {
         void whenAwaitingPayment_thenStatusChangesToPending() {
             // Arrange
             Intervention intervention = buildIntervention(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
-            when(interventionRepository.findByStripeSessionId("sess_123", ORG_ID))
+            when(interventionRepository.findByStripeSessionId("sess_123"))
                     .thenReturn(Optional.of(intervention));
 
             // Act
@@ -105,7 +109,7 @@ class StripeServiceTest {
         void whenNotAwaitingPayment_thenStatusUnchanged() {
             // Arrange
             Intervention intervention = buildIntervention(1L, InterventionStatus.IN_PROGRESS, PaymentStatus.PROCESSING);
-            when(interventionRepository.findByStripeSessionId("sess_123", ORG_ID))
+            when(interventionRepository.findByStripeSessionId("sess_123"))
                     .thenReturn(Optional.of(intervention));
 
             // Act
@@ -119,7 +123,7 @@ class StripeServiceTest {
         @DisplayName("throws when session not found")
         void whenSessionNotFound_thenThrows() {
             // Arrange
-            when(interventionRepository.findByStripeSessionId("unknown", ORG_ID))
+            when(interventionRepository.findByStripeSessionId("unknown"))
                     .thenReturn(Optional.empty());
 
             // Act & Assert
@@ -132,7 +136,7 @@ class StripeServiceTest {
         void whenNotificationFails_thenPaymentStillConfirmed() {
             // Arrange
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
-            when(interventionRepository.findByStripeSessionId("sess_123", ORG_ID))
+            when(interventionRepository.findByStripeSessionId("sess_123"))
                     .thenReturn(Optional.of(intervention));
             doThrow(new RuntimeException("notification error")).when(notificationService)
                     .notify(any(), any(), any(), any(), any());
@@ -150,7 +154,7 @@ class StripeServiceTest {
         void whenPaymentConfirmed_thenSendsKafkaEvents() {
             // Arrange
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
-            when(interventionRepository.findByStripeSessionId("sess_123", ORG_ID))
+            when(interventionRepository.findByStripeSessionId("sess_123"))
                     .thenReturn(Optional.of(intervention));
 
             // Act
@@ -172,7 +176,7 @@ class StripeServiceTest {
         void whenInterventionFound_thenStatusIsFailed() {
             // Arrange
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
-            when(interventionRepository.findByStripeSessionId("sess_fail", ORG_ID))
+            when(interventionRepository.findByStripeSessionId("sess_fail"))
                     .thenReturn(Optional.of(intervention));
 
             // Act
@@ -187,7 +191,7 @@ class StripeServiceTest {
         @DisplayName("does nothing when intervention not found")
         void whenInterventionNotFound_thenDoesNothing() {
             // Arrange
-            when(interventionRepository.findByStripeSessionId("unknown", ORG_ID))
+            when(interventionRepository.findByStripeSessionId("unknown"))
                     .thenReturn(Optional.empty());
 
             // Act
@@ -202,7 +206,7 @@ class StripeServiceTest {
         void whenFailed_thenNotifiesOwnerAndAdmins() {
             // Arrange
             Intervention intervention = buildInterventionWithOwner(1L, InterventionStatus.AWAITING_PAYMENT, PaymentStatus.PROCESSING);
-            when(interventionRepository.findByStripeSessionId("sess_fail", ORG_ID))
+            when(interventionRepository.findByStripeSessionId("sess_fail"))
                     .thenReturn(Optional.of(intervention));
 
             // Act

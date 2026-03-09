@@ -1,10 +1,12 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Box, CircularProgress, Alert, Typography } from '@mui/material';
 import PlanningToolbar from './PlanningToolbar';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningActionPanel from './PlanningActionPanel';
 import PlanningQuickCreateDialog from './PlanningQuickCreateDialog';
 import PlanningPaginationBar from './PlanningPaginationBar';
+import ICalImportModal from '../dashboard/ICalImportModal';
 import { usePlanningNavigation } from './hooks/usePlanningNavigation';
 import { useInfiniteTimeline } from './hooks/useInfiniteTimeline';
 import { usePlanningData } from './hooks/usePlanningData';
@@ -18,8 +20,14 @@ import { usePlanningPagination } from './hooks/usePlanningPagination';
 import { usePlanningPricing } from './hooks/usePlanningPricing';
 import { usePropertyColWidth } from './hooks/usePropertyColWidth';
 import { ACTION_PANEL_WIDTH } from './constants';
+import type { PlanningEvent } from './types';
 
 const PlanningPage: React.FC = () => {
+  const queryClient = useQueryClient();
+
+  // iCal import modal
+  const [icalModalOpen, setIcalModalOpen] = useState(false);
+
   // Navigation (dates, zoom, density)
   const nav = usePlanningNavigation();
 
@@ -89,8 +97,54 @@ const PlanningPage: React.FC = () => {
     closeQuickCreate,
   } = usePlanningSelection(filteredEvents);
 
+  // Click on property name → open panel on "Logement" tab
+  // Priorite : reservation checked_in > confirmed > pending > any reservation > any event
+  const handlePropertyClick = useCallback((propertyId: number) => {
+    const propertyEvents = filteredEvents.filter((e) => e.propertyId === propertyId);
+    if (propertyEvents.length === 0) return;
+
+    const statusPriority: Record<string, number> = {
+      checked_in: 0,
+      confirmed: 1,
+      pending: 2,
+    };
+
+    // Prefer reservations, sorted by status priority
+    const reservations = propertyEvents
+      .filter((e) => e.type === 'reservation')
+      .sort((a, b) => {
+        const pa = statusPriority[a.status] ?? 99;
+        const pb = statusPriority[b.status] ?? 99;
+        return pa - pb;
+      });
+
+    const event = reservations.length > 0 ? reservations[0] : propertyEvents[0];
+    selectEvent(event);
+    // Switch to property tab after selection (selectEvent defaults to 'info')
+    setTimeout(() => setPanelTab('property'), 0);
+  }, [filteredEvents, selectEvent, setPanelTab]);
+
+  // Handle event click: SR blocks redirect to linked reservation's Paiement tab
+  const handleEventClick = useCallback((event: PlanningEvent) => {
+    if (event.isAwaitingPayment && event.serviceRequest?.reservationId) {
+      const resEvent = filteredEvents.find(
+        (e) => e.type === 'reservation' && e.reservation?.id === event.serviceRequest!.reservationId,
+      );
+      if (resEvent) {
+        selectEvent(resEvent);
+        setTimeout(() => setPanelTab('financial'), 0);
+        return;
+      }
+    }
+    selectEvent(event);
+  }, [filteredEvents, selectEvent, setPanelTab]);
+
   // Reservation update (dates & times from panel, with validation)
-  const { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation } = useReservationUpdate(filteredEvents, interventions);
+  const { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation, hideReservation, updateGuestInfo } = useReservationUpdate(filteredEvents, interventions);
+
+  const handleHideEvent = useCallback((event: { reservation?: { id: number } }) => {
+    if (event.reservation) hideReservation(event.reservation.id);
+  }, [hideReservation]);
 
   // Intervention actions (create, assign, priority, notes)
   const {
@@ -172,6 +226,39 @@ const PlanningPage: React.FC = () => {
     return { url: session.url, sessionId: session.sessionId };
   }, []);
 
+  const createEmbeddedSession = useCallback(async (interventionId: number, amount: number) => {
+    const { paymentsApi } = await import('../../services/api/paymentsApi');
+    const session = await paymentsApi.createEmbeddedSession({ interventionId, amount });
+    return { clientSecret: session.clientSecret || '', sessionId: session.sessionId };
+  }, []);
+
+  const handlePaymentComplete = useCallback(() => {
+    // Invalidate interventions + reservations queries so the UI refreshes with updated payment statuses
+    queryClient.invalidateQueries({ queryKey: ['planning-page'] });
+  }, [queryClient]);
+
+  const sendPaymentLink = useCallback(async (reservationId: number, email?: string) => {
+    const { reservationsApi } = await import('../../services/api');
+    await reservationsApi.sendPaymentLink(reservationId, email);
+  }, []);
+
+  const generateInvoice = useCallback(async (data: {
+    documentType: string;
+    referenceId: number;
+    referenceType: string;
+    emailTo?: string;
+    sendEmail: boolean;
+  }) => {
+    const { documentsApi } = await import('../../services/api/documentsApi');
+    const result = await documentsApi.generateDocument(data);
+    return {
+      id: result.id,
+      fileName: result.fileName,
+      status: result.status,
+      legalNumber: result.legalNumber ?? null,
+    };
+  }, []);
+
   // Drag & drop
   const drag = usePlanningDrag({
     events: filteredEvents,
@@ -196,12 +283,23 @@ const PlanningPage: React.FC = () => {
     }
   }, [loading, filteredProperties.length, timeline]);
 
+  // ── Auto-scroll: always position selected reservation at 3rd column ─────────
+  useEffect(() => {
+    if (!selectedEvent || !selection.panelOpen) return;
+
+    requestAnimationFrame(() => {
+      timeline.scrollToDate(new Date(selectedEvent.startDate));
+    });
+  }, [selectedEvent?.id, selection.panelOpen, timeline]);
+
   return (
     <Box
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        height: nav.isFullscreen ? '100vh' : 'calc(100vh - 64px)',
+        // Compenser le padding du MainLayoutFull <main> pour coller aux bords
+        m: { xs: -1.5, md: -2 },
+        height: nav.isFullscreen ? '100vh' : { xs: 'calc(100vh - 48px)', md: '100vh' },
         ...(nav.isFullscreen && {
           position: 'fixed',
           top: 0,
@@ -214,7 +312,7 @@ const PlanningPage: React.FC = () => {
       }}
     >
       {/* Toolbar */}
-      <Box sx={{ mb: 1, flexShrink: 0 }}>
+      <Box sx={{ flexShrink: 0, mb: 1 }}>
         <PlanningToolbar
           currentDate={nav.currentDate}
           zoom={nav.zoom}
@@ -233,6 +331,7 @@ const PlanningPage: React.FC = () => {
           onStatusFilter={setStatusFilter}
           onSearchChange={setSearchQuery}
           onClearFilters={clearFilters}
+          onImportICal={() => setIcalModalOpen(true)}
         />
       </Box>
 
@@ -266,7 +365,6 @@ const PlanningPage: React.FC = () => {
             minWidth: 0,
             overflow: 'hidden',
             px: 1.5,
-            pb: 1,
             display: 'flex',
             flexDirection: 'column',
           }}
@@ -282,18 +380,22 @@ const PlanningPage: React.FC = () => {
             selectedEventId={selection.selectedEventId}
             events={filteredEvents}
             drag={drag}
-            onEventClick={selectEvent}
+            onEventClick={handleEventClick}
+            onHideEvent={handleHideEvent}
             onEmptyClick={openQuickCreate}
+            quickCreateOpen={!!quickCreateData}
             scrollRef={timeline.scrollRef}
             onScroll={timeline.handleScroll}
             propertyColWidth={propertyColWidth}
             showPrices={filters.showPrices}
+            showInterventions={filters.showInterventions}
             pricingMap={pricingMap}
             pageSize={pagination.pageSize}
+            onPropertyClick={handlePropertyClick}
           />
 
-          {/* Pagination — pinned to bottom */}
-          <Box sx={{ flexShrink: 0, mt: 1 }}>
+          {/* Pagination — pinned to bottom, full width (compensate parent px) */}
+          <Box sx={{ flexShrink: 0, mt: 1, mx: -1.5 }}>
             <PlanningPaginationBar
               currentPage={pagination.currentPage}
               totalPages={pagination.totalPages}
@@ -321,8 +423,7 @@ const PlanningPage: React.FC = () => {
         onChangeProperty={changeProperty}
         onCancelReservation={cancelReservation}
         onUpdateNotes={updateNotes}
-        onCreateAutoCleaning={createAutoCleaning}
-        onCreateIntervention={createIntervention}
+        onUpdateGuestInfo={updateGuestInfo}
         onAssignIntervention={assignIntervention}
         onSetPriority={setPriority}
         onUpdateInterventionNotes={updateInterventionNotes}
@@ -333,6 +434,10 @@ const PlanningPage: React.FC = () => {
         onUploadPhotos={uploadPhotos}
         onUpdateInterventionProgress={updateInterventionProgress}
         onCreatePaymentSession={createPaymentSession}
+        onCreateEmbeddedSession={createEmbeddedSession}
+        onSendPaymentLink={sendPaymentLink}
+        onGenerateInvoice={generateInvoice}
+        onPaymentComplete={handlePaymentComplete}
         onDuplicateReservation={duplicateReservation}
       />
 
@@ -341,6 +446,13 @@ const PlanningPage: React.FC = () => {
         open={!!quickCreateData}
         data={quickCreateData}
         onClose={closeQuickCreate}
+        events={filteredEvents}
+      />
+
+      {/* iCal Import Modal */}
+      <ICalImportModal
+        open={icalModalOpen}
+        onClose={() => setIcalModalOpen(false)}
       />
     </Box>
   );

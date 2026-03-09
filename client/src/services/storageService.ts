@@ -14,6 +14,9 @@ export const STORAGE_KEYS = {
   // i18n
   LANGUAGE: 'i18nextLng',
 
+  // Currency
+  CURRENCY: 'clenzy_currency',
+
   // Planning mock mode
   PLANNING_MOCK: 'clenzy_planning_mock',
 
@@ -28,6 +31,10 @@ export const STORAGE_KEYS = {
 
   // Smart lock devices (configured locks)
   SMART_LOCK_DEVICES: 'clenzy_smart_lock_devices',
+
+  // Geolocation
+  GEO_COUNTRY: 'clenzy_geo_country',
+  GEO_APPLIED: 'clenzy_geo_applied',
 
   // Cross-tab sync
   TOKEN_UPDATE: 'clenzy_token_update',

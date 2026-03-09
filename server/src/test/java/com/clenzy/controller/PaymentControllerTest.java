@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.model.*;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.PaymentOrchestrationService;
 import com.clenzy.service.StripeService;
 import com.clenzy.tenant.TenantContext;
 import com.stripe.exception.StripeException;
@@ -30,7 +31,9 @@ import static org.mockito.Mockito.*;
 class PaymentControllerTest {
 
     @Mock private StripeService stripeService;
+    @Mock private PaymentOrchestrationService orchestrationService;
     @Mock private InterventionRepository interventionRepository;
+    @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
     @Mock private UserRepository userRepository;
     @Mock private TenantContext tenantContext;
 
@@ -39,7 +42,7 @@ class PaymentControllerTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new PaymentController(stripeService, interventionRepository, userRepository, tenantContext);
+        controller = new PaymentController(stripeService, orchestrationService, interventionRepository, reservationRepository, userRepository, tenantContext);
         Field field = PaymentController.class.getDeclaredField("stripeSecretKey");
         field.setAccessible(true);
         field.set(controller, "sk_test_xxx");
@@ -139,6 +142,10 @@ class PaymentControllerTest {
 
             Page<Intervention> page = new PageImpl<>(List.of());
             when(interventionRepository.findPaymentHistory(isNull(), isNull(), any(), eq(1L))).thenReturn(page);
+
+            // Also mock reservation payment history (added with reservation payment integration)
+            Page<com.clenzy.model.Reservation> resPage = new PageImpl<>(List.of());
+            when(reservationRepository.findPaymentHistory(isNull(), any(), eq(1L))).thenReturn(resPage);
 
             ResponseEntity<?> response = controller.getPaymentHistory(0, 10, null, null, jwt);
 

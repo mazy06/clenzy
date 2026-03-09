@@ -4,8 +4,13 @@ import com.clenzy.model.Intervention;
 import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.model.PaymentStatus;
+import com.clenzy.model.RequestStatus;
+import com.clenzy.model.Reservation;
+import com.clenzy.model.ServiceRequest;
 import com.clenzy.config.KafkaConfig;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Refund;
@@ -32,7 +37,10 @@ public class StripeService {
     private static final Logger log = LoggerFactory.getLogger(StripeService.class);
 
     private final InterventionRepository interventionRepository;
+    private final ReservationRepository reservationRepository;
+    private final ServiceRequestRepository serviceRequestRepository;
     private final NotificationService notificationService;
+    private final ServiceRequestService serviceRequestService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final TenantContext tenantContext;
 
@@ -48,9 +56,21 @@ public class StripeService {
     @Value("${stripe.cancel-url}")
     private String cancelUrl;
 
-    public StripeService(InterventionRepository interventionRepository, NotificationService notificationService, KafkaTemplate<String, Object> kafkaTemplate, TenantContext tenantContext) {
+    @Value("${stripe.embedded-return-url:#{null}}")
+    private String embeddedReturnUrl;
+
+    public StripeService(InterventionRepository interventionRepository,
+                         ReservationRepository reservationRepository,
+                         ServiceRequestRepository serviceRequestRepository,
+                         NotificationService notificationService,
+                         ServiceRequestService serviceRequestService,
+                         KafkaTemplate<String, Object> kafkaTemplate,
+                         TenantContext tenantContext) {
         this.interventionRepository = interventionRepository;
+        this.reservationRepository = reservationRepository;
+        this.serviceRequestRepository = serviceRequestRepository;
         this.notificationService = notificationService;
+        this.serviceRequestService = serviceRequestService;
         this.kafkaTemplate = kafkaTemplate;
         this.tenantContext = tenantContext;
     }
@@ -107,12 +127,107 @@ public class StripeService {
         
         return session;
     }
-    
+
+    /**
+     * Cree une session de paiement Stripe en mode EMBEDDED (inline dans l'interface).
+     * Retourne une session avec un clientSecret utilisable cote frontend
+     * via EmbeddedCheckoutProvider de @stripe/react-stripe-js.
+     */
+    @CircuitBreaker(name = "stripe-api")
+    public Session createEmbeddedCheckoutSession(Long interventionId, BigDecimal amount, String customerEmail) throws StripeException {
+        Stripe.apiKey = stripeSecretKey;
+
+        Intervention intervention = interventionRepository.findById(interventionId)
+            .orElseThrow(() -> new RuntimeException("Intervention non trouvee: " + interventionId));
+
+        long amountInCents = amount.multiply(BigDecimal.valueOf(100)).longValue();
+
+        SessionCreateParams params = SessionCreateParams.builder()
+            .setMode(SessionCreateParams.Mode.PAYMENT)
+            .setUiMode(SessionCreateParams.UiMode.EMBEDDED)
+            // Never redirect — onComplete callback in the embedded modal handles confirmation
+            .setRedirectOnCompletion(SessionCreateParams.RedirectOnCompletion.NEVER)
+            // Only card payments — no iDEAL/Klarna/Bancontact that open external tabs
+            .addPaymentMethodType(SessionCreateParams.PaymentMethodType.CARD)
+            .addLineItem(
+                SessionCreateParams.LineItem.builder()
+                    .setQuantity(1L)
+                    .setPriceData(
+                        SessionCreateParams.LineItem.PriceData.builder()
+                            .setCurrency(currency.toLowerCase())
+                            .setUnitAmount(amountInCents)
+                            .setProductData(
+                                SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                    .setName("Intervention: " + intervention.getTitle())
+                                    .setDescription(intervention.getDescription() != null ?
+                                        intervention.getDescription() : "Paiement pour l'intervention")
+                                    .build()
+                            )
+                            .build()
+                    )
+                    .build()
+            )
+            .setCustomerEmail(customerEmail)
+            .putMetadata("intervention_id", interventionId.toString())
+            .build();
+
+        Session session = Session.create(params);
+
+        intervention.setStripeSessionId(session.getId());
+        intervention.setPaymentStatus(PaymentStatus.PROCESSING);
+        interventionRepository.save(intervention);
+
+        return session;
+    }
+
+    /**
+     * Crée une session de paiement Stripe pour une réservation (envoi par email au guest).
+     * Ne modifie pas la réservation (c'est le controller qui le fait).
+     */
+    @CircuitBreaker(name = "stripe-api")
+    public Session createReservationCheckoutSession(Long reservationId, BigDecimal amount,
+                                                     String customerEmail, String guestName,
+                                                     String propertyName) throws StripeException {
+        Stripe.apiKey = stripeSecretKey;
+
+        long amountInCents = amount.multiply(BigDecimal.valueOf(100)).longValue();
+
+        SessionCreateParams params = SessionCreateParams.builder()
+            .setMode(SessionCreateParams.Mode.PAYMENT)
+            .setSuccessUrl(successUrl)
+            .setCancelUrl(cancelUrl)
+            .addLineItem(
+                SessionCreateParams.LineItem.builder()
+                    .setQuantity(1L)
+                    .setPriceData(
+                        SessionCreateParams.LineItem.PriceData.builder()
+                            .setCurrency(currency.toLowerCase())
+                            .setUnitAmount(amountInCents)
+                            .setProductData(
+                                SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                    .setName("Reservation: " + propertyName)
+                                    .setDescription("Paiement pour la reservation de "
+                                            + (guestName != null ? guestName : "guest"))
+                                    .build()
+                            )
+                            .build()
+                    )
+                    .build()
+            )
+            .setCustomerEmail(customerEmail)
+            .putMetadata("reservation_id", reservationId.toString())
+            .putMetadata("type", "reservation")
+            .build();
+
+        return Session.create(params);
+    }
+
     /**
      * Confirme le paiement d'une intervention après réception du webhook
      */
     public void confirmPayment(String sessionId) {
-        Intervention intervention = interventionRepository.findByStripeSessionId(sessionId, tenantContext.getRequiredOrganizationId())
+        // Use the no-orgId variant because this is called from the Stripe webhook (no tenant context)
+        Intervention intervention = interventionRepository.findByStripeSessionId(sessionId)
             .orElseThrow(() -> new RuntimeException("Intervention non trouvée pour la session: " + sessionId));
 
         intervention.setPaymentStatus(PaymentStatus.PAID);
@@ -189,7 +304,8 @@ public class StripeService {
      * Marque un paiement comme échoué
      */
     public void markPaymentAsFailed(String sessionId) {
-        Intervention intervention = interventionRepository.findByStripeSessionId(sessionId, tenantContext.getRequiredOrganizationId())
+        // Use the no-orgId variant because this is called from the Stripe webhook (no tenant context)
+        Intervention intervention = interventionRepository.findByStripeSessionId(sessionId)
             .orElse(null);
 
         if (intervention != null) {
@@ -217,6 +333,93 @@ public class StripeService {
                 );
             } catch (Exception e) {
                 log.warn("Erreur notification PAYMENT_FAILED: {}", e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Confirme le paiement d'une reservation apres reception du webhook Stripe.
+     * Appele depuis le webhook (pas de tenant context — recherche par stripeSessionId sans orgId).
+     */
+    public void confirmReservationPayment(String sessionId) {
+        Reservation reservation = reservationRepository.findByStripeSessionId(sessionId)
+            .orElseThrow(() -> new RuntimeException("Reservation non trouvee pour la session: " + sessionId));
+
+        reservation.setPaymentStatus(PaymentStatus.PAID);
+        reservation.setPaidAt(LocalDateTime.now());
+        reservationRepository.save(reservation);
+
+        log.info("Paiement de reservation confirme: reservationId={}, sessionId={}", reservation.getId(), sessionId);
+
+        // Notifications
+        try {
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.PAYMENT_CONFIRMED,
+                "Paiement reservation confirme",
+                "Le paiement pour la reservation de " + (reservation.getGuestName() != null ? reservation.getGuestName() : "guest")
+                    + " (" + (reservation.getProperty() != null ? reservation.getProperty().getName() : "N/A") + ") a ete confirme",
+                "/reservations/" + reservation.getId()
+            );
+        } catch (Exception e) {
+            log.warn("Erreur notification PAYMENT_CONFIRMED (reservation): {}", e.getMessage());
+        }
+
+        // Generation automatique FACTURE + JUSTIFICATIF_PAIEMENT
+        try {
+            String emailTo = "";
+            if (reservation.getPaymentLinkEmail() != null) {
+                emailTo = reservation.getPaymentLinkEmail();
+            }
+
+            kafkaTemplate.send(
+                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
+                "facture-resa-" + reservation.getId(),
+                Map.of(
+                    "documentType", "FACTURE",
+                    "referenceId", reservation.getId(),
+                    "referenceType", "reservation",
+                    "emailTo", emailTo
+                )
+            );
+
+            kafkaTemplate.send(
+                KafkaConfig.TOPIC_DOCUMENT_GENERATE,
+                "justif-paiement-resa-" + reservation.getId(),
+                Map.of(
+                    "documentType", "JUSTIFICATIF_PAIEMENT",
+                    "referenceId", reservation.getId(),
+                    "referenceType", "reservation",
+                    "emailTo", emailTo
+                )
+            );
+            log.debug("Evenements FACTURE + JUSTIFICATIF_PAIEMENT publies sur Kafka pour la reservation: {}", reservation.getId());
+        } catch (Exception e) {
+            log.error("Erreur publication Kafka FACTURE/JUSTIFICATIF_PAIEMENT (reservation): {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Marque le paiement d'une reservation comme echoue.
+     */
+    public void markReservationPaymentFailed(String sessionId) {
+        Reservation reservation = reservationRepository.findByStripeSessionId(sessionId)
+            .orElse(null);
+
+        if (reservation != null) {
+            reservation.setPaymentStatus(PaymentStatus.FAILED);
+            reservationRepository.save(reservation);
+            log.warn("Paiement de reservation echoue: reservationId={}, sessionId={}", reservation.getId(), sessionId);
+
+            try {
+                notificationService.notifyAdminsAndManagers(
+                    NotificationKey.PAYMENT_FAILED,
+                    "Echec paiement reservation",
+                    "Le paiement pour la reservation de " + (reservation.getGuestName() != null ? reservation.getGuestName() : "guest")
+                        + " (" + (reservation.getProperty() != null ? reservation.getProperty().getName() : "N/A") + ") a echoue",
+                    "/reservations/" + reservation.getId()
+                );
+            } catch (Exception e) {
+                log.warn("Erreur notification PAYMENT_FAILED (reservation): {}", e.getMessage());
             }
         }
     }
@@ -372,6 +575,228 @@ public class StripeService {
             log.debug("Evenement JUSTIFICATIF_REMBOURSEMENT publie sur Kafka pour l'intervention: {}", intervention.getId());
         } catch (Exception e) {
             log.error("Erreur publication Kafka JUSTIFICATIF_REMBOURSEMENT: {}", e.getMessage());
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Service Request payment (nouveau workflow)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Cree une session de paiement Stripe pour une demande de service assignee.
+     * Le demandeur paie le montant estimatedCost de la SR.
+     */
+    @CircuitBreaker(name = "stripe-api")
+    public Session createServiceRequestCheckoutSession(Long serviceRequestId, String customerEmail) throws StripeException {
+        Stripe.apiKey = stripeSecretKey;
+
+        ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
+            .orElseThrow(() -> new RuntimeException("Demande de service non trouvee: " + serviceRequestId));
+
+        // La SR doit etre en AWAITING_PAYMENT (assignee, en attente de paiement)
+        if (sr.getStatus() != RequestStatus.AWAITING_PAYMENT) {
+            throw new RuntimeException("La demande de service doit etre en statut AWAITING_PAYMENT pour proceder au paiement. Statut actuel: " + sr.getStatus());
+        }
+
+        BigDecimal amount = sr.getEstimatedCost();
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Montant invalide pour la demande de service: " + amount);
+        }
+
+        long amountInCents = amount.multiply(BigDecimal.valueOf(100)).longValue();
+
+        SessionCreateParams params = SessionCreateParams.builder()
+            .setMode(SessionCreateParams.Mode.PAYMENT)
+            .setSuccessUrl(successUrl)
+            .setCancelUrl(cancelUrl)
+            .addLineItem(
+                SessionCreateParams.LineItem.builder()
+                    .setQuantity(1L)
+                    .setPriceData(
+                        SessionCreateParams.LineItem.PriceData.builder()
+                            .setCurrency(currency.toLowerCase())
+                            .setUnitAmount(amountInCents)
+                            .setProductData(
+                                SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                    .setName("Demande de service: " + sr.getTitle())
+                                    .setDescription(sr.getDescription() != null ?
+                                        sr.getDescription() : "Paiement pour la demande de service")
+                                    .build()
+                            )
+                            .build()
+                    )
+                    .build()
+            )
+            .setCustomerEmail(customerEmail)
+            .putMetadata("type", "service_request")
+            .putMetadata("service_request_id", serviceRequestId.toString())
+            .build();
+
+        Session session = Session.create(params);
+
+        sr.setStripeSessionId(session.getId());
+        sr.setPaymentStatus(PaymentStatus.PROCESSING);
+        try {
+            sr.setStatus(RequestStatus.AWAITING_PAYMENT);
+            serviceRequestRepository.save(sr);
+        } catch (Exception e) {
+            // Fallback: si la CHECK constraint ne contient pas encore AWAITING_PAYMENT (V97 pas appliquee),
+            // on garde le statut actuel mais on sauvegarde quand meme le sessionId et paymentStatus
+            log.warn("Could not set AWAITING_PAYMENT for SR {} (V97 not applied?): {} — saving with current status",
+                    serviceRequestId, e.getMessage());
+            sr.setStatus(RequestStatus.PENDING);
+            serviceRequestRepository.save(sr);
+        }
+
+        log.info("Stripe checkout session created for SR {}: sessionId={}", serviceRequestId, session.getId());
+
+        return session;
+    }
+
+    /**
+     * Cree une session de paiement Stripe en mode EMBEDDED pour une demande de service.
+     * Identique a createEmbeddedCheckoutSession mais pour les ServiceRequest.
+     * Retourne une session avec clientSecret pour EmbeddedCheckout cote frontend.
+     */
+    @CircuitBreaker(name = "stripe-api")
+    public Session createServiceRequestEmbeddedCheckoutSession(Long serviceRequestId, String customerEmail) throws StripeException {
+        Stripe.apiKey = stripeSecretKey;
+
+        ServiceRequest sr = serviceRequestRepository.findById(serviceRequestId)
+            .orElseThrow(() -> new RuntimeException("Demande de service non trouvee: " + serviceRequestId));
+
+        BigDecimal amount = sr.getEstimatedCost();
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Montant invalide pour la demande de service: " + amount);
+        }
+
+        long amountInCents = amount.multiply(BigDecimal.valueOf(100)).longValue();
+
+        SessionCreateParams params = SessionCreateParams.builder()
+            .setMode(SessionCreateParams.Mode.PAYMENT)
+            .setUiMode(SessionCreateParams.UiMode.EMBEDDED)
+            .setRedirectOnCompletion(SessionCreateParams.RedirectOnCompletion.NEVER)
+            .addPaymentMethodType(SessionCreateParams.PaymentMethodType.CARD)
+            .addLineItem(
+                SessionCreateParams.LineItem.builder()
+                    .setQuantity(1L)
+                    .setPriceData(
+                        SessionCreateParams.LineItem.PriceData.builder()
+                            .setCurrency(currency.toLowerCase())
+                            .setUnitAmount(amountInCents)
+                            .setProductData(
+                                SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                    .setName("Demande de service: " + sr.getTitle())
+                                    .setDescription(sr.getDescription() != null ?
+                                        sr.getDescription() : "Paiement pour la demande de service")
+                                    .build()
+                            )
+                            .build()
+                    )
+                    .build()
+            )
+            .setCustomerEmail(customerEmail)
+            .putMetadata("type", "service_request")
+            .putMetadata("service_request_id", serviceRequestId.toString())
+            .build();
+
+        Session session = Session.create(params);
+
+        sr.setStripeSessionId(session.getId());
+        sr.setPaymentStatus(PaymentStatus.PROCESSING);
+        try {
+            sr.setStatus(RequestStatus.AWAITING_PAYMENT);
+            serviceRequestRepository.save(sr);
+        } catch (Exception e) {
+            log.warn("Could not set AWAITING_PAYMENT for SR {} (embedded): {} — saving with current status",
+                    serviceRequestId, e.getMessage());
+            sr.setStatus(RequestStatus.PENDING);
+            serviceRequestRepository.save(sr);
+        }
+
+        log.info("Stripe embedded session created for SR {}: sessionId={}", serviceRequestId, session.getId());
+
+        return session;
+    }
+
+    /**
+     * Confirme le paiement d'une demande de service apres reception du webhook Stripe.
+     * Met a jour la SR en PAID/IN_PROGRESS et cree automatiquement l'intervention.
+     */
+    public void confirmServiceRequestPayment(String sessionId) {
+        ServiceRequest sr = serviceRequestRepository.findByStripeSessionId(sessionId)
+            .orElseThrow(() -> new RuntimeException("Demande de service non trouvee pour la session: " + sessionId));
+
+        sr.setPaymentStatus(PaymentStatus.PAID);
+        sr.setPaidAt(LocalDateTime.now());
+        sr.setStatus(RequestStatus.IN_PROGRESS);
+        serviceRequestRepository.save(sr);
+
+        log.info("Paiement SR confirme: srId={}, sessionId={}", sr.getId(), sessionId);
+
+        // Creer l'intervention automatiquement
+        try {
+            serviceRequestService.createInterventionFromPaidServiceRequest(sr);
+        } catch (Exception e) {
+            log.error("Erreur creation intervention apres paiement SR {}: {}", sr.getId(), e.getMessage(), e);
+        }
+
+        // Notifications
+        try {
+            if (sr.getUser() != null && sr.getUser().getKeycloakId() != null) {
+                notificationService.notify(
+                    sr.getUser().getKeycloakId(),
+                    NotificationKey.PAYMENT_CONFIRMED,
+                    "Paiement confirme",
+                    "Le paiement pour votre demande \"" + sr.getTitle() + "\" a ete confirme. L'intervention sera creee automatiquement.",
+                    "/service-requests/" + sr.getId()
+                );
+            }
+            notificationService.notifyAdminsAndManagers(
+                NotificationKey.PAYMENT_CONFIRMED,
+                "Paiement SR confirme",
+                "Le paiement pour la demande \"" + sr.getTitle() + "\" a ete confirme. Intervention creee.",
+                "/service-requests/" + sr.getId()
+            );
+        } catch (Exception e) {
+            log.warn("Erreur notification PAYMENT_CONFIRMED (SR): {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Marque le paiement d'une demande de service comme echoue.
+     */
+    public void markServiceRequestPaymentFailed(String sessionId) {
+        ServiceRequest sr = serviceRequestRepository.findByStripeSessionId(sessionId)
+            .orElse(null);
+
+        if (sr != null) {
+            sr.setPaymentStatus(PaymentStatus.FAILED);
+            // Revenir en AWAITING_PAYMENT pour que le demandeur puisse re-tenter le paiement
+            sr.setStatus(RequestStatus.AWAITING_PAYMENT);
+            serviceRequestRepository.save(sr);
+
+            log.warn("Paiement SR echoue: srId={}, sessionId={}", sr.getId(), sessionId);
+
+            try {
+                if (sr.getUser() != null && sr.getUser().getKeycloakId() != null) {
+                    notificationService.notify(
+                        sr.getUser().getKeycloakId(),
+                        NotificationKey.PAYMENT_FAILED,
+                        "Echec du paiement",
+                        "Le paiement pour votre demande \"" + sr.getTitle() + "\" a echoue. Vous pouvez reessayer.",
+                        "/service-requests/" + sr.getId()
+                    );
+                }
+                notificationService.notifyAdminsAndManagers(
+                    NotificationKey.PAYMENT_FAILED,
+                    "Echec paiement SR",
+                    "Le paiement pour la demande \"" + sr.getTitle() + "\" a echoue",
+                    "/service-requests/" + sr.getId()
+                );
+            } catch (Exception e) {
+                log.warn("Erreur notification PAYMENT_FAILED (SR): {}", e.getMessage());
+            }
         }
     }
 }

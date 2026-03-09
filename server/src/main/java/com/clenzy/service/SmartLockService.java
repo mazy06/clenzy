@@ -13,6 +13,7 @@ import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -79,9 +80,13 @@ public class SmartLockService {
 
     /**
      * Supprime une serrure.
+     * Utilise findById (et non findByIdAndUserId) car getUserDevices() retourne
+     * toutes les serrures ACTIVE de l'organisation sans filtrer par userId.
+     * L'isolation multi-tenant est assuree par le filtre Hibernate organizationFilter.
      */
+    @Transactional
     public void deleteDevice(String userId, Long deviceId) {
-        SmartLockDevice device = smartLockRepository.findByIdAndUserId(deviceId, userId)
+        SmartLockDevice device = smartLockRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Serrure introuvable: " + deviceId));
 
         smartLockRepository.delete(device);
@@ -98,7 +103,7 @@ public class SmartLockService {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> getLockStatus(String userId, Long deviceId) {
-        SmartLockDevice device = smartLockRepository.findByIdAndUserId(deviceId, userId)
+        SmartLockDevice device = smartLockRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Serrure introuvable: " + deviceId));
 
         if (device.getExternalDeviceId() == null || device.getExternalDeviceId().isEmpty()) {
@@ -169,7 +174,7 @@ public class SmartLockService {
      * Envoie une commande verrouillage/deverrouillage via Tuya.
      */
     public void sendLockCommand(String userId, Long deviceId, boolean lock) {
-        SmartLockDevice device = smartLockRepository.findByIdAndUserId(deviceId, userId)
+        SmartLockDevice device = smartLockRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Serrure introuvable: " + deviceId));
 
         if (device.getExternalDeviceId() == null || device.getExternalDeviceId().isEmpty()) {

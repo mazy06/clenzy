@@ -20,7 +20,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatRelativeDate } from '../../utils/formatUtils';
-import { getInterventionStatusColor } from '../../utils/statusUtils';
+import { getInterventionStatusHex, getInterventionPriorityHex } from '../../utils/statusUtils';
 import type { UpcomingIntervention } from '../../hooks/useDashboardOverview';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -146,22 +146,20 @@ const UpcomingInterventions: React.FC<UpcomingInterventionsProps> = React.memo((
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', gap: 0.375, flexShrink: 0, alignItems: 'center' }}>
-                    <Chip
-                      label={intervention.status}
-                      size="small"
-                      variant="outlined"
-                      sx={CHIP_SX}
-                      color={getInterventionStatusColor(intervention.status)}
-                    />
-                    {intervention.priority === 'URGENT' && (
+                    {(() => { const c = getInterventionStatusHex(intervention.status); return (
+                      <Chip
+                        label={intervention.status}
+                        size="small"
+                        sx={{ ...CHIP_SX, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+                      />
+                    ); })()}
+                    {intervention.priority === 'URGENT' && (() => { const c = getInterventionPriorityHex(intervention.priority); return (
                       <Chip
                         label={intervention.priority}
                         size="small"
-                        variant="outlined"
-                        sx={CHIP_SX}
-                        color="error"
+                        sx={{ ...CHIP_SX, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
                       />
-                    )}
+                    ); })()}
                   </Box>
                 </Box>
               </ListItem>

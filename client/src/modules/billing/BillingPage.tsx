@@ -8,6 +8,7 @@ import {
 import {
   Payment,
   Receipt,
+  AccountBalanceWallet,
 } from '@mui/icons-material';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -15,40 +16,63 @@ import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
 import PaymentHistoryPage from '../payments/PaymentHistoryPage';
 import InvoicesList from '../invoices/InvoicesList';
+import WalletDashboard from '../finance/WalletDashboard';
 
-// ─── Tab indices ────────────────────────────────────────────────────────────
+// ─── Tab indices (logical, stable) ──────────────────────────────────────────
 
 const TAB_PAYMENTS = 0;
 const TAB_INVOICES = 1;
+const TAB_WALLETS = 2;
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const BillingPage: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, hasAnyRole } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const canViewInvoices = user?.permissions?.includes('reports:view') ?? false;
+  const canViewWallets = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
 
-  const initialTab = parseInt(searchParams.get('tab') || '0', 10);
-  const maxTab = canViewInvoices ? TAB_INVOICES : TAB_PAYMENTS;
-  const [activeTab, setActiveTab] = useState(
-    isNaN(initialTab) ? 0 : Math.min(initialTab, maxTab)
+  // Build visible tabs dynamically (order preserved)
+  const visibleTabs: { index: number; key: string }[] = [
+    { index: TAB_PAYMENTS, key: 'payments' },
+  ];
+  if (canViewInvoices) visibleTabs.push({ index: TAB_INVOICES, key: 'invoices' });
+  if (canViewWallets) visibleTabs.push({ index: TAB_WALLETS, key: 'wallets' });
+
+  // Map URL ?tab=<logicalIndex> → visible position
+  const getInitialPos = () => {
+    const tabParam = searchParams.get('tab');
+    if (!tabParam) return 0;
+    const parsed = parseInt(tabParam, 10);
+    if (isNaN(parsed)) return 0;
+    const pos = visibleTabs.findIndex((vt) => vt.index === parsed);
+    return pos >= 0 ? pos : 0;
+  };
+
+  const [activePos, setActivePos] = useState(getInitialPos);
+  const activeLogicalIndex = visibleTabs[activePos]?.index ?? TAB_PAYMENTS;
+
+  const handleTabChange = useCallback(
+    (_: React.SyntheticEvent, newPos: number) => {
+      setActivePos(newPos);
+      const logicalIndex = visibleTabs[newPos]?.index ?? 0;
+      setSearchParams(logicalIndex === 0 ? {} : { tab: String(logicalIndex) }, { replace: true });
+    },
+    [setSearchParams, visibleTabs],
   );
-
-  // Sync tab to URL param
-  const handleTabChange = useCallback((_: React.SyntheticEvent, v: number) => {
-    setActiveTab(v);
-    setSearchParams(v === 0 ? {} : { tab: String(v) }, { replace: true });
-  }, [setSearchParams]);
 
   // Handle URL param changes (browser back/forward)
   useEffect(() => {
     const tabParam = searchParams.get('tab');
     if (tabParam) {
       const parsed = parseInt(tabParam, 10);
-      if (!isNaN(parsed) && parsed >= 0 && parsed <= maxTab && parsed !== activeTab) {
-        setActiveTab(parsed);
+      if (!isNaN(parsed)) {
+        const pos = visibleTabs.findIndex((vt) => vt.index === parsed);
+        if (pos >= 0 && pos !== activePos) {
+          setActivePos(pos);
+        }
       }
     }
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -64,7 +88,7 @@ const BillingPage: React.FC = () => {
       <Paper sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
           <Tabs
-            value={activeTab}
+            value={activePos}
             onChange={handleTabChange}
             sx={{
               flex: 1,
@@ -85,13 +109,21 @@ const BillingPage: React.FC = () => {
                 label={t('billing.tabs.invoices')}
               />
             )}
+            {canViewWallets && (
+              <Tab
+                icon={<AccountBalanceWallet sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label={t('navigation.wallets')}
+              />
+            )}
           </Tabs>
         </Box>
       </Paper>
 
       {/* ── Tab content ── */}
-      {activeTab === TAB_PAYMENTS && <PaymentHistoryPage embedded />}
-      {activeTab === TAB_INVOICES && canViewInvoices && <InvoicesList embedded />}
+      {activeLogicalIndex === TAB_PAYMENTS && <PaymentHistoryPage embedded />}
+      {activeLogicalIndex === TAB_INVOICES && canViewInvoices && <InvoicesList embedded />}
+      {activeLogicalIndex === TAB_WALLETS && canViewWallets && <WalletDashboard embedded />}
     </Box>
   );
 };

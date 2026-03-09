@@ -66,7 +66,8 @@ export const INTERVENTION_STATUS_OPTIONS: InterventionStatusOption[] = [
 // ============================================================================
 export enum RequestStatus {
   PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
+  ASSIGNED = 'ASSIGNED',
+  AWAITING_PAYMENT = 'AWAITING_PAYMENT',
   IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
@@ -88,10 +89,16 @@ export const REQUEST_STATUS_OPTIONS: RequestStatusOption[] = [
     icon: 'pending'
   },
   {
-    value: RequestStatus.APPROVED,
-    label: 'Approuvé',
-    color: 'info',
-    icon: 'thumb_up'
+    value: RequestStatus.ASSIGNED,
+    label: 'Assignée',
+    color: 'secondary',
+    icon: 'assignment_ind'
+  },
+  {
+    value: RequestStatus.AWAITING_PAYMENT,
+    label: 'Attente paiement',
+    color: 'warning',
+    icon: 'payment'
   },
   {
     value: RequestStatus.IN_PROGRESS,

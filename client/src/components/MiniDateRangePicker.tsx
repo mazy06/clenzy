@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Box, Typography, IconButton, Button, alpha } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -87,6 +87,17 @@ const MiniDateRangePicker: React.FC<MiniDateRangePickerProps> = ({
     }
     return new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   });
+
+  // Sync displayed month when startDate prop changes (e.g. set by parent after mount)
+  useEffect(() => {
+    if (startDate) {
+      const [y, m] = startDate.split('-').map(Number);
+      setViewMonth((prev) => {
+        if (prev.getFullYear() === y && prev.getMonth() === m - 1) return prev;
+        return new Date(y, m - 1, 1);
+      });
+    }
+  }, [startDate]);
 
   const [selectingField, setSelectingField] = useState<'start' | 'end'>('start');
 

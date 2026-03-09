@@ -81,6 +81,12 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
     return 'success.main';
   };
 
+  const getWorkloadHex = () => {
+    if (activeRatio > 80) return '#d32f2f';
+    if (activeRatio > 50) return '#ED6C02';
+    return '#4A9B8E';
+  };
+
   const getWorkloadLabel = () => {
     if (activeRatio > 80) return t('teams.workload.overloaded');
     if (activeRatio > 50) return t('teams.workload.busy');
@@ -145,9 +151,11 @@ const TeamWorkloadCard: React.FC<TeamWorkloadCardProps> = ({ teamId, teamName })
           <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 600 }}>
             {t('teams.workload.title')}
           </Typography>
-          <Box sx={{ px: 1.5, py: 0.5, borderRadius: 1, bgcolor: getWorkloadColor(), color: 'white' }}>
-            <Typography variant="caption" fontWeight={600}>{getWorkloadLabel()}</Typography>
-          </Box>
+          {(() => { const c = getWorkloadHex(); return (
+            <Box sx={{ px: 1.5, py: 0.5, borderRadius: '6px', backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40` }}>
+              <Typography variant="caption" fontWeight={600}>{getWorkloadLabel()}</Typography>
+            </Box>
+          ); })()}
         </Box>
 
         <Grid container spacing={2} sx={{ mb: 3 }}>

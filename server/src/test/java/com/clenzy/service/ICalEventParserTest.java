@@ -140,14 +140,15 @@ class ICalEventParserTest {
         }
 
         @Test
-        void whenSummaryIsBlank_thenNoGuestName() {
+        void whenSummaryIsBlank_thenEventIsFilteredOut() {
+            // Blank summary is treated as a blocked/non-reservation event
             String ical = buildIcal(
                     buildVEvent("uid-1", "", "20260301", "20260305")
             );
 
             List<ICalEventPreview> events = ICalEventParser.parseEvents(toStream(ical));
 
-            assertThat(events.get(0).getGuestName()).isNull();
+            assertThat(events).isEmpty();
         }
     }
 

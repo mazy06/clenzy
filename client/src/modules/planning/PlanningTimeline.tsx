@@ -24,13 +24,17 @@ interface PlanningTimelineProps {
   events: PlanningEvent[];
   drag: UsePlanningDragReturn;
   onEventClick: (event: PlanningEvent) => void;
+  onHideEvent?: (event: PlanningEvent) => void;
   onEmptyClick: (data: QuickCreateData) => void;
+  quickCreateOpen: boolean;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onScroll: () => void;
   propertyColWidth: number;
   showPrices: boolean;
+  showInterventions: boolean;
   pricingMap: PricingMap;
   pageSize?: number;
+  onPropertyClick?: (propertyId: number) => void;
 }
 
 const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
@@ -45,17 +49,25 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
   events,
   drag,
   onEventClick,
+  onHideEvent,
   onEmptyClick,
+  quickCreateOpen,
   scrollRef,
   onScroll,
   propertyColWidth,
   showPrices,
+  showInterventions,
   pricingMap,
   pageSize,
+  onPropertyClick,
 }) => {
   const config = ROW_CONFIG[density];
   const priceLineHeight = showPrices ? PRICE_LINE_HEIGHT[density] : 0;
-  const effectiveRowHeight = config.rowHeight + priceLineHeight;
+  // When interventions are hidden, shrink the row to only reservation bar + padding
+  const baseRowHeight = showInterventions
+    ? config.rowHeight
+    : config.interventionTop + 2; // reservation bar area + small bottom padding
+  const effectiveRowHeight = baseRowHeight + priceLineHeight;
   // Fill remaining space with empty rows
   const emptyRowCount = pageSize ? Math.max(0, pageSize - properties.length) : 0;
   const totalDisplayRows = properties.length + emptyRowCount;
@@ -128,6 +140,7 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                 colWidth={propertyColWidth}
                 effectiveRowHeight={effectiveRowHeight}
                 emptyRowCount={emptyRowCount}
+                onPropertyClick={onPropertyClick}
               />
 
               {/* Grid rows */}
@@ -156,10 +169,14 @@ const PlanningTimeline: React.FC<PlanningTimelineProps> = React.memo(({
                     isDragging={drag.state.isDragging}
                     dragState={drag.state}
                     onEventClick={onEventClick}
+                    onHideEvent={onHideEvent}
                     onEmptyClick={onEmptyClick}
+                    quickCreateOpen={quickCreateOpen}
                     showPrices={showPrices}
+                    showInterventions={showInterventions}
                     pricingMap={pricingMap}
                     effectiveRowHeight={effectiveRowHeight}
+                    allEvents={events}
                   />
                 ))}
 
