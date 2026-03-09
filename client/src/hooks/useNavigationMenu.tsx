@@ -5,7 +5,6 @@ import {
   Dashboard,
   Home,
   Build,
-  Assignment,
   People,
   Settings,
   Business,
@@ -19,12 +18,13 @@ import {
   Sync,
   Speed,
   EventNote,
-  TrendingUp,
   Hub,
   ChatBubbleOutline,
   Storage,
   Receipt,
   CalendarViewWeek,
+  PersonSearch,
+  Contacts,
 } from '@mui/icons-material';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -84,17 +84,9 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     group: 'main',
   },
   {
-    icon: <Assignment />,
-    path: '/service-requests',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR'],
-    permission: 'service-requests:view',
-    translationKey: 'navigation.serviceRequests',
-    group: 'main',
-  },
-  {
     icon: <Build />,
     path: '/interventions',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'TECHNICIAN', 'HOUSEKEEPER', 'SUPERVISOR', 'LAUNDRY', 'EXTERIOR_TECH'],
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST', 'SUPERVISOR', 'TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'],
     permission: 'interventions:view',
     translationKey: 'navigation.interventions',
     group: 'main',
@@ -107,29 +99,12 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.reservations',
     group: 'main',
   },
-  {
-    icon: <TrendingUp />,
-    path: '/dynamic-pricing',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
-    permission: 'pricing:view',
-    translationKey: 'navigation.dynamicPricing',
-    group: 'main',
-  },
   // ── Management ──
   {
-    icon: <People />,
-    path: '/teams',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'SUPERVISOR'],
-    permission: 'teams:view',
-    translationKey: 'navigation.teams',
-    group: 'management',
-  },
-  {
-    icon: <Business />,
-    path: '/portfolios',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
-    permission: 'portfolios:view',
-    translationKey: 'navigation.portfolios',
+    icon: <Contacts />,
+    path: '/directory',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'SUPERVISOR', 'HOST'],
+    translationKey: 'navigation.directory',
     group: 'management',
   },
   {
@@ -172,6 +147,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.billing',
     group: 'management',
   },
+  // Portefeuille fusionné dans Facturation (/billing?tab=2)
   {
     icon: <Hub />,
     path: '/channels',
@@ -181,15 +157,8 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     group: 'management',
   },
   // Messagerie fusionnee dans Documents — supprime de la sidebar
+  // Utilisateurs & Organisations fusionnes dans Annuaire (/directory)
   // ── Admin ──
-  {
-    icon: <People />,
-    path: '/users',
-    roles: ['SUPER_ADMIN'],
-    permission: 'users:manage',
-    translationKey: 'navigation.usersAndOrganizations',
-    group: 'admin',
-  },
   {
     icon: <Settings />,
     path: '/settings',
@@ -266,8 +235,22 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       }
 
       // Vérifications spéciales pour certains éléments
-      if (item.path === '/portfolios') {
-        return (user?.permissions?.includes('portfolios:view') || false) || isAdmin() || isManager();
+      // Interventions : accessible aussi avec service-requests:view (HOST qui n'a pas interventions:view)
+      if (item.path === '/interventions') {
+        return (user?.permissions?.includes('interventions:view')
+          || user?.permissions?.includes('service-requests:view')
+          || false);
+      }
+
+      // Annuaire : visible si l'utilisateur a au moins une des permissions
+      if (item.path === '/directory') {
+        return (
+          user?.permissions?.includes('teams:view')
+          || user?.permissions?.includes('portfolios:view')
+          || user?.permissions?.includes('guests:view')
+          || user?.permissions?.includes('users:manage')
+          || false
+        );
       }
 
       if (item.path === '/permissions-test') {

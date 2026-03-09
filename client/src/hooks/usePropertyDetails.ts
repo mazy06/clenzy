@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { propertiesApi, interventionsApi } from '../services/api';
+import { serviceRequestsApi } from '../services/api/serviceRequestsApi';
+import type { ServiceRequest } from '../services/api/serviceRequestsApi';
 import type { Property } from '../services/api/propertiesApi';
 import type { Intervention as ApiIntervention } from '../services/api/interventionsApi';
 import { extractApiList } from '../types';
@@ -50,6 +52,9 @@ export interface PropertyDetailsData {
   cleaningNotes?: string;
   createdAt?: string;
   updatedAt?: string;
+  // Geolocalisation
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface PropertyIntervention {
@@ -70,6 +75,7 @@ export const propertyDetailsKeys = {
   all: ['property-details'] as const,
   detail: (id: string) => [...propertyDetailsKeys.all, id] as const,
   interventions: (id: string) => [...propertyDetailsKeys.all, id, 'interventions'] as const,
+  serviceRequests: (id: string) => [...propertyDetailsKeys.all, id, 'service-requests'] as const,
 };
 
 // ============================================================================
@@ -117,6 +123,8 @@ function convertProperty(raw: Property): PropertyDetailsData {
     cleaningNotes: raw.cleaningNotes,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
+    latitude: raw.latitude,
+    longitude: raw.longitude,
   };
 }
 
@@ -139,6 +147,7 @@ function convertIntervention(raw: ApiIntervention): PropertyIntervention {
 export interface UsePropertyDetailsReturn {
   property: PropertyDetailsData | undefined;
   interventions: PropertyIntervention[];
+  serviceRequests: ServiceRequest[];
   isLoading: boolean;
   isError: boolean;
   error: string | null;
@@ -168,9 +177,21 @@ export function usePropertyDetails(id: string | undefined): UsePropertyDetailsRe
     staleTime: 60_000,
   });
 
+  // ─── Service requests query ─────────────────────────────────────────
+  const serviceRequestsQuery = useQuery({
+    queryKey: propertyDetailsKeys.serviceRequests(id ?? ''),
+    queryFn: async () => {
+      const data = await serviceRequestsApi.getAll({ propertyId: numericId! });
+      return extractApiList<ServiceRequest>(data as unknown);
+    },
+    enabled,
+    staleTime: 60_000,
+  });
+
   return {
     property: propertyQuery.data,
     interventions: interventionsQuery.data ?? [],
+    serviceRequests: serviceRequestsQuery.data ?? [],
     isLoading: propertyQuery.isLoading,
     isError: propertyQuery.isError,
     error: propertyQuery.error

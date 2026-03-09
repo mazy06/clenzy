@@ -45,4 +45,10 @@ public interface GuestRepository extends JpaRepository<Guest, Long> {
      */
     @Query("SELECT g FROM Guest g WHERE g.id = :id AND g.organizationId = :orgId")
     Optional<Guest> findByIdAndOrganizationId(@Param("id") Long id, @Param("orgId") Long orgId);
+
+    /**
+     * Tous les guests toutes organisations confondues (super admin).
+     */
+    @Query("SELECT g FROM Guest g ORDER BY g.lastName, g.firstName")
+    List<Guest> findAllOrderByLastName();
 }

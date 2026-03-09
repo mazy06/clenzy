@@ -185,18 +185,19 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
         {isAdmin ? (
           <>
             <Chip
-              icon={<Public sx={{ fontSize: 16 }} />}
+              icon={<Public sx={{ fontSize: 16, color: '#1976d2 !important' }} />}
               label={`${countryFlag} ${countryLabel} \u2014 ${standardName}`}
-              deleteIcon={<ExpandMore />}
+              deleteIcon={<ExpandMore sx={{ color: '#1976d2 !important' }} />}
               onDelete={(e) => setCountryMenuAnchor(e.currentTarget as HTMLElement)}
               onClick={(e) => setCountryMenuAnchor(e.currentTarget)}
-              variant="outlined"
-              color="primary"
               sx={{
+                backgroundColor: '#1976d218',
+                color: '#1976d2',
+                border: '1px solid #1976d240',
+                borderRadius: '6px',
                 fontWeight: 600,
-                borderWidth: 1.5,
                 cursor: 'pointer',
-                '&:hover': { bgcolor: 'primary.50' },
+                '&:hover': { backgroundColor: '#1976d225' },
               }}
             />
             <Menu
@@ -230,11 +231,15 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
           </>
         ) : (
           <Chip
-            icon={<Public sx={{ fontSize: 16 }} />}
+            icon={<Public sx={{ fontSize: 16, color: '#1976d2 !important' }} />}
             label={`${countryFlag} ${countryLabel} \u2014 ${standardName}`}
-            variant="outlined"
-            color="primary"
-            sx={{ fontWeight: 600, borderWidth: 1.5 }}
+            sx={{
+              backgroundColor: '#1976d218',
+              color: '#1976d2',
+              border: '1px solid #1976d240',
+              borderRadius: '6px',
+              fontWeight: 600,
+            }}
           />
         )}
       </Box>
@@ -294,9 +299,9 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
             <strong>Date :</strong> {formatDate(searchResult.createdAt)} &nbsp;|&nbsp;
             <strong>{t('documents.compliance.locked')} :</strong>{' '}
             {searchResult.locked ? (
-              <Chip icon={<Lock />} label={t('common.yes')} size="small" variant="outlined" color="warning" sx={{ borderWidth: 1.5 }} />
+              <Chip icon={<Lock sx={{ color: '#ED6C02 !important' }} />} label={t('common.yes')} size="small" sx={{ backgroundColor: '#ED6C0218', color: '#ED6C02', border: '1px solid #ED6C0240', borderRadius: '6px', fontWeight: 600, '& .MuiChip-label': { px: 1 } }} />
             ) : (
-              <Chip label={t('common.no')} size="small" variant="outlined" />
+              <Chip label={t('common.no')} size="small" sx={{ backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', fontWeight: 600, '& .MuiChip-label': { px: 1 } }} />
             )}
           </Typography>
         </Box>
@@ -338,17 +343,17 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                           <Typography variant="body2" fontWeight={500}>{tpl.name}</Typography>
                         </TableCell>
                         <TableCell>
-                          <Chip label={tpl.documentType} size="small" variant="outlined"
-                            sx={{ borderWidth: 1.5, borderColor: 'primary.main' }} />
+                          <Chip label={tpl.documentType} size="small"
+                            sx={{ backgroundColor: '#1976d218', color: '#1976d2', border: '1px solid #1976d240', borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }} />
                         </TableCell>
                         <TableCell>
+                          {(() => { const c = tpl.active ? '#4A9B8E' : '#757575'; return (
                           <Chip
                             label={tpl.active ? t('documents.compliance.active') : t('documents.compliance.inactive')}
                             size="small"
-                            variant="outlined"
-                            color={tpl.active ? 'success' : 'default'}
-                            sx={{ borderWidth: 1.5 }}
+                            sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }}
                           />
+                          ); })()}
                         </TableCell>
                         <TableCell>
                           {report ? (
@@ -357,14 +362,14 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                                 ? t('documents.compliance.allMentionsPresent')
                                 : `${t('documents.compliance.missingMentionsLabel')} : ${report.missingMentions.join(', ')}`
                             }>
+                              {(() => { const c = report.compliant ? '#4A9B8E' : '#d32f2f'; return (
                               <Chip
-                                icon={report.compliant ? <GppGood /> : <GppBad />}
+                                icon={report.compliant ? <GppGood sx={{ color: `${c} !important` }} /> : <GppBad sx={{ color: `${c} !important` }} />}
                                 label={report.compliant ? t('documents.compliance.compliant') : t('documents.compliance.nonCompliant')}
                                 size="small"
-                                variant="outlined"
-                                color={report.compliant ? 'success' : 'error'}
-                                sx={{ borderWidth: 1.5 }}
+                                sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }}
                               />
+                              ); })()}
                             </Tooltip>
                           ) : (
                             <Typography variant="caption" color="text.secondary">{t('documents.compliance.notChecked')}</Typography>

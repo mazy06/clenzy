@@ -35,6 +35,7 @@ const TEMPLATE_TYPES = [
   { value: 'CHECK_IN', label: 'Check-in' },
   { value: 'CHECK_OUT', label: 'Check-out' },
   { value: 'WELCOME', label: 'Bienvenue' },
+  { value: 'PAYMENT_LINK', label: 'Lien de paiement' },
   { value: 'CUSTOM', label: 'Personnalise' },
 ];
 

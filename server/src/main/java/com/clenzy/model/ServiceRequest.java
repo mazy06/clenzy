@@ -82,21 +82,6 @@ public class ServiceRequest {
     @Column(name = "is_urgent")
     private boolean urgent = false;
     
-    @Column(name = "requires_approval")
-    private boolean requiresApproval = false;
-    
-    @Column(name = "approved_by")
-    private String approvedBy;
-
-    @Column(name = "approved_at")
-    private LocalDateTime approvedAt;
-
-    @Column(name = "devis_accepted_by")
-    private String devisAcceptedBy;
-
-    @Column(name = "devis_accepted_at")
-    private LocalDateTime devisAcceptedAt;
-    
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -105,11 +90,14 @@ public class ServiceRequest {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
     
+    @Column(name = "reservation_id")
+    private Long reservationId;
+
     // Relations
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false)
     private Property property;
@@ -117,9 +105,20 @@ public class ServiceRequest {
     // Assignation de la demande de service
     @Column(name = "assigned_to_id")
     private Long assignedToId;
-    
+
     @Column(name = "assigned_to_type", length = 10)
     private String assignedToType; // 'user' or 'team'
+
+    // Paiement de la demande de service (nouveau workflow)
+    @Column(name = "payment_status", length = 20)
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus paymentStatus = PaymentStatus.PENDING;
+
+    @Column(name = "stripe_session_id")
+    private String stripeSessionId;
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
     
     @OneToMany(mappedBy = "serviceRequest", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Intervention> interventions = new HashSet<>();
@@ -270,46 +269,6 @@ public class ServiceRequest {
         this.urgent = urgent;
     }
     
-    public boolean isRequiresApproval() {
-        return requiresApproval;
-    }
-    
-    public void setRequiresApproval(boolean requiresApproval) {
-        this.requiresApproval = requiresApproval;
-    }
-    
-    public String getApprovedBy() {
-        return approvedBy;
-    }
-    
-    public void setApprovedBy(String approvedBy) {
-        this.approvedBy = approvedBy;
-    }
-    
-    public LocalDateTime getApprovedAt() {
-        return approvedAt;
-    }
-    
-    public void setApprovedAt(LocalDateTime approvedAt) {
-        this.approvedAt = approvedAt;
-    }
-
-    public String getDevisAcceptedBy() {
-        return devisAcceptedBy;
-    }
-
-    public void setDevisAcceptedBy(String devisAcceptedBy) {
-        this.devisAcceptedBy = devisAcceptedBy;
-    }
-
-    public LocalDateTime getDevisAcceptedAt() {
-        return devisAcceptedAt;
-    }
-
-    public void setDevisAcceptedAt(LocalDateTime devisAcceptedAt) {
-        this.devisAcceptedAt = devisAcceptedAt;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -385,6 +344,18 @@ public class ServiceRequest {
     public Long getOrganizationId() { return organizationId; }
     public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
 
+    public Long getReservationId() { return reservationId; }
+    public void setReservationId(Long reservationId) { this.reservationId = reservationId; }
+
+    public PaymentStatus getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public String getStripeSessionId() { return stripeSessionId; }
+    public void setStripeSessionId(String stripeSessionId) { this.stripeSessionId = stripeSessionId; }
+
+    public LocalDateTime getPaidAt() { return paidAt; }
+    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
+
     // Méthodes utilitaires
     public boolean isPending() {
         return RequestStatus.PENDING.equals(status);
@@ -404,14 +375,6 @@ public class ServiceRequest {
     
     public boolean isHighPriority() {
         return Priority.HIGH.equals(priority) || urgent;
-    }
-    
-    public boolean needsApproval() {
-        return requiresApproval && !RequestStatus.APPROVED.equals(status);
-    }
-    
-    public boolean canBeScheduled() {
-        return RequestStatus.APPROVED.equals(status) || !requiresApproval;
     }
     
     @Override

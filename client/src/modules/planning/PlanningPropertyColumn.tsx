@@ -10,6 +10,7 @@ interface PlanningPropertyColumnProps {
   colWidth: number;
   effectiveRowHeight: number;
   emptyRowCount?: number;
+  onPropertyClick?: (propertyId: number) => void;
 }
 
 const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo(({
@@ -19,6 +20,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
   colWidth,
   effectiveRowHeight,
   emptyRowCount = 0,
+  onPropertyClick,
 }) => {
   const theme = useTheme();
   const config = ROW_CONFIG[density];
@@ -40,6 +42,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
       {properties.map((property, idx) => (
         <Box
           key={property.id}
+          onClick={() => onPropertyClick?.(property.id)}
           sx={{
             height: effectiveRowHeight,
             display: 'flex',
@@ -48,12 +51,16 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             px: colWidth < 150 ? 1 : 1.5,
             borderBottom: '1px solid',
             borderColor: 'divider',
+            cursor: onPropertyClick ? 'pointer' : 'default',
             backgroundColor: selectedPropertyId === property.id
               ? theme.palette.mode === 'dark' ? 'rgba(107, 138, 154, 0.1)' : 'rgba(107, 138, 154, 0.05)'
               : idx % 2 === 0
                 ? 'transparent'
                 : theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)',
             transition: 'background-color 0.15s ease',
+            '&:hover': onPropertyClick ? {
+              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(107, 138, 154, 0.15)' : 'rgba(107, 138, 154, 0.08)',
+            } : {},
           }}
         >
           <Typography

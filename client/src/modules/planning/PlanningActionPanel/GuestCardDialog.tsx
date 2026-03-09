@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -8,6 +8,8 @@ import {
   Chip,
   IconButton,
   Divider,
+  CircularProgress,
+  TextField,
 } from '@mui/material';
 import {
   Close,
@@ -17,6 +19,8 @@ import {
   CalendarMonth,
   Home,
   AttachMoney,
+  Edit,
+  Check,
 } from '@mui/icons-material';
 import type { PlanningEvent } from '../types';
 import type { Reservation } from '../../../services/api';
@@ -28,9 +32,10 @@ interface GuestCardDialogProps {
   onClose: () => void;
   reservation: Reservation;
   allEvents: PlanningEvent[];
+  onUpdateGuestInfo?: (reservationId: number, updates: { guestName?: string; guestEmail?: string; guestPhone?: string }) => Promise<{ success: boolean; error: string | null }>;
 }
 
-const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reservation, allEvents }) => {
+const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reservation, allEvents, onUpdateGuestInfo }) => {
   // Find all reservations from the same guest (by name match)
   const guestReservations = useMemo(() => {
     const name = reservation.guestName.toLowerCase().trim();
@@ -55,6 +60,73 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
     .map((w) => w.charAt(0).toUpperCase())
     .slice(0, 2)
     .join('');
+
+  const isICalSource = reservation.source === 'airbnb' || reservation.source === 'booking' || reservation.source === 'other';
+  const hasNoPrice = !reservation.totalPrice || reservation.totalPrice === 0;
+
+  // ── Editable fields ──────────────────────────────────────────────────────
+  const [editingField, setEditingField] = useState<'name' | 'email' | 'phone' | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState<string | null>(null);
+  const editRef = useRef<HTMLInputElement>(null);
+
+  const startEdit = useCallback((field: 'name' | 'email' | 'phone') => {
+    if (!onUpdateGuestInfo) return;
+    const current =
+      field === 'name' ? reservation.guestName :
+      field === 'email' ? (reservation.guestEmail || '') :
+      (reservation.guestPhone || '');
+    setEditingField(field);
+    setEditValue(current);
+    setSaved(null);
+    setTimeout(() => editRef.current?.focus(), 0);
+  }, [onUpdateGuestInfo, reservation]);
+
+  const commitEdit = useCallback(async () => {
+    if (!editingField || !onUpdateGuestInfo) return;
+    const trimmed = editValue.trim();
+
+    // Validate name is not empty
+    if (editingField === 'name' && !trimmed) {
+      setEditingField(null);
+      return;
+    }
+
+    // Check if value actually changed
+    const original =
+      editingField === 'name' ? reservation.guestName :
+      editingField === 'email' ? (reservation.guestEmail || '') :
+      (reservation.guestPhone || '');
+
+    if (trimmed === original) {
+      setEditingField(null);
+      return;
+    }
+
+    const updates =
+      editingField === 'name' ? { guestName: trimmed } :
+      editingField === 'email' ? { guestEmail: trimmed } :
+      { guestPhone: trimmed };
+
+    setSaving(true);
+    const result = await onUpdateGuestInfo(reservation.id, updates);
+    setSaving(false);
+    if (result.success) {
+      setSaved(editingField);
+      setTimeout(() => setSaved(null), 2000);
+    }
+    setEditingField(null);
+  }, [editingField, editValue, onUpdateGuestInfo, reservation]);
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitEdit();
+    } else if (e.key === 'Escape') {
+      setEditingField(null);
+    }
+  };
 
   return (
     <Dialog
@@ -86,7 +158,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
       <DialogContent sx={{ pt: 1 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {/* Header — Avatar + Name + Contact */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
             <Box
               sx={{
                 width: 52,
@@ -100,29 +172,151 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                 fontSize: '1.125rem',
                 fontWeight: 700,
                 flexShrink: 0,
+                mt: 0.5,
               }}
             >
               {initials}
             </Box>
             <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography sx={{ fontSize: '1rem', fontWeight: 700 }}>
-                {reservation.guestName}
-              </Typography>
+              {/* Editable guest name */}
+              {editingField === 'name' ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <TextField
+                    inputRef={editRef}
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={handleEditKeyDown}
+                    onBlur={commitEdit}
+                    disabled={saving}
+                    size="small"
+                    fullWidth
+                    variant="standard"
+                    sx={{ '& input': { fontSize: '1rem', fontWeight: 700 } }}
+                  />
+                  {saving && <CircularProgress size={14} />}
+                </Box>
+              ) : (
+                <Box
+                  onClick={() => startEdit('name')}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    cursor: onUpdateGuestInfo ? 'pointer' : 'default',
+                    borderRadius: 0.5,
+                    px: 0.5,
+                    mx: -0.5,
+                    '&:hover': onUpdateGuestInfo ? {
+                      bgcolor: 'action.hover',
+                      '& .edit-hint': { opacity: 1 },
+                    } : {},
+                  }}
+                >
+                  <Typography sx={{ fontSize: '1rem', fontWeight: 700 }}>
+                    {reservation.guestName}
+                  </Typography>
+                  {onUpdateGuestInfo && (
+                    <Edit className="edit-hint" sx={{ fontSize: 14, color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }} />
+                  )}
+                  {saved === 'name' && <Check sx={{ fontSize: 14, color: 'success.main' }} />}
+                </Box>
+              )}
+
+              {/* Editable contact info */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25, mt: 0.5 }}>
-                {reservation.guestEmail && (
+                {/* Email — editable */}
+                {editingField === 'email' ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <Email sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
-                    <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                      {reservation.guestEmail}
+                    <TextField
+                      inputRef={editRef}
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={handleEditKeyDown}
+                      onBlur={commitEdit}
+                      disabled={saving}
+                      size="small"
+                      fullWidth
+                      variant="standard"
+                      placeholder="email@exemple.com"
+                      sx={{ '& input': { fontSize: '0.75rem' } }}
+                    />
+                    {saving && <CircularProgress size={12} />}
+                  </Box>
+                ) : (
+                  <Box
+                    onClick={() => startEdit('email')}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      cursor: onUpdateGuestInfo ? 'pointer' : 'default',
+                      borderRadius: 0.5,
+                      px: 0.5,
+                      mx: -0.5,
+                      py: 0.25,
+                      '&:hover': onUpdateGuestInfo ? {
+                        bgcolor: 'action.hover',
+                        '& .edit-hint': { opacity: 1 },
+                      } : {},
+                    }}
+                  >
+                    <Email sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
+                    <Typography sx={{ fontSize: '0.75rem', color: reservation.guestEmail ? 'text.secondary' : 'text.disabled', fontStyle: reservation.guestEmail ? 'normal' : 'italic' }}>
+                      {reservation.guestEmail || 'Ajouter un email'}
                     </Typography>
+                    {onUpdateGuestInfo && (
+                      <Edit className="edit-hint" sx={{ fontSize: 12, color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }} />
+                    )}
+                    {saved === 'email' && <Check sx={{ fontSize: 12, color: 'success.main' }} />}
                   </Box>
                 )}
-                {reservation.guestPhone && (
+
+                {/* Phone — editable */}
+                {editingField === 'phone' ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <Phone sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
-                    <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                      {reservation.guestPhone}
+                    <TextField
+                      inputRef={editRef}
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={handleEditKeyDown}
+                      onBlur={commitEdit}
+                      disabled={saving}
+                      size="small"
+                      fullWidth
+                      variant="standard"
+                      placeholder="+33 6 12 34 56 78"
+                      sx={{ '& input': { fontSize: '0.75rem' } }}
+                    />
+                    {saving && <CircularProgress size={12} />}
+                  </Box>
+                ) : (
+                  <Box
+                    onClick={() => startEdit('phone')}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      cursor: onUpdateGuestInfo ? 'pointer' : 'default',
+                      borderRadius: 0.5,
+                      px: 0.5,
+                      mx: -0.5,
+                      py: 0.25,
+                      '&:hover': onUpdateGuestInfo ? {
+                        bgcolor: 'action.hover',
+                        '& .edit-hint': { opacity: 1 },
+                      } : {},
+                    }}
+                  >
+                    <Phone sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
+                    <Typography sx={{ fontSize: '0.75rem', color: reservation.guestPhone ? 'text.secondary' : 'text.disabled', fontStyle: reservation.guestPhone ? 'normal' : 'italic' }}>
+                      {reservation.guestPhone || 'Ajouter un telephone'}
                     </Typography>
+                    {onUpdateGuestInfo && (
+                      <Edit className="edit-hint" sx={{ fontSize: 12, color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }} />
+                    )}
+                    {saved === 'phone' && <Check sx={{ fontSize: 12, color: 'success.main' }} />}
                   </Box>
                 )}
               </Box>
@@ -134,7 +328,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
             <StatBox label="Sejours" value={String(guestReservations.length)} />
             <StatBox
               label="Total depense"
-              value={`${totalSpent.toFixed(0)} €`}
+              value={totalSpent > 0 ? `${totalSpent.toFixed(0)} €` : (isICalSource ? '—' : '0 €')}
             />
             <StatBox
               label="Source"
@@ -198,9 +392,15 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
                     <AttachMoney sx={{ fontSize: 14, color: 'text.secondary' }} />
-                    <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }}>
-                      {reservation.totalPrice?.toFixed(2)} €
-                    </Typography>
+                    {hasNoPrice && isICalSource ? (
+                      <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontStyle: 'italic' }}>
+                        Non communiqué
+                      </Typography>
+                    ) : (
+                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }}>
+                        {reservation.totalPrice?.toFixed(2)} €
+                      </Typography>
+                    )}
                   </Box>
                   <Chip
                     label={

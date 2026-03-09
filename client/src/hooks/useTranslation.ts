@@ -4,9 +4,12 @@ import storageService, { STORAGE_KEYS } from '../services/storageService';
 export const useTranslation = () => {
   const { t, i18n } = useI18nTranslation();
 
-  const changeLanguage = (lng: 'fr' | 'en') => {
+  const changeLanguage = (lng: 'fr' | 'en' | 'ar') => {
     i18n.changeLanguage(lng);
     storageService.setItem(STORAGE_KEYS.LANGUAGE, lng);
+    // Update document direction for RTL languages
+    document.documentElement.dir = lng === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = lng;
   };
 
   const currentLanguage = i18n.language || 'fr';
@@ -17,5 +20,6 @@ export const useTranslation = () => {
     currentLanguage,
     isFrench: currentLanguage === 'fr',
     isEnglish: currentLanguage === 'en',
+    isArabic: currentLanguage === 'ar',
   };
 };

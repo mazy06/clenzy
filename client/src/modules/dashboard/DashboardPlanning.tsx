@@ -975,7 +975,7 @@ export default function DashboardPlanning({ forfait, zoomLevel, onZoomChange }: 
 
 // ─── Source Logos ─────────────────────────────────────────────────────────────
 
-import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.png';
+import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogoSmall from '../../assets/logo/logo-booking-planning.png';
 import clenzyLogo from '../../assets/logo/clenzy-logo.png';
 import homeAwayLogo from '../../assets/logo/HomeAway-logo.png';

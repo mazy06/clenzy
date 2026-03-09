@@ -64,10 +64,10 @@ const parseStepNotes = (notes?: string): Record<string, string> => {
   return result;
 };
 
-const SEVERITY_COLORS: Record<string, 'error' | 'warning' | 'info'> = {
-  haute: 'error',
-  moyenne: 'warning',
-  basse: 'info',
+const SEVERITY_HEX: Record<string, string> = {
+  haute: '#d32f2f',
+  moyenne: '#ED6C02',
+  basse: '#0288d1',
 };
 
 // ─── Props ──────────────────────────────────────────────────────────────────
@@ -112,34 +112,29 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
     <Box>
       {/* Status + duration summary */}
       <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+        {(() => { const c = intervention.status === 'completed' ? '#4A9B8E' : intervention.status === 'in_progress' ? '#0288d1' : '#ED6C02'; return (
         <Chip
           label={intervention.status}
           size="small"
-          color={
-            intervention.status === 'completed' ? 'success'
-              : intervention.status === 'in_progress' ? 'info'
-                : 'warning'
-          }
-          sx={{ fontSize: '0.625rem', height: 22 }}
+          sx={{ fontSize: '0.625rem', height: 22, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
         />
-        {intervention.estimatedDurationHours && (
+        ); })()}
+        {intervention.estimatedDurationHours && (() => { const c = '#0288d1'; return (
           <Chip
-            icon={<Schedule sx={{ fontSize: 12 }} />}
+            icon={<Schedule sx={{ fontSize: 12, color: `${c} !important` }} />}
             label={`${intervention.estimatedDurationHours}h estimées`}
             size="small"
-            variant="outlined"
-            sx={{ fontSize: '0.625rem', height: 22 }}
+            sx={{ fontSize: '0.625rem', height: 22, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
           />
-        )}
-        {intervention.estimatedDurationHours && (
+        ); })()}
+        {intervention.estimatedDurationHours && (() => { const c = '#4A9B8E'; return (
           <Chip
-            icon={<AttachMoney sx={{ fontSize: 12 }} />}
+            icon={<AttachMoney sx={{ fontSize: 12, color: `${c} !important` }} />}
             label={`${(intervention.estimatedDurationHours * 25).toFixed(0)} EUR`}
             size="small"
-            variant="outlined"
-            sx={{ fontSize: '0.625rem', height: 22 }}
+            sx={{ fontSize: '0.625rem', height: 22, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
           />
-        )}
+        ); })()}
       </Box>
 
       {/* Photos avant */}
@@ -237,16 +232,19 @@ const PanelInterventionRecap: React.FC<PanelInterventionRecapProps> = ({ event }
                 gap: 1,
               }}
             >
-              <Warning sx={{ fontSize: 16, color: `${SEVERITY_COLORS[s.severity] || 'warning'}.main`, mt: 0.25 }} />
+              {(() => { const c = SEVERITY_HEX[s.severity] || '#ED6C02'; return (
+              <>
+              <Warning sx={{ fontSize: 16, color: c, mt: 0.25 }} />
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Chip
                   label={s.severity.charAt(0).toUpperCase() + s.severity.slice(1)}
                   size="small"
-                  color={SEVERITY_COLORS[s.severity] || 'warning'}
-                  sx={{ fontSize: '0.5625rem', height: 18, mb: 0.5 }}
+                  sx={{ fontSize: '0.5625rem', height: 18, mb: 0.5, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
                 />
                 <Typography sx={{ fontSize: '0.6875rem' }}>{s.description}</Typography>
               </Box>
+              </>
+              ); })()}
             </Box>
           ))}
         </Box>

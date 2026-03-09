@@ -32,11 +32,12 @@ import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useInterventionDetails } from './useInterventionDetails';
 import {
-  getStatusColor,
   getStatusLabel,
-  getPriorityColor,
+  getStatusHex,
   getPriorityLabel,
+  getPriorityHex,
   getTypeLabel,
+  getTypeHex,
   formatDate,
 } from './interventionUtils';
 import InterventionSidebar from './InterventionSidebar';
@@ -266,7 +267,9 @@ export default function InterventionDetailsPage() {
                       <BuildIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
                     </Box>
                     <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Type:</Typography>
-                    <Chip label={getTypeLabel(intervention.type, t)} color="primary" variant="outlined" size="small" sx={{ height: 22, fontSize: '0.7rem', borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }} />
+                    {(() => { const c = getTypeHex(intervention.type); return (
+                    <Chip label={getTypeLabel(intervention.type, t)} size="small" sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.7rem', height: 22, '& .MuiChip-label': { px: 0.75 } }} />
+                    ); })()}
                   </Box>
 
                   {/* Statut */}
@@ -275,7 +278,9 @@ export default function InterventionDetailsPage() {
                       {getStatusIcon(intervention.status)}
                     </Box>
                     <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Statut:</Typography>
-                    <Chip label={getStatusLabel(intervention.status, t)} color={getStatusColor(intervention.status)} variant="outlined" size="small" sx={{ height: 22, fontSize: '0.7rem', borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }} />
+                    {(() => { const c = getStatusHex(intervention.status); return (
+                      <Chip label={getStatusLabel(intervention.status, t)} size="small" sx={{ height: 24, fontSize: '0.75rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 1 } }} />
+                    ); })()}
                   </Box>
 
                   {/* Priorité */}
@@ -284,7 +289,9 @@ export default function InterventionDetailsPage() {
                       <PriorityHighIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
                     </Box>
                     <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Priorité:</Typography>
-                    <Chip label={getPriorityLabel(intervention.priority, t)} color={getPriorityColor(intervention.priority)} variant="outlined" size="small" sx={{ height: 22, fontSize: '0.7rem', borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }} />
+                    {(() => { const c = getPriorityHex(intervention.priority); return (
+                      <Chip label={getPriorityLabel(intervention.priority, t)} size="small" sx={{ height: 24, fontSize: '0.75rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 1 } }} />
+                    ); })()}
                   </Box>
 
                   {/* Planifié */}

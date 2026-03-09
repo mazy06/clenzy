@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -12,8 +12,19 @@ import {
   MenuItem,
   CircularProgress,
   Alert,
+  ListSubheader,
 } from '@mui/material';
-import { Close, Add } from '@mui/icons-material';
+import { Close, Add, Person, Groups } from '@mui/icons-material';
+import { useQuery } from '@tanstack/react-query';
+import { managersApi } from '../../../services/api';
+import type { PortfolioTeam, OperationalUser } from '../../../services/api';
+
+interface AssigneeOption {
+  id: number;
+  type: 'user' | 'team';
+  label: string;
+  sublabel?: string;
+}
 
 interface CreateInterventionDialogProps {
   open: boolean;
@@ -43,17 +54,6 @@ interface CreateInterventionDialogProps {
   }) => Promise<{ success: boolean; error: string | null }>;
 }
 
-const STAFF_OPTIONS = [
-  'Fatou Diallo',
-  'Carmen Lopez',
-  'Nathalie Blanc',
-  'Amina Keita',
-  'Lucie Moreau',
-  'Marc Dupuis',
-  'Jean-Pierre Martin',
-  'Thomas Bernard',
-];
-
 const CreateInterventionDialog: React.FC<CreateInterventionDialogProps> = ({
   open,
   onClose,
@@ -69,7 +69,7 @@ const CreateInterventionDialog: React.FC<CreateInterventionDialogProps> = ({
 
   const [type, setType] = useState<'cleaning' | 'maintenance'>(defaultType);
   const [title, setTitle] = useState('');
-  const [assignee, setAssignee] = useState('');
+  const [assigneeKey, setAssigneeKey] = useState(''); // "user-{id}" or "team-{id}"
   const [startDate, setStartDate] = useState(defaultStartDate || today);
   const [endDate, setEndDate] = useState(defaultEndDate || today);
   const [startTime, setStartTime] = useState('09:00');
@@ -79,10 +79,51 @@ const CreateInterventionDialog: React.FC<CreateInterventionDialogProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Fetch real teams and operational users ────────────────────────────────
+  const { data: teamsData } = useQuery({
+    queryKey: ['create-intervention', 'teams'],
+    queryFn: () => managersApi.getTeams(),
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: usersData } = useQuery({
+    queryKey: ['create-intervention', 'users'],
+    queryFn: () => managersApi.getOperationalUsers(),
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const assigneeOptions = useMemo<AssigneeOption[]>(() => {
+    const options: AssigneeOption[] = [];
+    const users = (usersData ?? []) as OperationalUser[];
+    for (const u of users) {
+      options.push({
+        id: u.id,
+        type: 'user',
+        label: `${u.firstName} ${u.lastName}`,
+        sublabel: u.role,
+      });
+    }
+    const teams = (teamsData ?? []) as PortfolioTeam[];
+    for (const t of teams) {
+      options.push({
+        id: t.id,
+        type: 'team',
+        label: t.name,
+        sublabel: t.interventionType,
+      });
+    }
+    return options;
+  }, [usersData, teamsData]);
+
+  const makeKey = (opt: AssigneeOption) => `${opt.type}-${opt.id}`;
+  const findAssignee = (key: string) => assigneeOptions.find((o) => makeKey(o) === key);
+
   const resetForm = () => {
     setType(defaultType);
     setTitle('');
-    setAssignee('');
+    setAssigneeKey('');
     setStartDate(defaultStartDate || today);
     setEndDate(defaultEndDate || today);
     setStartTime('09:00');
@@ -102,8 +143,13 @@ const CreateInterventionDialog: React.FC<CreateInterventionDialogProps> = ({
       setError('Le titre est obligatoire');
       return;
     }
-    if (!assignee) {
+    if (!assigneeKey) {
       setError("L'assignation est obligatoire");
+      return;
+    }
+    const selected = findAssignee(assigneeKey);
+    if (!selected) {
+      setError("Veuillez sélectionner un intervenant ou une équipe");
       return;
     }
     if (startDate > endDate) {
@@ -119,7 +165,7 @@ const CreateInterventionDialog: React.FC<CreateInterventionDialogProps> = ({
       propertyName,
       type,
       title: title.trim(),
-      assigneeName: assignee,
+      assigneeName: selected.label,
       startDate,
       endDate,
       startTime: startTime || undefined,
@@ -136,6 +182,9 @@ const CreateInterventionDialog: React.FC<CreateInterventionDialogProps> = ({
       setError(result.error);
     }
   };
+
+  const userOptions = assigneeOptions.filter((o) => o.type === 'user');
+  const teamOptions = assigneeOptions.filter((o) => o.type === 'team');
 
   return (
     <Dialog
@@ -190,20 +239,66 @@ const CreateInterventionDialog: React.FC<CreateInterventionDialogProps> = ({
             sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
           />
 
-          {/* Assignee */}
+          {/* Assignee — real teams & users */}
           <TextField
             select
-            label="Assigne a"
-            value={assignee}
-            onChange={(e) => setAssignee(e.target.value)}
+            label="Assigner à"
+            value={assigneeKey}
+            onChange={(e) => setAssigneeKey(e.target.value)}
             size="small"
             fullWidth
             required
             sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
           >
-            {STAFF_OPTIONS.map((name) => (
-              <MenuItem key={name} value={name}>{name}</MenuItem>
+            {userOptions.length > 0 && (
+              <ListSubheader sx={{ fontSize: '0.6875rem', lineHeight: '28px', color: 'text.secondary', fontWeight: 700 }}>
+                Intervenants
+              </ListSubheader>
+            )}
+            {userOptions.map((opt) => (
+              <MenuItem key={makeKey(opt)} value={makeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Person sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Box>
+                    <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.3 }}>
+                      {opt.label}
+                    </Typography>
+                    {opt.sublabel && (
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                        {opt.sublabel}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              </MenuItem>
             ))}
+            {teamOptions.length > 0 && (
+              <ListSubheader sx={{ fontSize: '0.6875rem', lineHeight: '28px', color: 'text.secondary', fontWeight: 700 }}>
+                Équipes
+              </ListSubheader>
+            )}
+            {teamOptions.map((opt) => (
+              <MenuItem key={makeKey(opt)} value={makeKey(opt)} sx={{ fontSize: '0.8125rem' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Groups sx={{ fontSize: 16, color: 'primary.main' }} />
+                  <Box>
+                    <Typography variant="body2" sx={{ fontSize: '0.8125rem', lineHeight: 1.3 }}>
+                      {opt.label}
+                    </Typography>
+                    {opt.sublabel && (
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                        {opt.sublabel}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              </MenuItem>
+            ))}
+            {assigneeOptions.length === 0 && (
+              <MenuItem disabled sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
+                Aucun intervenant ou équipe disponible
+              </MenuItem>
+            )}
           </TextField>
 
           {/* Dates */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Box,
   Typography,
@@ -43,11 +44,14 @@ import {
   Build,
   CleaningServices,
   Home,
+  Add,
+  Sync,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
 import FilterSearchBar from '../../components/FilterSearchBar';
+import ExportButton from '../../components/ExportButton';
 import { usersApi, type UserFormData } from '../../services/api';
 import { extractApiList } from '../../types';
 import apiClient from '../../services/apiClient';
@@ -66,16 +70,25 @@ interface User {
   createdAt: string;
 }
 
-const userRoles: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor }> = [
-  { value: 'SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error' },
-  { value: 'SUPER_MANAGER', label: 'Super Manager', icon: <SupervisorAccount />, color: 'secondary' },
-  { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info' },
-  { value: 'TECHNICIAN', label: 'Technicien', icon: <Build />, color: 'primary' },
-  { value: 'HOUSEKEEPER', label: 'Agent de ménage', icon: <CleaningServices />, color: 'default' },
-  { value: 'LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default' },
-  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', icon: <Build />, color: 'primary' },
-  { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
+const userRoles: Array<{ value: string; label: string; icon: React.ReactElement; color: ChipColor; hex: string }> = [
+  { value: 'SUPER_ADMIN', label: 'Super Admin', icon: <AdminPanelSettings />, color: 'error', hex: '#d32f2f' },
+  { value: 'SUPER_MANAGER', label: 'Super Manager', icon: <SupervisorAccount />, color: 'secondary', hex: '#7B61FF' },
+  { value: 'SUPERVISOR', label: 'Superviseur', icon: <SupervisorAccount />, color: 'info', hex: '#0288d1' },
+  { value: 'TECHNICIAN', label: 'Technicien', icon: <Build />, color: 'primary', hex: '#1976d2' },
+  { value: 'HOUSEKEEPER', label: 'Agent de ménage', icon: <CleaningServices />, color: 'default', hex: '#757575' },
+  { value: 'LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default', hex: '#757575' },
+  { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', icon: <Build />, color: 'primary', hex: '#1976d2' },
+  { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success', hex: '#4A9B8E' },
 ];
+
+const USER_STATUS_HEX: Record<string, string> = {
+  ACTIVE: '#4A9B8E',
+  PENDING_VERIFICATION: '#ED6C02',
+  SUSPENDED: '#ED6C02',
+  INACTIVE: '#757575',
+  BLOCKED: '#d32f2f',
+  DELETED: '#d32f2f',
+};
 
 // Utilisation des enums partagés pour les statuts utilisateur
 const userStatuses = USER_STATUS_OPTIONS.map(option => ({
@@ -93,7 +106,12 @@ export interface UsersListHandle {
   exportColumns: ExportColumn[];
 }
 
-const UsersList = forwardRef<UsersListHandle>((_, ref) => {
+interface UsersListProps {
+  embedded?: boolean;
+  actionsContainer?: HTMLElement | null;
+}
+
+const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = false, actionsContainer }, ref) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -300,8 +318,44 @@ const UsersList = forwardRef<UsersListHandle>((_, ref) => {
     );
   }
 
+  const actionButtons = (
+    <Box sx={{ display: 'flex', gap: 1.5 }}>
+      <ExportButton
+        data={filteredUsers}
+        columns={exportColumns}
+        fileName="utilisateurs"
+      />
+      <Button
+        variant="outlined"
+        color="secondary"
+        size="small"
+        startIcon={<Sync sx={{ fontSize: 18 }} />}
+        onClick={handleSyncUsers}
+        disabled={syncing}
+        sx={{ fontSize: '0.8125rem' }}
+        title="Synchroniser"
+      >
+        {syncing ? 'Sync...' : 'Synchroniser'}
+      </Button>
+      <Button
+        variant="contained"
+        color="primary"
+        size="small"
+        startIcon={<Add sx={{ fontSize: 18 }} />}
+        onClick={() => navigate('/users/new')}
+        sx={{ fontSize: '0.8125rem' }}
+        title="Nouvel utilisateur"
+      >
+        Nouvel utilisateur
+      </Button>
+    </Box>
+  );
+
   return (
     <Box>
+      {/* Portal des actions dans le header parent */}
+      {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+
       {/* Statistiques */}
       <Box sx={{ mb: 2 }}>
         <Grid container spacing={2}>
@@ -432,20 +486,21 @@ const UsersList = forwardRef<UsersListHandle>((_, ref) => {
 
                   {/* Rôle et statut */}
                   <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
-                    <Chip
-                      icon={getRoleInfo(user.role).icon}
-                      label={getRoleInfo(user.role).label}
-                      color={getRoleInfo(user.role).color}
-                      size="small"
-                      sx={{ height: 20, fontSize: '0.7rem' }}
-                    />
-                    <Chip
-                      label={getStatusInfo(user.status).label}
-                      color={getStatusInfo(user.status).color}
-                      size="small"
-                      variant="outlined"
-                      sx={{ height: 20, fontSize: '0.7rem' }}
-                    />
+                    {(() => { const r = getRoleInfo(user.role); const c = r.hex; return (
+                      <Chip
+                        icon={r.icon}
+                        label={r.label}
+                        size="small"
+                        sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-icon': { color: `${c} !important` } }}
+                      />
+                    ); })()}
+                    {(() => { const s = getStatusInfo(user.status); const c = USER_STATUS_HEX[user.status] || '#757575'; return (
+                      <Chip
+                        label={s.label}
+                        size="small"
+                        sx={{ height: 24, fontSize: '0.7rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+                      />
+                    ); })()}
                   </Box>
 
                   {/* Informations supplémentaires */}

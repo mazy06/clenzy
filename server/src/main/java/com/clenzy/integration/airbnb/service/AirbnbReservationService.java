@@ -1,16 +1,11 @@
 package com.clenzy.integration.airbnb.service;
 
 import com.clenzy.config.KafkaConfig;
-import com.clenzy.integration.airbnb.config.AirbnbConfig;
-import com.clenzy.integration.airbnb.dto.AirbnbReservationDto;
 import com.clenzy.integration.airbnb.model.AirbnbListingMapping;
 import com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository;
-import com.clenzy.integration.airbnb.repository.AirbnbWebhookEventRepository;
-import com.clenzy.model.Intervention;
-import com.clenzy.model.Property;
-import com.clenzy.model.ServiceType;
-import com.clenzy.repository.InterventionRepository;
+import com.clenzy.model.*;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.service.AuditLogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,9 +24,9 @@ import java.util.*;
  * Service de gestion des reservations Airbnb.
  *
  * Ecoute le topic Kafka airbnb.reservations.sync et traite les evenements :
- * - reservation.created  : cree la reservation + auto-genere intervention menage
- * - reservation.updated  : met a jour la reservation + recalcule intervention
- * - reservation.cancelled: annule la reservation + annule l'intervention liee
+ * - reservation.created  : cree la reservation + auto-genere demande de service menage
+ * - reservation.updated  : met a jour la demande de service
+ * - reservation.cancelled: annule la demande de service liee
  */
 @Service
 public class AirbnbReservationService {
@@ -39,18 +34,18 @@ public class AirbnbReservationService {
     private static final Logger log = LoggerFactory.getLogger(AirbnbReservationService.class);
 
     private final AirbnbListingMappingRepository listingMappingRepository;
-    private final InterventionRepository interventionRepository;
+    private final ServiceRequestRepository serviceRequestRepository;
     private final PropertyRepository propertyRepository;
     private final AirbnbWebhookService webhookService;
     private final AuditLogService auditLogService;
 
     public AirbnbReservationService(AirbnbListingMappingRepository listingMappingRepository,
-                                    InterventionRepository interventionRepository,
+                                    ServiceRequestRepository serviceRequestRepository,
                                     PropertyRepository propertyRepository,
                                     AirbnbWebhookService webhookService,
                                     AuditLogService auditLogService) {
         this.listingMappingRepository = listingMappingRepository;
-        this.interventionRepository = interventionRepository;
+        this.serviceRequestRepository = serviceRequestRepository;
         this.propertyRepository = propertyRepository;
         this.webhookService = webhookService;
         this.auditLogService = auditLogService;
@@ -98,7 +93,7 @@ public class AirbnbReservationService {
 
     /**
      * Traite la creation d'une reservation.
-     * Auto-genere une intervention de menage si la propriete le permet.
+     * Auto-genere une demande de service de menage si la propriete le permet.
      */
     @Transactional
     public void handleReservationCreated(Map<String, Object> data) {
@@ -116,9 +111,9 @@ public class AirbnbReservationService {
 
         AirbnbListingMapping mapping = mappingOpt.get();
 
-        // Auto-generer l'intervention de menage si active
+        // Auto-generer la demande de service de menage si active
         if (mapping.isAutoCreateInterventions()) {
-            createCleaningIntervention(mapping, data);
+            createCleaningServiceRequest(mapping, data);
         }
 
         // Audit
@@ -150,40 +145,39 @@ public class AirbnbReservationService {
             return;
         }
 
-        // Rechercher l'intervention existante liee a cette reservation
-        List<Intervention> interventions = interventionRepository
+        // Rechercher la demande de service existante liee a cette reservation
+        List<ServiceRequest> serviceRequests = serviceRequestRepository
                 .findByPropertyId(mapping.getPropertyId(), orgId);
 
-        // Trouver l'intervention avec le meme code de confirmation dans les notes
-        for (Intervention intervention : interventions) {
-            if (intervention.getSpecialInstructions() != null
-                    && intervention.getSpecialInstructions().contains(confirmationCode)) {
+        // Trouver la SR avec le meme code de confirmation dans les notes
+        for (ServiceRequest sr : serviceRequests) {
+            if (sr.getSpecialInstructions() != null
+                    && sr.getSpecialInstructions().contains(confirmationCode)) {
 
                 // Mettre a jour les dates si elles ont change
                 String checkOutStr = (String) data.get("check_out");
                 if (checkOutStr != null) {
                     LocalDate newCheckOut = LocalDate.parse(checkOutStr, DateTimeFormatter.ISO_DATE);
-                    intervention.setScheduledDate(LocalDateTime.of(newCheckOut, LocalTime.of(11, 0)));
-                    intervention.setGuestCheckoutTime(LocalDateTime.of(newCheckOut, LocalTime.of(11, 0)));
+                    sr.setDesiredDate(LocalDateTime.of(newCheckOut, LocalTime.of(11, 0)));
+                    sr.setGuestCheckoutTime(LocalDateTime.of(newCheckOut, LocalTime.of(11, 0)));
                 }
 
                 String checkInStr = (String) data.get("check_in");
                 if (checkInStr != null) {
                     LocalDate newCheckIn = LocalDate.parse(checkInStr, DateTimeFormatter.ISO_DATE);
-                    intervention.setGuestCheckinTime(LocalDateTime.of(newCheckIn, LocalTime.of(15, 0)));
+                    sr.setGuestCheckinTime(LocalDateTime.of(newCheckIn, LocalTime.of(15, 0)));
                 }
 
-                // Recalculer la duree estimee
-                Object guestCountObj = data.get("guest_count");
-                if (guestCountObj instanceof Number) {
-                    int guestCount = ((Number) guestCountObj).intValue();
-                    intervention.setEstimatedDurationHours(estimateCleaningDuration(mapping.getPropertyId(), guestCount).intValue());
+                // Recalculer la duree estimee depuis cleaningDurationMinutes de la propriete
+                Property prop = propertyRepository.findById(mapping.getPropertyId()).orElse(null);
+                if (prop != null && prop.getCleaningDurationMinutes() != null && prop.getCleaningDurationMinutes() > 0) {
+                    sr.setEstimatedDurationHours((int) Math.ceil(prop.getCleaningDurationMinutes() / 60.0));
                 }
 
-                interventionRepository.save(intervention);
+                serviceRequestRepository.save(sr);
 
-                log.info("Intervention {} mise a jour suite a modification reservation {}",
-                        intervention.getId(), confirmationCode);
+                log.info("Demande de service {} mise a jour suite a modification reservation {}",
+                        sr.getId(), confirmationCode);
                 break;
             }
         }
@@ -194,7 +188,7 @@ public class AirbnbReservationService {
 
     /**
      * Traite l'annulation d'une reservation.
-     * Annule automatiquement l'intervention de menage liee.
+     * Annule automatiquement la demande de service de menage liee.
      */
     @Transactional
     public void handleReservationCancelled(Map<String, Object> data) {
@@ -217,76 +211,83 @@ public class AirbnbReservationService {
             return;
         }
 
-        // Annuler les interventions liees
-        List<Intervention> interventions = interventionRepository
+        // Annuler les demandes de service liees
+        List<ServiceRequest> serviceRequests = serviceRequestRepository
                 .findByPropertyId(mapping.getPropertyId(), orgId);
 
-        for (Intervention intervention : interventions) {
-            if (intervention.getSpecialInstructions() != null
-                    && intervention.getSpecialInstructions().contains(confirmationCode)
-                    && !"CANCELLED".equals(intervention.getStatus().name())) {
+        for (ServiceRequest sr : serviceRequests) {
+            if (sr.getSpecialInstructions() != null
+                    && sr.getSpecialInstructions().contains(confirmationCode)
+                    && sr.getStatus() != RequestStatus.CANCELLED) {
 
-                intervention.setStatus(com.clenzy.model.InterventionStatus.CANCELLED);
-                interventionRepository.save(intervention);
+                sr.setStatus(RequestStatus.CANCELLED);
+                serviceRequestRepository.save(sr);
 
-                log.info("Intervention {} annulee suite a annulation reservation {}",
-                        intervention.getId(), confirmationCode);
+                log.info("Demande de service {} annulee suite a annulation reservation {}",
+                        sr.getId(), confirmationCode);
             }
         }
 
         auditLogService.logSync("AirbnbReservation", confirmationCode,
-                "Reservation Airbnb annulee — interventions liees annulees");
+                "Reservation Airbnb annulee — demandes de service liees annulees");
     }
 
     /**
-     * Cree automatiquement une intervention de menage pour une reservation.
+     * Cree automatiquement une demande de service de menage pour une reservation.
+     * L'intervention sera creee uniquement apres le paiement.
      */
-    private void createCleaningIntervention(AirbnbListingMapping mapping, Map<String, Object> reservationData) {
+    private void createCleaningServiceRequest(AirbnbListingMapping mapping, Map<String, Object> reservationData) {
         Property property = propertyRepository.findById(mapping.getPropertyId()).orElse(null);
         if (property == null) {
-            log.warn("Propriete {} introuvable pour auto-creation intervention", mapping.getPropertyId());
+            log.warn("Propriete {} introuvable pour auto-creation demande de service", mapping.getPropertyId());
             return;
         }
 
         String confirmationCode = (String) reservationData.get("confirmation_code");
         String guestName = (String) reservationData.get("guest_name");
-        String checkInStr = (String) reservationData.get("check_in");
         String checkOutStr = (String) reservationData.get("check_out");
         Object guestCountObj = reservationData.get("guest_count");
         int guestCount = guestCountObj instanceof Number ? ((Number) guestCountObj).intValue() : 1;
 
-        LocalDate checkIn = checkInStr != null ? LocalDate.parse(checkInStr, DateTimeFormatter.ISO_DATE) : LocalDate.now();
-        LocalDate checkOut = checkOutStr != null ? LocalDate.parse(checkOutStr, DateTimeFormatter.ISO_DATE) : checkIn.plusDays(1);
+        LocalDate checkOut = checkOutStr != null ? LocalDate.parse(checkOutStr, DateTimeFormatter.ISO_DATE) : LocalDate.now().plusDays(1);
+        LocalDateTime scheduledDate = LocalDateTime.of(checkOut, LocalTime.of(11, 0));
 
-        // Creer l'intervention de menage
-        Intervention intervention = new Intervention();
-        intervention.setOrganizationId(property.getOrganizationId());
-        intervention.setTitle("Menage Airbnb — " + property.getName());
-        intervention.setDescription("Menage apres depart du guest " + (guestName != null ? guestName : "")
+        // Creer la demande de service de menage
+        ServiceRequest sr = new ServiceRequest(
+                "Menage Airbnb — " + property.getName(),
+                ServiceType.CLEANING,
+                scheduledDate,
+                property.getOwner(),
+                property
+        );
+        sr.setOrganizationId(property.getOrganizationId());
+        sr.setStatus(RequestStatus.PENDING);
+        sr.setPriority(Priority.HIGH);
+        sr.setDescription("Menage apres depart du guest " + (guestName != null ? guestName : "")
                 + " (reservation Airbnb " + confirmationCode + ")");
-        intervention.setType(ServiceType.CLEANING.name());
-        intervention.setStatus(com.clenzy.model.InterventionStatus.PENDING);
-        intervention.setPriority(com.clenzy.model.Priority.HIGH.name());
-        intervention.setProperty(property);
-        intervention.setScheduledDate(LocalDateTime.of(checkOut, LocalTime.of(11, 0)));
-        intervention.setGuestCheckoutTime(LocalDateTime.of(checkOut, LocalTime.of(11, 0)));
-        intervention.setGuestCheckinTime(LocalDateTime.of(checkOut, LocalTime.of(15, 0))); // Prochain check-in
-        intervention.setEstimatedDurationHours(estimateCleaningDuration(property.getId(), guestCount).intValue());
-        intervention.setSpecialInstructions("[AIRBNB:" + confirmationCode + "] "
-                + (guestCount > 0 ? guestCount + " guests" : "")
-                + (property.getAccessInstructions() != null ? " | Acces: " + property.getAccessInstructions() : ""));
-        intervention.setIsUrgent(false);
-        intervention.setRequiresFollowUp(false);
+        sr.setGuestCheckoutTime(scheduledDate);
+        sr.setGuestCheckinTime(LocalDateTime.of(checkOut, LocalTime.of(15, 0)));
 
-        // Requestor = owner de la propriete
-        if (property.getOwner() != null) {
-            intervention.setRequestor(property.getOwner());
+        // Duree depuis cleaningDurationMinutes de la propriete
+        if (property.getCleaningDurationMinutes() != null && property.getCleaningDurationMinutes() > 0) {
+            sr.setEstimatedDurationHours((int) Math.ceil(property.getCleaningDurationMinutes() / 60.0));
+        } else {
+            sr.setEstimatedDurationHours(2); // Fallback 2h
         }
 
-        interventionRepository.save(intervention);
+        // Cout estime depuis le prix de base du menage
+        if (property.getCleaningBasePrice() != null) {
+            sr.setEstimatedCost(property.getCleaningBasePrice());
+        }
 
-        log.info("Intervention de menage #{} auto-generee pour propriete {} (reservation {})",
-                intervention.getId(), property.getName(), confirmationCode);
+        sr.setSpecialInstructions("[AIRBNB:" + confirmationCode + "] "
+                + (guestCount > 0 ? guestCount + " guests" : "")
+                + (property.getAccessInstructions() != null ? " | Acces: " + property.getAccessInstructions() : ""));
+
+        serviceRequestRepository.save(sr);
+
+        log.info("Demande de service menage #{} auto-generee pour propriete {} (reservation Airbnb {})",
+                sr.getId(), property.getName(), confirmationCode);
     }
 
     /**
@@ -302,29 +303,4 @@ public class AirbnbReservationService {
                 .orElse(null);
     }
 
-    /**
-     * Estime la duree de menage en fonction de la taille du logement et du nombre de guests.
-     */
-    private BigDecimal estimateCleaningDuration(Long propertyId, int guestCount) {
-        Property property = propertyRepository.findById(propertyId).orElse(null);
-        if (property == null) {
-            return new BigDecimal("2.0"); // Defaut : 2h
-        }
-
-        // Formule : base 1.5h + 0.5h par chambre + 0.25h par guest au-dela de 2
-        double base = 1.5;
-        if (property.getBedroomCount() != null) {
-            base += property.getBedroomCount() * 0.5;
-        }
-        if (guestCount > 2) {
-            base += (guestCount - 2) * 0.25;
-        }
-
-        // Surface : +0.5h si > 80m²
-        if (property.getSquareMeters() != null && property.getSquareMeters() > 80) {
-            base += 0.5;
-        }
-
-        return BigDecimal.valueOf(Math.ceil(base * 2) / 2); // Arrondi au 0.5h pres
-    }
 }

@@ -31,11 +31,11 @@ import MessageTemplateEditor from '../messaging/MessageTemplateEditor';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const TYPE_COLORS: Record<string, 'success' | 'warning' | 'info' | 'default'> = {
-  CHECK_IN: 'success',
-  CHECK_OUT: 'warning',
-  WELCOME: 'info',
-  CUSTOM: 'default',
+const TYPE_HEX: Record<string, string> = {
+  CHECK_IN: '#4A9B8E',
+  CHECK_OUT: '#ED6C02',
+  WELCOME: '#0288d1',
+  CUSTOM: '#757575',
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -169,11 +169,22 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
                     </Typography>
                   </TableCell>
                   <TableCell>
+                    {(() => { const c = TYPE_HEX[template.type] ?? '#757575'; return (
                     <Chip
                       label={TYPE_LABELS[template.type] || template.type}
-                      color={TYPE_COLORS[template.type] || 'default'}
                       size="small"
+                      sx={{
+                        backgroundColor: `${c}18`,
+                        color: c,
+                        border: `1px solid ${c}40`,
+                        borderRadius: '6px',
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                        height: 24,
+                        '& .MuiChip-label': { px: 1 },
+                      }}
                     />
+                    ); })()}
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" noWrap sx={{ maxWidth: 250 }}>
@@ -186,12 +197,22 @@ const MessageTemplatesSection = forwardRef<MessageTemplatesSectionRef>((_, ref) 
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
+                    {(() => { const c = template.isActive ? '#4A9B8E' : '#757575'; return (
                     <Chip
                       label={template.isActive ? t('messaging.templates.active') : t('messaging.templates.inactive')}
-                      color={template.isActive ? 'success' : 'default'}
                       size="small"
-                      variant="outlined"
+                      sx={{
+                        backgroundColor: `${c}18`,
+                        color: c,
+                        border: `1px solid ${c}40`,
+                        borderRadius: '6px',
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                        height: 24,
+                        '& .MuiChip-label': { px: 1 },
+                      }}
                     />
+                    ); })()}
                   </TableCell>
                   <TableCell align="right">
                     <Tooltip title={t('common.edit')}>

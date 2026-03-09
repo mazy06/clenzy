@@ -48,7 +48,10 @@ public class PropertyDto {
     
     @Min(0)
     public BigDecimal nightlyPrice;
-    
+
+    @Min(1)
+    public Integer minimumNights;
+
     public PropertyType type;
     public PropertyStatus status;
     public String airbnbListingId;

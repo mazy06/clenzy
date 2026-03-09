@@ -28,13 +28,14 @@ class TagResolverServiceTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private InterventionRepository interventionRepository;
     @Mock private ServiceRequestRepository serviceRequestRepository;
+    @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
 
     private TagResolverService service;
 
     @BeforeEach
     void setUp() {
         service = new TagResolverService(userRepository, propertyRepository,
-                interventionRepository, serviceRequestRepository);
+                interventionRepository, serviceRequestRepository, reservationRepository);
         ReflectionTestUtils.setField(service, "companyName", "Clenzy");
         ReflectionTestUtils.setField(service, "companyAddress", "10 rue de Paris");
         ReflectionTestUtils.setField(service, "companySiret", "12345678900001");

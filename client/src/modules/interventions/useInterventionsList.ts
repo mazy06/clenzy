@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi, teamsApi, usersApi } from '../../services/api';
@@ -25,7 +25,10 @@ export interface Intervention {
   priority: string;
   propertyType?: string;
   propertyName: string;
+  propertyId?: number;
   propertyAddress: string;
+  propertyLatitude?: number;
+  propertyLongitude?: number;
   requestorName: string;
   assignedToName: string;
   assignedToType: 'user' | 'team';
@@ -59,6 +62,8 @@ const assignDataKeys = {
 export function useInterventionsList() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const propertyIdParam = searchParams.get('propertyId');
   const queryClient = useQueryClient();
   const { user, hasPermissionAsync, isHost, isManager, isAdmin } = useAuth();
   const { t } = useTranslation();
@@ -135,7 +140,7 @@ export function useInterventionsList() {
     queryKey: assignDataKeys.teams,
     queryFn: async () => {
       const data = await teamsApi.getAll();
-      return Array.isArray(data) ? data : [];
+      return extractApiList<Team>(data);
     },
     enabled: assignDialogOpen,
     staleTime: 60_000,
@@ -145,7 +150,7 @@ export function useInterventionsList() {
     queryKey: assignDataKeys.users,
     queryFn: async () => {
       const data = await usersApi.getAll();
-      return Array.isArray(data) ? data : [];
+      return extractApiList<User>(data);
     },
     enabled: assignDialogOpen,
     staleTime: 60_000,
@@ -262,6 +267,9 @@ export function useInterventionsList() {
       if (!intervention || typeof intervention !== 'object') return false;
       if (!intervention.id || !intervention.title || !intervention.description || !intervention.type || !intervention.status || !intervention.priority) return false;
 
+      // Property filter (from URL query param)
+      if (propertyIdParam && intervention.propertyId !== Number(propertyIdParam)) return false;
+
       // Role-based filtering
       let roleFilter = true;
       if (canEditInterventions) {
@@ -291,7 +299,7 @@ export function useInterventionsList() {
 
       return true;
     });
-  }, [interventions, searchTerm, selectedType, selectedStatus, selectedPriority, canEditInterventions, user]);
+  }, [interventions, searchTerm, selectedType, selectedStatus, selectedPriority, canEditInterventions, user, propertyIdParam]);
 
   // Reset page when filters change
   const setSearchTermAndReset = useCallback((val: string) => { setSearchTerm(val); setPage(0); }, []);

@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.config.SyncMetrics;
 import com.clenzy.model.OutboxEvent;
 import com.clenzy.repository.OutboxEventRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,13 +35,16 @@ public class OutboxRelay {
 
     private final OutboxEventRepository outboxEventRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ObjectMapper objectMapper;
     private final SyncMetrics syncMetrics;
 
     public OutboxRelay(OutboxEventRepository outboxEventRepository,
                        KafkaTemplate<String, Object> kafkaTemplate,
+                       ObjectMapper objectMapper,
                        SyncMetrics syncMetrics) {
         this.outboxEventRepository = outboxEventRepository;
         this.kafkaTemplate = kafkaTemplate;
+        this.objectMapper = objectMapper;
         this.syncMetrics = syncMetrics;
     }
 
@@ -92,14 +96,30 @@ public class OutboxRelay {
 
     /**
      * Envoie un event sur Kafka et met a jour son statut.
+     *
+     * IMPORTANT : le payload est stocke comme String JSON dans l'outbox.
+     * On le parse en Object avant envoi pour eviter la double-serialisation
+     * par le JsonSerializer du KafkaTemplate (qui envelopperait le String
+     * dans des guillemets supplementaires).
      */
     private void sendEvent(OutboxEvent event) {
         Timer.Sample sample = syncMetrics.startTimer();
         try {
+            // Parse le payload JSON String en Object (Map/List) pour eviter
+            // la double-serialisation par JsonSerializer
+            Object payloadObj;
+            try {
+                payloadObj = objectMapper.readValue(event.getPayload(), Object.class);
+            } catch (Exception e) {
+                // Fallback : envoyer le String brut si le parse echoue
+                log.warn("OutboxRelay: payload non-JSON pour event {}, envoi brut", event.getId());
+                payloadObj = event.getPayload();
+            }
+
             kafkaTemplate.send(
                     event.getTopic(),
                     event.getPartitionKey(),
-                    event.getPayload()
+                    payloadObj
             ).get(); // Bloquant : on attend la confirmation du broker
 
             sample.stop(Timer.builder("pms.outbox.relay.latency")

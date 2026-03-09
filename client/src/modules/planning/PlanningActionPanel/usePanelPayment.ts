@@ -83,7 +83,7 @@ export function usePanelPayment(
           .map((i) => i.id),
       );
       setPaymentHistory(
-        data.content.filter((r) => propertyInterventionIds.has(r.interventionId)),
+        data.content.filter((r) => r.referenceId != null && propertyInterventionIds.has(r.referenceId)),
       );
     } catch {
       // Silently fail

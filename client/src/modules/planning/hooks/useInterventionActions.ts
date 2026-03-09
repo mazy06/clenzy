@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { reservationsApi } from '../../../services/api';
+import { reservationsApi, interventionsApi } from '../../../services/api';
 import type { PlanningIntervention } from '../../../services/api';
 import type { PlanningEvent } from '../types';
 import { planningKeys } from './usePlanningData';
@@ -138,7 +138,11 @@ export function useInterventionActions(
 
   // ── 3. Assigner intervention ────────────────────────────────────────────
   const assignIntervention = useCallback(
-    async (interventionId: number, assigneeName: string): Promise<ActionResult> => {
+    async (
+      interventionId: number,
+      assigneeName: string,
+      options?: { userId?: number; teamId?: number },
+    ): Promise<ActionResult> => {
       try {
         if (reservationsApi.isMockMode()) {
           queryClient.setQueriesData(
@@ -152,11 +156,14 @@ export function useInterventionActions(
             },
           );
         } else {
+          // Call the real API to assign the intervention
+          await interventionsApi.assign(interventionId, options?.userId, options?.teamId);
           queryClient.invalidateQueries({ queryKey: planningKeys.all });
         }
         return { success: true, error: null };
-      } catch {
-        return { success: false, error: "Erreur lors de l'assignation" };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Erreur lors de l'assignation";
+        return { success: false, error: msg };
       }
     },
     [queryClient],

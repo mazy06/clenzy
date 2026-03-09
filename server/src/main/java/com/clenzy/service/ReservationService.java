@@ -2,9 +2,9 @@ package com.clenzy.service;
 
 import com.clenzy.config.SyncMetrics;
 import com.clenzy.exception.CalendarConflictException;
-import com.clenzy.model.Reservation;
-import com.clenzy.model.User;
+import com.clenzy.model.*;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
@@ -13,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.clenzy.tenant.TenantContext;
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -28,19 +30,22 @@ public class ReservationService {
     private final CalendarEngine calendarEngine;
     private final GuestService guestService;
     private final SyncMetrics syncMetrics;
+    private final ServiceRequestRepository serviceRequestRepository;
 
     public ReservationService(ReservationRepository reservationRepository,
                               UserRepository userRepository,
                               TenantContext tenantContext,
                               CalendarEngine calendarEngine,
                               GuestService guestService,
-                              SyncMetrics syncMetrics) {
+                              SyncMetrics syncMetrics,
+                              ServiceRequestRepository serviceRequestRepository) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
         this.calendarEngine = calendarEngine;
         this.guestService = guestService;
         this.syncMetrics = syncMetrics;
+        this.serviceRequestRepository = serviceRequestRepository;
     }
 
     /**
@@ -179,5 +184,68 @@ public class ReservationService {
     public boolean existsByExternalUid(String externalUid, Long propertyId) {
         if (externalUid == null || propertyId == null) return false;
         return reservationRepository.existsByExternalUidAndPropertyId(externalUid, propertyId);
+    }
+
+    // ── Auto-create cleaning service request ─────────────────────────────
+
+    /**
+     * Cree automatiquement une ServiceRequest de type CLEANING en statut PENDING
+     * liee a la propriete de la reservation, planifiee au jour du checkout.
+     * L'intervention sera creee par le workflow de validation de la demande de service.
+     */
+    @Transactional
+    public void createCleaningForReservation(Reservation reservation, String userSub) {
+        // Re-load the reservation in the current session to avoid
+        // LazyInitializationException on detached proxy (open-in-view=false)
+        Long reservationId = reservation.getId();
+        Reservation managedReservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation introuvable: " + reservationId));
+        Property property = managedReservation.getProperty();
+        Long orgId = managedReservation.getOrganizationId();
+
+        User requestor = userRepository.findByKeycloakId(userSub)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+
+        LocalDateTime scheduledAt = managedReservation.getCheckOut()
+                .atTime(parseCheckoutHour(managedReservation.getCheckOutTime()), 0);
+
+        // Create ServiceRequest in PENDING status (goes through the full workflow)
+        ServiceRequest sr = new ServiceRequest(
+                "Menage - " + (managedReservation.getGuestName() != null ? managedReservation.getGuestName() : "Reservation"),
+                ServiceType.CLEANING,
+                scheduledAt,
+                requestor,
+                property
+        );
+        sr.setOrganizationId(orgId);
+        sr.setStatus(RequestStatus.PENDING);
+        sr.setPriority(Priority.NORMAL);
+
+        // Use reservation cleaning fee if set, otherwise fallback to property base price
+        BigDecimal estimatedCost = managedReservation.getCleaningFee();
+        if (estimatedCost == null && property.getCleaningBasePrice() != null) {
+            estimatedCost = property.getCleaningBasePrice();
+        }
+        if (estimatedCost != null) {
+            sr.setEstimatedCost(estimatedCost);
+        }
+        if (property.getCleaningDurationMinutes() != null) {
+            sr.setEstimatedDurationHours(
+                    (int) Math.ceil(property.getCleaningDurationMinutes() / 60.0));
+        }
+
+        sr = serviceRequestRepository.save(sr);
+
+        log.info("Auto-created cleaning service request {} (PENDING) for reservation {} (property {})",
+                sr.getId(), managedReservation.getId(), property.getId());
+    }
+
+    private int parseCheckoutHour(String checkOutTime) {
+        if (checkOutTime == null) return 11;
+        try {
+            return Integer.parseInt(checkOutTime.split(":")[0]);
+        } catch (Exception e) {
+            return 11;
+        }
     }
 }

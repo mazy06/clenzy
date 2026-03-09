@@ -80,6 +80,9 @@ public class Property {
     @Column(name = "nightly_price", precision = 10, scale = 2)
     private BigDecimal nightlyPrice;
 
+    @Column(name = "minimum_nights")
+    private Integer minimumNights;
+
     @Column(name = "default_currency", nullable = false, length = 3, columnDefinition = "varchar(3) default 'EUR'")
     private String defaultCurrency = "EUR";
 
@@ -325,7 +328,15 @@ public class Property {
     public void setNightlyPrice(BigDecimal nightlyPrice) {
         this.nightlyPrice = nightlyPrice;
     }
-    
+
+    public Integer getMinimumNights() {
+        return minimumNights;
+    }
+
+    public void setMinimumNights(Integer minimumNights) {
+        this.minimumNights = minimumNights;
+    }
+
     public String getDefaultCurrency() {
         return defaultCurrency;
     }

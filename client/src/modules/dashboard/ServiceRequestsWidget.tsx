@@ -20,9 +20,9 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatRelativeDate } from '../../utils/formatUtils';
 import {
-  getServiceRequestStatusColor,
   getServiceRequestStatusLabel,
-  getServiceRequestPriorityColor,
+  getServiceRequestStatusHex,
+  getServiceRequestPriorityHex,
 } from '../../utils/statusUtils';
 import type { ServiceRequestItem } from '../../hooks/useDashboardOverview';
 
@@ -150,22 +150,20 @@ const ServiceRequestsWidget: React.FC<ServiceRequestsWidgetProps> = React.memo((
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', gap: 0.375, flexShrink: 0, alignItems: 'center' }}>
-                    <Chip
-                      label={getServiceRequestStatusLabel(request.status, t)}
-                      size="small"
-                      variant="outlined"
-                      sx={CHIP_SX}
-                      color={getServiceRequestStatusColor(request.status)}
-                    />
-                    {(request.priority === 'urgent' || request.priority === 'critical' || request.priority === 'high') && (
+                    {(() => { const c = getServiceRequestStatusHex(request.status); return (
+                      <Chip
+                        label={getServiceRequestStatusLabel(request.status, t)}
+                        size="small"
+                        sx={{ ...CHIP_SX, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
+                      />
+                    ); })()}
+                    {(request.priority === 'urgent' || request.priority === 'critical' || request.priority === 'high') && (() => { const c = getServiceRequestPriorityHex(request.priority); return (
                       <Chip
                         label={request.priority === 'urgent' || request.priority === 'critical' ? t('serviceRequests.priorities.critical') : t('serviceRequests.priorities.high')}
                         size="small"
-                        variant="outlined"
-                        sx={CHIP_SX}
-                        color={getServiceRequestPriorityColor(request.priority)}
+                        sx={{ ...CHIP_SX, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
                       />
-                    )}
+                    ); })()}
                   </Box>
                 </Box>
               </ListItem>

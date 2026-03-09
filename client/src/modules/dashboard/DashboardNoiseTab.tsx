@@ -5,7 +5,6 @@ import {
   Grid,
   Paper,
   Chip,
-  Divider,
   Button,
   Tabs,
   Tab,
@@ -86,7 +85,7 @@ function NoiseOffersView({ onSelectOffer }: NoiseOffersViewProps) {
               flexDirection: 'column',
               transition: 'border-color 0.2s, box-shadow 0.2s',
               '&:hover': {
-                borderColor: 'primary.main',
+                borderColor: '#6B8A9A',
                 boxShadow: '0 2px 12px rgba(107, 138, 154, 0.1)',
               },
             }}
@@ -100,44 +99,18 @@ function NoiseOffersView({ onSelectOffer }: NoiseOffersViewProps) {
               <Chip
                 label={t('tarification.monitoring.minut.badge')}
                 size="small"
-                color="primary"
-                variant="outlined"
-                sx={{ fontSize: '0.6875rem', height: 22 }}
+                sx={{
+                  fontSize: '0.6875rem', height: 22, fontWeight: 600,
+                  backgroundColor: '#6B8A9A18', color: '#6B8A9A',
+                  border: '1px solid #6B8A9A40', borderRadius: '6px',
+                  '& .MuiChip-label': { px: 0.75 },
+                }}
               />
             </Box>
 
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', mb: 2, lineHeight: 1.5 }}>
               {t('tarification.monitoring.minut.description')}
             </Typography>
-
-            <Divider sx={{ my: 1.5 }} />
-
-            {/* Pricing model */}
-            <Typography variant="overline" sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', letterSpacing: '0.08em' }}>
-              {t('tarification.monitoring.minut.pricingModel')}
-            </Typography>
-
-            <Box
-              sx={{
-                mt: 1,
-                mb: 2,
-                p: 1.5,
-                borderRadius: 1.5,
-                bgcolor: 'grey.50',
-                border: '1px dashed',
-                borderColor: 'divider',
-                textAlign: 'center',
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '1.1rem' }}>
-                {t('tarification.monitoring.minut.onQuote')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
-                {t('tarification.monitoring.minut.onQuoteHint')}
-              </Typography>
-            </Box>
-
-            <Divider sx={{ my: 1.5 }} />
 
             {/* Features */}
             <Box sx={{ mb: 2, flex: 1 }}>
@@ -147,18 +120,34 @@ function NoiseOffersView({ onSelectOffer }: NoiseOffersViewProps) {
               <FeatureItem text={t('tarification.monitoring.minut.feature4')} />
             </Box>
 
+            {/* Pricing box */}
+            <Box sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>Capteur (matériel)</Typography>
+                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: '#6B8A9A' }}>149 €</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>Mensuel</Typography>
+                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: '#6B8A9A' }}>9,90 €/capteur/mois</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>Annuel</Typography>
+                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: '#6B8A9A' }}>7,90 €/capteur/mois</Typography>
+              </Box>
+            </Box>
+
             {/* Subscribe CTA */}
             <Button
-              variant="contained"
-              size="small"
+              variant="outlined"
+              fullWidth
+              startIcon={<Handshake sx={{ fontSize: 16 }} />}
               onClick={() => onSelectOffer('minut')}
               sx={{
                 textTransform: 'none',
-                fontSize: '0.8125rem',
-                fontWeight: 700,
-                py: 0.75,
-                bgcolor: '#6B8A9A',
-                '&:hover': { bgcolor: '#6B8A9A', filter: 'brightness(0.9)' },
+                fontWeight: 600,
+                borderColor: '#6B8A9A',
+                color: '#6B8A9A',
+                '&:hover': { borderColor: '#5A7A8A', backgroundColor: '#6B8A9A08' },
               }}
             >
               {t('dashboard.noise.subscribe') || 'Souscrire'}
@@ -180,7 +169,7 @@ function NoiseOffersView({ onSelectOffer }: NoiseOffersViewProps) {
               flexDirection: 'column',
               transition: 'border-color 0.2s, box-shadow 0.2s',
               '&:hover': {
-                borderColor: 'success.main',
+                borderColor: '#4A9B8E',
                 boxShadow: '0 2px 12px rgba(74, 155, 142, 0.1)',
               },
             }}
@@ -194,44 +183,18 @@ function NoiseOffersView({ onSelectOffer }: NoiseOffersViewProps) {
               <Chip
                 label={t('tarification.monitoring.clenzy.badge')}
                 size="small"
-                color="success"
-                variant="outlined"
-                sx={{ fontSize: '0.6875rem', height: 22 }}
+                sx={{
+                  fontSize: '0.6875rem', height: 22, fontWeight: 600,
+                  backgroundColor: '#4A9B8E18', color: '#4A9B8E',
+                  border: '1px solid #4A9B8E40', borderRadius: '6px',
+                  '& .MuiChip-label': { px: 0.75 },
+                }}
               />
             </Box>
 
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem', mb: 2, lineHeight: 1.5 }}>
               {t('tarification.monitoring.clenzy.description')}
             </Typography>
-
-            <Divider sx={{ my: 1.5 }} />
-
-            {/* Pricing model */}
-            <Typography variant="overline" sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', letterSpacing: '0.08em' }}>
-              {t('tarification.monitoring.clenzy.pricingModel')}
-            </Typography>
-
-            <Box
-              sx={{
-                mt: 1,
-                mb: 2,
-                p: 1.5,
-                borderRadius: 1.5,
-                bgcolor: 'grey.50',
-                border: '1px dashed',
-                borderColor: 'divider',
-                textAlign: 'center',
-              }}
-            >
-              <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '1.1rem' }}>
-                {t('tarification.monitoring.clenzy.onQuote')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
-                {t('tarification.monitoring.clenzy.onQuoteHint')}
-              </Typography>
-            </Box>
-
-            <Divider sx={{ my: 1.5 }} />
 
             {/* Features */}
             <Box sx={{ mb: 2, flex: 1 }}>
@@ -241,17 +204,27 @@ function NoiseOffersView({ onSelectOffer }: NoiseOffersViewProps) {
               <FeatureItem text={t('tarification.monitoring.clenzy.feature4')} />
             </Box>
 
+            {/* Pricing box */}
+            <Box sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 2 }}>
+              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700, color: '#4A9B8E' }}>
+                {t('tarification.monitoring.clenzy.pricingModel')}
+              </Typography>
+              <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                Capteur + installation + configuration
+              </Typography>
+            </Box>
+
             {/* Subscribe CTA */}
             <Button
               variant="contained"
-              size="small"
-              color="success"
+              fullWidth
+              startIcon={<Memory sx={{ fontSize: 16 }} />}
               onClick={() => onSelectOffer('clenzy')}
               sx={{
                 textTransform: 'none',
-                fontSize: '0.8125rem',
-                fontWeight: 700,
-                py: 0.75,
+                fontWeight: 600,
+                bgcolor: '#4A9B8E',
+                '&:hover': { bgcolor: '#4A9B8E', filter: 'brightness(0.9)' },
               }}
             >
               {t('dashboard.noise.subscribe') || 'Souscrire'}

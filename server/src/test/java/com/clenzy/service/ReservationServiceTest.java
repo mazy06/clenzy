@@ -32,6 +32,7 @@ class ReservationServiceTest {
     @Mock private CalendarEngine calendarEngine;
     @Mock private GuestService guestService;
     @Mock private SyncMetrics syncMetrics;
+    @Mock private com.clenzy.repository.ServiceRequestRepository serviceRequestRepository;
 
     private TenantContext tenantContext;
     private ReservationService reservationService;
@@ -49,7 +50,8 @@ class ReservationServiceTest {
 
         reservationService = new ReservationService(
                 reservationRepository, userRepository, tenantContext,
-                calendarEngine, guestService, syncMetrics
+                calendarEngine, guestService, syncMetrics,
+                serviceRequestRepository
         );
 
         property = new Property();

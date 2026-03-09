@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -40,6 +40,7 @@ import GuestProfileDialog from '../channels/GuestProfileDialog';
 import PageHeader from '../../components/PageHeader';
 import { SPACING } from '../../theme/spacing';
 import { formatCurrency } from '../../utils/currencyUtils';
+import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
@@ -49,8 +50,6 @@ const CARD_SX = {
   boxShadow: 'none',
   borderRadius: 1.5,
 } as const;
-
-const ROWS_PER_PAGE_OPTIONS = [10, 25, 50];
 
 const STATUS_OPTIONS: ReservationStatus[] = [
   'pending',
@@ -104,7 +103,14 @@ const ReservationsList: React.FC = () => {
 
   // ─── Local UI state ──────────────────────────────────────────────
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const { containerRef: tableContainerRef, pageSize: rowsPerPage } = useDynamicPageSize({
+    rowHeight: 49,
+    headerHeight: 42,
+    bottomChrome: 72,
+    min: 5,
+    max: 50,
+  });
+  useEffect(() => { setPage(0); }, [rowsPerPage]);
   const [formOpen, setFormOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -173,28 +179,30 @@ const ReservationsList: React.FC = () => {
 
   // ─── Render ──────────────────────────────────────────────────────
   return (
-    <Box sx={{ p: SPACING.PAGE_PADDING }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       {/* Header */}
-      <PageHeader
-        title={t('reservations.title')}
-        subtitle={t('reservations.subtitle')}
-        backPath="/dashboard"
-        showBackButton={false}
-        actions={
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreate}
-            size="small"
-            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-          >
-            {t('reservations.create')}
-          </Button>
-        }
-      />
+      <Box sx={{ flexShrink: 0 }}>
+        <PageHeader
+          title={t('reservations.title')}
+          subtitle={t('reservations.subtitle')}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleCreate}
+              size="small"
+              sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+            >
+              {t('reservations.create')}
+            </Button>
+          }
+        />
+      </Box>
 
       {/* Filters */}
-      <Paper sx={{ ...CARD_SX, p: 1.5, mb: 1.5, display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
+      <Paper sx={{ ...CARD_SX, p: 1.5, mb: 1.5, display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
         {/* Status filter */}
         <TextField
           select
@@ -258,7 +266,7 @@ const ReservationsList: React.FC = () => {
 
       {/* Error */}
       {isError && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2, flexShrink: 0 }}>
           {error ?? 'Erreur lors du chargement des reservations'}
         </Alert>
       )}
@@ -284,8 +292,8 @@ const ReservationsList: React.FC = () => {
         </Paper>
       ) : (
         /* Data table */
-        <Paper sx={CARD_SX}>
-          <TableContainer>
+        <Paper ref={tableContainerRef} sx={{ ...CARD_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
             <Table size="small">
               <TableHead>
                 <TableRow
@@ -401,15 +409,11 @@ const ReservationsList: React.FC = () => {
             page={page}
             onPageChange={(_, newPage) => setPage(newPage)}
             rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-            rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
-            labelRowsPerPage="Lignes par page"
+            rowsPerPageOptions={[]}
             labelDisplayedRows={({ from, to, count }) =>
               `${from}-${to} sur ${count !== -1 ? count : `plus de ${to}`}`
             }
+            sx={{ flexShrink: 0, borderTop: '1px solid', borderColor: 'divider' }}
           />
         </Paper>
       )}

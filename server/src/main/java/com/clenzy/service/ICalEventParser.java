@@ -21,6 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,6 +41,14 @@ public final class ICalEventParser {
 
     private static final Pattern DESCRIPTION_NIGHTS_PATTERN =
             Pattern.compile("NIGHTS:\\s*(\\d+)", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Mots-cles indiquant un blocage de calendrier (pas une vraie reservation).
+     * Ces evenements sont ignores a l'import.
+     */
+    private static final Set<String> BLOCKED_KEYWORDS = Set.of(
+            "not available", "unavailable", "blocked", "closed", "airbnb (not available)"
+    );
 
     /** Maximum number of VEVENTs to parse from a single feed (DoS protection). */
     private static final int MAX_EVENTS_PER_FEED = 5000;
@@ -120,6 +129,12 @@ public final class ICalEventParser {
         String summaryText = summary != null ? summary.getValue() : "";
         preview.setSummary(summaryText);
 
+        // Filtrer les blocages de calendrier (ex: "Airbnb (Not available)", "Blocked")
+        if (isBlockedEvent(summaryText)) {
+            log.debug("Evenement iCal ignore (blocage calendrier): {}", summaryText);
+            return null;
+        }
+
         // All iCal entries are treated as reservations
         preview.setType("reservation");
 
@@ -197,5 +212,17 @@ public final class ICalEventParser {
         }
         // DATE-TIME: extract the first 8 characters as the date part
         return LocalDate.parse(dateStr.substring(0, 8), DateTimeFormatter.BASIC_ISO_DATE);
+    }
+
+    /**
+     * Determine si un evenement iCal est un blocage de calendrier (pas une vraie reservation).
+     * Exemples : "Airbnb (Not available)", "Not available", "Blocked".
+     */
+    private static boolean isBlockedEvent(String summary) {
+        if (summary == null || summary.isBlank()) {
+            return true; // Pas de SUMMARY = pas une reservation
+        }
+        String lower = summary.trim().toLowerCase();
+        return BLOCKED_KEYWORDS.stream().anyMatch(lower::contains);
     }
 }

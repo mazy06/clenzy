@@ -69,6 +69,7 @@ export function useInfiniteTimeline({
   // Track previous anchor+zoom to detect external navigation
   const prevAnchorRef = useRef(anchorDate);
   const prevZoomRef = useRef(zoom);
+  const pendingScrollTarget = useRef<Date | null>(null);
 
   useLayoutEffect(() => {
     const anchorChanged =
@@ -84,10 +85,8 @@ export function useInfiniteTimeline({
       prevAnchorRef.current = anchorDate;
       prevZoomRef.current = zoom;
 
-      // Schedule scroll to anchor after DOM update
-      requestAnimationFrame(() => {
-        scrollToDateImmediate(anchorDate);
-      });
+      // On zoom change, scroll to today; on anchor change, scroll to anchor
+      pendingScrollTarget.current = zoomChanged ? new Date() : anchorDate;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchorDate, zoom]);
@@ -194,6 +193,33 @@ export function useInfiniteTimeline({
       scrollToDateImmediate(anchorDate);
     });
   }, [anchorDate, scrollToDateImmediate]);
+
+  // ── Fulfill pending scroll after buffer is recalculated (days changed) ─────
+  // We track days.length + first day as a stable identity for "days changed"
+  const daysIdentity = days.length > 0
+    ? `${days.length}-${days[0].getTime()}`
+    : '';
+  useEffect(() => {
+    if (!pendingScrollTarget.current) return;
+    const target = pendingScrollTarget.current;
+    pendingScrollTarget.current = null;
+
+    const el = scrollRef.current;
+    if (!el) return;
+
+    // Compute scroll inline with current days/dayWidth (guaranteed fresh in this render)
+    const targetIndex = days.findIndex(
+      (d) =>
+        d.getFullYear() === target.getFullYear() &&
+        d.getMonth() === target.getMonth() &&
+        d.getDate() === target.getDate(),
+    );
+    if (targetIndex >= 0) {
+      const targetScrollLeft = Math.max(0, (targetIndex - 2) * dayWidth);
+      el.scrollLeft = targetScrollLeft;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [daysIdentity]);
 
   return {
     days,

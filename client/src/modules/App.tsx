@@ -1,23 +1,30 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import * as Sentry from '@sentry/react';
 import keycloak from '../keycloak';
 import { useAuth } from '../hooks/useAuth';
 import { useTokenManagement } from '../hooks/useTokenManagement';
 import { configureConsole } from '../config/console';
 import { CustomPermissionsProvider } from '../hooks/useCustomPermissions';
+import { usePostHogIdentify, usePostHogPageTracking } from '../providers/PostHogProvider';
+import { useCrispIdentify } from '../hooks/useCrispIdentify';
 import Login from './auth/Login';
 import Inscription from './auth/Inscription';
 import InscriptionSuccess from './auth/InscriptionSuccess';
 import InscriptionConfirm from './auth/InscriptionConfirm';
 import Support from './auth/Support';
 import AcceptInvitationPage from './invitations/AcceptInvitationPage';
+import PublicKeyVerification from '../pages/PublicKeyVerification';
 import MainLayoutFull from './layout/MainLayoutFull';
 import AuthenticatedApp from './AuthenticatedApp';
 import { clearTokens, setItem, STORAGE_KEYS } from '../services/storageService';
 
 // Routes publiques accessibles sans authentification
 const PUBLIC_ROUTES = ['/login', '/inscription', '/inscription/success', '/inscription/confirm', '/support', '/accept-invitation'];
+
+// Routes publiques avec paramètres (prefix match)
+const PUBLIC_ROUTE_PREFIXES = ['/verify-key/'];
 
 const App: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -26,8 +33,30 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // ─── Third-party user identification (PostHog, Crisp, Sentry) ──────────────
+  usePostHogIdentify();
+  usePostHogPageTracking();
+  useCrispIdentify();
+
+  // Sentry user context — set user for all error reports
+  useEffect(() => {
+    if (user) {
+      Sentry.setUser({
+        id: user.id,
+        email: user.email,
+        username: user.username,
+      });
+      Sentry.setTag('organization_id', String(user.organizationId || ''));
+      Sentry.setTag('platform_role', user.platformRole || '');
+      Sentry.setTag('plan', user.forfait || '');
+    } else {
+      Sentry.setUser(null);
+    }
+  }, [user]);
+
   // Déterminer si on est sur une route publique
-  const isPublicRoute = PUBLIC_ROUTES.includes(location.pathname);
+  const isPublicRoute = PUBLIC_ROUTES.includes(location.pathname)
+    || PUBLIC_ROUTE_PREFIXES.some(prefix => location.pathname.startsWith(prefix));
 
   // Refs pour les fonctions de token management
   const stopTokenMonitoringRef = useRef<(() => void) | null>(null);
@@ -234,6 +263,9 @@ const App: React.FC = () => {
 
           {/* Route publique/semi-publique pour accepter une invitation */}
           <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
+
+          {/* Route publique pour la verification de code par les commercants */}
+          <Route path="/verify-key/:token" element={<PublicKeyVerification />} />
         
         {/* Routes protégées */}
         <Route 

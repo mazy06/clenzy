@@ -5,7 +5,7 @@
  * ou null si aucun logo n'est disponible (ex: "direct", "other").
  */
 
-import airbnbLogoSmall from '../../../assets/logo/airbnb-logo-small.png';
+import airbnbLogoSmall from '../../../assets/logo/airbnb-logo-small.svg';
 import bookingLogoSmall from '../../../assets/logo/booking-logo-small.svg';
 import vrboLogoSmall from '../../../assets/logo/vrbo-logo-small.svg';
 import abritelLogoSmall from '../../../assets/logo/abritel-logo-small.svg';

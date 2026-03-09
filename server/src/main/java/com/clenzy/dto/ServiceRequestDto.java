@@ -37,17 +37,14 @@ public class ServiceRequestDto {
     public LocalDateTime guestCheckoutTime;
     public LocalDateTime guestCheckinTime;
     public boolean urgent;
-    public boolean requiresApproval;
-    public String approvedBy;
-    public LocalDateTime approvedAt;
-    public String devisAcceptedBy;
-    public LocalDateTime devisAcceptedAt;
 
     @NotNull(groups = Create.class)
     public Long userId;
 
     @NotNull(groups = Create.class)
     public Long propertyId;
+
+    public Long reservationId;
 
     // Objets complets pour éviter les "inconnu"
     public PropertyDto property;
@@ -58,6 +55,9 @@ public class ServiceRequestDto {
     public String assignedToType; // 'user' or 'team'
     public UserDto assignedToUser; // Si assigné à un utilisateur
     public TeamDto assignedToTeam; // Si assigné à une équipe
+
+    // Paiement
+    public PaymentStatus paymentStatus;
 
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;

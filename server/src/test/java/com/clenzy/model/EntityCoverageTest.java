@@ -761,7 +761,6 @@ class EntityCoverageTest {
             assertThat(sr.getPriority()).isEqualTo(Priority.NORMAL);
             assertThat(sr.getStatus()).isEqualTo(RequestStatus.PENDING);
             assertThat(sr.isUrgent()).isFalse();
-            assertThat(sr.isRequiresApproval()).isFalse();
             assertThat(sr.getInterventions()).isEmpty();
             assertThat(sr.getPhotos()).isEmpty();
             assertThat(sr.getComments()).isEmpty();
@@ -806,22 +805,6 @@ class EntityCoverageTest {
             sr.setUrgent(false);
             assertThat(sr.isHighPriority()).isFalse();
         }
-        @Test void needsApprovalAndCanBeScheduled() {
-            ServiceRequest sr = new ServiceRequest();
-            sr.setRequiresApproval(true);
-            sr.setStatus(RequestStatus.PENDING);
-            assertThat(sr.needsApproval()).isTrue();
-            assertThat(sr.canBeScheduled()).isFalse();
-
-            sr.setStatus(RequestStatus.APPROVED);
-            assertThat(sr.needsApproval()).isFalse();
-            assertThat(sr.canBeScheduled()).isTrue();
-
-            sr.setRequiresApproval(false);
-            sr.setStatus(RequestStatus.PENDING);
-            assertThat(sr.needsApproval()).isFalse();
-            assertThat(sr.canBeScheduled()).isTrue();
-        }
         @Test void settersAndGetters() {
             ServiceRequest sr = new ServiceRequest();
             sr.setId(1L);
@@ -835,10 +818,6 @@ class EntityCoverageTest {
             sr.setAccessNotes("Access");
             sr.setGuestCheckoutTime(LocalDateTime.now());
             sr.setGuestCheckinTime(LocalDateTime.now());
-            sr.setApprovedBy("admin");
-            sr.setApprovedAt(LocalDateTime.now());
-            sr.setDevisAcceptedBy("mgr");
-            sr.setDevisAcceptedAt(LocalDateTime.now());
             sr.setAssignedToId(10L);
             sr.setAssignedToType("user");
             sr.setCreatedAt(LocalDateTime.now());
@@ -848,8 +827,6 @@ class EntityCoverageTest {
             assertThat(sr.getDescription()).isEqualTo("Desc");
             assertThat(sr.getPreferredTimeSlot()).isEqualTo("AM");
             assertThat(sr.getEstimatedDurationHours()).isEqualTo(3);
-            assertThat(sr.getApprovedBy()).isEqualTo("admin");
-            assertThat(sr.getDevisAcceptedBy()).isEqualTo("mgr");
             assertThat(sr.getAssignedToId()).isEqualTo(10L);
             assertThat(sr.getAssignedToType()).isEqualTo("user");
         }
@@ -1675,7 +1652,7 @@ class EntityCoverageTest {
             assertThat(RequestStatus.COMPLETED.getDisplayName()).isEqualTo("Terminé");
         }
         @Test void canTransitionTo() {
-            assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.APPROVED)).isTrue();
+            assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.AWAITING_PAYMENT)).isTrue();
             assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.COMPLETED)).isFalse();
             assertThat(RequestStatus.COMPLETED.canTransitionTo(RequestStatus.PENDING)).isFalse();
             assertThat(RequestStatus.REJECTED.canTransitionTo(RequestStatus.PENDING)).isTrue();

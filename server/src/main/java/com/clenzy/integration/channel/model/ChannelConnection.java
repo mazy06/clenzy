@@ -3,7 +3,9 @@ package com.clenzy.integration.channel.model;
 import com.clenzy.integration.channel.ChannelName;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -54,6 +56,7 @@ public class ChannelConnection {
     @Column(name = "webhook_url")
     private String webhookUrl;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "sync_config", columnDefinition = "JSONB")
     private String syncConfig;
 

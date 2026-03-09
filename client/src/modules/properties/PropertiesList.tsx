@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Box,
   Typography,
@@ -29,6 +30,8 @@ import {
   Home,
   Visibility,
   Edit,
+  LocationOn,
+  Star,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -40,15 +43,20 @@ import ExportButton from '../../components/ExportButton';
 import type { ExportColumn } from '../../utils/exportUtils';
 import PropertyCard from './PropertyCard';
 import type { PropertyDetails } from './PropertyCard';
-import { estimateCleaningPrice, estimateCleaningDuration, formatDuration, getAmenityColor } from './PropertyCard';
+import { estimateCleaningPrice, estimateCleaningDuration, formatDuration } from './PropertyCard';
 import ThemedTooltip from '../../components/ThemedTooltip';
+import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
+import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import {
-  getPropertyStatusColor,
   getPropertyStatusLabel,
+  getPropertyStatusHex,
   getPropertyTypeLabel,
+  getPropertyTypeHex,
   getCleaningFrequencyLabel,
+  getCleaningFrequencyHex,
+  getAmenityHex,
 } from '../../utils/statusUtils';
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
@@ -104,7 +112,12 @@ const LIST_PAPER_SX = {
   borderRadius: 1.5,
 } as const;
 
-export default function PropertiesList() {
+interface PropertiesListProps {
+  embedded?: boolean;
+  actionsContainer?: HTMLElement | null;
+}
+
+export default function PropertiesList({ embedded = false, actionsContainer }: PropertiesListProps) {
   // ─── React Query ──────────────────────────────────────────────────
   const { properties, isLoading, deleteProperty } = usePropertiesList();
 
@@ -116,8 +129,9 @@ export default function PropertiesList() {
   const [selectedProperty, setSelectedProperty] = useState<PropertyListItem | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [page, setPage] = useState(0);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('list');
   const [rowsPerPage, setRowsPerPage] = useState(LIST_DEFAULT_ROWS);
+  const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
 
   const navigate = useNavigate();
   const { isAdmin, isManager, isHost } = useAuth();
@@ -147,9 +161,52 @@ export default function PropertiesList() {
     [filteredProperties, page, effectivePageSize]
   );
 
+  // ─── Map markers (from filtered properties with coordinates) ─────
+  const mapMarkers: PropertyMarker[] = useMemo(
+    () =>
+      filteredProperties
+        .filter((p) => p.latitude != null && p.longitude != null)
+        .map((p) => ({
+          lat: p.latitude!,
+          lng: p.longitude!,
+          name: p.name,
+          id: Number(p.id),
+          type: 'property' as const,
+        })),
+    [filteredProperties],
+  );
+
   useEffect(() => {
     setPage(0);
+    if (viewMode !== 'map') setMapBounds(null);
   }, [searchTerm, selectedType, selectedStatus, selectedHost, viewMode]);
+
+  // ─── Map bounds tracking (debounced) ───────────────────────────────
+  const boundsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleBoundsChange = useCallback((bounds: MapBounds) => {
+    if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current);
+    boundsTimerRef.current = setTimeout(() => setMapBounds(bounds), 300);
+  }, []);
+
+  useEffect(() => {
+    return () => { if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current); };
+  }, []);
+
+  const viewportProperties = useMemo(() => {
+    if (!mapBounds) return filteredProperties.filter((p) => p.latitude != null && p.longitude != null);
+    // Small padding (~500m) so markers at the viewport edge are included
+    const pad = 0.005;
+    return filteredProperties.filter((p) => {
+      if (p.latitude == null || p.longitude == null) return false;
+      return (
+        p.latitude >= mapBounds.south - pad &&
+        p.latitude <= mapBounds.north + pad &&
+        p.longitude >= mapBounds.west - pad &&
+        p.longitude <= mapBounds.east + pad
+      );
+    });
+  }, [filteredProperties, mapBounds]);
 
   // ─── Delete handler ───────────────────────────────────────────────
 
@@ -227,34 +284,41 @@ export default function PropertiesList() {
 
   // ─── Render ───────────────────────────────────────────────────────
 
+  const actionButtons = (
+    <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
+      <ExportButton
+        data={filteredProperties}
+        columns={exportColumns}
+        fileName="proprietes"
+      />
+      <Button
+        variant="contained"
+        color="primary"
+        startIcon={<Add />}
+        onClick={() => navigate('/properties/new')}
+        size="small"
+        sx={ACTION_BUTTON_SX}
+        title={t('properties.create')}
+      >
+        {t('properties.create')}
+      </Button>
+    </Box>
+  );
+
   return (
     <Box>
-      <PageHeader
-        title={t('properties.title')}
-        subtitle={t('properties.subtitle')}
-        backPath="/dashboard"
-        showBackButton={false}
-        actions={
-          <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
-            <ExportButton
-              data={filteredProperties}
-              columns={exportColumns}
-              fileName="proprietes"
-            />
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<Add />}
-              onClick={() => navigate('/properties/new')}
-              size="small"
-              sx={ACTION_BUTTON_SX}
-              title={t('properties.create')}
-            >
-              {t('properties.create')}
-            </Button>
-          </Box>
-        }
-      />
+      {/* Portal actions into parent's PageHeader when embedded */}
+      {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+
+      {!embedded && (
+        <PageHeader
+          title={t('properties.title')}
+          subtitle={t('properties.subtitle')}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={actionButtons}
+        />
+      )}
 
       {/* Filtres et recherche */}
       <FilterSearchBar
@@ -332,6 +396,161 @@ export default function PropertiesList() {
             )}
           </CardContent>
         </Card>
+      ) : viewMode === 'map' ? (
+        /* ─── Vue carte (sticky) + liste viewport (scrollable) ─── */
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 140px)', minHeight: 500 }}>
+          {/* Carte fixe en haut */}
+          <Paper sx={{ ...LIST_PAPER_SX, p: 0, overflow: 'hidden', flexShrink: 0 }}>
+            {mapMarkers.length > 0 ? (
+              <MapboxPropertyMap
+                properties={mapMarkers}
+                height={400}
+                onMarkerClick={(marker) => {
+                  if (marker.id) navigate(`/properties/${marker.id}`);
+                }}
+                onBoundsChange={handleBoundsChange}
+              />
+            ) : (
+              <Box sx={{ height: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                <Home sx={EMPTY_STATE_ICON_SX} />
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+                  Aucune propriété avec coordonnées GPS
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
+                  Les coordonnées sont ajoutées automatiquement lors de la saisie de l'adresse
+                </Typography>
+              </Box>
+            )}
+          </Paper>
+
+          {/* Liste scrollable en dessous */}
+          {mapMarkers.length > 0 && (
+            <Box sx={{ mt: 1.5, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ mb: 1, fontSize: '0.8125rem', fontWeight: 600, color: 'text.secondary', flexShrink: 0 }}
+              >
+                {viewportProperties.length} {viewportProperties.length > 1 ? 'propriétés' : 'propriété'} dans la zone visible
+              </Typography>
+
+              {viewportProperties.length === 0 ? (
+                <Paper sx={{ ...LIST_PAPER_SX, p: 2, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+                    Aucune propriété dans cette zone. Déplacez ou dézoomez la carte.
+                  </Typography>
+                </Paper>
+              ) : (
+                <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1, pr: 0.5 }}>
+                  {viewportProperties.map((property) => {
+                    const statusColor = getPropertyStatusHex(property.status);
+                    const typeColor = getPropertyTypeHex(property.type);
+                    return (
+                      <Paper
+                        key={property.id}
+                        sx={{
+                          ...LIST_PAPER_SX,
+                          p: 1.5,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          flexShrink: 0,
+                          '&:hover': {
+                            borderColor: 'primary.main',
+                            bgcolor: 'action.hover',
+                          },
+                        }}
+                        onClick={() => navigate(`/properties/${property.id}`)}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          {/* Nom + adresse */}
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography
+                              variant="body2"
+                              fontWeight={600}
+                              sx={{ fontSize: '0.84rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                            >
+                              {property.name}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
+                              <LocationOn sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0 }} />
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                              >
+                                {property.address}, {property.city}
+                              </Typography>
+                            </Box>
+                          </Box>
+
+                          {/* Type + Statut chips */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                            <Chip
+                              label={getPropertyTypeLabel(property.type, t)}
+                              size="small"
+                              sx={{
+                                backgroundColor: `${typeColor}18`,
+                                color: typeColor,
+                                border: `1px solid ${typeColor}40`,
+                                borderRadius: '6px',
+                                fontWeight: 600,
+                                fontSize: '0.68rem',
+                                height: 22,
+                                '& .MuiChip-label': { px: 0.75 },
+                              }}
+                            />
+                            <Chip
+                              label={getPropertyStatusLabel(property.status, t)}
+                              size="small"
+                              sx={{
+                                backgroundColor: `${statusColor}18`,
+                                color: statusColor,
+                                border: `1px solid ${statusColor}40`,
+                                borderRadius: '6px',
+                                fontWeight: 600,
+                                fontSize: '0.68rem',
+                                height: 22,
+                                '& .MuiChip-label': { px: 0.75 },
+                              }}
+                            />
+                          </Box>
+
+                          {/* Prix + Note + Action */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
+                            {property.nightlyPrice > 0 && (
+                              <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.84rem', whiteSpace: 'nowrap' }}>
+                                {property.nightlyPrice}€
+                                <Typography component="span" variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
+                                  /nuit
+                                </Typography>
+                              </Typography>
+                            )}
+                            {property.rating > 0 && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                                <Star sx={{ fontSize: 14, color: '#f59e0b' }} />
+                                <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.72rem' }}>
+                                  {property.rating}
+                                </Typography>
+                              </Box>
+                            )}
+                            <Tooltip title="Détails">
+                              <IconButton
+                                size="small"
+                                onClick={(e) => { e.stopPropagation(); navigate(`/properties/${property.id}`); }}
+                                sx={{ p: 0.5 }}
+                              >
+                                <Visibility sx={{ fontSize: 16 }} />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </Box>
+                      </Paper>
+                    );
+                  })}
+                </Box>
+              )}
+            </Box>
+          )}
+        </Box>
       ) : viewMode === 'grid' ? (
         <>
           <Grid container spacing={1.5}>
@@ -414,12 +633,22 @@ export default function PropertiesList() {
                         </Typography>
                       </TableCell>
                       <TableCell>
+                        {(() => { const c = getPropertyTypeHex(property.type); return (
                         <Chip
                           label={getPropertyTypeLabel(property.type, t)}
                           size="small"
-                          variant="outlined"
-                          sx={{ height: 22, fontSize: '0.68rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                          sx={{
+                            backgroundColor: `${c}18`,
+                            color: c,
+                            border: `1px solid ${c}40`,
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            fontSize: '0.68rem',
+                            height: 22,
+                            '& .MuiChip-label': { px: 0.75 },
+                          }}
                         />
+                        ); })()}
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
@@ -429,30 +658,50 @@ export default function PropertiesList() {
                       <TableCell>
                         {property.amenities && property.amenities.length > 0 ? (
                           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', alignItems: 'center' }}>
-                            {property.amenities.slice(0, 3).map((amenity, i) => (
+                            {property.amenities.slice(0, 3).map((amenity, i) => {
+                              const c = getAmenityHex(amenity);
+                              return (
                               <Chip
                                 key={i}
                                 label={t(`properties.amenities.items.${amenity}`)}
                                 size="small"
-                                color={getAmenityColor(amenity)}
-                                variant="outlined"
-                                sx={{ height: 22, fontSize: '0.62rem', borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                                sx={{
+                                  backgroundColor: `${c}18`,
+                                  color: c,
+                                  border: `1px solid ${c}40`,
+                                  borderRadius: '6px',
+                                  fontWeight: 600,
+                                  fontSize: '0.62rem',
+                                  height: 22,
+                                  '& .MuiChip-label': { px: 0.75 },
+                                }}
                               />
-                            ))}
+                              );
+                            })}
                             {property.amenities.length > 3 && (
                               <ThemedTooltip
                                 title={
                                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                    {property.amenities.map((a, i) => (
+                                    {property.amenities.map((a, i) => {
+                                      const c = getAmenityHex(a);
+                                      return (
                                       <Chip
                                         key={i}
                                         label={t(`properties.amenities.items.${a}`)}
-                                        color={getAmenityColor(a)}
-                                        variant="outlined"
                                         size="small"
-                                        sx={{ fontSize: '0.6rem', height: 20, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
+                                        sx={{
+                                          backgroundColor: `${c}18`,
+                                          color: c,
+                                          border: `1px solid ${c}40`,
+                                          borderRadius: '6px',
+                                          fontWeight: 600,
+                                          fontSize: '0.6rem',
+                                          height: 20,
+                                          '& .MuiChip-label': { px: 0.75 },
+                                        }}
                                       />
-                                    ))}
+                                      );
+                                    })}
                                   </Box>
                                 }
                                 arrow
@@ -461,8 +710,7 @@ export default function PropertiesList() {
                                 <Chip
                                   label={`+${property.amenities.length - 3}`}
                                   size="small"
-                                  variant="outlined"
-                                  sx={{ height: 22, fontSize: '0.62rem', borderWidth: 1.5, borderColor: 'grey.300', color: 'text.secondary', '& .MuiChip-label': { px: 0.75 }, cursor: 'default' }}
+                                  sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 }, cursor: 'default' }}
                                 />
                               </ThemedTooltip>
                             )}
@@ -493,22 +741,40 @@ export default function PropertiesList() {
                         )}
                       </TableCell>
                       <TableCell align="center">
-                        <Chip
-                          label={getCleaningFrequencyLabel(property.cleaningFrequency || 'ON_DEMAND', t)}
-                          size="small"
-                          color={property.cleaningFrequency === 'AFTER_EACH_STAY' ? 'success' : 'default'}
-                          variant="outlined"
-                          sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
-                        />
+                        {(() => { const c = getCleaningFrequencyHex(property.cleaningFrequency || 'ON_DEMAND'); return (
+                          <Chip
+                            label={getCleaningFrequencyLabel(property.cleaningFrequency || 'ON_DEMAND', t)}
+                            size="small"
+                            sx={{
+                              backgroundColor: `${c}18`,
+                              color: c,
+                              border: `1px solid ${c}40`,
+                              borderRadius: '6px',
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              height: 24,
+                              '& .MuiChip-label': { px: 1 },
+                            }}
+                          />
+                        ); })()}
                       </TableCell>
                       <TableCell align="center">
-                        <Chip
-                          label={getPropertyStatusLabel(property.status, t)}
-                          color={getPropertyStatusColor(property.status)}
-                          size="small"
-                          variant="outlined"
-                          sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, borderWidth: 1.5, '& .MuiChip-label': { px: 0.75 } }}
-                        />
+                        {(() => { const c = getPropertyStatusHex(property.status); return (
+                          <Chip
+                            label={getPropertyStatusLabel(property.status, t)}
+                            size="small"
+                            sx={{
+                              backgroundColor: `${c}18`,
+                              color: c,
+                              border: `1px solid ${c}40`,
+                              borderRadius: '6px',
+                              fontWeight: 600,
+                              fontSize: '0.75rem',
+                              height: 24,
+                              '& .MuiChip-label': { px: 1 },
+                            }}
+                          />
+                        ); })()}
                       </TableCell>
                       <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
                         <Tooltip title="Détails">

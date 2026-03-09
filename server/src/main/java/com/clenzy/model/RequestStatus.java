@@ -5,12 +5,13 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Statut d'une demande de service
+ * Statut d'une demande de service.
+ * Workflow : PENDING → AWAITING_PAYMENT → IN_PROGRESS → COMPLETED
  */
 public enum RequestStatus {
     PENDING("En attente"),
-    APPROVED("Approuvé"),
-    DEVIS_ACCEPTED("Devis accepté"),
+    ASSIGNED("Assignée"),
+    AWAITING_PAYMENT("En attente de paiement"),
     IN_PROGRESS("En cours"),
     COMPLETED("Terminé"),
     CANCELLED("Annulé"),
@@ -27,13 +28,13 @@ public enum RequestStatus {
     }
 
     private static final Map<RequestStatus, Set<RequestStatus>> ALLOWED_TRANSITIONS = Map.of(
-        PENDING, EnumSet.of(APPROVED, REJECTED, CANCELLED),
-        APPROVED, EnumSet.of(DEVIS_ACCEPTED, IN_PROGRESS, CANCELLED),
-        DEVIS_ACCEPTED, EnumSet.of(IN_PROGRESS, CANCELLED),
+        PENDING, EnumSet.of(AWAITING_PAYMENT, REJECTED, CANCELLED),
+        ASSIGNED, EnumSet.of(AWAITING_PAYMENT, PENDING, CANCELLED),  // legacy — kept for backward compat
+        AWAITING_PAYMENT, EnumSet.of(IN_PROGRESS, PENDING, CANCELLED),
         IN_PROGRESS, EnumSet.of(COMPLETED, CANCELLED),
         COMPLETED, EnumSet.noneOf(RequestStatus.class),
         CANCELLED, EnumSet.noneOf(RequestStatus.class),
-        REJECTED, EnumSet.of(PENDING)   // re-submit
+        REJECTED, EnumSet.of(PENDING)
     );
 
     public boolean canTransitionTo(RequestStatus target) {

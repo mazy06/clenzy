@@ -8,7 +8,8 @@ public enum ReferenceType {
     INTERVENTION("Intervention"),
     SERVICE_REQUEST("Demande de service"),
     PROPERTY("Bien immobilier"),
-    USER("Utilisateur");
+    USER("Utilisateur"),
+    RESERVATION("Reservation");
 
     private final String label;
 

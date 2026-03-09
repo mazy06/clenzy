@@ -113,6 +113,25 @@ public class Invoice {
     @Column(name = "xml_content", columnDefinition = "TEXT")
     private String xmlContent;
 
+    // --- B2B Payment fields (Phase 8) ---
+
+    @Column(name = "payment_method", length = 30)
+    private String paymentMethod;
+
+    @Column(name = "payment_transaction_id")
+    private Long paymentTransactionId;
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
+    @Column(name = "payment_reminder_sent_at")
+    private LocalDateTime paymentReminderSentAt;
+
+    @Column(name = "overdue_notified_at")
+    private LocalDateTime overdueNotifiedAt;
+
+    // --- End B2B Payment fields ---
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -121,17 +140,11 @@ public class Invoice {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    // --- Relations ---
-
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("lineNumber ASC")
     private List<InvoiceLine> lines = new ArrayList<>();
 
-    // --- Constructeurs ---
-
     public Invoice() {}
-
-    // --- Methodes utilitaires ---
 
     public void addLine(InvoiceLine line) {
         lines.add(line);
@@ -141,8 +154,6 @@ public class Invoice {
     public boolean isImmutable() {
         return status == InvoiceStatus.ISSUED || status == InvoiceStatus.PAID;
     }
-
-    // --- Getters / Setters ---
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -209,6 +220,21 @@ public class Invoice {
 
     public String getXmlContent() { return xmlContent; }
     public void setXmlContent(String xmlContent) { this.xmlContent = xmlContent; }
+
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public Long getPaymentTransactionId() { return paymentTransactionId; }
+    public void setPaymentTransactionId(Long paymentTransactionId) { this.paymentTransactionId = paymentTransactionId; }
+
+    public LocalDateTime getPaidAt() { return paidAt; }
+    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
+
+    public LocalDateTime getPaymentReminderSentAt() { return paymentReminderSentAt; }
+    public void setPaymentReminderSentAt(LocalDateTime paymentReminderSentAt) { this.paymentReminderSentAt = paymentReminderSentAt; }
+
+    public LocalDateTime getOverdueNotifiedAt() { return overdueNotifiedAt; }
+    public void setOverdueNotifiedAt(LocalDateTime overdueNotifiedAt) { this.overdueNotifiedAt = overdueNotifiedAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

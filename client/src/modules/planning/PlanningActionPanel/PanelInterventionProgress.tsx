@@ -133,12 +133,13 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
       <Box sx={{ mb: 2 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
           <Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>Progression</Typography>
+          {(() => { const c = progress === 100 ? '#4A9B8E' : progress > 0 ? '#0288d1' : '#757575'; return (
           <Chip
             label={`${progress}%`}
             size="small"
-            color={progress === 100 ? 'success' : progress > 0 ? 'info' : 'default'}
-            sx={{ fontSize: '0.625rem', height: 20 }}
+            sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
           />
+          ); })()}
         </Box>
         <LinearProgress
           variant="determinate"
@@ -206,12 +207,13 @@ const PanelInterventionProgress: React.FC<PanelInterventionProgressProps> = ({
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               Validation pièces
+              {(() => { const c = validatedRooms.size === totalRooms ? '#4A9B8E' : '#757575'; return (
               <Chip
                 label={`${validatedRooms.size}/${totalRooms}`}
                 size="small"
-                color={validatedRooms.size === totalRooms ? 'success' : 'default'}
-                sx={{ fontSize: '0.5625rem', height: 18 }}
+                sx={{ fontSize: '0.5625rem', height: 18, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
               />
+              ); })()}
             </Box>
           </StepLabel>
           <StepContent>

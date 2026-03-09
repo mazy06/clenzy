@@ -225,7 +225,7 @@ class NoiseDeviceServiceTest {
         void whenDeviceExists_thenDeletes() {
             // Arrange
             NoiseDevice device = buildDevice(1L, "Test", DeviceType.MINUT);
-            when(noiseDeviceRepository.findByIdAndUserId(1L, USER_ID)).thenReturn(Optional.of(device));
+            when(noiseDeviceRepository.findById(1L)).thenReturn(Optional.of(device));
 
             // Act
             service.deleteDevice(USER_ID, 1L);
@@ -238,7 +238,7 @@ class NoiseDeviceServiceTest {
         @DisplayName("when device not found then throws IllegalArgumentException")
         void whenDeviceNotFound_thenThrows() {
             // Arrange
-            when(noiseDeviceRepository.findByIdAndUserId(99L, USER_ID)).thenReturn(Optional.empty());
+            when(noiseDeviceRepository.findById(99L)).thenReturn(Optional.empty());
 
             // Act & Assert
             assertThatThrownBy(() -> service.deleteDevice(USER_ID, 99L))

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, useTheme } from '@mui/material';
 import { useDraggable } from '@dnd-kit/core';
-import { AutoAwesome, Handyman, Lock as LockIcon } from '@mui/icons-material';
+import { AutoAwesome, Handyman, Lock as LockIcon, Close } from '@mui/icons-material';
 import type { BarLayout, PlanningEvent, ZoomLevel, DragBarData } from './types';
 import { BAR_BORDER_RADIUS } from './constants';
 import { hexToRgba } from './utils/colorUtils';
@@ -18,6 +18,7 @@ interface PlanningBarProps {
   resizeWidth: number | null;
   resizeConflict: boolean;
   onClick: (event: PlanningEvent) => void;
+  onHide?: (event: PlanningEvent) => void;
 }
 
 function getEventIcon(type: PlanningEvent['type'], compact: boolean) {
@@ -80,6 +81,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   resizeWidth,
   resizeConflict,
   onClick,
+  onHide,
 }) => {
   const theme = useTheme();
   const { event, left, top, height } = layout;
@@ -94,8 +96,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     user?.orgRole === 'ADMIN'
   );
 
-  // Draggable for move (whole bar body)
-  const isDragDisabled = event.type === 'blocked' || (isIntervention && !canEditIntervention);
+  // Draggable for move (whole bar body) — SR blocks are not draggable
+  const isDragDisabled = event.type === 'blocked' || (isIntervention && !canEditIntervention) || !!event.isAwaitingPayment;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: event.id,
     data: { type: 'move', event, layout } satisfies DragBarData,
@@ -116,6 +118,12 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     ? hexToRgba(event.color, isDark ? 0.25 : 0.18)
     : hexToRgba(event.color, isDark ? 0.35 : 0.25);
 
+  // Awaiting payment: diagonal striped pattern
+  const isAwaitingPayment = !!event.isAwaitingPayment;
+  const stripedBg = isAwaitingPayment
+    ? `repeating-linear-gradient(-45deg, ${hexToRgba(event.color, isDark ? 0.12 : 0.08)}, ${hexToRgba(event.color, isDark ? 0.12 : 0.08)} 4px, ${hexToRgba(event.color, isDark ? 0.28 : 0.20)} 4px, ${hexToRgba(event.color, isDark ? 0.28 : 0.20)} 8px)`
+    : undefined;
+
   const borderColor = isSelected
     ? theme.palette.primary.main
     : (isConflict || resizeConflict)
@@ -128,6 +136,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   return (
     <Box
       ref={setNodeRef}
+      data-planning-bar
       {...(!isDragDisabled ? listeners : {})}
       {...(!isDragDisabled ? attributes : {})}
       onClick={(e) => {
@@ -142,11 +151,13 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         top,
         width: displayWidth,
         height,
-        backgroundColor: bgColor,
+        ...(stripedBg ? { background: stripedBg } : { backgroundColor: bgColor }),
         border: `${isCompactBar ? 1 : 1.5}px solid ${borderColor}`,
-        borderLeft: `${isCompactBar ? 2 : 3}px solid ${event.color}`,
+        borderStyle: isAwaitingPayment ? 'dashed' : 'solid',
+        borderLeft: `${isCompactBar ? 2 : 3}px ${isAwaitingPayment ? 'dashed' : 'solid'} ${event.color}`,
         borderRadius: `${isCompactBar ? 3 : BAR_BORDER_RADIUS}px`,
         cursor: isResizing ? 'col-resize' : isDragDisabled ? 'pointer' : 'grab',
+        touchAction: 'none',
         overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',
@@ -162,9 +173,16 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           transform: 'translateY(-1px)',
           zIndex: 6,
         },
+        '&:hover .hide-btn': { opacity: 1 },
         ...(isSelected && {
           boxShadow: `0 0 0 2px ${theme.palette.primary.main}, 0 4px 12px ${hexToRgba(theme.palette.primary.main, 0.3)}`,
           transform: 'translateY(-1px)',
+          animation: 'select-pop 0.3s ease-out',
+          '@keyframes select-pop': {
+            '0%': { transform: 'scale(1) translateY(0)' },
+            '40%': { transform: 'scale(1.05) translateY(-2px)' },
+            '100%': { transform: 'scale(1) translateY(-1px)' },
+          },
         }),
         ...((isConflict || resizeConflict) && {
           animation: 'pulse-conflict 2s ease-in-out infinite',
@@ -230,6 +248,39 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           </Typography>
         );
       })()}
+
+      {/* Hide button for cancelled reservations — visible on hover */}
+      {isReservation && event.status === 'cancelled' && onHide && (
+        <Box
+          className="hide-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            onHide(event);
+          }}
+          sx={{
+            position: 'absolute',
+            right: 2,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 18,
+            height: 18,
+            borderRadius: '50%',
+            backgroundColor: 'rgba(255,255,255,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 11,
+            opacity: 0,
+            transition: 'opacity 0.15s ease',
+            '&:hover': {
+              backgroundColor: 'rgba(255,255,255,0.5)',
+            },
+          }}
+        >
+          <Close sx={{ fontSize: 11, color: '#fff' }} />
+        </Box>
+      )}
 
       {/* Resize handle (right edge) — hidden during move drag, respects role permissions */}
       {!isDragDisabled && !isDragging && (

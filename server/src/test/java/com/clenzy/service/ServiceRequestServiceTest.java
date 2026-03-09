@@ -1,9 +1,7 @@
 package com.clenzy.service;
 
-import com.clenzy.dto.InterventionDto;
 import com.clenzy.dto.ServiceRequestDto;
 import com.clenzy.exception.NotFoundException;
-import com.clenzy.exception.UnauthorizedException;
 import com.clenzy.model.*;
 import com.clenzy.repository.*;
 import com.clenzy.tenant.TenantContext;
@@ -20,13 +18,9 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.security.oauth2.jwt.Jwt;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,6 +35,7 @@ class ServiceRequestServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private InterventionRepository interventionRepository;
+    @Mock private ReservationRepository reservationRepository;
     @Mock private TeamRepository teamRepository;
     @Mock private NotificationService notificationService;
     @Mock private PropertyTeamService propertyTeamService;
@@ -59,7 +54,7 @@ class ServiceRequestServiceTest {
 
         service = new ServiceRequestService(
                 serviceRequestRepository, userRepository, propertyRepository,
-                interventionRepository, teamRepository, notificationService,
+                interventionRepository, reservationRepository, teamRepository, notificationService,
                 propertyTeamService, kafkaTemplate, tenantContext, serviceRequestMapper);
     }
 
@@ -104,18 +99,6 @@ class ServiceRequestServiceTest {
         prop.setName("Appartement Test");
         prop.setOwner(owner);
         return prop;
-    }
-
-    private Jwt buildJwt(String subject, String... roles) {
-        Jwt.Builder builder = Jwt.withTokenValue("token")
-                .header("alg", "RS256")
-                .subject(subject)
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(3600));
-        if (roles.length > 0) {
-            builder.claim("realm_access", Map.of("roles", List.of(roles)));
-        }
-        return builder.build();
     }
 
     // ── Tests ────────────────────────────────────────────────────────────────
@@ -289,7 +272,7 @@ class ServiceRequestServiceTest {
         void whenCalled_thenReturnsMappedList() {
             // Arrange
             ServiceRequest sr1 = buildEntity(1L, "SR 1", RequestStatus.PENDING);
-            ServiceRequest sr2 = buildEntity(2L, "SR 2", RequestStatus.APPROVED);
+            ServiceRequest sr2 = buildEntity(2L, "SR 2", RequestStatus.ASSIGNED);
             ServiceRequestDto dto1 = new ServiceRequestDto();
             dto1.id = 1L;
             ServiceRequestDto dto2 = new ServiceRequestDto();
@@ -367,7 +350,7 @@ class ServiceRequestServiceTest {
             matching.setProperty(property);
             matching.setServiceType(ServiceType.CLEANING);
 
-            ServiceRequest nonMatching = buildEntity(2L, "Other", RequestStatus.APPROVED);
+            ServiceRequest nonMatching = buildEntity(2L, "Other", RequestStatus.ASSIGNED);
             User otherUser = buildUser(99L, UserRole.HOST, "kc-99");
             nonMatching.setUser(otherUser);
             nonMatching.setProperty(property);
@@ -439,302 +422,4 @@ class ServiceRequestServiceTest {
         }
     }
 
-    @Nested
-    @DisplayName("validateAndCreateIntervention()")
-    class ValidateAndCreateIntervention {
-
-        private ServiceRequest buildApprovableRequest(Long id) {
-            User user = buildUser(10L, UserRole.HOST, "kc-host");
-            user.setEmail("host@example.com");
-            Property property = buildProperty(20L, user);
-
-            ServiceRequest sr = buildEntity(id, "Demande test", RequestStatus.PENDING);
-            sr.setUser(user);
-            sr.setProperty(property);
-            sr.setDesiredDate(LocalDateTime.now().plusDays(5));
-            sr.setEstimatedDurationHours(3);
-            sr.setEstimatedCost(BigDecimal.valueOf(150));
-            return sr;
-        }
-
-        @Test
-        @DisplayName("PENDING request with APPROVED status created, intervention returned")
-        void whenPendingAndPlatformStaff_thenCreatesIntervention() {
-            // Arrange
-            Jwt jwt = buildJwt("kc-admin", "SUPER_ADMIN");
-            ServiceRequest sr = buildApprovableRequest(1L);
-
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-            when(interventionRepository.existsByServiceRequestId(1L)).thenReturn(false);
-            when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
-            when(interventionRepository.save(any(Intervention.class))).thenAnswer(inv -> {
-                Intervention i = inv.getArgument(0);
-                i.setId(100L);
-                return i;
-            });
-
-            // Act
-            InterventionDto result = service.validateAndCreateIntervention(1L, null, null, false, jwt);
-
-            // Assert
-            assertThat(result).isNotNull();
-            assertThat(result.id).isEqualTo(100L);
-            verify(serviceRequestRepository).save(any(ServiceRequest.class));
-            verify(interventionRepository).save(any(Intervention.class));
-        }
-
-        @Test
-        @DisplayName("sets status to APPROVED and records approver info")
-        void whenApproving_thenSetsApprovedFieldsOnRequest() {
-            // Arrange
-            Jwt jwt = buildJwt("kc-admin", "SUPER_ADMIN");
-            ServiceRequest sr = buildApprovableRequest(1L);
-
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-            when(interventionRepository.existsByServiceRequestId(1L)).thenReturn(false);
-            when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
-            when(interventionRepository.save(any(Intervention.class))).thenAnswer(inv -> {
-                Intervention i = inv.getArgument(0);
-                i.setId(100L);
-                return i;
-            });
-
-            // Act
-            service.validateAndCreateIntervention(1L, null, null, false, jwt);
-
-            // Assert
-            ArgumentCaptor<ServiceRequest> captor = ArgumentCaptor.forClass(ServiceRequest.class);
-            verify(serviceRequestRepository).save(captor.capture());
-            ServiceRequest saved = captor.getValue();
-            assertThat(saved.getStatus()).isEqualTo(RequestStatus.APPROVED);
-            assertThat(saved.getApprovedBy()).isEqualTo("kc-admin");
-            assertThat(saved.getApprovedAt()).isNotNull();
-        }
-
-        @Test
-        @DisplayName("when request not found - throws NotFoundException")
-        void whenRequestNotFound_thenThrowsNotFoundException() {
-            // Arrange
-            Jwt jwt = buildJwt("kc-admin", "SUPER_ADMIN");
-            when(serviceRequestRepository.findById(999L)).thenReturn(Optional.empty());
-
-            // Act & Assert
-            assertThatThrownBy(() -> service.validateAndCreateIntervention(999L, null, null, false, jwt))
-                    .isInstanceOf(NotFoundException.class);
-        }
-
-        @Test
-        @DisplayName("when already APPROVED - throws IllegalStateException")
-        void whenAlreadyApproved_thenThrowsIllegalState() {
-            // Arrange
-            Jwt jwt = buildJwt("kc-admin", "SUPER_ADMIN");
-            ServiceRequest sr = buildApprovableRequest(1L);
-            sr.setStatus(RequestStatus.APPROVED);
-
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-
-            // Act & Assert
-            assertThatThrownBy(() -> service.validateAndCreateIntervention(1L, null, null, false, jwt))
-                    .isInstanceOf(IllegalStateException.class);
-        }
-
-        @Test
-        @DisplayName("when non-platform staff - throws UnauthorizedException")
-        void whenNonPlatformStaff_thenThrowsUnauthorized() {
-            // Arrange
-            Jwt jwt = buildJwt("kc-host", "HOST");
-
-            // Act & Assert
-            assertThatThrownBy(() -> service.validateAndCreateIntervention(1L, null, null, false, jwt))
-                    .isInstanceOf(UnauthorizedException.class);
-        }
-
-        @Test
-        @DisplayName("when intervention already exists for request - throws IllegalStateException")
-        void whenInterventionAlreadyExists_thenThrowsIllegalState() {
-            // Arrange
-            Jwt jwt = buildJwt("kc-admin", "SUPER_ADMIN");
-            ServiceRequest sr = buildApprovableRequest(1L);
-
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-            when(interventionRepository.existsByServiceRequestId(1L)).thenReturn(true);
-
-            // Act & Assert
-            assertThatThrownBy(() -> service.validateAndCreateIntervention(1L, null, null, false, jwt))
-                    .isInstanceOf(IllegalStateException.class);
-        }
-
-        @Test
-        @DisplayName("assigns team when teamId is provided")
-        void whenTeamIdProvided_thenAssignsTeam() {
-            // Arrange
-            Jwt jwt = buildJwt("kc-admin", "SUPER_ADMIN");
-            ServiceRequest sr = buildApprovableRequest(1L);
-            Team team = new Team();
-            team.setId(5L);
-            team.setName("Team Nettoyage");
-
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-            when(interventionRepository.existsByServiceRequestId(1L)).thenReturn(false);
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            when(teamRepository.findById(5L)).thenReturn(Optional.of(team));
-            when(interventionRepository.save(any(Intervention.class))).thenAnswer(inv -> {
-                Intervention i = inv.getArgument(0);
-                i.setId(100L);
-                return i;
-            });
-
-            // Act
-            service.validateAndCreateIntervention(1L, 5L, null, false, jwt);
-
-            // Assert
-            ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-            verify(interventionRepository).save(captor.capture());
-            assertThat(captor.getValue().getTeamId()).isEqualTo(5L);
-        }
-
-        @Test
-        @DisplayName("assigns user when userId is provided")
-        void whenUserIdProvided_thenAssignsUser() {
-            // Arrange
-            Jwt jwt = buildJwt("kc-admin", "SUPER_ADMIN");
-            ServiceRequest sr = buildApprovableRequest(1L);
-            User tech = buildUser(30L, UserRole.TECHNICIAN, "kc-tech");
-
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-            when(interventionRepository.existsByServiceRequestId(1L)).thenReturn(false);
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            when(userRepository.findById(30L)).thenReturn(Optional.of(tech));
-            when(interventionRepository.save(any(Intervention.class))).thenAnswer(inv -> {
-                Intervention i = inv.getArgument(0);
-                i.setId(100L);
-                return i;
-            });
-
-            // Act
-            service.validateAndCreateIntervention(1L, null, 30L, false, jwt);
-
-            // Assert
-            ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-            verify(interventionRepository).save(captor.capture());
-            assertThat(captor.getValue().getAssignedUser()).isEqualTo(tech);
-            assertThat(captor.getValue().getAssignedTechnicianId()).isEqualTo(30L);
-        }
-    }
-
-    @Nested
-    @DisplayName("acceptDevis(serviceRequestId, jwt)")
-    class AcceptDevis {
-
-        @Test
-        @DisplayName("when APPROVED and platform staff - changes status to DEVIS_ACCEPTED")
-        void whenApprovedAndPlatformStaff_thenStatusChangesToDevisAccepted() {
-            // Arrange
-            Jwt jwt = buildJwt("kc-manager", "SUPER_MANAGER");
-            User host = buildUser(10L, UserRole.HOST, "kc-host");
-            host.setEmail("host@example.com");
-            Property property = buildProperty(20L, host);
-
-            ServiceRequest sr = buildEntity(1L, "Demande test", RequestStatus.APPROVED);
-            sr.setUser(host);
-            sr.setProperty(property);
-
-            ServiceRequestDto expectedDto = new ServiceRequestDto();
-            expectedDto.id = 1L;
-            expectedDto.status = RequestStatus.DEVIS_ACCEPTED;
-
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-            when(serviceRequestRepository.save(any(ServiceRequest.class))).thenAnswer(inv -> inv.getArgument(0));
-            when(serviceRequestMapper.toDto(any(ServiceRequest.class))).thenReturn(expectedDto);
-
-            // Act
-            ServiceRequestDto result = service.acceptDevis(1L, jwt);
-
-            // Assert
-            assertThat(result.status).isEqualTo(RequestStatus.DEVIS_ACCEPTED);
-
-            ArgumentCaptor<ServiceRequest> captor = ArgumentCaptor.forClass(ServiceRequest.class);
-            verify(serviceRequestRepository).save(captor.capture());
-            assertThat(captor.getValue().getStatus()).isEqualTo(RequestStatus.DEVIS_ACCEPTED);
-            assertThat(captor.getValue().getDevisAcceptedBy()).isEqualTo("kc-manager");
-            assertThat(captor.getValue().getDevisAcceptedAt()).isNotNull();
-        }
-
-        @Test
-        @DisplayName("HOST owner can accept their own devis")
-        void whenHostOwner_thenCanAccept() {
-            // Arrange
-            User host = buildUser(10L, UserRole.HOST, "kc-host");
-            Property property = buildProperty(20L, host);
-            Jwt jwt = buildJwt("kc-host", "HOST");
-
-            ServiceRequest sr = buildEntity(1L, "Demande test", RequestStatus.APPROVED);
-            sr.setUser(host);
-            sr.setProperty(property);
-
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-            when(userRepository.findByKeycloakId("kc-host")).thenReturn(Optional.of(host));
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            when(serviceRequestMapper.toDto(any())).thenReturn(new ServiceRequestDto());
-
-            // Act
-            ServiceRequestDto result = service.acceptDevis(1L, jwt);
-
-            // Assert
-            assertThat(result).isNotNull();
-            verify(serviceRequestRepository).save(any());
-        }
-
-        @Test
-        @DisplayName("when wrong status (PENDING) - throws IllegalStateException")
-        void whenNotApproved_thenThrowsIllegalState() {
-            // Arrange
-            Jwt jwt = buildJwt("kc-manager", "SUPER_MANAGER");
-            ServiceRequest sr = buildEntity(1L, "Demande test", RequestStatus.PENDING);
-            sr.setUser(buildUser(10L, UserRole.HOST, "kc-host"));
-
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-
-            // Act & Assert
-            assertThatThrownBy(() -> service.acceptDevis(1L, jwt))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("APPROVED");
-        }
-
-        @Test
-        @DisplayName("when not found - throws NotFoundException")
-        void whenNotFound_thenThrowsNotFoundException() {
-            // Arrange
-            Jwt jwt = buildJwt("kc-manager", "SUPER_MANAGER");
-            when(serviceRequestRepository.findById(999L)).thenReturn(Optional.empty());
-
-            // Act & Assert
-            assertThatThrownBy(() -> service.acceptDevis(999L, jwt))
-                    .isInstanceOf(NotFoundException.class);
-        }
-
-        @Test
-        @DisplayName("publishes Kafka AUTORISATION_TRAVAUX event after acceptance")
-        void whenAccepted_thenPublishesKafkaEvent() {
-            // Arrange
-            Jwt jwt = buildJwt("kc-manager", "SUPER_MANAGER");
-            User host = buildUser(10L, UserRole.HOST, "kc-host");
-            host.setEmail("host@example.com");
-            Property property = buildProperty(20L, host);
-
-            ServiceRequest sr = buildEntity(1L, "Demande test", RequestStatus.APPROVED);
-            sr.setUser(host);
-            sr.setProperty(property);
-
-            when(serviceRequestRepository.findById(1L)).thenReturn(Optional.of(sr));
-            when(serviceRequestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            when(serviceRequestMapper.toDto(any())).thenReturn(new ServiceRequestDto());
-
-            // Act
-            service.acceptDevis(1L, jwt);
-
-            // Assert
-            verify(kafkaTemplate).send(anyString(), contains("autorisation-travaux"), any(Map.class));
-        }
-    }
 }

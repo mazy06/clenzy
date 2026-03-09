@@ -21,7 +21,6 @@ spring:
         format_sql: true
         jdbc:
           time_zone: UTC
-        dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
   liquibase:
     enabled: true
@@ -187,6 +186,7 @@ stripe:
   currency: eur
   success-url: ${FRONTEND_URL:http://localhost:3000}/interventions/payment/success?session_id={CHECKOUT_SESSION_ID}
   cancel-url: ${FRONTEND_URL:http://localhost:3000}/interventions/payment/cancel
+  embedded-return-url: ${FRONTEND_URL:http://localhost:3000}/planning
   inscription:
     return-url: ${FRONTEND_URL:http://localhost:3000}/inscription/success
 
@@ -208,6 +208,8 @@ clenzy:
     contact-dir: ${CONTACT_UPLOADS_DIR:/app/uploads/contact}
     templates-dir: ${TEMPLATES_DIR:/app/uploads/templates}
     documents-dir: ${DOCUMENTS_DIR:/app/uploads/documents}
+  mapbox:
+    access-token: ${MAPBOX_ACCESS_TOKEN:}
   libreoffice:
     url: ${LIBREOFFICE_URL:http://clenzy-libreoffice:3000}
 

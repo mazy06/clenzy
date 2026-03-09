@@ -153,6 +153,10 @@ public class PermissionInitializer {
         anyCreated |= ensurePermission("documents:compliance", "Voir et gerer la conformite NF", "documents",
                 List.of("SUPER_ADMIN"));
 
+        // --- Guests ---
+        anyCreated |= ensurePermission("guests:view", "Voir la liste des voyageurs", "guests",
+                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
+
         // --- Contact ---
         anyCreated |= ensurePermission("contact:view", "Voir les messages de contact", "contact",
                 List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST", "TECHNICIAN", "HOUSEKEEPER", "SUPERVISOR", "LAUNDRY", "EXTERIOR_TECH"));
