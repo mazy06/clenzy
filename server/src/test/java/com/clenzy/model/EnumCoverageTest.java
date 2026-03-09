@@ -275,14 +275,14 @@ class EnumCoverageTest {
             }
         }
         @Test void transitions_pending() {
-            assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.ASSIGNED)).isTrue();
+            assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.AWAITING_PAYMENT)).isTrue();
             assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.REJECTED)).isTrue();
             assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.CANCELLED)).isTrue();
             assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.COMPLETED)).isFalse();
         }
         @Test void transitions_assigned() {
-            assertThat(RequestStatus.ASSIGNED.canTransitionTo(RequestStatus.IN_PROGRESS)).isTrue();
             assertThat(RequestStatus.ASSIGNED.canTransitionTo(RequestStatus.AWAITING_PAYMENT)).isTrue();
+            assertThat(RequestStatus.ASSIGNED.canTransitionTo(RequestStatus.PENDING)).isTrue();
             assertThat(RequestStatus.ASSIGNED.canTransitionTo(RequestStatus.CANCELLED)).isTrue();
         }
         @Test void transitions_inProgress() {

@@ -1652,7 +1652,7 @@ class EntityCoverageTest {
             assertThat(RequestStatus.COMPLETED.getDisplayName()).isEqualTo("Terminé");
         }
         @Test void canTransitionTo() {
-            assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.ASSIGNED)).isTrue();
+            assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.AWAITING_PAYMENT)).isTrue();
             assertThat(RequestStatus.PENDING.canTransitionTo(RequestStatus.COMPLETED)).isFalse();
             assertThat(RequestStatus.COMPLETED.canTransitionTo(RequestStatus.PENDING)).isFalse();
             assertThat(RequestStatus.REJECTED.canTransitionTo(RequestStatus.PENDING)).isTrue();
