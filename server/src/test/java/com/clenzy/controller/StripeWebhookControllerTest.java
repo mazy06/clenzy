@@ -1,6 +1,7 @@
 package com.clenzy.controller;
 
 import com.clenzy.service.InscriptionService;
+import com.clenzy.service.PaymentOrchestrationService;
 import com.clenzy.service.StripeService;
 import com.clenzy.service.SubscriptionService;
 import org.junit.jupiter.api.*;
@@ -27,12 +28,13 @@ class StripeWebhookControllerTest {
     @Mock private InscriptionService inscriptionService;
     @Mock private SubscriptionService subscriptionService;
     @Mock private com.clenzy.service.MobilePaymentService mobilePaymentService;
+    @Mock private PaymentOrchestrationService orchestrationService;
 
     private StripeWebhookController controller;
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService);
+        controller = new StripeWebhookController(stripeService, inscriptionService, subscriptionService, mobilePaymentService, orchestrationService);
         setField("webhookSecret", "whsec_test_secret");
         setField("stripeSecretKey", "sk_test_xxx");
     }

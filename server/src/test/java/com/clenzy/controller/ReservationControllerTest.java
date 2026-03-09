@@ -63,7 +63,7 @@ class ReservationControllerTest {
     private ReservationDto sampleDto(String status) {
         return new ReservationDto(1L, 1L, "Apt A", "Jean", null, null, null, 2, "2026-03-01", "2026-03-04",
                 "14:00", "11:00", status, "direct", null, 150.0, "ABC123", "notes",
-                null, null, null, null, null, false);
+                null, null, null, null, null, false, null, null);
     }
 
     private Property createOwnedProperty(String ownerKeycloakId) {
@@ -170,7 +170,7 @@ class ReservationControllerTest {
 
             ReservationDto inputDto = new ReservationDto(null, 1L, null, "Guest", null, null, null, 2,
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, false);
+                    null, null, null, null, null, false, null, null);
             ResponseEntity<ReservationDto> response = controller.create(inputDto, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);

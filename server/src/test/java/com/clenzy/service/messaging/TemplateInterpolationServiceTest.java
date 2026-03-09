@@ -194,7 +194,7 @@ class TemplateInterpolationServiceTest {
         assertTrue(keys.contains("keyExchangeStoreAddress"));
         assertTrue(keys.contains("keyExchangeStorePhone"));
         assertTrue(keys.contains("keyExchangeStoreHours"));
-        assertEquals(24, keys.size());
+        assertEquals(28, keys.size());
     }
 
     // ─── ExtraVars Override ──────────────────────────────────

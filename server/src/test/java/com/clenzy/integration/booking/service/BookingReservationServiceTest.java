@@ -5,11 +5,9 @@ import com.clenzy.integration.booking.repository.BookingConnectionRepository;
 import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.integration.channel.model.ChannelMapping;
 import com.clenzy.integration.channel.repository.ChannelMappingRepository;
-import com.clenzy.model.Intervention;
-import com.clenzy.model.InterventionStatus;
-import com.clenzy.model.Property;
-import com.clenzy.repository.InterventionRepository;
+import com.clenzy.model.*;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.service.AuditLogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +32,7 @@ class BookingReservationServiceTest {
 
     @Mock private ChannelMappingRepository channelMappingRepository;
     @Mock private BookingConnectionRepository bookingConnectionRepository;
-    @Mock private InterventionRepository interventionRepository;
+    @Mock private ServiceRequestRepository serviceRequestRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private AuditLogService auditLogService;
 
@@ -51,7 +49,7 @@ class BookingReservationServiceTest {
         service = new BookingReservationService(
                 channelMappingRepository,
                 bookingConnectionRepository,
-                interventionRepository,
+                serviceRequestRepository,
                 propertyRepository,
                 auditLogService
         );
@@ -108,8 +106,8 @@ class BookingReservationServiceTest {
     class ReservationCreated {
 
         @Test
-        @DisplayName("creates reservation and auto-generates cleaning intervention")
-        void handleReservationEvent_created_createsReservation() {
+        @DisplayName("creates cleaning service request")
+        void handleReservationEvent_created_createsServiceRequest() {
             stubOrgResolution();
             ChannelMapping mapping = buildMapping();
             when(channelMappingRepository.findByExternalIdAndChannel(ROOM_ID, ChannelName.BOOKING, ORG_ID))
@@ -117,7 +115,7 @@ class BookingReservationServiceTest {
 
             Property property = buildProperty();
             when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
-            when(interventionRepository.save(any(Intervention.class)))
+            when(serviceRequestRepository.save(any(ServiceRequest.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
 
             Map<String, Object> data = buildReservationData();
@@ -125,13 +123,12 @@ class BookingReservationServiceTest {
 
             service.handleReservationEvent(event);
 
-            ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-            verify(interventionRepository).save(captor.capture());
+            ArgumentCaptor<ServiceRequest> captor = ArgumentCaptor.forClass(ServiceRequest.class);
+            verify(serviceRequestRepository).save(captor.capture());
 
-            Intervention saved = captor.getValue();
+            ServiceRequest saved = captor.getValue();
             assertThat(saved.getOrganizationId()).isEqualTo(ORG_ID);
-            assertThat(saved.getStatus()).isEqualTo(InterventionStatus.PENDING);
-            assertThat(saved.getProperty()).isEqualTo(property);
+            assertThat(saved.getStatus()).isEqualTo(RequestStatus.PENDING);
             assertThat(saved.getSpecialInstructions()).contains("[BOOKING:" + RESERVATION_ID + "]");
             assertThat(saved.getTitle()).contains("Menage Booking.com");
 
@@ -146,26 +143,26 @@ class BookingReservationServiceTest {
     class ReservationModified {
 
         @Test
-        @DisplayName("updates existing intervention dates and guest count")
-        void handleReservationEvent_modified_updatesReservation() {
+        @DisplayName("updates existing service request dates")
+        void handleReservationEvent_modified_updatesServiceRequest() {
             stubOrgResolution();
             ChannelMapping mapping = buildMapping();
             when(channelMappingRepository.findByExternalIdAndChannel(ROOM_ID, ChannelName.BOOKING, ORG_ID))
                     .thenReturn(Optional.of(mapping));
 
-            // Existing intervention linked to this reservation
-            Intervention intervention = new Intervention();
-            intervention.setId(100L);
-            intervention.setSpecialInstructions("[BOOKING:" + RESERVATION_ID + "] 2 guests");
-            intervention.setStatus(InterventionStatus.PENDING);
+            // Existing service request linked to this reservation
+            ServiceRequest sr = new ServiceRequest();
+            sr.setId(100L);
+            sr.setSpecialInstructions("[BOOKING:" + RESERVATION_ID + "] 2 guests");
+            sr.setStatus(RequestStatus.AWAITING_PAYMENT);
 
-            when(interventionRepository.findByPropertyId(PROPERTY_ID, ORG_ID))
-                    .thenReturn(List.of(intervention));
+            when(serviceRequestRepository.findByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(List.of(sr));
 
             Property property = buildProperty();
             lenient().when(propertyRepository.findById(PROPERTY_ID)).thenReturn(Optional.of(property));
 
-            when(interventionRepository.save(any(Intervention.class)))
+            when(serviceRequestRepository.save(any(ServiceRequest.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
 
             Map<String, Object> data = new HashMap<>();
@@ -179,7 +176,7 @@ class BookingReservationServiceTest {
 
             service.handleReservationEvent(event);
 
-            verify(interventionRepository).save(any(Intervention.class));
+            verify(serviceRequestRepository).save(any(ServiceRequest.class));
             verify(auditLogService).logSync(eq("BookingReservation"), eq(RESERVATION_ID), anyString());
         }
     }
@@ -191,21 +188,21 @@ class BookingReservationServiceTest {
     class ReservationCancelled {
 
         @Test
-        @DisplayName("cancels linked cleaning interventions")
-        void handleReservationEvent_cancelled_cancelsReservation() {
+        @DisplayName("cancels linked cleaning service requests")
+        void handleReservationEvent_cancelled_cancelsServiceRequest() {
             stubOrgResolution();
             ChannelMapping mapping = buildMapping();
             when(channelMappingRepository.findByExternalIdAndChannel(ROOM_ID, ChannelName.BOOKING, ORG_ID))
                     .thenReturn(Optional.of(mapping));
 
-            Intervention intervention = new Intervention();
-            intervention.setId(100L);
-            intervention.setSpecialInstructions("[BOOKING:" + RESERVATION_ID + "] 2 guests");
-            intervention.setStatus(InterventionStatus.PENDING);
+            ServiceRequest sr = new ServiceRequest();
+            sr.setId(100L);
+            sr.setSpecialInstructions("[BOOKING:" + RESERVATION_ID + "] 2 guests");
+            sr.setStatus(RequestStatus.AWAITING_PAYMENT);
 
-            when(interventionRepository.findByPropertyId(PROPERTY_ID, ORG_ID))
-                    .thenReturn(List.of(intervention));
-            when(interventionRepository.save(any(Intervention.class)))
+            when(serviceRequestRepository.findByPropertyId(PROPERTY_ID, ORG_ID))
+                    .thenReturn(List.of(sr));
+            when(serviceRequestRepository.save(any(ServiceRequest.class)))
                     .thenAnswer(invocation -> invocation.getArgument(0));
 
             Map<String, Object> data = new HashMap<>();
@@ -216,10 +213,10 @@ class BookingReservationServiceTest {
 
             service.handleReservationEvent(event);
 
-            ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-            verify(interventionRepository).save(captor.capture());
+            ArgumentCaptor<ServiceRequest> captor = ArgumentCaptor.forClass(ServiceRequest.class);
+            verify(serviceRequestRepository).save(captor.capture());
 
-            assertThat(captor.getValue().getStatus()).isEqualTo(InterventionStatus.CANCELLED);
+            assertThat(captor.getValue().getStatus()).isEqualTo(RequestStatus.CANCELLED);
             verify(auditLogService).logSync(eq("BookingReservation"), eq(RESERVATION_ID), anyString());
         }
     }
@@ -238,7 +235,7 @@ class BookingReservationServiceTest {
             service.handleReservationEvent(event);
 
             verifyNoInteractions(channelMappingRepository);
-            verifyNoInteractions(interventionRepository);
+            verifyNoInteractions(serviceRequestRepository);
             verifyNoInteractions(auditLogService);
         }
     }
@@ -260,7 +257,7 @@ class BookingReservationServiceTest {
 
             service.handleReservationEvent(event);
 
-            verifyNoInteractions(interventionRepository);
+            verifyNoInteractions(serviceRequestRepository);
         }
     }
 }

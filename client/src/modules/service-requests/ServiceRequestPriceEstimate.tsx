@@ -36,16 +36,16 @@ interface ServiceRequestPriceEstimateProps {
   selectedForfaitKey?: string;
 }
 
-// ─── Price calculation ──────────────────────────────────────────────────────
+// ─── Price calculation (exported for reuse) ────────────────────────────────
 
-function getSurfaceBasePriceFromTiers(sqm: number, tiers: { maxSurface: number | null; base: number }[]): number {
+export function getSurfaceBasePriceFromTiers(sqm: number, tiers: { maxSurface: number | null; base: number }[]): number {
   for (const tier of tiers) {
     if (tier.maxSurface === null || sqm <= tier.maxSurface) return tier.base;
   }
   return tiers.length > 0 ? tiers[tiers.length - 1].base : 35;
 }
 
-function computeRangeFromForfait(
+export function computeRangeFromForfait(
   sqm: number, bedrooms: number, bathrooms: number, maxGuests: number,
   floors: number | undefined, hasExterior: boolean, hasLaundry: boolean,
   cleaningBasePrice: number | undefined, forfait: ForfaitConfig,
@@ -71,7 +71,7 @@ function computeRangeFromForfait(
 
 // ─── Duration estimation ────────────────────────────────────────────────────
 
-function computeEstimatedDuration(p: PropertyData): number {
+export function computeEstimatedDuration(p: PropertyData): number {
   const bedrooms = p.bedroomCount ?? 1;
   let baseMins: number;
   if (bedrooms <= 1)      baseMins = 90;
@@ -97,7 +97,7 @@ function computeEstimatedDuration(p: PropertyData): number {
   return baseMins;
 }
 
-function formatDuration(mins: number): string {
+export function formatDuration(mins: number): string {
   const hours = Math.floor(mins / 60);
   const remainder = mins % 60;
   if (hours === 0) return `${mins} min`;

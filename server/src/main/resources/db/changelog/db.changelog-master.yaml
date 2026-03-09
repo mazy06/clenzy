@@ -564,3 +564,19 @@ databaseChangeLog:
       sqlFile:
         path: changes/0063__add_hidden_from_planning.sql
         relativeToChangelogFile: true
+
+  # --- 0064 : Fix service_requests status CHECK constraint ---
+  - changeSet:
+      id: "0064-fix-service-request-status-constraint"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0064__fix_service_request_status_constraint.sql
+        relativeToChangelogFile: true
+
+  # --- 0065 : Migrate ASSIGNED → AWAITING_PAYMENT ---
+  - changeSet:
+      id: "0065-migrate-assigned-to-awaiting-payment"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0065__migrate_assigned_to_awaiting_payment.sql
+        relativeToChangelogFile: true

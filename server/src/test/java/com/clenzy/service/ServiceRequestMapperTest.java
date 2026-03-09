@@ -96,7 +96,6 @@ class ServiceRequestMapperTest {
             dto.specialInstructions = "Use eco products";
             dto.accessNotes = "Code: 1234";
             dto.urgent = true;
-            dto.requiresApproval = true;
             dto.assignedToId = 10L;
             dto.assignedToType = "user";
 
@@ -111,7 +110,6 @@ class ServiceRequestMapperTest {
             assertThat(entity.getPreferredTimeSlot()).isEqualTo("afternoon");
             assertThat(entity.getEstimatedDurationHours()).isEqualTo(5);
             assertThat(entity.isUrgent()).isTrue();
-            assertThat(entity.isRequiresApproval()).isTrue();
             assertThat(entity.getAssignedToId()).isEqualTo(10L);
             assertThat(entity.getAssignedToType()).isEqualTo("user");
         }

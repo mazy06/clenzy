@@ -4,7 +4,8 @@ import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
 import { usersApi } from '../../services/api/usersApi';
 import { extractApiList } from '../../types';
-import { planningKeys } from '../../hooks/useDashboardPlanning';
+import { planningKeys as dashboardPlanningKeys } from '../../hooks/useDashboardPlanning';
+import { planningKeys as pagePlanningKeys } from '../../modules/planning/hooks/usePlanningData';
 import type { ICalPreviewRequest, ICalImportRequest, ICalFeed } from '../../services/api/iCalApi';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -89,8 +90,9 @@ export function useICalImport() {
   return useMutation({
     mutationFn: (data: ICalImportRequest) => iCalApi.importFeed(data),
     onSuccess: () => {
-      // Invalidate planning reservations so the grid refreshes with new imports
-      queryClient.invalidateQueries({ queryKey: planningKeys.all });
+      // Invalidate both planning views so the grid refreshes with new imports
+      queryClient.invalidateQueries({ queryKey: dashboardPlanningKeys.all });
+      queryClient.invalidateQueries({ queryKey: pagePlanningKeys.all });
     },
   });
 }

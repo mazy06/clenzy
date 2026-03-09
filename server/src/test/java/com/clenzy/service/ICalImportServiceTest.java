@@ -30,7 +30,6 @@ import static org.mockito.Mockito.*;
 class ICalImportServiceTest {
 
     @Mock private ICalFeedRepository icalFeedRepository;
-    @Mock private InterventionRepository interventionRepository;
     @Mock private ServiceRequestRepository serviceRequestRepository;
     @Mock private ReservationRepository reservationRepository2;
     @Mock private PropertyRepository propertyRepository;
@@ -38,6 +37,7 @@ class ICalImportServiceTest {
     @Mock private AuditLogService auditLogService;
     @Mock private NotificationService notificationService;
     @Mock private PricingConfigService pricingConfigService;
+    @Mock private PriceEngine priceEngine;
 
     private TenantContext tenantContext;
     private ICalImportService icalImportService;
@@ -50,9 +50,9 @@ class ICalImportServiceTest {
         tenantContext.setOrganizationId(ORG_ID);
 
         icalImportService = new ICalImportService(
-                icalFeedRepository, interventionRepository, serviceRequestRepository,
+                icalFeedRepository, serviceRequestRepository,
                 reservationRepository2, propertyRepository, userRepository,
-                auditLogService, notificationService, pricingConfigService, tenantContext
+                auditLogService, notificationService, pricingConfigService, priceEngine, tenantContext
         );
     }
 

@@ -2,6 +2,7 @@ package com.clenzy.controller;
 
 import com.clenzy.service.InscriptionService;
 import com.clenzy.service.MobilePaymentService;
+import com.clenzy.service.PaymentOrchestrationService;
 import com.clenzy.service.StripeService;
 import com.clenzy.service.SubscriptionService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,6 +36,7 @@ public class StripeWebhookController {
     private final InscriptionService inscriptionService;
     private final SubscriptionService subscriptionService;
     private final MobilePaymentService mobilePaymentService;
+    private final PaymentOrchestrationService orchestrationService;
 
     @Value("${stripe.webhook-secret}")
     private String webhookSecret;
@@ -45,11 +47,13 @@ public class StripeWebhookController {
     public StripeWebhookController(StripeService stripeService,
                                    InscriptionService inscriptionService,
                                    SubscriptionService subscriptionService,
-                                   MobilePaymentService mobilePaymentService) {
+                                   MobilePaymentService mobilePaymentService,
+                                   PaymentOrchestrationService orchestrationService) {
         this.stripeService = stripeService;
         this.inscriptionService = inscriptionService;
         this.subscriptionService = subscriptionService;
         this.mobilePaymentService = mobilePaymentService;
+        this.orchestrationService = orchestrationService;
     }
 
     /**
@@ -216,10 +220,53 @@ public class StripeWebhookController {
             String interventionIds = session.getMetadata().get("intervention_ids");
             logger.info("Paiement groupe differe reussi pour session: {}, interventions: {}", sessionId, interventionIds);
             stripeService.confirmGroupedPayment(sessionId, interventionIds);
+        } else if ("reservation".equals(type)) {
+            // Paiement de reservation (envoye par email au guest)
+            logger.info("Paiement de reservation reussi pour session: {}", sessionId);
+            try {
+                stripeService.confirmReservationPayment(sessionId);
+            } catch (Exception e) {
+                logger.error("Erreur lors de la confirmation du paiement de reservation pour session: {}", sessionId, e);
+            }
+        } else if ("service_request".equals(type)) {
+            // Paiement de demande de service → confirmation + creation intervention automatique
+            String srId = session.getMetadata().get("service_request_id");
+            logger.info("Paiement SR reussi pour session: {}, srId: {}", sessionId, srId);
+            try {
+                stripeService.confirmServiceRequestPayment(sessionId);
+            } catch (Exception e) {
+                logger.error("Erreur lors de la confirmation du paiement SR pour session: {}", sessionId, e);
+            }
         } else {
             // Paiement d'intervention — paiement unique (flux existant)
             logger.info("Paiement d'intervention reussi pour session: {}", sessionId);
             stripeService.confirmPayment(sessionId);
+        }
+
+        // Update PaymentTransaction if the payment was routed through the orchestrator
+        updatePaymentTransaction(session, true);
+    }
+
+    /**
+     * Updates the PaymentTransaction record via the orchestrator.
+     * If the session metadata contains a transactionRef, we update the corresponding
+     * PaymentTransaction to keep it in sync with Stripe's status.
+     */
+    private void updatePaymentTransaction(Session session, boolean success) {
+        if (session == null || session.getMetadata() == null) return;
+        String transactionRef = session.getMetadata().get("transactionRef");
+        if (transactionRef != null && !transactionRef.isBlank()) {
+            try {
+                if (success) {
+                    orchestrationService.completeTransaction(transactionRef);
+                    logger.info("PaymentTransaction {} marked COMPLETED via Stripe webhook", transactionRef);
+                } else {
+                    orchestrationService.failTransaction(transactionRef, "Stripe async payment failed");
+                    logger.info("PaymentTransaction {} marked FAILED via Stripe webhook", transactionRef);
+                }
+            } catch (Exception e) {
+                logger.error("Failed to update PaymentTransaction {}: {}", transactionRef, e.getMessage());
+            }
         }
     }
 
@@ -248,9 +295,18 @@ public class StripeWebhookController {
             String interventionIds = session.getMetadata() != null ? session.getMetadata().get("intervention_ids") : null;
             logger.info("Paiement groupe differe asynchrone reussi pour session: {}", sessionId);
             stripeService.confirmGroupedPayment(sessionId, interventionIds);
+        } else if ("reservation".equals(type)) {
+            logger.info("Paiement de reservation asynchrone reussi pour session: {}", sessionId);
+            stripeService.confirmReservationPayment(sessionId);
+        } else if ("service_request".equals(type)) {
+            logger.info("Paiement SR asynchrone reussi pour session: {}", sessionId);
+            stripeService.confirmServiceRequestPayment(sessionId);
         } else {
             stripeService.confirmPayment(sessionId);
         }
+
+        // Update PaymentTransaction for async success
+        updatePaymentTransaction(session, true);
     }
 
     /**
@@ -272,9 +328,18 @@ public class StripeWebhookController {
             String interventionIds = session.getMetadata() != null ? session.getMetadata().get("intervention_ids") : null;
             logger.warn("Paiement groupe differe echoue pour session: {}", sessionId);
             stripeService.markGroupedPaymentAsFailed(interventionIds);
+        } else if ("reservation".equals(type)) {
+            logger.warn("Paiement de reservation echoue pour session: {}", sessionId);
+            stripeService.markReservationPaymentFailed(sessionId);
+        } else if ("service_request".equals(type)) {
+            logger.warn("Paiement SR echoue pour session: {}", sessionId);
+            stripeService.markServiceRequestPaymentFailed(sessionId);
         } else {
             stripeService.markPaymentAsFailed(sessionId);
         }
+
+        // Update PaymentTransaction for async failure
+        updatePaymentTransaction(session, false);
     }
 
     /**

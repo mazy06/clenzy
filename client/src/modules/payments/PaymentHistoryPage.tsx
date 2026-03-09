@@ -37,15 +37,17 @@ import {
   ReceiptLong as ReceiptLongIcon,
   Warning as WarningIcon,
   Payment as PaymentIcon,
+  AutoAwesome as SparkleIcon,
+  Hotel as HotelIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { paymentsApi } from '../../services/api/paymentsApi';
 import type { PaymentRecord, PaymentSummary, HostOption } from '../../services/api/paymentsApi';
-import apiClient from '../../services/apiClient';
 import PageHeader from '../../components/PageHeader';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
+import PaymentCheckoutModal from '../../components/PaymentCheckoutModal';
 
 interface PaymentHistoryPageProps {
   embedded?: boolean;
@@ -105,7 +107,11 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  // Payment processing state
+  // Payment modal state
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentTarget, setPaymentTarget] = useState<PaymentRecord | null>(null);
+
+  // Payment processing state (kept for compatibility)
   const [processingPayment, setProcessingPayment] = useState<number | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
 
@@ -153,8 +159,8 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         const q = search.toLowerCase();
         records = records.filter(
           (r) =>
-            r.interventionTitle.toLowerCase().includes(q) ||
-            r.propertyName.toLowerCase().includes(q) ||
+            (r.description || '').toLowerCase().includes(q) ||
+            (r.propertyName || '').toLowerCase().includes(q) ||
             (r.hostName && r.hostName.toLowerCase().includes(q))
         );
       }
@@ -194,26 +200,20 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     setPage(0);
   };
 
-  const handlePay = async (payment: PaymentRecord) => {
+  const handlePay = (payment: PaymentRecord) => {
     if (!payment.amount || payment.amount <= 0) {
       setPayError("Le montant n'est pas defini pour ce paiement");
       return;
     }
+    setPayError(null);
+    setPaymentTarget(payment);
+    setPaymentModalOpen(true);
+  };
 
-    try {
-      setProcessingPayment(payment.interventionId);
-      setPayError(null);
-
-      const paymentData = await apiClient.post<{ url: string }>('/payments/create-session', {
-        interventionId: payment.interventionId,
-        amount: payment.amount,
-      });
-
-      window.location.href = paymentData.url;
-    } catch (err: unknown) {
-      setPayError(err instanceof Error ? err.message : 'Erreur lors de la creation de la session de paiement');
-      setProcessingPayment(null);
-    }
+  const handlePaymentSuccess = () => {
+    setPaymentModalOpen(false);
+    setPaymentTarget(null);
+    loadData(); // Recharger la liste apres paiement
   };
 
   const handleRefundClick = (payment: PaymentRecord) => {
@@ -225,9 +225,9 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   const handleRefundConfirm = async () => {
     if (!refundTarget) return;
     try {
-      setRefundingPayment(refundTarget.interventionId);
+      setRefundingPayment(refundTarget.referenceId);
       setRefundError(null);
-      await paymentsApi.refund(refundTarget.interventionId);
+      await paymentsApi.refund(refundTarget.referenceId);
       setRefundDialogOpen(false);
       setRefundTarget(null);
       loadData(); // Recharger la liste
@@ -261,79 +261,67 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     }
   };
 
-  const getStatusChip = (status: PaymentRecord['status']) => {
-    const hexMap: Record<string, string> = {
-      PAID: '#4A9B8E',
-      PENDING: '#ED6C02',
-      PROCESSING: '#0288d1',
-      FAILED: '#d32f2f',
-      REFUNDED: '#7B61FF',
-      CANCELLED: '#757575',
-    };
-    const labelMap: Record<string, string> = {
-      PAID: t('payments.history.paid'),
-      PENDING: t('payments.history.pending'),
-      PROCESSING: t('payments.history.processing'),
-      FAILED: t('payments.history.failed'),
-      REFUNDED: t('payments.history.refunded'),
-      CANCELLED: t('payments.history.cancelled'),
-    };
-    const c = hexMap[status] || '#757575';
+  // ── Unified color system — everything keyed off payment status ──────────
+  const STATUS_HEX: Record<string, string> = {
+    PAID: '#4A9B8E',
+    PENDING: '#ED6C02',
+    PROCESSING: '#0288d1',
+    FAILED: '#d32f2f',
+    REFUNDED: '#7B61FF',
+    CANCELLED: '#757575',
+  };
+
+  const STATUS_LABEL: Record<string, string> = {
+    PAID: t('payments.history.paid'),
+    PENDING: t('payments.history.pending'),
+    PROCESSING: t('payments.history.processing'),
+    FAILED: t('payments.history.failed'),
+    REFUNDED: t('payments.history.refunded'),
+    CANCELLED: t('payments.history.cancelled'),
+  };
+
+  /** Resolved hex for a given payment status */
+  const statusColor = (status: string) => STATUS_HEX[status] || '#757575';
+
+  /** Shared chip styling — used by both Type and Status chips */
+  const chipSx = (hex: string) => ({
+    backgroundColor: `${hex}18`,
+    color: hex,
+    border: `1px solid ${hex}40`,
+    borderRadius: '6px',
+    fontWeight: 600,
+    fontSize: '0.75rem',
+    height: 24,
+    '& .MuiChip-icon': { color: hex },
+    '& .MuiChip-label': { px: 1 },
+  });
+
+  const getStatusChip = (status: PaymentRecord['status']) => (
+    <Chip label={STATUS_LABEL[status] || status} size="small" sx={chipSx(statusColor(status))} />
+  );
+
+  const getTypeChip = (payment: PaymentRecord) => {
+    const hex = statusColor(payment.status); // same color as status
+    const isResa = payment.type === 'RESERVATION';
     return (
       <Chip
-        label={labelMap[status] || status}
+        icon={isResa
+          ? <HotelIcon sx={{ fontSize: '14px !important' }} />
+          : <SparkleIcon sx={{ fontSize: '14px !important' }} />}
+        label={isResa ? 'Reservation' : 'Intervention'}
         size="small"
-        sx={{
-          backgroundColor: `${c}18`,
-          color: c,
-          border: `1px solid ${c}40`,
-          borderRadius: '6px',
-          fontWeight: 600,
-          fontSize: '0.75rem',
-          height: 24,
-          '& .MuiChip-label': { px: 1 },
-        }}
+        sx={chipSx(hex)}
       />
     );
   };
 
-  /** Returns the status color for a payment (reuses the same mapping as getStatusChip) */
-  const getStatusColor = (status: PaymentRecord['status']): string => {
-    const colorMap: Record<string, string> = {
-      PAID: C.success,
-      PENDING: C.warning,
-      PROCESSING: C.info,
-      FAILED: C.error,
-      REFUNDED: C.info,
-      CANCELLED: C.textSecondary,
-    };
-    return colorMap[status] || C.textSecondary;
-  };
-
-  /** Row styling for unpaid highlighting */
-  const getRowSx = (status: PaymentRecord['status']) => {
-    if (status === 'PENDING' || status === 'PROCESSING') {
-      return {
-        cursor: 'pointer',
-        borderLeft: `3px solid ${C.warning}`,
-        transition: 'background-color 0.15s ease',
-        '&:hover': { bgcolor: 'rgba(107,138,154,0.04)' },
-      };
-    }
-    if (status === 'FAILED') {
-      return {
-        cursor: 'pointer',
-        borderLeft: `3px solid ${C.error}`,
-        transition: 'background-color 0.15s ease',
-        '&:hover': { bgcolor: 'rgba(107,138,154,0.04)' },
-      };
-    }
-    return {
-      cursor: 'pointer',
-      transition: 'background-color 0.15s ease',
-      '&:hover': { bgcolor: 'rgba(107,138,154,0.04)' },
-    };
-  };
+  /** Row styling — left border color matches payment status */
+  const getRowSx = (status: PaymentRecord['status']) => ({
+    cursor: 'pointer',
+    borderLeft: `3px solid ${statusColor(status)}`,
+    transition: 'background-color 0.15s ease',
+    '&:hover': { bgcolor: 'rgba(107,138,154,0.04)' },
+  });
 
   // ─── Summary cards ────────────────────────────────────────────────────────
 
@@ -647,7 +635,8 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
               <TableRow>
                 <TableCell>{t('payments.history.date')}</TableCell>
                 <TableCell>Nom Prenom</TableCell>
-                <TableCell>{t('payments.history.intervention')}</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>Description</TableCell>
                 <TableCell>{t('payments.history.property')}</TableCell>
                 <TableCell align="right">{t('payments.history.amount')}</TableCell>
                 <TableCell>{t('payments.history.status')}</TableCell>
@@ -655,11 +644,16 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
               </TableRow>
             </TableHead>
             <TableBody>
-              {payments.map((payment) => (
+              {payments.map((payment) => {
+                const isResa = payment.type === 'RESERVATION';
+                const detailPath = isResa
+                  ? `/reservations/${payment.referenceId}`
+                  : `/interventions/${payment.referenceId}`;
+                return (
                 <TableRow
-                  key={payment.id}
+                  key={`${payment.type}-${payment.id}`}
                   sx={getRowSx(payment.status)}
-                  onClick={() => navigate(`/interventions/${payment.interventionId}`)}
+                  onClick={() => navigate(detailPath)}
                 >
                   <TableCell>
                     <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
@@ -671,9 +665,10 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                       {payment.hostName || '\u2014'}
                     </Typography>
                   </TableCell>
+                  <TableCell>{getTypeChip(payment)}</TableCell>
                   <TableCell>
                     <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem', color: C.textPrimary }}>
-                      {payment.interventionTitle}
+                      {payment.description}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -682,26 +677,26 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.875rem', color: getStatusColor(payment.status) }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.875rem', color: statusColor(payment.status) }}>
                       {formatCurrency(payment.amount)}
                     </Typography>
                   </TableCell>
                   <TableCell>{getStatusChip(payment.status)}</TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                      <Tooltip title={t('payments.history.viewIntervention')}>
+                      <Tooltip title={isResa ? 'Voir la reservation' : t('payments.history.viewIntervention')}>
                         <IconButton
                           size="small"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/interventions/${payment.interventionId}`);
+                            navigate(detailPath);
                           }}
                           sx={{ color: C.textSecondary, '&:hover': { color: C.primary } }}
                         >
                           <VisibilityIcon sx={{ fontSize: 18 }} />
                         </IconButton>
                       </Tooltip>
-                      {(payment.status === 'PENDING' || payment.status === 'PROCESSING') && (
+                      {!isResa && (payment.status === 'PENDING' || payment.status === 'PROCESSING') && (
                         <Tooltip title="Payer cette intervention">
                           <span>
                             <IconButton
@@ -710,7 +705,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                                 e.stopPropagation();
                                 handlePay(payment);
                               }}
-                              disabled={processingPayment === payment.interventionId}
+                              disabled={processingPayment === payment.referenceId}
                               sx={{
                                 color: C.white,
                                 bgcolor: C.primary,
@@ -720,7 +715,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                                 '&:disabled': { bgcolor: C.primaryLight, color: C.white, opacity: 0.6 },
                               }}
                             >
-                              {processingPayment === payment.interventionId ? (
+                              {processingPayment === payment.referenceId ? (
                                 <CircularProgress size={14} sx={{ color: C.white }} />
                               ) : (
                                 <PaymentIcon sx={{ fontSize: 16 }} />
@@ -729,7 +724,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                           </span>
                         </Tooltip>
                       )}
-                      {isAdminOrManager && payment.status === 'PAID' && (
+                      {isAdminOrManager && !isResa && payment.status === 'PAID' && (
                         <Tooltip title="Rembourser">
                           <span>
                             <IconButton
@@ -738,7 +733,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                                 e.stopPropagation();
                                 handleRefundClick(payment);
                               }}
-                              disabled={refundingPayment === payment.interventionId}
+                              disabled={refundingPayment === payment.referenceId}
                               sx={{
                                 color: C.white,
                                 bgcolor: C.error,
@@ -748,7 +743,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                                 '&:disabled': { bgcolor: theme.palette.error.light, color: C.white, opacity: 0.6 },
                               }}
                             >
-                              {refundingPayment === payment.interventionId ? (
+                              {refundingPayment === payment.referenceId ? (
                                 <CircularProgress size={14} sx={{ color: C.white }} />
                               ) : (
                                 <MoneyOffIcon sx={{ fontSize: 16 }} />
@@ -760,7 +755,8 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                     </Box>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
           <TablePagination
@@ -785,6 +781,18 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         </TableContainer>
       </DataFetchWrapper>
 
+      {/* Modal de paiement Stripe Embedded */}
+      {paymentTarget && (
+        <PaymentCheckoutModal
+          open={paymentModalOpen}
+          onClose={() => { setPaymentModalOpen(false); setPaymentTarget(null); }}
+          onSuccess={handlePaymentSuccess}
+          interventionId={paymentTarget.referenceId}
+          amount={paymentTarget.amount}
+          interventionTitle={paymentTarget.description}
+        />
+      )}
+
       {/* Dialog de confirmation de remboursement */}
       <Dialog
         open={refundDialogOpen}
@@ -800,7 +808,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
           {refundTarget && (
             <Typography variant="body2" sx={{ mb: 1 }}>
               Voulez-vous rembourser <strong>{formatCurrency(refundTarget.amount)}</strong> pour
-              l'intervention <strong>{refundTarget.interventionTitle}</strong> ?
+              <strong> {refundTarget.description}</strong> ?
             </Typography>
           )}
           <Typography variant="caption" color="text.secondary">

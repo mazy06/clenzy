@@ -1,15 +1,11 @@
 package com.clenzy.controller;
 
-import com.clenzy.dto.PaymentHistoryDto;
-import com.clenzy.dto.PaymentSessionRequest;
-import com.clenzy.dto.PaymentSessionResponse;
-import com.clenzy.dto.PaymentSummaryDto;
-import com.clenzy.model.Intervention;
-import com.clenzy.model.PaymentStatus;
-import com.clenzy.model.User;
-import com.clenzy.model.UserRole;
+import com.clenzy.dto.*;
+import com.clenzy.model.*;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.PaymentOrchestrationService;
 import com.clenzy.service.StripeService;
 import com.clenzy.util.StringUtils;
 import com.stripe.Stripe;
@@ -33,6 +29,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -45,7 +43,9 @@ public class PaymentController {
     private static final Logger logger = LoggerFactory.getLogger(PaymentController.class);
 
     private final StripeService stripeService;
+    private final PaymentOrchestrationService orchestrationService;
     private final InterventionRepository interventionRepository;
+    private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
 
@@ -53,11 +53,15 @@ public class PaymentController {
     private String stripeSecretKey;
 
     public PaymentController(StripeService stripeService,
+                              PaymentOrchestrationService orchestrationService,
                               InterventionRepository interventionRepository,
+                              ReservationRepository reservationRepository,
                               UserRepository userRepository,
                               TenantContext tenantContext) {
         this.stripeService = stripeService;
+        this.orchestrationService = orchestrationService;
         this.interventionRepository = interventionRepository;
+        this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
     }
@@ -76,23 +80,20 @@ public class PaymentController {
             Intervention intervention = interventionRepository.findById(request.getInterventionId())
                 .orElseThrow(() -> new RuntimeException("Intervention non trouvée"));
             
-            // Vérifier que l'intervention est en attente de paiement
-            if (intervention.getStatus() != com.clenzy.model.InterventionStatus.AWAITING_PAYMENT) {
+            // Vérifier que l'intervention n'est pas annulée ou déjà terminée sans paiement
+            var blockedStatuses = java.util.EnumSet.of(
+                com.clenzy.model.InterventionStatus.CANCELLED,
+                com.clenzy.model.InterventionStatus.COMPLETED
+            );
+            if (blockedStatuses.contains(intervention.getStatus())) {
                 return ResponseEntity.badRequest()
-                    .body("Cette intervention n'est pas en attente de paiement. Statut actuel: " + intervention.getStatus());
+                    .body("Cette intervention ne peut pas être payée. Statut actuel: " + intervention.getStatus());
             }
-            
+
             // Vérifier que l'intervention n'est pas déjà payée
             if (intervention.getPaymentStatus() == PaymentStatus.PAID) {
                 return ResponseEntity.badRequest()
                     .body("Cette intervention est déjà payée");
-            }
-            
-            // Vérifier que le montant correspond
-            if (intervention.getEstimatedCost() == null || 
-                intervention.getEstimatedCost().compareTo(request.getAmount()) != 0) {
-                return ResponseEntity.badRequest()
-                    .body("Le montant ne correspond pas au coût estimé de l'intervention");
             }
             
             // Récupérer l'email de l'utilisateur depuis le JWT
@@ -102,24 +103,49 @@ public class PaymentController {
                     .body("Email utilisateur non trouvé");
             }
             
-            // Créer la session de paiement
-            Session session = stripeService.createCheckoutSession(
-                request.getInterventionId(),
+            // Route all payments through the orchestrator (multi-provider)
+            String currency = intervention.getCurrency() != null ? intervention.getCurrency() : "EUR";
+            String idempotencyKey = "INT-" + request.getInterventionId();
+
+            PaymentOrchestrationRequest orchRequest = new PaymentOrchestrationRequest(
                 request.getAmount(),
-                customerEmail
+                currency,
+                "INTERVENTION",
+                request.getInterventionId(),
+                "Paiement intervention #" + request.getInterventionId(),
+                customerEmail,
+                null, // no preferred provider — orchestrator resolves automatically
+                null, // successUrl — provider uses its config defaults
+                null, // cancelUrl — provider uses its config defaults
+                Map.of("interventionId", String.valueOf(request.getInterventionId())),
+                idempotencyKey
             );
-            
+
+            PaymentOrchestrationResult orchResult = orchestrationService.initiatePayment(orchRequest);
+
+            if (!orchResult.isSuccess()) {
+                String errMsg = orchResult.paymentResult() != null
+                    ? orchResult.paymentResult().errorMessage() : "Erreur orchestration paiement";
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur orchestration: " + errMsg);
+            }
+
+            // Update intervention with provider session info
+            if (orchResult.paymentResult().providerTxId() != null) {
+                intervention.setStripeSessionId(orchResult.paymentResult().providerTxId());
+            }
+            intervention.setPaymentStatus(PaymentStatus.PROCESSING);
+            interventionRepository.save(intervention);
+
             PaymentSessionResponse response = new PaymentSessionResponse();
-            response.setSessionId(session.getId());
-            response.setUrl(session.getUrl());
+            response.setSessionId(orchResult.paymentResult().providerTxId());
+            response.setUrl(orchResult.paymentResult().redirectUrl());
             response.setInterventionId(intervention.getId());
-            
+
             return ResponseEntity.ok(response);
-            
-        } catch (StripeException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Erreur lors de la création de la session de paiement: " + e.getMessage());
+
         } catch (Exception e) {
+            logger.error("Erreur lors de la création de la session de paiement", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Erreur: " + e.getMessage());
         }
@@ -139,9 +165,14 @@ public class PaymentController {
             Intervention intervention = interventionRepository.findById(request.getInterventionId())
                 .orElseThrow(() -> new RuntimeException("Intervention non trouvee"));
 
-            if (intervention.getStatus() != com.clenzy.model.InterventionStatus.AWAITING_PAYMENT) {
+            // Vérifier que l'intervention n'est pas annulée ou déjà terminée
+            var embeddedBlockedStatuses = java.util.EnumSet.of(
+                com.clenzy.model.InterventionStatus.CANCELLED,
+                com.clenzy.model.InterventionStatus.COMPLETED
+            );
+            if (embeddedBlockedStatuses.contains(intervention.getStatus())) {
                 return ResponseEntity.badRequest()
-                    .body("Cette intervention n'est pas en attente de paiement. Statut actuel: " + intervention.getStatus());
+                    .body("Cette intervention ne peut pas etre payee. Statut actuel: " + intervention.getStatus());
             }
 
             if (intervention.getPaymentStatus() == PaymentStatus.PAID) {
@@ -251,22 +282,50 @@ public class PaymentController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Utilisateur non trouve"));
             }
 
+            Long orgId = tenantContext.getRequiredOrganizationId();
+
+            // ── 1) Charger les interventions ────────────────────────────────────
+            // Use a large page to merge with reservations — real pagination is done below
+            Pageable largePage = PageRequest.of(0, 10000, Sort.by(Sort.Direction.DESC, "createdAt"));
             Page<Intervention> interventionPage;
 
             if (currentUser.getRole() == UserRole.HOST) {
-                // HOST : force ses propres interventions
                 interventionPage = interventionRepository.findPaymentHistoryByRequestor(
-                        currentUser.getId(), paymentStatus, pageable, tenantContext.getRequiredOrganizationId());
+                        currentUser.getId(), paymentStatus, largePage, orgId);
             } else {
-                // ADMIN / MANAGER : toutes, optionnellement filtrees par host
                 interventionPage = interventionRepository.findPaymentHistory(
-                        paymentStatus, hostId, pageable, tenantContext.getRequiredOrganizationId());
+                        paymentStatus, hostId, largePage, orgId);
             }
 
-            // Mapper vers DTOs
-            Page<PaymentHistoryDto> dtoPage = interventionPage.map(this::toPaymentHistoryDto);
+            // ── 2) Charger les reservations ─────────────────────────────────────
+            Page<Reservation> reservationPage = reservationRepository.findPaymentHistory(
+                    paymentStatus, largePage, orgId);
 
-            return ResponseEntity.ok(dtoPage);
+            // ── 3) Fusionner en DTOs, trier par date desc, paginer ─────────────
+            List<PaymentHistoryDto> merged = new ArrayList<>();
+            interventionPage.getContent().forEach(i -> merged.add(toPaymentHistoryDto(i)));
+            reservationPage.getContent().forEach(r -> merged.add(toReservationPaymentDto(r)));
+
+            // Trier par transactionDate DESC
+            merged.sort(Comparator.comparing(
+                (PaymentHistoryDto d) -> d.transactionDate != null ? d.transactionDate : "",
+                Comparator.reverseOrder()));
+
+            // Pagination manuelle
+            int start = page * size;
+            int end = Math.min(start + size, merged.size());
+            List<PaymentHistoryDto> pageContent = start < merged.size()
+                    ? merged.subList(start, end) : List.of();
+
+            Map<String, Object> result = Map.of(
+                "content", pageContent,
+                "totalElements", merged.size(),
+                "totalPages", (int) Math.ceil((double) merged.size() / size),
+                "number", page,
+                "size", size
+            );
+
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             logger.error("Erreur getPaymentHistory", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -290,19 +349,20 @@ public class PaymentController {
 
             // HOST : force son propre ID
             Long effectiveHostId = (currentUser.getRole() == UserRole.HOST) ? currentUser.getId() : hostId;
+            Long orgId = tenantContext.getRequiredOrganizationId();
 
             // Requete avec toutes les interventions payantes, paginee large
             Pageable all = PageRequest.of(0, 10000);
             Page<Intervention> interventions;
             if (effectiveHostId != null) {
-                interventions = interventionRepository.findPaymentHistoryByRequestor(effectiveHostId, null, all, tenantContext.getRequiredOrganizationId());
+                interventions = interventionRepository.findPaymentHistoryByRequestor(effectiveHostId, null, all, orgId);
             } else {
-                interventions = interventionRepository.findPaymentHistory(null, null, all, tenantContext.getRequiredOrganizationId());
+                interventions = interventionRepository.findPaymentHistory(null, null, all, orgId);
             }
 
             PaymentSummaryDto summary = new PaymentSummaryDto();
-            summary.transactionCount = (int) interventions.getTotalElements();
 
+            // Additionner les interventions
             for (Intervention i : interventions.getContent()) {
                 BigDecimal cost = i.getEstimatedCost() != null ? i.getEstimatedCost() : BigDecimal.ZERO;
                 PaymentStatus ps = i.getPaymentStatus();
@@ -311,10 +371,25 @@ public class PaymentController {
                 } else if (ps == PaymentStatus.REFUNDED) {
                     summary.totalRefunded = summary.totalRefunded.add(cost);
                 } else {
-                    // PENDING, PROCESSING, FAILED, CANCELLED → totalPending
                     summary.totalPending = summary.totalPending.add(cost);
                 }
             }
+
+            // Additionner les reservations
+            List<Reservation> reservations = reservationRepository.findAllWithPayment(orgId);
+            for (Reservation r : reservations) {
+                BigDecimal cost = r.getTotalPrice() != null ? r.getTotalPrice() : BigDecimal.ZERO;
+                PaymentStatus ps = r.getPaymentStatus();
+                if (ps == PaymentStatus.PAID) {
+                    summary.totalPaid = summary.totalPaid.add(cost);
+                } else if (ps == PaymentStatus.REFUNDED) {
+                    summary.totalRefunded = summary.totalRefunded.add(cost);
+                } else {
+                    summary.totalPending = summary.totalPending.add(cost);
+                }
+            }
+
+            summary.transactionCount = (int) interventions.getTotalElements() + reservations.size();
 
             return ResponseEntity.ok(summary);
         } catch (Exception e) {
@@ -393,11 +468,12 @@ public class PaymentController {
     private PaymentHistoryDto toPaymentHistoryDto(Intervention i) {
         PaymentHistoryDto dto = new PaymentHistoryDto();
         dto.id = i.getId();
-        dto.interventionId = i.getId();
-        dto.interventionTitle = i.getTitle();
+        dto.referenceId = i.getId();
+        dto.description = i.getTitle();
         dto.propertyName = i.getProperty() != null ? i.getProperty().getName() : "N/A";
         dto.amount = i.getEstimatedCost();
         dto.status = i.getPaymentStatus() != null ? i.getPaymentStatus().name() : "PENDING";
+        dto.type = "INTERVENTION";
         dto.stripeSessionId = i.getStripeSessionId();
         // transactionDate : paidAt si PAID, sinon startTime ou createdAt
         if (i.getPaidAt() != null) {
@@ -413,6 +489,31 @@ public class PaymentController {
             dto.hostId = i.getRequestor().getId();
             dto.hostName = i.getRequestor().getFullName();
         }
+        return dto;
+    }
+
+    private PaymentHistoryDto toReservationPaymentDto(Reservation r) {
+        PaymentHistoryDto dto = new PaymentHistoryDto();
+        dto.id = r.getId();
+        dto.referenceId = r.getId();
+        dto.description = "Reservation — " + (r.getProperty() != null ? r.getProperty().getName() : "N/A")
+                + " (" + (r.getGuestName() != null ? r.getGuestName() : "N/A") + ")";
+        dto.propertyName = r.getProperty() != null ? r.getProperty().getName() : "N/A";
+        dto.amount = r.getTotalPrice();
+        dto.currency = r.getCurrency() != null ? r.getCurrency() : "EUR";
+        dto.status = r.getPaymentStatus() != null ? r.getPaymentStatus().name() : "PENDING";
+        dto.type = "RESERVATION";
+        dto.stripeSessionId = r.getStripeSessionId();
+        // transactionDate : paidAt si PAID, sinon createdAt
+        if (r.getPaidAt() != null) {
+            dto.transactionDate = r.getPaidAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        } else if (r.getCreatedAt() != null) {
+            dto.transactionDate = r.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        }
+        dto.createdAt = r.getCreatedAt() != null ? r.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null;
+        // Guest name as hostName for display
+        dto.hostName = r.getGuestName();
+        dto.hostId = null; // reservations don't have a host user
         return dto;
     }
 

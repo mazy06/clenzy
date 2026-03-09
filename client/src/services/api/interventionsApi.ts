@@ -307,4 +307,57 @@ export const interventionsApi = {
     if (teamId) params.teamId = teamId;
     return apiClient.put<Intervention>(`/interventions/${id}/assign`, undefined, { params });
   },
+
+  /** Check team member availability for a given intervention */
+  checkTeamAvailability(teamId: number, interventionId: number) {
+    return apiClient.get<TeamAvailabilityResponse>('/interventions/team-availability', {
+      params: { teamId, interventionId },
+    });
+  },
+
+  /** Check team member availability for a given date range (for service request conflict detection) */
+  checkTeamAvailabilityByDate(teamId: number, date: string, durationHours?: number) {
+    return apiClient.get<TeamAvailabilityResponse>('/interventions/team-availability', {
+      params: { teamId, date, durationHours },
+    });
+  },
+
+  /** Check individual user availability for a given date range */
+  checkUserAvailabilityByDate(userId: number, date: string, durationHours?: number) {
+    return apiClient.get<UserAvailabilityResponse>('/interventions/user-availability', {
+      params: { userId, date, durationHours },
+    });
+  },
 };
+
+export interface TeamMemberAvailability {
+  userId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  available: boolean;
+  conflictCount: number;
+}
+
+export interface TeamAvailabilityResponse {
+  teamId: number;
+  teamName: string;
+  interventionType: string;
+  memberCount: number;
+  members: TeamMemberAvailability[];
+  teamConflictCount: number;
+  allAvailable: boolean;
+  rangeStart: string;
+  rangeEnd: string;
+}
+
+export interface UserAvailabilityResponse {
+  userId: number;
+  firstName: string;
+  lastName: string;
+  available: boolean;
+  conflictCount: number;
+  rangeStart: string;
+  rangeEnd: string;
+}

@@ -69,6 +69,7 @@ export default function Sidebar({
   const { t, changeLanguage, currentLanguage } = useTranslation();
   const { currency, setCurrency } = useCurrency();
   const theme = useTheme();
+  const isRtl = theme.direction === 'rtl';
   const isXl = useMediaQuery(theme.breakpoints.up('xl'));
   const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(null);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -136,7 +137,7 @@ export default function Sidebar({
     setSettingsAnchorEl(null);
   };
 
-  const handleLangChange = (lang: 'fr' | 'en') => {
+  const handleLangChange = (lang: 'fr' | 'en' | 'ar') => {
     changeLanguage(lang);
   };
 
@@ -414,8 +415,8 @@ export default function Sidebar({
           anchorEl={settingsAnchorEl}
           open={Boolean(settingsAnchorEl)}
           onClose={handleSettingsClose}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-          transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          anchorOrigin={{ vertical: 'top', horizontal: isRtl ? 'left' : 'right' }}
+          transformOrigin={{ vertical: 'bottom', horizontal: isRtl ? 'right' : 'left' }}
           slotProps={{
             paper: {
               elevation: 0,
@@ -468,6 +469,16 @@ export default function Sidebar({
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <span>English</span>
               {currentLanguage === 'en' && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
+            </Box>
+          </MuiMenuItem>
+          <MuiMenuItem
+            onClick={() => handleLangChange('ar')}
+            selected={currentLanguage === 'ar'}
+            sx={{ fontSize: '0.8125rem', py: 0.75, minHeight: 0 }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <span>العربية</span>
+              {currentLanguage === 'ar' && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
             </Box>
           </MuiMenuItem>
 
@@ -537,7 +548,10 @@ export default function Sidebar({
                   '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.08)' },
                 }}
               >
-                {collapsed ? <ChevronRight fontSize="small" /> : <ChevronLeft fontSize="small" />}
+                {collapsed
+                  ? (isRtl ? <ChevronLeft fontSize="small" /> : <ChevronRight fontSize="small" />)
+                  : (isRtl ? <ChevronRight fontSize="small" /> : <ChevronLeft fontSize="small" />)
+                }
               </IconButton>
             </Tooltip>
           </Box>

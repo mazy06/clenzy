@@ -72,10 +72,12 @@
     "languageAndCurrency": "Langue & Devise",
     "languages": {
       "fr": "Français",
-      "en": "Anglais"
+      "en": "Anglais",
+      "ar": "العربية"
     },
     "currency": "Devise",
     "invoices": "Factures",
+    "wallets": "Portefeuille",
     "channels": "Channels",
     "messaging": "Messagerie",
     "messageTemplates": "Templates",

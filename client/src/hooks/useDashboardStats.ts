@@ -74,7 +74,7 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
 
       // Compter les demandes en cours
       const pending = requests.filter((r: ApiServiceRequest) =>
-        ['PENDING', 'APPROVED', 'IN_PROGRESS'].includes(r.status || '')
+        ['PENDING', 'ASSIGNED', 'AWAITING_PAYMENT', 'IN_PROGRESS'].includes(r.status || '')
       ).length;
       const total = requests.length;
 
@@ -84,7 +84,7 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
       const previous = requests.filter((r: ApiServiceRequest) => {
         if (!r.createdAt) return false;
         const createdAt = new Date(r.createdAt);
-        return createdAt < thirtyDaysAgo && ['PENDING', 'APPROVED', 'IN_PROGRESS'].includes(r.status || '');
+        return createdAt < thirtyDaysAgo && ['PENDING', 'ASSIGNED', 'AWAITING_PAYMENT', 'IN_PROGRESS'].includes(r.status || '');
       }).length;
 
       return { pending, total, previous };

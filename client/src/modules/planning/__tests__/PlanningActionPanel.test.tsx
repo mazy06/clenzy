@@ -139,7 +139,7 @@ describe('PlanningActionPanel', () => {
       expect(screen.getByText('Infos')).toBeInTheDocument();
       expect(screen.getByText('Logement')).toBeInTheDocument();
       expect(screen.getByText('Opérations')).toBeInTheDocument();
-      expect(screen.getByText('Financier')).toBeInTheDocument();
+      expect(screen.getByText('Paiement')).toBeInTheDocument();
     });
 
     it('should NOT show intervention-specific tabs for reservations', () => {
@@ -151,8 +151,6 @@ describe('PlanningActionPanel', () => {
       );
       expect(screen.queryByText('Avancement')).not.toBeInTheDocument();
       expect(screen.queryByText('Récap')).not.toBeInTheDocument();
-      // "Paiement" tab should not be present (only for interventions)
-      // Note: "Financier" is the reservation equivalent
     });
   });
 
@@ -180,7 +178,6 @@ describe('PlanningActionPanel', () => {
       );
       expect(screen.queryByText('Logement')).not.toBeInTheDocument();
       expect(screen.queryByText('Opérations')).not.toBeInTheDocument();
-      expect(screen.queryByText('Financier')).not.toBeInTheDocument();
     });
   });
 

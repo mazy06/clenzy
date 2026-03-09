@@ -25,8 +25,8 @@ const FILTERS: Array<{ key: FilterKey; label: string }> = [
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: '#D97706',
-  APPROVED: '#0D9488',
-  DEVIS_ACCEPTED: '#C8924A',
+  ASSIGNED: '#8B5CF6',
+  AWAITING_PAYMENT: '#F59E0B',
   IN_PROGRESS: '#3B82F6',
   COMPLETED: '#059669',
   CANCELLED: '#EF4444',
@@ -35,8 +35,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'En attente',
-  APPROVED: 'Approuvee',
-  DEVIS_ACCEPTED: 'Devis accepte',
+  ASSIGNED: 'Assignee',
+  AWAITING_PAYMENT: 'Attente paiement',
   IN_PROGRESS: 'En cours',
   COMPLETED: 'Terminee',
   CANCELLED: 'Annulee',
@@ -127,7 +127,7 @@ export function InterventionsListScreen() {
 
     switch (filter) {
       case 'pending':
-        list = list.filter((sr) => sr.status === 'PENDING' || sr.status === 'APPROVED' || sr.status === 'DEVIS_ACCEPTED');
+        list = list.filter((sr) => sr.status === 'PENDING' || sr.status === 'ASSIGNED' || sr.status === 'AWAITING_PAYMENT');
         break;
       case 'active':
         list = list.filter((sr) => sr.status === 'IN_PROGRESS');
@@ -145,7 +145,7 @@ export function InterventionsListScreen() {
   // Stats
   const stats = useMemo(() => {
     const pending = allRequests.filter(
-      (sr) => sr.status === 'PENDING' || sr.status === 'APPROVED' || sr.status === 'DEVIS_ACCEPTED',
+      (sr) => sr.status === 'PENDING' || sr.status === 'ASSIGNED' || sr.status === 'AWAITING_PAYMENT',
     ).length;
     const active = allRequests.filter((sr) => sr.status === 'IN_PROGRESS').length;
     const done = allRequests.filter(

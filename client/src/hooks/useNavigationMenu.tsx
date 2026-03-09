@@ -147,6 +147,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.billing',
     group: 'management',
   },
+  // Portefeuille fusionné dans Facturation (/billing?tab=2)
   {
     icon: <Hub />,
     path: '/channels',

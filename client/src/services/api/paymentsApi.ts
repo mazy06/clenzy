@@ -19,18 +19,22 @@ export interface PaymentSessionStatus {
 
 export interface PaymentRecord {
   id: number;
-  interventionId: number;
-  interventionTitle: string;
+  referenceId: number;        // ID de l'intervention ou de la reservation
+  description: string;        // Titre/description generique
   propertyName: string;
   amount: number;
   currency: string;
   status: 'PAID' | 'PENDING' | 'PROCESSING' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
+  type?: 'INTERVENTION' | 'RESERVATION';
   paymentMethod?: string;
   stripeSessionId?: string;
   transactionDate: string;
   createdAt: string;
   hostName?: string;
   hostId?: number;
+  // Backward-compat aliases from backend Jackson serialization
+  interventionId?: number;
+  interventionTitle?: string;
 }
 
 export interface PaymentSummary {
@@ -88,14 +92,15 @@ export const paymentsApi = {
           .filter((i: any) => i.estimatedCost && i.estimatedCost > 0)
           .map((i: any, idx: number) => ({
             id: idx + 1,
-            interventionId: i.id,
-            interventionTitle: i.title || `Intervention #${i.id}`,
+            referenceId: i.id,
+            description: i.title || `Intervention #${i.id}`,
             propertyName: i.propertyName || 'N/A',
             amount: i.estimatedCost || 0,
             currency: 'EUR',
             status: i.status === 'COMPLETED' ? 'PAID' as const :
                     i.status === 'AWAITING_PAYMENT' ? 'PENDING' as const :
                     i.status === 'CANCELLED' ? 'REFUNDED' as const : 'PAID' as const,
+            type: 'INTERVENTION' as const,
             transactionDate: i.completedDate || i.scheduledDate || i.createdAt || new Date().toISOString(),
             createdAt: i.createdAt || new Date().toISOString(),
             hostName: i.requestorName || undefined,

@@ -96,8 +96,8 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
     user?.orgRole === 'ADMIN'
   );
 
-  // Draggable for move (whole bar body)
-  const isDragDisabled = event.type === 'blocked' || (isIntervention && !canEditIntervention);
+  // Draggable for move (whole bar body) — SR blocks are not draggable
+  const isDragDisabled = event.type === 'blocked' || (isIntervention && !canEditIntervention) || !!event.isAwaitingPayment;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: event.id,
     data: { type: 'move', event, layout } satisfies DragBarData,
@@ -117,6 +117,12 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
   const bgColor = isIntervention
     ? hexToRgba(event.color, isDark ? 0.25 : 0.18)
     : hexToRgba(event.color, isDark ? 0.35 : 0.25);
+
+  // Awaiting payment: diagonal striped pattern
+  const isAwaitingPayment = !!event.isAwaitingPayment;
+  const stripedBg = isAwaitingPayment
+    ? `repeating-linear-gradient(-45deg, ${hexToRgba(event.color, isDark ? 0.12 : 0.08)}, ${hexToRgba(event.color, isDark ? 0.12 : 0.08)} 4px, ${hexToRgba(event.color, isDark ? 0.28 : 0.20)} 4px, ${hexToRgba(event.color, isDark ? 0.28 : 0.20)} 8px)`
+    : undefined;
 
   const borderColor = isSelected
     ? theme.palette.primary.main
@@ -145,9 +151,10 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         top,
         width: displayWidth,
         height,
-        backgroundColor: bgColor,
+        ...(stripedBg ? { background: stripedBg } : { backgroundColor: bgColor }),
         border: `${isCompactBar ? 1 : 1.5}px solid ${borderColor}`,
-        borderLeft: `${isCompactBar ? 2 : 3}px solid ${event.color}`,
+        borderStyle: isAwaitingPayment ? 'dashed' : 'solid',
+        borderLeft: `${isCompactBar ? 2 : 3}px ${isAwaitingPayment ? 'dashed' : 'solid'} ${event.color}`,
         borderRadius: `${isCompactBar ? 3 : BAR_BORDER_RADIUS}px`,
         cursor: isResizing ? 'col-resize' : isDragDisabled ? 'pointer' : 'grab',
         touchAction: 'none',

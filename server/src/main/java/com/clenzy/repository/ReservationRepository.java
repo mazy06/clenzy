@@ -1,6 +1,9 @@
 package com.clenzy.repository;
 
+import com.clenzy.model.PaymentStatus;
 import com.clenzy.model.Reservation;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -125,4 +128,33 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("prefix") String prefix,
             @Param("propertyId") Long propertyId,
             @Param("orgId") Long orgId);
+
+    // ─── Payment queries ────────────────────────────────────────────────────────
+
+    /**
+     * Trouve une reservation par son stripeSessionId (sans orgId — utilise par le webhook Stripe).
+     */
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property WHERE r.stripeSessionId = :sessionId")
+    Optional<Reservation> findByStripeSessionId(@Param("sessionId") String sessionId);
+
+    /**
+     * Historique des paiements de reservations (avec montant > 0).
+     * Filtre optionnel par paymentStatus. Trie par createdAt DESC.
+     */
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property " +
+           "WHERE r.totalPrice IS NOT NULL AND r.totalPrice > 0 " +
+           "AND (:status IS NULL OR r.paymentStatus = :status) " +
+           "AND r.organizationId = :orgId ORDER BY r.createdAt DESC")
+    Page<Reservation> findPaymentHistory(
+            @Param("status") PaymentStatus status,
+            Pageable pageable,
+            @Param("orgId") Long orgId);
+
+    /**
+     * Compte les reservations ayant un paiement (totalPrice > 0) pour le summary.
+     */
+    @Query("SELECT r FROM Reservation r " +
+           "WHERE r.totalPrice IS NOT NULL AND r.totalPrice > 0 " +
+           "AND r.organizationId = :orgId")
+    List<Reservation> findAllWithPayment(@Param("orgId") Long orgId);
 }

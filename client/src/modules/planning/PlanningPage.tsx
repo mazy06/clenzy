@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Box, CircularProgress, Alert, Typography } from '@mui/material';
 import PlanningToolbar from './PlanningToolbar';
 import PlanningTimeline from './PlanningTimeline';
@@ -19,8 +20,11 @@ import { usePlanningPagination } from './hooks/usePlanningPagination';
 import { usePlanningPricing } from './hooks/usePlanningPricing';
 import { usePropertyColWidth } from './hooks/usePropertyColWidth';
 import { ACTION_PANEL_WIDTH } from './constants';
+import type { PlanningEvent } from './types';
 
 const PlanningPage: React.FC = () => {
+  const queryClient = useQueryClient();
+
   // iCal import modal
   const [icalModalOpen, setIcalModalOpen] = useState(false);
 
@@ -120,6 +124,21 @@ const PlanningPage: React.FC = () => {
     setTimeout(() => setPanelTab('property'), 0);
   }, [filteredEvents, selectEvent, setPanelTab]);
 
+  // Handle event click: SR blocks redirect to linked reservation's Paiement tab
+  const handleEventClick = useCallback((event: PlanningEvent) => {
+    if (event.isAwaitingPayment && event.serviceRequest?.reservationId) {
+      const resEvent = filteredEvents.find(
+        (e) => e.type === 'reservation' && e.reservation?.id === event.serviceRequest!.reservationId,
+      );
+      if (resEvent) {
+        selectEvent(resEvent);
+        setTimeout(() => setPanelTab('financial'), 0);
+        return;
+      }
+    }
+    selectEvent(event);
+  }, [filteredEvents, selectEvent, setPanelTab]);
+
   // Reservation update (dates & times from panel, with validation)
   const { updateReservation, changeProperty, cancelReservation, updateNotes, duplicateReservation, hideReservation, updateGuestInfo } = useReservationUpdate(filteredEvents, interventions);
 
@@ -212,6 +231,11 @@ const PlanningPage: React.FC = () => {
     const session = await paymentsApi.createEmbeddedSession({ interventionId, amount });
     return { clientSecret: session.clientSecret || '', sessionId: session.sessionId };
   }, []);
+
+  const handlePaymentComplete = useCallback(() => {
+    // Invalidate interventions + reservations queries so the UI refreshes with updated payment statuses
+    queryClient.invalidateQueries({ queryKey: ['planning-page'] });
+  }, [queryClient]);
 
   const sendPaymentLink = useCallback(async (reservationId: number, email?: string) => {
     const { reservationsApi } = await import('../../services/api');
@@ -356,7 +380,7 @@ const PlanningPage: React.FC = () => {
             selectedEventId={selection.selectedEventId}
             events={filteredEvents}
             drag={drag}
-            onEventClick={selectEvent}
+            onEventClick={handleEventClick}
             onHideEvent={handleHideEvent}
             onEmptyClick={openQuickCreate}
             quickCreateOpen={!!quickCreateData}
@@ -413,6 +437,7 @@ const PlanningPage: React.FC = () => {
         onCreateEmbeddedSession={createEmbeddedSession}
         onSendPaymentLink={sendPaymentLink}
         onGenerateInvoice={generateInvoice}
+        onPaymentComplete={handlePaymentComplete}
         onDuplicateReservation={duplicateReservation}
       />
 

@@ -1,3 +1,11 @@
+## Docker Rules
+
+- Ne JAMAIS relancer, redémarrer ou stopper les containers Docker. Si un redémarrage est nécessaire (migration, changement de config, etc.), indiquer clairement à l'utilisateur quel(s) container(s) relancer (ou si tout doit être relancé).
+
+## Preview Rules
+
+- Ne JAMAIS lancer de preview (preview_start) sauf si l'utilisateur le demande explicitement.
+
 ## Commit & PR Rules
 
 - Ne JAMAIS ajouter la ligne "Generated with Claude Code" (ni emoji robot) dans les messages de commit ou les descriptions de PR.

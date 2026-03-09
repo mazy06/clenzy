@@ -2,12 +2,9 @@ package com.clenzy.integration.airbnb.service;
 
 import com.clenzy.integration.airbnb.model.AirbnbListingMapping;
 import com.clenzy.integration.airbnb.repository.AirbnbListingMappingRepository;
-import com.clenzy.model.Intervention;
-import com.clenzy.model.InterventionStatus;
-import com.clenzy.model.Property;
-import com.clenzy.model.User;
-import com.clenzy.repository.InterventionRepository;
+import com.clenzy.model.*;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.service.AuditLogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,7 +25,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Tests for {@link AirbnbReservationService}.
- * Validates Kafka event handling, auto-intervention creation, update, and cancellation.
+ * Validates Kafka event handling, auto-service-request creation, update, and cancellation.
  */
 @ExtendWith(MockitoExtension.class)
 class AirbnbReservationServiceTest {
@@ -36,7 +33,7 @@ class AirbnbReservationServiceTest {
     @Mock
     private AirbnbListingMappingRepository listingMappingRepository;
     @Mock
-    private InterventionRepository interventionRepository;
+    private ServiceRequestRepository serviceRequestRepository;
     @Mock
     private PropertyRepository propertyRepository;
     @Mock
@@ -49,7 +46,7 @@ class AirbnbReservationServiceTest {
     @BeforeEach
     void setUp() {
         service = new AirbnbReservationService(
-                listingMappingRepository, interventionRepository,
+                listingMappingRepository, serviceRequestRepository,
                 propertyRepository, webhookService, auditLogService);
     }
 
@@ -101,7 +98,7 @@ class AirbnbReservationServiceTest {
             service.handleReservationEvent(event);
 
             verify(webhookService).markAsProcessed("evt-1");
-            verify(interventionRepository).save(any(Intervention.class));
+            verify(serviceRequestRepository).save(any(ServiceRequest.class));
         }
 
         @Test
@@ -159,11 +156,11 @@ class AirbnbReservationServiceTest {
             Map<String, Object> data = Map.of("listing_id", "unknown-listing", "confirmation_code", "HM123");
             service.handleReservationCreated(data);
 
-            verify(interventionRepository, never()).save(any());
+            verify(serviceRequestRepository, never()).save(any());
         }
 
         @Test
-        void whenAutoCreateDisabled_thenDoesNotCreateIntervention() {
+        void whenAutoCreateDisabled_thenDoesNotCreateServiceRequest() {
             AirbnbListingMapping mapping = createMapping(5L, false);
             when(listingMappingRepository.findByAirbnbListingId("airbnb-listing-1"))
                     .thenReturn(Optional.of(mapping));
@@ -174,12 +171,12 @@ class AirbnbReservationServiceTest {
             );
             service.handleReservationCreated(data);
 
-            verify(interventionRepository, never()).save(any());
+            verify(serviceRequestRepository, never()).save(any());
             verify(auditLogService).logSync(anyString(), anyString(), anyString());
         }
 
         @Test
-        void whenAutoCreateEnabled_thenCreatesCleaningIntervention() {
+        void whenAutoCreateEnabled_thenCreatesCleaningServiceRequest() {
             AirbnbListingMapping mapping = createMapping(5L, true);
             Property property = createProperty(5L, "Villa Nice");
             property.setBedroomCount(2);
@@ -198,12 +195,12 @@ class AirbnbReservationServiceTest {
             );
             service.handleReservationCreated(data);
 
-            ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
-            verify(interventionRepository).save(captor.capture());
-            Intervention saved = captor.getValue();
+            ArgumentCaptor<ServiceRequest> captor = ArgumentCaptor.forClass(ServiceRequest.class);
+            verify(serviceRequestRepository).save(captor.capture());
+            ServiceRequest saved = captor.getValue();
             assertThat(saved.getTitle()).contains("Menage Airbnb");
-            assertThat(saved.getStatus()).isEqualTo(InterventionStatus.PENDING);
-            assertThat(saved.getType()).isEqualTo("CLEANING");
+            assertThat(saved.getStatus()).isEqualTo(RequestStatus.PENDING);
+            assertThat(saved.getServiceType()).isEqualTo(ServiceType.CLEANING);
         }
     }
 
@@ -219,29 +216,29 @@ class AirbnbReservationServiceTest {
             service.handleReservationCancelled(Map.of(
                     "listing_id", "unknown", "confirmation_code", "HM123"));
 
-            verify(interventionRepository, never()).save(any());
+            verify(serviceRequestRepository, never()).save(any());
         }
 
         @Test
-        void whenMatchingIntervention_thenCancels() {
+        void whenMatchingServiceRequest_thenCancels() {
             AirbnbListingMapping mapping = createMapping(5L, true);
             when(listingMappingRepository.findByAirbnbListingId("airbnb-listing-1"))
                     .thenReturn(Optional.of(mapping));
 
-            Intervention intervention = new Intervention();
-            intervention.setId(100L);
-            intervention.setStatus(InterventionStatus.PENDING);
-            intervention.setSpecialInstructions("[AIRBNB:HMCANCEL] 2 guests");
+            ServiceRequest sr = new ServiceRequest();
+            sr.setId(100L);
+            sr.setStatus(RequestStatus.AWAITING_PAYMENT);
+            sr.setSpecialInstructions("[AIRBNB:HMCANCEL] 2 guests");
 
-            when(interventionRepository.findByPropertyId(5L, 10L))
-                    .thenReturn(List.of(intervention));
+            when(serviceRequestRepository.findByPropertyId(5L, 10L))
+                    .thenReturn(List.of(sr));
 
             service.handleReservationCancelled(Map.of(
                     "listing_id", "airbnb-listing-1",
                     "confirmation_code", "HMCANCEL"));
 
-            verify(interventionRepository).save(argThat(i ->
-                    i.getStatus() == InterventionStatus.CANCELLED));
+            verify(serviceRequestRepository).save(argThat(s ->
+                    ((ServiceRequest) s).getStatus() == RequestStatus.CANCELLED));
         }
     }
 }

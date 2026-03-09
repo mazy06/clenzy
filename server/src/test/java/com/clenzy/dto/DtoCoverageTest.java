@@ -46,7 +46,7 @@ class DtoCoverageTest {
                     null, null, null, 2,
                     "2026-03-01", "2026-03-05", "14:00", "11:00",
                     "CONFIRMED", "AIRBNB", "Airbnb", 500.0, "ABC123", "Notes",
-                    50.0, 12.0, true, null, null, false);
+                    50.0, 12.0, true, null, null, false, null, null);
             assertThat(dto.id()).isEqualTo(1L);
             assertThat(dto.propertyId()).isEqualTo(2L);
             assertThat(dto.guestName()).isEqualTo("Jean");
@@ -256,11 +256,15 @@ class DtoCoverageTest {
         }
         @Test void paymentHistoryDto() {
             PaymentHistoryDto dto = new PaymentHistoryDto();
-            dto.interventionId = 1L;
+            dto.referenceId = 1L;
+            dto.description = "Test intervention";
             dto.propertyName = "Villa";
             dto.amount = java.math.BigDecimal.valueOf(100);
             dto.status = "PAID";
-            assertThat(dto.interventionId).isEqualTo(1L);
+            dto.type = "INTERVENTION";
+            assertThat(dto.referenceId).isEqualTo(1L);
+            assertThat(dto.getInterventionId()).isEqualTo(1L); // backward-compat alias
+            assertThat(dto.getInterventionTitle()).isEqualTo("Test intervention");
         }
         @Test void sendInvitationRequest() {
             SendInvitationRequest req = new SendInvitationRequest();

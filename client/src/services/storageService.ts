@@ -32,6 +32,10 @@ export const STORAGE_KEYS = {
   // Smart lock devices (configured locks)
   SMART_LOCK_DEVICES: 'clenzy_smart_lock_devices',
 
+  // Geolocation
+  GEO_COUNTRY: 'clenzy_geo_country',
+  GEO_APPLIED: 'clenzy_geo_applied',
+
   // Cross-tab sync
   TOKEN_UPDATE: 'clenzy_token_update',
 } as const;

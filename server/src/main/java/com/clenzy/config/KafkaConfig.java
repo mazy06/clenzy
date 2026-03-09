@@ -71,6 +71,8 @@ public class KafkaConfig {
     // ---- Reviews & Pricing topics ----
     public static final String TOPIC_REVIEWS_SYNC = "reviews.sync";
     public static final String TOPIC_PRICING_EXTERNAL = "pricing.external.sync";
+    // ---- Payment topics ----
+    public static final String TOPIC_PAYMENT_EVENTS = "payment.events";
 
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
@@ -290,6 +292,16 @@ public class KafkaConfig {
     @Bean
     public NewTopic pricingExternalTopic() {
         return TopicBuilder.name(TOPIC_PRICING_EXTERNAL)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    // ---- Payment topics ----
+
+    @Bean
+    public NewTopic paymentEventsTopic() {
+        return TopicBuilder.name(TOPIC_PAYMENT_EVENTS)
                 .partitions(3)
                 .replicas(1)
                 .build();

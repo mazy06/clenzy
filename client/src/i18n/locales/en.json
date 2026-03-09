@@ -73,9 +73,11 @@
     "languageAndCurrency": "Language & Currency",
     "languages": {
       "fr": "French",
-      "en": "English"
+      "en": "English",
+      "ar": "Arabic"
     },
     "currency": "Currency",
+    "wallets": "Wallets",
     "invoices": "Invoices",
     "channels": "Channels",
     "messaging": "Messaging",

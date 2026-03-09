@@ -429,7 +429,8 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        {/* Backward-compat redirect */}
+        {/* Backward-compat redirects — wallets merged into billing */}
+        <Route path="/wallets" element={<Navigate to="/billing?tab=2" replace />} />
         <Route path="/invoices" element={<Navigate to="/billing?tab=1" replace />} />
 
         <Route path="/owner-portal" element={
