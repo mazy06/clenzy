@@ -72,6 +72,13 @@ interface User {
   role: string;
 }
 
+/** Info utilisateur connecté pour affichage demandeur en lecture seule */
+interface CurrentUserInfo {
+  name: string;
+  role: string;
+  roleLabel: string;
+}
+
 export interface ServiceRequestFormPropertyProps {
   control: Control<ServiceRequestFormValues>;
   errors: FieldErrors<ServiceRequestFormValues>;
@@ -80,6 +87,8 @@ export interface ServiceRequestFormPropertyProps {
   isAdminOrManager: boolean;
   selectedProperty?: Property | null;
   disabled?: boolean;
+  /** Info de l'utilisateur connecté — si fourni, le demandeur est affiché en lecture seule */
+  currentUser?: CurrentUserInfo | null;
 }
 
 // ─── Stable sx ──────────────────────────────────────────────────────────────
@@ -117,7 +126,7 @@ const SELECT_SX = {
 } as const;
 
 const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = React.memo(
-  ({ control, errors, properties, users, isAdminOrManager, selectedProperty, disabled = false }) => {
+  ({ control, errors, properties, users, isAdminOrManager, selectedProperty, disabled = false, currentUser }) => {
     const { t } = useTranslation();
 
     // Construire les tags caractéristiques du logement sélectionné
@@ -340,63 +349,99 @@ const ServiceRequestFormProperty: React.FC<ServiceRequestFormPropertyProps> = Re
             />
           </Box>
 
-          {/* Demandeur */}
+          {/* Demandeur — lecture seule, trace l'utilisateur connecté */}
           <Box sx={{ flex: 5 }}>
-            <Controller
-              name="userId"
-              control={control}
-              render={({ field, fieldState }) => {
-                const selectedUser = users.find(u => u.id === field.value);
-                const hasValue = !!selectedUser;
-                return (
-                  <FormControl fullWidth error={!!fieldState.error}>
-                    <InputLabel shrink sx={{ color: 'text.secondary' }}>
-                      {t('serviceRequests.fields.requestor')}
-                    </InputLabel>
-                    <Select
-                      value={field.value ?? ''}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      onBlur={field.onBlur}
-                      label={t('serviceRequests.fields.requestor')}
-                      disabled={!isAdminOrManager}
+            {currentUser ? (
+              <Box>
+                <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled', mb: 0.5, ml: 0.25 }}>
+                  {t('serviceRequests.fields.requestor')}
+                </Typography>
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.75,
+                  px: 1.25,
+                  py: 0.75,
+                  borderRadius: 1,
+                  bgcolor: 'grey.50',
+                  border: '1px solid',
+                  borderColor: 'grey.200',
+                  minHeight: 40,
+                }}>
+                  <Person sx={{ fontSize: 16, color: 'primary.main' }} />
+                  <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary', flex: 1 }}>
+                    {currentUser.name}
+                  </Typography>
+                  {currentUser.roleLabel && (
+                    <Chip
+                      label={currentUser.roleLabel}
                       size="small"
-                      displayEmpty
-                      notched
-                      sx={SELECT_SX}
-                      renderValue={() => (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Person sx={{ fontSize: 16, color: hasValue ? 'primary.main' : 'grey.400' }} />
-                          <Typography sx={{ fontSize: '0.8125rem', color: hasValue ? 'text.secondary' : 'grey.400' }}>
-                            {hasValue
-                              ? `${selectedUser.firstName} ${selectedUser.lastName}`
-                              : t('serviceRequests.fields.selectRequestor')}
-                          </Typography>
-                        </Box>
-                      )}
-                    >
-                      {users.map((u) => (
-                        <MenuItem key={u.id} value={u.id}>
+                      sx={{
+                        height: 20,
+                        fontSize: '0.5625rem',
+                        fontWeight: 600,
+                        bgcolor: currentUser.role === 'ADMIN' ? 'error.50' : currentUser.role === 'MANAGER' ? 'warning.50' : 'primary.50',
+                        color: currentUser.role === 'ADMIN' ? 'error.main' : currentUser.role === 'MANAGER' ? 'warning.dark' : 'primary.main',
+                        borderRadius: 0.75,
+                        '& .MuiChip-label': { px: 0.75 },
+                      }}
+                    />
+                  )}
+                </Box>
+              </Box>
+            ) : (
+              /* Fallback: ancien Select si currentUser pas fourni (compatibilité) */
+              <Controller
+                name="userId"
+                control={control}
+                render={({ field, fieldState }) => {
+                  const selectedUser = users.find(u => u.id === field.value);
+                  const hasValue = !!selectedUser;
+                  return (
+                    <FormControl fullWidth error={!!fieldState.error}>
+                      <InputLabel shrink sx={{ color: 'text.secondary' }}>
+                        {t('serviceRequests.fields.requestor')}
+                      </InputLabel>
+                      <Select
+                        value={field.value ?? ''}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        onBlur={field.onBlur}
+                        label={t('serviceRequests.fields.requestor')}
+                        disabled={!isAdminOrManager}
+                        size="small"
+                        displayEmpty
+                        notched
+                        sx={SELECT_SX}
+                        renderValue={() => (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <Person sx={{ fontSize: 16, color: 'primary.main' }} />
-                            <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
-                              {u.firstName} {u.lastName}
+                            <Person sx={{ fontSize: 16, color: hasValue ? 'primary.main' : 'grey.400' }} />
+                            <Typography sx={{ fontSize: '0.8125rem', color: hasValue ? 'text.secondary' : 'grey.400' }}>
+                              {hasValue
+                                ? `${selectedUser.firstName} ${selectedUser.lastName}`
+                                : t('serviceRequests.fields.selectRequestor')}
                             </Typography>
                           </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {!isAdminOrManager && (
-                      <FormHelperText sx={{ fontSize: '0.625rem', color: 'text.disabled', m: 0, mt: 0.5 }}>
-                        {t('serviceRequests.fields.requestorHelper')}
-                      </FormHelperText>
-                    )}
-                    {fieldState.error && (
-                      <FormHelperText>{fieldState.error.message}</FormHelperText>
-                    )}
-                  </FormControl>
-                );
-              }}
-            />
+                        )}
+                      >
+                        {users.map((u) => (
+                          <MenuItem key={u.id} value={u.id}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                              <Person sx={{ fontSize: 16, color: 'primary.main' }} />
+                              <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+                                {u.firstName} {u.lastName}
+                              </Typography>
+                            </Box>
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {fieldState.error && (
+                        <FormHelperText>{fieldState.error.message}</FormHelperText>
+                      )}
+                    </FormControl>
+                  );
+                }}
+              />
+            )}
           </Box>
         </Box>
 

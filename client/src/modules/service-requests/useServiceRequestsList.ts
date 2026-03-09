@@ -172,14 +172,6 @@ export function useServiceRequestsList() {
       };
       await serviceRequestsApi.update(parseInt(selectedRequestForStatusChange.id), updateData);
 
-      if (newStatus.toUpperCase() === 'APPROVED') {
-        setStatusChangeDialogOpen(false);
-        handleValidateAndCreateIntervention(selectedRequestForStatusChange);
-        setSelectedRequestForStatusChange(null);
-        setNewStatus('');
-        return;
-      }
-
       invalidateList();
       setStatusChangeDialogOpen(false);
       setSelectedRequestForStatusChange(null);
@@ -307,14 +299,13 @@ export function useServiceRequestsList() {
   };
 
   const canDeleteServiceRequest = (request: ServiceRequest): boolean => {
-    if (request.status === 'APPROVED') return false;
+    if (['ASSIGNED', 'AWAITING_PAYMENT', 'IN_PROGRESS', 'COMPLETED'].includes(request.status)) return false;
     return canModifyServiceRequest(request);
   };
 
   const canCancelServiceRequest = (request: ServiceRequest): boolean => {
-    if (request.status !== 'APPROVED') return false;
-    const referenceDate = request.approvedAt || request.createdAt;
-    if (!canCancelByWorkflow(referenceDate)) return false;
+    if (!['PENDING', 'AWAITING_PAYMENT'].includes(request.status)) return false;
+    if (!canCancelByWorkflow(request.createdAt)) return false;
     return canModifyServiceRequest(request);
   };
 

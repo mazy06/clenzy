@@ -140,7 +140,7 @@ export function useInterventionsList() {
     queryKey: assignDataKeys.teams,
     queryFn: async () => {
       const data = await teamsApi.getAll();
-      return Array.isArray(data) ? data : [];
+      return extractApiList<Team>(data);
     },
     enabled: assignDialogOpen,
     staleTime: 60_000,
@@ -150,7 +150,7 @@ export function useInterventionsList() {
     queryKey: assignDataKeys.users,
     queryFn: async () => {
       const data = await usersApi.getAll();
-      return Array.isArray(data) ? data : [];
+      return extractApiList<User>(data);
     },
     enabled: assignDialogOpen,
     staleTime: 60_000,

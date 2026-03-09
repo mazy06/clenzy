@@ -79,8 +79,8 @@ const PRIORITY_OPTIONS = [
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: '#D97706',
-  APPROVED: '#0D9488',
-  DEVIS_ACCEPTED: '#C8924A',
+  ASSIGNED: '#8B5CF6',
+  AWAITING_PAYMENT: '#F59E0B',
   IN_PROGRESS: '#3B82F6',
   COMPLETED: '#059669',
   CANCELLED: '#EF4444',
@@ -89,8 +89,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'En attente',
-  APPROVED: 'Approuvee',
-  DEVIS_ACCEPTED: 'Devis accepte',
+  ASSIGNED: 'Assignee',
+  AWAITING_PAYMENT: 'Attente paiement',
   IN_PROGRESS: 'En cours',
   COMPLETED: 'Terminee',
   CANCELLED: 'Annulee',

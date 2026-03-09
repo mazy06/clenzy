@@ -41,7 +41,7 @@ interface PanelInterventionDetailProps {
   onValidateIntervention?: (interventionId: number, estimatedCost: number) => Promise<ActionResult>;
   onUploadPhotos?: (interventionId: number, photos: File[], type: 'before' | 'after') => Promise<ActionResult>;
   onUpdateInterventionProgress?: (interventionId: number, progress: number) => Promise<ActionResult>;
-  onAssignIntervention?: (interventionId: number, assigneeName: string) => Promise<ActionResult>;
+  onAssignIntervention?: (interventionId: number, assigneeName: string, options?: { userId?: number; teamId?: number }) => Promise<ActionResult>;
   onSetPriority?: (interventionId: number, priority: 'normale' | 'haute' | 'urgente') => Promise<ActionResult>;
   onUpdateInterventionNotes?: (interventionId: number, notes: string) => Promise<ActionResult>;
   onUpdateInterventionDates?: (interventionId: number, updates: {

@@ -1,6 +1,8 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
-import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import PaymentCheckoutModal from '../../../components/PaymentCheckoutModal';
+import { serviceRequestsApi, type ServiceRequest } from '../../../services/api/serviceRequestsApi';
+import { reservationsApi } from '../../../services/api/reservationsApi';
 import {
   Box,
   Typography,
@@ -49,8 +51,6 @@ import {
 } from '@mui/icons-material';
 import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 // ── Types for local financial state ────────────────────────────────────────
 interface LocalPayment {
@@ -243,6 +243,7 @@ interface PanelFinancialProps {
     emailTo?: string;
     sendEmail: boolean;
   }) => Promise<{ id: number; fileName: string; status: string; legalNumber?: string | null }>;
+  onPaymentComplete?: () => void;
 }
 
 const PanelFinancial: React.FC<PanelFinancialProps> = ({
@@ -252,24 +253,39 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   onCreateEmbeddedSession,
   onSendPaymentLink,
   onGenerateInvoice,
+  onPaymentComplete,
 }) => {
   const reservation = event.reservation;
   const intervention = event.intervention;
 
   const today = new Date().toISOString().split('T')[0];
 
-  // ── Local financial state (mock mode) ────────────────────────────────────
+  // ── Fetch service requests for this reservation ───────────────────────────
+  const { data: serviceRequestsRaw } = useQuery({
+    queryKey: ['planning', 'service-requests', reservation?.id],
+    queryFn: async () => {
+      const result = await serviceRequestsApi.getAll({ reservationId: reservation!.id });
+      const list = (result as unknown as { content?: ServiceRequest[] }).content ?? result;
+      return list as ServiceRequest[];
+    },
+    enabled: !!reservation?.id,
+    staleTime: 30_000,
+  });
+
+  // ── Local financial state ─────────────────────────────────────────────────
+  // Payments are tracked server-side (paymentStatus + paidAt on the reservation).
+  // Start empty — actual payment status is derived from reservation.paymentStatus.
   const [payments, setPayments] = useState<LocalPayment[]>(() => {
     if (!reservation) return [];
-    if (reservation.totalPrice > 0) {
-      const depositAmount = Math.round(reservation.totalPrice * 0.3 * 100) / 100;
+    // If the reservation was already paid (confirmed via Stripe webhook), reflect it
+    if (reservation.paymentStatus === 'PAID' && reservation.totalPrice > 0) {
       return [{
         id: ++mockFinancialId,
-        amount: depositAmount,
+        amount: reservation.totalPrice,
         method: 'card',
-        date: reservation.checkIn,
+        date: reservation.paidAt || reservation.checkIn,
         status: 'PAID' as const,
-        reference: `DEP-${reservation.id}`,
+        reference: `STRIPE-${reservation.id}`,
       }];
     }
     return [];
@@ -277,6 +293,25 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 
   const [extraFees, setExtraFees] = useState<LocalExtraFee[]>([]);
   const [invoices, setInvoices] = useState<GeneratedInvoice[]>([]);
+
+  // Sync payments state when reservation payment status changes (e.g. auto-check confirms payment)
+  useEffect(() => {
+    if (!reservation) return;
+    if (reservation.paymentStatus === 'PAID' && reservation.totalPrice > 0) {
+      setPayments((prev) => {
+        // Don't duplicate if already has a PAID Stripe entry
+        if (prev.some((p) => p.status === 'PAID' && p.reference?.startsWith('STRIPE-'))) return prev;
+        return [{
+          id: ++mockFinancialId,
+          amount: reservation.totalPrice,
+          method: 'card',
+          date: reservation.paidAt || reservation.checkIn,
+          status: 'PAID' as const,
+          reference: `STRIPE-${reservation.id}`,
+        }];
+      });
+    }
+  }, [reservation?.id, reservation?.paymentStatus]);
 
   // ── Dialog states ────────────────────────────────────────────────────────
   const [paymentsDialogOpen, setPaymentsDialogOpen] = useState(false);
@@ -308,13 +343,21 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   const [lastSentAt, setLastSentAt] = useState<string | null>(reservation?.paymentLinkSentAt || null);
   const [lastSentEmail, setLastSentEmail] = useState<string | null>(reservation?.paymentLinkEmail || null);
 
+  // Auto-check payment status (fallback when webhook missed)
+  const queryClient = useQueryClient();
+
   // Intervention payment
   const [payingInterventions, setPayingInterventions] = useState(false);
   const [interventionsExpanded, setInterventionsExpanded] = useState(true);
 
-  // Embedded Stripe checkout
-  const [embeddedClientSecret, setEmbeddedClientSecret] = useState<string | null>(null);
-  const [embeddedSessionId, setEmbeddedSessionId] = useState<string | null>(null);
+  // Payment modal — supporte intervention OU service request
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentModalTarget, setPaymentModalTarget] = useState<{
+    interventionId?: number;
+    serviceRequestId?: number;
+    amount: number;
+    title: string;
+  } | null>(null);
 
   // Errors & feedback
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
@@ -336,6 +379,29 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
     setLinkEmail('');
   }, [reservation?.id, reservation?.paymentLinkSentAt, reservation?.paymentLinkEmail]);
 
+  // Auto-check payment status when panel opens with a sent payment link but no confirmation
+  useEffect(() => {
+    if (!reservation) return;
+    if (reservation.paymentStatus === 'PAID') return;
+    if (!reservation.paymentLinkSentAt) return;
+
+    let cancelled = false;
+    const checkPayment = async () => {
+      try {
+        const result = await reservationsApi.checkPaymentStatus(reservation.id);
+        if (!cancelled && result.paymentStatus === 'PAID') {
+          // Payment confirmed — refresh all planning data
+          queryClient.invalidateQueries({ queryKey: ['planning-page'] });
+          onPaymentComplete?.();
+        }
+      } catch {
+        // Silent — non-blocking check
+      }
+    };
+    checkPayment();
+    return () => { cancelled = true; };
+  }, [reservation?.id, reservation?.paymentStatus, reservation?.paymentLinkSentAt]);
+
   // ── Computed values — Reservation ──────────────────────────────────────
   const totalPrice = reservation?.totalPrice || 0;
   const totalExtraFees = extraFees.reduce((sum, f) => sum + f.amount, 0);
@@ -348,12 +414,19 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   const paymentStatusHex = balanceDue <= 0 ? '#4A9B8E' : totalPaid > 0 ? '#0288d1' : '#ED6C02';
 
   // ── Computed values — Interventions ────────────────────────────────────
+  // Only show interventions that are assigned + paid (or no cost) in the financial tab
   const linkedInterventions = (interventions || []).filter((i) => {
     if (!reservation) return false;
-    // Linked by reservation ID
+    // Must be assigned to a contractor/team
+    if (!i.assigneeName) return false;
+    // If has a cost, must be paid
+    const cost = i.actualCost || i.estimatedCost || 0;
+    if (cost > 0 && i.paymentStatus !== 'PAID') return false;
+    // Only show interventions explicitly linked to THIS reservation
     if (i.linkedReservationId === reservation.id) return true;
-    // Or same property + overlapping dates
-    if (i.propertyId === event.propertyId) {
+    // Also include unlinked interventions (no reservation link) on the same property
+    // with overlapping dates — these are "orphan" interventions that likely belong here
+    if (!i.linkedReservationId && i.propertyId === event.propertyId) {
       const iStart = i.startDate;
       const iEnd = i.endDate;
       return iStart <= reservation.checkOut && iEnd >= reservation.checkIn;
@@ -367,7 +440,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   }, 0);
 
   const interventionPaid = linkedInterventions
-    .filter((i) => i.paymentStatus === 'PAID' || i.status === 'completed')
+    .filter((i) => i.paymentStatus === 'PAID' || i.paymentStatus === 'PROCESSING' || i.status === 'completed')
     .reduce((sum, i) => {
       const cost = i.actualCost || i.estimatedCost || (i.estimatedDurationHours ? i.estimatedDurationHours * 25 : 0);
       return sum + cost;
@@ -376,6 +449,15 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   const interventionAwaiting = linkedInterventions.filter((i) => i.status === 'awaiting_payment');
   const interventionAwaitingTotal = interventionAwaiting.reduce((sum, i) => {
     const cost = i.estimatedCost || (i.estimatedDurationHours ? i.estimatedDurationHours * 25 : 0);
+    return sum + cost;
+  }, 0);
+
+  // ── Computed values — Service Requests (interventions proposees) ──────
+  const payableServiceRequests = (serviceRequestsRaw ?? []).filter(
+    (sr) => sr.status === 'AWAITING_PAYMENT',
+  );
+  const srProposedTotal = payableServiceRequests.reduce((sum, sr) => {
+    const cost = sr.estimatedCost || (sr.estimatedDurationHours ? sr.estimatedDurationHours * 25 : 0);
     return sum + cost;
   }, 0);
 
@@ -488,56 +570,46 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 
   // ── Handler — Intervention payment (embedded) ──────────────────────────
   const unpaidInterventions = linkedInterventions.filter(
-    (i) => i.paymentStatus !== 'PAID' && i.status !== 'completed',
+    (i) => i.paymentStatus !== 'PAID' && i.paymentStatus !== 'PROCESSING' && i.status !== 'completed',
   );
   const unpaidTotal = unpaidInterventions.reduce((sum, i) => {
     const cost = i.estimatedCost || (i.estimatedDurationHours ? i.estimatedDurationHours * 25 : 0);
     return sum + cost;
   }, 0);
 
-  const handlePayInterventions = useCallback(async () => {
+  const handlePayInterventions = useCallback(() => {
     if (unpaidInterventions.length === 0) return;
-    setPayingInterventions(true);
-    try {
-      // Prefer embedded mode if available
-      if (onCreateEmbeddedSession) {
-        const intv = unpaidInterventions[0];
-        const cost = intv.estimatedCost || (intv.estimatedDurationHours ? intv.estimatedDurationHours * 25 : 0);
-        const result = await onCreateEmbeddedSession(intv.id, cost);
-        if (result?.clientSecret) {
-          setEmbeddedClientSecret(result.clientSecret);
-          setEmbeddedSessionId(result.sessionId);
-          showSnackbar('Formulaire de paiement pret');
-        }
-      } else if (onCreatePaymentSession) {
-        // Fallback: redirect mode
-        const ids = unpaidInterventions.map((i) => i.id);
-        const result = await onCreatePaymentSession(ids, unpaidTotal);
-        if (result?.url) {
-          window.open(result.url, '_blank', 'width=600,height=700');
-          showSnackbar('Session de paiement ouverte');
-        }
-      }
-    } catch {
-      showSnackbar('Erreur lors de la creation de session', 'error');
-    } finally {
-      setPayingInterventions(false);
-    }
-  }, [onCreateEmbeddedSession, onCreatePaymentSession, unpaidInterventions, unpaidTotal]);
+    const intv = unpaidInterventions[0];
+    const cost = intv.estimatedCost || (intv.estimatedDurationHours ? intv.estimatedDurationHours * 25 : 0);
+    setPaymentModalTarget({ interventionId: intv.id, amount: cost, title: intv.title });
+    setPaymentModalOpen(true);
+  }, [unpaidInterventions]);
 
-  const handleEmbeddedComplete = useCallback(() => {
-    setEmbeddedClientSecret(null);
-    setEmbeddedSessionId(null);
-    showSnackbar('Paiement effectue avec succes !');
+  // ── Handler — Service Request payment (modal embedded) ─────────────────
+  const [payingSR] = useState(false);
+
+  const handlePayServiceRequest = useCallback((sr: { id: number; estimatedCost?: number; title: string }) => {
+    setPaymentModalTarget({
+      serviceRequestId: sr.id,
+      amount: sr.estimatedCost || 0,
+      title: sr.title,
+    });
+    setPaymentModalOpen(true);
   }, []);
 
-  const embeddedOptions = useMemo(() => {
-    if (!embeddedClientSecret) return null;
-    return {
-      clientSecret: embeddedClientSecret,
-      onComplete: handleEmbeddedComplete,
-    };
-  }, [embeddedClientSecret, handleEmbeddedComplete]);
+  // Called by the modal when Stripe confirms payment — just refresh data, don't close the modal
+  const handlePaymentModalSuccess = useCallback(() => {
+    // Invalidate the SR query so paid SRs disappear from "Interventions proposées"
+    // (avoids the duplicate: SR "A payer" + created intervention "Payé" both showing)
+    queryClient.invalidateQueries({ queryKey: ['planning', 'service-requests'] });
+    onPaymentComplete?.();
+  }, [onPaymentComplete, queryClient]);
+
+  // Called when the user clicks "Fermer" on the success screen
+  const handlePaymentModalClose = useCallback(() => {
+    setPaymentModalOpen(false);
+    setPaymentModalTarget(null);
+  }, []);
 
   // ── Formatters ─────────────────────────────────────────────────────────
   const fmtDate = (iso: string) => {
@@ -689,7 +761,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               size="small"
               variant="contained"
               startIcon={sendingLink ? <CircularProgress size={14} color="inherit" /> : <Send sx={{ fontSize: 14 }} />}
-              disabled={sendingLink || !onSendPaymentLink}
+              disabled={sendingLink || !onSendPaymentLink || !hasTotalPrice || reservation?.paymentStatus === 'PAID'}
               onClick={() => {
                 if (reservation.guestEmail) {
                   handleSendPaymentLink(reservation.guestEmail);
@@ -724,7 +796,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                 size="small"
                 variant="outlined"
                 startIcon={invoiceLoading ? <CircularProgress size={12} /> : <Receipt sx={{ fontSize: 12 }} />}
-                disabled={invoiceLoading || !onGenerateInvoice || !reservation}
+                disabled={invoiceLoading || !onGenerateInvoice || !reservation || !hasTotalPrice}
                 onClick={() => reservation && handleGenerateInvoice('RESERVATION', reservation.id)}
                 sx={{ flex: 1, fontSize: '0.6875rem', textTransform: 'none' }}
               >
@@ -751,7 +823,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               <Button
                 size="small"
                 variant="contained"
-                disabled={!linkEmail || sendingLink}
+                disabled={!linkEmail || sendingLink || !hasTotalPrice}
                 onClick={() => handleSendPaymentLink(linkEmail)}
                 sx={{ fontSize: '0.6875rem', textTransform: 'none', minWidth: 'auto', px: 1.5 }}
               >
@@ -759,13 +831,14 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               </Button>
             </Box>
           </Collapse>
+
         </SectionCard>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════
           SECTION 2 : Paiement Interventions (Propriétaire / Conciergerie)
           ═══════════════════════════════════════════════════════════════════ */}
-      {reservation && linkedInterventions.length > 0 && (
+      {reservation && (linkedInterventions.length > 0 || payableServiceRequests.length > 0) && (
         <SectionCard
           borderColor="#D4A574"
           bgColor="#D4A57408"
@@ -774,61 +847,125 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           badge="Proprietaire"
           badgeColor="#D4A574"
         >
-          {/* Intervention list */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
-            <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: 'text.secondary' }}>
-              Prestations liees ({linkedInterventions.length})
-            </Typography>
-            <IconButton size="small" onClick={() => setInterventionsExpanded(!interventionsExpanded)} sx={{ p: 0.25 }}>
-              {interventionsExpanded ? <ExpandLess sx={{ fontSize: 16 }} /> : <ExpandMore sx={{ fontSize: 16 }} />}
-            </IconButton>
-          </Box>
+          {/* ── Interventions proposees (SR assignees, en attente de paiement) ── */}
+          {payableServiceRequests.length > 0 && (
+            <>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: '#D4A574' }}>
+                  Interventions proposees ({payableServiceRequests.length})
+                </Typography>
+              </Box>
+              {payableServiceRequests.map((sr) => {
+                const cost = sr.estimatedCost || (sr.estimatedDurationHours ? sr.estimatedDurationHours * 25 : 0);
+                const typeIcon = sr.serviceType === 'CLEANING' || sr.serviceType === 'EXPRESS_CLEANING'
+                  ? <CleaningServices sx={{ fontSize: 14, color: '#D4A574' }} />
+                  : <Handyman sx={{ fontSize: 14, color: '#D4A574' }} />;
+                return (
+                  <Box
+                    key={`sr-${sr.id}`}
+                    sx={{
+                      display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5,
+                      p: 0.75, borderRadius: 1,
+                      border: '1px dashed',
+                      borderColor: '#D4A57480',
+                      backgroundColor: '#D4A57408',
+                    }}
+                  >
+                    {typeIcon}
+                    <Tooltip title={sr.title} placement="top">
+                      <Typography
+                        sx={{ fontSize: '0.6875rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      >
+                        {sr.title}
+                      </Typography>
+                    </Tooltip>
+                    {sr.estimatedDurationHours > 0 && (
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                        {sr.estimatedDurationHours}h
+                      </Typography>
+                    )}
+                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right' }}>
+                      {cost > 0 ? `${cost.toFixed(0)} EUR` : '\u2014'}
+                    </Typography>
+                    <Chip
+                      label="A payer"
+                      size="small"
+                      sx={{
+                        fontSize: '0.5625rem', height: 18, fontWeight: 600,
+                        backgroundColor: '#D4A57420', color: '#D4A574',
+                        border: '1px solid #D4A57440', borderRadius: '6px',
+                        '& .MuiChip-label': { px: 0.5 },
+                      }}
+                    />
+                  </Box>
+                );
+              })}
+              {linkedInterventions.length > 0 && <Divider sx={{ my: 0.5 }} />}
+            </>
+          )}
 
-          <Collapse in={interventionsExpanded}>
-            {linkedInterventions.map((intv) => {
-              const cost = intv.actualCost || intv.estimatedCost || (intv.estimatedDurationHours ? intv.estimatedDurationHours * 25 : 0);
-              const typeIcon = intv.type === 'cleaning'
-                ? <CleaningServices sx={{ fontSize: 14, color: 'text.secondary' }} />
-                : <Handyman sx={{ fontSize: 14, color: 'text.secondary' }} />;
-              return (
-                <Box
-                  key={intv.id}
-                  sx={{
-                    display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5,
-                    p: 0.75, borderRadius: 1, border: '1px solid', borderColor: 'divider',
-                    backgroundColor: 'background.paper',
-                  }}
-                >
-                  {typeIcon}
-                  <Tooltip title={intv.title} placement="top">
-                    <Typography
-                      sx={{ fontSize: '0.6875rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          {/* ── Interventions existantes (deja creees et payees) ── */}
+          {linkedInterventions.length > 0 && (
+            <>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: 'text.secondary' }}>
+                  Prestations liees ({linkedInterventions.length})
+                </Typography>
+                <IconButton size="small" onClick={() => setInterventionsExpanded(!interventionsExpanded)} sx={{ p: 0.25 }}>
+                  {interventionsExpanded ? <ExpandLess sx={{ fontSize: 16 }} /> : <ExpandMore sx={{ fontSize: 16 }} />}
+                </IconButton>
+              </Box>
+
+              <Collapse in={interventionsExpanded}>
+                {linkedInterventions.map((intv) => {
+                  const cost = intv.actualCost || intv.estimatedCost || (intv.estimatedDurationHours ? intv.estimatedDurationHours * 25 : 0);
+                  const typeIcon = intv.type === 'cleaning'
+                    ? <CleaningServices sx={{ fontSize: 14, color: 'text.secondary' }} />
+                    : <Handyman sx={{ fontSize: 14, color: 'text.secondary' }} />;
+                  return (
+                    <Box
+                      key={intv.id}
+                      sx={{
+                        display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5,
+                        p: 0.75, borderRadius: 1, border: '1px solid', borderColor: 'divider',
+                        backgroundColor: 'background.paper',
+                      }}
                     >
-                      {intv.title}
-                    </Typography>
-                  </Tooltip>
-                  {intv.estimatedDurationHours > 0 && (
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
-                      {intv.estimatedDurationHours}h
-                    </Typography>
-                  )}
-                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right' }}>
-                    {cost > 0 ? `${cost.toFixed(0)} €` : '—'}
-                  </Typography>
-                  <StatusChip
-                    status={intv.paymentStatus || intv.status}
-                    map={{ ...STATUS_LABELS, ...INTERVENTION_STATUS_LABELS }}
-                    hexMap={{ ...STATUS_HEX, ...INTERVENTION_STATUS_HEX }}
-                  />
-                </Box>
-              );
-            })}
-          </Collapse>
+                      {typeIcon}
+                      <Tooltip title={intv.title} placement="top">
+                        <Typography
+                          sx={{ fontSize: '0.6875rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        >
+                          {intv.title}
+                        </Typography>
+                      </Tooltip>
+                      {intv.estimatedDurationHours > 0 && (
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.625rem' }}>
+                          {intv.estimatedDurationHours}h
+                        </Typography>
+                      )}
+                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right' }}>
+                        {cost > 0 ? `${cost.toFixed(0)} €` : '—'}
+                      </Typography>
+                      <StatusChip
+                        status={intv.paymentStatus || intv.status}
+                        map={{ ...STATUS_LABELS, ...INTERVENTION_STATUS_LABELS }}
+                        hexMap={{ ...STATUS_HEX, ...INTERVENTION_STATUS_HEX }}
+                      />
+                    </Box>
+                  );
+                })}
+              </Collapse>
+            </>
+          )}
 
           <Divider sx={{ my: 0.75 }} />
 
           {/* Summary */}
-          <FinRow label="Total interventions" value={fmtCurrency(interventionCostTotal)} bold />
+          {srProposedTotal > 0 && (
+            <FinRow label="Interventions proposees" value={fmtCurrency(srProposedTotal)} color="#D4A574" />
+          )}
+          <FinRow label="Total interventions" value={fmtCurrency(interventionCostTotal + srProposedTotal)} bold />
           {interventionPaid > 0 && (
             <FinRow label="Paye" value={fmtCurrency(interventionPaid)} color="#4A9B8E" />
           )}
@@ -838,24 +975,29 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 
           {/* Action buttons */}
           <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mt: 1 }}>
-            {/* Pay button — always visible, disabled when nothing to pay */}
-            {!embeddedClientSecret && (
-              <Button
-                size="small"
-                variant="contained"
-                startIcon={payingInterventions ? <CircularProgress size={14} color="inherit" /> : <CreditCard sx={{ fontSize: 14 }} />}
-                disabled={payingInterventions || interventionCostTotal <= interventionPaid || !(onCreatePaymentSession || onCreateEmbeddedSession)}
-                onClick={handlePayInterventions}
-                sx={{
-                  flex: 1,
-                  fontSize: '0.75rem', textTransform: 'none', fontWeight: 700,
-                  backgroundColor: '#D4A574', '&:hover': { backgroundColor: '#C0915E' },
-                  '&.Mui-disabled': { backgroundColor: '#D4A57440', color: '#fff8' },
-                }}
-              >
-                Payer
-              </Button>
-            )}
+            {/* Pay button — SR proposees first, then unpaid interventions */}
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={payingSR ? <CircularProgress size={14} color="inherit" /> : <CreditCard sx={{ fontSize: 14 }} />}
+              disabled={payingSR || (payableServiceRequests.length === 0 && interventionCostTotal <= interventionPaid)}
+              onClick={() => {
+                if (payableServiceRequests.length > 0) {
+                  const sr = payableServiceRequests[0];
+                  handlePayServiceRequest({ id: sr.id, estimatedCost: sr.estimatedCost, title: sr.title });
+                } else {
+                  handlePayInterventions();
+                }
+              }}
+              sx={{
+                flex: 1,
+                fontSize: '0.75rem', textTransform: 'none', fontWeight: 700,
+                backgroundColor: '#D4A574', '&:hover': { backgroundColor: '#C0915E' },
+                '&.Mui-disabled': { backgroundColor: '#D4A57440', color: '#fff8' },
+              }}
+            >
+              Payer
+            </Button>
             {/* Generate invoice for linked interventions — always visible */}
             <Button
               size="small"
@@ -885,34 +1027,11 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
               Remboursement
             </Button>
           </Box>
-
-          {/* Embedded Stripe Checkout */}
-          {embeddedClientSecret && embeddedOptions && (
-            <Box sx={{ mt: 1.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: '#D4A574' }}>
-                  Paiement securise
-                </Typography>
-                <Button
-                  size="small"
-                  onClick={() => { setEmbeddedClientSecret(null); setEmbeddedSessionId(null); }}
-                  sx={{ fontSize: '0.625rem', textTransform: 'none', minWidth: 'auto', p: 0.25, color: 'text.secondary' }}
-                >
-                  Annuler
-                </Button>
-              </Box>
-              <Box sx={{ borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-                <EmbeddedCheckoutProvider stripe={stripePromise} options={embeddedOptions}>
-                  <EmbeddedCheckout />
-                </EmbeddedCheckoutProvider>
-              </Box>
-            </Box>
-          )}
         </SectionCard>
       )}
 
       {/* ── No interventions message ───────────────────────────────────── */}
-      {reservation && linkedInterventions.length === 0 && (
+      {reservation && linkedInterventions.length === 0 && payableServiceRequests.length === 0 && (
         <SectionCard
           borderColor="#D4A574"
           bgColor="#D4A57408"
@@ -964,38 +1083,16 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
             />
           </FinRow>
 
-          {intervention.status === 'awaiting_payment' && (onCreatePaymentSession || onCreateEmbeddedSession) && !embeddedClientSecret && (
+          {intervention.status === 'awaiting_payment' && (
             <Button
               size="small"
               variant="contained"
-              startIcon={payingInterventions ? <CircularProgress size={14} color="inherit" /> : <CreditCard sx={{ fontSize: 14 }} />}
+              startIcon={<CreditCard sx={{ fontSize: 14 }} />}
               fullWidth
-              disabled={payingInterventions}
-              onClick={async () => {
-                setPayingInterventions(true);
-                try {
-                  const cost = intervention.estimatedCost || (intervention.estimatedDurationHours ? intervention.estimatedDurationHours * 25 : 0);
-                  // Prefer embedded mode
-                  if (onCreateEmbeddedSession) {
-                    const result = await onCreateEmbeddedSession(intervention.id, cost);
-                    if (result?.clientSecret) {
-                      setEmbeddedClientSecret(result.clientSecret);
-                      setEmbeddedSessionId(result.sessionId);
-                      showSnackbar('Formulaire de paiement pret');
-                    }
-                  } else if (onCreatePaymentSession) {
-                    // Fallback: redirect mode
-                    const result = await onCreatePaymentSession([intervention.id], cost);
-                    if (result?.url) {
-                      window.open(result.url, '_blank', 'width=600,height=700');
-                      showSnackbar('Session de paiement ouverte');
-                    }
-                  }
-                } catch {
-                  showSnackbar('Erreur lors de la creation de session', 'error');
-                } finally {
-                  setPayingInterventions(false);
-                }
+              onClick={() => {
+                const cost = intervention.estimatedCost || (intervention.estimatedDurationHours ? intervention.estimatedDurationHours * 25 : 0);
+                setPaymentModalTarget({ interventionId: intervention.id, amount: cost, title: intervention.title });
+                setPaymentModalOpen(true);
               }}
               sx={{
                 mt: 1,
@@ -1067,29 +1164,6 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                   </Box>
                 </Box>
               ))}
-            </Box>
-          )}
-
-          {/* Embedded Stripe Checkout */}
-          {embeddedClientSecret && embeddedOptions && (
-            <Box sx={{ mt: 1.5 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, fontSize: '0.6875rem', color: '#D4A574' }}>
-                  Paiement securise
-                </Typography>
-                <Button
-                  size="small"
-                  onClick={() => { setEmbeddedClientSecret(null); setEmbeddedSessionId(null); }}
-                  sx={{ fontSize: '0.625rem', textTransform: 'none', minWidth: 'auto', p: 0.25, color: 'text.secondary' }}
-                >
-                  Annuler
-                </Button>
-              </Box>
-              <Box sx={{ borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-                <EmbeddedCheckoutProvider stripe={stripePromise} options={embeddedOptions}>
-                  <EmbeddedCheckout />
-                </EmbeddedCheckoutProvider>
-              </Box>
             </Box>
           )}
         </SectionCard>
@@ -1261,6 +1335,19 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Payment Checkout Modal */}
+      {paymentModalTarget && (
+        <PaymentCheckoutModal
+          open={paymentModalOpen}
+          onClose={handlePaymentModalClose}
+          onSuccess={handlePaymentModalSuccess}
+          interventionId={paymentModalTarget.interventionId}
+          serviceRequestId={paymentModalTarget.serviceRequestId}
+          amount={paymentModalTarget.amount}
+          interventionTitle={paymentModalTarget.title}
+        />
+      )}
 
       {/* Snackbar */}
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>

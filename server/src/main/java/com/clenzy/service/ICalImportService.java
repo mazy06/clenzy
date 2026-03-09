@@ -3,7 +3,6 @@ package com.clenzy.service;
 import com.clenzy.dto.ICalImportDto.*;
 import com.clenzy.model.*;
 import com.clenzy.repository.ICalFeedRepository;
-import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
@@ -46,7 +45,6 @@ public class ICalImportService {
     private static final long MAX_ICAL_RESPONSE_BYTES = 5 * 1024 * 1024;
 
     private final ICalFeedRepository icalFeedRepository;
-    private final InterventionRepository interventionRepository;
     private final ServiceRequestRepository serviceRequestRepository;
     private final ReservationRepository reservationRepository2;
     private final PropertyRepository propertyRepository;
@@ -54,11 +52,11 @@ public class ICalImportService {
     private final AuditLogService auditLogService;
     private final NotificationService notificationService;
     private final PricingConfigService pricingConfigService;
+    private final PriceEngine priceEngine;
     private final TenantContext tenantContext;
     private final HttpClient httpClient;
 
     public ICalImportService(ICalFeedRepository icalFeedRepository,
-                             InterventionRepository interventionRepository,
                              ServiceRequestRepository serviceRequestRepository,
                              ReservationRepository reservationRepository2,
                              PropertyRepository propertyRepository,
@@ -66,9 +64,9 @@ public class ICalImportService {
                              AuditLogService auditLogService,
                              NotificationService notificationService,
                              PricingConfigService pricingConfigService,
+                             PriceEngine priceEngine,
                              TenantContext tenantContext) {
         this.icalFeedRepository = icalFeedRepository;
-        this.interventionRepository = interventionRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.reservationRepository2 = reservationRepository2;
         this.propertyRepository = propertyRepository;
@@ -76,6 +74,7 @@ public class ICalImportService {
         this.auditLogService = auditLogService;
         this.notificationService = notificationService;
         this.pricingConfigService = pricingConfigService;
+        this.priceEngine = priceEngine;
         this.tenantContext = tenantContext;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(15))
@@ -142,6 +141,17 @@ public class ICalImportService {
             throw new SecurityException("Vous n'etes pas proprietaire de ce logement");
         }
 
+        // Verifier que ce calendrier iCal n'est pas deja importe sur un autre logement
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        List<ICalFeed> duplicateFeeds = icalFeedRepository.findByUrlAndDifferentProperty(
+                request.getUrl(), property.getId(), orgId);
+        if (!duplicateFeeds.isEmpty()) {
+            String otherPropertyName = duplicateFeeds.get(0).getProperty().getName();
+            throw new IllegalArgumentException(
+                    "Ce calendrier iCal est deja importe sur le logement \"" + otherPropertyName
+                            + "\". Un calendrier iCal correspond a un seul logement.");
+        }
+
         // Parser le feed — toutes les entrees sont traitees comme des reservations
         List<ICalEventPreview> events = fetchAndParseICalFeed(request.getUrl());
         List<ICalEventPreview> reservations = events;
@@ -163,76 +173,102 @@ public class ICalImportService {
         int skipped = 0;
         List<String> errors = new ArrayList<>();
 
+        // Compteur local pour les noms generiques (ex: "Reserved" → #1, #2, #3...)
+        // Cle = propertyId + "_" + nomGenerique (lowercase)
+        Map<String, Long> guestNameCounters = new HashMap<>();
+
         // Determiner la source a partir du nom
         String sourceKey = detectSource(request.getSourceName());
 
         for (ICalEventPreview event : reservations) {
             try {
-                // Dedoublonnage par UID : skip uniquement si la Reservation existe deja
+                // Dedoublonnage par UID : skip la creation de Reservation si elle existe deja
+                Long reservationId = null;
                 if (event.getUid() != null) {
-                    if (reservationRepository2.existsByExternalUidAndPropertyId(event.getUid(), property.getId())) {
-                        skipped++;
-                        continue;
+                    Optional<Reservation> existingRes = reservationRepository2.findByExternalUidAndPropertyId(event.getUid(), property.getId());
+                    if (existingRes.isPresent()) {
+                        reservationId = existingRes.get().getId();
                     }
                 }
 
-                // 1. Creer la Reservation
-                Reservation reservation = new Reservation();
-                reservation.setProperty(property);
+                if (reservationId != null) {
+                    // Reservation deja existante — on skip la creation mais on garde l'ID pour la SR
+                    skipped++;
+                } else {
+                    // 1. Creer la Reservation
+                    Reservation reservation = new Reservation();
+                    reservation.setProperty(property);
 
-                // Si le guest name est generique ("Reserved", "Not available", etc.),
-                // on l'incremente pour individualiser chaque fiche client
-                String guestName = disambiguateGuestName(event.getGuestName(), property.getId());
-                reservation.setGuestName(guestName);
-                reservation.setGuestCount(property.getMaxGuests() != null ? property.getMaxGuests() : 2);
-                reservation.setCheckIn(event.getDtStart());
-                LocalDate checkOut = event.getDtEnd() != null ? event.getDtEnd() : event.getDtStart().plusDays(1);
-                reservation.setCheckOut(checkOut);
-                // Utiliser les heures par defaut de la propriete, sinon fallback global
-                String defaultCheckIn = property.getDefaultCheckInTime() != null ? property.getDefaultCheckInTime() : "15:00";
-                String defaultCheckOut = property.getDefaultCheckOutTime() != null ? property.getDefaultCheckOutTime() : "11:00";
-                reservation.setCheckInTime(defaultCheckIn);
-                reservation.setCheckOutTime(defaultCheckOut);
-                reservation.setStatus("confirmed");
-                reservation.setSource(sourceKey);
-                reservation.setSourceName(request.getSourceName());
-                reservation.setConfirmationCode(event.getConfirmationCode());
-                reservation.setExternalUid(event.getUid());
-                reservation.setIcalFeed(feed);
-                reservation.setNotes(event.getDescription());
-                reservation.setOrganizationId(tenantContext.getOrganizationId());
-                reservation = reservationRepository2.save(reservation);
+                    // Si le guest name est generique ("Reserved", "Not available", etc.),
+                    // on l'incremente pour individualiser chaque fiche client
+                    String guestName = disambiguateGuestName(event.getGuestName(), property.getId(), guestNameCounters);
+                    reservation.setGuestName(guestName);
+                    reservation.setGuestCount(property.getMaxGuests() != null ? property.getMaxGuests() : 2);
+                    reservation.setCheckIn(event.getDtStart());
+                    LocalDate checkOut = event.getDtEnd() != null ? event.getDtEnd() : event.getDtStart().plusDays(1);
+                    reservation.setCheckOut(checkOut);
+                    // Utiliser les heures par defaut de la propriete, sinon fallback global
+                    String defaultCheckIn = property.getDefaultCheckInTime() != null ? property.getDefaultCheckInTime() : "15:00";
+                    String defaultCheckOut = property.getDefaultCheckOutTime() != null ? property.getDefaultCheckOutTime() : "11:00";
+                    reservation.setCheckInTime(defaultCheckIn);
+                    reservation.setCheckOutTime(defaultCheckOut);
+                    reservation.setStatus("confirmed");
+                    reservation.setSource(sourceKey);
+                    reservation.setSourceName(request.getSourceName());
+                    reservation.setConfirmationCode(event.getConfirmationCode());
+                    reservation.setExternalUid(event.getUid());
+                    reservation.setIcalFeed(feed);
+                    reservation.setNotes(event.getDescription());
+                    reservation.setOrganizationId(tenantContext.getOrganizationId());
 
-                // Auto-masquer les reservations annulees qui chevauchent la nouvelle
-                List<Reservation> cancelledOverlapping = reservationRepository2.findCancelledOverlapping(
-                        property.getId(), reservation.getCheckIn(), reservation.getCheckOut(),
-                        tenantContext.getRequiredOrganizationId());
-                for (Reservation cancelled : cancelledOverlapping) {
-                    cancelled.setHiddenFromPlanning(true);
-                    reservationRepository2.save(cancelled);
-                    log.info("Auto-masque reservation annulee #{} (chevauche nouvelle OTA #{})",
-                            cancelled.getId(), reservation.getId());
+                    // Calculer le prix total via le moteur de pricing dynamique
+                    // Resout les overrides, rate plans (promo/seasonal/base) et fallback property.nightlyPrice
+                    Map<LocalDate, BigDecimal> priceMap = priceEngine.resolvePriceRange(
+                            property.getId(), reservation.getCheckIn(), checkOut, orgId);
+                    BigDecimal totalPrice = BigDecimal.ZERO;
+                    for (LocalDate date = reservation.getCheckIn(); date.isBefore(checkOut); date = date.plusDays(1)) {
+                        BigDecimal nightlyPrice = priceMap.get(date);
+                        if (nightlyPrice != null) {
+                            totalPrice = totalPrice.add(nightlyPrice);
+                        }
+                    }
+                    if (totalPrice.compareTo(BigDecimal.ZERO) > 0) {
+                        reservation.setTotalPrice(totalPrice);
+                    }
+
+                    reservation = reservationRepository2.save(reservation);
+                    reservationId = reservation.getId();
+
+                    // Auto-masquer les reservations annulees qui chevauchent la nouvelle
+                    List<Reservation> cancelledOverlapping = reservationRepository2.findCancelledOverlapping(
+                            property.getId(), reservation.getCheckIn(), reservation.getCheckOut(),
+                            tenantContext.getRequiredOrganizationId());
+                    for (Reservation cancelled : cancelledOverlapping) {
+                        cancelled.setHiddenFromPlanning(true);
+                        reservationRepository2.save(cancelled);
+                        log.info("Auto-masque reservation annulee #{} (chevauche nouvelle OTA #{})",
+                                cancelled.getId(), reservation.getId());
+                    }
+
+                    imported++;
                 }
 
-                // 2. Creer l'intervention de menage (si auto-create active ET pas deja existante)
-                if (request.isAutoCreateInterventions()) {
-                    // Verifier si une intervention avec ce UID existe deja (via specialInstructions)
-                    boolean interventionExists = false;
+                // 2. Creer la demande de menage (si auto-create active ET pas deja existante)
+                // IMPORTANT: verifie meme si la reservation est un doublon, car l'utilisateur
+                // peut activer l'auto-menage apres un premier import sans cette option
+                if (request.isAutoCreateInterventions() && reservationId != null) {
+                    boolean srExists = false;
                     if (event.getUid() != null) {
-                        List<Intervention> existingInterventions = interventionRepository.findByPropertyId(property.getId(), tenantContext.getRequiredOrganizationId());
-                        interventionExists = existingInterventions.stream()
-                                .map(Intervention::getSpecialInstructions)
+                        List<ServiceRequest> existingSRs = serviceRequestRepository.findByPropertyId(property.getId(), tenantContext.getRequiredOrganizationId());
+                        srExists = existingSRs.stream()
+                                .map(ServiceRequest::getSpecialInstructions)
                                 .filter(Objects::nonNull)
                                 .anyMatch(instr -> instr.contains("[ICAL:" + event.getUid() + "]"));
                     }
-                    if (!interventionExists) {
-                        Intervention interv = createCleaningIntervention(property, event, request.getSourceName(), true);
-                        reservation.setIntervention(interv);
-                        reservationRepository2.save(reservation);
+                    if (!srExists) {
+                        createCleaningServiceRequest(property, event, request.getSourceName(), reservationId);
                     }
                 }
-
-                imported++;
 
             } catch (Exception e) {
                 log.warn("Erreur import evenement {}: {}", event.getUid(), e.getMessage());
@@ -360,11 +396,11 @@ public class ICalImportService {
     }
 
     /**
-     * Cree automatiquement une intervention de menage pour une reservation importee.
-     * Suit le meme pattern que AirbnbReservationService.createCleaningIntervention()
+     * Cree automatiquement une demande de service de menage pour une reservation importee.
+     * L'intervention sera creee uniquement apres le paiement.
      */
-    private Intervention createCleaningIntervention(Property property, ICalEventPreview event,
-                                            String sourceName, boolean autoSchedule) {
+    private void createCleaningServiceRequest(Property property, ICalEventPreview event,
+                                              String sourceName, Long reservationId) {
         User owner = property.getOwner();
 
         // Date du checkout avec l'heure par defaut de la propriete
@@ -415,7 +451,7 @@ public class ICalImportService {
                 property
         );
         serviceRequest.setPriority(Priority.HIGH);
-        serviceRequest.setStatus(RequestStatus.APPROVED);
+        serviceRequest.setStatus(RequestStatus.PENDING);
         serviceRequest.setEstimatedDurationHours(estimatedDuration);
         serviceRequest.setEstimatedCost(estimatedCost);
         serviceRequest.setGuestCheckoutTime(scheduledDate);
@@ -424,61 +460,14 @@ public class ICalImportService {
         serviceRequest.setDescription("Import iCal " + sourceName
                 + (event.getGuestName() != null ? " — Guest: " + event.getGuestName() : "")
                 + (event.getConfirmationCode() != null ? " (" + event.getConfirmationCode() + ")" : ""));
+        serviceRequest.setReservationId(reservationId);
         serviceRequest.setOrganizationId(tenantContext.getOrganizationId());
 
         serviceRequest = serviceRequestRepository.save(serviceRequest);
 
-        // ─── 2. Creer l'Intervention ───
-        Intervention intervention = new Intervention();
-
-        intervention.setTitle(srTitle);
-        intervention.setDescription("Menage apres depart du guest "
-                + (event.getGuestName() != null ? event.getGuestName() : "")
-                + (event.getConfirmationCode() != null ? " (reservation " + event.getConfirmationCode() + ")" : "")
-                + " | Import iCal " + sourceName);
-
-        intervention.setType(ServiceType.CLEANING.name());
-
-        // Determiner le status selon le mode de paiement du host
-        InterventionStatus interventionStatus;
-        if (autoSchedule) {
-            if (owner != null && owner.isDeferredPayment()) {
-                interventionStatus = InterventionStatus.PENDING;
-            } else {
-                interventionStatus = InterventionStatus.AWAITING_PAYMENT;
-            }
-        } else {
-            interventionStatus = InterventionStatus.PENDING;
-        }
-        intervention.setStatus(interventionStatus);
-
-        intervention.setPriority(Priority.HIGH.name());
-        intervention.setProperty(property);
-        intervention.setServiceRequest(serviceRequest);
-
-        intervention.setScheduledDate(scheduledDate);
-        intervention.setGuestCheckoutTime(scheduledDate);
-        intervention.setGuestCheckinTime(LocalDateTime.of(checkOut, LocalTime.of(15, 0)));
-
-        intervention.setEstimatedDurationHours(estimatedDuration);
-        intervention.setEstimatedCost(estimatedCost);
-        intervention.setSpecialInstructions(specialInstructions);
-
-        intervention.setIsUrgent(false);
-        intervention.setRequiresFollowUp(false);
-
-        if (owner != null) {
-            intervention.setRequestor(owner);
-        }
-
-        intervention.setOrganizationId(tenantContext.getOrganizationId());
-        intervention = interventionRepository.save(intervention);
-
-        log.info("Intervention menage #{} creee pour propriete {} ({}, {}, auto={})",
-                intervention.getId(), property.getName(), sourceName,
-                event.getGuestName() != null ? event.getGuestName() : "N/A", autoSchedule);
-
-        return intervention;
+        log.info("Demande de service menage #{} creee pour reservation #{} propriete {} ({}, {})",
+                serviceRequest.getId(), reservationId, property.getName(), sourceName,
+                event.getGuestName() != null ? event.getGuestName() : "N/A");
     }
 
     /**
@@ -715,9 +704,11 @@ public class ICalImportService {
     /**
      * Si le nom du guest est generique (ex: "Reserved" via Airbnb iCal),
      * on l'incremente en "Reserved #1", "Reserved #2", etc.
-     * Cela permet de separer les fiches clients dans le planning.
+     * Utilise un compteur local (en memoire) + le count en base pour garantir
+     * un numero unique meme au sein d'un meme batch d'import.
      */
-    private String disambiguateGuestName(String originalName, Long propertyId) {
+    private String disambiguateGuestName(String originalName, Long propertyId,
+                                          Map<String, Long> counters) {
         if (originalName == null || originalName.isBlank()) {
             originalName = "Reserved";
         }
@@ -727,12 +718,18 @@ public class ICalImportService {
             return originalName.trim(); // Nom reel, on ne touche pas
         }
 
-        // Compter les reservations existantes avec ce prefix sur cette propriete
-        long orgId = tenantContext.getRequiredOrganizationId();
-        long count = reservationRepository2.countByGuestNameStartingWithAndPropertyId(
-                originalName.trim(), propertyId, orgId);
+        String counterKey = propertyId + "_" + nameLower;
 
-        return originalName.trim() + " #" + (count + 1);
+        if (!counters.containsKey(counterKey)) {
+            // Premiere occurrence dans ce batch : initialiser depuis la base
+            long orgId = tenantContext.getRequiredOrganizationId();
+            long dbCount = reservationRepository2.countByGuestNameStartingWithAndPropertyId(
+                    originalName.trim(), propertyId, orgId);
+            counters.put(counterKey, dbCount);
+        }
+
+        long next = counters.merge(counterKey, 1L, Long::sum);
+        return originalName.trim() + " #" + next;
     }
 
     private void checkOwnership(ICalFeed feed, String keycloakId) {

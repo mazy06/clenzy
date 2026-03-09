@@ -58,7 +58,7 @@ interface PlanningActionPanelProps {
   onUpdateNotes?: (reservationId: number, notes: string) => Promise<ActionResult>;
   onUpdateGuestInfo?: (reservationId: number, updates: { guestName?: string; guestEmail?: string; guestPhone?: string }) => Promise<ActionResult>;
   // Intervention actions
-  onAssignIntervention?: (interventionId: number, assigneeName: string) => Promise<ActionResult>;
+  onAssignIntervention?: (interventionId: number, assigneeName: string, options?: { userId?: number; teamId?: number }) => Promise<ActionResult>;
   onSetPriority?: (interventionId: number, priority: 'normale' | 'haute' | 'urgente') => Promise<ActionResult>;
   onUpdateInterventionNotes?: (interventionId: number, notes: string) => Promise<ActionResult>;
   onUpdateInterventionDates?: (interventionId: number, updates: {
@@ -81,6 +81,8 @@ interface PlanningActionPanelProps {
     emailTo?: string;
     sendEmail: boolean;
   }) => Promise<{ id: number; fileName: string; status: string; legalNumber?: string | null }>;
+  // Payment complete (refresh data)
+  onPaymentComplete?: () => void;
   // Actions (PanelActions)
   onDuplicateReservation?: (reservationId: number, newCheckIn: string, newCheckOut: string) => Promise<ActionResult>;
 }
@@ -93,7 +95,7 @@ const RESERVATION_TABS: { value: PanelTab; label: string; icon: React.ReactEleme
   { value: 'info', label: 'Infos', icon: <Info sx={ICON_SX} /> },
   { value: 'property', label: 'Logement', icon: <Home sx={ICON_SX} /> },
   { value: 'operations', label: 'Opérations', icon: <Build sx={ICON_SX} /> },
-  { value: 'financial', label: 'Financier', icon: <AccountBalance sx={ICON_SX} /> },
+  { value: 'financial', label: 'Paiement', icon: <AccountBalance sx={ICON_SX} /> },
 ];
 
 const INTERVENTION_TABS: { value: PanelTab; label: string; icon: React.ReactElement }[] = [
@@ -148,6 +150,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
   onCreateEmbeddedSession,
   onSendPaymentLink,
   onGenerateInvoice,
+  onPaymentComplete,
   onDuplicateReservation,
 }) => {
   const theme = useTheme();
@@ -252,6 +255,7 @@ const PlanningActionPanel: React.FC<PlanningActionPanelProps> = ({
               onCreateEmbeddedSession={onCreateEmbeddedSession}
               onSendPaymentLink={onSendPaymentLink}
               onGenerateInvoice={onGenerateInvoice}
+              onPaymentComplete={onPaymentComplete}
             />
           );
         default:

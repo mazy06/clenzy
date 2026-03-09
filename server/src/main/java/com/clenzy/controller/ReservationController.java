@@ -15,10 +15,15 @@ import com.clenzy.service.ReservationService;
 import com.clenzy.service.StripeService;
 import com.clenzy.service.messaging.GuestMessagingService;
 import com.clenzy.tenant.TenantContext;
+import com.stripe.Stripe;
 import com.stripe.model.checkout.Session;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,6 +43,11 @@ import java.util.stream.Collectors;
 @Tag(name = "Reservations", description = "Gestion des reservations (sejours voyageurs)")
 @PreAuthorize("isAuthenticated()")
 public class ReservationController {
+
+    private static final Logger log = LoggerFactory.getLogger(ReservationController.class);
+
+    @Value("${stripe.secret-key}")
+    private String stripeSecretKey;
 
     private final ReservationService reservationService;
     private final ReservationMapper reservationMapper;
@@ -375,6 +385,73 @@ public class ReservationController {
                 </p>
             </div>
             """.formatted(guestName, propertyName, checkIn, checkOut, amount, currency, paymentUrl);
+    }
+
+    // ── POST : vérifier le paiement auprès de Stripe ──────────────────────
+
+    @PostMapping("/{id}/check-payment")
+    @Operation(summary = "Verifier le statut du paiement Stripe",
+            description = "Verifie directement aupres de Stripe si le paiement a ete effectue. " +
+                    "Utile quand le webhook n'a pas ete recu (dev, timeout, etc.).")
+    public ResponseEntity<?> checkPaymentStatus(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+        try {
+            Reservation reservation = reservationRepository.findByIdFetchAll(id)
+                    .orElseThrow(() -> new NotFoundException("Reservation non trouvee: " + id));
+
+            validatePropertyAccess(reservation.getProperty().getId(), jwt.getSubject());
+
+            // Already paid?
+            if (reservation.getPaymentStatus() == PaymentStatus.PAID) {
+                return ResponseEntity.ok(Map.of(
+                        "paymentStatus", "PAID",
+                        "paidAt", reservation.getPaidAt() != null ? reservation.getPaidAt().toString() : "",
+                        "message", "Paiement deja confirme"
+                ));
+            }
+
+            String sessionId = reservation.getStripeSessionId();
+            if (sessionId == null || sessionId.isBlank()) {
+                return ResponseEntity.ok(Map.of(
+                        "paymentStatus", "NO_SESSION",
+                        "message", "Aucune session de paiement Stripe associee"
+                ));
+            }
+
+            // Query Stripe API directly
+            Stripe.apiKey = stripeSecretKey;
+            Session stripeSession = Session.retrieve(sessionId);
+            String stripePaymentStatus = stripeSession.getPaymentStatus();
+
+            log.info("Check payment reservation {}: Stripe session {} paymentStatus={}",
+                    id, sessionId, stripePaymentStatus);
+
+            if ("paid".equals(stripePaymentStatus)) {
+                // Webhook missed — confirm manually via the same service method
+                stripeService.confirmReservationPayment(sessionId);
+
+                // Reload
+                reservation = reservationRepository.findByIdFetchAll(id).orElse(reservation);
+                return ResponseEntity.ok(Map.of(
+                        "paymentStatus", "PAID",
+                        "paidAt", reservation.getPaidAt() != null ? reservation.getPaidAt().toString() : "",
+                        "message", "Paiement confirme (webhook rattrape)"
+                ));
+            } else {
+                return ResponseEntity.ok(Map.of(
+                        "paymentStatus", stripePaymentStatus != null ? stripePaymentStatus.toUpperCase() : "UNKNOWN",
+                        "message", "Paiement non encore confirme sur Stripe"
+                ));
+            }
+        } catch (NotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Erreur lors de la verification du paiement reservation {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Erreur lors de la verification: " + e.getMessage()));
+        }
     }
 
     // ── Ownership validation ────────────────────────────────────────────────

@@ -204,8 +204,8 @@ function getStatusProgress(status: string): number {
   const upper = status?.toUpperCase() || '';
   switch (upper) {
     case 'PENDING': return 15;
-    case 'APPROVED': return 35;
-    case 'DEVIS_ACCEPTED': return 50;
+    case 'ASSIGNED': return 35;
+    case 'AWAITING_PAYMENT': return 50;
     case 'IN_PROGRESS': return 70;
     case 'COMPLETED': return 100;
     case 'CANCELLED': return 100;
@@ -299,7 +299,6 @@ const ServiceRequestDetails: React.FC = () => {
   const statusProgress = getStatusProgress(sr.status);
   const statusProgressColor = getStatusProgressColor(sr.status);
   const consigneVariant = getConsigneVariant(sr.type);
-  const hasApprovalInfo = !!sr.approvedBy || !!sr.approvedAt || !!sr.devisAcceptedBy || !!sr.devisAcceptedAt;
 
   // Property tags
   const propertyTags: { icon: React.ReactElement; label: string }[] = [];
@@ -784,59 +783,6 @@ const ServiceRequestDetails: React.FC = () => {
                     />
                   ))}
                 </Box>
-              </Paper>
-            )}
-
-            {/* Approbation / Devis */}
-            {hasApprovalInfo && (
-              <Paper sx={CARD_SX}>
-                <Typography sx={SECTION_TITLE_SX}>
-                  <Gavel sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
-                  {t('serviceRequests.details.approvalDevis')}
-                </Typography>
-
-                {sr.approvedBy && (
-                  <Box sx={INFO_ROW_SX}>
-                    <CheckCircle sx={{ ...ICON_SX, color: 'success.main' }} />
-                    <Box sx={{ flex: 1 }}>
-                      <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.details.approvedBy')}</Typography>
-                      <Typography sx={INFO_VALUE_SX}>{sr.approvedBy}</Typography>
-                      {sr.approvedAt && (
-                        <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
-                          {formatDateTime(sr.approvedAt)}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-                )}
-
-                {sr.approvedAt && !sr.approvedBy && (
-                  <Box sx={INFO_ROW_SX}>
-                    <CheckCircle sx={{ ...ICON_SX, color: 'success.main' }} />
-                    <Box sx={{ flex: 1 }}>
-                      <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.approvedDateShort')}</Typography>
-                      <Typography sx={INFO_VALUE_SX}>{formatDateTime(sr.approvedAt)}</Typography>
-                    </Box>
-                  </Box>
-                )}
-
-                {sr.devisAcceptedBy && (
-                  <>
-                    {(sr.approvedBy || sr.approvedAt) && <Divider sx={{ my: 0.5 }} />}
-                    <Box sx={INFO_ROW_SX}>
-                      <Euro sx={ICON_SX} />
-                      <Box sx={{ flex: 1 }}>
-                        <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.details.devisAcceptedBy')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>{sr.devisAcceptedBy}</Typography>
-                        {sr.devisAcceptedAt && (
-                          <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
-                            {formatDateTime(sr.devisAcceptedAt)}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Box>
-                  </>
-                )}
               </Paper>
             )}
 

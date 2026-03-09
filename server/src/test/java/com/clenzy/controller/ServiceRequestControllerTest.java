@@ -1,9 +1,12 @@
 package com.clenzy.controller;
 
-import com.clenzy.dto.InterventionDto;
 import com.clenzy.dto.ServiceRequestDto;
-import com.clenzy.dto.ServiceRequestValidationRequest;
+import com.clenzy.repository.ServiceRequestRepository;
+import com.clenzy.repository.TeamRepository;
+import com.clenzy.repository.UserRepository;
 import com.clenzy.service.ServiceRequestService;
+import com.clenzy.service.StripeService;
+import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -29,6 +32,11 @@ import static org.mockito.Mockito.when;
 class ServiceRequestControllerTest {
 
     @Mock private ServiceRequestService service;
+    @Mock private StripeService stripeService;
+    @Mock private ServiceRequestRepository serviceRequestRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private TeamRepository teamRepository;
+    @Mock private TenantContext tenantContext;
 
     private ServiceRequestController controller;
 
@@ -43,7 +51,7 @@ class ServiceRequestControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new ServiceRequestController(service);
+        controller = new ServiceRequestController(service, stripeService, serviceRequestRepository, userRepository, teamRepository, tenantContext);
     }
 
     @Nested
@@ -99,10 +107,10 @@ class ServiceRequestControllerTest {
             Jwt jwt = createJwt();
             var pageable = PageRequest.of(0, 10);
             Page<ServiceRequestDto> page = new PageImpl<>(List.of(new ServiceRequestDto()));
-            when(service.searchWithRoleBasedAccess(eq(pageable), isNull(), isNull(), isNull(), isNull(), eq(jwt)))
+            when(service.searchWithRoleBasedAccess(eq(pageable), isNull(), isNull(), isNull(), isNull(), isNull(), eq(jwt)))
                     .thenReturn(page);
 
-            Page<ServiceRequestDto> result = controller.list(pageable, null, null, null, null, jwt);
+            Page<ServiceRequestDto> result = controller.list(pageable, null, null, null, null, null, jwt);
             assertThat(result.getContent()).hasSize(1);
         }
     }
@@ -117,50 +125,4 @@ class ServiceRequestControllerTest {
         }
     }
 
-    @Nested
-    @DisplayName("validateAndCreateIntervention")
-    class ValidateRequest {
-        @Test
-        void whenValidateWithRequest_thenReturns201() {
-            Jwt jwt = createJwt();
-            ServiceRequestValidationRequest request = new ServiceRequestValidationRequest();
-            request.setTeamId(3L);
-            request.setUserId(5L);
-            request.setAutoAssign(true);
-
-            InterventionDto intervention = new InterventionDto();
-            intervention.id = 10L;
-            when(service.validateAndCreateIntervention(1L, 3L, 5L, true, jwt)).thenReturn(intervention);
-
-            ResponseEntity<InterventionDto> response = controller.validateAndCreateIntervention(1L, request, jwt);
-            assertThat(response.getStatusCode().value()).isEqualTo(201);
-            assertThat(response.getBody().id).isEqualTo(10L);
-        }
-
-        @Test
-        void whenValidateWithNullRequest_thenUsesNulls() {
-            Jwt jwt = createJwt();
-            InterventionDto intervention = new InterventionDto();
-            intervention.id = 10L;
-            when(service.validateAndCreateIntervention(1L, null, null, false, jwt)).thenReturn(intervention);
-
-            ResponseEntity<InterventionDto> response = controller.validateAndCreateIntervention(1L, null, jwt);
-            assertThat(response.getStatusCode().value()).isEqualTo(201);
-        }
-    }
-
-    @Nested
-    @DisplayName("acceptDevis")
-    class AcceptDevis {
-        @Test
-        void whenAcceptDevis_thenDelegates() {
-            Jwt jwt = createJwt();
-            ServiceRequestDto result = new ServiceRequestDto();
-            result.id = 1L;
-            when(service.acceptDevis(1L, jwt)).thenReturn(result);
-
-            ResponseEntity<ServiceRequestDto> response = controller.acceptDevis(1L, jwt);
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-        }
-    }
 }

@@ -163,6 +163,13 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     java.util.Optional<Intervention> findByStripeSessionId(@Param("sessionId") String sessionId, @Param("orgId") Long orgId);
 
     /**
+     * Trouver une intervention par session Stripe SANS filtre organisation (pour les webhooks Stripe).
+     */
+    @EntityGraph(attributePaths = {"property", "property.owner", "requestor"})
+    @Query("SELECT i FROM Intervention i WHERE i.stripeSessionId = :sessionId")
+    java.util.Optional<Intervention> findByStripeSessionId(@Param("sessionId") String sessionId);
+
+    /**
      * Interventions impayees d'un host (paymentStatus != PAID et estimatedCost > 0)
      */
     @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property WHERE i.requestor.id = :hostId " +
@@ -266,6 +273,21 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
            "AND i.organizationId = :orgId")
     long countActiveByTeamIdAndDateRange(
             @Param("teamId") Long teamId,
+            @Param("activeStatuses") List<InterventionStatus> activeStatuses,
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd,
+            @Param("orgId") Long orgId);
+
+    /**
+     * Compter les interventions actives d'un utilisateur sur un creneau donne.
+     * Utilise pour la detection de conflits par membre d'equipe.
+     */
+    @Query("SELECT COUNT(i) FROM Intervention i WHERE i.assignedUser.id = :userId " +
+           "AND i.status IN :activeStatuses " +
+           "AND i.scheduledDate >= :rangeStart AND i.scheduledDate < :rangeEnd " +
+           "AND i.organizationId = :orgId")
+    long countActiveByUserIdAndDateRange(
+            @Param("userId") Long userId,
             @Param("activeStatuses") List<InterventionStatus> activeStatuses,
             @Param("rangeStart") LocalDateTime rangeStart,
             @Param("rangeEnd") LocalDateTime rangeEnd,

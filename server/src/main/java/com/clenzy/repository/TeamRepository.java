@@ -11,9 +11,16 @@ import org.springframework.stereotype.Repository;
 
 import jakarta.persistence.QueryHint;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface TeamRepository extends JpaRepository<Team, Long> {
+
+    /**
+     * Fetch a team by ID with members and their users eagerly loaded.
+     */
+    @Query("SELECT t FROM Team t LEFT JOIN FETCH t.members tm LEFT JOIN FETCH tm.user WHERE t.id = :id")
+    Optional<Team> findByIdWithMembers(@Param("id") Long id);
 
     /**
      * Requêtes optimisées avec FETCH JOIN et cache

@@ -5,13 +5,9 @@ import com.clenzy.integration.booking.repository.BookingConnectionRepository;
 import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.integration.channel.model.ChannelMapping;
 import com.clenzy.integration.channel.repository.ChannelMappingRepository;
-import com.clenzy.model.Intervention;
-import com.clenzy.model.InterventionStatus;
-import com.clenzy.model.Priority;
-import com.clenzy.model.Property;
-import com.clenzy.model.ServiceType;
-import com.clenzy.repository.InterventionRepository;
+import com.clenzy.model.*;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.service.AuditLogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +29,9 @@ import java.util.Optional;
  * Service de gestion des reservations Booking.com.
  *
  * Ecoute le topic Kafka booking.reservations et traite les evenements :
- * - reservation.created  : cree la reservation + auto-genere intervention menage
- * - reservation.modified : met a jour la reservation + recalcule intervention
- * - reservation.cancelled: annule la reservation + annule l'intervention liee
+ * - reservation.created  : cree la reservation + auto-genere demande de service menage
+ * - reservation.modified : met a jour la demande de service
+ * - reservation.cancelled: annule la demande de service liee
  *
  * orgId est resolu via ChannelMapping et BookingConnection
  * (pas de TenantContext en contexte Kafka).
@@ -50,18 +46,18 @@ public class BookingReservationService {
 
     private final ChannelMappingRepository channelMappingRepository;
     private final BookingConnectionRepository bookingConnectionRepository;
-    private final InterventionRepository interventionRepository;
+    private final ServiceRequestRepository serviceRequestRepository;
     private final PropertyRepository propertyRepository;
     private final AuditLogService auditLogService;
 
     public BookingReservationService(ChannelMappingRepository channelMappingRepository,
                                      BookingConnectionRepository bookingConnectionRepository,
-                                     InterventionRepository interventionRepository,
+                                     ServiceRequestRepository serviceRequestRepository,
                                      PropertyRepository propertyRepository,
                                      AuditLogService auditLogService) {
         this.channelMappingRepository = channelMappingRepository;
         this.bookingConnectionRepository = bookingConnectionRepository;
-        this.interventionRepository = interventionRepository;
+        this.serviceRequestRepository = serviceRequestRepository;
         this.propertyRepository = propertyRepository;
         this.auditLogService = auditLogService;
     }
@@ -100,7 +96,7 @@ public class BookingReservationService {
 
     /**
      * Traite la creation d'une reservation.
-     * Auto-genere une intervention de menage si la propriete le permet.
+     * Auto-genere une demande de service de menage.
      */
     @Transactional
     public void handleReservationCreated(String hotelId, Map<String, Object> data) {
@@ -127,8 +123,8 @@ public class BookingReservationService {
         ChannelMapping mapping = mappingOpt.get();
         Long propertyId = mapping.getInternalId();
 
-        // Auto-generer l'intervention de menage
-        createCleaningIntervention(propertyId, orgId, data);
+        // Auto-generer la demande de service de menage
+        createCleaningServiceRequest(propertyId, orgId, data);
 
         auditLogService.logSync("BookingReservation", reservationId,
                 "Reservation Booking.com recue pour propriete " + propertyId);
@@ -155,37 +151,37 @@ public class BookingReservationService {
         ChannelMapping mapping = mappingOpt.get();
         Long propertyId = mapping.getInternalId();
 
-        // Rechercher l'intervention existante liee a cette reservation
-        List<Intervention> interventions = interventionRepository.findByPropertyId(propertyId, orgId);
+        // Rechercher la demande de service existante liee a cette reservation
+        List<ServiceRequest> serviceRequests = serviceRequestRepository.findByPropertyId(propertyId, orgId);
 
-        for (Intervention intervention : interventions) {
-            if (intervention.getSpecialInstructions() != null
-                    && intervention.getSpecialInstructions().contains("[BOOKING:" + reservationId + "]")) {
+        for (ServiceRequest sr : serviceRequests) {
+            if (sr.getSpecialInstructions() != null
+                    && sr.getSpecialInstructions().contains("[BOOKING:" + reservationId + "]")) {
 
                 // Mettre a jour les dates si elles ont change
                 String checkOutStr = (String) data.get("check_out");
                 if (checkOutStr != null) {
                     LocalDate newCheckOut = LocalDate.parse(checkOutStr, DateTimeFormatter.ISO_DATE);
-                    intervention.setScheduledDate(LocalDateTime.of(newCheckOut, LocalTime.of(11, 0)));
-                    intervention.setGuestCheckoutTime(LocalDateTime.of(newCheckOut, LocalTime.of(11, 0)));
+                    sr.setDesiredDate(LocalDateTime.of(newCheckOut, LocalTime.of(11, 0)));
+                    sr.setGuestCheckoutTime(LocalDateTime.of(newCheckOut, LocalTime.of(11, 0)));
                 }
 
                 String checkInStr = (String) data.get("check_in");
                 if (checkInStr != null) {
                     LocalDate newCheckIn = LocalDate.parse(checkInStr, DateTimeFormatter.ISO_DATE);
-                    intervention.setGuestCheckinTime(LocalDateTime.of(newCheckIn, LocalTime.of(15, 0)));
+                    sr.setGuestCheckinTime(LocalDateTime.of(newCheckIn, LocalTime.of(15, 0)));
                 }
 
                 Object guestCountObj = data.get("number_of_guests");
                 if (guestCountObj instanceof Number number) {
                     int guestCount = number.intValue();
-                    intervention.setEstimatedDurationHours(
+                    sr.setEstimatedDurationHours(
                             estimateCleaningDuration(propertyId, guestCount).intValue());
                 }
 
-                interventionRepository.save(intervention);
-                log.info("Intervention {} mise a jour suite a modification reservation Booking.com {}",
-                        intervention.getId(), reservationId);
+                serviceRequestRepository.save(sr);
+                log.info("Demande de service {} mise a jour suite a modification reservation Booking.com {}",
+                        sr.getId(), reservationId);
                 break;
             }
         }
@@ -196,7 +192,7 @@ public class BookingReservationService {
 
     /**
      * Traite l'annulation d'une reservation.
-     * Annule automatiquement l'intervention de menage liee.
+     * Annule automatiquement la demande de service de menage liee.
      */
     @Transactional
     public void handleReservationCancelled(String hotelId, Map<String, Object> data) {
@@ -216,24 +212,24 @@ public class BookingReservationService {
         ChannelMapping mapping = mappingOpt.get();
         Long propertyId = mapping.getInternalId();
 
-        // Annuler les interventions liees
-        List<Intervention> interventions = interventionRepository.findByPropertyId(propertyId, orgId);
+        // Annuler les demandes de service liees
+        List<ServiceRequest> serviceRequests = serviceRequestRepository.findByPropertyId(propertyId, orgId);
 
-        for (Intervention intervention : interventions) {
-            if (intervention.getSpecialInstructions() != null
-                    && intervention.getSpecialInstructions().contains("[BOOKING:" + reservationId + "]")
-                    && !InterventionStatus.CANCELLED.equals(intervention.getStatus())) {
+        for (ServiceRequest sr : serviceRequests) {
+            if (sr.getSpecialInstructions() != null
+                    && sr.getSpecialInstructions().contains("[BOOKING:" + reservationId + "]")
+                    && sr.getStatus() != RequestStatus.CANCELLED) {
 
-                intervention.setStatus(InterventionStatus.CANCELLED);
-                interventionRepository.save(intervention);
+                sr.setStatus(RequestStatus.CANCELLED);
+                serviceRequestRepository.save(sr);
 
-                log.info("Intervention {} annulee suite a annulation reservation Booking.com {}",
-                        intervention.getId(), reservationId);
+                log.info("Demande de service {} annulee suite a annulation reservation Booking.com {}",
+                        sr.getId(), reservationId);
             }
         }
 
         auditLogService.logSync("BookingReservation", reservationId,
-                "Reservation Booking.com annulee — interventions liees annulees");
+                "Reservation Booking.com annulee — demandes de service liees annulees");
     }
 
     // ================================================================
@@ -241,56 +237,56 @@ public class BookingReservationService {
     // ================================================================
 
     /**
-     * Cree automatiquement une intervention de menage pour une reservation.
+     * Cree automatiquement une demande de service de menage pour une reservation.
+     * L'intervention sera creee uniquement apres le paiement.
      */
-    private void createCleaningIntervention(Long propertyId, Long orgId, Map<String, Object> reservationData) {
+    private void createCleaningServiceRequest(Long propertyId, Long orgId, Map<String, Object> reservationData) {
         Property property = propertyRepository.findById(propertyId).orElse(null);
         if (property == null) {
-            log.warn("Propriete {} introuvable pour auto-creation intervention", propertyId);
+            log.warn("Propriete {} introuvable pour auto-creation demande de service", propertyId);
             return;
         }
 
         String reservationId = (String) reservationData.get("reservation_id");
         String guestName = (String) reservationData.get("guest_name");
-        String checkInStr = (String) reservationData.get("check_in");
         String checkOutStr = (String) reservationData.get("check_out");
         Object guestCountObj = reservationData.get("number_of_guests");
         int guestCount = guestCountObj instanceof Number number ? number.intValue() : 1;
 
-        LocalDate checkIn = checkInStr != null
-                ? LocalDate.parse(checkInStr, DateTimeFormatter.ISO_DATE)
-                : LocalDate.now();
         LocalDate checkOut = checkOutStr != null
                 ? LocalDate.parse(checkOutStr, DateTimeFormatter.ISO_DATE)
-                : checkIn.plusDays(1);
+                : LocalDate.now().plusDays(1);
+        LocalDateTime scheduledDate = LocalDateTime.of(checkOut, LocalTime.of(11, 0));
 
-        Intervention intervention = new Intervention();
-        intervention.setOrganizationId(orgId);
-        intervention.setTitle("Menage Booking.com — " + property.getName());
-        intervention.setDescription("Menage apres depart du guest " + (guestName != null ? guestName : "")
+        ServiceRequest sr = new ServiceRequest(
+                "Menage Booking.com — " + property.getName(),
+                ServiceType.CLEANING,
+                scheduledDate,
+                property.getOwner(),
+                property
+        );
+        sr.setOrganizationId(orgId);
+        sr.setStatus(RequestStatus.PENDING);
+        sr.setPriority(Priority.HIGH);
+        sr.setDescription("Menage apres depart du guest " + (guestName != null ? guestName : "")
                 + " (reservation Booking.com " + reservationId + ")");
-        intervention.setType(ServiceType.CLEANING.name());
-        intervention.setStatus(InterventionStatus.PENDING);
-        intervention.setPriority(Priority.HIGH.name());
-        intervention.setProperty(property);
-        intervention.setScheduledDate(LocalDateTime.of(checkOut, LocalTime.of(11, 0)));
-        intervention.setGuestCheckoutTime(LocalDateTime.of(checkOut, LocalTime.of(11, 0)));
-        intervention.setGuestCheckinTime(LocalDateTime.of(checkOut, LocalTime.of(15, 0)));
-        intervention.setEstimatedDurationHours(estimateCleaningDuration(propertyId, guestCount).intValue());
-        intervention.setSpecialInstructions("[BOOKING:" + reservationId + "] "
-                + (guestCount > 0 ? guestCount + " guests" : "")
-                + (property.getAccessInstructions() != null ? " | Acces: " + property.getAccessInstructions() : ""));
-        intervention.setIsUrgent(false);
-        intervention.setRequiresFollowUp(false);
+        sr.setGuestCheckoutTime(scheduledDate);
+        sr.setGuestCheckinTime(LocalDateTime.of(checkOut, LocalTime.of(15, 0)));
+        sr.setEstimatedDurationHours(estimateCleaningDuration(propertyId, guestCount).intValue());
 
-        if (property.getOwner() != null) {
-            intervention.setRequestor(property.getOwner());
+        // Cout estime depuis le prix de base du menage
+        if (property.getCleaningBasePrice() != null) {
+            sr.setEstimatedCost(property.getCleaningBasePrice());
         }
 
-        interventionRepository.save(intervention);
+        sr.setSpecialInstructions("[BOOKING:" + reservationId + "] "
+                + (guestCount > 0 ? guestCount + " guests" : "")
+                + (property.getAccessInstructions() != null ? " | Acces: " + property.getAccessInstructions() : ""));
 
-        log.info("Intervention de menage #{} auto-generee pour propriete {} (reservation Booking.com {})",
-                intervention.getId(), property.getName(), reservationId);
+        serviceRequestRepository.save(sr);
+
+        log.info("Demande de service menage #{} auto-generee pour propriete {} (reservation Booking.com {})",
+                sr.getId(), property.getName(), reservationId);
     }
 
     /**

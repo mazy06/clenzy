@@ -1,6 +1,10 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import ReactDOM from 'react-dom/client'
-import { CssBaseline, ThemeProvider } from '@mui/material'
+import { CssBaseline, ThemeProvider, createTheme } from '@mui/material'
+import { CacheProvider } from '@emotion/react'
+import createCache from '@emotion/cache'
+import rtlPlugin from 'stylis-plugin-rtl'
+import { prefixer } from 'stylis'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import * as Sentry from '@sentry/react'
@@ -12,7 +16,16 @@ import ThemeSafetyWrapper from './components/ThemeSafetyWrapper'
 import { NotificationProvider } from './hooks/useNotification'
 import { ThemeModeProvider, useThemeMode } from './hooks/useThemeMode'
 import { CurrencyProvider } from './hooks/useCurrency'
+import { useGeoDetection } from './hooks/useGeoDetection'
+import { useTranslation } from 'react-i18next'
 import './i18n/config'
+
+// ─── Emotion caches for LTR and RTL ─────────────────────────────────────────
+const ltrCache = createCache({ key: 'mui' })
+const rtlCache = createCache({
+  key: 'muirtl',
+  stylisPlugins: [prefixer, rtlPlugin],
+})
 
 // ─── Sentry — Error tracking & performance monitoring ────────────────────────
 if (import.meta.env.VITE_SENTRY_DSN) {
@@ -77,24 +90,51 @@ const queryClient = new QueryClient({
 
 function AppWithTheme() {
   const { isDark } = useThemeMode();
-  const currentTheme = isDark ? darkTheme : lightTheme;
+  const { i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar';
+
+  // Set document direction on mount and language change
+  React.useEffect(() => {
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+    document.documentElement.lang = i18n.language || 'fr';
+  }, [isRtl, i18n.language]);
+
+  const currentTheme = useMemo(() => {
+    const baseTheme = isDark ? darkTheme : lightTheme;
+    return createTheme({
+      ...baseTheme,
+      direction: isRtl ? 'rtl' : 'ltr',
+    });
+  }, [isDark, isRtl]);
+
+  const emotionCache = isRtl ? rtlCache : ltrCache;
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={currentTheme}>
-        <CssBaseline />
-        <CurrencyProvider>
-          <NotificationProvider>
-            <ThemeSafetyWrapper>
-              <BrowserRouter>
-                <App />
-              </BrowserRouter>
-            </ThemeSafetyWrapper>
-          </NotificationProvider>
-        </CurrencyProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <CacheProvider value={emotionCache}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={currentTheme}>
+          <CssBaseline />
+          <CurrencyProvider>
+            <GeoDetectionInitializer>
+              <NotificationProvider>
+                <ThemeSafetyWrapper>
+                  <BrowserRouter>
+                    <App />
+                  </BrowserRouter>
+                </ThemeSafetyWrapper>
+              </NotificationProvider>
+            </GeoDetectionInitializer>
+          </CurrencyProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </CacheProvider>
   );
+}
+
+// ─── Geo-detection wrapper (must be inside CurrencyProvider) ─────────────────
+function GeoDetectionInitializer({ children }: { children: React.ReactNode }) {
+  useGeoDetection();
+  return <>{children}</>;
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

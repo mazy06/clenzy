@@ -1,4 +1,4 @@
-import type { Reservation, PlanningIntervention, ReservationStatus, PlanningInterventionType } from '../../services/api';
+import type { Reservation, PlanningIntervention, PlanningServiceRequest, ReservationStatus, PlanningInterventionType } from '../../services/api';
 
 // ─── Zoom ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +34,8 @@ export interface PlanningEvent {
   borderColor?: string;
   reservation?: Reservation;
   intervention?: PlanningIntervention;
+  isAwaitingPayment?: boolean;
+  serviceRequest?: PlanningServiceRequest;
 }
 
 // ─── Bar layout (computed pixel positions) ───────────────────────────────────

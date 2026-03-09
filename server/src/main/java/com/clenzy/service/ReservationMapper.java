@@ -53,7 +53,9 @@ public class ReservationMapper {
             null, // createCleaning — input-only field, never returned
             entity.getPaymentLinkSentAt() != null ? entity.getPaymentLinkSentAt().toString() : null,
             entity.getPaymentLinkEmail(),
-            entity.getHiddenFromPlanning()
+            entity.getHiddenFromPlanning(),
+            entity.getPaymentStatus() != null ? entity.getPaymentStatus().name() : null,
+            entity.getPaidAt() != null ? entity.getPaidAt().toString() : null
         );
     }
 

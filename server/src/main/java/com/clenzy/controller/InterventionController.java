@@ -2,11 +2,14 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.InterventionDto;
 import com.clenzy.model.Intervention;
+import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.Reservation;
+import com.clenzy.model.Team;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.TeamRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.InterventionService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -50,17 +53,20 @@ public class InterventionController {
     private final InterventionRepository interventionRepository;
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
+    private final TeamRepository teamRepository;
     private final TenantContext tenantContext;
 
     public InterventionController(InterventionService interventionService,
                                   InterventionRepository interventionRepository,
                                   ReservationRepository reservationRepository,
                                   UserRepository userRepository,
+                                  TeamRepository teamRepository,
                                   TenantContext tenantContext) {
         this.interventionService = interventionService;
         this.interventionRepository = interventionRepository;
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
+        this.teamRepository = teamRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -121,6 +127,20 @@ public class InterventionController {
             interventionToReservation = Map.of();
         }
 
+        // Pre-load team names for interventions assigned to teams (avoid N+1)
+        List<Long> teamIds = interventions.stream()
+                .filter(i -> i.getTeamId() != null && i.getAssignedUser() == null)
+                .map(Intervention::getTeamId)
+                .distinct()
+                .collect(Collectors.toList());
+        final Map<Long, String> teamNameMap;
+        if (!teamIds.isEmpty()) {
+            teamNameMap = teamRepository.findAllById(teamIds).stream()
+                    .collect(Collectors.toMap(Team::getId, Team::getName, (a, b) -> a));
+        } else {
+            teamNameMap = Map.of();
+        }
+
         // Mapper vers la structure attendue par le frontend (PlanningIntervention)
         List<Map<String, Object>> result = interventions.stream().map(i -> {
             Map<String, Object> map = new LinkedHashMap<>();
@@ -158,11 +178,143 @@ public class InterventionController {
             }
             map.put("estimatedDurationHours", i.getEstimatedDurationHours());
             map.put("notes", i.getNotes());
-            map.put("assigneeName", i.getAssignedUser() != null ?
-                    (i.getAssignedUser().getFirstName() + " " + i.getAssignedUser().getLastName()).trim() : null);
+            // Resolve assignee name: user first, then team
+            String assigneeName = null;
+            if (i.getAssignedUser() != null) {
+                assigneeName = (i.getAssignedUser().getFirstName() + " " + i.getAssignedUser().getLastName()).trim();
+            } else if (i.getTeamId() != null) {
+                assigneeName = teamNameMap.getOrDefault(i.getTeamId(), "Équipe #" + i.getTeamId());
+            }
+            map.put("assigneeName", assigneeName);
             map.put("linkedReservationId", interventionToReservation.getOrDefault(i.getId(), null));
+            // Payment fields
+            map.put("paymentStatus", i.getPaymentStatus() != null ? i.getPaymentStatus().name() : null);
+            map.put("estimatedCost", i.getEstimatedCost());
+            map.put("actualCost", i.getActualCost());
+            map.put("paidAt", i.getPaidAt());
             return map;
         }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/team-availability")
+    @Operation(summary = "Vérifier la disponibilité des membres d'une équipe",
+            description = "Retourne les membres de l'équipe avec leur statut de disponibilité " +
+                    "pour un créneau donné. Peut utiliser interventionId (existant) ou date+durationHours (nouveau) " +
+                    "pour définir le créneau à vérifier.")
+    public ResponseEntity<Map<String, Object>> checkTeamMemberAvailability(
+            @RequestParam Long teamId,
+            @RequestParam(required = false) Long interventionId,
+            @RequestParam(required = false) String date,
+            @RequestParam(required = false) Integer durationHours) {
+
+        Long orgId = tenantContext.getRequiredOrganizationId();
+
+        // Load team with members eagerly (open-in-view is disabled)
+        Team team = teamRepository.findByIdWithMembers(teamId)
+                .orElseThrow(() -> new RuntimeException("Équipe introuvable: " + teamId));
+
+        // Calculate the time range for conflict checking
+        LocalDateTime rangeStart;
+        int duration;
+
+        if (interventionId != null) {
+            // Mode 1: Use intervention dates
+            Intervention intervention = interventionRepository.findById(interventionId)
+                    .orElseThrow(() -> new RuntimeException("Intervention introuvable: " + interventionId));
+            rangeStart = intervention.getScheduledDate() != null
+                    ? intervention.getScheduledDate()
+                    : LocalDateTime.now();
+            duration = intervention.getEstimatedDurationHours() != null
+                    ? intervention.getEstimatedDurationHours()
+                    : 4;
+        } else if (date != null) {
+            // Mode 2: Use explicit date + durationHours (for service request conflict detection)
+            rangeStart = LocalDateTime.parse(date);
+            duration = durationHours != null ? durationHours : 4;
+        } else {
+            return ResponseEntity.badRequest().build();
+        }
+
+        LocalDateTime rangeEnd = rangeStart.plusHours(duration);
+
+        List<InterventionStatus> activeStatuses = List.of(
+                InterventionStatus.PENDING,
+                InterventionStatus.AWAITING_VALIDATION,
+                InterventionStatus.AWAITING_PAYMENT,
+                InterventionStatus.IN_PROGRESS
+        );
+
+        // Check availability of each team member
+        List<Map<String, Object>> members = team.getMembers().stream().map(member -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("userId", member.getUser().getId());
+            m.put("firstName", member.getUser().getFirstName());
+            m.put("lastName", member.getUser().getLastName());
+            m.put("email", member.getUser().getEmail());
+            m.put("role", member.getRole());
+
+            long conflictCount = interventionRepository.countActiveByUserIdAndDateRange(
+                    member.getUser().getId(), activeStatuses, rangeStart, rangeEnd, orgId);
+            m.put("available", conflictCount == 0);
+            m.put("conflictCount", conflictCount);
+            return m;
+        }).collect(Collectors.toList());
+
+        // Also check team-level conflicts
+        long teamConflicts = interventionRepository.countActiveByTeamIdAndDateRange(
+                teamId, activeStatuses, rangeStart, rangeEnd, orgId);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("teamId", team.getId());
+        result.put("teamName", team.getName());
+        result.put("interventionType", team.getInterventionType());
+        result.put("memberCount", team.getMemberCount());
+        result.put("members", members);
+        result.put("teamConflictCount", teamConflicts);
+        result.put("allAvailable", members.stream().allMatch(m -> (boolean) m.get("available")));
+        result.put("rangeStart", rangeStart.toString());
+        result.put("rangeEnd", rangeEnd.toString());
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/user-availability")
+    @Operation(summary = "Vérifier la disponibilité d'un utilisateur individuel",
+            description = "Retourne le statut de disponibilité d'un utilisateur pour un créneau donné (date + durée).")
+    public ResponseEntity<Map<String, Object>> checkUserAvailability(
+            @RequestParam Long userId,
+            @RequestParam String date,
+            @RequestParam(required = false) Integer durationHours) {
+
+        Long orgId = tenantContext.getRequiredOrganizationId();
+
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable: " + userId));
+
+        LocalDateTime rangeStart = LocalDateTime.parse(date);
+        int duration = durationHours != null ? durationHours : 4;
+        LocalDateTime rangeEnd = rangeStart.plusHours(duration);
+
+        List<InterventionStatus> activeStatuses = List.of(
+                InterventionStatus.PENDING,
+                InterventionStatus.AWAITING_VALIDATION,
+                InterventionStatus.AWAITING_PAYMENT,
+                InterventionStatus.IN_PROGRESS
+        );
+
+        long conflictCount = interventionRepository.countActiveByUserIdAndDateRange(
+                userId, activeStatuses, rangeStart, rangeEnd, orgId);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("userId", targetUser.getId());
+        result.put("firstName", targetUser.getFirstName());
+        result.put("lastName", targetUser.getLastName());
+        result.put("available", conflictCount == 0);
+        result.put("conflictCount", conflictCount);
+        result.put("rangeStart", rangeStart.toString());
+        result.put("rangeEnd", rangeEnd.toString());
 
         return ResponseEntity.ok(result);
     }

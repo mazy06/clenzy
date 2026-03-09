@@ -108,6 +108,13 @@ public class Reservation {
     @Column(name = "stripe_session_id", length = 255)
     private String stripeSessionId;
 
+    @Column(name = "payment_status", length = 20)
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus paymentStatus;
+
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -226,6 +233,12 @@ public class Reservation {
 
     public String getStripeSessionId() { return stripeSessionId; }
     public void setStripeSessionId(String stripeSessionId) { this.stripeSessionId = stripeSessionId; }
+
+    public PaymentStatus getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public LocalDateTime getPaidAt() { return paidAt; }
+    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
 
     public Boolean getHiddenFromPlanning() { return hiddenFromPlanning; }
     public void setHiddenFromPlanning(Boolean hiddenFromPlanning) { this.hiddenFromPlanning = hiddenFromPlanning; }

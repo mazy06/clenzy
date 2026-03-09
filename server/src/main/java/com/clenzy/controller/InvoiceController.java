@@ -2,9 +2,12 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.GenerateInvoiceRequest;
 import com.clenzy.dto.InvoiceDto;
+import com.clenzy.dto.PaymentOrchestrationResult;
 import com.clenzy.model.Invoice;
+import com.clenzy.model.PaymentProviderType;
 import com.clenzy.repository.InvoiceRepository;
 import com.clenzy.service.InvoiceGeneratorService;
+import com.clenzy.service.InvoicePaymentService;
 import com.clenzy.service.InvoicePdfService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.http.*;
@@ -22,6 +25,8 @@ import java.util.List;
  * - POST   /api/invoices/{id}/issue       → emettre une facture (DRAFT → ISSUED)
  * - POST   /api/invoices/{id}/cancel      → annuler une facture (cree un avoir)
  * - GET    /api/invoices/{id}/pdf         → telecharger le PDF
+ * - POST   /api/invoices/{id}/send        → envoyer une facture (DRAFT → SENT)
+ * - POST   /api/invoices/{id}/pay         → payer une facture via orchestrateur
  */
 @RestController
 @RequestMapping("/api/invoices")
@@ -29,15 +34,18 @@ public class InvoiceController {
 
     private final InvoiceGeneratorService invoiceGeneratorService;
     private final InvoicePdfService invoicePdfService;
+    private final InvoicePaymentService invoicePaymentService;
     private final InvoiceRepository invoiceRepository;
     private final TenantContext tenantContext;
 
     public InvoiceController(InvoiceGeneratorService invoiceGeneratorService,
                               InvoicePdfService invoicePdfService,
+                              InvoicePaymentService invoicePaymentService,
                               InvoiceRepository invoiceRepository,
                               TenantContext tenantContext) {
         this.invoiceGeneratorService = invoiceGeneratorService;
         this.invoicePdfService = invoicePdfService;
+        this.invoicePaymentService = invoicePaymentService;
         this.invoiceRepository = invoiceRepository;
         this.tenantContext = tenantContext;
     }
@@ -110,5 +118,28 @@ public class InvoiceController {
         headers.setContentLength(pdfBytes.length);
 
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+    }
+
+    /**
+     * Envoie une facture au client (DRAFT → SENT).
+     */
+    @PostMapping("/{id}/send")
+    public ResponseEntity<InvoiceDto> send(@PathVariable Long id) {
+        invoicePaymentService.sendInvoice(id);
+        return ResponseEntity.ok(invoiceGeneratorService.getInvoice(id));
+    }
+
+    /**
+     * Declenche le paiement d'une facture via l'orchestrateur.
+     */
+    @PostMapping("/{id}/pay")
+    public ResponseEntity<PaymentOrchestrationResult> pay(
+            @PathVariable Long id,
+            @RequestParam(required = false) PaymentProviderType preferredProvider,
+            @RequestParam(required = false) String successUrl,
+            @RequestParam(required = false) String cancelUrl) {
+        PaymentOrchestrationResult result = invoicePaymentService.payInvoice(
+                id, preferredProvider, successUrl, cancelUrl);
+        return ResponseEntity.ok(result);
     }
 }

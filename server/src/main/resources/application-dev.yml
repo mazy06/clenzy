@@ -186,6 +186,7 @@ stripe:
   currency: eur
   success-url: ${FRONTEND_URL:http://localhost:3000}/interventions/payment/success?session_id={CHECKOUT_SESSION_ID}
   cancel-url: ${FRONTEND_URL:http://localhost:3000}/interventions/payment/cancel
+  embedded-return-url: ${FRONTEND_URL:http://localhost:3000}/planning
   inscription:
     return-url: ${FRONTEND_URL:http://localhost:3000}/inscription/success
 

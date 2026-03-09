@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -15,6 +15,7 @@ import {
   IconButton,
   Snackbar,
   Chip,
+  ListSubheader,
 } from '@mui/material';
 import {
   ContentCopy,
@@ -28,20 +29,13 @@ import {
   TaskAlt,
   Close,
   Check,
+  Person,
+  Groups,
 } from '@mui/icons-material';
+import { useQuery } from '@tanstack/react-query';
 import type { PlanningEvent } from '../types';
-
-// ── Staff (for team messages & task assignment) ────────────────────────────
-const TEAM_MEMBERS = [
-  'Fatou Diallo',
-  'Carmen Lopez',
-  'Nathalie Blanc',
-  'Amina Keita',
-  'Lucie Moreau',
-  'Marc Dupuis',
-  'Jean-Pierre Martin',
-  'Thomas Bernard',
-];
+import { managersApi } from '../../../services/api';
+import type { PortfolioTeam, OperationalUser } from '../../../services/api';
 
 interface PanelActionsProps {
   event: PlanningEvent;
@@ -78,6 +72,28 @@ const PanelActions: React.FC<PanelActionsProps> = ({
 }) => {
   const isReservation = event.type === 'reservation';
   const reservation = event.reservation;
+
+  // ── Fetch real teams and operational users ──────────────────────────────
+  const { data: teamsData } = useQuery({
+    queryKey: ['panel-actions', 'teams'],
+    queryFn: () => managersApi.getTeams(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: usersData } = useQuery({
+    queryKey: ['panel-actions', 'users'],
+    queryFn: () => managersApi.getOperationalUsers(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const teamMemberOptions = useMemo(() => {
+    const users = (usersData ?? []) as OperationalUser[];
+    const teams = (teamsData ?? []) as PortfolioTeam[];
+    return {
+      users: users.map((u) => ({ id: u.id, label: `${u.firstName} ${u.lastName}`, role: u.role })),
+      teams: teams.map((t) => ({ id: t.id, label: t.name, type: t.interventionType })),
+    };
+  }, [usersData, teamsData]);
 
   // ── Dialog states ────────────────────────────────────────────────────────
 
@@ -678,8 +694,31 @@ const PanelActions: React.FC<PanelActionsProps> = ({
               sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
             >
               <MenuItem value="__all__">Toute l'equipe</MenuItem>
-              {TEAM_MEMBERS.map((name) => (
-                <MenuItem key={name} value={name}>{name}</MenuItem>
+              {teamMemberOptions.users.length > 0 && (
+                <ListSubheader sx={{ fontSize: '0.6875rem', lineHeight: '28px', color: 'text.secondary', fontWeight: 700 }}>
+                  Intervenants
+                </ListSubheader>
+              )}
+              {teamMemberOptions.users.map((u) => (
+                <MenuItem key={`user-${u.id}`} value={u.label} sx={{ fontSize: '0.8125rem' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Person sx={{ fontSize: 14, color: 'text.secondary' }} />
+                    {u.label}
+                  </Box>
+                </MenuItem>
+              ))}
+              {teamMemberOptions.teams.length > 0 && (
+                <ListSubheader sx={{ fontSize: '0.6875rem', lineHeight: '28px', color: 'text.secondary', fontWeight: 700 }}>
+                  Équipes
+                </ListSubheader>
+              )}
+              {teamMemberOptions.teams.map((t) => (
+                <MenuItem key={`team-${t.id}`} value={t.label} sx={{ fontSize: '0.8125rem' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Groups sx={{ fontSize: 14, color: 'primary.main' }} />
+                    {t.label}
+                  </Box>
+                </MenuItem>
               ))}
             </TextField>
             <TextField
@@ -726,8 +765,31 @@ const PanelActions: React.FC<PanelActionsProps> = ({
               size="small" fullWidth required
               sx={{ '& .MuiOutlinedInput-root': { fontSize: '0.8125rem' } }}
             >
-              {TEAM_MEMBERS.map((name) => (
-                <MenuItem key={name} value={name}>{name}</MenuItem>
+              {teamMemberOptions.users.length > 0 && (
+                <ListSubheader sx={{ fontSize: '0.6875rem', lineHeight: '28px', color: 'text.secondary', fontWeight: 700 }}>
+                  Intervenants
+                </ListSubheader>
+              )}
+              {teamMemberOptions.users.map((u) => (
+                <MenuItem key={`user-${u.id}`} value={u.label} sx={{ fontSize: '0.8125rem' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Person sx={{ fontSize: 14, color: 'text.secondary' }} />
+                    {u.label}
+                  </Box>
+                </MenuItem>
+              ))}
+              {teamMemberOptions.teams.length > 0 && (
+                <ListSubheader sx={{ fontSize: '0.6875rem', lineHeight: '28px', color: 'text.secondary', fontWeight: 700 }}>
+                  Équipes
+                </ListSubheader>
+              )}
+              {teamMemberOptions.teams.map((t) => (
+                <MenuItem key={`team-${t.id}`} value={t.label} sx={{ fontSize: '0.8125rem' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Groups sx={{ fontSize: 14, color: 'primary.main' }} />
+                    {t.label}
+                  </Box>
+                </MenuItem>
               ))}
             </TextField>
             <TextField

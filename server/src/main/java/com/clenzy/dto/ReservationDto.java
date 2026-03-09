@@ -29,5 +29,8 @@ public record ReservationDto(
     // Payment link tracking
     String paymentLinkSentAt,
     String paymentLinkEmail,
-    Boolean hiddenFromPlanning
+    Boolean hiddenFromPlanning,
+    // Payment status (read-only output)
+    String paymentStatus,
+    String paidAt
 ) {}

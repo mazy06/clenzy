@@ -71,15 +71,17 @@ const WorkOrdersPage: React.FC = () => {
 
   // ── Both tabs visible ─────────────────────────────────────────────────────
   return (
-    <Box sx={{ p: 3 }}>
-      <PageHeader
-        title={t('workOrders.title')}
-        subtitle={t('workOrders.subtitle')}
-        backPath="/dashboard"
-        showBackButton={false}
-        actions={<div ref={setActionsContainer} style={PORTAL_STYLE} />}
-      />
-      <Paper sx={{ mb: 3 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <Box sx={{ flexShrink: 0 }}>
+        <PageHeader
+          title={t('workOrders.title')}
+          subtitle={t('workOrders.subtitle')}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={<div ref={setActionsContainer} style={PORTAL_STYLE} />}
+        />
+      </Box>
+      <Paper sx={{ mb: 1.5, flexShrink: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
           <Tabs
             value={activeTab}
@@ -105,7 +107,7 @@ const WorkOrdersPage: React.FC = () => {
         </Box>
       </Paper>
 
-      {/* ── Tab content ── */}
+      {/* ── Tab content — fills remaining space ── */}
       {activeTab === TAB_SERVICE_REQUESTS && (
         <ServiceRequestsList embedded actionsContainer={actionsContainer} />
       )}

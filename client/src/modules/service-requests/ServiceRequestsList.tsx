@@ -58,6 +58,7 @@ import {
   ErrorDialog,
   SuccessDialog,
 } from './ServiceRequestsDialogs';
+import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 
 const paginationSx = {
   position: 'sticky',
@@ -188,9 +189,20 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
 
   const [page, setPage] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('list');
-  const [rowsPerPage, setRowsPerPage] = useState(LIST_DEFAULT_ROWS);
   const theme = useTheme();
   const ITEMS_PER_PAGE = 6;
+
+  // Dynamic page size based on available viewport height
+  const { containerRef: listContainerRef, pageSize: rowsPerPage } = useDynamicPageSize({
+    rowHeight: 49,
+    headerHeight: 42,
+    bottomChrome: 72,
+    min: 5,
+    max: 50,
+  });
+
+  // Reset page when dynamic page size changes
+  useEffect(() => { setPage(0); }, [rowsPerPage]);
 
   const effectivePageSize = viewMode === 'grid' ? ITEMS_PER_PAGE : rowsPerPage;
 
@@ -238,21 +250,24 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
   );
 
   return (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
 
       {!embedded && (
-        <PageHeader
-          title={t('serviceRequests.title')}
-          subtitle={t('serviceRequests.subtitle')}
-          backPath="/dashboard"
-          showBackButton={false}
-          actions={actionButtons}
-        />
+        <Box sx={{ flexShrink: 0 }}>
+          <PageHeader
+            title={t('serviceRequests.title')}
+            subtitle={t('serviceRequests.subtitle')}
+            backPath="/dashboard"
+            showBackButton={false}
+            actions={actionButtons}
+          />
+        </Box>
       )}
 
       {/* Filtres et recherche */}
+      <Box sx={{ flexShrink: 0 }}>
       <FilterSearchBar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -288,6 +303,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
           onChange: setViewMode,
         }}
       />
+      </Box>
 
       {/* Liste des demandes de service */}
       {filteredServiceRequests.length === 0 ? (
@@ -354,8 +370,8 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         </>
       ) : (
         /* ─── Vue liste (table) ─── */
-        <Paper sx={LIST_PAPER_SX}>
-          <TableContainer>
+        <Paper ref={listContainerRef} sx={{ ...LIST_PAPER_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
             <Table size="small">
               <TableHead>
                 <TableRow
@@ -497,14 +513,9 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
             page={page}
             onPageChange={(_, p) => setPage(p)}
             rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-            rowsPerPageOptions={LIST_ROWS_PER_PAGE_OPTIONS}
-            labelRowsPerPage="Lignes par page"
+            rowsPerPageOptions={[]}
             labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-            sx={paginationSx}
+            sx={{ ...paginationSx, flexShrink: 0 }}
           />
         </Paper>
       )}
@@ -543,19 +554,6 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
           </MenuItem>
         )}
 
-        {/* Action de validation et creation d'intervention - visible pour managers et admins seulement si assignee */}
-        {(isAdmin() || isManager()) && selectedServiceRequest?.status === 'PENDING' && selectedServiceRequest.assignedToId && (
-          <MenuItem onClick={() => {
-            handleValidateAndCreateIntervention(selectedServiceRequest);
-            handleMenuClose();
-          }}>
-            <ListItemIcon>
-              <CheckCircle fontSize="small" color="success" />
-            </ListItemIcon>
-            {t('serviceRequests.validateAndCreateIntervention')}
-          </MenuItem>
-        )}
-
         {/* Option de modification - toujours visible si permissions */}
         {selectedServiceRequest && canModifyServiceRequest(selectedServiceRequest) && (
           <MenuItem onClick={handleEdit}>
@@ -589,7 +587,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
             </ListItemIcon>
             <ListItemText
               primary={t('serviceRequests.cancel')}
-              secondary={`Temps restant: ${Math.round(getRemainingCancellationTime(selectedServiceRequest.approvedAt || selectedServiceRequest.createdAt))}h`}
+              secondary={`Temps restant: ${Math.round(getRemainingCancellationTime(selectedServiceRequest.createdAt))}h`}
             />
           </MenuItem>
         )}
@@ -629,18 +627,6 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
         teams={assignTeams}
         users={assignUsers}
         loadingData={loadingAssignData}
-        t={t}
-      />
-
-      <ValidateConfirmDialog
-        open={validateDialogOpen}
-        onClose={() => {
-          setValidateDialogOpen(false);
-          setSelectedRequestForValidation(null);
-        }}
-        onConfirm={confirmValidation}
-        selectedRequest={selectedRequestForValidation}
-        validating={validating}
         t={t}
       />
 

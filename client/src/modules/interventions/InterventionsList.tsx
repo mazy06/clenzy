@@ -33,9 +33,6 @@ import {
   Tooltip,
   LinearProgress,
   useTheme,
-  Tab,
-  Tabs,
-  TextField,
 } from '@mui/material';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
@@ -53,18 +50,14 @@ import {
   Build,
   Refresh,
   MoreVert,
-  CheckCircle as CheckCircleIcon,
   LocationOn,
 } from '@mui/icons-material';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { interventionsApi } from '../../services/api';
-import apiClient from '../../services/apiClient';
-import { extractApiList } from '../../types';
 import { INTERVENTION_STATUS_OPTIONS, PRIORITY_OPTIONS } from '../../types/statusEnums';
 import { createSpacing } from '../../theme/spacing';
 import ExportButton from '../../components/ExportButton';
-import { useInterventionsList, interventionsKeys } from './useInterventionsList';
+import { useInterventionsList } from './useInterventionsList';
 import type { Intervention } from './useInterventionsList';
+import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 import {
   getInterventionStatusLabel,
   getInterventionStatusHex,
@@ -94,23 +87,6 @@ const LIST_PAPER_SX = {
   borderRadius: 1.5,
 } as const;
 
-const TAB_SX = {
-  minHeight: 36,
-  textTransform: 'none',
-  fontSize: '0.84rem',
-  fontWeight: 600,
-  py: 0.75,
-  px: 2,
-} as const;
-
-const TABS_CONTAINER_SX = {
-  minHeight: 36,
-  mb: 1.5,
-  '& .MuiTabs-indicator': {
-    height: 2.5,
-    borderRadius: 1,
-  },
-} as const;
 
 function formatDateShort(dateStr: string): string {
   if (!dateStr) return '—';
@@ -183,12 +159,21 @@ export default function InterventionsList({ embedded = false, actionsContainer }
   } = useInterventionsList();
 
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('list');
-  const [listRowsPerPage, setListRowsPerPage] = useState(LIST_DEFAULT_ROWS);
   const [listPage, setListPage] = useState(0);
-  const [activeTab, setActiveTab] = useState(0);
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
   const theme = useTheme();
-  const queryClient = useQueryClient();
+
+  // Dynamic page size based on available viewport height
+  const { containerRef: listContainerRef, pageSize: listRowsPerPage } = useDynamicPageSize({
+    rowHeight: 49,
+    headerHeight: 42,
+    bottomChrome: 72,
+    min: 5,
+    max: 50,
+  });
+
+  // Reset page when dynamic page size changes
+  useEffect(() => { setListPage(0); }, [listRowsPerPage]);
 
   // ─── Map bounds tracking (debounced) ──────────────────────────────────────
   const boundsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -233,71 +218,6 @@ export default function InterventionsList({ embedded = false, actionsContainer }
       i.propertyLongitude! <= mapBounds.east + pad
     ));
   }, [filteredInterventions, mapBounds]);
-
-  // ─── Pending validation query ───────────────────────────────────────────────
-  const pendingQuery = useQuery({
-    queryKey: interventionsKeys.pendingValidation(),
-    queryFn: async () => {
-      const data = await interventionsApi.getAll({ status: 'AWAITING_VALIDATION' });
-      return extractApiList<Intervention>(data);
-    },
-    enabled: activeTab === 1 && (isManager() || isAdmin()),
-    staleTime: 30_000,
-  });
-
-  const pendingInterventions = pendingQuery.data ?? [];
-  const pendingLoading = pendingQuery.isLoading;
-
-  // ─── Pending validation pagination ──────────────────────────────────────────
-  const [pendingPage, setPendingPage] = useState(0);
-  const [pendingRowsPerPage, setPendingRowsPerPage] = useState(LIST_DEFAULT_ROWS);
-  const paginatedPending = pendingInterventions.slice(
-    pendingPage * pendingRowsPerPage,
-    (pendingPage + 1) * pendingRowsPerPage
-  );
-
-  // ─── Validation dialog state ────────────────────────────────────────────────
-  const [validationDialogOpen, setValidationDialogOpen] = useState(false);
-  const [validationTarget, setValidationTarget] = useState<Intervention | null>(null);
-  const [estimatedCost, setEstimatedCost] = useState('');
-  const [validationError, setValidationError] = useState<string | null>(null);
-
-  const validateMutation = useMutation({
-    mutationFn: ({ interventionId, cost }: { interventionId: number; cost: number }) =>
-      apiClient.post(`/interventions/${interventionId}/validate`, { estimatedCost: cost }),
-    onSuccess: () => {
-      handleCloseValidationDialog();
-      queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
-    },
-    onError: (err: Error) => {
-      setValidationError(err.message || 'Erreur de connexion');
-    },
-  });
-
-  const handleOpenValidationDialog = (intervention: Intervention) => {
-    setValidationTarget(intervention);
-    setEstimatedCost('');
-    setValidationError(null);
-    setValidationDialogOpen(true);
-  };
-
-  const handleCloseValidationDialog = () => {
-    setValidationDialogOpen(false);
-    setValidationTarget(null);
-    setEstimatedCost('');
-    setValidationError(null);
-  };
-
-  const handleValidate = () => {
-    if (!validationTarget) return;
-    const cost = parseFloat(estimatedCost);
-    if (isNaN(cost) || cost <= 0) {
-      setValidationError('Veuillez entrer un montant valide');
-      return;
-    }
-    setValidationError(null);
-    validateMutation.mutate({ interventionId: validationTarget.id, cost });
-  };
 
   const listPaginatedInterventions = filteredInterventions.slice(
     listPage * listRowsPerPage,
@@ -435,41 +355,31 @@ export default function InterventionsList({ embedded = false, actionsContainer }
   );
 
   return (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
 
       {!embedded && (
-        <PageHeader
-          title={t('interventions.title')}
-          subtitle={t('interventions.subtitle')}
-          backPath="/dashboard"
-          showBackButton={false}
-          actions={actionButtons}
-        />
+        <Box sx={{ flexShrink: 0 }}>
+          <PageHeader
+            title={t('interventions.title')}
+            subtitle={t('interventions.subtitle')}
+            backPath="/dashboard"
+            showBackButton={false}
+            actions={actionButtons}
+          />
+        </Box>
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
+        <Alert severity="error" sx={{ mb: 2, py: 1, flexShrink: 0 }}>
           {error}
         </Alert>
       )}
 
-      {/* ─── Onglets Validées / En attente ─────────────────────────────────── */}
-      {(isManager() || isAdmin()) ? (
-        <Tabs
-          value={activeTab}
-          onChange={(_, v) => { setActiveTab(v); setPendingPage(0); setListPage(0); }}
-          sx={TABS_CONTAINER_SX}
-        >
-          <Tab label={`Validées (${filteredInterventions.length})`} sx={TAB_SX} />
-          <Tab label={`En attente (${pendingInterventions.length})`} sx={TAB_SX} />
-        </Tabs>
-      ) : null}
-
-      {/* ─── Tab 0 : Interventions validées ─────────────────────────────────── */}
-      {activeTab === 0 && (
-        <>
+      {/* ─── Liste des interventions ─────────────────────────────────────────── */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <Box sx={{ flexShrink: 0 }}>
           <FilterSearchBar
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
@@ -505,6 +415,7 @@ export default function InterventionsList({ embedded = false, actionsContainer }
               onChange: (mode) => { setViewMode(mode); setListPage(0); },
             }}
           />
+          </Box>
 
           {filteredInterventions.length === 0 ? (
             <Card sx={{ textAlign: 'center', py: 2.5, px: 2, ...createSpacing.card() }}>
@@ -747,8 +658,8 @@ export default function InterventionsList({ embedded = false, actionsContainer }
               )}
             </>
           ) : (
-            <Paper sx={LIST_PAPER_SX}>
-              <TableContainer>
+            <Paper ref={listContainerRef} sx={{ ...LIST_PAPER_SX, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow
@@ -928,170 +839,13 @@ export default function InterventionsList({ embedded = false, actionsContainer }
                 page={listPage}
                 onPageChange={(_, p) => setListPage(p)}
                 rowsPerPage={listRowsPerPage}
-                onRowsPerPageChange={(e) => {
-                  setListRowsPerPage(parseInt(e.target.value, 10));
-                  setListPage(0);
-                }}
-                rowsPerPageOptions={LIST_ROWS_PER_PAGE_OPTIONS}
-                labelRowsPerPage="Lignes par page"
+                rowsPerPageOptions={[]}
                 labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-                sx={paginationSx}
+                sx={{ ...paginationSx, flexShrink: 0 }}
               />
             </Paper>
           )}
-        </>
-      )}
-
-      {/* ─── Tab 1 : Interventions en attente de validation ─────────────────── */}
-      {activeTab === 1 && (
-        <>
-          {pendingLoading ? (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-              <CircularProgress size={32} />
-            </Box>
-          ) : pendingInterventions.length === 0 ? (
-            <Card sx={{ textAlign: 'center', py: 2.5, px: 2, ...createSpacing.card() }}>
-              <CardContent>
-                <Box sx={{ mb: 1.5 }}>
-                  <Build sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.6 }} />
-                </Box>
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  Aucune intervention en attente
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Toutes les interventions ont été validées.
-                </Typography>
-              </CardContent>
-            </Card>
-          ) : (
-            <Paper sx={LIST_PAPER_SX}>
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow
-                      sx={{
-                        '& th': {
-                          fontWeight: 700,
-                          fontSize: '0.78rem',
-                          color: theme.palette.text.secondary,
-                          borderBottom: `2px solid ${theme.palette.divider}`,
-                          whiteSpace: 'nowrap',
-                        },
-                      }}
-                    >
-                      <TableCell>Titre</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Propriété</TableCell>
-                      <TableCell>Demandeur</TableCell>
-                      <TableCell>Date prévue</TableCell>
-                      <TableCell align="center">Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {paginatedPending.map((intervention) => {
-                      if (!intervention?.id) return null;
-                      return (
-                        <TableRow
-                          key={intervention.id}
-                          hover
-                          sx={{
-                            cursor: 'pointer',
-                            '&:last-child td': { borderBottom: 0 },
-                          }}
-                          onClick={() => navigate(`/interventions/${intervention.id}`)}
-                        >
-                          <TableCell>
-                            <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.82rem' }}>
-                              {intervention.title}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            {(() => { const c = getInterventionTypeHex(intervention.type); return (
-                            <Chip
-                              label={getInterventionTypeLabel(intervention.type, t)}
-                              size="small"
-                              sx={{
-                                backgroundColor: `${c}18`,
-                                color: c,
-                                border: `1px solid ${c}40`,
-                                borderRadius: '6px',
-                                fontWeight: 600,
-                                fontSize: '0.62rem',
-                                height: 22,
-                                '& .MuiChip-label': { px: 0.75 },
-                              }}
-                            />
-                            ); })()}
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                              {intervention.propertyName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
-                              {intervention.propertyAddress}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                              {intervention.requestorName}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontSize: '0.82rem' }}>
-                              {formatDateShort(intervention.scheduledDate)}
-                            </Typography>
-                            {intervention.estimatedDurationHours > 0 && (
-                              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>
-                                ~{intervention.estimatedDurationHours}h
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
-                            <Tooltip title="Détails">
-                              <IconButton
-                                size="small"
-                                onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
-                              >
-                                <VisibilityIcon sx={{ fontSize: 18 }} />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Valider">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={(e) => { e.stopPropagation(); handleOpenValidationDialog(intervention); }}
-                              >
-                                <CheckCircleIcon sx={{ fontSize: 18 }} />
-                              </IconButton>
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              {pendingInterventions.length > LIST_DEFAULT_ROWS && (
-                <TablePagination
-                  component="div"
-                  count={pendingInterventions.length}
-                  page={pendingPage}
-                  onPageChange={(_, p) => setPendingPage(p)}
-                  rowsPerPage={pendingRowsPerPage}
-                  onRowsPerPageChange={(e) => {
-                    setPendingRowsPerPage(parseInt(e.target.value, 10));
-                    setPendingPage(0);
-                  }}
-                  rowsPerPageOptions={LIST_ROWS_PER_PAGE_OPTIONS}
-                  labelRowsPerPage="Lignes par page"
-                  labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-                  sx={paginationSx}
-                />
-              )}
-            </Paper>
-          )}
-        </>
-      )}
+        </Box>
 
       {/* ─── Menus et dialogs partagés ─────────────────────────────────────── */}
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
@@ -1206,48 +960,6 @@ export default function InterventionsList({ embedded = false, actionsContainer }
         </DialogActions>
       </Dialog>
 
-      {/* Dialog de validation */}
-      <Dialog open={validationDialogOpen} onClose={handleCloseValidationDialog} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ pb: 1, fontSize: '1rem', fontWeight: 600 }}>
-          Valider l'intervention
-        </DialogTitle>
-        <DialogContent>
-          {validationTarget && (
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Intervention : {validationTarget.title}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Propriété : {validationTarget.propertyName}
-              </Typography>
-            </Box>
-          )}
-          <TextField
-            fullWidth
-            label="Coût estimé (€)"
-            type="number"
-            value={estimatedCost}
-            onChange={(e) => setEstimatedCost(e.target.value)}
-            inputProps={{ min: 0, step: 0.01 }}
-            error={!!validationError}
-            helperText={validationError}
-            sx={{ mt: 2 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseValidationDialog} disabled={validateMutation.isPending}>
-            Annuler
-          </Button>
-          <Button
-            onClick={handleValidate}
-            variant="contained"
-            disabled={validateMutation.isPending || !estimatedCost}
-            startIcon={validateMutation.isPending ? <CircularProgress size={20} /> : <CheckCircleIcon />}
-          >
-            {validateMutation.isPending ? 'Validation...' : 'Valider'}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

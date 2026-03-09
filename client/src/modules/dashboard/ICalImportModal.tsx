@@ -547,7 +547,7 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           Ménage automatique
         </Typography>
         <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
-          — Planifie un ménage le jour du checkout à l'heure de départ du voyageur
+          — Crée une demande de ménage le jour du checkout à l'heure de départ du voyageur
         </Typography>
       </Box>
 
@@ -663,8 +663,8 @@ const ICalImportModal: React.FC<ICalImportModalProps> = ({ open, onClose, onImpo
           >
             <SyncIcon sx={{ fontSize: 18, color: 'primary.main', mt: 0.25 }} />
             <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
-              {totalCount} intervention{totalCount > 1 ? 's' : ''} de ménage
-              {totalCount > 1 ? ' seront' : ' sera'} automatiquement planifiée{totalCount > 1 ? 's' : ''} à l'heure de départ du voyageur, le jour du checkout.
+              {totalCount} demande{totalCount > 1 ? 's' : ''} de service de ménage
+              {totalCount > 1 ? ' seront' : ' sera'} automatiquement créée{totalCount > 1 ? 's' : ''} à l'heure de départ du voyageur, le jour du checkout.
             </Typography>
           </Box>
         )}

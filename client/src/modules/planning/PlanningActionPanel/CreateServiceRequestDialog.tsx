@@ -16,11 +16,6 @@ import {
   Step,
   StepLabel,
   Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
 } from '@mui/material';
 import {
   Close,
@@ -42,6 +37,9 @@ import {
   Iron,
   Kitchen,
   AutoAwesome,
+  Warning as WarningIcon,
+  Timer,
+  Euro,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
@@ -49,6 +47,8 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import apiClient from '../../../services/apiClient';
 import { propertiesApi, usersApi, teamsApi, reservationsApi } from '../../../services/api';
 import type { Reservation } from '../../../services/api';
+import { interventionsApi } from '../../../services/api/interventionsApi';
+import type { TeamMemberAvailability, UserAvailabilityResponse } from '../../../services/api/interventionsApi';
 import { pricingConfigApi } from '../../../services/api/pricingConfigApi';
 import type { ForfaitConfig } from '../../../services/api/pricingConfigApi';
 import { useForm, Controller } from 'react-hook-form';
@@ -57,6 +57,7 @@ import { serviceRequestSchema } from '../../../schemas';
 import type { ServiceRequestFormValues } from '../../../schemas';
 import { INTERVENTION_TYPE_OPTIONS } from '../../../types/interventionTypes';
 import { getPropertyTypeLabel } from '../../../utils/statusUtils';
+import { computeEstimatedDuration, formatDuration, computeRangeFromForfait } from '../../service-requests/ServiceRequestPriceEstimate';
 
 // Sub-components from full form
 import ServiceRequestFormInfo from '../../service-requests/ServiceRequestFormInfo';
@@ -118,6 +119,8 @@ interface CreateServiceRequestDialogProps {
   onClose: () => void;
   propertyId: number;
   propertyName: string;
+  /** Link service request to a specific reservation */
+  reservationId?: number;
   /** Pre-select a service type category */
   defaultServiceType?: string;
   /** Pre-fill desired date (e.g. reservation checkOut) */
@@ -143,6 +146,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
   onClose,
   propertyId,
   propertyName,
+  reservationId,
   defaultServiceType,
   defaultDesiredDate,
   onCreated,
@@ -168,6 +172,13 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<number | null>(null);
 
+  // ── Conflict detection state ────────────────────────────────────────────
+  const [conflictMembers, setConflictMembers] = useState<TeamMemberAvailability[]>([]);
+  const [conflictLoading, setConflictLoading] = useState(false);
+  const [conflictInfo, setConflictInfo] = useState<{ allAvailable: boolean; teamName: string; teamConflictCount: number } | null>(null);
+  const [userConflictInfo, setUserConflictInfo] = useState<UserAvailabilityResponse | null>(null);
+  const [hasConflict, setHasConflict] = useState(false);
+
   const isAdminOrManager = isAdmin() || isManager();
 
   // ── React Hook Form ─────────────────────────────────────────────────────
@@ -190,6 +201,9 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
 
   const watchedServiceType = watch('serviceType');
   const watchedAssignedToType = watch('assignedToType');
+  const watchedAssignedToId = watch('assignedToId');
+  const watchedDesiredDate = watch('desiredDate');
+  const watchedEstimatedDuration = watch('estimatedDurationHours');
 
   // ── Reset form when dialog opens ────────────────────────────────────────
   useEffect(() => {
@@ -197,6 +211,10 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
       setActiveStep(0);
       setError(null);
       setCreatedId(null);
+      setConflictMembers([]);
+      setConflictInfo(null);
+      setUserConflictInfo(null);
+      setHasConflict(false);
 
       const defaultDate = defaultDesiredDate
         ? (() => {
@@ -345,6 +363,73 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
     check();
   }, [open, propertyId]);
 
+  // ── Conflict detection: check team/user availability when assigned + date are set ─
+  useEffect(() => {
+    // Nothing selected or no date → clear
+    if (!watchedAssignedToType || !watchedAssignedToId || !watchedDesiredDate) {
+      setConflictMembers([]);
+      setConflictInfo(null);
+      setUserConflictInfo(null);
+      setHasConflict(false);
+      return;
+    }
+
+    let cancelled = false;
+    setConflictLoading(true);
+
+    // Parse desired date to ISO format for the backend
+    const dateStr = new Date(watchedDesiredDate).toISOString().replace('Z', '');
+    const duration = watchedEstimatedDuration || 4;
+
+    if (watchedAssignedToType === 'team') {
+      // ── Team availability check ──
+      setUserConflictInfo(null);
+      interventionsApi
+        .checkTeamAvailabilityByDate(watchedAssignedToId, dateStr, duration)
+        .then((data) => {
+          if (cancelled) return;
+          setConflictMembers(data.members || []);
+          const anyConflict = !data.allAvailable || data.teamConflictCount > 0;
+          setConflictInfo({
+            allAvailable: data.allAvailable,
+            teamName: data.teamName,
+            teamConflictCount: data.teamConflictCount,
+          });
+          setHasConflict(anyConflict);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setConflictMembers([]);
+          setConflictInfo(null);
+          setHasConflict(false);
+        })
+        .finally(() => {
+          if (!cancelled) setConflictLoading(false);
+        });
+    } else if (watchedAssignedToType === 'user') {
+      // ── Individual user availability check ──
+      setConflictMembers([]);
+      setConflictInfo(null);
+      interventionsApi
+        .checkUserAvailabilityByDate(watchedAssignedToId, dateStr, duration)
+        .then((data) => {
+          if (cancelled) return;
+          setUserConflictInfo(data);
+          setHasConflict(!data.available);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setUserConflictInfo(null);
+          setHasConflict(false);
+        })
+        .finally(() => {
+          if (!cancelled) setConflictLoading(false);
+        });
+    }
+
+    return () => { cancelled = true; };
+  }, [watchedAssignedToType, watchedAssignedToId, watchedDesiredDate, watchedEstimatedDuration]);
+
   // ── Selected property ───────────────────────────────────────────────────
   const selectedProperty = useMemo(
     () => properties.find(p => p.id === propertyId) || null,
@@ -384,14 +469,9 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
     }
   }, [selectedProperty, setValue]);
 
-  // ── Auto-fill owner as requestor ────────────────────────────────────────
-  useEffect(() => {
-    if (!selectedProperty?.ownerId || users.length === 0) return;
-    const owner = users.find(u => u.id.toString() === selectedProperty.ownerId?.toString());
-    if (owner) {
-      setValue('userId', owner.id);
-    }
-  }, [selectedProperty, users, setValue]);
+  // ── Demandeur = toujours l'utilisateur connecté (traçabilité) ─────────
+  // On ne pré-sélectionne plus le propriétaire du logement : le demandeur
+  // est systématiquement la personne qui crée la demande.
 
   // ── Auto-generate title ─────────────────────────────────────────────────
   useEffect(() => {
@@ -417,6 +497,42 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
     if (!selectedForfait || !selectedForfait.eligibleTeamIds?.length) return undefined;
     return selectedForfait.eligibleTeamIds;
   }, [selectedForfait]);
+
+  // ── Dynamic estimation (prix + durée) ────────────────────────────────
+  const estimatedDuration = useMemo(() => {
+    if (!selectedProperty) return 0;
+    return computeEstimatedDuration(selectedProperty);
+  }, [selectedProperty]);
+
+  const priceRange = useMemo(() => {
+    if (!selectedProperty || !selectedForfait) return null;
+    return computeRangeFromForfait(
+      selectedProperty.squareMeters ?? 0,
+      selectedProperty.bedroomCount ?? 1,
+      selectedProperty.bathroomCount ?? 1,
+      selectedProperty.maxGuests ?? 2,
+      selectedProperty.numberOfFloors ?? undefined,
+      selectedProperty.hasExterior ?? false,
+      selectedProperty.hasLaundry ?? false,
+      selectedProperty.cleaningBasePrice ?? undefined,
+      selectedForfait,
+    );
+  }, [selectedProperty, selectedForfait]);
+
+  // ── Current user info for demandeur label ─────────────────────────────
+  const currentUserLabel = useMemo(() => {
+    if (!user) return '';
+    const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || '';
+    return name;
+  }, [user]);
+
+  const currentUserRole = useMemo(() => {
+    if (!user) return '';
+    if (isAdmin()) return 'Admin';
+    if (isManager()) return 'Manager';
+    if (isHost()) return 'Propriétaire';
+    return '';
+  }, [user, isAdmin, isManager, isHost]);
 
   // ── Property tags (characteristics) ─────────────────────────────────────
   const propertyTags = useMemo(() => {
@@ -487,6 +603,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
         title: formData.title,
         description: formData.description,
         propertyId,
+        reservationId: reservationId ?? null,
         serviceType: formData.serviceType,
         priority: formData.priority,
         estimatedDurationHours: formData.estimatedDurationHours,
@@ -587,53 +704,43 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
               />
             </Box>
 
-            {/* Requestor */}
+            {/* Demandeur — lecture seule, trace l'utilisateur connecté */}
             <Box sx={{ flex: 5 }}>
-              <Controller
-                name="userId"
-                control={control}
-                render={({ field }) => {
-                  const selectedUser = users.find(u => u.id === field.value);
-                  const hasValue = !!selectedUser;
-                  return (
-                    <FormControl fullWidth>
-                      <InputLabel shrink sx={{ color: 'text.secondary' }}>
-                        Demandeur
-                      </InputLabel>
-                      <Select
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        label="Demandeur"
-                        disabled={!isAdminOrManager}
-                        size="small"
-                        displayEmpty
-                        notched
-                        sx={{
-                          '& .MuiOutlinedInput-notchedOutline': { borderColor: 'grey.200' },
-                          '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.light' },
-                        }}
-                        renderValue={() => (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <Person sx={{ fontSize: 16, color: hasValue ? 'primary.main' : 'grey.400' }} />
-                            <Typography sx={{ fontSize: '0.8125rem', color: hasValue ? 'text.secondary' : 'grey.400' }}>
-                              {hasValue ? `${selectedUser.firstName} ${selectedUser.lastName}` : 'Sélectionner...'}
-                            </Typography>
-                          </Box>
-                        )}
-                      >
-                        {users.map(u => (
-                          <MenuItem key={u.id} value={u.id}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                              <Person sx={{ fontSize: 16, color: 'primary.main' }} />
-                              <Typography sx={{ fontSize: '0.8125rem' }}>{u.firstName} {u.lastName}</Typography>
-                            </Box>
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  );
-                }}
-              />
+              <Typography sx={{ fontSize: '0.625rem', fontWeight: 500, color: 'text.disabled', mb: 0.5, ml: 0.25 }}>
+                Demandeur
+              </Typography>
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.75,
+                px: 1.25,
+                py: 0.75,
+                borderRadius: 1,
+                bgcolor: 'grey.50',
+                border: '1px solid',
+                borderColor: 'grey.200',
+                minHeight: 40,
+              }}>
+                <Person sx={{ fontSize: 16, color: 'primary.main' }} />
+                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.primary', flex: 1 }}>
+                  {currentUserLabel}
+                </Typography>
+                {currentUserRole && (
+                  <Chip
+                    label={currentUserRole}
+                    size="small"
+                    sx={{
+                      height: 20,
+                      fontSize: '0.5625rem',
+                      fontWeight: 600,
+                      bgcolor: isAdmin() ? 'error.50' : isManager() ? 'warning.50' : 'primary.50',
+                      color: isAdmin() ? 'error.main' : isManager() ? 'warning.dark' : 'primary.main',
+                      borderRadius: 0.75,
+                      '& .MuiChip-label': { px: 0.75 },
+                    }}
+                  />
+                )}
+              </Box>
             </Box>
           </Box>
         </Box>
@@ -662,18 +769,93 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
           <Box sx={{ minHeight: 250 }}>
             {/* Step 1: Service */}
             {activeStep === 0 && (
-              <ServiceRequestFormInfo
-                control={control}
-                errors={errors}
-                setValue={setValue}
-                watchedServiceType={watchedServiceType}
-                disabled={false}
-                propertyDescription={selectedProperty?.description}
-                cleaningNotes={selectedProperty?.cleaningNotes}
-                selectedProperty={selectedProperty}
-                includedPrestations={selectedForfait?.includedPrestations}
-                extraPrestations={selectedForfait?.extraPrestations}
-              />
+              <>
+                <ServiceRequestFormInfo
+                  control={control}
+                  errors={errors}
+                  setValue={setValue}
+                  watchedServiceType={watchedServiceType}
+                  disabled={false}
+                  propertyDescription={selectedProperty?.description}
+                  cleaningNotes={selectedProperty?.cleaningNotes}
+                  selectedProperty={selectedProperty}
+                  includedPrestations={selectedForfait?.includedPrestations}
+                  extraPrestations={selectedForfait?.extraPrestations}
+                />
+
+                {/* ── Estimation dynamique prix + durée ── */}
+                {selectedProperty && (
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    mt: 2,
+                    px: 1.5,
+                    py: 1,
+                    borderRadius: 1.5,
+                    border: '1px solid',
+                    borderColor: 'primary.100',
+                    bgcolor: 'primary.50',
+                  }}>
+                    {/* Durée estimée */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1 }}>
+                      <Timer sx={{ fontSize: 18, color: 'primary.main' }} />
+                      <Box>
+                        <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>
+                          Durée estimée
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, color: 'primary.main', lineHeight: 1.3 }}>
+                          {formatDuration(estimatedDuration)}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Séparateur */}
+                    <Box sx={{ width: 1, height: 28, bgcolor: 'primary.200', borderRadius: 1, flexShrink: 0 }} />
+
+                    {/* Prix estimé */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1 }}>
+                      <Euro sx={{ fontSize: 18, color: 'primary.main' }} />
+                      <Box>
+                        <Typography sx={{ fontSize: '0.5625rem', fontWeight: 600, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1 }}>
+                          Prix estimé
+                        </Typography>
+                        {priceRange ? (
+                          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, color: 'primary.main', lineHeight: 1.3 }}>
+                            {priceRange.min === priceRange.max
+                              ? `${priceRange.min}€`
+                              : `${priceRange.min}€ – ${priceRange.max}€`}
+                          </Typography>
+                        ) : (
+                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'text.disabled', lineHeight: 1.3 }}>
+                            Non disponible
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+
+                    {/* Forfait sélectionné */}
+                    {selectedForfait && (
+                      <>
+                        <Box sx={{ width: 1, height: 28, bgcolor: 'primary.200', borderRadius: 1, flexShrink: 0 }} />
+                        <Chip
+                          label={selectedForfait.label}
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          sx={{
+                            height: 22,
+                            fontSize: '0.625rem',
+                            fontWeight: 600,
+                            borderRadius: 1,
+                            '& .MuiChip-label': { px: 1 },
+                          }}
+                        />
+                      </>
+                    )}
+                  </Box>
+                )}
+              </>
             )}
 
             {/* Step 2: Planning */}
@@ -704,6 +886,99 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                   disabled={false}
                   eligibleTeamIds={eligibleTeamIds}
                 />
+
+                {/* ── Conflict detection panel ────────────────────────────── */}
+                {conflictLoading && (watchedAssignedToType === 'team' || watchedAssignedToType === 'user') && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.5, py: 0.75 }}>
+                    <CircularProgress size={14} />
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                      {watchedAssignedToType === 'team'
+                        ? "Vérification de la disponibilité de l'équipe..."
+                        : "Vérification de la disponibilité de l'utilisateur..."}
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* ── Team conflict ── */}
+                {!conflictLoading && hasConflict && conflictInfo && watchedAssignedToType === 'team' && (
+                  <Alert
+                    severity="error"
+                    icon={<WarningIcon sx={{ fontSize: 20 }} />}
+                    sx={{
+                      mt: 1.5,
+                      fontSize: '0.75rem',
+                      '& .MuiAlert-message': { fontSize: '0.75rem' },
+                    }}
+                  >
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 0.5 }}>
+                      Conflit de planification détecté
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.75rem', mb: 1 }}>
+                      L'équipe <strong>{conflictInfo.teamName}</strong> a déjà{' '}
+                      {conflictInfo.teamConflictCount > 0
+                        ? `${conflictInfo.teamConflictCount} intervention${conflictInfo.teamConflictCount > 1 ? 's' : ''} d'équipe`
+                        : 'des membres occupés'}{' '}
+                      sur ce créneau. Choisissez une autre équipe ou une autre date.
+                    </Typography>
+                    {conflictMembers.length > 0 && (
+                      <Box sx={{ mt: 0.5, pl: 0.5 }}>
+                        {conflictMembers.map((member) => (
+                          <Box key={member.userId} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25 }}>
+                            <Person sx={{ fontSize: 12, color: member.available ? 'success.main' : 'error.main' }} />
+                            <Typography sx={{ fontSize: '0.6875rem' }}>
+                              {member.firstName} {member.lastName}
+                              {!member.available && (
+                                <Typography component="span" sx={{ fontSize: '0.6875rem', color: 'error.main', fontWeight: 600 }}>
+                                  {' '}— {member.conflictCount} conflit{member.conflictCount > 1 ? 's' : ''}
+                                </Typography>
+                              )}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                  </Alert>
+                )}
+
+                {!conflictLoading && !hasConflict && conflictInfo && watchedAssignedToType === 'team' && (
+                  <Alert
+                    severity="success"
+                    sx={{ mt: 1.5, fontSize: '0.6875rem', py: 0, '& .MuiAlert-message': { py: 0.5, fontSize: '0.6875rem' } }}
+                  >
+                    L'équipe <strong>{conflictInfo.teamName}</strong> est disponible sur ce créneau
+                  </Alert>
+                )}
+
+                {/* ── User conflict ── */}
+                {!conflictLoading && hasConflict && userConflictInfo && watchedAssignedToType === 'user' && (
+                  <Alert
+                    severity="error"
+                    icon={<WarningIcon sx={{ fontSize: 20 }} />}
+                    sx={{
+                      mt: 1.5,
+                      fontSize: '0.75rem',
+                      '& .MuiAlert-message': { fontSize: '0.75rem' },
+                    }}
+                  >
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.8125rem', mb: 0.5 }}>
+                      Conflit de planification détecté
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.75rem' }}>
+                      <strong>{userConflictInfo.firstName} {userConflictInfo.lastName}</strong> a déjà{' '}
+                      {userConflictInfo.conflictCount} intervention{userConflictInfo.conflictCount > 1 ? 's' : ''}{' '}
+                      sur ce créneau. Choisissez un autre intervenant ou une autre date.
+                    </Typography>
+                  </Alert>
+                )}
+
+                {!conflictLoading && !hasConflict && userConflictInfo && watchedAssignedToType === 'user' && (
+                  <Alert
+                    severity="success"
+                    sx={{ mt: 1.5, fontSize: '0.6875rem', py: 0, '& .MuiAlert-message': { py: 0.5, fontSize: '0.6875rem' } }}
+                  >
+                    <strong>{userConflictInfo.firstName} {userConflictInfo.lastName}</strong> est disponible sur ce créneau
+                  </Alert>
+                )}
 
                 {/* Workflow info */}
                 <Alert severity="info" sx={{ fontSize: '0.6875rem', mt: 2, '& .MuiAlert-message': { fontSize: '0.6875rem' } }}>
@@ -765,11 +1040,12 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
               onClick={handleConfirm}
               variant="contained"
               size="small"
-              disabled={saving}
-              startIcon={saving ? <CircularProgress size={14} /> : <Send sx={{ fontSize: 16 }} />}
+              disabled={saving || hasConflict || conflictLoading}
+              startIcon={saving ? <CircularProgress size={14} /> : hasConflict ? <WarningIcon sx={{ fontSize: 16 }} /> : <Send sx={{ fontSize: 16 }} />}
+              color={hasConflict ? 'error' : 'primary'}
               sx={{ fontSize: '0.75rem', textTransform: 'none' }}
             >
-              Créer la demande
+              {hasConflict ? 'Conflit détecté' : 'Créer la demande'}
             </Button>
           )}
         </Box>

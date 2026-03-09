@@ -22,6 +22,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { serviceRequestSchema } from '../../schemas';
 import type { ServiceRequestFormValues } from '../../schemas';
 
+import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
 import ServiceRequestFormInfo from './ServiceRequestFormInfo';
 import ServiceRequestFormProperty from './ServiceRequestFormProperty';
 import ServiceRequestFormPlanning from './ServiceRequestFormPlanning';
@@ -162,8 +163,8 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
       try {
         const sr = await serviceRequestsApi.getById(serviceRequestId);
 
-        // Check if APPROVED - prevent editing
-        if (sr.status === 'APPROVED') {
+        // Check if ASSIGNED or beyond - prevent editing
+        if (['ASSIGNED', 'AWAITING_PAYMENT', 'IN_PROGRESS', 'COMPLETED'].includes(sr.status)) {
           setApprovedStatus(true);
           setLoadingServiceRequest(false);
           return;
@@ -365,18 +366,6 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
     loadReservations();
   }, [watchedPropertyId]);
 
-  // Définir l'utilisateur par défaut selon le rôle — pour NON-HOST (only in create mode)
-  useEffect(() => {
-    if (isEditMode || users.length === 0 || isHost()) return;
-    if (!isAdmin() && !isManager()) {
-      // Pour les autres rôles non-admin, sélectionner automatiquement l'utilisateur connecté
-      const currentUser = users.find(u => u.email === user?.email);
-      if (currentUser) {
-        setValue('userId', currentUser.id);
-      }
-    }
-  }, [users, user, isHost, isAdmin, isManager, setValue, isEditMode]);
-
   // Vérifier les permissions silencieusement
   useEffect(() => {
     const checkPermissions = async () => {
@@ -520,21 +509,21 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
   }, [watchedPropertyId, properties, isEditMode, setValue]);
 
-  // Auto-fill demandeur (userId) avec le propriétaire de la propriété sélectionnée
-  // Pour un admin/manager, on pré-sélectionne le owner de la propriété
-  // Pour un host, c'est déjà géré par le useEffect "Définir l'utilisateur par défaut selon le rôle"
+  // Demandeur = toujours l'utilisateur connecté (traçabilité)
+  // On ne pré-sélectionne plus le propriétaire du logement : le demandeur
+  // est systématiquement la personne qui crée la demande.
   useEffect(() => {
-    if (isEditMode || !watchedPropertyId || watchedPropertyId === 0) return;
+    if (isEditMode || !user?.databaseId) return;
+    setValue('userId', user.databaseId);
+  }, [isEditMode, user?.databaseId, setValue]);
 
-    const prop = properties.find(p => p.id === watchedPropertyId);
-    if (!prop?.ownerId) return;
-
-    // Trouver le propriétaire dans la liste des utilisateurs
-    const owner = users.find(u => u.id.toString() === prop.ownerId?.toString());
-    if (owner) {
-      setValue('userId', owner.id);
-    }
-  }, [watchedPropertyId, properties, users, isEditMode, setValue]);
+  // Auto-fill titre en fonction du type de service + nom de la propriété
+  useEffect(() => {
+    if (isEditMode || !watchedServiceType || !selectedProperty) return;
+    const option = INTERVENTION_TYPE_OPTIONS.find(o => o.value === watchedServiceType);
+    const label = option?.label || watchedServiceType;
+    setValue('title', `${label} - ${selectedProperty.name}`);
+  }, [watchedServiceType, selectedProperty, isEditMode, setValue]);
 
   // Déterminer le forfait sélectionné en fonction du type de service
   const selectedForfaitKey = useMemo(() => {
@@ -561,6 +550,18 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
 
   const isAdminOrManager = isAdmin() || isManager();
   const isPropertySelected = !!watchedPropertyId && watchedPropertyId !== 0;
+
+  // Info utilisateur connecté pour le libellé demandeur (lecture seule)
+  const currentUserInfo = useMemo(() => {
+    if (!user) return null;
+    const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || '';
+    let role = 'USER';
+    let roleLabel = '';
+    if (isAdmin()) { role = 'ADMIN'; roleLabel = 'Admin'; }
+    else if (isManager()) { role = 'MANAGER'; roleLabel = 'Manager'; }
+    else if (isHost()) { role = 'HOST'; roleLabel = 'Propriétaire'; }
+    return { name, role, roleLabel };
+  }, [user, isAdmin, isManager, isHost]);
 
   // ─── Guards (all hooks are above this line) ──────────────────────────────
 
@@ -634,6 +635,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                 users={users}
                 isAdminOrManager={isAdminOrManager}
                 selectedProperty={selectedProperty}
+                currentUser={currentUserInfo}
               />
             </Paper>
 

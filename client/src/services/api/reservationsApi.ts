@@ -27,6 +27,9 @@ export interface Reservation {
   paymentLinkSentAt?: string;  // ISO datetime string
   paymentLinkEmail?: string;   // Email used for the last payment link
   hiddenFromPlanning?: boolean;
+  // Payment status (from Stripe)
+  paymentStatus?: string;      // PAID, PENDING, PROCESSING, FAILED, etc.
+  paidAt?: string;             // ISO datetime string
 }
 
 export interface ReservationFilters {
@@ -680,5 +683,14 @@ export const reservationsApi = {
    */
   async sendPaymentLink(id: number, email?: string): Promise<Reservation> {
     return apiClient.post<Reservation>(`/reservations/${id}/send-payment-link`, { email: email || null });
+  },
+
+  /**
+   * Vérifie le statut du paiement directement auprès de Stripe.
+   * Utile quand le webhook n'a pas été reçu (dev, timeout, etc.).
+   * Confirme automatiquement le paiement si Stripe indique "paid".
+   */
+  async checkPaymentStatus(id: number): Promise<{ paymentStatus: string; paidAt?: string; message: string }> {
+    return apiClient.post<{ paymentStatus: string; paidAt?: string; message: string }>(`/reservations/${id}/check-payment`);
   },
 };

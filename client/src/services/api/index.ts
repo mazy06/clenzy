@@ -38,7 +38,7 @@ export { receivedFormsApi } from './receivedFormsApi';
 export type { ReceivedForm, ReceivedFormsPage, ReceivedFormsStats } from './receivedFormsApi';
 
 export { serviceRequestsApi } from './serviceRequestsApi';
-export type { ServiceRequest, ServiceRequestFormData } from './serviceRequestsApi';
+export type { ServiceRequest, ServiceRequestFormData, PlanningServiceRequest } from './serviceRequestsApi';
 
 export { teamsApi } from './teamsApi';
 export type { TeamMember, Team, TeamFormData, CoverageZone } from './teamsApi';
