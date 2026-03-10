@@ -193,6 +193,24 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         }),
       }}
     >
+      {/* Source logo — before the label */}
+      {showSublabel && event.sublabel && (() => {
+        const sourceLogo = getSourceLogo(event.reservation?.source);
+        return sourceLogo ? (
+          <Box
+            component="img"
+            src={sourceLogo}
+            alt={event.sublabel}
+            sx={{
+              height: '80%',
+              objectFit: 'contain',
+              flexShrink: 0,
+              opacity: 0.9,
+            }}
+          />
+        ) : null;
+      })()}
+
       {icon && (
         <Box sx={{ color: event.color, flexShrink: 0, display: 'flex', alignItems: 'center' }}>
           {icon}
@@ -217,37 +235,22 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         </Typography>
       )}
 
-      {showSublabel && event.sublabel && (() => {
-        const sourceLogo = getSourceLogo(event.reservation?.source);
-        return sourceLogo ? (
-          <Box
-            component="img"
-            src={sourceLogo}
-            alt={event.sublabel}
-            sx={{
-              height: '80%',
-              maxWidth: '40%',
-              objectFit: 'contain',
-              flexShrink: 0,
-              opacity: 0.9,
-            }}
-          />
-        ) : (
-          <Typography
-            sx={{
-              fontSize: '0.5rem',
-              fontWeight: 400,
-              color: 'text.secondary',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              flexShrink: 0,
-            }}
-          >
-            {event.sublabel}
-          </Typography>
-        );
-      })()}
+      {/* Sublabel text — only when no source logo */}
+      {showSublabel && event.sublabel && !getSourceLogo(event.reservation?.source) && (
+        <Typography
+          sx={{
+            fontSize: '0.5rem',
+            fontWeight: 400,
+            color: 'text.secondary',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            flexShrink: 0,
+          }}
+        >
+          {event.sublabel}
+        </Typography>
+      )}
 
       {/* Hide button for cancelled reservations — visible on hover */}
       {isReservation && event.status === 'cancelled' && onHide && (

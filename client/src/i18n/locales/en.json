@@ -183,7 +183,9 @@
       "adrTooltip": "Average Daily Rate — total revenue / occupied nights",
       "occupancyRate": "Occupancy rate",
       "occupancyTooltip": "Occupied nights / available nights for the period",
+      "occupancySubtitle": "Occupied vs available nights",
       "totalRevenue": "Total revenue",
+      "totalRevenueSubtitle": "Revenue over the period",
       "netMargin": "Net margin",
       "roiTooltip": "Return On Investment — (revenue - costs) / costs",
       "avgStay": "Avg. stay duration",
@@ -281,6 +283,57 @@
       "month": "30d",
       "quarter": "90d",
       "year": "1 yr"
+    },
+    "overview": {
+      "kpisTitle": "Key Metrics",
+      "kpisSubtitle": "Portfolio performance over the period",
+      "revenueOverview": "Revenue Overview",
+      "total": "total",
+      "commandCenterTitle": "Command Center",
+      "commandCenterSubtitle": "Planning, actions and recommendations"
+    },
+    "miniPlanning": {
+      "title": "7-Day Planning",
+      "viewAll": "View all",
+      "noProperties": "No properties configured",
+      "legend": {
+        "reservation": "Reservation",
+        "cleaning": "Cleaning",
+        "maintenance": "Maintenance"
+      },
+      "days": {
+        "sun": "Sun",
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat"
+      }
+    },
+    "actionCounters": {
+      "urgencies": "Urgencies",
+      "pendingPayments": "Pending payments",
+      "pendingRequests": "Requests",
+      "todayInterventions": "Today"
+    },
+    "commandRecommendations": {
+      "title": "Recommendations",
+      "noRecommendations": "No recommendations available"
+    },
+    "emptyState": {
+      "title": "Welcome to Clenzy!",
+      "description": "Start by creating your first property to unlock all dashboard features.",
+      "cta": "Create my first property"
+    },
+    "onboarding": {
+      "title": "Initial Setup",
+      "progress": "{{completed}}/{{total}} steps completed",
+      "createProperty": "Create your first property",
+      "configureDetails": "Configure property details",
+      "definePricing": "Set up pricing",
+      "connectChannels": "Connect booking channels",
+      "skipForNow": "Do this later"
     },
     "activityFeed": {
       "title": "Recent Activity",
@@ -795,6 +848,7 @@
       "pending": "Pending",
       "approved": "Approved",
       "devisAccepted": "Quote accepted",
+      "awaitingPayment": "Awaiting payment",
       "inProgress": "In progress",
       "completed": "Completed",
       "cancelled": "Cancelled",
@@ -1704,7 +1758,14 @@
     "tabs": {
       "payments": "Payments",
       "invoices": "Invoices"
-    }
+    },
+    "basePlan": "Base subscription",
+    "seats": "Additional users",
+    "members": "members",
+    "included": "included",
+    "monthlyTotal": "Monthly total",
+    "effectiveMonthly": "Effective amount",
+    "loadError": "Error loading billing summary"
   },
   "workOrders": {
     "title": "Interventions",
@@ -1730,8 +1791,20 @@
       "portfolios": "Portfolios",
       "guests": "Guests",
       "users": "Users",
-      "organizations": "Organizations"
+      "organizations": "Organizations",
+      "prospection": "Prospecting"
     }
+  },
+  "prospection": {
+    "import": "Import CSV",
+    "importTitle": "Import prospects",
+    "importSuccess": "{count} prospects imported successfully",
+    "selectCategory": "Category",
+    "dropFile": "Drop your CSV file here",
+    "browseFile": "or click to browse",
+    "emptyTitle": "No prospects yet",
+    "emptyMessage": "Import a CSV file from Vibe Prospecting to get started.",
+    "noResults": "No prospects match the current filters."
   },
   "payments": {
     "history": {
@@ -1940,7 +2013,13 @@
       "monthly": "Monthly subscription",
       "sync": "Subscription with auto-sync",
       "monthlyHelp": "Price in euros per month",
-      "syncHelp": "Includes automatic calendar synchronization"
+      "syncHelp": "Includes automatic calendar synchronization",
+      "perSeatTitle": "Per-user pricing",
+      "perSeatSubtitle": "Dynamic billing based on the number of accounts in the organization",
+      "perSeat": "Price per user",
+      "perSeatHelp": "Monthly cost per additional user",
+      "freeSeats": "Included users",
+      "freeSeatsHelp": "Number of users included in the base price"
     },
     "automation": {
       "title": "Automation Surcharges",
@@ -2357,6 +2436,25 @@
       "PAID": "Paid",
       "CANCELLED": "Cancelled",
       "CREDIT_NOTE": "Credit note"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "allRead": "All caught up",
+    "unread": "unread",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications",
+    "emptyFilter": "No notifications in this category.",
+    "emptyAll": "You have no notifications at this time.",
+    "tabs": {
+      "all": "All",
+      "unread": "Unread",
+      "interventions": "Interventions",
+      "requests": "Requests",
+      "payments": "Payments",
+      "system": "System",
+      "contact": "Contact",
+      "document": "Documents"
     }
   },
   "fiscal": {

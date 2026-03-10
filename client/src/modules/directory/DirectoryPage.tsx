@@ -11,6 +11,7 @@ import {
   PersonSearch,
   ManageAccounts,
   CorporateFare,
+  TrendingUp,
 } from '@mui/icons-material';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -21,6 +22,7 @@ import PortfoliosPage from '../portfolios/PortfoliosPage';
 import GuestsListPage from '../guests/GuestsListPage';
 import UsersList from '../users/UsersList';
 import OrganizationsList from '../users/OrganizationsList';
+import ProspectionPage from '../prospection/ProspectionPage';
 
 // ─── Portal container for child actions in PageHeader ────────────────────────
 const PORTAL_STYLE = { display: 'contents' } as const;
@@ -40,6 +42,7 @@ const ALL_TABS: TabDef[] = [
   { key: 'portfolios', labelKey: 'directoryPage.tabs.portfolios', icon: <Business sx={{ fontSize: 18 }} />, permission: 'portfolios:view' },
   { key: 'organizations', labelKey: 'directoryPage.tabs.organizations', icon: <CorporateFare sx={{ fontSize: 18 }} />, permission: 'users:manage' },
   { key: 'guests', labelKey: 'directoryPage.tabs.guests', icon: <PersonSearch sx={{ fontSize: 18 }} />, permission: 'guests:view' },
+  { key: 'prospection', labelKey: 'directoryPage.tabs.prospection', icon: <TrendingUp sx={{ fontSize: 18 }} />, permission: 'teams:view' },
 ];
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -89,6 +92,7 @@ const DirectoryPage: React.FC = () => {
     if (onlyTab.key === 'guests') return <GuestsListPage />;
     if (onlyTab.key === 'users') return <UsersList />;
     if (onlyTab.key === 'organizations') return <OrganizationsList />;
+    if (onlyTab.key === 'prospection') return <ProspectionPage />;
   }
 
   // ── No tabs visible ──
@@ -145,6 +149,9 @@ const DirectoryPage: React.FC = () => {
       )}
       {activeTabDef?.key === 'organizations' && (
         <OrganizationsList embedded actionsContainer={actionsContainer} />
+      )}
+      {activeTabDef?.key === 'prospection' && (
+        <ProspectionPage embedded actionsContainer={actionsContainer} />
       )}
     </Box>
   );

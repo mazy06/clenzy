@@ -1,80 +1,87 @@
-import { useState, useEffect } from 'react';
-import storageService, { STORAGE_KEYS } from '../services/storageService';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { workflowSettingsApi } from '../services/api/workflowSettingsApi';
+import type { WorkflowSettingsData } from '../services/api/workflowSettingsApi';
 
-export interface WorkflowSettings {
-  cancellationDeadlineHours: number;
-  autoAssignInterventions: boolean;
-  requireApprovalForChanges: boolean;
-}
+// ─── Re-export du type pour retro-compatibilite ─────────────────────────────
+
+export type WorkflowSettings = WorkflowSettingsData;
+
+// ─── Valeurs par defaut (utilisees comme placeholderData) ───────────────────
 
 const DEFAULT_WORKFLOW_SETTINGS: WorkflowSettings = {
-  cancellationDeadlineHours: 24, // 24 heures par défaut
+  cancellationDeadlineHours: 24,
   autoAssignInterventions: true,
   requireApprovalForChanges: true,
 };
 
+// ─── Query keys ─────────────────────────────────────────────────────────────
+
+export const workflowSettingsKeys = {
+  all: ['workflow-settings'] as const,
+};
+
+// ─── Hook ───────────────────────────────────────────────────────────────────
+
 export const useWorkflowSettings = () => {
-  const [settings, setSettings] = useState<WorkflowSettings>(DEFAULT_WORKFLOW_SETTINGS);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  // Charger les paramètres depuis le localStorage au montage
-  useEffect(() => {
-    try {
-      const parsed = storageService.getJSON<WorkflowSettings>(STORAGE_KEYS.WORKFLOW_SETTINGS);
-      if (parsed) {
-        setSettings({ ...DEFAULT_WORKFLOW_SETTINGS, ...parsed });
+  const { data: settings = DEFAULT_WORKFLOW_SETTINGS, isLoading: loading } = useQuery({
+    queryKey: workflowSettingsKeys.all,
+    queryFn: () => workflowSettingsApi.get(),
+    staleTime: 5 * 60 * 1000, // 5 min
+    placeholderData: DEFAULT_WORKFLOW_SETTINGS,
+  });
+
+  const mutation = useMutation({
+    mutationFn: (newSettings: Partial<WorkflowSettings>) =>
+      workflowSettingsApi.update({ ...settings, ...newSettings }),
+    onMutate: async (newSettings: Partial<WorkflowSettings>) => {
+      await queryClient.cancelQueries({ queryKey: workflowSettingsKeys.all });
+      const previous = queryClient.getQueryData<WorkflowSettings>(workflowSettingsKeys.all);
+      queryClient.setQueryData<WorkflowSettings>(workflowSettingsKeys.all, (old) => ({
+        ...(old ?? DEFAULT_WORKFLOW_SETTINGS),
+        ...newSettings,
+      }));
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(workflowSettingsKeys.all, context.previous);
       }
-    } catch (error) {
-    } finally {
-      setLoading(false);
-    }
-  }, []); // Dépendance vide - exécuté une seule fois au montage
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: workflowSettingsKeys.all });
+    },
+  });
 
-  // Sauvegarder les paramètres dans le localStorage
   const updateSettings = (newSettings: Partial<WorkflowSettings>) => {
-    try {
-      const updatedSettings = { ...settings, ...newSettings };
-      setSettings(updatedSettings);
-      storageService.setJSON(STORAGE_KEYS.WORKFLOW_SETTINGS, updatedSettings);
-    } catch (error) {
-    }
+    mutation.mutate(newSettings);
   };
 
-  // Vérifier si une demande peut encore être annulée
+  // Verifier si une demande peut encore etre annulee
   const canCancelServiceRequest = (approvedAt: string | null | undefined): boolean => {
     try {
-      if (!approvedAt) {
-        return false;
-      }
-
+      if (!approvedAt) return false;
       const approvedDate = new Date(approvedAt);
-      if (isNaN(approvedDate.getTime())) {
-        return false;
-      }
-
+      if (isNaN(approvedDate.getTime())) return false;
       const now = new Date();
       const hoursDiff = (now.getTime() - approvedDate.getTime()) / (1000 * 60 * 60);
-      const canCancel = hoursDiff <= settings.cancellationDeadlineHours;
-
-      return canCancel;
-    } catch (error) {
+      return hoursDiff <= settings.cancellationDeadlineHours;
+    } catch {
       return false;
     }
   };
 
-  // Obtenir le temps restant pour annuler
+  // Obtenir le temps restant pour annuler (en heures)
   const getRemainingCancellationTime = (approvedAt: string | null | undefined): number => {
     try {
       if (!approvedAt) return 0;
-
       const approvedDate = new Date(approvedAt);
       if (isNaN(approvedDate.getTime())) return 0;
-
       const now = new Date();
       const hoursDiff = (now.getTime() - approvedDate.getTime()) / (1000 * 60 * 60);
-
       return Math.max(0, settings.cancellationDeadlineHours - hoursDiff);
-    } catch (error) {
+    } catch {
       return 0;
     }
   };

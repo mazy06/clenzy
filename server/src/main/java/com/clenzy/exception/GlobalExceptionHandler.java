@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import org.springframework.security.access.AccessDeniedException;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -72,15 +74,27 @@ public class GlobalExceptionHandler {
                 .body(errorResponse);
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException ex) {
+        logger.warn("Accès refusé: {}", ex.getMessage());
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Accès refusé");
+        errorResponse.put("message", "Vous n'avez pas les permissions nécessaires pour cette action");
+        errorResponse.put("status", HttpStatus.FORBIDDEN.value());
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
         logger.error("Erreur runtime non gérée", ex);
-        
+
         Map<String, Object> errorResponse = new HashMap<>();
         errorResponse.put("error", "Erreur lors du traitement de la requête");
         errorResponse.put("message", ex.getMessage() != null ? ex.getMessage() : "Une erreur inattendue s'est produite");
         errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        
+
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
     

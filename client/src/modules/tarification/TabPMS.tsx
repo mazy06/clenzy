@@ -7,7 +7,7 @@ import {
   InputAdornment,
   Divider,
 } from '@mui/material';
-import { Devices, Computer } from '@mui/icons-material';
+import { Devices, Computer, People } from '@mui/icons-material';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -65,6 +65,53 @@ export default function TabPMS({ config, canEdit, onUpdate, currencySymbol }: Ta
             disabled={!canEdit}
             helperText={t('tarification.pms.syncHelp')}
             InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}/mois</InputAdornment> }}
+          />
+        </Grid>
+      </Grid>
+
+      <Divider sx={{ my: 2.5 }} />
+
+      {/* ─── Tarification par utilisateur ────────────────────────────── */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <People sx={{ color: 'success.main', fontSize: 20 }} />
+        <Typography variant="subtitle1" fontWeight={600}>
+          {t('tarification.pms.perSeatTitle')}
+        </Typography>
+      </Box>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        {t('tarification.pms.perSeatSubtitle')}
+      </Typography>
+
+      <Grid container spacing={1.5}>
+        <Grid item xs={6}>
+          <TextField
+            label={t('tarification.pms.perSeat')}
+            type="number"
+            size="small"
+            fullWidth
+            value={(config.pmsPerSeatPriceCents / 100).toFixed(0)}
+            onChange={(e) => {
+              const euros = parseInt(e.target.value, 10);
+              if (!isNaN(euros)) onUpdate({ pmsPerSeatPriceCents: euros * 100 });
+            }}
+            disabled={!canEdit}
+            helperText={t('tarification.pms.perSeatHelp')}
+            InputProps={{ endAdornment: <InputAdornment position="end">{currencySymbol}/mois/utilisateur</InputAdornment> }}
+          />
+        </Grid>
+        <Grid item xs={6}>
+          <TextField
+            label={t('tarification.pms.freeSeats')}
+            type="number"
+            size="small"
+            fullWidth
+            value={config.pmsFreeSeats}
+            onChange={(e) => {
+              const num = parseInt(e.target.value, 10);
+              if (!isNaN(num) && num >= 0) onUpdate({ pmsFreeSeats: num });
+            }}
+            disabled={!canEdit}
+            helperText={t('tarification.pms.freeSeatsHelp')}
           />
         </Grid>
       </Grid>

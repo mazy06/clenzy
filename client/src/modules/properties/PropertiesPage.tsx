@@ -34,8 +34,9 @@ const PropertiesPage: React.FC = () => {
     isNaN(initialTab) ? 0 : Math.min(initialTab, TAB_PRICING)
   );
 
-  // Portal container: child components render their actions into this DOM element
+  // Portal containers: child components render their actions/filters into these DOM elements
   const [actionsContainer, setActionsContainer] = useState<HTMLDivElement | null>(null);
+  const [filtersContainer, setFiltersContainer] = useState<HTMLDivElement | null>(null);
 
   // Sync tab to URL param
   const handleTabChange = useCallback((_: React.SyntheticEvent, v: number) => {
@@ -62,6 +63,7 @@ const PropertiesPage: React.FC = () => {
         backPath="/dashboard"
         showBackButton={false}
         actions={<div ref={setActionsContainer} style={PORTAL_STYLE} />}
+        filters={<div ref={setFiltersContainer} style={PORTAL_STYLE} />}
       />
       <Paper sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
@@ -91,10 +93,10 @@ const PropertiesPage: React.FC = () => {
 
       {/* ── Tab content ── */}
       {activeTab === TAB_PROPERTIES && (
-        <PropertiesList embedded actionsContainer={actionsContainer} />
+        <PropertiesList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
       )}
       {activeTab === TAB_PRICING && (
-        <DynamicPricing embedded actionsContainer={actionsContainer} />
+        <DynamicPricing embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
       )}
     </Box>
   );

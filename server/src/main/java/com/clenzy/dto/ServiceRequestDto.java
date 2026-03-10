@@ -59,6 +59,9 @@ public class ServiceRequestDto {
     // Paiement
     public PaymentStatus paymentStatus;
 
+    // Auto-assignation status (read-only)
+    public String autoAssignStatus; // null | "searching" | "found" | "exhausted"
+
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
 }

@@ -24,6 +24,10 @@ public class PricingConfigDto {
     private Integer pmsMonthlyPriceCents;
     private Integer pmsSyncPriceCents;
 
+    // Per-seat pricing
+    private Integer pmsPerSeatPriceCents;
+    private Integer pmsFreeSeats;
+
     // Automation surcharges (EUR)
     private Integer automationBasicSurcharge;
     private Integer automationFullSurcharge;
@@ -297,6 +301,12 @@ public class PricingConfigDto {
 
     public Integer getPmsSyncPriceCents() { return pmsSyncPriceCents; }
     public void setPmsSyncPriceCents(Integer pmsSyncPriceCents) { this.pmsSyncPriceCents = pmsSyncPriceCents; }
+
+    public Integer getPmsPerSeatPriceCents() { return pmsPerSeatPriceCents; }
+    public void setPmsPerSeatPriceCents(Integer pmsPerSeatPriceCents) { this.pmsPerSeatPriceCents = pmsPerSeatPriceCents; }
+
+    public Integer getPmsFreeSeats() { return pmsFreeSeats; }
+    public void setPmsFreeSeats(Integer pmsFreeSeats) { this.pmsFreeSeats = pmsFreeSeats; }
 
     public Integer getAutomationBasicSurcharge() { return automationBasicSurcharge; }
     public void setAutomationBasicSurcharge(Integer automationBasicSurcharge) { this.automationBasicSurcharge = automationBasicSurcharge; }

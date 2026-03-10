@@ -89,6 +89,9 @@ public class ServiceRequestMapper {
         // Paiement
         dto.paymentStatus = e.getPaymentStatus();
 
+        // Auto-assignation status
+        dto.autoAssignStatus = e.getAutoAssignStatus();
+
         // Remplir les informations de l'assignation (utilisateur ou equipe)
         if (e.getAssignedToId() != null && e.getAssignedToType() != null) {
             if ("user".equalsIgnoreCase(e.getAssignedToType())) {

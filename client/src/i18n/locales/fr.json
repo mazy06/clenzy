@@ -182,7 +182,9 @@
       "adrTooltip": "Average Daily Rate — revenu total / nuits occupées",
       "occupancyRate": "Taux d'occupation",
       "occupancyTooltip": "Nuits occupées / nuits disponibles sur la période",
+      "occupancySubtitle": "Nuits occupées vs disponibles",
       "totalRevenue": "Revenu total",
+      "totalRevenueSubtitle": "Revenus sur la période",
       "netMargin": "Marge nette",
       "roiTooltip": "Return On Investment — (revenus - coûts) / coûts",
       "avgStay": "Durée moy. séjour",
@@ -280,6 +282,57 @@
       "month": "30j",
       "quarter": "90j",
       "year": "1 an"
+    },
+    "overview": {
+      "kpisTitle": "Indicateurs clés",
+      "kpisSubtitle": "Performance de votre portfolio sur la période",
+      "revenueOverview": "Aperçu des revenus",
+      "total": "total",
+      "commandCenterTitle": "Centre de commande",
+      "commandCenterSubtitle": "Planification, actions et recommandations"
+    },
+    "miniPlanning": {
+      "title": "Planning 7 jours",
+      "viewAll": "Voir tout",
+      "noProperties": "Aucune propriété configurée",
+      "legend": {
+        "reservation": "Réservation",
+        "cleaning": "Ménage",
+        "maintenance": "Maintenance"
+      },
+      "days": {
+        "sun": "Dim",
+        "mon": "Lun",
+        "tue": "Mar",
+        "wed": "Mer",
+        "thu": "Jeu",
+        "fri": "Ven",
+        "sat": "Sam"
+      }
+    },
+    "actionCounters": {
+      "urgencies": "Urgences",
+      "pendingPayments": "Paiements en attente",
+      "pendingRequests": "Demandes",
+      "todayInterventions": "Aujourd'hui"
+    },
+    "commandRecommendations": {
+      "title": "Recommandations",
+      "noRecommendations": "Aucune recommandation disponible"
+    },
+    "emptyState": {
+      "title": "Bienvenue sur Clenzy !",
+      "description": "Commencez par créer votre première propriété pour débloquer toutes les fonctionnalités du tableau de bord.",
+      "cta": "Créer ma première propriété"
+    },
+    "onboarding": {
+      "title": "Configuration initiale",
+      "progress": "{{completed}}/{{total}} étapes complétées",
+      "createProperty": "Créer votre première propriété",
+      "configureDetails": "Configurer les détails de la propriété",
+      "definePricing": "Définir la tarification",
+      "connectChannels": "Connecter les canaux de réservation",
+      "skipForNow": "Faire plus tard"
     },
     "activityFeed": {
       "title": "Activité récente",
@@ -804,6 +857,7 @@
       "pending": "En attente",
       "approved": "Approuvé",
       "devisAccepted": "Devis accepté",
+      "awaitingPayment": "En attente de paiement",
       "inProgress": "En cours",
       "completed": "Terminé",
       "cancelled": "Annulé",
@@ -1713,7 +1767,14 @@
     "tabs": {
       "payments": "Paiements",
       "invoices": "Factures"
-    }
+    },
+    "basePlan": "Abonnement de base",
+    "seats": "Utilisateurs suppl.",
+    "members": "membres",
+    "included": "inclus",
+    "monthlyTotal": "Total mensuel",
+    "effectiveMonthly": "Montant effectif",
+    "loadError": "Erreur de chargement du résumé de facturation"
   },
   "workOrders": {
     "title": "Interventions",
@@ -1739,8 +1800,20 @@
       "portfolios": "Portefeuilles",
       "guests": "Voyageurs",
       "users": "Utilisateurs",
-      "organizations": "Organisations"
+      "organizations": "Organisations",
+      "prospection": "Prospection"
     }
+  },
+  "prospection": {
+    "import": "Importer CSV",
+    "importTitle": "Importer des prospects",
+    "importSuccess": "{count} prospects importes avec succes",
+    "selectCategory": "Categorie",
+    "dropFile": "Deposez votre fichier CSV ici",
+    "browseFile": "ou cliquez pour parcourir",
+    "emptyTitle": "Aucun prospect pour le moment",
+    "emptyMessage": "Importez un fichier CSV depuis Vibe Prospecting pour commencer.",
+    "noResults": "Aucun prospect ne correspond aux filtres."
   },
   "payments": {
     "history": {
@@ -1949,7 +2022,13 @@
       "monthly": "Abonnement mensuel",
       "sync": "Abonnement avec synchro auto",
       "monthlyHelp": "Prix en euros par mois",
-      "syncHelp": "Inclut la synchronisation automatique des calendriers"
+      "syncHelp": "Inclut la synchronisation automatique des calendriers",
+      "perSeatTitle": "Tarification par utilisateur",
+      "perSeatSubtitle": "Facturation dynamique en fonction du nombre de comptes dans l'organisation",
+      "perSeat": "Prix par utilisateur",
+      "perSeatHelp": "Coût mensuel par utilisateur supplémentaire",
+      "freeSeats": "Utilisateurs inclus",
+      "freeSeatsHelp": "Nombre d'utilisateurs inclus dans le prix de base"
     },
     "automation": {
       "title": "Surcharges automatisation",
@@ -2392,6 +2471,25 @@
       "PAID": "Payee",
       "CANCELLED": "Annulee",
       "CREDIT_NOTE": "Avoir"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "allRead": "Tout est lu",
+    "unread": "non lue(s)",
+    "markAllRead": "Marquer tout comme lu",
+    "empty": "Aucune notification",
+    "emptyFilter": "Aucune notification dans cette catégorie.",
+    "emptyAll": "Vous n'avez aucune notification pour le moment.",
+    "tabs": {
+      "all": "Toutes",
+      "unread": "Non lues",
+      "interventions": "Interventions",
+      "requests": "Demandes",
+      "payments": "Paiements",
+      "system": "Système",
+      "contact": "Contact",
+      "document": "Documents"
     }
   },
   "fiscal": {

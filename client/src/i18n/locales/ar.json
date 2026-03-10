@@ -182,7 +182,9 @@
       "adrTooltip": "Average Daily Rate — إجمالي الإيرادات / الليالي المشغولة",
       "occupancyRate": "معدل الإشغال",
       "occupancyTooltip": "الليالي المشغولة / الليالي المتاحة خلال الفترة",
+      "occupancySubtitle": "ليالي مشغولة مقابل المتاحة",
       "totalRevenue": "إجمالي الإيرادات",
+      "totalRevenueSubtitle": "الإيرادات خلال الفترة",
       "netMargin": "هامش الربح الصافي",
       "roiTooltip": "Return On Investment — (الإيرادات - التكاليف) / التكاليف",
       "avgStay": "متوسط مدة الإقامة",
@@ -280,6 +282,57 @@
       "month": "30 يوم",
       "quarter": "90 يوم",
       "year": "سنة"
+    },
+    "overview": {
+      "kpisTitle": "المؤشرات الرئيسية",
+      "kpisSubtitle": "أداء محفظتك خلال الفترة",
+      "revenueOverview": "نظرة عامة على الإيرادات",
+      "total": "الإجمالي",
+      "commandCenterTitle": "مركز القيادة",
+      "commandCenterSubtitle": "التخطيط والإجراءات والتوصيات"
+    },
+    "miniPlanning": {
+      "title": "تخطيط 7 أيام",
+      "viewAll": "عرض الكل",
+      "noProperties": "لا توجد عقارات مُعدّة",
+      "legend": {
+        "reservation": "حجز",
+        "cleaning": "تنظيف",
+        "maintenance": "صيانة"
+      },
+      "days": {
+        "sun": "أحد",
+        "mon": "إثن",
+        "tue": "ثلا",
+        "wed": "أرب",
+        "thu": "خمي",
+        "fri": "جمع",
+        "sat": "سبت"
+      }
+    },
+    "actionCounters": {
+      "urgencies": "حالات طوارئ",
+      "pendingPayments": "مدفوعات معلقة",
+      "pendingRequests": "الطلبات",
+      "todayInterventions": "اليوم"
+    },
+    "commandRecommendations": {
+      "title": "التوصيات",
+      "noRecommendations": "لا توجد توصيات متاحة"
+    },
+    "emptyState": {
+      "title": "مرحباً بك في Clenzy!",
+      "description": "ابدأ بإنشاء عقارك الأول لفتح جميع ميزات لوحة التحكم.",
+      "cta": "إنشاء عقاري الأول"
+    },
+    "onboarding": {
+      "title": "الإعداد الأولي",
+      "progress": "{{completed}}/{{total}} خطوات مكتملة",
+      "createProperty": "إنشاء عقارك الأول",
+      "configureDetails": "تكوين تفاصيل العقار",
+      "definePricing": "تحديد التسعير",
+      "connectChannels": "ربط قنوات الحجز",
+      "skipForNow": "لاحقاً"
     },
     "activityFeed": {
       "title": "النشاط الأخير",
@@ -818,6 +871,7 @@
       "pending": "قيد الانتظار",
       "approved": "موافق عليه",
       "devisAccepted": "تم قبول عرض السعر",
+      "awaitingPayment": "في انتظار الدفع",
       "inProgress": "قيد التنفيذ",
       "completed": "مكتمل",
       "cancelled": "ملغى",
@@ -2391,6 +2445,25 @@
       "PAID": "مدفوعة",
       "CANCELLED": "ملغاة",
       "CREDIT_NOTE": "إشعار دائن"
+    }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "allRead": "لا توجد إشعارات جديدة",
+    "unread": "غير مقروءة",
+    "markAllRead": "تحديد الكل كمقروء",
+    "empty": "لا توجد إشعارات",
+    "emptyFilter": "لا توجد إشعارات في هذه الفئة.",
+    "emptyAll": "ليس لديك أي إشعارات حالياً.",
+    "tabs": {
+      "all": "الكل",
+      "unread": "غير مقروءة",
+      "interventions": "التدخلات",
+      "requests": "الطلبات",
+      "payments": "المدفوعات",
+      "system": "النظام",
+      "contact": "جهات الاتصال",
+      "document": "المستندات"
     }
   },
   "fiscal": {

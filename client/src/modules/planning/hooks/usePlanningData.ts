@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { useAuth } from '../../../hooks/useAuth';
 import { propertiesApi, managersApi, reservationsApi, serviceRequestsApi } from '../../../services/api';
-import type { Property, Reservation, PlanningIntervention, PlanningServiceRequest } from '../../../services/api';
+import type { Property, Reservation, ReservationStatus, PlanningIntervention, PlanningServiceRequest } from '../../../services/api';
 import type { PlanningEvent, PlanningProperty } from '../types';
 import { getOverlappingChunks, toDateStr } from '../utils/dateUtils';
 import { getReservationColor, getInterventionColor } from '../utils/colorUtils';
@@ -78,13 +78,11 @@ async function fetchProperties(
 
   let propertyList: Property[] = [];
 
-  if (isAdmin || isManager) {
+  if (isAdmin || isManager || isHost) {
+    // Le backend détecte le rôle HOST via JWT et filtre automatiquement
+    // par ownerId côté serveur. Pas besoin d'envoyer ownerId depuis le frontend.
     try {
       propertyList = unwrapPropertyList(await propertiesApi.getAll());
-    } catch { /* empty */ }
-  } else if (isHost) {
-    try {
-      propertyList = unwrapPropertyList(await propertiesApi.getAll({ ownerId: user.id }));
     } catch { /* empty */ }
   } else if (isOperational) {
     try {
@@ -117,10 +115,32 @@ async function fetchProperties(
 
 // ─── Transform reservations + interventions → PlanningEvent[] ────────────────
 
+/**
+ * Compute the effective visual status of a reservation based on dates and payment.
+ * Priority:
+ *   1. Cancelled → cancelled (red)
+ *   2. Checkout in the past → checked_out (grey)
+ *   3. Currently staying (checkIn <= today < checkOut) → checked_in (blue-grey)
+ *   4. Paid (paymentStatus === 'PAID') → confirmed (green)
+ *   5. Otherwise → pending (orange)
+ */
+function computeEffectiveStatus(r: Reservation): ReservationStatus {
+  if (r.status === 'cancelled') return 'cancelled';
+
+  const today = toDateStr(new Date());
+
+  if (r.checkOut < today) return 'checked_out';
+  if (r.checkIn <= today && r.checkOut >= today) return 'checked_in';
+  if (r.paymentStatus === 'PAID') return 'confirmed';
+
+  return 'pending';
+}
+
 function reservationToEvent(
   r: Reservation,
   propertyDefaults?: { defaultCheckInTime?: string; defaultCheckOutTime?: string },
 ): PlanningEvent {
+  const effectiveStatus = computeEffectiveStatus(r);
   return {
     id: `res-${r.id}`,
     type: 'reservation',
@@ -131,8 +151,8 @@ function reservationToEvent(
     endTime: r.checkOutTime || propertyDefaults?.defaultCheckOutTime || '11:00',
     label: r.guestName,
     sublabel: r.source !== 'other' ? r.sourceName || r.source : undefined,
-    status: r.status,
-    color: getReservationColor(r.status),
+    status: effectiveStatus,
+    color: getReservationColor(effectiveStatus),
     reservation: r,
   };
 }

@@ -43,8 +43,9 @@ const WorkOrdersPage: React.FC = () => {
     isNaN(initialTab) ? 0 : Math.min(initialTab, maxTab)
   );
 
-  // Portal container: child components render their actions into this DOM element
+  // Portal containers: child components render their actions/filters into these DOM elements
   const [actionsContainer, setActionsContainer] = useState<HTMLDivElement | null>(null);
+  const [filtersContainer, setFiltersContainer] = useState<HTMLDivElement | null>(null);
 
   // Sync tab to URL param
   const handleTabChange = useCallback((_: React.SyntheticEvent, v: number) => {
@@ -79,6 +80,7 @@ const WorkOrdersPage: React.FC = () => {
           backPath="/dashboard"
           showBackButton={false}
           actions={<div ref={setActionsContainer} style={PORTAL_STYLE} />}
+          filters={<div ref={setFiltersContainer} style={PORTAL_STYLE} />}
         />
       </Box>
       <Paper sx={{ mb: 1.5, flexShrink: 0 }}>
@@ -109,10 +111,10 @@ const WorkOrdersPage: React.FC = () => {
 
       {/* ── Tab content — fills remaining space ── */}
       {activeTab === TAB_SERVICE_REQUESTS && (
-        <ServiceRequestsList embedded actionsContainer={actionsContainer} />
+        <ServiceRequestsList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
       )}
       {activeTab === TAB_INTERVENTIONS && (
-        <InterventionsList embedded actionsContainer={actionsContainer} />
+        <InterventionsList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
       )}
     </Box>
   );

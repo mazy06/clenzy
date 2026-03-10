@@ -52,6 +52,8 @@ export interface FilterSearchBarProps {
     plural?: string;
   };
   viewToggle?: ViewToggleConfig;
+  /** When true, renders without Paper wrapper (for inline use in PageHeader) */
+  bare?: boolean;
   sx?: SxProps<Theme>;
 }
 
@@ -129,6 +131,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
   filters,
   counter,
   viewToggle,
+  bare = false,
   sx = {}
 }) => {
   const getCounterText = () => {
@@ -161,73 +164,81 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
     );
   };
 
+  const content = (
+    <>
+      {/* Search field */}
+      <TextField
+        placeholder={searchPlaceholder}
+        value={searchTerm}
+        onChange={(e) => onSearchChange(e.target.value)}
+        size="small"
+        sx={SEARCH_SX}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Search sx={{ fontSize: 16, color: 'text.secondary' }} />
+            </InputAdornment>
+          ),
+        }}
+      />
+
+      {/* Dynamic filters */}
+      {Object.entries(filters).map(([key, filter]) =>
+        filter ? renderFilter(key, filter) : null
+      )}
+
+      {/* Counter + View toggle */}
+      <Box sx={{ ml: 'auto', flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 0.75 }}>
+        <Typography variant="body2" sx={COUNTER_SX}>
+          {getCounterText()}
+        </Typography>
+        {viewToggle && (
+          <Box sx={{ display: 'flex', gap: 0.25 }}>
+            <IconButton
+              size="small"
+              onClick={() => viewToggle.onChange('grid')}
+              sx={{
+                ...VIEW_TOGGLE_BUTTON_SX,
+                color: viewToggle.mode === 'grid' ? 'primary.main' : 'text.disabled',
+                bgcolor: viewToggle.mode === 'grid' ? 'rgba(107,138,154,0.08)' : 'transparent',
+              }}
+            >
+              <GridView />
+            </IconButton>
+            <IconButton
+              size="small"
+              onClick={() => viewToggle.onChange('list')}
+              sx={{
+                ...VIEW_TOGGLE_BUTTON_SX,
+                color: viewToggle.mode === 'list' ? 'primary.main' : 'text.disabled',
+                bgcolor: viewToggle.mode === 'list' ? 'rgba(107,138,154,0.08)' : 'transparent',
+              }}
+            >
+              <ViewList />
+            </IconButton>
+            <IconButton
+              size="small"
+              onClick={() => viewToggle.onChange('map')}
+              sx={{
+                ...VIEW_TOGGLE_BUTTON_SX,
+                color: viewToggle.mode === 'map' ? 'primary.main' : 'text.disabled',
+                bgcolor: viewToggle.mode === 'map' ? 'rgba(107,138,154,0.08)' : 'transparent',
+              }}
+            >
+              <MapIcon />
+            </IconButton>
+          </Box>
+        )}
+      </Box>
+    </>
+  );
+
+  if (bare) return content;
+
   return (
     <Paper sx={{ ...PAPER_SX, ...sx }}>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
-        {/* Search field */}
-        <TextField
-          placeholder={searchPlaceholder}
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          size="small"
-          sx={SEARCH_SX}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search sx={{ fontSize: 16, color: 'text.secondary' }} />
-              </InputAdornment>
-            ),
-          }}
-        />
-
-        {/* Dynamic filters */}
-        {Object.entries(filters).map(([key, filter]) =>
-          filter ? renderFilter(key, filter) : null
-        )}
-
-        {/* Counter + View toggle */}
-        <Box sx={{ ml: 'auto', flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 0.75 }}>
-          <Typography variant="body2" sx={COUNTER_SX}>
-            {getCounterText()}
-          </Typography>
-          {viewToggle && (
-            <Box sx={{ display: 'flex', gap: 0.25 }}>
-              <IconButton
-                size="small"
-                onClick={() => viewToggle.onChange('grid')}
-                sx={{
-                  ...VIEW_TOGGLE_BUTTON_SX,
-                  color: viewToggle.mode === 'grid' ? 'primary.main' : 'text.disabled',
-                  bgcolor: viewToggle.mode === 'grid' ? 'rgba(107,138,154,0.08)' : 'transparent',
-                }}
-              >
-                <GridView />
-              </IconButton>
-              <IconButton
-                size="small"
-                onClick={() => viewToggle.onChange('list')}
-                sx={{
-                  ...VIEW_TOGGLE_BUTTON_SX,
-                  color: viewToggle.mode === 'list' ? 'primary.main' : 'text.disabled',
-                  bgcolor: viewToggle.mode === 'list' ? 'rgba(107,138,154,0.08)' : 'transparent',
-                }}
-              >
-                <ViewList />
-              </IconButton>
-              <IconButton
-                size="small"
-                onClick={() => viewToggle.onChange('map')}
-                sx={{
-                  ...VIEW_TOGGLE_BUTTON_SX,
-                  color: viewToggle.mode === 'map' ? 'primary.main' : 'text.disabled',
-                  bgcolor: viewToggle.mode === 'map' ? 'rgba(107,138,154,0.08)' : 'transparent',
-                }}
-              >
-                <MapIcon />
-              </IconButton>
-            </Box>
-          )}
-        </Box>
+        {content}
       </Box>
     </Paper>
   );

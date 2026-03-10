@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -52,6 +52,9 @@ function a11yProps(index: number) {
   };
 }
 
+// ─── Portal container for child filters in PageHeader ────────────────────────
+const PORTAL_STYLE = { display: 'contents' } as const;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const UsersAndOrganizations: React.FC = () => {
@@ -61,6 +64,9 @@ const UsersAndOrganizations: React.FC = () => {
   const orgsRef = useRef<OrganizationsListHandle>(null);
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+
+  // Portal container for filters
+  const [filtersContainer, setFiltersContainer] = useState<HTMLDivElement | null>(null);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -140,6 +146,7 @@ const UsersAndOrganizations: React.FC = () => {
         backPath="/dashboard"
         showBackButton={false}
         actions={renderActions()}
+        filters={<div ref={setFiltersContainer} style={PORTAL_STYLE} />}
       />
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 0 }}>
@@ -172,11 +179,11 @@ const UsersAndOrganizations: React.FC = () => {
       </Box>
 
       <TabPanel value={tabValue} index={0}>
-        <UsersList ref={usersRef} />
+        <UsersList ref={usersRef} filtersContainer={filtersContainer} />
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
-        <OrganizationsList ref={orgsRef} />
+        <OrganizationsList ref={orgsRef} filtersContainer={filtersContainer} />
       </TabPanel>
     </Box>
   );
