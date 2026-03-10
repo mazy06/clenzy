@@ -112,4 +112,66 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
      */
     @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user WHERE sr.stripeSessionId = :sessionId")
     Optional<ServiceRequest> findByStripeSessionId(@Param("sessionId") String sessionId);
+
+    // ── Payment history : SR en AWAITING_PAYMENT ───────────────────────────────
+
+    /**
+     * SR AWAITING_PAYMENT pour l'historique de paiement — ADMIN/MANAGER.
+     */
+    @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user " +
+           "WHERE sr.status = com.clenzy.model.RequestStatus.AWAITING_PAYMENT " +
+           "AND sr.estimatedCost IS NOT NULL AND sr.estimatedCost > 0 " +
+           "AND (:paymentStatus IS NULL OR sr.paymentStatus = :paymentStatus) " +
+           "AND (:hostId IS NULL OR sr.user.id = :hostId) " +
+           "AND sr.organizationId = :orgId")
+    Page<ServiceRequest> findPaymentHistory(
+        @Param("paymentStatus") PaymentStatus paymentStatus,
+        @Param("hostId") Long hostId,
+        Pageable pageable,
+        @Param("orgId") Long orgId);
+
+    /**
+     * SR AWAITING_PAYMENT pour l'historique de paiement — HOST (ses propres SR).
+     */
+    @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user " +
+           "WHERE sr.user.id = :userId " +
+           "AND sr.status = com.clenzy.model.RequestStatus.AWAITING_PAYMENT " +
+           "AND sr.estimatedCost IS NOT NULL AND sr.estimatedCost > 0 " +
+           "AND (:paymentStatus IS NULL OR sr.paymentStatus = :paymentStatus) " +
+           "AND sr.organizationId = :orgId")
+    Page<ServiceRequest> findPaymentHistoryByUser(
+        @Param("userId") Long userId,
+        @Param("paymentStatus") PaymentStatus paymentStatus,
+        Pageable pageable,
+        @Param("orgId") Long orgId);
+
+    /**
+     * Tous les SR AWAITING_PAYMENT pour le summary (calcul totalPending).
+     */
+    @Query("SELECT sr FROM ServiceRequest sr " +
+           "WHERE sr.status = com.clenzy.model.RequestStatus.AWAITING_PAYMENT " +
+           "AND sr.estimatedCost IS NOT NULL AND sr.estimatedCost > 0 " +
+           "AND sr.organizationId = :orgId")
+    List<ServiceRequest> findAllAwaitingPayment(@Param("orgId") Long orgId);
+
+    // ── Auto-assignation retry (scheduler context — pas de TenantContext) ────────
+
+    /**
+     * SR PENDING non-assignees eligibles pour retry, pour une organisation donnee.
+     * LEFT JOIN FETCH sr.property obligatoire : hors web request (pas d'Open Session in View).
+     */
+    @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user " +
+           "WHERE sr.status = 'PENDING' AND sr.assignedToId IS NULL " +
+           "AND COALESCE(sr.autoAssignRetryCount, 0) < :maxRetries " +
+           "AND sr.organizationId = :orgId")
+    List<ServiceRequest> findPendingUnassignedForRetry(
+        @Param("maxRetries") int maxRetries, @Param("orgId") Long orgId);
+
+    /**
+     * Organisations ayant des SR pending non-assignees eligibles pour retry.
+     */
+    @Query("SELECT DISTINCT sr.organizationId FROM ServiceRequest sr " +
+           "WHERE sr.status = 'PENDING' AND sr.assignedToId IS NULL " +
+           "AND COALESCE(sr.autoAssignRetryCount, 0) < :maxRetries")
+    List<Long> findOrganizationIdsWithPendingUnassigned(@Param("maxRetries") int maxRetries);
 }
