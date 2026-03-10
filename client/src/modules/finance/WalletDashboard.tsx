@@ -61,7 +61,18 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
   const loadWallets = async () => {
     try {
       setLoading(true);
-      const data = await walletApi.getWallets();
+      let data = await walletApi.getWallets();
+
+      // Auto-initialize wallets if none exist (backfill from existing payments)
+      if (data.length === 0) {
+        try {
+          await walletApi.initialize();
+          data = await walletApi.getWallets();
+        } catch (initError) {
+          console.warn('Wallet initialization failed (may lack permissions):', initError);
+        }
+      }
+
       setWallets(data);
       if (data.length > 0) setSelectedWallet(data[0]);
     } catch (error) {
