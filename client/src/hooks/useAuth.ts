@@ -24,6 +24,7 @@ export interface AuthUser {
   forfait?: string;    // Forfait abonnement: essentiel, confort, premium
   organizationId?: number;
   organizationName?: string;
+  organizationType?: string; // Type d'organisation: INDIVIDUAL, CONCIERGE, CLEANING_COMPANY, SYSTEM
   platformRole?: string;  // Role plateforme (SUPER_ADMIN, SUPER_MANAGER, HOST, etc.)
   orgRole?: string;       // Role dans l'organisation (OWNER, ADMIN, MANAGER, etc.)
 }
@@ -103,6 +104,7 @@ export const useAuth = () => {
             forfait: userData.forfait || undefined,
             organizationId: userData.organizationId || undefined,
             organizationName: userData.organizationName || undefined,
+            organizationType: userData.organizationType || undefined,
             platformRole: userData.platformRole || userData.role || undefined,
             orgRole: userData.orgRole || undefined,
           };

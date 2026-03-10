@@ -123,9 +123,9 @@ public class ServiceRequestController {
     }
 
     @PostMapping("/{id}/assign")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     @Operation(summary = "Assigner manuellement une demande de service",
-               description = "Un admin/manager assigne manuellement une équipe ou un utilisateur à une demande en attente.")
+               description = "Un admin/manager/host assigne manuellement une équipe ou un utilisateur à une demande en attente.")
     public ResponseEntity<ServiceRequestDto> manualAssign(
             @PathVariable Long id,
             @RequestParam Long assignedToId,

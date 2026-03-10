@@ -10,6 +10,8 @@ import {
   Tooltip,
   Button,
   TablePagination,
+  alpha,
+  useTheme,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -23,23 +25,38 @@ import {
   Email as EmailIcon,
   Phone as PhoneIcon,
   LocationOn as LocationIcon,
+  Home as HomeIcon,
+  SquareFoot as SquareFootIcon,
+  People as PeopleIcon,
+  CalendarMonth as CalendarIcon,
+  CleaningServices as CleaningIcon,
+  MiscellaneousServices as ServicesIcon,
+  RequestQuote as QuoteIcon,
+  Sync as SyncIcon,
+  EventRepeat as EventRepeatIcon,
+  Schedule as ScheduleIcon,
+  Handyman as HandymanIcon,
+  PriorityHigh as UrgencyIcon,
+  Subject as SubjectIcon,
+  ChatBubbleOutline as MessageIcon,
+  Apartment as ApartmentIcon,
 } from '@mui/icons-material';
 import type { ReceivedForm } from '../../services/api/receivedFormsApi';
 import { useReceivedForms, useUpdateFormStatus, useResetFormsAvailability } from '../../hooks/useReceivedForms';
 
-// ─── Config types & statuts (tokens MUI palette) ─────────────────────────────
+// ─── Config types & statuts (PMS soft-filled design system) ─────────────────
 
-const FORM_TYPE_CONFIG: Record<string, { label: string; palette: string; icon: React.ReactNode }> = {
-  DEVIS: { label: 'Devis', palette: 'primary', icon: <DescriptionIcon sx={{ fontSize: 14 }} /> },
-  MAINTENANCE: { label: 'Maintenance', palette: 'warning', icon: <BuildIcon sx={{ fontSize: 14 }} /> },
-  SUPPORT: { label: 'Support', palette: 'success', icon: <SupportIcon sx={{ fontSize: 14 }} /> },
+const FORM_TYPE_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  DEVIS: { label: 'Devis', color: '#0288d1', icon: <DescriptionIcon sx={{ fontSize: 14 }} /> },
+  MAINTENANCE: { label: 'Maintenance', color: '#ED6C02', icon: <BuildIcon sx={{ fontSize: 14 }} /> },
+  SUPPORT: { label: 'Support', color: '#4A9B8E', icon: <SupportIcon sx={{ fontSize: 14 }} /> },
 };
 
-const STATUS_CONFIG: Record<string, { label: string; palette: string }> = {
-  NEW: { label: 'Nouveau', palette: 'warning' },
-  READ: { label: 'Lu', palette: 'info' },
-  PROCESSED: { label: 'Traite', palette: 'success' },
-  ARCHIVED: { label: 'Archive', palette: 'primary' },
+const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  NEW: { label: 'Nouveau', color: '#ED6C02' },
+  READ: { label: 'Lu', color: '#0288d1' },
+  PROCESSED: { label: 'Traite', color: '#4A9B8E' },
+  ARCHIVED: { label: 'Archive', color: '#757575' },
 };
 
 // ─── Labels devis ────────────────────────────────────────────────────────────
@@ -61,9 +78,80 @@ const SUPPORT_LABELS: Record<string, string> = {
   name: 'Nom', email: 'Email', phone: 'Telephone', subject: 'Sujet', message: 'Message',
 };
 
+// ─── Field icons & colors ────────────────────────────────────────────────────
+
+const FIELD_META: Record<string, { icon: React.ReactNode; color: string }> = {
+  propertyType: { icon: <HomeIcon />, color: '#0288d1' },
+  propertyCount: { icon: <ApartmentIcon />, color: '#5C6BC0' },
+  guestCapacity: { icon: <PeopleIcon />, color: '#AB47BC' },
+  surface: { icon: <SquareFootIcon />, color: '#00897B' },
+  bookingFrequency: { icon: <EventRepeatIcon />, color: '#F4511E' },
+  cleaningSchedule: { icon: <ScheduleIcon />, color: '#8E24AA' },
+  services: { icon: <CleaningIcon />, color: '#4A9B8E' },
+  servicesDevis: { icon: <QuoteIcon />, color: '#E65100' },
+  calendarSync: { icon: <SyncIcon />, color: '#1565C0' },
+  selectedWorks: { icon: <HandymanIcon />, color: '#EF6C00' },
+  customNeed: { icon: <ServicesIcon />, color: '#7B1FA2' },
+  description: { icon: <MessageIcon />, color: '#546E7A' },
+  urgency: { icon: <UrgencyIcon />, color: '#D32F2F' },
+  subject: { icon: <SubjectIcon />, color: '#1565C0' },
+  message: { icon: <MessageIcon />, color: '#546E7A' },
+};
+
+const DEFAULT_FIELD_META = { icon: <ServicesIcon />, color: '#78909C' };
+
+// ─── Value formatters ────────────────────────────────────────────────────────
+
+const DEVIS_VALUE_LABELS: Record<string, Record<string, string>> = {
+  propertyType: {
+    studio: 'Studio', t1: 'T1', t2: 'T2', t3: 'T3', t4: 'T4+', maison: 'Maison', villa: 'Villa',
+  },
+  bookingFrequency: {
+    'tres-frequent': 'Tres frequent', frequent: 'Frequent', occasionnel: 'Occasionnel', rare: 'Rare',
+  },
+  cleaningSchedule: {
+    'apres-depart': 'Apres chaque depart', quotidien: 'Quotidien', hebdomadaire: 'Hebdomadaire',
+  },
+  calendarSync: {
+    sync: 'Synchronise', manual: 'Manuel', none: 'Aucun',
+  },
+  urgency: {
+    low: 'Faible', medium: 'Moyenne', high: 'Haute', critical: 'Critique',
+  },
+};
+
+function formatFieldValue(key: string, value: unknown): string {
+  if (Array.isArray(value)) return value.map(v => formatFieldValue(key, v)).join(', ');
+  const str = String(value);
+  return DEVIS_VALUE_LABELS[key]?.[str] || str.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
+// ─── Grouping devis fields into sections ─────────────────────────────────────
+
+interface FieldGroup {
+  title: string;
+  fields: string[];
+  color: string;
+}
+
+const DEVIS_GROUPS: FieldGroup[] = [
+  { title: 'Bien', fields: ['propertyType', 'surface', 'guestCapacity', 'propertyCount'], color: '#0288d1' },
+  { title: 'Services', fields: ['services', 'servicesDevis', 'calendarSync'], color: '#4A9B8E' },
+  { title: 'Planning', fields: ['bookingFrequency', 'cleaningSchedule'], color: '#8E24AA' },
+];
+
+const MAINTENANCE_GROUPS: FieldGroup[] = [
+  { title: 'Demande', fields: ['selectedWorks', 'customNeed', 'description', 'urgency'], color: '#EF6C00' },
+];
+
+const SUPPORT_GROUPS: FieldGroup[] = [
+  { title: 'Message', fields: ['subject', 'message'], color: '#1565C0' },
+];
+
 // ─── Composant principal ─────────────────────────────────────────────────────
 
 const ReceivedFormsTab: React.FC = () => {
+  const theme = useTheme();
   const [selectedForm, setSelectedForm] = useState<ReceivedForm | null>(null);
   const [filterType, setFilterType] = useState<string>('');
   const [search, setSearch] = useState('');
@@ -127,7 +215,7 @@ const ReceivedFormsTab: React.FC = () => {
     } catch { return d; }
   };
 
-  // ─── Parse & render payload ──────────────────────────────────
+  // ─── Parse & render payload (redesigned) ───────────────────
 
   const renderPayload = (form: ReceivedForm) => {
     let data: Record<string, unknown>;
@@ -137,24 +225,177 @@ const ReceivedFormsTab: React.FC = () => {
       : form.formType === 'MAINTENANCE' ? MAINTENANCE_LABELS
       : SUPPORT_LABELS;
 
-    // Filtrer les champs vides et les champs deja affiches dans le header
+    const groups = form.formType === 'DEVIS' ? DEVIS_GROUPS
+      : form.formType === 'MAINTENANCE' ? MAINTENANCE_GROUPS
+      : SUPPORT_GROUPS;
+
     const skipKeys = ['fullName', 'name', 'email', 'phone', 'city', 'postalCode'];
-    const entries = Object.entries(data).filter(([k, v]) =>
-      !skipKeys.includes(k) && v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0)
+
+    // Collect all grouped field keys
+    const groupedKeys = new Set(groups.flatMap(g => g.fields));
+
+    // Find ungrouped entries
+    const ungroupedEntries = Object.entries(data).filter(([k, v]) =>
+      !skipKeys.includes(k) && !groupedKeys.has(k)
+      && v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && v.length === 0)
     );
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-        {entries.map(([key, value]) => (
-          <Box key={key}>
-            <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              {labels[key] || key}
-            </Typography>
-            <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.primary', mt: 0.25 }}>
-              {Array.isArray(value) ? value.join(', ') : String(value)}
-            </Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        {groups.map((group) => {
+          const groupEntries = group.fields
+            .filter(k => data[k] !== null && data[k] !== undefined && data[k] !== '' && !(Array.isArray(data[k]) && (data[k] as unknown[]).length === 0))
+            .map(k => [k, data[k]] as [string, unknown]);
+
+          if (groupEntries.length === 0) return null;
+
+          return (
+            <Box key={group.title}>
+              {/* Section title */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                <Box sx={{
+                  width: 3, height: 16, borderRadius: 1,
+                  bgcolor: group.color,
+                }} />
+                <Typography sx={{
+                  fontSize: '0.6875rem', fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.8px',
+                  color: 'text.secondary',
+                }}>
+                  {group.title}
+                </Typography>
+              </Box>
+
+              {/* Fields grid */}
+              <Box sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                gap: 1.25,
+              }}>
+                {groupEntries.map(([key, value]) => {
+                  const meta = FIELD_META[key] || DEFAULT_FIELD_META;
+                  const isLongText = key === 'description' || key === 'message' || key === 'customNeed' || key === 'selectedWorks';
+
+                  return (
+                    <Box
+                      key={key}
+                      sx={{
+                        gridColumn: isLongText ? '1 / -1' : undefined,
+                        display: 'flex',
+                        gap: 1.25,
+                        p: 1.25,
+                        borderRadius: '10px',
+                        bgcolor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.08 : 0.04),
+                        border: '1px solid',
+                        borderColor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.15 : 0.1),
+                        transition: 'all 0.15s ease',
+                        '&:hover': {
+                          bgcolor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.12 : 0.07),
+                          borderColor: alpha(meta.color, 0.25),
+                        },
+                      }}
+                    >
+                      {/* Icon */}
+                      <Box sx={{
+                        width: 32, height: 32, borderRadius: '8px',
+                        bgcolor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.18 : 0.1),
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                        '& .MuiSvgIcon-root': { fontSize: 16, color: meta.color },
+                      }}>
+                        {meta.icon}
+                      </Box>
+
+                      {/* Content */}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{
+                          fontSize: '0.625rem', fontWeight: 600,
+                          color: 'text.secondary', textTransform: 'uppercase',
+                          letterSpacing: '0.3px', lineHeight: 1.2, mb: 0.25,
+                        }}>
+                          {labels[key] || key}
+                        </Typography>
+                        <Typography sx={{
+                          fontSize: '0.8125rem', fontWeight: 600,
+                          color: 'text.primary', lineHeight: 1.4,
+                          ...(isLongText ? {} : {
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }),
+                        }}>
+                          {formatFieldValue(key, value)}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+            </Box>
+          );
+        })}
+
+        {/* Ungrouped fields */}
+        {ungroupedEntries.length > 0 && (
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+              <Box sx={{ width: 3, height: 16, borderRadius: 1, bgcolor: 'text.disabled' }} />
+              <Typography sx={{
+                fontSize: '0.6875rem', fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '0.8px',
+                color: 'text.secondary',
+              }}>
+                Autres
+              </Typography>
+            </Box>
+            <Box sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+              gap: 1.25,
+            }}>
+              {ungroupedEntries.map(([key, value]) => {
+                const meta = FIELD_META[key] || DEFAULT_FIELD_META;
+                return (
+                  <Box
+                    key={key}
+                    sx={{
+                      display: 'flex', gap: 1.25, p: 1.25,
+                      borderRadius: '10px',
+                      bgcolor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.08 : 0.04),
+                      border: '1px solid',
+                      borderColor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.15 : 0.1),
+                    }}
+                  >
+                    <Box sx={{
+                      width: 32, height: 32, borderRadius: '8px',
+                      bgcolor: alpha(meta.color, theme.palette.mode === 'dark' ? 0.18 : 0.1),
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                      '& .MuiSvgIcon-root': { fontSize: 16, color: meta.color },
+                    }}>
+                      {meta.icon}
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography sx={{
+                        fontSize: '0.625rem', fontWeight: 600,
+                        color: 'text.secondary', textTransform: 'uppercase',
+                        letterSpacing: '0.3px', lineHeight: 1.2, mb: 0.25,
+                      }}>
+                        {labels[key] || key}
+                      </Typography>
+                      <Typography sx={{
+                        fontSize: '0.8125rem', fontWeight: 600,
+                        color: 'text.primary', lineHeight: 1.4,
+                      }}>
+                        {formatFieldValue(key, value)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
           </Box>
-        ))}
+        )}
       </Box>
     );
   };
@@ -179,23 +420,25 @@ const ReceivedFormsTab: React.FC = () => {
         />
         {['', 'DEVIS', 'MAINTENANCE', 'SUPPORT'].map(t => {
           const conf = t ? FORM_TYPE_CONFIG[t] : null;
+          const chipColor = conf?.color || '#0288d1';
+          const isActive = filterType === t;
           return (
             <Chip
               key={t || 'all'}
               label={conf ? conf.label : 'Tous'}
               size="small"
-              variant="outlined"
-              color={(conf?.palette || 'primary') as 'primary' | 'info' | 'success' | 'warning' | 'error'}
               onClick={() => { setFilterType(t); setPage(0); }}
               sx={{
                 fontSize: '0.6875rem', height: 26, borderRadius: '6px', cursor: 'pointer',
-                borderWidth: 1.5, '& .MuiChip-label': { px: 1 },
-                fontWeight: filterType === t ? 600 : 400,
-                ...(filterType === t && {
-                  bgcolor: `${conf?.palette || 'primary'}.main`,
-                  color: `${conf?.palette || 'primary'}.contrastText`,
-                }),
-                '&:hover': { opacity: 0.85 },
+                fontWeight: 600,
+                '& .MuiChip-label': { px: 1 },
+                backgroundColor: isActive ? chipColor : `${chipColor}18`,
+                color: isActive ? '#fff' : chipColor,
+                border: `1px solid ${chipColor}40`,
+                transition: 'all 0.15s ease',
+                '&:hover': {
+                  backgroundColor: isActive ? chipColor : `${chipColor}28`,
+                },
               }}
             />
           );
@@ -228,6 +471,7 @@ const ReceivedFormsTab: React.FC = () => {
             <Box sx={{ flex: 1, overflowY: 'auto' }}>
               {filteredForms.map(form => {
                 const typeConf = FORM_TYPE_CONFIG[form.formType] || FORM_TYPE_CONFIG.DEVIS;
+                const statusConf = STATUS_CONFIG[form.status] || STATUS_CONFIG.NEW;
                 const isSelected = selectedForm?.id === form.id;
                 const isNew = form.status === 'NEW';
 
@@ -236,41 +480,100 @@ const ReceivedFormsTab: React.FC = () => {
                     key={form.id}
                     onClick={() => handleSelect(form)}
                     sx={{
-                      p: 1.25,
+                      px: 1.5, py: 1.25,
                       cursor: 'pointer',
                       borderBottom: 1, borderColor: 'divider',
-                      bgcolor: isSelected ? 'action.selected' : 'transparent',
-                      borderLeft: isSelected ? 3 : 3,
-                      borderLeftColor: isSelected ? 'primary.main' : 'transparent',
+                      bgcolor: isSelected
+                        ? alpha(typeConf.color, theme.palette.mode === 'dark' ? 0.1 : 0.04)
+                        : 'transparent',
+                      borderLeft: 3,
+                      borderLeftColor: isSelected ? typeConf.color : 'transparent',
                       transition: 'all 0.15s ease',
-                      '&:hover': { bgcolor: 'action.hover' },
+                      '&:hover': {
+                        bgcolor: isSelected
+                          ? alpha(typeConf.color, theme.palette.mode === 'dark' ? 0.12 : 0.06)
+                          : 'action.hover',
+                      },
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                    {/* Row 1: Type chip + status badge + new dot */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
                       <Chip
                         icon={typeConf.icon as React.ReactElement}
                         label={typeConf.label}
                         size="small"
-                        variant="outlined"
-                        color={typeConf.palette as 'primary' | 'info' | 'success' | 'warning' | 'error'}
                         sx={{
-                          fontSize: '0.625rem', height: 22, borderWidth: 1.5,
-                          fontWeight: 500, '& .MuiChip-label': { px: 0.75 },
+                          fontSize: '0.625rem', height: 22, borderRadius: '6px',
+                          fontWeight: 600, '& .MuiChip-label': { px: 0.75 },
+                          backgroundColor: `${typeConf.color}18`,
+                          color: typeConf.color,
+                          border: `1px solid ${typeConf.color}40`,
+                          '& .MuiChip-icon': { color: typeConf.color, ml: 0.5 },
                         }}
                       />
+                      {form.status !== 'NEW' && (
+                        <Chip
+                          label={statusConf.label}
+                          size="small"
+                          sx={{
+                            fontSize: '0.5625rem', height: 18, borderRadius: '4px',
+                            fontWeight: 600, '& .MuiChip-label': { px: 0.5 },
+                            backgroundColor: `${statusConf.color}18`,
+                            color: statusConf.color,
+                            border: `1px solid ${statusConf.color}30`,
+                          }}
+                        />
+                      )}
+                      <Box sx={{ flex: 1 }} />
                       {isNew && (
-                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'warning.main', flexShrink: 0 }} />
+                        <Box sx={{
+                          width: 8, height: 8, borderRadius: '50%',
+                          bgcolor: '#ED6C02', flexShrink: 0,
+                          boxShadow: '0 0 0 2px rgba(237,108,2,0.2)',
+                        }} />
                       )}
                     </Box>
-                    <Typography variant="body2" sx={{ fontSize: '0.8125rem', fontWeight: isNew ? 700 : 500, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+
+                    {/* Row 2: Name */}
+                    <Typography sx={{
+                      fontSize: '0.8125rem',
+                      fontWeight: isNew ? 700 : 600,
+                      color: 'text.primary',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      lineHeight: 1.3,
+                    }}>
                       {form.fullName}
                     </Typography>
-                    <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+
+                    {/* Row 3: Subject */}
+                    <Typography sx={{
+                      fontSize: '0.6875rem', color: 'text.secondary',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      display: 'block', lineHeight: 1.4, mt: 0.25,
+                    }}>
                       {form.subject}
                     </Typography>
-                    <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'text.secondary', mt: 0.25, display: 'block' }}>
-                      {formatDate(form.createdAt)}
-                    </Typography>
+
+                    {/* Row 4: Date + city */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                      <Typography sx={{
+                        fontSize: '0.625rem', color: 'text.disabled',
+                        lineHeight: 1,
+                      }}>
+                        {formatDate(form.createdAt)}
+                      </Typography>
+                      {form.city && (
+                        <>
+                          <Box sx={{ width: 2, height: 2, borderRadius: '50%', bgcolor: 'text.disabled' }} />
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                            <LocationIcon sx={{ fontSize: 10, color: 'text.disabled' }} />
+                            <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled', lineHeight: 1 }}>
+                              {form.city}
+                            </Typography>
+                          </Box>
+                        </>
+                      )}
+                    </Box>
                   </Box>
                 );
               })}
@@ -294,73 +597,116 @@ const ReceivedFormsTab: React.FC = () => {
           {/* ─── Detail droite (65%) ─── */}
           <Box sx={{ width: '65%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {selectedForm ? (
-              <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
-                {/* Header */}
-                <Box sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Chip
-                      icon={(FORM_TYPE_CONFIG[selectedForm.formType]?.icon || <DescriptionIcon sx={{ fontSize: 14 }} />) as React.ReactElement}
-                      label={FORM_TYPE_CONFIG[selectedForm.formType]?.label || selectedForm.formType}
-                      size="small"
-                      variant="outlined"
-                      color={(FORM_TYPE_CONFIG[selectedForm.formType]?.palette || 'primary') as 'primary' | 'info' | 'success' | 'warning' | 'error'}
-                      sx={{
-                        fontSize: '0.6875rem', height: 22, borderWidth: 1.5,
-                        fontWeight: 500, '& .MuiChip-label': { px: 0.75 },
-                      }}
-                    />
-                    <Chip
-                      label={STATUS_CONFIG[selectedForm.status]?.label || selectedForm.status}
-                      size="small"
-                      variant="outlined"
-                      color={(STATUS_CONFIG[selectedForm.status]?.palette || 'primary') as 'primary' | 'info' | 'success' | 'warning' | 'error'}
-                      sx={{
-                        fontSize: '0.6875rem', height: 22, borderWidth: 1.5,
-                        fontWeight: 500, '& .MuiChip-label': { px: 0.75 },
-                      }}
-                    />
+              <Box sx={{ flex: 1, overflowY: 'auto', p: 2.5 }}>
+
+                {/* ── Header card ── */}
+                <Box sx={{
+                  mb: 2.5, p: 2, borderRadius: '12px',
+                  bgcolor: alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.06 : 0.03),
+                  border: '1px solid',
+                  borderColor: alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.12 : 0.08),
+                }}>
+                  {/* Badges (PMS soft-filled) */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                    {(() => {
+                      const tc = FORM_TYPE_CONFIG[selectedForm.formType] || FORM_TYPE_CONFIG.DEVIS;
+                      return (
+                        <Chip
+                          icon={tc.icon as React.ReactElement}
+                          label={tc.label}
+                          size="small"
+                          sx={{
+                            fontSize: '0.6875rem', height: 24, borderRadius: '6px',
+                            fontWeight: 600, '& .MuiChip-label': { px: 0.75 },
+                            backgroundColor: `${tc.color}18`,
+                            color: tc.color,
+                            border: `1px solid ${tc.color}40`,
+                            '& .MuiChip-icon': { color: tc.color, ml: 0.5 },
+                          }}
+                        />
+                      );
+                    })()}
+                    {(() => {
+                      const sc = STATUS_CONFIG[selectedForm.status] || STATUS_CONFIG.NEW;
+                      return (
+                        <Chip
+                          label={sc.label}
+                          size="small"
+                          sx={{
+                            fontSize: '0.6875rem', height: 24, borderRadius: '6px',
+                            fontWeight: 600, '& .MuiChip-label': { px: 0.75 },
+                            backgroundColor: `${sc.color}18`,
+                            color: sc.color,
+                            border: `1px solid ${sc.color}40`,
+                          }}
+                        />
+                      );
+                    })()}
+                    <Box sx={{ flex: 1 }} />
+                    <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                      {formatDate(selectedForm.createdAt)}
+                    </Typography>
                   </Box>
 
-                  <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 700, color: 'text.primary', mb: 1 }}>
+                  {/* Title */}
+                  <Typography sx={{ fontSize: '1.0625rem', fontWeight: 700, color: 'text.primary', mb: 1.5, lineHeight: 1.3 }}>
                     {selectedForm.subject || `Formulaire #${selectedForm.id}`}
                   </Typography>
 
-                  {/* Infos contact */}
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 1.5 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  {/* Contact info chips */}
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    <Box sx={{
+                      display: 'inline-flex', alignItems: 'center', gap: 0.75,
+                      px: 1.25, py: 0.5, borderRadius: '8px',
+                      bgcolor: alpha(theme.palette.text.primary, 0.04),
+                      border: '1px solid', borderColor: 'divider',
+                    }}>
                       <EmailIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                      <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.primary' }}>{selectedForm.email}</Typography>
+                      <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', fontWeight: 500 }}>
+                        {selectedForm.email}
+                      </Typography>
                     </Box>
                     {selectedForm.phone && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Box sx={{
+                        display: 'inline-flex', alignItems: 'center', gap: 0.75,
+                        px: 1.25, py: 0.5, borderRadius: '8px',
+                        bgcolor: alpha(theme.palette.text.primary, 0.04),
+                        border: '1px solid', borderColor: 'divider',
+                      }}>
                         <PhoneIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.primary' }}>{selectedForm.phone}</Typography>
+                        <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', fontWeight: 500 }}>
+                          {selectedForm.phone}
+                        </Typography>
                       </Box>
                     )}
                     {(selectedForm.city || selectedForm.postalCode) && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Box sx={{
+                        display: 'inline-flex', alignItems: 'center', gap: 0.75,
+                        px: 1.25, py: 0.5, borderRadius: '8px',
+                        bgcolor: alpha(theme.palette.text.primary, 0.04),
+                        border: '1px solid', borderColor: 'divider',
+                      }}>
                         <LocationIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.primary' }}>
+                        <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', fontWeight: 500 }}>
                           {[selectedForm.city, selectedForm.postalCode].filter(Boolean).join(' ')}
                         </Typography>
                       </Box>
                     )}
                   </Box>
 
-                  <Typography variant="caption" sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
-                    Recu le {formatDate(selectedForm.createdAt)}
-                    {selectedForm.ipAddress && ` • IP: ${selectedForm.ipAddress}`}
-                  </Typography>
+                  {selectedForm.ipAddress && (
+                    <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'text.disabled', display: 'block', mt: 1 }}>
+                      IP: {selectedForm.ipAddress}
+                    </Typography>
+                  )}
                 </Box>
 
-                <Divider sx={{ mb: 2 }} />
-
-                {/* Payload */}
+                {/* ── Payload data (redesigned) ── */}
                 {renderPayload(selectedForm)}
 
-                {/* Actions */}
-                <Divider sx={{ my: 2 }} />
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                {/* ── Actions ── */}
+                <Divider sx={{ my: 2.5 }} />
+                <Box sx={{ display: 'flex', gap: 1.5 }}>
                   {selectedForm.status !== 'PROCESSED' && (
                     <Button
                       size="small"
@@ -369,7 +715,11 @@ const ReceivedFormsTab: React.FC = () => {
                       startIcon={<CheckCircleIcon sx={{ fontSize: 16 }} />}
                       onClick={() => handleUpdateStatus('PROCESSED')}
                       disabled={updateStatusMutation.isPending}
-                      sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, borderRadius: '8px' }}
+                      sx={{
+                        textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
+                        borderRadius: '10px', px: 2.5, py: 0.75,
+                        boxShadow: 'none', '&:hover': { boxShadow: 'none' },
+                      }}
                     >
                       Marquer traite
                     </Button>
@@ -381,7 +731,10 @@ const ReceivedFormsTab: React.FC = () => {
                       startIcon={<ArchiveIcon sx={{ fontSize: 16 }} />}
                       onClick={() => handleUpdateStatus('ARCHIVED')}
                       disabled={updateStatusMutation.isPending}
-                      sx={{ textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500, borderRadius: '8px' }}
+                      sx={{
+                        textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
+                        borderRadius: '10px', px: 2.5, py: 0.75,
+                      }}
                     >
                       Archiver
                     </Button>

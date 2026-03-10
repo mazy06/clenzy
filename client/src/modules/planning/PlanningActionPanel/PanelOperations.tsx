@@ -174,10 +174,17 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
   const intervention = event.intervention;
   const reservation = event.reservation;
 
-  // ── Role check: only SUPER_ADMIN, SUPER_MANAGER, or org ADMIN can edit interventions ──
+  // ── Role check: who can manually assign interventions / service requests ──
+  // - SUPER_ADMIN / SUPER_MANAGER : toujours
+  // - HOST B2B (conciergerie / société de ménage) : peut gérer ses équipes affiliées
+  // - HOST propriétaire (INDIVIDUAL) : assignation automatique uniquement (plateforme)
+  // - Org ADMIN : toujours
   const { user } = useAuth();
+  const isB2bHost = user?.roles?.includes('HOST') &&
+    (user?.organizationType === 'CONCIERGE' || user?.organizationType === 'CLEANING_COMPANY');
   const canEditIntervention =
     user?.roles?.some(r => ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(r)) ||
+    isB2bHost ||
     user?.orgRole === 'ADMIN';
 
   // ── Workflow settings (auto-assign feature flag) ───────────────────────────
@@ -1071,9 +1078,40 @@ const PanelOperations: React.FC<PanelOperationsProps> = ({
                           </Button>
                         )}
                         {isPending && !assigneeName && !canEditIntervention && (
-                          <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'text.secondary', fontStyle: 'italic' }}>
-                            En attente d&apos;assignation
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            {sr.autoAssignStatus === 'searching' && (
+                              <>
+                                <CircularProgress size={10} sx={{ color: 'text.secondary' }} />
+                                <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'text.secondary', fontStyle: 'italic' }}>
+                                  Recherche en cours...
+                                </Typography>
+                              </>
+                            )}
+                            {sr.autoAssignStatus === 'exhausted' && (
+                              <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'warning.main', fontStyle: 'italic' }}>
+                                Aucune equipe disponible — assignation manuelle requise
+                              </Typography>
+                            )}
+                            {(!sr.autoAssignStatus || sr.autoAssignStatus === 'found') && (
+                              <Typography variant="caption" sx={{ fontSize: '0.625rem', color: 'text.secondary', fontStyle: 'italic' }}>
+                                En attente d&apos;assignation
+                              </Typography>
+                            )}
+                          </Box>
+                        )}
+                        {/* Admin indicator for auto-assign status */}
+                        {isPending && !assigneeName && canEditIntervention && sr.autoAssignStatus === 'exhausted' && (
+                          <Alert severity="warning" sx={{ py: 0, px: 0.5, fontSize: '0.6rem', '& .MuiAlert-icon': { fontSize: '0.75rem', py: 0, mr: 0.5 }, '& .MuiAlert-message': { py: 0.25 } }}>
+                            Aucune equipe dispo — assignation manuelle requise
+                          </Alert>
+                        )}
+                        {isPending && !assigneeName && canEditIntervention && sr.autoAssignStatus === 'searching' && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <CircularProgress size={10} sx={{ color: 'text.secondary' }} />
+                            <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary', fontStyle: 'italic' }}>
+                              Recherche auto...
+                            </Typography>
+                          </Box>
                         )}
                         {/* PENDING avec assigné: bouton Reassigner (admin/manager) */}
                         {isPending && assigneeName && canEditIntervention && (

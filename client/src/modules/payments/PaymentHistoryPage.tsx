@@ -457,13 +457,144 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
 
   return (
     <Box>
-      {/* Header */}
+      {/* Header + Filters */}
       {!embedded && (
         <PageHeader
           title={t('payments.history.title')}
           subtitle={t('payments.history.subtitle')}
           backPath="/dashboard"
           showBackButton={true}
+          filters={
+            <>
+              <TextField
+                size="small"
+                placeholder={t('payments.history.search')}
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ mr: 1, color: C.textSecondary, fontSize: 18 }} />,
+                }}
+                sx={{
+                  minWidth: 200,
+                  flex: 1,
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '0.8125rem',
+                    borderRadius: '8px',
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+                  },
+                }}
+              />
+              <TextField
+                select
+                size="small"
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
+                sx={{
+                  minWidth: 150,
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '0.8125rem',
+                    borderRadius: '8px',
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+                  },
+                  '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
+                }}
+                label={t('payments.history.status')}
+              >
+                <MenuItem value="" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.allStatuses')}</MenuItem>
+                <MenuItem value="PAID" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.paid')}</MenuItem>
+                <MenuItem value="PENDING" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.pending')}</MenuItem>
+                <MenuItem value="PROCESSING" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.processing')}</MenuItem>
+                <MenuItem value="FAILED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.failed')}</MenuItem>
+                <MenuItem value="REFUNDED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.refunded')}</MenuItem>
+                <MenuItem value="CANCELLED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.cancelled')}</MenuItem>
+              </TextField>
+
+              {/* Host filter — ADMIN/MANAGER only */}
+              {isAdminOrManager && (
+                <TextField
+                  select
+                  size="small"
+                  value={hostFilter}
+                  onChange={(e) => { setHostFilter(e.target.value ? Number(e.target.value) : ''); setPage(0); }}
+                  sx={{
+                    minWidth: 180,
+                    '& .MuiOutlinedInput-root': {
+                      fontSize: '0.8125rem',
+                      borderRadius: '8px',
+                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+                    },
+                    '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
+                  }}
+                  label={t('payments.history.filterByHost')}
+                >
+                  <MenuItem value="" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.allHosts')}</MenuItem>
+                  {hostsList.map((host) => (
+                    <MenuItem key={host.id} value={host.id} sx={{ fontSize: '0.8125rem' }}>
+                      {host.fullName}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
+
+              <TextField
+                size="small"
+                type="date"
+                label={t('payments.history.dateFrom')}
+                value={dateFrom}
+                onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  minWidth: 140,
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '0.8125rem',
+                    borderRadius: '8px',
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+                  },
+                  '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
+                }}
+              />
+              <TextField
+                size="small"
+                type="date"
+                label={t('payments.history.dateTo')}
+                value={dateTo}
+                onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  minWidth: 140,
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '0.8125rem',
+                    borderRadius: '8px',
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+                  },
+                  '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
+                }}
+              />
+              {hasActiveFilters && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<ClearIcon sx={{ fontSize: 16 }} />}
+                  onClick={handleClearFilters}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.8125rem',
+                    borderColor: C.gray200,
+                    color: C.textSecondary,
+                    borderRadius: '8px',
+                    '&:hover': { borderColor: C.primary, color: C.primary },
+                  }}
+                >
+                  {t('payments.history.clearFilters')}
+                </Button>
+              )}
+            </>
+          }
         />
       )}
 
@@ -507,148 +638,6 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
           </Card>
         ))}
       </Box>
-
-      {/* Filters */}
-      <Paper
-        sx={{
-          p: 1.5,
-          mb: 2,
-          display: 'flex',
-          gap: 1.5,
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          borderRadius: '12px',
-          boxShadow: '0 1px 4px rgba(107,138,154,0.10)',
-        }}
-      >
-        <TextField
-          size="small"
-          placeholder={t('payments.history.search')}
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          InputProps={{
-            startAdornment: <SearchIcon sx={{ mr: 1, color: C.textSecondary, fontSize: 18 }} />,
-          }}
-          sx={{
-            minWidth: 200,
-            flex: 1,
-            '& .MuiOutlinedInput-root': {
-              fontSize: '0.8125rem',
-              borderRadius: '8px',
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
-            },
-          }}
-        />
-        <TextField
-          select
-          size="small"
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-          sx={{
-            minWidth: 150,
-            '& .MuiOutlinedInput-root': {
-              fontSize: '0.8125rem',
-              borderRadius: '8px',
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
-            },
-            '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
-          }}
-          label={t('payments.history.status')}
-        >
-          <MenuItem value="" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.allStatuses')}</MenuItem>
-          <MenuItem value="PAID" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.paid')}</MenuItem>
-          <MenuItem value="PENDING" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.pending')}</MenuItem>
-          <MenuItem value="PROCESSING" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.processing')}</MenuItem>
-          <MenuItem value="FAILED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.failed')}</MenuItem>
-          <MenuItem value="REFUNDED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.refunded')}</MenuItem>
-          <MenuItem value="CANCELLED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.cancelled')}</MenuItem>
-        </TextField>
-
-        {/* Host filter — ADMIN/MANAGER only */}
-        {isAdminOrManager && (
-          <TextField
-            select
-            size="small"
-            value={hostFilter}
-            onChange={(e) => { setHostFilter(e.target.value ? Number(e.target.value) : ''); setPage(0); }}
-            sx={{
-              minWidth: 180,
-              '& .MuiOutlinedInput-root': {
-                fontSize: '0.8125rem',
-                borderRadius: '8px',
-                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
-              },
-              '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
-            }}
-            label={t('payments.history.filterByHost')}
-          >
-            <MenuItem value="" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.allHosts')}</MenuItem>
-            {hostsList.map((host) => (
-              <MenuItem key={host.id} value={host.id} sx={{ fontSize: '0.8125rem' }}>
-                {host.fullName}
-              </MenuItem>
-            ))}
-          </TextField>
-        )}
-
-        <TextField
-          size="small"
-          type="date"
-          label={t('payments.history.dateFrom')}
-          value={dateFrom}
-          onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
-          InputLabelProps={{ shrink: true }}
-          sx={{
-            minWidth: 140,
-            '& .MuiOutlinedInput-root': {
-              fontSize: '0.8125rem',
-              borderRadius: '8px',
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
-            },
-            '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
-          }}
-        />
-        <TextField
-          size="small"
-          type="date"
-          label={t('payments.history.dateTo')}
-          value={dateTo}
-          onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
-          InputLabelProps={{ shrink: true }}
-          sx={{
-            minWidth: 140,
-            '& .MuiOutlinedInput-root': {
-              fontSize: '0.8125rem',
-              borderRadius: '8px',
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
-            },
-            '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
-          }}
-        />
-        {hasActiveFilters && (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<ClearIcon sx={{ fontSize: 16 }} />}
-            onClick={handleClearFilters}
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.8125rem',
-              borderColor: C.gray200,
-              color: C.textSecondary,
-              borderRadius: '8px',
-              '&:hover': { borderColor: C.primary, color: C.primary },
-            }}
-          >
-            {t('payments.history.clearFilters')}
-          </Button>
-        )}
-      </Paper>
 
       {/* Data table */}
       <DataFetchWrapper

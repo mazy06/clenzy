@@ -181,8 +181,9 @@ public class PermissionController {
         }
     }
 
-    // Endpoint pour synchroniser les permissions d'un utilisateur (ADMIN uniquement)
+    // Endpoint pour synchroniser les permissions d'un utilisateur (tout utilisateur authentifié)
     @PostMapping("/sync")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> syncUserPermissions(@RequestBody Map<String, String> request) {
         try {
             String userId = request.get("userId");

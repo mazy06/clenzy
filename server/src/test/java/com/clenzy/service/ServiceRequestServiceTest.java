@@ -41,6 +41,8 @@ class ServiceRequestServiceTest {
     @Mock private PropertyTeamService propertyTeamService;
     @Mock private KafkaTemplate<String, Object> kafkaTemplate;
     @Mock private ServiceRequestMapper serviceRequestMapper;
+    @Mock private AssignmentEventRepository assignmentEventRepository;
+    @Mock private WorkflowSettingsRepository workflowSettingsRepository;
 
     private TenantContext tenantContext;
     private ServiceRequestService service;
@@ -55,7 +57,8 @@ class ServiceRequestServiceTest {
         service = new ServiceRequestService(
                 serviceRequestRepository, userRepository, propertyRepository,
                 interventionRepository, reservationRepository, teamRepository, notificationService,
-                propertyTeamService, kafkaTemplate, tenantContext, serviceRequestMapper);
+                propertyTeamService, kafkaTemplate, tenantContext, serviceRequestMapper,
+                assignmentEventRepository, workflowSettingsRepository);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

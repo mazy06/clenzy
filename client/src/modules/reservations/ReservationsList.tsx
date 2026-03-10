@@ -180,7 +180,7 @@ const ReservationsList: React.FC = () => {
   // ─── Render ──────────────────────────────────────────────────────
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-      {/* Header */}
+      {/* Header + Filters */}
       <Box sx={{ flexShrink: 0 }}>
         <PageHeader
           title={t('reservations.title')}
@@ -198,71 +198,64 @@ const ReservationsList: React.FC = () => {
               {t('reservations.create')}
             </Button>
           }
+          filters={
+            <>
+              <TextField
+                select
+                size="small"
+                label={t('reservations.fields.status')}
+                value={filters.status ?? ''}
+                onChange={(e) =>
+                  handleFilterChange('status', (e.target.value || null) as ReservationStatus | null)
+                }
+                sx={{ minWidth: 160 }}
+              >
+                <MenuItem value="">{t('reservations.filters.allStatuses')}</MenuItem>
+                {STATUS_OPTIONS.map((s) => (
+                  <MenuItem key={s} value={s}>
+                    {t(`reservations.status.${s}`)}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                select
+                size="small"
+                label={t('reservations.fields.source')}
+                value={filters.source ?? ''}
+                onChange={(e) =>
+                  handleFilterChange('source', (e.target.value || null) as ReservationSource | null)
+                }
+                sx={{ minWidth: 160 }}
+              >
+                <MenuItem value="">{t('reservations.filters.allSources')}</MenuItem>
+                {SOURCE_OPTIONS.map((s) => (
+                  <MenuItem key={s} value={s}>
+                    {t(`reservations.source.${s}`)}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                size="small"
+                type="date"
+                label={t('reservations.fields.checkIn')}
+                value={filters.from}
+                onChange={(e) => handleFilterChange('from', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 150 }}
+              />
+              <TextField
+                size="small"
+                type="date"
+                label={t('reservations.fields.checkOut')}
+                value={filters.to}
+                onChange={(e) => handleFilterChange('to', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 150 }}
+              />
+            </>
+          }
         />
       </Box>
-
-      {/* Filters */}
-      <Paper sx={{ ...CARD_SX, p: 1.5, mb: 1.5, display: 'flex', gap: 1.5, flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
-        {/* Status filter */}
-        <TextField
-          select
-          size="small"
-          label={t('reservations.fields.status')}
-          value={filters.status ?? ''}
-          onChange={(e) =>
-            handleFilterChange('status', (e.target.value || null) as ReservationStatus | null)
-          }
-          sx={{ minWidth: 160 }}
-        >
-          <MenuItem value="">{t('reservations.filters.allStatuses')}</MenuItem>
-          {STATUS_OPTIONS.map((s) => (
-            <MenuItem key={s} value={s}>
-              {t(`reservations.status.${s}`)}
-            </MenuItem>
-          ))}
-        </TextField>
-
-        {/* Source filter */}
-        <TextField
-          select
-          size="small"
-          label={t('reservations.fields.source')}
-          value={filters.source ?? ''}
-          onChange={(e) =>
-            handleFilterChange('source', (e.target.value || null) as ReservationSource | null)
-          }
-          sx={{ minWidth: 160 }}
-        >
-          <MenuItem value="">{t('reservations.filters.allSources')}</MenuItem>
-          {SOURCE_OPTIONS.map((s) => (
-            <MenuItem key={s} value={s}>
-              {t(`reservations.source.${s}`)}
-            </MenuItem>
-          ))}
-        </TextField>
-
-        {/* Date from */}
-        <TextField
-          size="small"
-          type="date"
-          label={t('reservations.fields.checkIn')}
-          value={filters.from}
-          onChange={(e) => handleFilterChange('from', e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 150 }}
-        />
-
-        {/* Date to */}
-        <TextField
-          size="small"
-          type="date"
-          label={t('reservations.fields.checkOut')}
-          value={filters.to}
-          onChange={(e) => handleFilterChange('to', e.target.value)}
-          InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 150 }}
-        />
-      </Paper>
 
       {/* Error */}
       {isError && (

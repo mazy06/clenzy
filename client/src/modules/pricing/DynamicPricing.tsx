@@ -67,6 +67,7 @@ interface Owner {
 interface DynamicPricingProps {
   embedded?: boolean;
   actionsContainer?: HTMLElement | null;
+  filtersContainer?: HTMLElement | null;
 }
 
 const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actionsContainer }) => {

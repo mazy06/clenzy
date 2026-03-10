@@ -49,6 +49,8 @@ public class ICalImportDto {
         private String guestName;
         private String confirmationCode;
         private int nights;
+        /** Mapped from iCal STATUS: "confirmed", "pending", or "cancelled". Null = use default. */
+        private String status;
 
         public String getUid() { return uid; }
         public void setUid(String uid) { this.uid = uid; }
@@ -68,6 +70,8 @@ public class ICalImportDto {
         public void setConfirmationCode(String confirmationCode) { this.confirmationCode = confirmationCode; }
         public int getNights() { return nights; }
         public void setNights(int nights) { this.nights = nights; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
     }
 
     public static class PreviewResponse {
