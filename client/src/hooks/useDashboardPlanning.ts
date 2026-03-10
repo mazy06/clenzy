@@ -124,13 +124,11 @@ async function fetchProperties(
 
   let propertyList: Property[] = [];
 
-  if (isAdmin || isManager) {
+  if (isAdmin || isManager || isHost) {
+    // Le backend détecte le rôle HOST via JWT et filtre automatiquement
+    // par ownerId côté serveur. Pas besoin d'envoyer ownerId depuis le frontend.
     try {
       propertyList = unwrapPropertyList(await propertiesApi.getAll());
-    } catch { /* empty */ }
-  } else if (isHost) {
-    try {
-      propertyList = unwrapPropertyList(await propertiesApi.getAll({ ownerId: user.id }));
     } catch { /* empty */ }
   } else if (isOperational) {
     try {
