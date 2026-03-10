@@ -25,13 +25,14 @@ export interface PaymentRecord {
   amount: number;
   currency: string;
   status: 'PAID' | 'PENDING' | 'PROCESSING' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
-  type?: 'INTERVENTION' | 'RESERVATION';
+  type?: 'INTERVENTION' | 'RESERVATION' | 'SERVICE_REQUEST';
   paymentMethod?: string;
   stripeSessionId?: string;
   transactionDate: string;
   createdAt: string;
   hostName?: string;
   hostId?: number;
+  guestEmail?: string;         // Email du guest (reservations uniquement)
   // Backward-compat aliases from backend Jackson serialization
   interventionId?: number;
   interventionTitle?: string;

@@ -34,6 +34,7 @@ class PaymentControllerTest {
     @Mock private PaymentOrchestrationService orchestrationService;
     @Mock private InterventionRepository interventionRepository;
     @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
+    @Mock private com.clenzy.repository.ServiceRequestRepository serviceRequestRepository;
     @Mock private UserRepository userRepository;
     @Mock private TenantContext tenantContext;
 
@@ -42,7 +43,7 @@ class PaymentControllerTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        controller = new PaymentController(stripeService, orchestrationService, interventionRepository, reservationRepository, userRepository, tenantContext);
+        controller = new PaymentController(stripeService, orchestrationService, interventionRepository, reservationRepository, serviceRequestRepository, userRepository, tenantContext);
         Field field = PaymentController.class.getDeclaredField("stripeSecretKey");
         field.setAccessible(true);
         field.set(controller, "sk_test_xxx");
@@ -146,6 +147,10 @@ class PaymentControllerTest {
             // Also mock reservation payment history (added with reservation payment integration)
             Page<com.clenzy.model.Reservation> resPage = new PageImpl<>(List.of());
             when(reservationRepository.findPaymentHistory(isNull(), any(), eq(1L))).thenReturn(resPage);
+
+            // Mock SR AWAITING_PAYMENT payment history
+            Page<com.clenzy.model.ServiceRequest> srPage = new PageImpl<>(List.of());
+            when(serviceRequestRepository.findPaymentHistory(isNull(), isNull(), any(), eq(1L))).thenReturn(srPage);
 
             ResponseEntity<?> response = controller.getPaymentHistory(0, 10, null, null, jwt);
 

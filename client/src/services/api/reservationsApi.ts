@@ -682,7 +682,7 @@ export const reservationsApi = {
    * Si email est fourni, envoie à cette adresse ; sinon utilise l'email du guest.
    */
   async sendPaymentLink(id: number, email?: string): Promise<Reservation> {
-    return apiClient.post<Reservation>(`/reservations/${id}/send-payment-link`, { email: email || null });
+    return apiClient.post<Reservation>(`/reservations/${id}/send-payment-link`, { email: email ?? null });
   },
 
   /**

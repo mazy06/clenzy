@@ -141,7 +141,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
      * Historique des paiements de reservations (avec montant > 0).
      * Filtre optionnel par paymentStatus. Trie par createdAt DESC.
      */
-    @Query("SELECT r FROM Reservation r JOIN FETCH r.property " +
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
            "WHERE r.totalPrice IS NOT NULL AND r.totalPrice > 0 " +
            "AND (:status IS NULL OR r.paymentStatus = :status) " +
            "AND r.organizationId = :orgId ORDER BY r.createdAt DESC")

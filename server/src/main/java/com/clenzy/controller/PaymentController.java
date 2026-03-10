@@ -4,6 +4,7 @@ import com.clenzy.dto.*;
 import com.clenzy.model.*;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.PaymentOrchestrationService;
 import com.clenzy.service.StripeService;
@@ -46,6 +47,7 @@ public class PaymentController {
     private final PaymentOrchestrationService orchestrationService;
     private final InterventionRepository interventionRepository;
     private final ReservationRepository reservationRepository;
+    private final ServiceRequestRepository serviceRequestRepository;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
 
@@ -56,12 +58,14 @@ public class PaymentController {
                               PaymentOrchestrationService orchestrationService,
                               InterventionRepository interventionRepository,
                               ReservationRepository reservationRepository,
+                              ServiceRequestRepository serviceRequestRepository,
                               UserRepository userRepository,
                               TenantContext tenantContext) {
         this.stripeService = stripeService;
         this.orchestrationService = orchestrationService;
         this.interventionRepository = interventionRepository;
         this.reservationRepository = reservationRepository;
+        this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
     }
@@ -216,36 +220,83 @@ public class PaymentController {
     @GetMapping("/session-status/{sessionId}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
     public ResponseEntity<?> getSessionStatus(@PathVariable String sessionId) {
-        try {
-            Intervention intervention = interventionRepository.findByStripeSessionId(sessionId, tenantContext.getRequiredOrganizationId())
-                .orElseThrow(() -> new RuntimeException("Intervention non trouvée pour cette session"));
+        Long orgId = tenantContext.getRequiredOrganizationId();
 
+        // 1) Chercher dans les interventions
+        var optIntervention = interventionRepository.findByStripeSessionId(sessionId, orgId);
+        if (optIntervention.isPresent()) {
+            Intervention intervention = optIntervention.get();
             // Si encore en PROCESSING, vérifier directement auprès de Stripe
             if (intervention.getPaymentStatus() == PaymentStatus.PROCESSING) {
                 try {
                     Stripe.apiKey = stripeSecretKey;
                     Session stripeSession = Session.retrieve(sessionId);
                     if ("paid".equals(stripeSession.getPaymentStatus())) {
-                        // Le webhook n'a pas encore été traité, on confirme manuellement
-                        logger.info("Fallback: confirmation manuelle du paiement pour session {}", sessionId);
+                        logger.info("Fallback: confirmation manuelle du paiement intervention pour session {}", sessionId);
                         stripeService.confirmPayment(sessionId);
-                        // Recharger l'intervention après confirmation
-                        intervention = interventionRepository.findByStripeSessionId(sessionId, tenantContext.getRequiredOrganizationId())
+                        intervention = interventionRepository.findByStripeSessionId(sessionId, orgId)
                             .orElse(intervention);
                     }
                 } catch (StripeException e) {
                     logger.warn("Impossible de vérifier la session Stripe {}: {}", sessionId, e.getMessage());
                 }
             }
-
             return ResponseEntity.ok(Map.of(
                 "paymentStatus", intervention.getPaymentStatus().name(),
                 "interventionStatus", intervention.getStatus().name()
             ));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", "Session non trouvée: " + e.getMessage()));
         }
+
+        // 2) Chercher dans les réservations
+        var optReservation = reservationRepository.findByStripeSessionId(sessionId);
+        if (optReservation.isPresent()) {
+            Reservation reservation = optReservation.get();
+            // Si pas encore PAID, vérifier directement auprès de Stripe (fallback webhook)
+            if (reservation.getPaymentStatus() != PaymentStatus.PAID) {
+                try {
+                    Stripe.apiKey = stripeSecretKey;
+                    Session stripeSession = Session.retrieve(sessionId);
+                    if ("paid".equals(stripeSession.getPaymentStatus())) {
+                        logger.info("Fallback: confirmation manuelle du paiement réservation pour session {}", sessionId);
+                        stripeService.confirmReservationPayment(sessionId);
+                        reservation = reservationRepository.findByStripeSessionId(sessionId)
+                            .orElse(reservation);
+                    }
+                } catch (StripeException e) {
+                    logger.warn("Impossible de vérifier la session Stripe {} (réservation): {}", sessionId, e.getMessage());
+                }
+            }
+            return ResponseEntity.ok(Map.of(
+                "paymentStatus", reservation.getPaymentStatus() != null ? reservation.getPaymentStatus().name() : "PENDING",
+                "interventionStatus", reservation.getStatus() != null ? reservation.getStatus() : "N/A"
+            ));
+        }
+
+        // 3) Chercher dans les service requests
+        var optSr = serviceRequestRepository.findByStripeSessionId(sessionId);
+        if (optSr.isPresent()) {
+            ServiceRequest sr = optSr.get();
+            if (sr.getPaymentStatus() != PaymentStatus.PAID) {
+                try {
+                    Stripe.apiKey = stripeSecretKey;
+                    Session stripeSession = Session.retrieve(sessionId);
+                    if ("paid".equals(stripeSession.getPaymentStatus())) {
+                        logger.info("Fallback: confirmation manuelle du paiement SR pour session {}", sessionId);
+                        stripeService.confirmServiceRequestPayment(sessionId);
+                        sr = serviceRequestRepository.findByStripeSessionId(sessionId).orElse(sr);
+                    }
+                } catch (StripeException e) {
+                    logger.warn("Impossible de vérifier la session Stripe {} (SR): {}", sessionId, e.getMessage());
+                }
+            }
+            return ResponseEntity.ok(Map.of(
+                "paymentStatus", sr.getPaymentStatus() != null ? sr.getPaymentStatus().name() : "PENDING",
+                "interventionStatus", sr.getStatus() != null ? sr.getStatus().name() : "N/A"
+            ));
+        }
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(Map.of("error", "Aucun paiement trouvé pour cette session: " + sessionId));
     }
 
     // ─── Historique des paiements ────────────────────────────────────────────────
@@ -301,10 +352,22 @@ public class PaymentController {
             Page<Reservation> reservationPage = reservationRepository.findPaymentHistory(
                     paymentStatus, largePage, orgId);
 
+            // ── 2b) Charger les SR AWAITING_PAYMENT ──────────────────────────────
+            Page<ServiceRequest> srPage;
+            boolean isHost = currentUser.getRole() == UserRole.HOST;
+            if (isHost) {
+                srPage = serviceRequestRepository.findPaymentHistoryByUser(
+                        currentUser.getId(), paymentStatus, largePage, orgId);
+            } else {
+                srPage = serviceRequestRepository.findPaymentHistory(
+                        paymentStatus, hostId, largePage, orgId);
+            }
+
             // ── 3) Fusionner en DTOs, trier par date desc, paginer ─────────────
             List<PaymentHistoryDto> merged = new ArrayList<>();
             interventionPage.getContent().forEach(i -> merged.add(toPaymentHistoryDto(i)));
             reservationPage.getContent().forEach(r -> merged.add(toReservationPaymentDto(r)));
+            srPage.getContent().forEach(sr -> merged.add(toServiceRequestPaymentDto(sr)));
 
             // Trier par transactionDate DESC
             merged.sort(Comparator.comparing(
@@ -389,7 +452,14 @@ public class PaymentController {
                 }
             }
 
-            summary.transactionCount = (int) interventions.getTotalElements() + reservations.size();
+            // Additionner les SR AWAITING_PAYMENT au pending
+            List<ServiceRequest> awaitingSRs = serviceRequestRepository.findAllAwaitingPayment(orgId);
+            for (ServiceRequest sr : awaitingSRs) {
+                summary.totalPending = summary.totalPending.add(
+                    sr.getEstimatedCost() != null ? sr.getEstimatedCost() : BigDecimal.ZERO);
+            }
+
+            summary.transactionCount = (int) interventions.getTotalElements() + reservations.size() + awaitingSRs.size();
 
             return ResponseEntity.ok(summary);
         } catch (Exception e) {
@@ -406,12 +476,24 @@ public class PaymentController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<?> getHostsWithPayments() {
         try {
-            List<Object[]> rows = interventionRepository.findDistinctHostsWithPayments(tenantContext.getRequiredOrganizationId());
-            List<Map<String, Object>> hosts = rows.stream().map(row -> Map.<String, Object>of(
-                    "id", row[0],
-                    "fullName", row[1] + " " + row[2]
-            )).collect(Collectors.toList());
-            return ResponseEntity.ok(hosts);
+            Long orgId = tenantContext.getRequiredOrganizationId();
+            // Hosts depuis les interventions
+            List<Object[]> rows = interventionRepository.findDistinctHostsWithPayments(orgId);
+            java.util.Map<Long, Map<String, Object>> hostsMap = new java.util.LinkedHashMap<>();
+            for (Object[] row : rows) {
+                Long id = ((Number) row[0]).longValue();
+                hostsMap.put(id, Map.of("id", id, "fullName", row[1] + " " + row[2]));
+            }
+            // Hosts depuis les SR AWAITING_PAYMENT — dedupliquer par ID
+            List<ServiceRequest> awaitingSRs = serviceRequestRepository.findAllAwaitingPayment(orgId);
+            for (ServiceRequest sr : awaitingSRs) {
+                if (sr.getUser() != null && !hostsMap.containsKey(sr.getUser().getId())) {
+                    hostsMap.put(sr.getUser().getId(), Map.of(
+                        "id", sr.getUser().getId(),
+                        "fullName", sr.getUser().getFirstName() + " " + sr.getUser().getLastName()));
+                }
+            }
+            return ResponseEntity.ok(new ArrayList<>(hostsMap.values()));
         } catch (Exception e) {
             logger.error("Erreur getHostsWithPayments", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -492,6 +574,28 @@ public class PaymentController {
         return dto;
     }
 
+    private PaymentHistoryDto toServiceRequestPaymentDto(ServiceRequest sr) {
+        PaymentHistoryDto dto = new PaymentHistoryDto();
+        dto.id = sr.getId();
+        dto.referenceId = sr.getId();
+        dto.description = sr.getTitle() + (sr.getProperty() != null
+            ? " — " + sr.getProperty().getName() : "");
+        dto.propertyName = sr.getProperty() != null ? sr.getProperty().getName() : "N/A";
+        dto.amount = sr.getEstimatedCost();
+        dto.status = sr.getPaymentStatus() != null ? sr.getPaymentStatus().name() : "PENDING";
+        dto.type = "SERVICE_REQUEST";
+        dto.stripeSessionId = sr.getStripeSessionId();
+        if (sr.getCreatedAt() != null) {
+            dto.transactionDate = sr.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        }
+        dto.createdAt = dto.transactionDate;
+        if (sr.getUser() != null) {
+            dto.hostId = sr.getUser().getId();
+            dto.hostName = sr.getUser().getFirstName() + " " + sr.getUser().getLastName();
+        }
+        return dto;
+    }
+
     private PaymentHistoryDto toReservationPaymentDto(Reservation r) {
         PaymentHistoryDto dto = new PaymentHistoryDto();
         dto.id = r.getId();
@@ -514,6 +618,12 @@ public class PaymentController {
         // Guest name as hostName for display
         dto.hostName = r.getGuestName();
         dto.hostId = null; // reservations don't have a host user
+        // Guest email : priorite paymentLinkEmail (deja utilise), sinon guest.email
+        if (r.getPaymentLinkEmail() != null && !r.getPaymentLinkEmail().isBlank()) {
+            dto.guestEmail = r.getPaymentLinkEmail();
+        } else if (r.getGuest() != null && r.getGuest().getEmail() != null) {
+            dto.guestEmail = r.getGuest().getEmail();
+        }
         return dto;
     }
 

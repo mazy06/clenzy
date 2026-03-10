@@ -114,9 +114,9 @@ const PaymentSuccess: React.FC = () => {
               <Button
                 variant="contained"
                 startIcon={<ArrowBack />}
-                onClick={() => navigate('/interventions')}
+                onClick={() => navigate('/billing')}
               >
-                Retour aux interventions
+                Retour a la facturation
               </Button>
             </>
           ) : paymentConfirmed ? (
@@ -126,14 +126,14 @@ const PaymentSuccess: React.FC = () => {
                 Paiement reussi !
               </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                Votre paiement a ete traite avec succes. L'intervention est maintenant prete a etre planifiee.
+                Votre paiement a ete traite avec succes. Le statut sera mis a jour automatiquement.
               </Typography>
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => navigate('/interventions')}
+                onClick={() => navigate('/billing')}
               >
-                Voir mes interventions
+                Voir la facturation
               </Button>
             </>
           ) : (
@@ -146,14 +146,14 @@ const PaymentSuccess: React.FC = () => {
                 Votre paiement a bien ete envoye a Stripe. La confirmation peut prendre quelques instants.
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Le statut de votre intervention sera mis a jour automatiquement.
+                Le statut sera mis a jour automatiquement.
               </Typography>
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => navigate('/interventions')}
+                onClick={() => navigate('/billing')}
               >
-                Voir mes interventions
+                Voir la facturation
               </Button>
             </>
           )}
