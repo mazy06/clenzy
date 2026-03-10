@@ -32,7 +32,7 @@ const BillingPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const canViewInvoices = user?.permissions?.includes('reports:view') ?? false;
-  const canViewWallets = user?.permissions?.includes('payments:view') ?? false;
+  const canViewWallets = user?.permissions?.includes('payments:manage') ?? false;
 
   // Build visible tabs dynamically (order preserved)
   const visibleTabs: { index: number; key: string }[] = [
