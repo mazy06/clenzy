@@ -1,4 +1,6 @@
 import apiClient from '../apiClient';
+import { API_CONFIG } from '../../config/api';
+import { getAccessToken } from '../storageService';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -29,6 +31,9 @@ export interface Invoice {
   id: number;
   organizationId: number;
   reservationId: number | null;
+  interventionId: number | null;
+  documentGenerationId: number | null;
+  duplicateOfId: number | null;
   invoiceNumber: string;
   invoiceDate: string;
   dueDate: string | null;
@@ -44,10 +49,11 @@ export interface Invoice {
   totalHt: number;
   totalTax: number;
   totalTtc: number;
-  notes: string | null;
+  legalMentions: string | null;
+  paymentMethod: string | null;
+  paidAt: string | null;
   lines: InvoiceLine[];
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface InvoiceFilters {
@@ -59,6 +65,11 @@ export interface InvoiceFilters {
 
 export interface GenerateInvoiceRequest {
   reservationId: number;
+}
+
+export interface TemplateStatus {
+  hasTemplate: boolean;
+  templateName: string;
 }
 
 // ─── API ────────────────────────────────────────────────────────────────────
@@ -95,5 +106,34 @@ export const invoicesApi = {
 
   async downloadPdf(id: number): Promise<Blob> {
     return apiClient.get<Blob>(`/invoices/${id}/pdf`);
+  },
+
+  async checkTemplateStatus(): Promise<TemplateStatus> {
+    return apiClient.get<TemplateStatus>('/invoices/template-status');
+  },
+
+  async generateDuplicate(id: number): Promise<Invoice> {
+    return apiClient.post<Invoice>(`/invoices/${id}/duplicate`);
+  },
+
+  /** Telecharger le PDF du document genere lie a la facture */
+  async downloadDocumentPdf(generationId: number, filename: string) {
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/documents/generations/${generationId}/download`;
+    const token = getAccessToken();
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      throw new Error(`Erreur ${response.status} lors du telechargement`);
+    }
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
   },
 };

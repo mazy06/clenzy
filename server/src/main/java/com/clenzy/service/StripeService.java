@@ -47,6 +47,7 @@ public class StripeService {
     private final WalletService walletService;
     private final LedgerService ledgerService;
     private final SplitPaymentService splitPaymentService;
+    private final AutoInvoiceService autoInvoiceService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final TenantContext tenantContext;
 
@@ -73,6 +74,7 @@ public class StripeService {
                          WalletService walletService,
                          LedgerService ledgerService,
                          SplitPaymentService splitPaymentService,
+                         AutoInvoiceService autoInvoiceService,
                          KafkaTemplate<String, Object> kafkaTemplate,
                          TenantContext tenantContext) {
         this.interventionRepository = interventionRepository;
@@ -83,6 +85,7 @@ public class StripeService {
         this.walletService = walletService;
         this.ledgerService = ledgerService;
         this.splitPaymentService = splitPaymentService;
+        this.autoInvoiceService = autoInvoiceService;
         this.kafkaTemplate = kafkaTemplate;
         this.tenantContext = tenantContext;
     }
@@ -418,8 +421,15 @@ public class StripeService {
         } catch (Exception e) {
             log.error("Erreur publication Kafka FACTURE/JUSTIFICATIF_PAIEMENT: {}", e.getMessage());
         }
+
+        // ─── Auto-generation facture fiscale (entite Invoice) ──────────────
+        try {
+            autoInvoiceService.generateForIntervention(intervention);
+        } catch (Exception e) {
+            log.warn("Auto-invoice failed for intervention {}: {}", intervention.getId(), e.getMessage());
+        }
     }
-    
+
     /**
      * Marque un paiement comme échoué
      */
@@ -527,6 +537,13 @@ public class StripeService {
         } catch (Exception e) {
             log.error("Erreur publication Kafka FACTURE/JUSTIFICATIF_PAIEMENT (reservation): {}", e.getMessage());
         }
+
+        // ─── Auto-generation facture fiscale (entite Invoice) ──────────────
+        try {
+            autoInvoiceService.generateForReservation(reservation);
+        } catch (Exception e) {
+            log.warn("Auto-invoice failed for reservation {}: {}", reservation.getId(), e.getMessage());
+        }
     }
 
     /**
@@ -612,6 +629,13 @@ public class StripeService {
                         log.debug("Evenements FACTURE + JUSTIFICATIF_PAIEMENT publies (groupe) pour l'intervention: {}", intervention.getId());
                     } catch (Exception e) {
                         log.error("Erreur publication Kafka FACTURE/JUSTIFICATIF (groupe): {}", e.getMessage());
+                    }
+
+                    // ─── Auto-generation facture fiscale (entite Invoice) ──────
+                    try {
+                        autoInvoiceService.generateForIntervention(intervention);
+                    } catch (Exception e) {
+                        log.warn("Auto-invoice failed for grouped intervention {}: {}", intervention.getId(), e.getMessage());
                     }
                 }
             } catch (NumberFormatException e) {
