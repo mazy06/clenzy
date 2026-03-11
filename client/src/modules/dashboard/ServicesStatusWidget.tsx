@@ -16,6 +16,7 @@ import {
   RadioButtonUnchecked,
   BatteryFull,
   Sensors,
+  Language as BookingIcon,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { noiseDevicesApi } from '../../services/api/noiseApi';
@@ -30,6 +31,7 @@ const C = {
   noise:   '#4FC3F7',
   lock:    '#AB47BC',
   key:     '#D4A574',
+  booking: '#26A69A',
 } as const;
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -122,8 +124,20 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
       ctaKey: 'dashboard.services.keysCta',
       activeIcon: <VpnKey sx={{ fontSize: 12, color: C.key }} />,
     },
+    {
+      key: 'booking',
+      icon: <BookingIcon sx={{ fontSize: 18 }} />,
+      color: C.booking,
+      label: t('dashboard.services.booking', 'Booking Engine'),
+      status: { configured: false, count: 0, loading: false } as ServiceStatus,
+      tabIndex: -1,
+      ctaKey: 'dashboard.services.bookingCta',
+      activeIcon: <BookingIcon sx={{ fontSize: 12, color: C.booking }} />,
+      comingSoon: true,
+    },
   ];
 
+  const activeServices = services.filter((s) => !(s as any).comingSoon);
   const isLoading = noise.loading || locks.loading || keys.loading;
 
   if (isLoading) {
@@ -136,7 +150,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
       }}>
         <Skeleton variant="text" width={100} height={16} sx={{ mb: 1 }} />
         <Box sx={{ display: 'flex', gap: 1 }}>
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} variant="rectangular" height={56} sx={{ flex: 1, borderRadius: '8px' }} />
           ))}
         </Box>
@@ -171,7 +185,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
         </Typography>
         <Chip
           size="small"
-          label={`${services.filter((s) => s.status.configured).length}/${services.length}`}
+          label={`${activeServices.filter((s) => s.status.configured).length}/${activeServices.length}`}
           sx={{
             height: 18,
             fontSize: '0.6rem',
@@ -188,7 +202,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
         {services.map((svc) => (
           <Box
             key={svc.key}
-            onClick={() => onNavigateTab(svc.tabIndex)}
+            onClick={() => { if (!(svc as any).comingSoon) onNavigateTab(svc.tabIndex); }}
             sx={{
               flex: 1,
               display: 'flex',
@@ -199,21 +213,28 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
               py: 1.25,
               borderRadius: '8px',
               border: '1px solid',
-              borderColor: svc.status.configured
-                ? (isDark ? `${svc.color}30` : `${svc.color}20`)
-                : 'divider',
-              bgcolor: svc.status.configured
-                ? (isDark ? `${svc.color}08` : `${svc.color}04`)
-                : 'transparent',
-              cursor: 'pointer',
+              borderColor: (svc as any).comingSoon
+                ? (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
+                : svc.status.configured
+                  ? (isDark ? `${svc.color}30` : `${svc.color}20`)
+                  : 'divider',
+              bgcolor: (svc as any).comingSoon
+                ? (isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)')
+                : svc.status.configured
+                  ? (isDark ? `${svc.color}08` : `${svc.color}04`)
+                  : 'transparent',
+              cursor: (svc as any).comingSoon ? 'default' : 'pointer',
+              opacity: (svc as any).comingSoon ? 0.7 : 1,
               transition: 'all 0.15s ease',
-              '&:hover': {
-                borderColor: svc.color,
-                transform: 'translateY(-1px)',
-                boxShadow: isDark
-                  ? `0 3px 10px ${svc.color}15`
-                  : `0 3px 10px ${svc.color}12`,
-              },
+              ...((svc as any).comingSoon ? {} : {
+                '&:hover': {
+                  borderColor: svc.color,
+                  transform: 'translateY(-1px)',
+                  boxShadow: isDark
+                    ? `0 3px 10px ${svc.color}15`
+                    : `0 3px 10px ${svc.color}12`,
+                },
+              }),
             }}
           >
             {/* Icon circle */}
@@ -247,7 +268,20 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
             </Typography>
 
             {/* Status */}
-            {svc.status.configured ? (
+            {(svc as any).comingSoon ? (
+              <Chip
+                label={t('dashboard.services.comingSoon', 'Bientot')}
+                size="small"
+                sx={{
+                  height: 16,
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                  color: 'text.secondary',
+                  '& .MuiChip-label': { px: 0.5 },
+                }}
+              />
+            ) : svc.status.configured ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
                 <CheckCircle sx={{ fontSize: 13, color: C.success }} />
                 <Typography sx={{ fontSize: '0.65rem', color: C.success, fontWeight: 600 }}>

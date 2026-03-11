@@ -99,6 +99,15 @@ public class Invoice {
     @Column(name = "payout_id")
     private Long payoutId;
 
+    @Column(name = "intervention_id")
+    private Long interventionId;
+
+    @Column(name = "document_generation_id")
+    private Long documentGenerationId;
+
+    @Column(name = "duplicate_of_id")
+    private Long duplicateOfId;
+
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -208,6 +217,15 @@ public class Invoice {
 
     public Long getPayoutId() { return payoutId; }
     public void setPayoutId(Long payoutId) { this.payoutId = payoutId; }
+
+    public Long getInterventionId() { return interventionId; }
+    public void setInterventionId(Long interventionId) { this.interventionId = interventionId; }
+
+    public Long getDocumentGenerationId() { return documentGenerationId; }
+    public void setDocumentGenerationId(Long documentGenerationId) { this.documentGenerationId = documentGenerationId; }
+
+    public Long getDuplicateOfId() { return duplicateOfId; }
+    public void setDuplicateOfId(Long duplicateOfId) { this.duplicateOfId = duplicateOfId; }
 
     public InvoiceStatus getStatus() { return status; }
     public void setStatus(InvoiceStatus status) { this.status = status; }

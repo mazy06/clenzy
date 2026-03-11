@@ -26,20 +26,26 @@ export interface VatSummary {
 
 export const fiscalReportingApi = {
   async getVatSummary(from: string, to: string): Promise<VatSummary> {
-    return apiClient.get<VatSummary>('/fiscal/vat-summary', {
+    return apiClient.get<VatSummary>('/fiscal-reports/vat-summary', {
       params: { from, to },
     });
   },
 
   async getMonthlyVatSummary(year: number, month: number): Promise<VatSummary> {
-    return apiClient.get<VatSummary>(`/fiscal/vat-summary/monthly/${year}/${month}`);
+    return apiClient.get<VatSummary>('/fiscal-reports/vat-summary/monthly', {
+      params: { year, month },
+    });
   },
 
   async getQuarterlyVatSummary(year: number, quarter: number): Promise<VatSummary> {
-    return apiClient.get<VatSummary>(`/fiscal/vat-summary/quarterly/${year}/${quarter}`);
+    return apiClient.get<VatSummary>('/fiscal-reports/vat-summary/quarterly', {
+      params: { year, quarter },
+    });
   },
 
   async getAnnualVatSummary(year: number): Promise<VatSummary> {
-    return apiClient.get<VatSummary>(`/fiscal/vat-summary/annual/${year}`);
+    return apiClient.get<VatSummary>('/fiscal-reports/vat-summary/annual', {
+      params: { year },
+    });
   },
 };

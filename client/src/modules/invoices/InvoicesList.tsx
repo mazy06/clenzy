@@ -20,6 +20,10 @@ import {
   TableRow,
   TextField,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Receipt as ReceiptIcon,
@@ -30,13 +34,27 @@ import {
   Clear as ClearIcon,
   HourglassEmpty as DraftIcon,
   AttachMoney as MoneyIcon,
+  PictureAsPdf as PdfIcon,
+  ContentCopy as DuplicateIcon,
+  Warning as WarningIcon,
+  Home as HomeIcon,
+  Build as BuildIcon,
 } from '@mui/icons-material';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useInvoices, useIssueInvoice, useMarkInvoicePaid, useCancelInvoice } from '../../hooks/useInvoices';
+import {
+  useInvoices,
+  useIssueInvoice,
+  useMarkInvoicePaid,
+  useCancelInvoice,
+  useTemplateStatus,
+  useDuplicateInvoice,
+} from '../../hooks/useInvoices';
 import { invoicesApi, INVOICE_STATUS_COLORS } from '../../services/api/invoicesApi';
 import type { InvoiceStatus, Invoice } from '../../services/api/invoicesApi';
 import { formatCurrency } from '../../utils/currencyUtils';
+import { API_CONFIG } from '../../config/api';
+import { getAccessToken } from '../../services/storageService';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -89,6 +107,9 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | ''>('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const filters = useMemo(() => ({
     ...(statusFilter ? { status: statusFilter } : {}),
@@ -97,9 +118,11 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
   }), [statusFilter, dateFrom, dateTo]);
 
   const { data: invoices, isLoading, error } = useInvoices(filters);
+  const { data: templateStatus } = useTemplateStatus();
   const issueMutation = useIssueInvoice();
   const markPaidMutation = useMarkInvoicePaid();
   const cancelMutation = useCancelInvoice();
+  const duplicateMutation = useDuplicateInvoice();
 
   const handleDownloadPdf = async (id: number, invoiceNumber: string) => {
     try {
@@ -112,6 +135,35 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
       window.URL.revokeObjectURL(url);
     } catch {
       // Silently fail — could add snackbar
+    }
+  };
+
+  /** Ouvre le PDF du document genere (DocumentGeneration) dans un dialog */
+  const handleViewDocumentPdf = async (generationId: number) => {
+    setPdfLoading(true);
+    setPdfDialogOpen(true);
+    try {
+      const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/documents/generations/${generationId}/download`;
+      const token = getAccessToken();
+      const response = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) throw new Error(`Erreur ${response.status}`);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      setPdfUrl(blobUrl);
+    } catch {
+      setPdfUrl(null);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const handleClosePdfDialog = () => {
+    setPdfDialogOpen(false);
+    if (pdfUrl) {
+      window.URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
     }
   };
 
@@ -145,6 +197,15 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
       ]
     : [];
 
+  // ─── Helpers ─────────────────────────────────────────────────────────────
+
+  /** Determine le type de source : Reservation ou Intervention */
+  const getSourceType = (inv: Invoice) => {
+    if (inv.reservationId) return { label: 'Reservation', icon: <HomeIcon sx={{ fontSize: 14, mr: 0.5 }} />, color: C.info };
+    if (inv.interventionId) return { label: 'Intervention', icon: <BuildIcon sx={{ fontSize: 14, mr: 0.5 }} />, color: C.warning };
+    return null;
+  };
+
   // ─── Common input sx ──────────────────────────────────────────────────
   const inputSx = {
     '& .MuiOutlinedInput-root': {
@@ -165,6 +226,25 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
           backPath="/"
           showBackButton={false}
         />
+      )}
+
+      {/* ─── Template warning ──────────────────────────────────────────── */}
+      {templateStatus && !templateStatus.hasTemplate && (
+        <Alert
+          severity="warning"
+          icon={<WarningIcon sx={{ fontSize: 20 }} />}
+          sx={{
+            mb: 2,
+            borderRadius: '10px',
+            fontSize: '0.8125rem',
+            '& .MuiAlert-message': { fontSize: '0.8125rem' },
+          }}
+        >
+          {t(
+            'invoices.noTemplateWarning',
+            'Aucun template FACTURE actif configure. Les PDF ne seront pas generes automatiquement lors des paiements. Veuillez configurer un template dans les parametres.'
+          )}
+        </Alert>
       )}
 
       {/* ─── Summary cards ─────────────────────────────────────────────── */}
@@ -327,6 +407,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
               <TableRow>
                 <TableCell>{t('invoices.columns.number', 'N\u00B0')}</TableCell>
                 <TableCell>{t('invoices.columns.date', 'Date')}</TableCell>
+                <TableCell>{t('invoices.columns.type', 'Type')}</TableCell>
                 <TableCell>{t('invoices.columns.buyer', 'Client')}</TableCell>
                 <TableCell align="right">{t('invoices.columns.ht', 'HT')}</TableCell>
                 <TableCell align="right">{t('invoices.columns.tax', 'TVA')}</TableCell>
@@ -336,35 +417,90 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {invoices.map((inv: Invoice) => (
-                <TableRow
-                  key={inv.id}
-                  hover
-                  sx={{
-                    cursor: 'default',
-                    transition: 'background-color 0.15s ease',
-                    '&:hover': { bgcolor: 'rgba(107,138,154,0.04)' },
-                  }}
-                >
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
-                      {inv.invoiceNumber}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{fmtDate(inv.invoiceDate)}</TableCell>
-                  <TableCell>{inv.buyerName}</TableCell>
-                  <TableCell align="right">{formatCurrency(inv.totalHt, inv.currency)}</TableCell>
-                  <TableCell align="right">{formatCurrency(inv.totalTax, inv.currency)}</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }} align="right">{formatCurrency(inv.totalTtc, inv.currency)}</TableCell>
-                  <TableCell>
-                    {(() => { const c = INVOICE_STATUS_COLORS[inv.status]; return (
+              {invoices.map((inv: Invoice) => {
+                const source = getSourceType(inv);
+                const statusColor = INVOICE_STATUS_COLORS[inv.status];
+                return (
+                  <TableRow
+                    key={inv.id}
+                    hover
+                    sx={{
+                      cursor: 'default',
+                      transition: 'background-color 0.15s ease',
+                      '&:hover': { bgcolor: 'rgba(107,138,154,0.04)' },
+                    }}
+                  >
+                    {/* ─── N° + DUPLICATA badge ─── */}
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+                          {inv.invoiceNumber}
+                        </Typography>
+                        {inv.duplicateOfId && (
+                          <Chip
+                            label="DUP"
+                            size="small"
+                            sx={{
+                              height: 18,
+                              fontSize: '0.625rem',
+                              fontWeight: 700,
+                              bgcolor: '#f3e8ff',
+                              color: '#7c3aed',
+                              border: '1px solid #ddd6fe',
+                              borderRadius: '4px',
+                              '& .MuiChip-label': { px: 0.5 },
+                            }}
+                          />
+                        )}
+                      </Box>
+                    </TableCell>
+
+                    {/* ─── Date ─── */}
+                    <TableCell>{fmtDate(inv.invoiceDate)}</TableCell>
+
+                    {/* ─── Type (Reservation / Intervention) ─── */}
+                    <TableCell>
+                      {source ? (
+                        <Chip
+                          label={source.label}
+                          size="small"
+                          icon={source.icon}
+                          sx={{
+                            height: 22,
+                            fontSize: '0.6875rem',
+                            fontWeight: 600,
+                            bgcolor: `${source.color}14`,
+                            color: source.color,
+                            border: `1px solid ${source.color}30`,
+                            borderRadius: '6px',
+                            '& .MuiChip-label': { px: 0.75 },
+                            '& .MuiChip-icon': { ml: 0.5, color: source.color },
+                          }}
+                        />
+                      ) : (
+                        <Typography variant="body2" sx={{ color: C.textSecondary, fontSize: '0.75rem' }}>
+                          —
+                        </Typography>
+                      )}
+                    </TableCell>
+
+                    {/* ─── Client ─── */}
+                    <TableCell>{inv.buyerName}</TableCell>
+
+                    {/* ─── Montants ─── */}
+                    <TableCell align="right">{formatCurrency(inv.totalHt, inv.currency)}</TableCell>
+                    <TableCell align="right">{formatCurrency(inv.totalTax, inv.currency)}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }} align="right">{formatCurrency(inv.totalTtc, inv.currency)}</TableCell>
+
+                    {/* ─── Statut ─── */}
+                    <TableCell>
                       <Chip
                         label={STATUS_LABELS[inv.status]}
                         size="small"
                         sx={{
-                          backgroundColor: `${c}18`,
-                          color: c,
-                          border: `1px solid ${c}40`,
+                          backgroundColor: `${statusColor}18`,
+                          color: statusColor,
+                          border: `1px solid ${statusColor}40`,
                           borderRadius: '6px',
                           fontWeight: 600,
                           fontSize: '0.75rem',
@@ -372,62 +508,156 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
                           '& .MuiChip-label': { px: 1 },
                         }}
                       />
-                    ); })()}
-                  </TableCell>
-                  <TableCell align="right">
-                    <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                      {inv.status === 'DRAFT' && (
-                        <Tooltip title={t('invoices.actions.issue', 'Emettre')}>
+                    </TableCell>
+
+                    {/* ─── Actions ─── */}
+                    <TableCell align="right">
+                      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                        {/* Voir PDF (document genere) */}
+                        {inv.documentGenerationId && (
+                          <Tooltip title={t('invoices.actions.viewPdf', 'Voir PDF')}>
+                            <IconButton
+                              size="small"
+                              sx={{ color: '#e53935' }}
+                              onClick={() => handleViewDocumentPdf(inv.documentGenerationId!)}
+                            >
+                              <PdfIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+
+                        {/* Emettre */}
+                        {inv.status === 'DRAFT' && (
+                          <Tooltip title={t('invoices.actions.issue', 'Emettre')}>
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => issueMutation.mutate(inv.id)}
+                              disabled={issueMutation.isPending}
+                            >
+                              <SendIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+
+                        {/* Marquer payee */}
+                        {inv.status === 'ISSUED' && (
+                          <Tooltip title={t('invoices.actions.markPaid', 'Marquer payee')}>
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={() => markPaidMutation.mutate(inv.id)}
+                              disabled={markPaidMutation.isPending}
+                            >
+                              <PaidIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+
+                        {/* Annuler */}
+                        {(inv.status === 'DRAFT' || inv.status === 'ISSUED') && (
+                          <Tooltip title={t('invoices.actions.cancel', 'Annuler')}>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => cancelMutation.mutate(inv.id)}
+                              disabled={cancelMutation.isPending}
+                            >
+                              <CancelIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+
+                        {/* Duplicata */}
+                        {(inv.status === 'ISSUED' || inv.status === 'PAID') && !inv.duplicateOfId && (
+                          <Tooltip title={t('invoices.actions.duplicate', 'Generer duplicata')}>
+                            <IconButton
+                              size="small"
+                              sx={{ color: '#7c3aed' }}
+                              onClick={() => duplicateMutation.mutate(inv.id)}
+                              disabled={duplicateMutation.isPending}
+                            >
+                              <DuplicateIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+
+                        {/* Telecharger PDF */}
+                        <Tooltip title={t('invoices.actions.downloadPdf', 'Telecharger PDF')}>
                           <IconButton
                             size="small"
-                            color="primary"
-                            onClick={() => issueMutation.mutate(inv.id)}
-                            disabled={issueMutation.isPending}
+                            onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
                           >
-                            <SendIcon sx={{ fontSize: 18 }} />
+                            <DownloadIcon sx={{ fontSize: 18 }} />
                           </IconButton>
                         </Tooltip>
-                      )}
-                      {inv.status === 'ISSUED' && (
-                        <Tooltip title={t('invoices.actions.markPaid', 'Marquer payee')}>
-                          <IconButton
-                            size="small"
-                            color="success"
-                            onClick={() => markPaidMutation.mutate(inv.id)}
-                            disabled={markPaidMutation.isPending}
-                          >
-                            <PaidIcon sx={{ fontSize: 18 }} />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      {(inv.status === 'DRAFT' || inv.status === 'ISSUED') && (
-                        <Tooltip title={t('invoices.actions.cancel', 'Annuler')}>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => cancelMutation.mutate(inv.id)}
-                            disabled={cancelMutation.isPending}
-                          >
-                            <CancelIcon sx={{ fontSize: 18 }} />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      <Tooltip title={t('invoices.actions.downloadPdf', 'Telecharger PDF')}>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDownloadPdf(inv.id, inv.invoiceNumber)}
-                        >
-                          <DownloadIcon sx={{ fontSize: 18 }} />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))}
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
       )}
+
+      {/* ─── PDF Preview Dialog ──────────────────────────────────────────── */}
+      <Dialog
+        open={pdfDialogOpen}
+        onClose={handleClosePdfDialog}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: '12px', height: '85vh' },
+        }}
+      >
+        <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 600, py: 1.5 }}>
+          {t('invoices.pdfPreview', 'Apercu du document')}
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          {pdfLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
+              <CircularProgress />
+            </Box>
+          ) : pdfUrl ? (
+            <object
+              data={pdfUrl}
+              type="application/pdf"
+              width="100%"
+              style={{ flex: 1, border: 'none', minHeight: 0 }}
+            >
+              <Box sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body2" sx={{ color: C.textSecondary, mb: 2 }}>
+                  {t('invoices.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
+                </Typography>
+                <Button
+                  variant="contained"
+                  href={pdfUrl}
+                  download="facture.pdf"
+                  startIcon={<DownloadIcon />}
+                  sx={{ textTransform: 'none' }}
+                >
+                  {t('invoices.actions.downloadPdf', 'Telecharger PDF')}
+                </Button>
+              </Box>
+            </object>
+          ) : (
+            <Box sx={{ p: 3, textAlign: 'center' }}>
+              <Alert severity="error" sx={{ fontSize: '0.8125rem' }}>
+                {t('invoices.pdfLoadError', 'Erreur lors du chargement du PDF')}
+              </Alert>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 2, py: 1.5 }}>
+          <Button
+            onClick={handleClosePdfDialog}
+            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
+          >
+            {t('common.close', 'Fermer')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
