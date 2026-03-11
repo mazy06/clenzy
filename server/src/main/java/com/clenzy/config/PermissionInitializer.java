@@ -186,6 +186,8 @@ public class PermissionInitializer {
         // --- Payments ---
         anyCreated |= ensurePermission("payments:view", "Voir l'historique des paiements", "payments",
                 List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
+        anyCreated |= ensurePermission("payments:manage", "Gerer les paiements, remboursements et portefeuilles", "payments",
+                List.of("SUPER_ADMIN", "SUPER_MANAGER"));
 
         // --- Reservations ---
         anyCreated |= ensurePermission("reservations:view", "Voir les reservations", "reservations",

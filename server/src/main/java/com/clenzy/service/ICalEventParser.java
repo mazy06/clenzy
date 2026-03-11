@@ -9,6 +9,7 @@ import net.fortuna.ical4j.model.component.VEvent;
 import net.fortuna.ical4j.model.property.Description;
 import net.fortuna.ical4j.model.property.DtEnd;
 import net.fortuna.ical4j.model.property.DtStart;
+import net.fortuna.ical4j.model.property.Status;
 import net.fortuna.ical4j.model.property.Summary;
 import net.fortuna.ical4j.model.property.Uid;
 import org.slf4j.Logger;
@@ -156,6 +157,9 @@ public final class ICalEventParser {
         // DESCRIPTION
         parseDescription(vevent, preview);
 
+        // STATUS (RFC 5545: TENTATIVE, CONFIRMED, CANCELLED)
+        parseStatus(vevent, preview);
+
         // Calculate nights if not found in description
         if (preview.getNights() == 0 && preview.getDtStart() != null && preview.getDtEnd() != null) {
             preview.setNights((int) (preview.getDtEnd().toEpochDay() - preview.getDtStart().toEpochDay()));
@@ -199,6 +203,32 @@ public final class ICalEventParser {
         Matcher nightsMatcher = DESCRIPTION_NIGHTS_PATTERN.matcher(description.getValue());
         if (nightsMatcher.find()) {
             preview.setNights(Integer.parseInt(nightsMatcher.group(1)));
+        }
+    }
+
+    /**
+     * Maps the iCal STATUS property to our reservation status.
+     * RFC 5545 VEVENT STATUS: TENTATIVE, CONFIRMED, CANCELLED.
+     * If absent, status remains null (caller decides default).
+     */
+    private static void parseStatus(VEvent vevent, ICalEventPreview preview) {
+        Status status = (Status) vevent.getProperty("STATUS");
+        if (status == null) return;
+        String value = status.getValue();
+        if (value == null) return;
+        switch (value.toUpperCase()) {
+            case "CONFIRMED":
+                preview.setStatus("confirmed");
+                break;
+            case "TENTATIVE":
+                preview.setStatus("pending");
+                break;
+            case "CANCELLED":
+                preview.setStatus("cancelled");
+                break;
+            default:
+                log.debug("Statut iCal inconnu: {}", value);
+                break;
         }
     }
 

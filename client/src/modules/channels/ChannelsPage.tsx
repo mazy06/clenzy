@@ -18,6 +18,8 @@ import {
   DialogContent,
   DialogActions,
   Snackbar,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import {
   LinkOff as LinkOffIcon,
@@ -32,6 +34,10 @@ import {
   CleaningServices as CleaningIcon,
   OpenInNew as OpenInNewIcon,
   TrendingUp as PricingIcon,
+  ViewList as ViewListIcon,
+  GridView as GridViewIcon,
+  People as PeopleIcon,
+  Business as BusinessIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { Star as StarIcon } from '@mui/icons-material';
@@ -73,6 +79,8 @@ import hometogoLogo from '../../assets/logo/hometogo-logo-small.svg';
 
 // ─── OTA Definitions ────────────────────────────────────────────────────────
 
+type ChannelSegment = 'B2C' | 'B2B';
+
 interface OtaChannel {
   id: string;
   name: string;
@@ -81,6 +89,7 @@ interface OtaChannel {
   logo: string | null;
   available: boolean;
   descriptionKey: string;
+  segment: ChannelSegment;
 }
 
 const OTA_CHANNELS: OtaChannel[] = [
@@ -92,6 +101,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     logo: airbnbLogoSmall,
     available: true,
     descriptionKey: 'channels.airbnb.connectDescription',
+    segment: 'B2C',
   },
   {
     id: 'booking',
@@ -101,6 +111,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     logo: bookingLogoSmall,
     available: true,
     descriptionKey: 'channels.ota.booking.description',
+    segment: 'B2C',
   },
   {
     id: 'expedia',
@@ -110,6 +121,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     logo: expediaLogo,
     available: true,
     descriptionKey: 'channels.ota.expedia.description',
+    segment: 'B2C',
   },
   {
     id: 'hotels',
@@ -119,6 +131,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     logo: hotelsComLogo,
     available: true,
     descriptionKey: 'channels.ota.hotels.description',
+    segment: 'B2C',
   },
   {
     id: 'agoda',
@@ -128,6 +141,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     logo: agodaLogo,
     available: true,
     descriptionKey: 'channels.ota.agoda.description',
+    segment: 'B2C',
   },
   {
     id: 'tripcom',
@@ -137,6 +151,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     logo: null,
     available: false,
     descriptionKey: 'channels.ota.tripcom.description',
+    segment: 'B2C',
   },
   {
     id: 'vrbo',
@@ -146,6 +161,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     logo: vrboLogo,
     available: true,
     descriptionKey: 'channels.ota.vrbo.description',
+    segment: 'B2C',
   },
   {
     id: 'abritel',
@@ -155,6 +171,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     logo: abritelLogo,
     available: true,
     descriptionKey: 'channels.ota.abritel.description',
+    segment: 'B2C',
   },
   {
     id: 'hometogo',
@@ -164,6 +181,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     logo: hometogoLogo,
     available: false,
     descriptionKey: 'channels.ota.hometogo.description',
+    segment: 'B2C',
   },
   {
     id: 'gathern',
@@ -173,6 +191,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     logo: gathernLogo,
     available: false,
     descriptionKey: 'channels.ota.gathern.description',
+    segment: 'B2B',
   },
   {
     id: 'rentelly',
@@ -182,6 +201,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     logo: rentellyLogo,
     available: false,
     descriptionKey: 'channels.ota.rentelly.description',
+    segment: 'B2B',
   },
   {
     id: 'kease',
@@ -191,6 +211,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     logo: keaseLogo,
     available: false,
     descriptionKey: 'channels.ota.kease.description',
+    segment: 'B2B',
   },
   {
     id: 'stay',
@@ -200,6 +221,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     logo: null,
     available: false,
     descriptionKey: 'channels.ota.stay.description',
+    segment: 'B2B',
   },
   {
     id: 'mabeet',
@@ -209,6 +231,7 @@ const OTA_CHANNELS: OtaChannel[] = [
     logo: mabeetLogo,
     available: false,
     descriptionKey: 'channels.ota.mabeet.description',
+    segment: 'B2B',
   },
 ];
 
@@ -293,6 +316,9 @@ const ChannelsPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const { isConnected: isOtaConnected, getStatus: getOtaStatus, isLoading: otaConnectionsLoading } = useChannelConnections();
   const disconnectChannelMutation = useDisconnectChannel();
+
+  // View mode: list (default) or grid
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   // Link dialog
   const [linkingPropertyId, setLinkingPropertyId] = useState<number | null>(null);
@@ -406,7 +432,21 @@ const ChannelsPage: React.FC = () => {
         backPath="/settings"
         showBackButton={false}
         actions={
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={(_, v) => { if (v) setViewMode(v); }}
+              size="small"
+              sx={{ height: 30 }}
+            >
+              <ToggleButton value="list" sx={{ px: 1 }}>
+                <ViewListIcon sx={{ fontSize: 16 }} />
+              </ToggleButton>
+              <ToggleButton value="grid" sx={{ px: 1 }}>
+                <GridViewIcon sx={{ fontSize: 16 }} />
+              </ToggleButton>
+            </ToggleButtonGroup>
             <Button
               size="small"
               variant="outlined"
@@ -436,35 +476,250 @@ const ChannelsPage: React.FC = () => {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          OTA Channels Grid
+          OTA Channels — List or Grid
           ═══════════════════════════════════════════════════════════════════════ */}
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' },
-        gap: 1.5,
-        mb: 1.5,
-      }}>
-        {OTA_CHANNELS.map((ota) => {
-          const isAirbnb = ota.id === 'airbnb';
-          const isOtaChannel = (ota.id as string) in CHANNEL_BACKEND_MAP;
-          const otaStatus = isOtaChannel ? getOtaStatus(ota.id as ChannelId) : undefined;
+      {viewMode === 'list' ? (
+        /* ── List View ── */
+        <Paper sx={{ ...CARD_SX, mb: 1.5, p: 0, overflow: 'hidden' }}>
+          {/* Table header */}
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: '2fr 0.8fr 1fr 1.2fr',
+            gap: 1,
+            px: 2,
+            py: 1.25,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            bgcolor: 'action.hover',
+          }}>
+            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Channel
+            </Typography>
+            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Segment
+            </Typography>
+            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Statut
+            </Typography>
+            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'right' }}>
+              Action
+            </Typography>
+          </Box>
 
-          return (
-            <OtaChannelCard
-              key={ota.id}
-              channel={ota}
-              isConnected={isAirbnb ? isConnected : isOtaChannel ? isOtaConnected(ota.id as ChannelId) : false}
-              connectionStatus={isAirbnb ? connectionStatus : otaStatus ? { status: otaStatus.status } : null}
-              connectionLoading={isAirbnb ? connectionLoading : isOtaChannel ? otaConnectionsLoading : false}
-              onConnect={isAirbnb ? handleConnect : isOtaChannel ? () => handleOtaConnect(ota) : undefined}
-              onDisconnect={isAirbnb ? handleDisconnect : isOtaChannel ? () => handleOtaDisconnectRequest(ota) : undefined}
-              connecting={isAirbnb ? connectMutation.isPending : false}
-              disconnecting={isAirbnb ? disconnectMutation.isPending : disconnectingChannelId === ota.id}
-              t={t}
-            />
-          );
-        })}
-      </Box>
+          {/* Rows */}
+          {OTA_CHANNELS.map((ota, idx) => {
+            const isAirbnb = ota.id === 'airbnb';
+            const isOtaChannel = (ota.id as string) in CHANNEL_BACKEND_MAP;
+            const otaStatus = isOtaChannel ? getOtaStatus(ota.id as ChannelId) : undefined;
+            const connected = isAirbnb ? isConnected : isOtaChannel ? isOtaConnected(ota.id as ChannelId) : false;
+            const loading = isAirbnb ? connectionLoading : isOtaChannel ? otaConnectionsLoading : false;
+
+            return (
+              <Box
+                key={ota.id}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: '2fr 0.8fr 1fr 1.2fr',
+                  gap: 1,
+                  px: 2,
+                  py: 1.25,
+                  alignItems: 'center',
+                  borderBottom: idx < OTA_CHANNELS.length - 1 ? '1px solid' : 'none',
+                  borderColor: 'divider',
+                  opacity: ota.available ? 1 : 0.6,
+                  transition: 'background 0.15s',
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}
+              >
+                {/* Channel name + logo */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {ota.logo && (
+                    <Box
+                      component="img"
+                      src={ota.logo}
+                      alt={ota.name}
+                      sx={{ height: 20, width: 20, objectFit: 'contain', flexShrink: 0 }}
+                    />
+                  )}
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>{ota.name}</Typography>
+                    <Typography noWrap sx={{ fontSize: '0.625rem', color: 'text.secondary', lineHeight: 1.3 }}>
+                      {t(ota.descriptionKey)}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Segment B2B / B2C */}
+                <Box>
+                  {(() => {
+                    const segHex = ota.segment === 'B2C' ? '#0288d1' : '#ED6C02';
+                    return (
+                      <Chip
+                        icon={ota.segment === 'B2C'
+                          ? <PeopleIcon sx={{ fontSize: '14px !important', color: `${segHex} !important` }} />
+                          : <BusinessIcon sx={{ fontSize: '14px !important', color: `${segHex} !important` }} />
+                        }
+                        label={ota.segment}
+                        size="small"
+                        sx={{
+                          backgroundColor: `${segHex}18`,
+                          color: segHex,
+                          border: `1px solid ${segHex}40`,
+                          borderRadius: '6px',
+                          fontWeight: 600,
+                          fontSize: '0.75rem',
+                          height: 24,
+                          '& .MuiChip-label': { px: 0.75 },
+                        }}
+                      />
+                    );
+                  })()}
+                </Box>
+
+                {/* Status */}
+                <Box>
+                  {(() => {
+                    if (loading) return <CircularProgress size={14} />;
+                    if (connected) {
+                      const hex = '#4A9B8E';
+                      return (
+                        <Chip
+                          icon={<CheckCircleIcon sx={{ fontSize: '14px !important', color: `${hex} !important` }} />}
+                          label={otaStatus?.status ?? (isAirbnb ? connectionStatus?.status ?? 'ACTIVE' : 'ACTIVE')}
+                          size="small"
+                          sx={{
+                            backgroundColor: `${hex}18`,
+                            color: hex,
+                            border: `1px solid ${hex}40`,
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            height: 24,
+                            '& .MuiChip-label': { px: 0.75 },
+                          }}
+                        />
+                      );
+                    }
+                    if (ota.available) {
+                      const hex = '#ED6C02';
+                      return (
+                        <Chip
+                          label={t('channels.ota.disconnected')}
+                          size="small"
+                          sx={{
+                            backgroundColor: `${hex}18`,
+                            color: hex,
+                            border: `1px solid ${hex}40`,
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            height: 24,
+                            '& .MuiChip-label': { px: 0.75 },
+                          }}
+                        />
+                      );
+                    }
+                    const hex = '#757575';
+                    return (
+                      <Chip
+                        label={t('channels.ota.comingSoon')}
+                        size="small"
+                        sx={{
+                          backgroundColor: `${hex}18`,
+                          color: hex,
+                          border: `1px solid ${hex}40`,
+                          borderRadius: '6px',
+                          fontWeight: 600,
+                          fontSize: '0.75rem',
+                          height: 24,
+                          '& .MuiChip-label': { px: 0.75 },
+                        }}
+                      />
+                    );
+                  })()}
+                </Box>
+
+                {/* Action */}
+                <Box sx={{ textAlign: 'right' }}>
+                  {ota.available && !connected && (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      startIcon={<LinkIcon sx={{ fontSize: '0.75rem' }} />}
+                      onClick={isAirbnb ? handleConnect : isOtaChannel ? () => handleOtaConnect(ota) : undefined}
+                      disabled={(isAirbnb && connectMutation.isPending) || loading}
+                      sx={{
+                        fontSize: '0.6875rem',
+                        fontWeight: 600,
+                        px: 1.5,
+                        py: 0.4,
+                        minHeight: 28,
+                        backgroundColor: ota.brandColor,
+                        '&:hover': { backgroundColor: ota.brandColor, filter: 'brightness(0.9)' },
+                      }}
+                    >
+                      {(isAirbnb && connectMutation.isPending)
+                        ? <CircularProgress size={12} color="inherit" />
+                        : t('channels.airbnb.connect')
+                      }
+                    </Button>
+                  )}
+                  {ota.available && connected && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="error"
+                      startIcon={<LinkOffIcon sx={{ fontSize: '0.75rem' }} />}
+                      onClick={isAirbnb ? handleDisconnect : isOtaChannel ? () => handleOtaDisconnectRequest(ota) : undefined}
+                      disabled={(isAirbnb && disconnectMutation.isPending) || disconnectingChannelId === ota.id}
+                      sx={{ fontSize: '0.6875rem', px: 1.5, py: 0.4, minHeight: 28 }}
+                    >
+                      {((isAirbnb && disconnectMutation.isPending) || disconnectingChannelId === ota.id)
+                        ? <CircularProgress size={12} />
+                        : t('channels.airbnb.disconnect')
+                      }
+                    </Button>
+                  )}
+                  {!ota.available && (
+                    <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', fontStyle: 'italic' }}>
+                      {t('channels.ota.comingSoon')}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            );
+          })}
+        </Paper>
+      ) : (
+        /* ── Grid View ── */
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' },
+          gap: 1.5,
+          mb: 1.5,
+        }}>
+          {OTA_CHANNELS.map((ota) => {
+            const isAirbnb = ota.id === 'airbnb';
+            const isOtaChannel = (ota.id as string) in CHANNEL_BACKEND_MAP;
+            const otaStatus = isOtaChannel ? getOtaStatus(ota.id as ChannelId) : undefined;
+
+            return (
+              <OtaChannelCard
+                key={ota.id}
+                channel={ota}
+                isConnected={isAirbnb ? isConnected : isOtaChannel ? isOtaConnected(ota.id as ChannelId) : false}
+                connectionStatus={isAirbnb ? connectionStatus : otaStatus ? { status: otaStatus.status } : null}
+                connectionLoading={isAirbnb ? connectionLoading : isOtaChannel ? otaConnectionsLoading : false}
+                onConnect={isAirbnb ? handleConnect : isOtaChannel ? () => handleOtaConnect(ota) : undefined}
+                onDisconnect={isAirbnb ? handleDisconnect : isOtaChannel ? () => handleOtaDisconnectRequest(ota) : undefined}
+                connecting={isAirbnb ? connectMutation.isPending : false}
+                disconnecting={isAirbnb ? disconnectMutation.isPending : disconnectingChannelId === ota.id}
+                t={t}
+              />
+            );
+          })}
+        </Box>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
           Airbnb Connection Details (shown when connected)

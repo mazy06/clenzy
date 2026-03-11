@@ -22,6 +22,19 @@ export interface UpdateOrganizationData {
   type: string;
 }
 
+export interface BillingSummaryDto {
+  memberCount: number;
+  freeSeats: number;
+  billableSeats: number;
+  basePriceCents: number;
+  perSeatPriceCents: number;
+  seatsTotalCents: number;
+  totalMonthlyCents: number;
+  billingPeriod: string;
+  billingPeriodDiscount: number;
+  effectiveMonthlyCents: number;
+}
+
 // ─── API ────────────────────────────────────────────────────────────────────
 
 export const organizationsApi = {
@@ -58,5 +71,12 @@ export const organizationsApi = {
    */
   delete(id: number) {
     return apiClient.delete(`/organizations/${id}`);
+  },
+
+  /**
+   * Obtenir le résumé de facturation per-seat d'une organisation
+   */
+  getBillingSummary(id: number) {
+    return apiClient.get<BillingSummaryDto>(`/organizations/${id}/billing-summary`);
   },
 };

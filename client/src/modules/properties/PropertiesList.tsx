@@ -115,9 +115,10 @@ const LIST_PAPER_SX = {
 interface PropertiesListProps {
   embedded?: boolean;
   actionsContainer?: HTMLElement | null;
+  filtersContainer?: HTMLElement | null;
 }
 
-export default function PropertiesList({ embedded = false, actionsContainer }: PropertiesListProps) {
+export default function PropertiesList({ embedded = false, actionsContainer, filtersContainer }: PropertiesListProps) {
   // ─── React Query ──────────────────────────────────────────────────
   const { properties, isLoading, deleteProperty } = usePropertiesList();
 
@@ -305,10 +306,46 @@ export default function PropertiesList({ embedded = false, actionsContainer }: P
     </Box>
   );
 
+  const filterBar = (
+    <FilterSearchBar
+      bare
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      searchPlaceholder={isHost() ? t('properties.searchMy') : t('properties.search')}
+      filters={{
+        type: {
+          value: selectedType,
+          options: propertyTypes,
+          onChange: setSelectedType,
+          label: t('properties.type')
+        },
+        status: {
+          value: selectedStatus,
+          options: statusOptions,
+          onChange: setSelectedStatus,
+          label: t('properties.status')
+        },
+      }}
+      counter={{
+        label: t('properties.property'),
+        count: filteredProperties.length,
+        singular: "",
+        plural: "s"
+      }}
+      viewToggle={{
+        mode: viewMode,
+        onChange: setViewMode,
+      }}
+    />
+  );
+
   return (
     <Box>
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+
+      {/* Portal filters into parent's PageHeader when embedded */}
+      {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
 
       {!embedded && (
         <PageHeader
@@ -317,39 +354,9 @@ export default function PropertiesList({ embedded = false, actionsContainer }: P
           backPath="/dashboard"
           showBackButton={false}
           actions={actionButtons}
+          filters={filterBar}
         />
       )}
-
-      {/* Filtres et recherche */}
-      <FilterSearchBar
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder={isHost() ? t('properties.searchMy') : t('properties.search')}
-        filters={{
-          type: {
-            value: selectedType,
-            options: propertyTypes,
-            onChange: setSelectedType,
-            label: t('properties.type')
-          },
-          status: {
-            value: selectedStatus,
-            options: statusOptions,
-            onChange: setSelectedStatus,
-            label: t('properties.status')
-          },
-        }}
-        counter={{
-          label: t('properties.property'),
-          count: filteredProperties.length,
-          singular: "",
-          plural: "s"
-        }}
-        viewToggle={{
-          mode: viewMode,
-          onChange: setViewMode,
-        }}
-      />
 
       {/* Liste des propriétés */}
       {filteredProperties.length === 0 ? (

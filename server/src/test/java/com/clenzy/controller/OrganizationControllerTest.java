@@ -6,6 +6,7 @@ import com.clenzy.model.OrganizationType;
 import com.clenzy.repository.OrganizationMemberRepository;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.service.OrganizationService;
+import com.clenzy.service.PricingConfigService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -31,6 +32,7 @@ class OrganizationControllerTest {
     @Mock private OrganizationRepository organizationRepository;
     @Mock private OrganizationMemberRepository memberRepository;
     @Mock private OrganizationService organizationService;
+    @Mock private PricingConfigService pricingConfigService;
 
     private OrganizationController controller;
 
@@ -45,7 +47,7 @@ class OrganizationControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new OrganizationController(organizationRepository, memberRepository, organizationService);
+        controller = new OrganizationController(organizationRepository, memberRepository, organizationService, pricingConfigService);
     }
 
     @Nested

@@ -93,9 +93,10 @@ function formatPrice(price: number | undefined): string {
 interface ServiceRequestsListProps {
   embedded?: boolean;
   actionsContainer?: HTMLElement | null;
+  filtersContainer?: HTMLElement | null;
 }
 
-export default function ServiceRequestsList({ embedded = false, actionsContainer }: ServiceRequestsListProps) {
+export default function ServiceRequestsList({ embedded = false, actionsContainer, filtersContainer }: ServiceRequestsListProps) {
   const {
     // Filter state
     searchTerm,
@@ -249,10 +250,52 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     </Box>
   );
 
+  const filterBar = (
+    <FilterSearchBar
+      bare
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      searchPlaceholder={t('serviceRequests.search')}
+      filters={{
+        type: {
+          value: selectedType,
+          options: serviceTypes,
+          onChange: setSelectedType,
+          label: t('common.type')
+        },
+        status: {
+          value: selectedStatus,
+          options: statuses,
+          onChange: setSelectedStatus,
+          label: t('common.status')
+        },
+        priority: {
+          value: selectedPriority,
+          options: priorities,
+          onChange: setSelectedPriority,
+          label: t('serviceRequests.fields.priority')
+        }
+      }}
+      counter={{
+        label: t('serviceRequests.request'),
+        count: filteredServiceRequests.length,
+        singular: "",
+        plural: "s"
+      }}
+      viewToggle={{
+        mode: viewMode,
+        onChange: setViewMode,
+      }}
+    />
+  );
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+
+      {/* Portal filters into parent's PageHeader when embedded */}
+      {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
 
       {!embedded && (
         <Box sx={{ flexShrink: 0 }}>
@@ -262,48 +305,10 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
             backPath="/dashboard"
             showBackButton={false}
             actions={actionButtons}
+            filters={filterBar}
           />
         </Box>
       )}
-
-      {/* Filtres et recherche */}
-      <Box sx={{ flexShrink: 0 }}>
-      <FilterSearchBar
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder={t('serviceRequests.search')}
-        filters={{
-          type: {
-            value: selectedType,
-            options: serviceTypes,
-            onChange: setSelectedType,
-            label: t('common.type')
-          },
-          status: {
-            value: selectedStatus,
-            options: statuses,
-            onChange: setSelectedStatus,
-            label: t('common.status')
-          },
-          priority: {
-            value: selectedPriority,
-            options: priorities,
-            onChange: setSelectedPriority,
-            label: t('serviceRequests.fields.priority')
-          }
-        }}
-        counter={{
-          label: t('serviceRequests.request'),
-          count: filteredServiceRequests.length,
-          singular: "",
-          plural: "s"
-        }}
-        viewToggle={{
-          mode: viewMode,
-          onChange: setViewMode,
-        }}
-      />
-      </Box>
 
       {/* Liste des demandes de service */}
       {filteredServiceRequests.length === 0 ? (

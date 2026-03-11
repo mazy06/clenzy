@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../services/apiClient';
+import { paymentsApi } from '../services/api/paymentsApi';
 import type { AuthUser } from './useAuth';
 import type { InterventionReportData, FinancialReportData } from '../services/api/reportsApi';
 import type { DashboardPeriod } from '../modules/dashboard/DashboardDateFilter';
@@ -322,6 +323,7 @@ export interface DashboardOverviewData {
   };
   upcomingInterventions: UpcomingIntervention[];
   pendingPayments: PendingPaymentItem[];
+  pendingPaymentsCount: number;
   serviceRequests: ServiceRequestItem[];
   alerts: AlertItem[];
   loading: boolean;
@@ -354,6 +356,17 @@ export function useDashboardOverview({
   });
 
   const rawData = rawQuery.data;
+
+  // ── Pending payments count from payments API (covers interventions + reservations + service requests)
+  const pendingPaymentsQuery = useQuery<number>({
+    queryKey: ['dashboard', 'pendingPaymentsCount'],
+    queryFn: async () => {
+      const res = await paymentsApi.getHistory({ status: 'PENDING', page: 0, size: 1 });
+      return res.totalElements;
+    },
+    enabled: !!user,
+    staleTime: 60_000,
+  });
 
   // ── Derive all computed data from raw ────────────────────────────────────
   const computed = useMemo(() => {
@@ -757,6 +770,7 @@ export function useDashboardOverview({
 
   return {
     ...computed,
+    pendingPaymentsCount: pendingPaymentsQuery.data ?? 0,
     loading: rawQuery.isLoading,
     error: rawQuery.isError ? 'Erreur lors du chargement des statistiques' : null,
     refreshAll,

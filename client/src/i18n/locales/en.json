@@ -80,6 +80,7 @@
     "wallets": "Wallets",
     "invoices": "Invoices",
     "channels": "Channels",
+    "contracts": "Management Contracts",
     "messaging": "Messaging",
     "messageTemplates": "Templates",
     "messageHistory": "History"
@@ -183,7 +184,9 @@
       "adrTooltip": "Average Daily Rate — total revenue / occupied nights",
       "occupancyRate": "Occupancy rate",
       "occupancyTooltip": "Occupied nights / available nights for the period",
+      "occupancySubtitle": "Occupied vs available nights",
       "totalRevenue": "Total revenue",
+      "totalRevenueSubtitle": "Revenue over the period",
       "netMargin": "Net margin",
       "roiTooltip": "Return On Investment — (revenue - costs) / costs",
       "avgStay": "Avg. stay duration",
@@ -281,6 +284,136 @@
       "month": "30d",
       "quarter": "90d",
       "year": "1 yr"
+    },
+    "overview": {
+      "kpisTitle": "Key Metrics",
+      "kpisSubtitle": "Portfolio performance over the period",
+      "revenueOverview": "Revenue Overview",
+      "total": "total",
+      "commandCenterTitle": "Command Center",
+      "commandCenterSubtitle": "Planning, actions and recommendations"
+    },
+    "contractCta": {
+      "title": "Enable commission sharing",
+      "subtitle": "Create a management contract to automatically split revenue between owner, concierge and platform.",
+      "benefit1": "Automatic revenue split on each reservation",
+      "benefit2": "Transparent commission tracking in wallets",
+      "benefit3": "Custom commission rate per property",
+      "cta": "Create a management contract"
+    },
+    "miniPlanning": {
+      "title": "7-Day Planning",
+      "viewAll": "View all",
+      "noProperties": "No properties configured",
+      "legend": {
+        "reservation": "Reservation",
+        "cleaning": "Cleaning",
+        "maintenance": "Maintenance"
+      },
+      "days": {
+        "sun": "Sun",
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat"
+      }
+    },
+    "actionCounters": {
+      "urgencies": "Urgencies",
+      "pendingPayments": "Pending payments",
+      "pendingRequests": "Requests",
+      "todayInterventions": "Today"
+    },
+    "commandRecommendations": {
+      "title": "Recommendations",
+      "noRecommendations": "No recommendations available"
+    },
+    "emptyState": {
+      "title": "Welcome to Clenzy!",
+      "description": "Start by creating your first property to unlock all dashboard features.",
+      "cta": "Create my first property"
+    },
+    "onboarding": {
+      "title": "Initial Setup",
+      "progress": "{{completed}}/{{total}} steps completed",
+      "createProperty": "Create your first property",
+      "configureDetails": "Configure property details",
+      "definePricing": "Set up pricing",
+      "connectChannels": "Connect booking channels",
+      "skipForNow": "Do this later",
+      "reshow": "Show initial setup again",
+      "reshowShort": "Setup"
+    },
+    "channelHealth": {
+      "title": "Booking channels",
+      "noChannels": "No channels connected. Sync your Airbnb, Booking and more reservations.",
+      "connect": "Connect a channel",
+      "manage": "Manage channels",
+      "errorCount": "{{count}} channel(s) with errors",
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "syncError": "Sync error",
+      "lastSync": "Last sync"
+    },
+    "tips": {
+      "title": "Did you know?",
+      "automateCleaning": {
+        "title": "Automate cleaning",
+        "desc": "Create automatic interventions at each check-out so you never miss a cleaning.",
+        "action": "View interventions"
+      },
+      "contracts": {
+        "title": "Revenue sharing",
+        "desc": "With a management contract, revenue is automatically split between owner and concierge.",
+        "action": "Create a contract"
+      },
+      "planning": {
+        "title": "Interactive planning",
+        "desc": "View all your reservations and interventions on a unified calendar.",
+        "action": "Open planning"
+      },
+      "channels": {
+        "title": "Multi-channel sync",
+        "desc": "Connect Airbnb, Booking and other platforms to centralize all your reservations.",
+        "action": "Connect a channel"
+      },
+      "noise": {
+        "title": "Noise monitoring",
+        "desc": "Monitor noise levels in your properties in real time and receive automatic alerts.",
+        "action": "Discover"
+      },
+      "smartLocks": {
+        "title": "Smart locks",
+        "desc": "Manage access remotely and generate temporary codes for each reservation.",
+        "action": "Discover"
+      },
+      "reports": {
+        "title": "Reports & Analytics",
+        "desc": "Analyze your performance: occupancy rates, revenue, intervention costs and more.",
+        "action": "View reports"
+      },
+      "teams": {
+        "title": "Team management",
+        "desc": "Organize your teams by specialty and automatically assign them to interventions.",
+        "action": "Manage teams"
+      },
+      "billing": {
+        "title": "Centralized billing",
+        "desc": "Track all payments, generate invoices and manage wallets from one place.",
+        "action": "View billing"
+      }
+    },
+    "services": {
+      "title": "Connected services",
+      "noise": "Noise monitoring",
+      "locks": "Smart locks",
+      "keys": "Key management",
+      "noiseCta": "Set up",
+      "locksCta": "Set up",
+      "keysCta": "Set up",
+      "active": "active"
     },
     "activityFeed": {
       "title": "Recent Activity",
@@ -795,6 +928,7 @@
       "pending": "Pending",
       "approved": "Approved",
       "devisAccepted": "Quote accepted",
+      "awaitingPayment": "Awaiting payment",
       "inProgress": "In progress",
       "completed": "Completed",
       "cancelled": "Cancelled",
@@ -1514,7 +1648,74 @@
       "light": "Light",
       "dark": "Dark",
       "auto": "Automatic"
+    },
+    "split": {
+      "title": "Revenue Split",
+      "subtitle": "Configure payment distribution between owner, platform and concierge.",
+      "ownerShare": "Owner share",
+      "platformShare": "Platform share",
+      "conciergeShare": "Concierge share",
+      "currentRatios": "Current split",
+      "save": "Save split configuration",
+      "saved": "Split configuration saved successfully",
+      "error": "Error saving configuration",
+      "totalError": "Total must equal 100%",
+      "configName": "Default configuration",
+      "noConfig": "No configuration found. Default values will be used.",
+      "defaults": "Defaults: Owner 80%, Platform 5%, Concierge 15%"
     }
+  },
+  "contracts": {
+    "title": "Management Contracts",
+    "subtitle": "Manage contracts between property owners and concierge services for automatic commission calculation",
+    "create": "New contract",
+    "createTitle": "Create management contract",
+    "editTitle": "Edit contract",
+    "createFirst": "Create your first contract",
+    "noContracts": "No management contracts. Payments will be split 2-way (owner / platform).",
+    "allStatuses": "All",
+    "contractNumber": "Contract #",
+    "property": "Property",
+    "owner": "Owner",
+    "type": "Type",
+    "commission": "Commission",
+    "commissionRate": "Commission rate",
+    "commissionHelper": "Total percentage retained from revenue (platform + concierge)",
+    "period": "Period",
+    "status": "Status",
+    "actions": "Actions",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "endDateHelper": "Leave empty for indefinite contract",
+    "minStayNights": "Minimum stay (nights)",
+    "noticePeriodDays": "Notice period",
+    "days": "days",
+    "autoRenew": "Auto-renew",
+    "cleaningIncluded": "Cleaning included",
+    "maintenanceIncluded": "Maintenance included",
+    "notes": "Notes",
+    "splitPreview": "Split preview:",
+    "ownerGets": "Owner",
+    "platformGets": "Platform",
+    "conciergeGets": "Concierge",
+    "activate": "Activate",
+    "suspend": "Suspend",
+    "terminate": "Terminate",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "terminateTitle": "Terminate contract",
+    "terminateWarning": "Termination is irreversible. The contract will be marked as 'Terminated' and the concierge will no longer receive commissions on this property.",
+    "terminateReason": "Termination reason",
+    "confirmTerminate": "Confirm termination",
+    "created": "Contract created successfully",
+    "updated": "Contract updated",
+    "activated": "Contract activated — 3-way split is now active for this property",
+    "suspended": "Contract suspended",
+    "terminated": "Contract terminated",
+    "errorLoading": "Error loading contracts",
+    "errorSaving": "Error saving contract",
+    "errorAction": "Error performing action on contract"
   },
   "offline": {
     "banner": "You are offline. Some features may not be available.",
@@ -1704,7 +1905,14 @@
     "tabs": {
       "payments": "Payments",
       "invoices": "Invoices"
-    }
+    },
+    "basePlan": "Base subscription",
+    "seats": "Additional users",
+    "members": "members",
+    "included": "included",
+    "monthlyTotal": "Monthly total",
+    "effectiveMonthly": "Effective amount",
+    "loadError": "Error loading billing summary"
   },
   "workOrders": {
     "title": "Interventions",
@@ -1730,8 +1938,20 @@
       "portfolios": "Portfolios",
       "guests": "Guests",
       "users": "Users",
-      "organizations": "Organizations"
+      "organizations": "Organizations",
+      "prospection": "Prospecting"
     }
+  },
+  "prospection": {
+    "import": "Import CSV",
+    "importTitle": "Import prospects",
+    "importSuccess": "{count} prospects imported successfully",
+    "selectCategory": "Category",
+    "dropFile": "Drop your CSV file here",
+    "browseFile": "or click to browse",
+    "emptyTitle": "No prospects yet",
+    "emptyMessage": "Import a CSV file from Vibe Prospecting to get started.",
+    "noResults": "No prospects match the current filters."
   },
   "payments": {
     "history": {
@@ -1940,7 +2160,13 @@
       "monthly": "Monthly subscription",
       "sync": "Subscription with auto-sync",
       "monthlyHelp": "Price in euros per month",
-      "syncHelp": "Includes automatic calendar synchronization"
+      "syncHelp": "Includes automatic calendar synchronization",
+      "perSeatTitle": "Per-user pricing",
+      "perSeatSubtitle": "Dynamic billing based on the number of accounts in the organization",
+      "perSeat": "Price per user",
+      "perSeatHelp": "Monthly cost per additional user",
+      "freeSeats": "Included users",
+      "freeSeatsHelp": "Number of users included in the base price"
     },
     "automation": {
       "title": "Automation Surcharges",
@@ -2357,6 +2583,25 @@
       "PAID": "Paid",
       "CANCELLED": "Cancelled",
       "CREDIT_NOTE": "Credit note"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "allRead": "All caught up",
+    "unread": "unread",
+    "markAllRead": "Mark all as read",
+    "empty": "No notifications",
+    "emptyFilter": "No notifications in this category.",
+    "emptyAll": "You have no notifications at this time.",
+    "tabs": {
+      "all": "All",
+      "unread": "Unread",
+      "interventions": "Interventions",
+      "requests": "Requests",
+      "payments": "Payments",
+      "system": "System",
+      "contact": "Contact",
+      "document": "Documents"
     }
   },
   "fiscal": {

@@ -96,9 +96,10 @@ function formatDateShort(dateStr: string): string {
 interface InterventionsListProps {
   embedded?: boolean;
   actionsContainer?: HTMLElement | null;
+  filtersContainer?: HTMLElement | null;
 }
 
-export default function InterventionsList({ embedded = false, actionsContainer }: InterventionsListProps) {
+export default function InterventionsList({ embedded = false, actionsContainer, filtersContainer }: InterventionsListProps) {
   const {
     // State
     interventions,
@@ -354,10 +355,52 @@ export default function InterventionsList({ embedded = false, actionsContainer }
     </Box>
   );
 
+  const filterBar = (
+    <FilterSearchBar
+      bare
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
+      searchPlaceholder={t('interventions.search')}
+      filters={{
+        type: {
+          value: selectedType,
+          options: interventionTypes,
+          onChange: setSelectedType,
+          label: t('common.type'),
+        },
+        status: {
+          value: selectedStatus,
+          options: statuses,
+          onChange: setSelectedStatus,
+          label: t('common.status'),
+        },
+        priority: {
+          value: selectedPriority,
+          options: priorities,
+          onChange: setSelectedPriority,
+          label: t('interventions.fields.priority'),
+        },
+      }}
+      counter={{
+        label: t('interventions.intervention'),
+        count: filteredInterventions.length,
+        singular: '',
+        plural: 's',
+      }}
+      viewToggle={{
+        mode: viewMode,
+        onChange: (mode) => { setViewMode(mode); setListPage(0); },
+      }}
+    />
+  );
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
+
+      {/* Portal filters into parent's PageHeader when embedded */}
+      {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
 
       {!embedded && (
         <Box sx={{ flexShrink: 0 }}>
@@ -367,6 +410,7 @@ export default function InterventionsList({ embedded = false, actionsContainer }
             backPath="/dashboard"
             showBackButton={false}
             actions={actionButtons}
+            filters={filterBar}
           />
         </Box>
       )}
@@ -379,43 +423,6 @@ export default function InterventionsList({ embedded = false, actionsContainer }
 
       {/* ─── Liste des interventions ─────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          <Box sx={{ flexShrink: 0 }}>
-          <FilterSearchBar
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            searchPlaceholder={t('interventions.search')}
-            filters={{
-              type: {
-                value: selectedType,
-                options: interventionTypes,
-                onChange: setSelectedType,
-                label: t('common.type'),
-              },
-              status: {
-                value: selectedStatus,
-                options: statuses,
-                onChange: setSelectedStatus,
-                label: t('common.status'),
-              },
-              priority: {
-                value: selectedPriority,
-                options: priorities,
-                onChange: setSelectedPriority,
-                label: t('interventions.fields.priority'),
-              },
-            }}
-            counter={{
-              label: t('interventions.intervention'),
-              count: filteredInterventions.length,
-              singular: '',
-              plural: 's',
-            }}
-            viewToggle={{
-              mode: viewMode,
-              onChange: (mode) => { setViewMode(mode); setListPage(0); },
-            }}
-          />
-          </Box>
 
           {filteredInterventions.length === 0 ? (
             <Card sx={{ textAlign: 'center', py: 2.5, px: 2, ...createSpacing.card() }}>

@@ -12,6 +12,10 @@ import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.RequestStatus;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.Reservation;
+import com.clenzy.model.AssignmentEvent;
+import com.clenzy.model.WorkflowSettings;
+import com.clenzy.repository.AssignmentEventRepository;
+import com.clenzy.repository.WorkflowSettingsRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.util.JwtRoleExtractor;
@@ -44,6 +48,7 @@ import org.slf4j.LoggerFactory;
 public class ServiceRequestService {
 
     private static final Logger log = LoggerFactory.getLogger(ServiceRequestService.class);
+    public static final int MAX_AUTO_ASSIGN_RETRIES = 10;
 
     private final ServiceRequestRepository serviceRequestRepository;
     private final UserRepository userRepository;
@@ -56,8 +61,22 @@ public class ServiceRequestService {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final TenantContext tenantContext;
     private final ServiceRequestMapper serviceRequestMapper;
+    private final AssignmentEventRepository assignmentEventRepository;
+    private final WorkflowSettingsRepository workflowSettingsRepository;
 
-    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository, UserRepository userRepository, PropertyRepository propertyRepository, InterventionRepository interventionRepository, ReservationRepository reservationRepository, TeamRepository teamRepository, NotificationService notificationService, PropertyTeamService propertyTeamService, KafkaTemplate<String, Object> kafkaTemplate, TenantContext tenantContext, ServiceRequestMapper serviceRequestMapper) {
+    public ServiceRequestService(ServiceRequestRepository serviceRequestRepository,
+                                  UserRepository userRepository,
+                                  PropertyRepository propertyRepository,
+                                  InterventionRepository interventionRepository,
+                                  ReservationRepository reservationRepository,
+                                  TeamRepository teamRepository,
+                                  NotificationService notificationService,
+                                  PropertyTeamService propertyTeamService,
+                                  KafkaTemplate<String, Object> kafkaTemplate,
+                                  TenantContext tenantContext,
+                                  ServiceRequestMapper serviceRequestMapper,
+                                  AssignmentEventRepository assignmentEventRepository,
+                                  WorkflowSettingsRepository workflowSettingsRepository) {
         this.serviceRequestRepository = serviceRequestRepository;
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
@@ -69,6 +88,8 @@ public class ServiceRequestService {
         this.kafkaTemplate = kafkaTemplate;
         this.tenantContext = tenantContext;
         this.serviceRequestMapper = serviceRequestMapper;
+        this.assignmentEventRepository = assignmentEventRepository;
+        this.workflowSettingsRepository = workflowSettingsRepository;
     }
 
     public ServiceRequestDto create(ServiceRequestDto dto) {
@@ -88,48 +109,8 @@ public class ServiceRequestService {
             log.warn("Notification error SERVICE_REQUEST_CREATED: {}", e.getMessage());
         }
 
-        // ── Auto-assignation basée sur zone géographique + disponibilité ──
-        try {
-            if (entity.getAssignedToId() == null && entity.getProperty() != null && entity.getDesiredDate() != null) {
-                String svcType = entity.getServiceType() != null ? entity.getServiceType().name() : null;
-                Optional<Long> availableTeamId = propertyTeamService.findAvailableTeamForProperty(
-                    entity.getProperty().getId(),
-                    entity.getDesiredDate(),
-                    entity.getEstimatedDurationHours(),
-                    svcType
-                );
-                if (availableTeamId.isPresent()) {
-                    entity.setAssignedToId(availableTeamId.get());
-                    entity.setAssignedToType("team");
-                    entity.setStatus(RequestStatus.AWAITING_PAYMENT);
-                    entity = serviceRequestRepository.save(entity);
-                    log.info("Auto-assignment: team {} assigned to SR {} for property {}",
-                        availableTeamId.get(), entity.getId(), entity.getProperty().getId());
-
-                    try {
-                        Team assignedTeam = teamRepository.findById(availableTeamId.get()).orElse(null);
-                        String teamName = assignedTeam != null ? assignedTeam.getName() : "Equipe #" + availableTeamId.get();
-                        notificationService.notifyAdminsAndManagers(
-                            NotificationKey.SERVICE_REQUEST_CREATED,
-                            "Demande auto-assignee",
-                            "La demande \"" + entity.getTitle() + "\" a ete auto-assignee a " + teamName,
-                            "/service-requests/" + entity.getId()
-                        );
-                    } catch (Exception notifErr) {
-                        log.warn("Notification error auto-assignment: {}", notifErr.getMessage());
-                    }
-                } else {
-                    log.debug("Auto-assignment: no team available for property {} — SR stays PENDING",
-                        entity.getProperty().getId());
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Auto-assignment failed for SR {}: {} — SR stays PENDING", entity.getId(), e.getMessage());
-            // Reset in-memory values to match DB state (save failed, entity has dirty values)
-            entity.setAssignedToId(null);
-            entity.setAssignedToType(null);
-            entity.setStatus(RequestStatus.PENDING);
-        }
+        // ── Auto-assignation basee sur zone geographique + disponibilite ──
+        attemptAutoAssign(entity);
 
         return serviceRequestMapper.toDto(entity);
     }
@@ -146,11 +127,14 @@ public class ServiceRequestService {
             throw new IllegalStateException("Seules les demandes assignees peuvent etre refusees. Statut actuel: " + sr.getStatus());
         }
 
-        Long previousAssignedToId = sr.getAssignedToId();
         sr.setAssignedToId(null);
         sr.setAssignedToType(null);
         sr.setStatus(RequestStatus.PENDING);
+        sr.setAutoAssignRetryCount(0); // Reset pour relancer le cycle
+        sr.setAutoAssignStatus(null);
         sr = serviceRequestRepository.save(sr);
+
+        logAssignmentEvent(sr, "REFUSE", null, null, "Assignation refusee par l'equipe/utilisateur");
 
         try {
             notificationService.notifyAdminsAndManagers(
@@ -164,26 +148,7 @@ public class ServiceRequestService {
         }
 
         // Tenter une re-assignation automatique
-        try {
-            if (previousAssignedToId != null && sr.getProperty() != null && sr.getDesiredDate() != null) {
-                String svcType = sr.getServiceType() != null ? sr.getServiceType().name() : null;
-                Optional<Long> newTeamId = propertyTeamService.findAvailableTeamForProperty(
-                    sr.getProperty().getId(),
-                    sr.getDesiredDate(),
-                    sr.getEstimatedDurationHours(),
-                    svcType
-                );
-                if (newTeamId.isPresent() && !newTeamId.get().equals(previousAssignedToId)) {
-                    sr.setAssignedToId(newTeamId.get());
-                    sr.setAssignedToType("team");
-                    sr.setStatus(RequestStatus.AWAITING_PAYMENT);
-                    sr = serviceRequestRepository.save(sr);
-                    log.info("Re-assignment: team {} for SR {} after refusal", newTeamId.get(), sr.getId());
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Re-assignment failed for SR {}: {}", sr.getId(), e.getMessage());
-        }
+        attemptAutoAssign(sr);
 
         return serviceRequestMapper.toDto(sr);
     }
@@ -202,7 +167,11 @@ public class ServiceRequestService {
         sr.setAssignedToId(assignedToId);
         sr.setAssignedToType(assignedToType);
         sr.setStatus(RequestStatus.AWAITING_PAYMENT);
+        sr.setAutoAssignStatus("found");
         sr = serviceRequestRepository.save(sr);
+
+        logAssignmentEvent(sr, "MANUAL_ASSIGN", assignedToId, assignedToType,
+            "Assignation manuelle par admin/manager");
 
         log.info("Manual assignment: {} {} for SR {}", assignedToType, assignedToId, sr.getId());
 
@@ -525,6 +494,238 @@ public class ServiceRequestService {
         dto.updatedAt = intervention.getUpdatedAt();
 
         return dto;
+    }
+
+    // ── Auto-assignation refactorisee ──────────────────────────────────────────
+
+    /**
+     * Tente l'auto-assignation d'une SR (contexte web — utilise TenantContext).
+     * Appele depuis create() et refuse().
+     *
+     * @return true si une equipe a ete trouvee et assignee
+     */
+    public boolean attemptAutoAssign(ServiceRequest sr) {
+        try {
+            // Verifier les preconditions
+            if (sr.getAssignedToId() != null || sr.getProperty() == null || sr.getDesiredDate() == null) {
+                return false;
+            }
+
+            // Verifier workflow settings de l'org
+            Long orgId = sr.getOrganizationId();
+            WorkflowSettings ws = workflowSettingsRepository.findByOrganizationId(orgId).orElse(null);
+            if (ws != null && !ws.isAutoAssignInterventions()) {
+                log.debug("Auto-assignation desactivee pour org={}", orgId);
+                return false;
+            }
+
+            String svcType = sr.getServiceType() != null ? sr.getServiceType().name() : null;
+            Optional<Long> availableTeamId = propertyTeamService.findAvailableTeamForProperty(
+                sr.getProperty().getId(), sr.getDesiredDate(), sr.getEstimatedDurationHours(), svcType
+            );
+
+            sr.setLastAutoAssignAttempt(LocalDateTime.now());
+
+            if (availableTeamId.isPresent()) {
+                sr.setAssignedToId(availableTeamId.get());
+                sr.setAssignedToType("team");
+                sr.setStatus(RequestStatus.AWAITING_PAYMENT);
+                sr.setAutoAssignStatus("found");
+                serviceRequestRepository.save(sr);
+
+                logAssignmentEvent(sr, "AUTO_SUCCESS", availableTeamId.get(), "team", null);
+
+                log.info("Auto-assignment: team {} assigned to SR {} for property {}",
+                    availableTeamId.get(), sr.getId(), sr.getProperty().getId());
+
+                try {
+                    Team assignedTeam = teamRepository.findById(availableTeamId.get()).orElse(null);
+                    String teamName = assignedTeam != null ? assignedTeam.getName() : "Equipe #" + availableTeamId.get();
+                    notificationService.notifyAdminsAndManagers(
+                        NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
+                        "Demande auto-assignee",
+                        "La demande \"" + sr.getTitle() + "\" a ete auto-assignee a " + teamName,
+                        "/service-requests/" + sr.getId()
+                    );
+                    notifyHost(sr, NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
+                        "Equipe assignee",
+                        "Une equipe a ete assignee a votre demande \"" + sr.getTitle() + "\" — en attente de paiement");
+                } catch (Exception notifErr) {
+                    log.warn("Notification error auto-assignment: {}", notifErr.getMessage());
+                }
+
+                return true;
+            } else {
+                // Pas d'equipe trouvee
+                int currentRetry = (sr.getAutoAssignRetryCount() != null ? sr.getAutoAssignRetryCount() : 0) + 1;
+                sr.setAutoAssignRetryCount(currentRetry);
+                sr.setAutoAssignStatus(currentRetry >= MAX_AUTO_ASSIGN_RETRIES ? "exhausted" : "searching");
+                serviceRequestRepository.save(sr);
+
+                logAssignmentEvent(sr, "AUTO_FAIL", null, null,
+                    "Aucune equipe disponible (tentative " + currentRetry + "/" + MAX_AUTO_ASSIGN_RETRIES + ")");
+
+                log.debug("Auto-assignment: no team available for SR {} (retry {}/{})",
+                    sr.getId(), currentRetry, MAX_AUTO_ASSIGN_RETRIES);
+
+                // Notification premiere tentative
+                if (currentRetry == 1) {
+                    try {
+                        notificationService.notifyAdminsAndManagers(
+                            NotificationKey.SERVICE_REQUEST_NO_TEAM_AVAILABLE,
+                            "Aucune equipe disponible",
+                            "La demande \"" + sr.getTitle() + "\" n'a pas pu etre assignee. Retry automatique dans 15 min.",
+                            "/service-requests/" + sr.getId()
+                        );
+                        notifyHost(sr, NotificationKey.SERVICE_REQUEST_NO_TEAM_AVAILABLE,
+                            "Recherche en cours",
+                            "Nous recherchons une equipe pour votre demande \"" + sr.getTitle() + "\"");
+                    } catch (Exception e) {
+                        log.warn("Notification error NO_TEAM: {}", e.getMessage());
+                    }
+                }
+
+                // Escalade a MAX retries
+                if ("exhausted".equals(sr.getAutoAssignStatus())) {
+                    try {
+                        logAssignmentEvent(sr, "ESCALATION", null, null,
+                            "Retries epuises (" + MAX_AUTO_ASSIGN_RETRIES + ") — assignation manuelle requise");
+                        notificationService.notifyAdminsAndManagers(
+                            NotificationKey.SERVICE_REQUEST_ESCALATION,
+                            "ACTION REQUISE — Assignation manuelle",
+                            "La demande \"" + sr.getTitle() + "\" n'a pas pu etre assignee apres " + MAX_AUTO_ASSIGN_RETRIES + " tentatives. Assignation manuelle necessaire.",
+                            "/service-requests/" + sr.getId()
+                        );
+                        notifyHost(sr, NotificationKey.SERVICE_REQUEST_ESCALATION,
+                            "Assignation impossible",
+                            "Nous n'avons pas pu trouver d'equipe pour votre demande \"" + sr.getTitle() + "\". Un administrateur va intervenir.");
+                    } catch (Exception e) {
+                        log.warn("Notification error ESCALATION: {}", e.getMessage());
+                    }
+                }
+
+                return false;
+            }
+        } catch (Exception e) {
+            log.warn("Auto-assignment failed for SR {}: {} — SR stays PENDING", sr.getId(), e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Tente l'auto-assignation dans le contexte scheduler (pas de TenantContext).
+     * Utilise la surcharge PropertyTeamService avec orgId explicite.
+     */
+    public boolean attemptAutoAssignByOrgId(ServiceRequest sr, Long orgId) {
+        try {
+            if (sr.getAssignedToId() != null || sr.getProperty() == null || sr.getDesiredDate() == null) {
+                return false;
+            }
+
+            String svcType = sr.getServiceType() != null ? sr.getServiceType().name() : null;
+            Optional<Long> availableTeamId = propertyTeamService.findAvailableTeamForProperty(
+                sr.getProperty().getId(), sr.getDesiredDate(), sr.getEstimatedDurationHours(), svcType, orgId
+            );
+
+            sr.setLastAutoAssignAttempt(LocalDateTime.now());
+
+            if (availableTeamId.isPresent()) {
+                sr.setAssignedToId(availableTeamId.get());
+                sr.setAssignedToType("team");
+                sr.setStatus(RequestStatus.AWAITING_PAYMENT);
+                sr.setAutoAssignStatus("found");
+                serviceRequestRepository.save(sr);
+
+                logAssignmentEvent(sr, "AUTO_SUCCESS", availableTeamId.get(), "team", "Retry scheduler");
+
+                log.info("Auto-assignment (scheduler): team {} assigned to SR {}", availableTeamId.get(), sr.getId());
+
+                try {
+                    Team assignedTeam = teamRepository.findById(availableTeamId.get()).orElse(null);
+                    String teamName = assignedTeam != null ? assignedTeam.getName() : "Equipe #" + availableTeamId.get();
+                    notificationService.notifyAdminsAndManagersByOrgId(orgId,
+                        NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
+                        "Demande auto-assignee (retry)",
+                        "La demande \"" + sr.getTitle() + "\" a ete auto-assignee a " + teamName,
+                        "/service-requests/" + sr.getId()
+                    );
+                    notifyHostByOrgId(sr, orgId, NotificationKey.SERVICE_REQUEST_TEAM_ASSIGNED,
+                        "Equipe assignee",
+                        "Une equipe a ete assignee a votre demande \"" + sr.getTitle() + "\" — en attente de paiement");
+                } catch (Exception notifErr) {
+                    log.warn("Notification error auto-assignment scheduler: {}", notifErr.getMessage());
+                }
+
+                return true;
+            } else {
+                int retryCount = (sr.getAutoAssignRetryCount() != null ? sr.getAutoAssignRetryCount() : 0) + 1;
+                sr.setAutoAssignRetryCount(retryCount);
+                sr.setAutoAssignStatus(retryCount >= MAX_AUTO_ASSIGN_RETRIES ? "exhausted" : "searching");
+                serviceRequestRepository.save(sr);
+
+                logAssignmentEvent(sr, "AUTO_FAIL", null, null,
+                    "Scheduler retry " + retryCount + "/" + MAX_AUTO_ASSIGN_RETRIES);
+
+                log.debug("Auto-assignment (scheduler): no team for SR {} (retry {}/{})",
+                    sr.getId(), retryCount, MAX_AUTO_ASSIGN_RETRIES);
+
+                // Escalade a MAX retries
+                if ("exhausted".equals(sr.getAutoAssignStatus())) {
+                    try {
+                        logAssignmentEvent(sr, "ESCALATION", null, null,
+                            "Retries epuises — assignation manuelle requise");
+                        notificationService.notifyAdminsAndManagersByOrgId(orgId,
+                            NotificationKey.SERVICE_REQUEST_ESCALATION,
+                            "ACTION REQUISE — Assignation manuelle",
+                            "La demande \"" + sr.getTitle() + "\" n'a pas pu etre assignee apres " + MAX_AUTO_ASSIGN_RETRIES + " tentatives.",
+                            "/service-requests/" + sr.getId()
+                        );
+                        notifyHostByOrgId(sr, orgId, NotificationKey.SERVICE_REQUEST_ESCALATION,
+                            "Assignation impossible",
+                            "Nous n'avons pas pu trouver d'equipe pour votre demande \"" + sr.getTitle() + "\". Un administrateur va intervenir.");
+                    } catch (Exception e) {
+                        log.warn("Notification error ESCALATION scheduler: {}", e.getMessage());
+                    }
+                }
+
+                return false;
+            }
+        } catch (Exception e) {
+            log.warn("Auto-assignment scheduler failed for SR {}: {}", sr.getId(), e.getMessage());
+            return false;
+        }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────────
+
+    private void logAssignmentEvent(ServiceRequest sr, String eventType,
+                                     Long teamId, String assignedToType, String reason) {
+        try {
+            AssignmentEvent event = new AssignmentEvent();
+            event.setOrganizationId(sr.getOrganizationId());
+            event.setServiceRequestId(sr.getId());
+            event.setEventType(eventType);
+            event.setTeamId(teamId);
+            event.setAssignedToType(assignedToType);
+            event.setReason(reason);
+            assignmentEventRepository.save(event);
+        } catch (Exception e) {
+            log.warn("Failed to log assignment event {} for SR {}: {}", eventType, sr.getId(), e.getMessage());
+        }
+    }
+
+    private void notifyHost(ServiceRequest sr, NotificationKey key, String title, String msg) {
+        if (sr.getUser() != null && sr.getUser().getKeycloakId() != null) {
+            notificationService.notify(sr.getUser().getKeycloakId(), key, title, msg,
+                "/service-requests/" + sr.getId());
+        }
+    }
+
+    private void notifyHostByOrgId(ServiceRequest sr, Long orgId, NotificationKey key, String title, String msg) {
+        if (sr.getUser() != null && sr.getUser().getKeycloakId() != null) {
+            notificationService.sendByOrgId(sr.getUser().getKeycloakId(), key, title, msg,
+                "/service-requests/" + sr.getId(), orgId);
+        }
     }
 
 }

@@ -17,22 +17,15 @@ const PaymentCancel: React.FC = () => {
             Paiement annulé
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Le paiement a été annulé. L'intervention n'a pas été créée.
+            Le paiement a ete annule. Vous pouvez reessayer depuis la page de facturation.
           </Typography>
           <Button
             variant="contained"
             color="primary"
             startIcon={<ArrowBack />}
-            onClick={() => navigate('/interventions/new')}
+            onClick={() => navigate('/billing')}
           >
-            Réessayer
-          </Button>
-          <Button
-            variant="outlined"
-            sx={{ ml: 2 }}
-            onClick={() => navigate('/interventions')}
-          >
-            Retour aux interventions
+            Retour a la facturation
           </Button>
         </CardContent>
       </Card>

@@ -279,6 +279,20 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
             @Param("orgId") Long orgId);
 
     /**
+     * Compter les interventions actives d'une equipe sur un creneau, TOUTES organisations confondues.
+     * Indispensable pour les equipes SYSTEM qui servent plusieurs organisations :
+     * verifier la vraie disponibilite globale, pas juste au sein d'une seule org.
+     */
+    @Query("SELECT COUNT(i) FROM Intervention i WHERE i.teamId = :teamId " +
+           "AND i.status IN :activeStatuses " +
+           "AND i.scheduledDate >= :rangeStart AND i.scheduledDate < :rangeEnd")
+    long countActiveByTeamIdAndDateRangeAnyOrg(
+            @Param("teamId") Long teamId,
+            @Param("activeStatuses") List<InterventionStatus> activeStatuses,
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd);
+
+    /**
      * Compter les interventions actives d'un utilisateur sur un creneau donne.
      * Utilise pour la detection de conflits par membre d'equipe.
      */

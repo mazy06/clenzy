@@ -76,9 +76,10 @@ export interface OrganizationsListHandle {
 interface OrganizationsListProps {
   embedded?: boolean;
   actionsContainer?: HTMLElement | null;
+  filtersContainer?: HTMLElement | null;
 }
 
-const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListProps>(({ embedded = false, actionsContainer }, ref) => {
+const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListProps>(({ embedded = false, actionsContainer, filtersContainer }, ref) => {
   const [organizations, setOrganizations] = useState<OrganizationDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -277,29 +278,33 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
         </Grid>
       </Box>
 
-      {/* Filtres et recherche */}
-      <FilterSearchBar
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Rechercher une organisation..."
-        filters={{
-          type: {
-            value: selectedType,
-            options: [
-              { value: 'all', label: 'Tous les types' },
-              ...orgTypes.map(t => ({ value: t.value, label: t.label })),
-            ],
-            onChange: setSelectedType,
-            label: 'Type',
-          },
-        }}
-        counter={{
-          label: 'organisation',
-          count: filteredOrgs.length,
-          singular: '',
-          plural: 's',
-        }}
-      />
+      {/* Portal filters into parent's PageHeader */}
+      {filtersContainer && createPortal(
+        <FilterSearchBar
+          bare
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Rechercher une organisation..."
+          filters={{
+            type: {
+              value: selectedType,
+              options: [
+                { value: 'all', label: 'Tous les types' },
+                ...orgTypes.map(t => ({ value: t.value, label: t.label })),
+              ],
+              onChange: setSelectedType,
+              label: 'Type',
+            },
+          }}
+          counter={{
+            label: 'organisation',
+            count: filteredOrgs.length,
+            singular: '',
+            plural: 's',
+          }}
+        />,
+        filtersContainer,
+      )}
 
       {/* Liste des organisations */}
       <Grid container spacing={2}>

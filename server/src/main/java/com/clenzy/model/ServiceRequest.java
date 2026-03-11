@@ -119,7 +119,18 @@ public class ServiceRequest {
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
-    
+
+    // ── Auto-assignation retry ──────────────────────────────────────────────────
+
+    @Column(name = "auto_assign_retry_count")
+    private Integer autoAssignRetryCount = 0;
+
+    @Column(name = "last_auto_assign_attempt")
+    private LocalDateTime lastAutoAssignAttempt;
+
+    @Column(name = "auto_assign_status", length = 20)
+    private String autoAssignStatus; // null | "searching" | "found" | "exhausted"
+
     @OneToMany(mappedBy = "serviceRequest", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Intervention> interventions = new HashSet<>();
     
@@ -355,6 +366,15 @@ public class ServiceRequest {
 
     public LocalDateTime getPaidAt() { return paidAt; }
     public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
+
+    public Integer getAutoAssignRetryCount() { return autoAssignRetryCount; }
+    public void setAutoAssignRetryCount(Integer autoAssignRetryCount) { this.autoAssignRetryCount = autoAssignRetryCount; }
+
+    public LocalDateTime getLastAutoAssignAttempt() { return lastAutoAssignAttempt; }
+    public void setLastAutoAssignAttempt(LocalDateTime lastAutoAssignAttempt) { this.lastAutoAssignAttempt = lastAutoAssignAttempt; }
+
+    public String getAutoAssignStatus() { return autoAssignStatus; }
+    public void setAutoAssignStatus(String autoAssignStatus) { this.autoAssignStatus = autoAssignStatus; }
 
     // Méthodes utilitaires
     public boolean isPending() {

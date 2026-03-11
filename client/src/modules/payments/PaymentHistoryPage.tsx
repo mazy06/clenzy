@@ -39,12 +39,15 @@ import {
   Payment as PaymentIcon,
   AutoAwesome as SparkleIcon,
   Hotel as HotelIcon,
+  Assignment as AssignmentIcon,
+  Send as SendIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { paymentsApi } from '../../services/api/paymentsApi';
 import type { PaymentRecord, PaymentSummary, HostOption } from '../../services/api/paymentsApi';
+import { reservationsApi } from '../../services/api/reservationsApi';
 import PageHeader from '../../components/PageHeader';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 import PaymentCheckoutModal from '../../components/PaymentCheckoutModal';
@@ -114,6 +117,13 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
   // Payment processing state (kept for compatibility)
   const [processingPayment, setProcessingPayment] = useState<number | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
+
+  // Send payment link state (reservations)
+  const [sendingPaymentLink, setSendingPaymentLink] = useState<number | null>(null);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailDialogTarget, setEmailDialogTarget] = useState<PaymentRecord | null>(null);
+  const [emailInput, setEmailInput] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   // Refund state
   const [refundingPayment, setRefundingPayment] = useState<number | null>(null);
@@ -216,6 +226,57 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     loadData(); // Recharger la liste apres paiement
   };
 
+  const openEmailDialog = (payment: PaymentRecord) => {
+    setEmailDialogTarget(payment);
+    setEmailInput(payment.guestEmail || '');
+    setEmailError(null);
+    setEmailDialogOpen(true);
+  };
+
+  const handleSendPaymentLink = (payment: PaymentRecord) => {
+    if (!payment.guestEmail) {
+      // Pas d'email connu → ouvrir la modale de saisie
+      openEmailDialog(payment);
+    } else {
+      // Email disponible → envoyer directement
+      doSendPaymentLink(payment, payment.guestEmail);
+    }
+  };
+
+  const doSendPaymentLink = async (payment: PaymentRecord, email?: string) => {
+    try {
+      setSendingPaymentLink(payment.referenceId);
+      setPayError(null);
+      await reservationsApi.sendPaymentLink(payment.referenceId, email || undefined);
+      setEmailDialogOpen(false);
+      setEmailDialogTarget(null);
+      loadData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erreur lors de l'envoi du lien de paiement";
+      // Fallback : si l'erreur concerne l'email manquant, ouvrir la modale
+      if (!emailDialogOpen && msg.toLowerCase().includes('email')) {
+        openEmailDialog(payment);
+      } else if (emailDialogOpen) {
+        setEmailError(msg);
+      } else {
+        setPayError(msg);
+      }
+    } finally {
+      setSendingPaymentLink(null);
+    }
+  };
+
+  const handleEmailDialogConfirm = () => {
+    if (!emailDialogTarget) return;
+    const trimmed = emailInput.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError('Veuillez saisir une adresse email valide');
+      return;
+    }
+    setEmailError(null);
+    doSendPaymentLink(emailDialogTarget, trimmed);
+  };
+
   const handleRefundClick = (payment: PaymentRecord) => {
     setRefundTarget(payment);
     setRefundDialogOpen(true);
@@ -302,13 +363,30 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
 
   const getTypeChip = (payment: PaymentRecord) => {
     const hex = statusColor(payment.status); // same color as status
-    const isResa = payment.type === 'RESERVATION';
+    if (payment.type === 'RESERVATION') {
+      return (
+        <Chip
+          icon={<HotelIcon sx={{ fontSize: '14px !important' }} />}
+          label="Reservation"
+          size="small"
+          sx={chipSx(hex)}
+        />
+      );
+    }
+    if (payment.type === 'SERVICE_REQUEST') {
+      return (
+        <Chip
+          icon={<AssignmentIcon sx={{ fontSize: '14px !important' }} />}
+          label="Demande"
+          size="small"
+          sx={chipSx(hex)}
+        />
+      );
+    }
     return (
       <Chip
-        icon={isResa
-          ? <HotelIcon sx={{ fontSize: '14px !important' }} />
-          : <SparkleIcon sx={{ fontSize: '14px !important' }} />}
-        label={isResa ? 'Reservation' : 'Intervention'}
+        icon={<SparkleIcon sx={{ fontSize: '14px !important' }} />}
+        label="Intervention"
         size="small"
         sx={chipSx(hex)}
       />
@@ -379,13 +457,144 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
 
   return (
     <Box>
-      {/* Header */}
+      {/* Header + Filters */}
       {!embedded && (
         <PageHeader
           title={t('payments.history.title')}
           subtitle={t('payments.history.subtitle')}
           backPath="/dashboard"
           showBackButton={true}
+          filters={
+            <>
+              <TextField
+                size="small"
+                placeholder={t('payments.history.search')}
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ mr: 1, color: C.textSecondary, fontSize: 18 }} />,
+                }}
+                sx={{
+                  minWidth: 200,
+                  flex: 1,
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '0.8125rem',
+                    borderRadius: '8px',
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+                  },
+                }}
+              />
+              <TextField
+                select
+                size="small"
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
+                sx={{
+                  minWidth: 150,
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '0.8125rem',
+                    borderRadius: '8px',
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+                  },
+                  '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
+                }}
+                label={t('payments.history.status')}
+              >
+                <MenuItem value="" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.allStatuses')}</MenuItem>
+                <MenuItem value="PAID" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.paid')}</MenuItem>
+                <MenuItem value="PENDING" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.pending')}</MenuItem>
+                <MenuItem value="PROCESSING" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.processing')}</MenuItem>
+                <MenuItem value="FAILED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.failed')}</MenuItem>
+                <MenuItem value="REFUNDED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.refunded')}</MenuItem>
+                <MenuItem value="CANCELLED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.cancelled')}</MenuItem>
+              </TextField>
+
+              {/* Host filter — ADMIN/MANAGER only */}
+              {isAdminOrManager && (
+                <TextField
+                  select
+                  size="small"
+                  value={hostFilter}
+                  onChange={(e) => { setHostFilter(e.target.value ? Number(e.target.value) : ''); setPage(0); }}
+                  sx={{
+                    minWidth: 180,
+                    '& .MuiOutlinedInput-root': {
+                      fontSize: '0.8125rem',
+                      borderRadius: '8px',
+                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+                    },
+                    '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
+                  }}
+                  label={t('payments.history.filterByHost')}
+                >
+                  <MenuItem value="" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.allHosts')}</MenuItem>
+                  {hostsList.map((host) => (
+                    <MenuItem key={host.id} value={host.id} sx={{ fontSize: '0.8125rem' }}>
+                      {host.fullName}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
+
+              <TextField
+                size="small"
+                type="date"
+                label={t('payments.history.dateFrom')}
+                value={dateFrom}
+                onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  minWidth: 140,
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '0.8125rem',
+                    borderRadius: '8px',
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+                  },
+                  '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
+                }}
+              />
+              <TextField
+                size="small"
+                type="date"
+                label={t('payments.history.dateTo')}
+                value={dateTo}
+                onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  minWidth: 140,
+                  '& .MuiOutlinedInput-root': {
+                    fontSize: '0.8125rem',
+                    borderRadius: '8px',
+                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
+                  },
+                  '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
+                }}
+              />
+              {hasActiveFilters && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<ClearIcon sx={{ fontSize: 16 }} />}
+                  onClick={handleClearFilters}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.8125rem',
+                    borderColor: C.gray200,
+                    color: C.textSecondary,
+                    borderRadius: '8px',
+                    '&:hover': { borderColor: C.primary, color: C.primary },
+                  }}
+                >
+                  {t('payments.history.clearFilters')}
+                </Button>
+              )}
+            </>
+          }
         />
       )}
 
@@ -429,148 +638,6 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
           </Card>
         ))}
       </Box>
-
-      {/* Filters */}
-      <Paper
-        sx={{
-          p: 1.5,
-          mb: 2,
-          display: 'flex',
-          gap: 1.5,
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          borderRadius: '12px',
-          boxShadow: '0 1px 4px rgba(107,138,154,0.10)',
-        }}
-      >
-        <TextField
-          size="small"
-          placeholder={t('payments.history.search')}
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          InputProps={{
-            startAdornment: <SearchIcon sx={{ mr: 1, color: C.textSecondary, fontSize: 18 }} />,
-          }}
-          sx={{
-            minWidth: 200,
-            flex: 1,
-            '& .MuiOutlinedInput-root': {
-              fontSize: '0.8125rem',
-              borderRadius: '8px',
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
-            },
-          }}
-        />
-        <TextField
-          select
-          size="small"
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-          sx={{
-            minWidth: 150,
-            '& .MuiOutlinedInput-root': {
-              fontSize: '0.8125rem',
-              borderRadius: '8px',
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
-            },
-            '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
-          }}
-          label={t('payments.history.status')}
-        >
-          <MenuItem value="" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.allStatuses')}</MenuItem>
-          <MenuItem value="PAID" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.paid')}</MenuItem>
-          <MenuItem value="PENDING" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.pending')}</MenuItem>
-          <MenuItem value="PROCESSING" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.processing')}</MenuItem>
-          <MenuItem value="FAILED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.failed')}</MenuItem>
-          <MenuItem value="REFUNDED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.refunded')}</MenuItem>
-          <MenuItem value="CANCELLED" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.cancelled')}</MenuItem>
-        </TextField>
-
-        {/* Host filter — ADMIN/MANAGER only */}
-        {isAdminOrManager && (
-          <TextField
-            select
-            size="small"
-            value={hostFilter}
-            onChange={(e) => { setHostFilter(e.target.value ? Number(e.target.value) : ''); setPage(0); }}
-            sx={{
-              minWidth: 180,
-              '& .MuiOutlinedInput-root': {
-                fontSize: '0.8125rem',
-                borderRadius: '8px',
-                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
-              },
-              '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
-            }}
-            label={t('payments.history.filterByHost')}
-          >
-            <MenuItem value="" sx={{ fontSize: '0.8125rem' }}>{t('payments.history.allHosts')}</MenuItem>
-            {hostsList.map((host) => (
-              <MenuItem key={host.id} value={host.id} sx={{ fontSize: '0.8125rem' }}>
-                {host.fullName}
-              </MenuItem>
-            ))}
-          </TextField>
-        )}
-
-        <TextField
-          size="small"
-          type="date"
-          label={t('payments.history.dateFrom')}
-          value={dateFrom}
-          onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
-          InputLabelProps={{ shrink: true }}
-          sx={{
-            minWidth: 140,
-            '& .MuiOutlinedInput-root': {
-              fontSize: '0.8125rem',
-              borderRadius: '8px',
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
-            },
-            '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
-          }}
-        />
-        <TextField
-          size="small"
-          type="date"
-          label={t('payments.history.dateTo')}
-          value={dateTo}
-          onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
-          InputLabelProps={{ shrink: true }}
-          sx={{
-            minWidth: 140,
-            '& .MuiOutlinedInput-root': {
-              fontSize: '0.8125rem',
-              borderRadius: '8px',
-              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: C.primaryLight },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: C.primary },
-            },
-            '& .MuiInputLabel-root': { fontSize: '0.8125rem' },
-          }}
-        />
-        {hasActiveFilters && (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<ClearIcon sx={{ fontSize: 16 }} />}
-            onClick={handleClearFilters}
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.8125rem',
-              borderColor: C.gray200,
-              color: C.textSecondary,
-              borderRadius: '8px',
-              '&:hover': { borderColor: C.primary, color: C.primary },
-            }}
-          >
-            {t('payments.history.clearFilters')}
-          </Button>
-        )}
-      </Paper>
 
       {/* Data table */}
       <DataFetchWrapper
@@ -645,10 +712,11 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
             </TableHead>
             <TableBody>
               {payments.map((payment) => {
-                const isResa = payment.type === 'RESERVATION';
-                const detailPath = isResa
+                const detailPath = payment.type === 'RESERVATION'
                   ? `/reservations/${payment.referenceId}`
-                  : `/interventions/${payment.referenceId}`;
+                  : payment.type === 'SERVICE_REQUEST'
+                    ? `/service-requests/${payment.referenceId}`
+                    : `/interventions/${payment.referenceId}`;
                 return (
                 <TableRow
                   key={`${payment.type}-${payment.id}`}
@@ -684,7 +752,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                   <TableCell>{getStatusChip(payment.status)}</TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                      <Tooltip title={isResa ? 'Voir la reservation' : t('payments.history.viewIntervention')}>
+                      <Tooltip title={payment.type === 'RESERVATION' ? 'Voir la reservation' : payment.type === 'SERVICE_REQUEST' ? 'Voir la demande' : t('payments.history.viewIntervention')}>
                         <IconButton
                           size="small"
                           onClick={(e) => {
@@ -696,8 +764,36 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                           <VisibilityIcon sx={{ fontSize: 18 }} />
                         </IconButton>
                       </Tooltip>
-                      {!isResa && (payment.status === 'PENDING' || payment.status === 'PROCESSING') && (
-                        <Tooltip title="Payer cette intervention">
+                      {payment.type === 'RESERVATION' && (payment.status === 'PENDING' || payment.status === 'PROCESSING') && (
+                        <Tooltip title="Envoyer le lien de paiement par email">
+                          <span>
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSendPaymentLink(payment);
+                              }}
+                              disabled={sendingPaymentLink === payment.referenceId}
+                              sx={{
+                                color: C.white,
+                                bgcolor: C.info,
+                                width: 28,
+                                height: 28,
+                                '&:hover': { bgcolor: theme.palette.info.dark },
+                                '&:disabled': { bgcolor: theme.palette.info.light, color: C.white, opacity: 0.6 },
+                              }}
+                            >
+                              {sendingPaymentLink === payment.referenceId ? (
+                                <CircularProgress size={14} sx={{ color: C.white }} />
+                              ) : (
+                                <SendIcon sx={{ fontSize: 16 }} />
+                              )}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      )}
+                      {payment.type !== 'RESERVATION' && (payment.status === 'PENDING' || payment.status === 'PROCESSING') && (
+                        <Tooltip title={payment.type === 'SERVICE_REQUEST' ? 'Payer cette demande' : 'Payer cette intervention'}>
                           <span>
                             <IconButton
                               size="small"
@@ -724,7 +820,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                           </span>
                         </Tooltip>
                       )}
-                      {isAdminOrManager && !isResa && payment.status === 'PAID' && (
+                      {isAdminOrManager && payment.type === 'INTERVENTION' && payment.status === 'PAID' && (
                         <Tooltip title="Rembourser">
                           <span>
                             <IconButton
@@ -787,7 +883,8 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
           open={paymentModalOpen}
           onClose={() => { setPaymentModalOpen(false); setPaymentTarget(null); }}
           onSuccess={handlePaymentSuccess}
-          interventionId={paymentTarget.referenceId}
+          interventionId={paymentTarget.type === 'SERVICE_REQUEST' ? undefined : paymentTarget.referenceId}
+          serviceRequestId={paymentTarget.type === 'SERVICE_REQUEST' ? paymentTarget.referenceId : undefined}
           amount={paymentTarget.amount}
           interventionTitle={paymentTarget.description}
         />
@@ -837,6 +934,65 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
             sx={{ textTransform: 'none' }}
           >
             {refundingPayment !== null ? <CircularProgress size={18} /> : 'Rembourser'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de saisie d'email pour envoi du lien de paiement */}
+      <Dialog
+        open={emailDialogOpen}
+        onClose={() => { setEmailDialogOpen(false); setEmailDialogTarget(null); setEmailError(null); }}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ pb: 1, fontSize: '1rem', fontWeight: 600 }}>
+          Email du client
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+            Aucune adresse email n'est renseignée pour cette réservation. Veuillez saisir l'email du client pour envoyer le lien de paiement.
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            size="small"
+            type="email"
+            label="Adresse email"
+            placeholder="guest@example.com"
+            value={emailInput}
+            onChange={(e) => { setEmailInput(e.target.value); setEmailError(null); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleEmailDialogConfirm(); }}
+            error={!!emailError}
+            helperText={emailError}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                fontSize: '0.875rem',
+                borderRadius: '8px',
+              },
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => { setEmailDialogOpen(false); setEmailDialogTarget(null); setEmailError(null); }}
+            size="small"
+            sx={{ textTransform: 'none' }}
+          >
+            Annuler
+          </Button>
+          <Button
+            onClick={handleEmailDialogConfirm}
+            variant="contained"
+            size="small"
+            disabled={sendingPaymentLink !== null}
+            sx={{
+              textTransform: 'none',
+              bgcolor: C.info,
+              '&:hover': { bgcolor: theme.palette.info.dark },
+            }}
+          >
+            {sendingPaymentLink !== null ? <CircularProgress size={18} /> : 'Envoyer'}
           </Button>
         </DialogActions>
       </Dialog>

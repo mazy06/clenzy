@@ -580,3 +580,19 @@ databaseChangeLog:
       sqlFile:
         path: changes/0065__migrate_assigned_to_awaiting_payment.sql
         relativeToChangelogFile: true
+
+  # --- 0066 : Auto-assignment improvements ---
+  - changeSet:
+      id: "0066-auto-assignment-improvements"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0066__auto_assignment_improvements.sql
+        relativeToChangelogFile: true
+
+  # --- 0067 : Add auto-assign notification keys ---
+  - changeSet:
+      id: "0067-add-auto-assign-notification-keys"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0067__add_auto_assign_notification_keys.sql
+        relativeToChangelogFile: true

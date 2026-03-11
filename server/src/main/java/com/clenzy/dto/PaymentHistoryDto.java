@@ -20,6 +20,7 @@ public class PaymentHistoryDto {
     public String createdAt;
     public String hostName;           // Nom du requestor / guest
     public Long hostId;               // ID du requestor (null pour reservations)
+    public String guestEmail;         // Email du guest (reservations uniquement)
 
     // Backward-compat aliases — the frontend may still read these for a brief period
     /** @deprecated use referenceId */

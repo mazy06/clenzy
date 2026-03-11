@@ -82,7 +82,7 @@ const ContactPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ width: '100%', height: 'calc(100vh - 56px - 32px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <Box sx={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <PageHeader
         title={t('contact.title')}
         subtitle={t('contact.subtitle')}

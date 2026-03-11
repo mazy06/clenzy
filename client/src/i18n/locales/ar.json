@@ -79,6 +79,7 @@
     "invoices": "الفواتير",
     "wallets": "المحفظة",
     "channels": "القنوات",
+    "contracts": "عقود الإدارة",
     "messaging": "المراسلة",
     "messageTemplates": "القوالب",
     "messageHistory": "السجل"
@@ -182,7 +183,9 @@
       "adrTooltip": "Average Daily Rate — إجمالي الإيرادات / الليالي المشغولة",
       "occupancyRate": "معدل الإشغال",
       "occupancyTooltip": "الليالي المشغولة / الليالي المتاحة خلال الفترة",
+      "occupancySubtitle": "ليالي مشغولة مقابل المتاحة",
       "totalRevenue": "إجمالي الإيرادات",
+      "totalRevenueSubtitle": "الإيرادات خلال الفترة",
       "netMargin": "هامش الربح الصافي",
       "roiTooltip": "Return On Investment — (الإيرادات - التكاليف) / التكاليف",
       "avgStay": "متوسط مدة الإقامة",
@@ -280,6 +283,136 @@
       "month": "30 يوم",
       "quarter": "90 يوم",
       "year": "سنة"
+    },
+    "overview": {
+      "kpisTitle": "المؤشرات الرئيسية",
+      "kpisSubtitle": "أداء محفظتك خلال الفترة",
+      "revenueOverview": "نظرة عامة على الإيرادات",
+      "total": "الإجمالي",
+      "commandCenterTitle": "مركز القيادة",
+      "commandCenterSubtitle": "التخطيط والإجراءات والتوصيات"
+    },
+    "contractCta": {
+      "title": "فعّل العمولات التراجعية",
+      "subtitle": "أنشئ عقد إدارة لتقسيم الإيرادات تلقائيًا بين المالك والكونسيرجري والمنصة.",
+      "benefit1": "تقسيم تلقائي للإيرادات عند كل حجز",
+      "benefit2": "تتبع شفاف للعمولات في المحافظ",
+      "benefit3": "معدل عمولة قابل للتخصيص لكل عقار",
+      "cta": "إنشاء عقد إدارة"
+    },
+    "miniPlanning": {
+      "title": "تخطيط 7 أيام",
+      "viewAll": "عرض الكل",
+      "noProperties": "لا توجد عقارات مُعدّة",
+      "legend": {
+        "reservation": "حجز",
+        "cleaning": "تنظيف",
+        "maintenance": "صيانة"
+      },
+      "days": {
+        "sun": "أحد",
+        "mon": "إثن",
+        "tue": "ثلا",
+        "wed": "أرب",
+        "thu": "خمي",
+        "fri": "جمع",
+        "sat": "سبت"
+      }
+    },
+    "actionCounters": {
+      "urgencies": "حالات طوارئ",
+      "pendingPayments": "مدفوعات معلقة",
+      "pendingRequests": "الطلبات",
+      "todayInterventions": "اليوم"
+    },
+    "commandRecommendations": {
+      "title": "التوصيات",
+      "noRecommendations": "لا توجد توصيات متاحة"
+    },
+    "emptyState": {
+      "title": "مرحباً بك في Clenzy!",
+      "description": "ابدأ بإنشاء عقارك الأول لفتح جميع ميزات لوحة التحكم.",
+      "cta": "إنشاء عقاري الأول"
+    },
+    "onboarding": {
+      "title": "الإعداد الأولي",
+      "progress": "{{completed}}/{{total}} خطوات مكتملة",
+      "createProperty": "إنشاء عقارك الأول",
+      "configureDetails": "تكوين تفاصيل العقار",
+      "definePricing": "تحديد التسعير",
+      "connectChannels": "ربط قنوات الحجز",
+      "skipForNow": "لاحقاً",
+      "reshow": "إظهار الإعداد الأولي مرة أخرى",
+      "reshowShort": "الإعداد"
+    },
+    "channelHealth": {
+      "title": "قنوات الحجز",
+      "noChannels": "لم يتم ربط أي قناة. قم بمزامنة حجوزاتك من Airbnb و Booking وغيرها.",
+      "connect": "ربط قناة",
+      "manage": "إدارة القنوات",
+      "errorCount": "{{count}} قناة/قنوات بها أخطاء",
+      "connected": "متصل",
+      "notConnected": "غير متصل",
+      "syncError": "خطأ في المزامنة",
+      "lastSync": "آخر مزامنة"
+    },
+    "tips": {
+      "title": "هل تعلم؟",
+      "automateCleaning": {
+        "title": "أتمت التنظيف",
+        "desc": "أنشئ تدخلات تلقائية عند كل مغادرة حتى لا تنسى أي عملية تنظيف.",
+        "action": "عرض التدخلات"
+      },
+      "contracts": {
+        "title": "تقاسم الإيرادات",
+        "desc": "مع عقد إدارة، يتم تقسيم الإيرادات تلقائيًا بين المالك والكونسيرجري.",
+        "action": "إنشاء عقد"
+      },
+      "planning": {
+        "title": "التخطيط التفاعلي",
+        "desc": "اعرض جميع حجوزاتك وتدخلاتك في تقويم موحد.",
+        "action": "فتح التخطيط"
+      },
+      "channels": {
+        "title": "مزامنة متعددة القنوات",
+        "desc": "اربط Airbnb و Booking ومنصات أخرى لتجميع جميع حجوزاتك.",
+        "action": "ربط قناة"
+      },
+      "noise": {
+        "title": "مراقبة الضوضاء",
+        "desc": "راقب مستويات الصوت في عقاراتك في الوقت الفعلي واستقبل تنبيهات تلقائية.",
+        "action": "اكتشف"
+      },
+      "smartLocks": {
+        "title": "الأقفال الذكية",
+        "desc": "أدر الوصول عن بُعد وأنشئ رموزًا مؤقتة لكل حجز.",
+        "action": "اكتشف"
+      },
+      "reports": {
+        "title": "التقارير والتحليلات",
+        "desc": "حلل أداءك: معدلات الإشغال، الإيرادات، تكاليف التدخل والمزيد.",
+        "action": "عرض التقارير"
+      },
+      "teams": {
+        "title": "إدارة الفرق",
+        "desc": "نظّم فرقك حسب التخصص وعيّنها تلقائيًا للتدخلات.",
+        "action": "إدارة الفرق"
+      },
+      "billing": {
+        "title": "الفوترة المركزية",
+        "desc": "تتبع جميع المدفوعات وأنشئ الفواتير وأدر المحافظ من مكان واحد.",
+        "action": "عرض الفوترة"
+      }
+    },
+    "services": {
+      "title": "الخدمات المتصلة",
+      "noise": "مراقبة الضوضاء",
+      "locks": "الأقفال الذكية",
+      "keys": "إدارة المفاتيح",
+      "noiseCta": "إعداد",
+      "locksCta": "إعداد",
+      "keysCta": "إعداد",
+      "active": "نشط"
     },
     "activityFeed": {
       "title": "النشاط الأخير",
@@ -818,6 +951,7 @@
       "pending": "قيد الانتظار",
       "approved": "موافق عليه",
       "devisAccepted": "تم قبول عرض السعر",
+      "awaitingPayment": "في انتظار الدفع",
       "inProgress": "قيد التنفيذ",
       "completed": "مكتمل",
       "cancelled": "ملغى",
@@ -1522,7 +1656,74 @@
       "light": "فاتح",
       "dark": "داكن",
       "auto": "تلقائي"
+    },
+    "split": {
+      "title": "توزيع الإيرادات",
+      "subtitle": "إعداد توزيع المدفوعات بين المالك والمنصة والكونسيرج.",
+      "ownerShare": "حصة المالك",
+      "platformShare": "حصة المنصة",
+      "conciergeShare": "حصة الكونسيرج",
+      "currentRatios": "التوزيع الحالي",
+      "save": "حفظ التوزيع",
+      "saved": "تم حفظ التوزيع بنجاح",
+      "error": "خطأ في حفظ التوزيع",
+      "totalError": "يجب أن يكون المجموع 100%",
+      "configName": "الإعداد الافتراضي",
+      "noConfig": "لم يتم العثور على إعداد. سيتم استخدام القيم الافتراضية.",
+      "defaults": "القيم الافتراضية: المالك 80%، المنصة 5%، الكونسيرج 15%"
     }
+  },
+  "contracts": {
+    "title": "عقود الإدارة",
+    "subtitle": "إدارة العقود بين الملاك وخدمات الكونسيرج لحساب العمولات تلقائياً",
+    "create": "عقد جديد",
+    "createTitle": "إنشاء عقد إدارة",
+    "editTitle": "تعديل العقد",
+    "createFirst": "أنشئ عقدك الأول",
+    "noContracts": "لا توجد عقود إدارة. سيتم تقسيم المدفوعات بين المالك والمنصة فقط.",
+    "allStatuses": "الكل",
+    "contractNumber": "رقم العقد",
+    "property": "العقار",
+    "owner": "المالك",
+    "type": "النوع",
+    "commission": "العمولة",
+    "commissionRate": "نسبة العمولة",
+    "commissionHelper": "النسبة الإجمالية المقتطعة من الإيرادات (منصة + كونسيرج)",
+    "period": "الفترة",
+    "status": "الحالة",
+    "actions": "الإجراءات",
+    "startDate": "تاريخ البداية",
+    "endDate": "تاريخ الانتهاء",
+    "endDateHelper": "اتركه فارغاً لعقد غير محدد المدة",
+    "minStayNights": "الحد الأدنى للإقامة (ليالي)",
+    "noticePeriodDays": "فترة الإشعار",
+    "days": "أيام",
+    "autoRenew": "تجديد تلقائي",
+    "cleaningIncluded": "التنظيف مشمول",
+    "maintenanceIncluded": "الصيانة مشمولة",
+    "notes": "ملاحظات",
+    "splitPreview": "معاينة التقسيم:",
+    "ownerGets": "المالك",
+    "platformGets": "المنصة",
+    "conciergeGets": "الكونسيرج",
+    "activate": "تفعيل",
+    "suspend": "تعليق",
+    "terminate": "إنهاء",
+    "edit": "تعديل",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "terminateTitle": "إنهاء العقد",
+    "terminateWarning": "الإنهاء لا رجعة فيه. سيتم تغيير حالة العقد إلى 'منتهي' ولن يحصل الكونسيرج على عمولات من هذا العقار بعد الآن.",
+    "terminateReason": "سبب الإنهاء",
+    "confirmTerminate": "تأكيد الإنهاء",
+    "created": "تم إنشاء العقد بنجاح",
+    "updated": "تم تحديث العقد",
+    "activated": "تم تفعيل العقد — التقسيم الثلاثي نشط الآن لهذا العقار",
+    "suspended": "تم تعليق العقد",
+    "terminated": "تم إنهاء العقد",
+    "errorLoading": "خطأ في تحميل العقود",
+    "errorSaving": "خطأ في حفظ العقد",
+    "errorAction": "خطأ في تنفيذ الإجراء"
   },
   "offline": {
     "banner": "أنت غير متصل بالإنترنت. قد لا تتوفر بعض الوظائف.",
@@ -2391,6 +2592,25 @@
       "PAID": "مدفوعة",
       "CANCELLED": "ملغاة",
       "CREDIT_NOTE": "إشعار دائن"
+    }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "allRead": "لا توجد إشعارات جديدة",
+    "unread": "غير مقروءة",
+    "markAllRead": "تحديد الكل كمقروء",
+    "empty": "لا توجد إشعارات",
+    "emptyFilter": "لا توجد إشعارات في هذه الفئة.",
+    "emptyAll": "ليس لديك أي إشعارات حالياً.",
+    "tabs": {
+      "all": "الكل",
+      "unread": "غير مقروءة",
+      "interventions": "التدخلات",
+      "requests": "الطلبات",
+      "payments": "المدفوعات",
+      "system": "النظام",
+      "contact": "جهات الاتصال",
+      "document": "المستندات"
     }
   },
   "fiscal": {
