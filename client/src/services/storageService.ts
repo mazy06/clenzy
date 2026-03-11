@@ -38,6 +38,12 @@ export const STORAGE_KEYS = {
 
   // Cross-tab sync
   TOKEN_UPDATE: 'clenzy_token_update',
+
+  // Onboarding checklist dismissed
+  ONBOARDING_DISMISSED: 'clenzy_onboarding_dismissed',
+
+  // Contract CTA banner dismissed
+  CONTRACT_CTA_DISMISSED: 'clenzy_contract_cta_dismissed',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

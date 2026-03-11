@@ -113,6 +113,9 @@ import OwnerPortalPage from './owner-portal/OwnerPortalPage';
 // Automation Rules
 import AutomationRulesPage from './automation/AutomationRulesPage';
 
+// Management Contracts
+import ManagementContractsPage from './contracts/ManagementContractsPage';
+
 // InvoicesList import removed — now embedded in BillingPage
 
 
@@ -405,6 +408,15 @@ const AuthenticatedApp: React.FC = () => {
           <ProtectedRoute requiredPermission="properties:view">
             <ErrorBoundary>
               <ReviewsPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        {/* Management Contracts */}
+        <Route path="/contracts" element={
+          <ProtectedRoute requiredPermission="payments:manage">
+            <ErrorBoundary>
+              <ManagementContractsPage />
             </ErrorBoundary>
           </ProtectedRoute>
         } />

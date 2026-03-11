@@ -42,6 +42,8 @@ const DEFAULT_CONFIG: PricingConfig = {
   minPrice: 50,
   pmsMonthlyPriceCents: 500,
   pmsSyncPriceCents: 1000,
+  pmsPerSeatPriceCents: 1000,
+  pmsFreeSeats: 1,
   automationBasicSurcharge: 0,
   automationFullSurcharge: 0,
   forfaitConfigs: [],

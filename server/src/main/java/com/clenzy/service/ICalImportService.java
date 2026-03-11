@@ -212,7 +212,9 @@ public class ICalImportService {
                     String defaultCheckOut = property.getDefaultCheckOutTime() != null ? property.getDefaultCheckOutTime() : "11:00";
                     reservation.setCheckInTime(defaultCheckIn);
                     reservation.setCheckOutTime(defaultCheckOut);
-                    reservation.setStatus("confirmed");
+                    // Utiliser le statut parse depuis l'iCal (CONFIRMED/TENTATIVE/CANCELLED)
+                    // Si absent (la plupart des OTAs ne le fournissent pas), defaut = "pending"
+                    reservation.setStatus(event.getStatus() != null ? event.getStatus() : "pending");
                     reservation.setSource(sourceKey);
                     reservation.setSourceName(request.getSourceName());
                     reservation.setConfirmationCode(event.getConfirmationCode());

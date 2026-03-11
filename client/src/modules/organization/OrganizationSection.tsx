@@ -21,6 +21,7 @@ import { organizationsApi, OrganizationDto } from '../../services/api/organizati
 import SendInvitationDialog from './SendInvitationDialog';
 import InvitationsList from './InvitationsList';
 import MembersList from './MembersList';
+import BillingSummaryCard from './BillingSummaryCard';
 
 // ─── Labels FR pour les types d'organisation ─────────────────────────────────
 
@@ -209,6 +210,12 @@ export default function OrganizationSection({ organizationId, organizationName }
               organizationId={effectiveOrgId}
               refreshTrigger={refreshTrigger}
               onMemberChanged={triggerRefresh}
+            />
+
+            {/* Résumé de facturation per-seat */}
+            <BillingSummaryCard
+              organizationId={effectiveOrgId}
+              refreshTrigger={refreshTrigger}
             />
 
             <Divider sx={{ my: 2 }} />

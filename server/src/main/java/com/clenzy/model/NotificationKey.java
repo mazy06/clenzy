@@ -39,6 +39,9 @@ public enum NotificationKey {
     SERVICE_REQUEST_ASSIGNED(NotificationType.INFO, NotificationCategory.SERVICE_REQUEST, true),
     SERVICE_REQUEST_CANCELLED(NotificationType.WARNING, NotificationCategory.SERVICE_REQUEST, true),
     SERVICE_REQUEST_URGENT(NotificationType.ERROR, NotificationCategory.SERVICE_REQUEST, true),
+    SERVICE_REQUEST_NO_TEAM_AVAILABLE(NotificationType.WARNING, NotificationCategory.SERVICE_REQUEST, true),
+    SERVICE_REQUEST_ESCALATION(NotificationType.ERROR, NotificationCategory.SERVICE_REQUEST, true),
+    SERVICE_REQUEST_TEAM_ASSIGNED(NotificationType.SUCCESS, NotificationCategory.SERVICE_REQUEST, true),
 
     // ─── PAYMENT (10 cles) ──────────────────────────────────────────────────────
 

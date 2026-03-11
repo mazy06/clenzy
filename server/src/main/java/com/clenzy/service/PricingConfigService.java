@@ -61,6 +61,8 @@ public class PricingConfigService {
     private static final int DEFAULT_MIN_PRICE = 50;
     private static final int DEFAULT_PMS_MONTHLY_CENTS = 3000;  // 30€/mois
     private static final int DEFAULT_PMS_SYNC_CENTS = 1500;    // 15€/mois (synchro auto)
+    private static final int DEFAULT_PMS_PER_SEAT_CENTS = 1000; // 10€/mois par siège supplémentaire
+    private static final int DEFAULT_PMS_FREE_SEATS = 1;        // 1 siège inclus (propriétaire)
 
     // NOTE: DEFAULT_FORFAIT_CONFIGS, DEFAULT_TRAVAUX_CONFIG, DEFAULT_EXTERIEUR_CONFIG,
     // DEFAULT_BLANCHISSERIE_CONFIG, DEFAULT_COMMISSION_CONFIGS have been removed.
@@ -114,6 +116,12 @@ public class PricingConfigService {
         }
         if (dto.getPmsSyncPriceCents() != null && (dto.getPmsSyncPriceCents() < 0 || dto.getPmsSyncPriceCents() > 10_000_00)) {
             throw new IllegalArgumentException("pmsSyncPriceCents hors limites (0-1000000)");
+        }
+        if (dto.getPmsPerSeatPriceCents() != null && (dto.getPmsPerSeatPriceCents() < 0 || dto.getPmsPerSeatPriceCents() > 10_000_00)) {
+            throw new IllegalArgumentException("pmsPerSeatPriceCents hors limites (0-1000000)");
+        }
+        if (dto.getPmsFreeSeats() != null && (dto.getPmsFreeSeats() < 0 || dto.getPmsFreeSeats() > 1000)) {
+            throw new IllegalArgumentException("pmsFreeSeats hors limites (0-1000)");
         }
         // Validate coefficients are positive and reasonable (0.01 to 100.0)
         validateCoeffMap(dto.getPropertyTypeCoeffs(), "propertyTypeCoeffs");
@@ -193,6 +201,25 @@ public class PricingConfigService {
         return dto.getPmsSyncPriceCents() != null ? dto.getPmsSyncPriceCents() : DEFAULT_PMS_SYNC_CENTS;
     }
 
+    public int getPmsPerSeatPriceCents() {
+        PricingConfigDto dto = getCurrentConfig();
+        return dto.getPmsPerSeatPriceCents() != null ? dto.getPmsPerSeatPriceCents() : DEFAULT_PMS_PER_SEAT_CENTS;
+    }
+
+    public int getPmsFreeSeats() {
+        PricingConfigDto dto = getCurrentConfig();
+        return dto.getPmsFreeSeats() != null ? dto.getPmsFreeSeats() : DEFAULT_PMS_FREE_SEATS;
+    }
+
+    /**
+     * Calcule le coût mensuel PMS total en centimes pour un nombre de sièges donné.
+     * total = base + max(0, seatCount - freeSeats) × perSeatPrice
+     */
+    public int computeMonthlyPmsCostCents(int seatCount) {
+        int billableSeats = Math.max(0, seatCount - getPmsFreeSeats());
+        return getPmsMonthlyPriceCents() + (billableSeats * getPmsPerSeatPriceCents());
+    }
+
     // ─── Conversion: Entity -> DTO ─────────────────────────────────
 
     private PricingConfigDto toDto(PricingConfig entity) {
@@ -212,6 +239,8 @@ public class PricingConfigService {
 
         dto.setPmsMonthlyPriceCents(entity.getPmsMonthlyPriceCents() != null ? entity.getPmsMonthlyPriceCents() : DEFAULT_PMS_MONTHLY_CENTS);
         dto.setPmsSyncPriceCents(entity.getPmsSyncPriceCents() != null ? entity.getPmsSyncPriceCents() : DEFAULT_PMS_SYNC_CENTS);
+        dto.setPmsPerSeatPriceCents(entity.getPmsPerSeatPriceCents() != null ? entity.getPmsPerSeatPriceCents() : DEFAULT_PMS_PER_SEAT_CENTS);
+        dto.setPmsFreeSeats(entity.getPmsFreeSeats() != null ? entity.getPmsFreeSeats() : DEFAULT_PMS_FREE_SEATS);
 
         dto.setAutomationBasicSurcharge(entity.getAutomationBasicSurcharge() != null ? entity.getAutomationBasicSurcharge() : 0);
         dto.setAutomationFullSurcharge(entity.getAutomationFullSurcharge() != null ? entity.getAutomationFullSurcharge() : 0);
@@ -256,6 +285,8 @@ public class PricingConfigService {
 
         if (dto.getPmsMonthlyPriceCents() != null) entity.setPmsMonthlyPriceCents(dto.getPmsMonthlyPriceCents());
         if (dto.getPmsSyncPriceCents() != null) entity.setPmsSyncPriceCents(dto.getPmsSyncPriceCents());
+        if (dto.getPmsPerSeatPriceCents() != null) entity.setPmsPerSeatPriceCents(dto.getPmsPerSeatPriceCents());
+        if (dto.getPmsFreeSeats() != null) entity.setPmsFreeSeats(dto.getPmsFreeSeats());
 
         if (dto.getAutomationBasicSurcharge() != null) entity.setAutomationBasicSurcharge(dto.getAutomationBasicSurcharge());
         if (dto.getAutomationFullSurcharge() != null) entity.setAutomationFullSurcharge(dto.getAutomationFullSurcharge());
@@ -298,6 +329,8 @@ public class PricingConfigService {
         dto.setMinPrice(DEFAULT_MIN_PRICE);
         dto.setPmsMonthlyPriceCents(DEFAULT_PMS_MONTHLY_CENTS);
         dto.setPmsSyncPriceCents(DEFAULT_PMS_SYNC_CENTS);
+        dto.setPmsPerSeatPriceCents(DEFAULT_PMS_PER_SEAT_CENTS);
+        dto.setPmsFreeSeats(DEFAULT_PMS_FREE_SEATS);
         dto.setAutomationBasicSurcharge(0);
         dto.setAutomationFullSurcharge(0);
         // DB-driven lists — return empty (data will be seeded on first save)

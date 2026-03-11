@@ -10,6 +10,7 @@ import {
   useTheme,
 } from '@mui/material';
 import {
+  Dashboard as DashboardIcon,
   Calculate as CalculateIcon,
   VolumeUp as VolumeUpIcon,
   LockOutlined as LockOutlinedIcon,
@@ -25,6 +26,7 @@ import DashboardSmartLockTab from './DashboardSmartLockTab';
 import DashboardKeyExchangeTab from './DashboardKeyExchangeTab';
 import DashboardDateFilter from './DashboardDateFilter';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
+import DashboardOverview from './DashboardOverview';
 import UpgradeBanner from './UpgradeBanner';
 import { AnalyticsSimulator } from './analytics';
 import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';
@@ -97,9 +99,9 @@ const Dashboard: React.FC = () => {
     return t('dashboard.subtitle');
   };
 
-  // ─── Date filter: period chips on Simulator (tab 0), none on others
+  // ─── Date filter: period chips on Overview (tab 0) and Simulator (tab 4)
   const dateFilterElement = useMemo(() => {
-    if (tabValue === 0) {
+    if (tabValue === 0 || tabValue === 4) {
       return (
         <DashboardDateFilter<DashboardPeriod>
           value={period}
@@ -155,7 +157,7 @@ const Dashboard: React.FC = () => {
         />
       </Box>
 
-      {/* ─── Tabs (4 onglets : Simulateur / Nuisance sonore / Serrures / Clés) ── */}
+      {/* ─── Tabs (5 onglets : Vue d'ensemble / Nuisance sonore / Serrures / Clés / Simulateur) ── */}
       <Paper sx={{ borderBottom: 1, borderColor: 'divider', mb: 0, flexShrink: 0 }}>
         <Tabs
           value={tabValue}
@@ -183,9 +185,9 @@ const Dashboard: React.FC = () => {
           }}
         >
           <Tab
-            icon={<CalculateIcon sx={{ fontSize: 16 }} />}
+            icon={<DashboardIcon sx={{ fontSize: 16 }} />}
             iconPosition="start"
-            label={t('dashboard.tabs.simulator') || 'Simulateur'}
+            label={t('dashboard.tabs.overview') || "Vue d'ensemble"}
             {...a11yProps(0)}
           />
           <Tab
@@ -206,10 +208,16 @@ const Dashboard: React.FC = () => {
             label={t('dashboard.tabs.keyExchange') || 'Gestion des clés'}
             {...a11yProps(3)}
           />
+          <Tab
+            icon={<CalculateIcon sx={{ fontSize: 16 }} />}
+            iconPosition="start"
+            label={t('dashboard.tabs.simulator') || 'Simulateur'}
+            {...a11yProps(4)}
+          />
         </Tabs>
       </Paper>
 
-      {/* ─── Tab 0: Simulateur ───────────────────────────────────────────── */}
+      {/* ─── Tab 0: Vue d'ensemble ────────────────────────────────────────── */}
       {tabValue === 0 && (
         <Box
           role="tabpanel"
@@ -220,9 +228,7 @@ const Dashboard: React.FC = () => {
           {isHost && user?.forfait?.toLowerCase() === 'essentiel' && (
             <UpgradeBanner currentForfait={user.forfait} />
           )}
-          <DashboardErrorBoundary widgetName="Simulateur">
-            <AnalyticsSimulator data={analytics} />
-          </DashboardErrorBoundary>
+          <DashboardOverview period={period} onNavigateTab={setTabValue} />
         </Box>
       )}
 
@@ -259,6 +265,20 @@ const Dashboard: React.FC = () => {
           sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
         >
           <DashboardKeyExchangeTab />
+        </Box>
+      )}
+
+      {/* ─── Tab 4: Simulateur ───────────────────────────────────────────── */}
+      {tabValue === 4 && (
+        <Box
+          role="tabpanel"
+          id="dashboard-tabpanel-4"
+          aria-labelledby="dashboard-tab-4"
+          sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto', pt: 1 }}
+        >
+          <DashboardErrorBoundary widgetName="Simulateur">
+            <AnalyticsSimulator data={analytics} />
+          </DashboardErrorBoundary>
         </Box>
       )}
 

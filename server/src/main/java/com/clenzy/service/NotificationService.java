@@ -220,4 +220,50 @@ public class NotificationService {
         }
         send(keycloakId, key, title, message, actionUrl);
     }
+
+    // ─── Helpers pour contexte scheduler (pas de TenantContext) ──────────────────
+
+    /**
+     * Cree une notification avec un orgId explicite (pour les jobs @Scheduled).
+     */
+    public NotificationDto sendByOrgId(String userId, NotificationKey key, String title,
+                                        String message, String actionUrl, Long orgId) {
+        if (userId == null || key == null) {
+            return null;
+        }
+        try {
+            if (!preferenceService.isEnabled(userId, key)) {
+                return null;
+            }
+            Notification notification = new Notification(userId, title, message, key.getDefaultType(), key.getCategory());
+            notification.setNotificationKey(key);
+            notification.setActionUrl(actionUrl);
+            notification.setOrganizationId(orgId);
+            notification = notificationRepository.save(notification);
+            log.info("Notification {} creee (ID: {}) pour utilisateur {} (org={})", key, notification.getId(), userId, orgId);
+            return NotificationDto.fromEntity(notification);
+        } catch (Exception e) {
+            log.error("Erreur notification {} pour {} (org={}): {}", key, userId, orgId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Notifie tous les ADMIN et MANAGER d'une organisation donnee (pour les jobs @Scheduled).
+     */
+    public void notifyAdminsAndManagersByOrgId(Long orgId, NotificationKey key, String title,
+                                                String message, String actionUrl) {
+        try {
+            List<User> adminsManagers = userRepository.findByRoleIn(
+                    Arrays.asList(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER), orgId
+            );
+            for (User user : adminsManagers) {
+                if (user.getKeycloakId() != null) {
+                    sendByOrgId(user.getKeycloakId(), key, title, message, actionUrl, orgId);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Erreur notification admins/managers pour {} (org={}): {}", key, orgId, e.getMessage());
+        }
+    }
 }

@@ -109,9 +109,10 @@ export interface UsersListHandle {
 interface UsersListProps {
   embedded?: boolean;
   actionsContainer?: HTMLElement | null;
+  filtersContainer?: HTMLElement | null;
 }
 
-const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = false, actionsContainer }, ref) => {
+const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = false, actionsContainer, filtersContainer }, ref) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -410,38 +411,42 @@ const UsersList = forwardRef<UsersListHandle, UsersListProps>(({ embedded = fals
         </Grid>
       </Box>
 
-      {/* Filtres et recherche */}
-      <FilterSearchBar
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Rechercher un utilisateur..."
-        filters={{
-          type: {
-            value: selectedRole,
-            options: [
-              { value: 'all', label: 'Tous les rôles' },
-              ...userRoles.map(role => ({ value: role.value, label: role.label }))
-            ],
-            onChange: setSelectedRole,
-            label: "Rôle"
-          },
-          status: {
-            value: selectedStatus,
-            options: [
-              { value: 'all', label: 'Tous les statuts' },
-              ...userStatuses.map(status => ({ value: status.value, label: status.label }))
-            ],
-            onChange: setSelectedStatus,
-            label: "Statut"
-          }
-        }}
-        counter={{
-          label: "utilisateur",
-          count: filteredUsers.length,
-          singular: "",
-          plural: "s"
-        }}
-      />
+      {/* Portal filters into parent's PageHeader */}
+      {filtersContainer && createPortal(
+        <FilterSearchBar
+          bare
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Rechercher un utilisateur..."
+          filters={{
+            type: {
+              value: selectedRole,
+              options: [
+                { value: 'all', label: 'Tous les rôles' },
+                ...userRoles.map(role => ({ value: role.value, label: role.label }))
+              ],
+              onChange: setSelectedRole,
+              label: "Rôle"
+            },
+            status: {
+              value: selectedStatus,
+              options: [
+                { value: 'all', label: 'Tous les statuts' },
+                ...userStatuses.map(status => ({ value: status.value, label: status.label }))
+              ],
+              onChange: setSelectedStatus,
+              label: "Statut"
+            }
+          }}
+          counter={{
+            label: "utilisateur",
+            count: filteredUsers.length,
+            singular: "",
+            plural: "s"
+          }}
+        />,
+        filtersContainer,
+      )}
 
       {/* Liste des utilisateurs */}
       <Grid container spacing={2}>

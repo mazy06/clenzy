@@ -69,6 +69,8 @@ export interface PricingConfig {
   minPrice: number;
   pmsMonthlyPriceCents: number;
   pmsSyncPriceCents: number;
+  pmsPerSeatPriceCents: number;
+  pmsFreeSeats: number;
   automationBasicSurcharge: number;
   automationFullSurcharge: number;
   forfaitConfigs: ForfaitConfig[];

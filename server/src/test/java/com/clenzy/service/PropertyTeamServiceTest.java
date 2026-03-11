@@ -2,11 +2,9 @@ package com.clenzy.service;
 
 import com.clenzy.dto.PropertyTeamDto;
 import com.clenzy.dto.PropertyTeamRequest;
-import com.clenzy.model.InterventionStatus;
-import com.clenzy.model.Property;
-import com.clenzy.model.PropertyTeam;
-import com.clenzy.model.Team;
+import com.clenzy.model.*;
 import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.PropertyTeamRepository;
 import com.clenzy.repository.TeamCoverageZoneRepository;
@@ -28,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class PropertyTeamServiceTest {
@@ -37,6 +36,7 @@ class PropertyTeamServiceTest {
     @Mock private TeamRepository teamRepository;
     @Mock private TeamCoverageZoneRepository teamCoverageZoneRepository;
     @Mock private PropertyRepository propertyRepository;
+    @Mock private OrganizationRepository organizationRepository;
 
     private TenantContext tenantContext;
     private PropertyTeamService service;
@@ -47,7 +47,14 @@ class PropertyTeamServiceTest {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
         service = new PropertyTeamService(propertyTeamRepository, interventionRepository,
-                teamRepository, teamCoverageZoneRepository, propertyRepository, tenantContext);
+                teamRepository, teamCoverageZoneRepository, propertyRepository,
+                organizationRepository, tenantContext);
+
+        // Par defaut, l'org du test est de type SYSTEM (recherche uniquement dans sa propre org)
+        Organization org = new Organization("Test Org", OrganizationType.SYSTEM, "test-org");
+        org.setId(ORG_ID);
+        lenient().when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(org));
+        lenient().when(organizationRepository.findIdsByType(OrganizationType.SYSTEM)).thenReturn(List.of(ORG_ID));
     }
 
     private Team buildTeam(Long id, String name, String interventionType) {
@@ -292,8 +299,8 @@ class PropertyTeamServiceTest {
 
             when(propertyTeamRepository.findByPropertyId(5L, ORG_ID)).thenReturn(Optional.of(mapping));
             when(teamRepository.findById(10L)).thenReturn(Optional.of(defaultTeam));
-            when(interventionRepository.countActiveByTeamIdAndDateRange(
-                    eq(10L), anyList(), any(), any(), eq(ORG_ID))).thenReturn(0L);
+            when(interventionRepository.countActiveByTeamIdAndDateRangeAnyOrg(
+                    eq(10L), anyList(), any(), any())).thenReturn(0L);
 
             // Act
             Optional<Long> result = service.findAvailableTeamForProperty(
@@ -312,8 +319,8 @@ class PropertyTeamServiceTest {
 
             when(propertyTeamRepository.findByPropertyId(5L, ORG_ID)).thenReturn(Optional.of(mapping));
             when(teamRepository.findById(10L)).thenReturn(Optional.of(defaultTeam));
-            when(interventionRepository.countActiveByTeamIdAndDateRange(
-                    eq(10L), anyList(), any(), any(), eq(ORG_ID))).thenReturn(3L);
+            when(interventionRepository.countActiveByTeamIdAndDateRangeAnyOrg(
+                    eq(10L), anyList(), any(), any())).thenReturn(3L);
 
             Property property = new Property();
             property.setDepartment("75");
@@ -324,8 +331,8 @@ class PropertyTeamServiceTest {
             when(teamCoverageZoneRepository.findTeamIdsByDepartmentAndArrondissement("75", "75001", ORG_ID))
                     .thenReturn(List.of(20L));
             when(teamRepository.findById(20L)).thenReturn(Optional.of(zoneTeam));
-            when(interventionRepository.countActiveByTeamIdAndDateRange(
-                    eq(20L), anyList(), any(), any(), eq(ORG_ID))).thenReturn(0L);
+            when(interventionRepository.countActiveByTeamIdAndDateRangeAnyOrg(
+                    eq(20L), anyList(), any(), any())).thenReturn(0L);
 
             // Act
             Optional<Long> result = service.findAvailableTeamForProperty(
@@ -405,8 +412,8 @@ class PropertyTeamServiceTest {
             when(teamCoverageZoneRepository.findTeamIdsByDepartment("75", ORG_ID))
                     .thenReturn(List.of(20L));
             when(teamRepository.findById(20L)).thenReturn(Optional.of(cleaningTeam));
-            when(interventionRepository.countActiveByTeamIdAndDateRange(
-                    eq(20L), anyList(), any(), any(), eq(ORG_ID))).thenReturn(0L);
+            when(interventionRepository.countActiveByTeamIdAndDateRangeAnyOrg(
+                    eq(20L), anyList(), any(), any())).thenReturn(0L);
 
             // Act
             Optional<Long> result = service.findAvailableTeamForProperty(
@@ -425,8 +432,8 @@ class PropertyTeamServiceTest {
 
             when(propertyTeamRepository.findByPropertyId(5L, ORG_ID)).thenReturn(Optional.of(mapping));
             when(teamRepository.findById(10L)).thenReturn(Optional.of(defaultTeam));
-            when(interventionRepository.countActiveByTeamIdAndDateRange(
-                    eq(10L), anyList(), eq(scheduledDate), eq(scheduledDate.plusHours(4)), eq(ORG_ID)))
+            when(interventionRepository.countActiveByTeamIdAndDateRangeAnyOrg(
+                    eq(10L), anyList(), eq(scheduledDate), eq(scheduledDate.plusHours(4))))
                     .thenReturn(0L);
 
             // Act
@@ -452,8 +459,8 @@ class PropertyTeamServiceTest {
             when(teamCoverageZoneRepository.findTeamIdsByDepartmentAndArrondissement("75", "75001", ORG_ID))
                     .thenReturn(List.of(30L));
             when(teamRepository.findById(30L)).thenReturn(Optional.of(zoneTeam));
-            when(interventionRepository.countActiveByTeamIdAndDateRange(
-                    eq(30L), anyList(), any(), any(), eq(ORG_ID))).thenReturn(0L);
+            when(interventionRepository.countActiveByTeamIdAndDateRangeAnyOrg(
+                    eq(30L), anyList(), any(), any())).thenReturn(0L);
 
             // Act
             Optional<Long> result = service.findAvailableTeamForProperty(
@@ -498,8 +505,8 @@ class PropertyTeamServiceTest {
             when(propertyTeamRepository.findByPropertyId(5L, ORG_ID)).thenReturn(Optional.of(mapping));
             when(teamRepository.findById(10L)).thenReturn(Optional.of(defaultTeam));
             // Default team is busy
-            when(interventionRepository.countActiveByTeamIdAndDateRange(
-                    eq(10L), anyList(), any(), any(), eq(ORG_ID))).thenReturn(2L);
+            when(interventionRepository.countActiveByTeamIdAndDateRangeAnyOrg(
+                    eq(10L), anyList(), any(), any())).thenReturn(2L);
 
             Property property = new Property();
             property.setDepartment("75");
@@ -516,9 +523,9 @@ class PropertyTeamServiceTest {
             // Assert
             assertThat(result).isEmpty();
             // countActive should only be called once (for the default team),
-            // not again for the zone candidate since it's the same team
+            // not again for the zone candidate since it's the same team (testedTeamIds)
             verify(interventionRepository, times(1))
-                    .countActiveByTeamIdAndDateRange(eq(10L), anyList(), any(), any(), eq(ORG_ID));
+                    .countActiveByTeamIdAndDateRangeAnyOrg(eq(10L), anyList(), any(), any());
         }
     }
 }

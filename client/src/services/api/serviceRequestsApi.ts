@@ -22,6 +22,7 @@ export interface ServiceRequest {
   assignedToUser?: { id: number; firstName: string; lastName: string };
   assignedToTeam?: { id: number; name: string };
   paymentStatus?: string;
+  autoAssignStatus?: 'searching' | 'found' | 'exhausted' | null;
   createdAt: string;
   updatedAt?: string;
 }

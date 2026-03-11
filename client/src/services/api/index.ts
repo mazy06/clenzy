@@ -294,3 +294,9 @@ export type {
   KeyExchangeEventsPage,
   KeyNestStoreDto,
 } from './keyExchangeApi';
+
+export { prospectsApi } from './prospectsApi';
+export type { ProspectDto, ImportResult } from './prospectsApi';
+
+export { workflowSettingsApi } from './workflowSettingsApi';
+export type { WorkflowSettingsData } from './workflowSettingsApi';

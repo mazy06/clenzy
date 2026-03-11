@@ -14,6 +14,10 @@ export const walletApi = {
     return apiClient.get<WalletDto[]>('/wallets');
   },
 
+  async initialize(): Promise<{ walletsCreated: number; paymentsRecorded: number }> {
+    return apiClient.post<{ walletsCreated: number; paymentsRecorded: number }>('/wallets/initialize', {});
+  },
+
   async getBalance(walletId: number): Promise<WalletDto> {
     return apiClient.get<WalletDto>(`/wallets/${walletId}/balance`);
   },
