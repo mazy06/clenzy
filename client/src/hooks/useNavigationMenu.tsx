@@ -19,6 +19,7 @@ import {
   Speed,
   EventNote,
   Hub,
+  Handshake,
   ChatBubbleOutline,
   Storage,
   Receipt,
@@ -148,6 +149,14 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     group: 'management',
   },
   // Portefeuille fusionné dans Facturation (/billing?tab=2)
+  {
+    icon: <Handshake />,
+    path: '/contracts',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
+    permission: 'payments:manage',
+    translationKey: 'navigation.contracts',
+    group: 'management',
+  },
   {
     icon: <Hub />,
     path: '/channels',

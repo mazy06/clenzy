@@ -46,6 +46,7 @@ public class StripeService {
     private final ServiceRequestService serviceRequestService;
     private final WalletService walletService;
     private final LedgerService ledgerService;
+    private final SplitPaymentService splitPaymentService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final TenantContext tenantContext;
 
@@ -71,6 +72,7 @@ public class StripeService {
                          ServiceRequestService serviceRequestService,
                          WalletService walletService,
                          LedgerService ledgerService,
+                         SplitPaymentService splitPaymentService,
                          KafkaTemplate<String, Object> kafkaTemplate,
                          TenantContext tenantContext) {
         this.interventionRepository = interventionRepository;
@@ -80,6 +82,7 @@ public class StripeService {
         this.serviceRequestService = serviceRequestService;
         this.walletService = walletService;
         this.ledgerService = ledgerService;
+        this.splitPaymentService = splitPaymentService;
         this.kafkaTemplate = kafkaTemplate;
         this.tenantContext = tenantContext;
     }
@@ -247,7 +250,8 @@ public class StripeService {
      * @param refId       Reference ID (e.g., "intervention-123")
      * @param description Human-readable description
      */
-    private void ensureWalletsAndRecordPayment(Long orgId, Long ownerId, BigDecimal amount,
+    private void ensureWalletsAndRecordPayment(Long orgId, Long ownerId, Long propertyId,
+                                                BigDecimal amount,
                                                 String refType, String refId, String description) {
         try {
             String curr = (currency != null && !currency.isBlank()) ? currency.toUpperCase() : "EUR";
@@ -272,9 +276,58 @@ public class StripeService {
             }
 
             log.info("Wallets ensured and payment recorded for org={}, ref={}, amount={}", orgId, refId, amount);
+
+            // ─── Split revenue: PLATFORM → OWNER + CONCIERGE ─────────────────
+            // propertyId is used to detect if a concierge (ManagementContract) is involved.
+            // If no concierge, the concierge share is redirected to the owner.
+            if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+                try {
+                    splitPaymentService.splitGenericPayment(amount, curr, ownerId, propertyId, refType, refId);
+                } catch (Exception splitEx) {
+                    log.error("Split failed for ref={}, payment still confirmed: {}", refId, splitEx.getMessage(), splitEx);
+                }
+            }
         } catch (Exception e) {
             // Wallet/ledger errors should not block the payment confirmation flow
             log.error("Error ensuring wallets/recording payment for ref={}: {}", refId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Overload for reservation payments: uses splitPayment() with reservationId
+     * for ManagementContract-aware split ratios.
+     */
+    private void ensureWalletsAndRecordPaymentForReservation(Long orgId, Long ownerId, BigDecimal amount,
+                                                               Long reservationId, String refId, String description) {
+        try {
+            String curr = (currency != null && !currency.isBlank()) ? currency.toUpperCase() : "EUR";
+
+            Wallet platformWallet = walletService.getOrCreatePlatformWallet(orgId, curr);
+            Wallet escrowWallet = walletService.getOrCreateEscrowWallet(orgId, curr);
+            if (ownerId != null) {
+                walletService.getOrCreateWallet(orgId, WalletType.OWNER, ownerId, curr);
+            }
+
+            if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+                ledgerService.recordTransfer(
+                    escrowWallet, platformWallet, amount,
+                    LedgerReferenceType.PAYMENT, refId, description
+                );
+            }
+
+            log.info("Wallets ensured and payment recorded for reservation org={}, ref={}, amount={}", orgId, refId, amount);
+
+            // Split with reservation context (ManagementContract → SplitConfig → defaults)
+            if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+                try {
+                    splitPaymentService.splitPayment(reservationId, amount, curr, ownerId);
+                } catch (Exception splitEx) {
+                    log.error("Split failed for reservation {}, payment still confirmed: {}",
+                        reservationId, splitEx.getMessage(), splitEx);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error ensuring wallets/recording payment for reservation ref={}: {}", refId, e.getMessage(), e);
         }
     }
 
@@ -297,8 +350,9 @@ public class StripeService {
         // ─── Wallet creation + ledger entry ──────────────────────────────────
         Long ownerId = (intervention.getProperty() != null && intervention.getProperty().getOwner() != null)
                 ? intervention.getProperty().getOwner().getId() : null;
+        Long propertyId = (intervention.getProperty() != null) ? intervention.getProperty().getId() : null;
         ensureWalletsAndRecordPayment(
-            intervention.getOrganizationId(), ownerId,
+            intervention.getOrganizationId(), ownerId, propertyId,
             intervention.getEstimatedCost(),
             "intervention", String.valueOf(intervention.getId()),
             "Paiement intervention: " + intervention.getTitle()
@@ -417,13 +471,14 @@ public class StripeService {
 
         log.info("Paiement de reservation confirme: reservationId={}, sessionId={}", reservation.getId(), sessionId);
 
-        // ─── Wallet creation + ledger entry ──────────────────────────────────
+        // ─── Wallet creation + ledger entry + split (ManagementContract-aware) ──
         Long ownerId = (reservation.getProperty() != null && reservation.getProperty().getOwner() != null)
                 ? reservation.getProperty().getOwner().getId() : null;
-        ensureWalletsAndRecordPayment(
+        ensureWalletsAndRecordPaymentForReservation(
             reservation.getOrganizationId(), ownerId,
             reservation.getTotalPrice(),
-            "reservation", String.valueOf(reservation.getId()),
+            reservation.getId(),
+            String.valueOf(reservation.getId()),
             "Paiement reservation: " + (reservation.getGuestName() != null ? reservation.getGuestName() : "guest")
         );
 
@@ -521,8 +576,9 @@ public class StripeService {
                     // ─── Wallet creation + ledger entry ──────────────────────
                     Long ownerId = (intervention.getProperty() != null && intervention.getProperty().getOwner() != null)
                             ? intervention.getProperty().getOwner().getId() : null;
+                    Long propId = (intervention.getProperty() != null) ? intervention.getProperty().getId() : null;
                     ensureWalletsAndRecordPayment(
-                        intervention.getOrganizationId(), ownerId,
+                        intervention.getOrganizationId(), ownerId, propId,
                         intervention.getEstimatedCost(),
                         "intervention", String.valueOf(intervention.getId()),
                         "Paiement intervention (groupe): " + intervention.getTitle()
@@ -822,8 +878,9 @@ public class StripeService {
 
         // ─── Wallet creation + ledger entry ──────────────────────────────────
         Long srOwnerId = (sr.getUser() != null) ? sr.getUser().getId() : null;
+        Long srPropertyId = (sr.getProperty() != null) ? sr.getProperty().getId() : null;
         ensureWalletsAndRecordPayment(
-            sr.getOrganizationId(), srOwnerId,
+            sr.getOrganizationId(), srOwnerId, srPropertyId,
             sr.getEstimatedCost(),
             "service-request", String.valueOf(sr.getId()),
             "Paiement demande de service: " + sr.getTitle()

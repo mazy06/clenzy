@@ -57,17 +57,17 @@ const COUNTER_CARD_SX = (isDark: boolean) => ({
 }) as const;
 
 const CARD_CONTENT_SX = {
-  p: 1.5,
-  '&:last-child': { pb: 1.5 },
+  p: 1.25,
+  '&:last-child': { pb: 1.25 },
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  gap: 0.75,
+  gap: 0.5,
 } as const;
 
 const ICON_CIRCLE_SX = (color: string) => ({
-  width: 40,
-  height: 40,
+  width: 32,
+  height: 32,
   borderRadius: '50%',
   bgcolor: `${color}14`,
   display: 'flex',
@@ -77,7 +77,7 @@ const ICON_CIRCLE_SX = (color: string) => ({
 }) as const;
 
 const VALUE_SX = {
-  fontSize: '1.5rem',
+  fontSize: '1.15rem',
   fontWeight: 700,
   lineHeight: 1,
   fontVariantNumeric: 'tabular-nums',
@@ -85,7 +85,7 @@ const VALUE_SX = {
 } as const;
 
 const LABEL_SX = {
-  fontSize: '0.6875rem',
+  fontSize: '0.625rem',
   fontWeight: 600,
   color: 'text.secondary',
   textAlign: 'center',
@@ -113,7 +113,7 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
         key: 'urgencies',
         label: t('dashboard.actionCounters.urgencies'),
         value: urgentAlert?.count ?? 0,
-        icon: <Warning sx={{ fontSize: 20, color: '#C97A7A' }} />,
+        icon: <Warning sx={{ fontSize: 16, color: '#C97A7A' }} />,
         color: '#C97A7A',
         route: urgentAlert?.route ?? '/interventions?priority=URGENT',
       },
@@ -121,7 +121,7 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
         key: 'payments',
         label: t('dashboard.actionCounters.pendingPayments'),
         value: pendingPaymentsCount,
-        icon: <Payment sx={{ fontSize: 20, color: '#D4A574' }} />,
+        icon: <Payment sx={{ fontSize: 16, color: '#D4A574' }} />,
         color: '#D4A574',
         route: '/billing',
       },
@@ -129,7 +129,7 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
         key: 'requests',
         label: t('dashboard.actionCounters.pendingRequests'),
         value: stats?.serviceRequests.pending ?? 0,
-        icon: <Assignment sx={{ fontSize: 20, color: '#6B8A9A' }} />,
+        icon: <Assignment sx={{ fontSize: 16, color: '#6B8A9A' }} />,
         color: '#6B8A9A',
         route: '/service-requests',
       },
@@ -137,7 +137,7 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
         key: 'interventions',
         label: t('dashboard.actionCounters.todayInterventions'),
         value: stats?.interventions.today ?? 0,
-        icon: <Build sx={{ fontSize: 20, color: '#7BA3C2' }} />,
+        icon: <Build sx={{ fontSize: 16, color: '#7BA3C2' }} />,
         color: '#7BA3C2',
         route: '/interventions',
       },
@@ -153,9 +153,9 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
           <Grid item xs={6} sm={3} key={i}>
             <Card sx={{ borderRadius: '12px' }}>
               <CardContent sx={CARD_CONTENT_SX}>
-                <Skeleton variant="circular" width={40} height={40} />
-                <Skeleton variant="text" width={40} height={28} />
-                <Skeleton variant="text" width={60} height={14} />
+                <Skeleton variant="circular" width={32} height={32} />
+                <Skeleton variant="text" width={32} height={22} />
+                <Skeleton variant="text" width={50} height={12} />
               </CardContent>
             </Card>
           </Grid>

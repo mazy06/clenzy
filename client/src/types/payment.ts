@@ -47,6 +47,12 @@ export interface SplitConfiguration {
   active: boolean;
 }
 
+export interface SplitRatios {
+  ownerShare: number;
+  platformShare: number;
+  conciergeShare: number;
+}
+
 export interface EscrowHoldDto {
   id: number;
   reservationId: number;

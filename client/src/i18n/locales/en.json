@@ -80,6 +80,7 @@
     "wallets": "Wallets",
     "invoices": "Invoices",
     "channels": "Channels",
+    "contracts": "Management Contracts",
     "messaging": "Messaging",
     "messageTemplates": "Templates",
     "messageHistory": "History"
@@ -292,6 +293,14 @@
       "commandCenterTitle": "Command Center",
       "commandCenterSubtitle": "Planning, actions and recommendations"
     },
+    "contractCta": {
+      "title": "Enable commission sharing",
+      "subtitle": "Create a management contract to automatically split revenue between owner, concierge and platform.",
+      "benefit1": "Automatic revenue split on each reservation",
+      "benefit2": "Transparent commission tracking in wallets",
+      "benefit3": "Custom commission rate per property",
+      "cta": "Create a management contract"
+    },
     "miniPlanning": {
       "title": "7-Day Planning",
       "viewAll": "View all",
@@ -333,7 +342,78 @@
       "configureDetails": "Configure property details",
       "definePricing": "Set up pricing",
       "connectChannels": "Connect booking channels",
-      "skipForNow": "Do this later"
+      "skipForNow": "Do this later",
+      "reshow": "Show initial setup again",
+      "reshowShort": "Setup"
+    },
+    "channelHealth": {
+      "title": "Booking channels",
+      "noChannels": "No channels connected. Sync your Airbnb, Booking and more reservations.",
+      "connect": "Connect a channel",
+      "manage": "Manage channels",
+      "errorCount": "{{count}} channel(s) with errors",
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "syncError": "Sync error",
+      "lastSync": "Last sync"
+    },
+    "tips": {
+      "title": "Did you know?",
+      "automateCleaning": {
+        "title": "Automate cleaning",
+        "desc": "Create automatic interventions at each check-out so you never miss a cleaning.",
+        "action": "View interventions"
+      },
+      "contracts": {
+        "title": "Revenue sharing",
+        "desc": "With a management contract, revenue is automatically split between owner and concierge.",
+        "action": "Create a contract"
+      },
+      "planning": {
+        "title": "Interactive planning",
+        "desc": "View all your reservations and interventions on a unified calendar.",
+        "action": "Open planning"
+      },
+      "channels": {
+        "title": "Multi-channel sync",
+        "desc": "Connect Airbnb, Booking and other platforms to centralize all your reservations.",
+        "action": "Connect a channel"
+      },
+      "noise": {
+        "title": "Noise monitoring",
+        "desc": "Monitor noise levels in your properties in real time and receive automatic alerts.",
+        "action": "Discover"
+      },
+      "smartLocks": {
+        "title": "Smart locks",
+        "desc": "Manage access remotely and generate temporary codes for each reservation.",
+        "action": "Discover"
+      },
+      "reports": {
+        "title": "Reports & Analytics",
+        "desc": "Analyze your performance: occupancy rates, revenue, intervention costs and more.",
+        "action": "View reports"
+      },
+      "teams": {
+        "title": "Team management",
+        "desc": "Organize your teams by specialty and automatically assign them to interventions.",
+        "action": "Manage teams"
+      },
+      "billing": {
+        "title": "Centralized billing",
+        "desc": "Track all payments, generate invoices and manage wallets from one place.",
+        "action": "View billing"
+      }
+    },
+    "services": {
+      "title": "Connected services",
+      "noise": "Noise monitoring",
+      "locks": "Smart locks",
+      "keys": "Key management",
+      "noiseCta": "Set up",
+      "locksCta": "Set up",
+      "keysCta": "Set up",
+      "active": "active"
     },
     "activityFeed": {
       "title": "Recent Activity",
@@ -1568,7 +1648,74 @@
       "light": "Light",
       "dark": "Dark",
       "auto": "Automatic"
+    },
+    "split": {
+      "title": "Revenue Split",
+      "subtitle": "Configure payment distribution between owner, platform and concierge.",
+      "ownerShare": "Owner share",
+      "platformShare": "Platform share",
+      "conciergeShare": "Concierge share",
+      "currentRatios": "Current split",
+      "save": "Save split configuration",
+      "saved": "Split configuration saved successfully",
+      "error": "Error saving configuration",
+      "totalError": "Total must equal 100%",
+      "configName": "Default configuration",
+      "noConfig": "No configuration found. Default values will be used.",
+      "defaults": "Defaults: Owner 80%, Platform 5%, Concierge 15%"
     }
+  },
+  "contracts": {
+    "title": "Management Contracts",
+    "subtitle": "Manage contracts between property owners and concierge services for automatic commission calculation",
+    "create": "New contract",
+    "createTitle": "Create management contract",
+    "editTitle": "Edit contract",
+    "createFirst": "Create your first contract",
+    "noContracts": "No management contracts. Payments will be split 2-way (owner / platform).",
+    "allStatuses": "All",
+    "contractNumber": "Contract #",
+    "property": "Property",
+    "owner": "Owner",
+    "type": "Type",
+    "commission": "Commission",
+    "commissionRate": "Commission rate",
+    "commissionHelper": "Total percentage retained from revenue (platform + concierge)",
+    "period": "Period",
+    "status": "Status",
+    "actions": "Actions",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "endDateHelper": "Leave empty for indefinite contract",
+    "minStayNights": "Minimum stay (nights)",
+    "noticePeriodDays": "Notice period",
+    "days": "days",
+    "autoRenew": "Auto-renew",
+    "cleaningIncluded": "Cleaning included",
+    "maintenanceIncluded": "Maintenance included",
+    "notes": "Notes",
+    "splitPreview": "Split preview:",
+    "ownerGets": "Owner",
+    "platformGets": "Platform",
+    "conciergeGets": "Concierge",
+    "activate": "Activate",
+    "suspend": "Suspend",
+    "terminate": "Terminate",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "terminateTitle": "Terminate contract",
+    "terminateWarning": "Termination is irreversible. The contract will be marked as 'Terminated' and the concierge will no longer receive commissions on this property.",
+    "terminateReason": "Termination reason",
+    "confirmTerminate": "Confirm termination",
+    "created": "Contract created successfully",
+    "updated": "Contract updated",
+    "activated": "Contract activated — 3-way split is now active for this property",
+    "suspended": "Contract suspended",
+    "terminated": "Contract terminated",
+    "errorLoading": "Error loading contracts",
+    "errorSaving": "Error saving contract",
+    "errorAction": "Error performing action on contract"
   },
   "offline": {
     "banner": "You are offline. Some features may not be available.",

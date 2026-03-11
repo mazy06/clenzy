@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Box, Grid, useTheme } from '@mui/material';
 import {
   Percent,
@@ -17,14 +17,22 @@ import { GridSection, AnalyticsWidgetCard } from './analytics';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
 import DashboardEmptyState from './DashboardEmptyState';
 import OnboardingChecklist from './OnboardingChecklist';
+import ContractCTABanner from './ContractCTABanner';
+import ChannelHealthWidget from './ChannelHealthWidget';
+import ContextualTipsWidget from './ContextualTipsWidget';
 import MiniPlanningWidget from './MiniPlanningWidget';
 import ActionCountersWidget from './ActionCountersWidget';
+import ServicesStatusWidget from './ServicesStatusWidget';
+import { pricingConfigApi } from '../../services/api/pricingConfigApi';
+import { airbnbApi } from '../../services/api/airbnbApi';
+import { channelConnectionApi } from '../../services/api/channelConnectionApi';
 import type { DashboardPeriod } from './DashboardDateFilter';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
 interface DashboardOverviewProps {
   period: DashboardPeriod;
+  onNavigateTab?: (tabIndex: number) => void;
 }
 
 // ─── Empty interventions for analytics engine ───────────────────────────────
@@ -56,7 +64,7 @@ const kpiHoverSx = (isDark: boolean) => ({
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period }) => {
+const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period, onNavigateTab }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -101,11 +109,41 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
     interventions: EMPTY_INTERVENTIONS,
   });
 
-  // ─── Onboarding state ──────────────────────────────────────────────────
+  // ─── Onboarding: wire hasPricing & hasChannels to real data ───────────
   const hasProperties = (stats?.properties.total ?? 0) > 0;
   const hasPropertyDetails = (stats?.properties.active ?? 0) > 0;
-  const hasPricing = false; // TODO: wire to real pricing data when available
-  const hasChannels = false; // TODO: wire to real channel data when available
+
+  const [hasPricing, setHasPricing] = useState(false);
+  const [hasChannels, setHasChannels] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    // Check if pricing config exists
+    (async () => {
+      try {
+        const config = await pricingConfigApi.get();
+        if (!cancelled && config) setHasPricing(true);
+      } catch {
+        // No config yet — leave false
+      }
+    })();
+    // Check if any channel is connected
+    (async () => {
+      try {
+        const [airbnb, connections] = await Promise.allSettled([
+          airbnbApi.getConnectionStatus(),
+          channelConnectionApi.getAll(),
+        ]);
+        if (cancelled) return;
+        const airbnbOk = airbnb.status === 'fulfilled' && airbnb.value.connected;
+        const connectionsOk = connections.status === 'fulfilled' && connections.value.some((c) => c.connected);
+        if (airbnbOk || connectionsOk) setHasChannels(true);
+      } catch {
+        // No channels — leave false
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const isNewUser = !loading && !hasProperties;
 
@@ -115,16 +153,28 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   // Shared hover lift style
   const hoverLift = kpiHoverSx(isDark);
 
+  // Show sidebar widgets? (admin/manager see channel health + tips + contract CTA)
+  const showSidebar = isAdmin || isManager;
+
   // ─── New user: onboarding + empty state ─────────────────────────────────
   if (isNewUser) {
     return (
       <Box sx={{ pt: 1.5, pb: 2, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
-        <OnboardingChecklist
-          hasProperties={hasProperties}
-          hasPropertyDetails={hasPropertyDetails}
-          hasPricing={hasPricing}
-          hasChannels={hasChannels}
-        />
+        <Box sx={{ display: 'flex', gap: 2, mb: 2, flexDirection: { xs: 'column', lg: 'row' }, alignItems: 'flex-start' }}>
+          <Box sx={{ flex: '1 1 0', minWidth: 0 }}>
+            <OnboardingChecklist
+              hasProperties={hasProperties}
+              hasPropertyDetails={hasPropertyDetails}
+              hasPricing={hasPricing}
+              hasChannels={hasChannels}
+            />
+          </Box>
+          {showSidebar && (
+            <Box sx={{ flex: '0 0 auto', width: { xs: '100%', lg: 280 }, minWidth: 0 }}>
+              <ContractCTABanner />
+            </Box>
+          )}
+        </Box>
         <DashboardEmptyState />
       </Box>
     );
@@ -133,124 +183,171 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   // ─── Full dashboard ─────────────────────────────────────────────────────
   return (
     <Box sx={{ pt: 1.5, pb: 2, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
-      {/* Onboarding (auto-hides when complete or dismissed) */}
-      <OnboardingChecklist
-        hasProperties={hasProperties}
-        hasPropertyDetails={hasPropertyDetails}
-        hasPricing={hasPricing}
-        hasChannels={hasChannels}
-      />
 
-      {/* ── Section 1: KPIs ─────────────────────────────────────────────── */}
-      <DashboardErrorBoundary widgetName="KPIs">
-        <GridSection
-          title={t('dashboard.overview.kpisTitle')}
-          subtitle={t('dashboard.overview.kpisSubtitle')}
-        >
-          <Grid container spacing={2}>
-            <Grid item xs={6} sm={4} md={2}>
-              <Box sx={hoverLift}>
-                <AnalyticsWidgetCard
-                  title={t('dashboard.analytics.occupancyRate')}
-                  value={globalData ? `${globalData.occupancyRate.value}%` : '-'}
-                  subtitle={t('dashboard.analytics.occupancySubtitle')}
-                  trend={globalData ? { value: globalData.occupancyRate.growth } : undefined}
-                  icon={<Percent color="success" />}
-                  tooltip={t('dashboard.analytics.occupancyTooltip')}
-                  loading={isKpiLoading}
-                />
-              </Box>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
-              <Box sx={hoverLift}>
-                <AnalyticsWidgetCard
-                  title={t('dashboard.analytics.totalRevenue')}
-                  value={globalData ? `${globalData.totalRevenue.value.toLocaleString('fr-FR')} €` : '-'}
-                  subtitle={t('dashboard.analytics.totalRevenueSubtitle')}
-                  trend={globalData ? { value: globalData.totalRevenue.growth } : undefined}
-                  icon={<TrendIcon color="success" />}
-                  loading={isKpiLoading}
-                />
-              </Box>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
-              <Box sx={hoverLift}>
-                <AnalyticsWidgetCard
-                  title="ADR"
-                  value={globalData ? `${globalData.adr.value.toFixed(2)} €` : '-'}
-                  subtitle={t('dashboard.analytics.avgDailyRate')}
-                  trend={globalData ? { value: globalData.adr.growth } : undefined}
-                  icon={<Hotel color="info" />}
-                  tooltip={t('dashboard.analytics.adrTooltip')}
-                  loading={isKpiLoading}
-                />
-              </Box>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
-              <Box sx={hoverLift}>
-                <AnalyticsWidgetCard
-                  title="RevPAN"
-                  value={globalData ? `${globalData.revPAN.value.toFixed(2)} €` : '-'}
-                  subtitle={t('dashboard.analytics.revenuePerNight')}
-                  trend={globalData ? { value: globalData.revPAN.growth } : undefined}
-                  icon={<Euro color="primary" />}
-                  tooltip={t('dashboard.analytics.revPANTooltip')}
-                  loading={isKpiLoading}
-                />
-              </Box>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
-              <Box sx={hoverLift}>
-                <AnalyticsWidgetCard
-                  title={t('dashboard.analytics.activeProperties')}
-                  value={stats ? `${stats.properties.active}` : '-'}
-                  subtitle={`${stats?.properties.total ?? 0} ${t('dashboard.overview.total')}`}
-                  trend={stats ? { value: stats.properties.growth } : undefined}
-                  icon={<Home color="primary" />}
-                  loading={isKpiLoading}
-                />
-              </Box>
-            </Grid>
-            <Grid item xs={6} sm={4} md={2}>
-              <Box sx={hoverLift}>
-                <AnalyticsWidgetCard
-                  title={t('dashboard.stats.todayInterventions')}
-                  value={stats ? `${stats.interventions.today}` : '-'}
-                  subtitle={`${stats?.interventions.total ?? 0} ${t('dashboard.overview.total')}`}
-                  trend={stats ? { value: stats.interventions.growth } : undefined}
-                  icon={<Build color="info" />}
-                  loading={isKpiLoading}
-                />
-              </Box>
-            </Grid>
-          </Grid>
-        </GridSection>
-      </DashboardErrorBoundary>
+      {/* ═══ Two-column global layout ═══════════════════════════════════ */}
+      <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', lg: 'row' }, alignItems: 'flex-start' }}>
 
-      {/* ── Section 2: Centre de Commande ────────────────────────────── */}
-      <DashboardErrorBoundary widgetName="CommandCenter">
-        <GridSection
-          title={t('dashboard.overview.commandCenterTitle')}
-          subtitle={t('dashboard.overview.commandCenterSubtitle')}
-        >
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <DashboardErrorBoundary widgetName="MiniPlanning">
-              <MiniPlanningWidget navigate={navigate} t={t} />
+        {/* ── LEFT COLUMN: all main content ────────────────────────── */}
+        <Box sx={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+          {/* Onboarding checklist */}
+          <OnboardingChecklist
+            hasProperties={hasProperties}
+            hasPropertyDetails={hasPropertyDetails}
+            hasPricing={hasPricing}
+            hasChannels={hasChannels}
+          />
+
+          {/* Services Status (noise, locks, keys) */}
+          {onNavigateTab && (
+            <DashboardErrorBoundary widgetName="ServicesStatus">
+              <ServicesStatusWidget onNavigateTab={onNavigateTab} />
+            </DashboardErrorBoundary>
+          )}
+
+          {/* KPIs */}
+          <DashboardErrorBoundary widgetName="KPIs">
+            <GridSection
+              title={t('dashboard.overview.kpisTitle')}
+              subtitle={t('dashboard.overview.kpisSubtitle')}
+            >
+              <Grid container spacing={2}>
+                <Grid item xs={6} sm={4} md={2}>
+                  <Box sx={hoverLift}>
+                    <AnalyticsWidgetCard
+                      title={t('dashboard.analytics.occupancyRate')}
+                      value={globalData ? `${globalData.occupancyRate.value}%` : '-'}
+                      subtitle={t('dashboard.analytics.occupancySubtitle')}
+                      trend={globalData ? { value: globalData.occupancyRate.growth } : undefined}
+                      icon={<Percent color="success" />}
+                      tooltip={t('dashboard.analytics.occupancyTooltip')}
+                      loading={isKpiLoading}
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={4} md={2}>
+                  <Box sx={hoverLift}>
+                    <AnalyticsWidgetCard
+                      title={t('dashboard.analytics.totalRevenue')}
+                      value={globalData ? `${globalData.totalRevenue.value.toLocaleString('fr-FR')} €` : '-'}
+                      subtitle={t('dashboard.analytics.totalRevenueSubtitle')}
+                      trend={globalData ? { value: globalData.totalRevenue.growth } : undefined}
+                      icon={<TrendIcon color="success" />}
+                      loading={isKpiLoading}
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={4} md={2}>
+                  <Box sx={hoverLift}>
+                    <AnalyticsWidgetCard
+                      title="ADR"
+                      value={globalData ? `${globalData.adr.value.toFixed(2)} €` : '-'}
+                      subtitle={t('dashboard.analytics.avgDailyRate')}
+                      trend={globalData ? { value: globalData.adr.growth } : undefined}
+                      icon={<Hotel color="info" />}
+                      tooltip={t('dashboard.analytics.adrTooltip')}
+                      loading={isKpiLoading}
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={4} md={2}>
+                  <Box sx={hoverLift}>
+                    <AnalyticsWidgetCard
+                      title="RevPAN"
+                      value={globalData ? `${globalData.revPAN.value.toFixed(2)} €` : '-'}
+                      subtitle={t('dashboard.analytics.revenuePerNight')}
+                      trend={globalData ? { value: globalData.revPAN.growth } : undefined}
+                      icon={<Euro color="primary" />}
+                      tooltip={t('dashboard.analytics.revPANTooltip')}
+                      loading={isKpiLoading}
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={4} md={2}>
+                  <Box sx={hoverLift}>
+                    <AnalyticsWidgetCard
+                      title={t('dashboard.analytics.activeProperties')}
+                      value={stats ? `${stats.properties.active}` : '-'}
+                      subtitle={`${stats?.properties.total ?? 0} ${t('dashboard.overview.total')}`}
+                      trend={stats ? { value: stats.properties.growth } : undefined}
+                      icon={<Home color="primary" />}
+                      loading={isKpiLoading}
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={4} md={2}>
+                  <Box sx={hoverLift}>
+                    <AnalyticsWidgetCard
+                      title={t('dashboard.stats.todayInterventions')}
+                      value={stats ? `${stats.interventions.today}` : '-'}
+                      subtitle={`${stats?.interventions.total ?? 0} ${t('dashboard.overview.total')}`}
+                      trend={stats ? { value: stats.interventions.growth } : undefined}
+                      icon={<Build color="info" />}
+                      loading={isKpiLoading}
+                    />
+                  </Box>
+                </Grid>
+              </Grid>
+            </GridSection>
+          </DashboardErrorBoundary>
+
+          {/* Command Center: Planning + Action counters */}
+          <DashboardErrorBoundary widgetName="CommandCenter">
+            <GridSection
+              title={t('dashboard.overview.commandCenterTitle')}
+              subtitle={t('dashboard.overview.commandCenterSubtitle')}
+            >
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <DashboardErrorBoundary widgetName="MiniPlanning">
+                  <MiniPlanningWidget navigate={navigate} t={t} />
+                </DashboardErrorBoundary>
+
+                <DashboardErrorBoundary widgetName="ActionCounters">
+                  <ActionCountersWidget
+                    alerts={alerts}
+                    stats={stats}
+                    pendingPaymentsCount={pendingPaymentsCount}
+                    loading={loading}
+                    navigate={navigate}
+                    t={t}
+                  />
+                </DashboardErrorBoundary>
+              </Box>
+            </GridSection>
+          </DashboardErrorBoundary>
+        </Box>
+
+        {/* ── RIGHT COLUMN: sidebar widgets ─────────────────────────── */}
+        {showSidebar && (
+          <Box
+            sx={{
+              flex: '0 0 auto',
+              width: { xs: '100%', lg: 280 },
+              minWidth: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1.5,
+              position: { lg: 'sticky' },
+              top: { lg: 8 },
+            }}
+          >
+            {/* 1. Contract CTA */}
+            <DashboardErrorBoundary widgetName="ContractCTA">
+              <ContractCTABanner />
             </DashboardErrorBoundary>
 
-            <DashboardErrorBoundary widgetName="ActionCounters">
-              <ActionCountersWidget
-                alerts={alerts}
-                stats={stats}
-                pendingPaymentsCount={pendingPaymentsCount}
-                loading={loading}
-                navigate={navigate}
-                t={t}
-              />
+            {/* 2. Contextual Tips */}
+            <DashboardErrorBoundary widgetName="ContextualTips">
+              <ContextualTipsWidget />
+            </DashboardErrorBoundary>
+
+            {/* 3. Channel Health */}
+            <DashboardErrorBoundary widgetName="ChannelHealth">
+              <ChannelHealthWidget />
             </DashboardErrorBoundary>
           </Box>
-        </GridSection>
-      </DashboardErrorBoundary>
+        )}
+      </Box>
     </Box>
   );
 });
