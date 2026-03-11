@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -12,18 +12,35 @@ import {
   Alert,
   Snackbar,
   CircularProgress,
+  Divider,
+  TextField,
+  Button,
+  InputAdornment,
+  Stack,
 } from '@mui/material';
+import { Save } from '@mui/icons-material';
 import { paymentConfigApi } from '../../services/api/paymentConfigApi';
-import type { PaymentMethodConfig, PaymentProviderType } from '../../types/payment';
+import { splitConfigApi } from '../../services/api/splitConfigApi';
+import type { PaymentMethodConfig, PaymentProviderType, SplitConfiguration } from '../../types/payment';
 import { PAYMENT_PROVIDER_LABELS } from '../../types/payment';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export default function PaymentSettings() {
+  const { t } = useTranslation();
   const [configs, setConfigs] = useState<PaymentMethodConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
+  // Split config state
+  const [splitConfig, setSplitConfig] = useState<SplitConfiguration | null>(null);
+  const [ownerPct, setOwnerPct] = useState('80');
+  const [platformPct, setPlatformPct] = useState('5');
+  const [conciergePct, setConciergePct] = useState('15');
+  const [splitSaving, setSplitSaving] = useState(false);
+
   useEffect(() => {
     loadConfigs();
+    loadSplitConfig();
   }, []);
 
   const loadConfigs = async () => {
@@ -35,6 +52,21 @@ export default function PaymentSettings() {
       console.error('Failed to load payment configs:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSplitConfig = async () => {
+    try {
+      const configs = await splitConfigApi.getConfigs();
+      const defaultConfig = configs.find(c => c.isDefault) ?? configs[0] ?? null;
+      if (defaultConfig) {
+        setSplitConfig(defaultConfig);
+        setOwnerPct(String(Math.round(defaultConfig.ownerShare * 10000) / 100));
+        setPlatformPct(String(Math.round(defaultConfig.platformShare * 10000) / 100));
+        setConciergePct(String(Math.round(defaultConfig.conciergeShare * 10000) / 100));
+      }
+    } catch (error) {
+      console.error('Failed to load split config:', error);
     }
   };
 
@@ -56,6 +88,46 @@ export default function PaymentSettings() {
     }
   };
 
+  const splitTotal = useCallback(() => {
+    const o = parseFloat(ownerPct) || 0;
+    const p = parseFloat(platformPct) || 0;
+    const c = parseFloat(conciergePct) || 0;
+    return Math.round((o + p + c) * 100) / 100;
+  }, [ownerPct, platformPct, conciergePct]);
+
+  const handleSaveSplit = async () => {
+    const total = splitTotal();
+    if (total !== 100) {
+      setSnackbar({ open: true, message: t('settings.split.totalError'), severity: 'error' });
+      return;
+    }
+
+    setSplitSaving(true);
+    try {
+      const data = {
+        name: splitConfig?.name ?? t('settings.split.configName'),
+        ownerShare: parseFloat(ownerPct) / 100,
+        platformShare: parseFloat(platformPct) / 100,
+        conciergeShare: parseFloat(conciergePct) / 100,
+        isDefault: true,
+        active: true,
+      };
+
+      if (splitConfig?.id) {
+        const updated = await splitConfigApi.update(splitConfig.id, data);
+        setSplitConfig(updated);
+      } else {
+        const created = await splitConfigApi.create(data);
+        setSplitConfig(created);
+      }
+      setSnackbar({ open: true, message: t('settings.split.saved'), severity: 'success' });
+    } catch (error) {
+      setSnackbar({ open: true, message: t('settings.split.error'), severity: 'error' });
+    } finally {
+      setSplitSaving(false);
+    }
+  };
+
   // Show all providers, including those not yet configured
   const allProviders: PaymentProviderType[] = ['STRIPE', 'PAYTABS', 'CMI', 'PAYZONE', 'PAYPAL'];
 
@@ -70,8 +142,12 @@ export default function PaymentSettings() {
     );
   }
 
+  const total = splitTotal();
+  const isValidTotal = total === 100;
+
   return (
     <Box>
+      {/* ─── Payment Providers ─── */}
       <Typography variant="h6" gutterBottom>
         Fournisseurs de paiement
       </Typography>
@@ -128,6 +204,156 @@ export default function PaymentSettings() {
             );
           })}
         </List>
+      </Paper>
+
+      {/* ─── Revenue Split Configuration ─── */}
+      <Divider sx={{ my: 4 }} />
+
+      <Typography variant="h6" gutterBottom>
+        {t('settings.split.title')}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" gutterBottom>
+        {t('settings.split.subtitle')}
+      </Typography>
+
+      <Paper variant="outlined" sx={{ mt: 2, p: 3 }}>
+        {/* Visual split bar */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+            {t('settings.split.currentRatios')}
+          </Typography>
+          <Box sx={{ display: 'flex', height: 32, borderRadius: 1, overflow: 'hidden' }}>
+            <Box
+              sx={{
+                width: `${parseFloat(ownerPct) || 0}%`,
+                bgcolor: '#4A9B8E',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'width 0.3s',
+              }}
+            >
+              {parseFloat(ownerPct) >= 15 && (
+                <Typography variant="caption" color="white" fontWeight={600}>
+                  {ownerPct}%
+                </Typography>
+              )}
+            </Box>
+            <Box
+              sx={{
+                width: `${parseFloat(platformPct) || 0}%`,
+                bgcolor: '#6B8A9A',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'width 0.3s',
+              }}
+            >
+              {parseFloat(platformPct) >= 8 && (
+                <Typography variant="caption" color="white" fontWeight={600}>
+                  {platformPct}%
+                </Typography>
+              )}
+            </Box>
+            <Box
+              sx={{
+                width: `${parseFloat(conciergePct) || 0}%`,
+                bgcolor: '#D4A574',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'width 0.3s',
+              }}
+            >
+              {parseFloat(conciergePct) >= 10 && (
+                <Typography variant="caption" color="white" fontWeight={600}>
+                  {conciergePct}%
+                </Typography>
+              )}
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#4A9B8E' }} />
+              <Typography variant="caption">{t('settings.split.ownerShare')}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#6B8A9A' }} />
+              <Typography variant="caption">{t('settings.split.platformShare')}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#D4A574' }} />
+              <Typography variant="caption">{t('settings.split.conciergeShare')}</Typography>
+            </Box>
+          </Box>
+        </Box>
+
+        {/* Input fields */}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+          <TextField
+            label={t('settings.split.ownerShare')}
+            type="number"
+            size="small"
+            value={ownerPct}
+            onChange={(e) => setOwnerPct(e.target.value)}
+            InputProps={{
+              endAdornment: <InputAdornment position="end">%</InputAdornment>,
+              inputProps: { min: 0, max: 100, step: 0.01 },
+            }}
+            fullWidth
+          />
+          <TextField
+            label={t('settings.split.platformShare')}
+            type="number"
+            size="small"
+            value={platformPct}
+            onChange={(e) => setPlatformPct(e.target.value)}
+            InputProps={{
+              endAdornment: <InputAdornment position="end">%</InputAdornment>,
+              inputProps: { min: 0, max: 100, step: 0.01 },
+            }}
+            fullWidth
+          />
+          <TextField
+            label={t('settings.split.conciergeShare')}
+            type="number"
+            size="small"
+            value={conciergePct}
+            onChange={(e) => setConciergePct(e.target.value)}
+            InputProps={{
+              endAdornment: <InputAdornment position="end">%</InputAdornment>,
+              inputProps: { min: 0, max: 100, step: 0.01 },
+            }}
+            fullWidth
+          />
+        </Stack>
+
+        {/* Total validation */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography
+            variant="body2"
+            color={isValidTotal ? 'text.secondary' : 'error'}
+            fontWeight={isValidTotal ? 400 : 600}
+          >
+            Total : {total}%
+            {!isValidTotal && ` — ${t('settings.split.totalError')}`}
+          </Typography>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<Save />}
+            disabled={!isValidTotal || splitSaving}
+            onClick={handleSaveSplit}
+          >
+            {splitSaving ? <CircularProgress size={20} /> : t('settings.split.save')}
+          </Button>
+        </Box>
+
+        {!splitConfig && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            {t('settings.split.defaults')}
+          </Alert>
+        )}
       </Paper>
 
       <Snackbar

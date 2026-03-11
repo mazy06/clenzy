@@ -28,10 +28,20 @@ import type { WalletDto, LedgerEntryDto } from '../../types/payment';
 import PageHeader from '../../components/PageHeader';
 
 const WALLET_TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  PLATFORM: { label: 'Plateforme', icon: <Business />, color: '#1976d2' },
-  OWNER: { label: 'Propriétaire', icon: <TrendingUp />, color: '#2e7d32' },
-  CONCIERGE: { label: 'Conciergerie', icon: <AccountBalanceWallet />, color: '#ed6c02' },
+  PLATFORM: { label: 'Plateforme', icon: <Business />, color: '#6B8A9A' },
+  OWNER: { label: 'Propriétaire', icon: <TrendingUp />, color: '#4A9B8E' },
+  CONCIERGE: { label: 'Conciergerie', icon: <AccountBalanceWallet />, color: '#D4A574' },
   ESCROW: { label: 'Séquestre', icon: <Lock />, color: '#9c27b0' },
+};
+
+const REF_TYPE_LABELS: Record<string, { label: string; color: 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info' }> = {
+  PAYMENT: { label: 'Paiement', color: 'primary' },
+  SPLIT: { label: 'Répartition', color: 'info' },
+  ESCROW_HOLD: { label: 'Séquestre', color: 'warning' },
+  ESCROW_RELEASE: { label: 'Libération', color: 'success' },
+  REFUND: { label: 'Remboursement', color: 'error' },
+  PAYOUT: { label: 'Versement', color: 'success' },
+  ADJUSTMENT: { label: 'Ajustement', color: 'default' },
 };
 
 interface WalletDashboardProps {
@@ -206,9 +216,12 @@ export default function WalletDashboard({ embedded = false }: WalletDashboardPro
                               />
                             </TableCell>
                             <TableCell>
-                              <Typography variant="caption" color="text.secondary">
-                                {entry.referenceType}
-                              </Typography>
+                              <Chip
+                                label={REF_TYPE_LABELS[entry.referenceType]?.label ?? entry.referenceType}
+                                size="small"
+                                color={REF_TYPE_LABELS[entry.referenceType]?.color ?? 'default'}
+                                variant="outlined"
+                              />
                             </TableCell>
                             <TableCell align="right">
                               <Typography

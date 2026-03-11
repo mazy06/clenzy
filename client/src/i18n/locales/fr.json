@@ -79,6 +79,7 @@
     "invoices": "Factures",
     "wallets": "Portefeuille",
     "channels": "Channels",
+    "contracts": "Contrats de gestion",
     "messaging": "Messagerie",
     "messageTemplates": "Templates",
     "messageHistory": "Historique"
@@ -291,6 +292,14 @@
       "commandCenterTitle": "Centre de commande",
       "commandCenterSubtitle": "Planification, actions et recommandations"
     },
+    "contractCta": {
+      "title": "Activez les rétro-commissions",
+      "subtitle": "Créez un contrat de gestion pour répartir automatiquement les revenus entre propriétaire, conciergerie et plateforme.",
+      "benefit1": "Répartition automatique des revenus à chaque réservation",
+      "benefit2": "Suivi transparent des commissions dans les portefeuilles",
+      "benefit3": "Taux de commission personnalisable par propriété",
+      "cta": "Créer un contrat de gestion"
+    },
     "miniPlanning": {
       "title": "Planning 7 jours",
       "viewAll": "Voir tout",
@@ -332,7 +341,78 @@
       "configureDetails": "Configurer les détails de la propriété",
       "definePricing": "Définir la tarification",
       "connectChannels": "Connecter les canaux de réservation",
-      "skipForNow": "Faire plus tard"
+      "skipForNow": "Faire plus tard",
+      "reshow": "Afficher à nouveau la configuration initiale",
+      "reshowShort": "Configuration"
+    },
+    "channelHealth": {
+      "title": "Canaux de réservation",
+      "noChannels": "Aucun canal connecté. Synchronisez vos réservations Airbnb, Booking et plus.",
+      "connect": "Connecter un canal",
+      "manage": "Gérer les canaux",
+      "errorCount": "{{count}} canal(aux) en erreur",
+      "connected": "Connecté",
+      "notConnected": "Non connecté",
+      "syncError": "Erreur de synchronisation",
+      "lastSync": "Dernière synchro"
+    },
+    "tips": {
+      "title": "Le saviez-vous ?",
+      "automateCleaning": {
+        "title": "Automatisez le ménage",
+        "desc": "Créez des interventions automatiques à chaque check-out pour ne jamais oublier un ménage.",
+        "action": "Voir les interventions"
+      },
+      "contracts": {
+        "title": "Rétro-commissions",
+        "desc": "Avec un contrat de gestion, les revenus sont automatiquement répartis entre propriétaire et conciergerie.",
+        "action": "Créer un contrat"
+      },
+      "planning": {
+        "title": "Planning interactif",
+        "desc": "Visualisez toutes vos réservations et interventions sur un calendrier unifié.",
+        "action": "Ouvrir le planning"
+      },
+      "channels": {
+        "title": "Synchronisation multi-canaux",
+        "desc": "Connectez Airbnb, Booking et d'autres plateformes pour centraliser toutes vos réservations.",
+        "action": "Connecter un canal"
+      },
+      "noise": {
+        "title": "Monitoring sonore",
+        "desc": "Surveillez le niveau sonore de vos propriétés en temps réel et recevez des alertes automatiques.",
+        "action": "Découvrir"
+      },
+      "smartLocks": {
+        "title": "Serrures connectées",
+        "desc": "Gérez les accès à distance et générez des codes temporaires pour chaque réservation.",
+        "action": "Découvrir"
+      },
+      "reports": {
+        "title": "Rapports & Analytics",
+        "desc": "Analysez vos performances : taux d'occupation, revenus, coûts d'intervention et plus.",
+        "action": "Voir les rapports"
+      },
+      "teams": {
+        "title": "Gestion des équipes",
+        "desc": "Organisez vos équipes par spécialité et assignez-les automatiquement aux interventions.",
+        "action": "Gérer les équipes"
+      },
+      "billing": {
+        "title": "Facturation centralisée",
+        "desc": "Suivez tous les paiements, générez des factures et gérez les portefeuilles depuis un seul endroit.",
+        "action": "Voir la facturation"
+      }
+    },
+    "services": {
+      "title": "Services connectés",
+      "noise": "Nuisance sonore",
+      "locks": "Serrures",
+      "keys": "Gestion clés",
+      "noiseCta": "Configurer",
+      "locksCta": "Configurer",
+      "keysCta": "Configurer",
+      "active": "actif(s)"
     },
     "activityFeed": {
       "title": "Activité récente",
@@ -1577,7 +1657,74 @@
       "light": "Clair",
       "dark": "Sombre",
       "auto": "Automatique"
+    },
+    "split": {
+      "title": "Répartition des revenus",
+      "subtitle": "Configurez la répartition des paiements entre propriétaire, plateforme et conciergerie.",
+      "ownerShare": "Part propriétaire",
+      "platformShare": "Part plateforme",
+      "conciergeShare": "Part conciergerie",
+      "currentRatios": "Répartition actuelle",
+      "save": "Sauvegarder la répartition",
+      "saved": "Répartition sauvegardée avec succès",
+      "error": "Erreur lors de la sauvegarde",
+      "totalError": "Le total doit être égal à 100%",
+      "configName": "Configuration par défaut",
+      "noConfig": "Aucune configuration trouvée. Les valeurs par défaut seront utilisées.",
+      "defaults": "Valeurs par défaut : Propriétaire 80%, Plateforme 5%, Conciergerie 15%"
     }
+  },
+  "contracts": {
+    "title": "Contrats de gestion",
+    "subtitle": "Gérez les contrats entre propriétaires et conciergeries pour le calcul automatique des commissions",
+    "create": "Nouveau contrat",
+    "createTitle": "Créer un contrat de gestion",
+    "editTitle": "Modifier le contrat",
+    "createFirst": "Créer votre premier contrat",
+    "noContracts": "Aucun contrat de gestion. Les paiements seront répartis en 2 parts (propriétaire / plateforme).",
+    "allStatuses": "Tous",
+    "contractNumber": "N° Contrat",
+    "property": "Propriété",
+    "owner": "Propriétaire",
+    "type": "Type",
+    "commission": "Commission",
+    "commissionRate": "Taux de commission",
+    "commissionHelper": "Pourcentage total retenu sur les revenus (plateforme + conciergerie)",
+    "period": "Période",
+    "status": "Statut",
+    "actions": "Actions",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "endDateHelper": "Laisser vide pour un contrat à durée indéterminée",
+    "minStayNights": "Séjour minimum (nuits)",
+    "noticePeriodDays": "Préavis",
+    "days": "jours",
+    "autoRenew": "Renouvellement auto",
+    "cleaningIncluded": "Ménage inclus",
+    "maintenanceIncluded": "Maintenance incluse",
+    "notes": "Notes",
+    "splitPreview": "Aperçu de la répartition :",
+    "ownerGets": "Propriétaire",
+    "platformGets": "Plateforme",
+    "conciergeGets": "Conciergerie",
+    "activate": "Activer",
+    "suspend": "Suspendre",
+    "terminate": "Résilier",
+    "edit": "Modifier",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "terminateTitle": "Résilier le contrat",
+    "terminateWarning": "La résiliation est irréversible. Le contrat passera en statut 'Résilié' et la conciergerie ne recevra plus de commissions sur cette propriété.",
+    "terminateReason": "Motif de résiliation",
+    "confirmTerminate": "Confirmer la résiliation",
+    "created": "Contrat créé avec succès",
+    "updated": "Contrat mis à jour",
+    "activated": "Contrat activé — la répartition 3 parts est maintenant active pour cette propriété",
+    "suspended": "Contrat suspendu",
+    "terminated": "Contrat résilié",
+    "errorLoading": "Erreur lors du chargement des contrats",
+    "errorSaving": "Erreur lors de la sauvegarde du contrat",
+    "errorAction": "Erreur lors de l'action sur le contrat"
   },
   "offline": {
     "banner": "Vous êtes hors ligne. Certaines fonctionnalités peuvent ne pas être disponibles.",

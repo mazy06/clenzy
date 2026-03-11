@@ -228,7 +228,7 @@ const Dashboard: React.FC = () => {
           {isHost && user?.forfait?.toLowerCase() === 'essentiel' && (
             <UpgradeBanner currentForfait={user.forfait} />
           )}
-          <DashboardOverview period={period} />
+          <DashboardOverview period={period} onNavigateTab={setTabValue} />
         </Box>
       )}
 

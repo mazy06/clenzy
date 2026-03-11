@@ -185,13 +185,13 @@ public class AuditLogService {
 
     private void enrichWithRequestInfo(AuditLog entry) {
         try {
-            ServletRequestAttributes attrs = (ServletRequestAttributes)
-                    RequestContextHolder.getRequestAttributes();
-            if (attrs != null) {
+            var requestAttributes = RequestContextHolder.getRequestAttributes();
+            if (requestAttributes instanceof ServletRequestAttributes attrs) {
                 HttpServletRequest request = attrs.getRequest();
                 entry.setIpAddress(getClientIpAddress(request));
                 entry.setUserAgent(truncate(request.getHeader("User-Agent"), 500));
             }
+            // Scheduler contexts (e.g. ICalSyncScheduler) don't have servlet attributes — skip silently
         } catch (Exception e) {
             log.debug("Impossible d'extraire les informations de requete pour l'audit: {}", e.getMessage());
         }

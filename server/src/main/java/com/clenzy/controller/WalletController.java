@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -83,7 +84,8 @@ public class WalletController {
      * for existing paid payments that don't have ledger records yet.
      */
     @PostMapping("/initialize")
-    @PreAuthorize("hasAnyAuthority('payments:manage', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    @Transactional
     public ResponseEntity<Map<String, Object>> initializeWallets() {
         Long orgId = tenantContext.getRequiredOrganizationId();
         String curr = "EUR";
