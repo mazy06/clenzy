@@ -30,8 +30,13 @@ public record InvoiceDto(
     String buyerTaxId,
     Long reservationId,
     Long payoutId,
+    Long interventionId,
+    Long documentGenerationId,
+    Long duplicateOfId,
     InvoiceStatus status,
     String legalMentions,
+    String paymentMethod,
+    LocalDateTime paidAt,
     List<InvoiceLineDto> lines,
     LocalDateTime createdAt
 ) {
@@ -59,8 +64,13 @@ public record InvoiceDto(
             invoice.getBuyerTaxId(),
             invoice.getReservationId(),
             invoice.getPayoutId(),
+            invoice.getInterventionId(),
+            invoice.getDocumentGenerationId(),
+            invoice.getDuplicateOfId(),
             invoice.getStatus(),
             invoice.getLegalMentions(),
+            invoice.getPaymentMethod(),
+            invoice.getPaidAt(),
             lineDtos,
             invoice.getCreatedAt()
         );

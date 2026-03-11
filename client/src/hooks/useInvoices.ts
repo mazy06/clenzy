@@ -73,3 +73,22 @@ export function useCancelInvoice() {
     },
   });
 }
+
+export function useTemplateStatus() {
+  return useQuery({
+    queryKey: ['invoices', 'template-status'] as const,
+    queryFn: () => invoicesApi.checkTemplateStatus(),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useDuplicateInvoice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => invoicesApi.generateDuplicate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.all });
+      trackEvent.invoiceGenerated({ type: 'duplicate' });
+    },
+  });
+}

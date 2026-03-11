@@ -35,6 +35,7 @@ class StripeServiceTest {
     @Mock private WalletService walletService;
     @Mock private LedgerService ledgerService;
     @Mock private SplitPaymentService splitPaymentService;
+    @Mock private AutoInvoiceService autoInvoiceService;
     @Mock private KafkaTemplate<String, Object> kafkaTemplate;
 
     private TenantContext tenantContext;
@@ -45,7 +46,7 @@ class StripeServiceTest {
     void setUp() {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
-        stripeService = new StripeService(interventionRepository, reservationRepository, serviceRequestRepository, notificationService, serviceRequestService, walletService, ledgerService, splitPaymentService, kafkaTemplate, tenantContext);
+        stripeService = new StripeService(interventionRepository, reservationRepository, serviceRequestRepository, notificationService, serviceRequestService, walletService, ledgerService, splitPaymentService, autoInvoiceService, kafkaTemplate, tenantContext);
     }
 
     private Intervention buildIntervention(Long id, InterventionStatus status, PaymentStatus paymentStatus) {

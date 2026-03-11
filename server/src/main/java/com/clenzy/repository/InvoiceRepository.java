@@ -24,6 +24,12 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     Optional<Invoice> findByPayoutId(Long payoutId);
 
+    Optional<Invoice> findByInterventionId(Long interventionId);
+
+    Optional<Invoice> findByDocumentGenerationId(Long documentGenerationId);
+
+    List<Invoice> findByDuplicateOfId(Long duplicateOfId);
+
     @Query("SELECT i FROM Invoice i WHERE i.organizationId = :orgId " +
            "AND i.invoiceDate BETWEEN :from AND :to " +
            "ORDER BY i.invoiceDate DESC")

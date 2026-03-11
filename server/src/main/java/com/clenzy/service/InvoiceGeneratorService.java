@@ -6,6 +6,7 @@ import com.clenzy.fiscal.*;
 import com.clenzy.model.*;
 import com.clenzy.repository.FiscalProfileRepository;
 import com.clenzy.repository.InvoiceRepository;
+import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
@@ -36,6 +37,7 @@ public class InvoiceGeneratorService {
 
     private final InvoiceRepository invoiceRepository;
     private final ReservationRepository reservationRepository;
+    private final InterventionRepository interventionRepository;
     private final FiscalProfileRepository fiscalProfileRepository;
     private final FiscalEngine fiscalEngine;
     private final InvoiceNumberingService numberingService;
@@ -43,12 +45,14 @@ public class InvoiceGeneratorService {
 
     public InvoiceGeneratorService(InvoiceRepository invoiceRepository,
                                     ReservationRepository reservationRepository,
+                                    InterventionRepository interventionRepository,
                                     FiscalProfileRepository fiscalProfileRepository,
                                     FiscalEngine fiscalEngine,
                                     InvoiceNumberingService numberingService,
                                     TenantContext tenantContext) {
         this.invoiceRepository = invoiceRepository;
         this.reservationRepository = reservationRepository;
+        this.interventionRepository = interventionRepository;
         this.fiscalProfileRepository = fiscalProfileRepository;
         this.fiscalEngine = fiscalEngine;
         this.numberingService = numberingService;
@@ -311,6 +315,244 @@ public class InvoiceGeneratorService {
             throw new IllegalArgumentException("Facture introuvable: " + invoiceId);
         }
         return InvoiceDto.from(invoice);
+    }
+
+    // --- Auto-generation methods (sans TenantContext, pour webhooks) ---
+
+    /**
+     * Genere une facture DRAFT pour une reservation.
+     * Surcharge sans dependance TenantContext (utilisee depuis webhooks Stripe).
+     */
+    @Transactional
+    public Invoice generateFromReservation(Reservation reservation, Long orgId) {
+        FiscalProfile fiscalProfile = fiscalProfileRepository.findByOrganizationId(orgId)
+            .orElseThrow(() -> new IllegalStateException(
+                "Profil fiscal non configure pour l'organisation " + orgId));
+
+        String countryCode = fiscalProfile.getCountryCode() != null
+            ? fiscalProfile.getCountryCode() : "FR";
+        String currency = reservation.getCurrency() != null
+            ? reservation.getCurrency()
+            : (fiscalProfile.getDefaultCurrency() != null ? fiscalProfile.getDefaultCurrency() : "EUR");
+
+        Invoice invoice = new Invoice();
+        invoice.setOrganizationId(orgId);
+        invoice.setInvoiceNumber("DRAFT");
+        invoice.setInvoiceDate(LocalDate.now());
+        invoice.setDueDate(LocalDate.now().plusDays(30));
+        invoice.setCurrency(currency);
+        invoice.setCountryCode(countryCode);
+        invoice.setReservationId(reservation.getId());
+        invoice.setStatus(InvoiceStatus.DRAFT);
+
+        // Infos vendeur
+        invoice.setSellerName(fiscalProfile.getLegalEntityName());
+        invoice.setSellerAddress(fiscalProfile.getLegalAddress());
+        invoice.setSellerTaxId(fiscalProfile.getVatNumber() != null
+            ? fiscalProfile.getVatNumber() : fiscalProfile.getTaxIdNumber());
+
+        // Infos acheteur
+        invoice.setBuyerName(reservation.getGuestName() != null
+            ? reservation.getGuestName() : "Client");
+
+        // Mentions legales
+        invoice.setLegalMentions(fiscalProfile.getLegalMentions());
+
+        // --- Lignes ---
+        int lineNum = 1;
+
+        // Hebergement
+        BigDecimal roomRevenue = reservation.getRoomRevenue() != null
+            ? reservation.getRoomRevenue() : reservation.getTotalPrice();
+
+        if (roomRevenue != null && roomRevenue.compareTo(BigDecimal.ZERO) > 0) {
+            long nights = ChronoUnit.DAYS.between(reservation.getCheckIn(), reservation.getCheckOut());
+            if (nights <= 0) nights = 1;
+
+            TaxResult accommodationTax = fiscalEngine.calculateTax(
+                countryCode,
+                new TaxableItem(roomRevenue, TaxCategory.ACCOMMODATION.name(),
+                    "Hebergement " + reservation.getCheckIn() + " - " + reservation.getCheckOut()),
+                reservation.getCheckIn()
+            );
+
+            invoice.addLine(createLine(lineNum++,
+                String.format("Hebergement du %s au %s (%d nuits)",
+                    reservation.getCheckIn(), reservation.getCheckOut(), nights),
+                BigDecimal.ONE, roomRevenue,
+                TaxCategory.ACCOMMODATION.name(),
+                accommodationTax.taxRate(), accommodationTax.taxAmount(),
+                accommodationTax.amountHT(), accommodationTax.amountTTC()));
+        }
+
+        // Frais de menage
+        BigDecimal cleaningFee = reservation.getCleaningFee();
+        if (cleaningFee != null && cleaningFee.compareTo(BigDecimal.ZERO) > 0) {
+            TaxResult cleaningTax = fiscalEngine.calculateTax(
+                countryCode,
+                new TaxableItem(cleaningFee, TaxCategory.CLEANING.name(), "Frais de menage"),
+                reservation.getCheckIn()
+            );
+
+            invoice.addLine(createLine(lineNum++,
+                "Frais de menage",
+                BigDecimal.ONE, cleaningFee,
+                TaxCategory.CLEANING.name(),
+                cleaningTax.taxRate(), cleaningTax.taxAmount(),
+                cleaningTax.amountHT(), cleaningTax.amountTTC()));
+        }
+
+        computeTotals(invoice);
+        invoice = invoiceRepository.save(invoice);
+
+        log.info("Facture DRAFT auto-generee id={} pour reservation {} (totalTTC={})",
+            invoice.getId(), reservation.getId(), invoice.getTotalTtc());
+        return invoice;
+    }
+
+    /**
+     * Genere une facture DRAFT pour une intervention.
+     * Sans dependance TenantContext (utilisee depuis webhooks Stripe).
+     */
+    @Transactional
+    public Invoice generateFromIntervention(Intervention intervention, Long orgId) {
+        FiscalProfile fiscalProfile = fiscalProfileRepository.findByOrganizationId(orgId)
+            .orElseThrow(() -> new IllegalStateException(
+                "Profil fiscal non configure pour l'organisation " + orgId));
+
+        String countryCode = fiscalProfile.getCountryCode() != null
+            ? fiscalProfile.getCountryCode() : "FR";
+        String currency = fiscalProfile.getDefaultCurrency() != null
+            ? fiscalProfile.getDefaultCurrency() : "EUR";
+
+        Invoice invoice = new Invoice();
+        invoice.setOrganizationId(orgId);
+        invoice.setInvoiceNumber("DRAFT");
+        invoice.setInvoiceDate(LocalDate.now());
+        invoice.setDueDate(LocalDate.now().plusDays(30));
+        invoice.setCurrency(currency);
+        invoice.setCountryCode(countryCode);
+        invoice.setInterventionId(intervention.getId());
+        invoice.setStatus(InvoiceStatus.DRAFT);
+
+        // Infos vendeur
+        invoice.setSellerName(fiscalProfile.getLegalEntityName());
+        invoice.setSellerAddress(fiscalProfile.getLegalAddress());
+        invoice.setSellerTaxId(fiscalProfile.getVatNumber() != null
+            ? fiscalProfile.getVatNumber() : fiscalProfile.getTaxIdNumber());
+
+        // Infos acheteur (proprietaire du bien)
+        String buyerName = "Client";
+        if (intervention.getProperty() != null && intervention.getProperty().getOwner() != null) {
+            var owner = intervention.getProperty().getOwner();
+            buyerName = (owner.getFirstName() != null ? owner.getFirstName() : "")
+                + " " + (owner.getLastName() != null ? owner.getLastName() : "");
+            buyerName = buyerName.trim();
+            if (buyerName.isEmpty()) buyerName = "Client";
+        }
+        invoice.setBuyerName(buyerName);
+
+        // Mentions legales
+        invoice.setLegalMentions(fiscalProfile.getLegalMentions());
+
+        // Ligne unique : intervention
+        BigDecimal amount = intervention.getEstimatedCost() != null
+            ? intervention.getEstimatedCost() : BigDecimal.ZERO;
+
+        if (amount.compareTo(BigDecimal.ZERO) > 0) {
+            TaxResult tax = fiscalEngine.calculateTax(
+                countryCode,
+                new TaxableItem(amount, TaxCategory.STANDARD.name(),
+                    "Intervention: " + intervention.getTitle()),
+                LocalDate.now()
+            );
+
+            invoice.addLine(createLine(1,
+                "Intervention: " + intervention.getTitle(),
+                BigDecimal.ONE, amount,
+                TaxCategory.STANDARD.name(),
+                tax.taxRate(), tax.taxAmount(),
+                tax.amountHT(), tax.amountTTC()));
+        }
+
+        computeTotals(invoice);
+        invoice = invoiceRepository.save(invoice);
+
+        log.info("Facture DRAFT auto-generee id={} pour intervention {} (totalTTC={})",
+            invoice.getId(), intervention.getId(), invoice.getTotalTtc());
+        return invoice;
+    }
+
+    /**
+     * Genere un duplicata d'une facture existante.
+     * Le duplicata porte un numero propre avec suffixe -DUP et reference l'original.
+     */
+    @Transactional
+    public InvoiceDto generateDuplicate(Long invoiceId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+
+        Invoice original = invoiceRepository.findById(invoiceId)
+            .orElseThrow(() -> new IllegalArgumentException("Facture introuvable: " + invoiceId));
+
+        if (!original.getOrganizationId().equals(orgId)) {
+            throw new IllegalArgumentException("Facture introuvable: " + invoiceId);
+        }
+
+        Invoice duplicate = new Invoice();
+        duplicate.setOrganizationId(orgId);
+        duplicate.setInvoiceDate(LocalDate.now());
+        duplicate.setDueDate(original.getDueDate());
+        duplicate.setCurrency(original.getCurrency());
+        duplicate.setCountryCode(original.getCountryCode());
+        duplicate.setReservationId(original.getReservationId());
+        duplicate.setInterventionId(original.getInterventionId());
+        duplicate.setPayoutId(original.getPayoutId());
+        duplicate.setDocumentGenerationId(original.getDocumentGenerationId());
+        duplicate.setDuplicateOfId(original.getId());
+        duplicate.setStatus(InvoiceStatus.ISSUED);
+
+        // Numero = original + "-DUP-{compteur}"
+        List<Invoice> existingDups = invoiceRepository.findByDuplicateOfId(original.getId());
+        int dupSeq = existingDups.size() + 1;
+        duplicate.setInvoiceNumber(original.getInvoiceNumber() + "-DUP-" + dupSeq);
+
+        // Copier infos vendeur/acheteur
+        duplicate.setSellerName(original.getSellerName());
+        duplicate.setSellerAddress(original.getSellerAddress());
+        duplicate.setSellerTaxId(original.getSellerTaxId());
+        duplicate.setBuyerName(original.getBuyerName());
+        duplicate.setBuyerAddress(original.getBuyerAddress());
+        duplicate.setBuyerTaxId(original.getBuyerTaxId());
+        duplicate.setLegalMentions("DUPLICATA de la facture " + original.getInvoiceNumber());
+
+        // Copier les lignes
+        int lineNum = 1;
+        for (InvoiceLine origLine : original.getLines()) {
+            InvoiceLine dupLine = createLine(lineNum++,
+                origLine.getDescription(),
+                origLine.getQuantity(),
+                origLine.getUnitPriceHt(),
+                origLine.getTaxCategory(),
+                origLine.getTaxRate(),
+                origLine.getTaxAmount(),
+                origLine.getTotalHt(),
+                origLine.getTotalTtc());
+            duplicate.addLine(dupLine);
+        }
+
+        computeTotals(duplicate);
+
+        // Copier le statut de paiement si l'original est paye
+        if (original.getStatus() == InvoiceStatus.PAID) {
+            duplicate.setPaymentMethod(original.getPaymentMethod());
+            duplicate.setPaidAt(original.getPaidAt());
+        }
+
+        duplicate = invoiceRepository.save(duplicate);
+        log.info("Duplicata {} cree pour facture {} (totalTTC={})",
+            duplicate.getInvoiceNumber(), original.getInvoiceNumber(), duplicate.getTotalTtc());
+
+        return InvoiceDto.from(duplicate);
     }
 
     // --- Helpers ---

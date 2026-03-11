@@ -40,6 +40,9 @@ class InvoiceGeneratorServiceTest {
     private ReservationRepository reservationRepository;
 
     @Mock
+    private com.clenzy.repository.InterventionRepository interventionRepository;
+
+    @Mock
     private FiscalProfileRepository fiscalProfileRepository;
 
     @Mock
@@ -56,8 +59,8 @@ class InvoiceGeneratorServiceTest {
     @BeforeEach
     void setUp() {
         service = new InvoiceGeneratorService(
-            invoiceRepository, reservationRepository, fiscalProfileRepository,
-            fiscalEngine, numberingService, tenantContext);
+            invoiceRepository, reservationRepository, interventionRepository,
+            fiscalProfileRepository, fiscalEngine, numberingService, tenantContext);
     }
 
     private Reservation createTestReservation() {

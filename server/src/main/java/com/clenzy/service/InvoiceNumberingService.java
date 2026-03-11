@@ -44,6 +44,15 @@ public class InvoiceNumberingService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String generateNextNumber() {
         Long orgId = tenantContext.getRequiredOrganizationId();
+        return generateNextNumber(orgId);
+    }
+
+    /**
+     * Surcharge sans dependance TenantContext.
+     * Utilisee depuis les webhooks Stripe (pas de contexte tenant).
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public String generateNextNumber(Long orgId) {
         int currentYear = LocalDate.now().getYear();
 
         InvoiceNumberSequence sequence = sequenceRepository
