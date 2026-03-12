@@ -12,9 +12,19 @@ import java.util.List;
 @Repository
 public interface GuestMessageLogRepository extends JpaRepository<GuestMessageLog, Long> {
 
-    List<GuestMessageLog> findByOrganizationIdOrderByCreatedAtDesc(Long organizationId);
+    @Query("SELECT gml FROM GuestMessageLog gml " +
+           "LEFT JOIN FETCH gml.guest " +
+           "LEFT JOIN FETCH gml.template " +
+           "WHERE gml.organizationId = :orgId " +
+           "ORDER BY gml.createdAt DESC")
+    List<GuestMessageLog> findByOrganizationIdOrderByCreatedAtDesc(@Param("orgId") Long organizationId);
 
-    List<GuestMessageLog> findByReservationIdOrderByCreatedAtDesc(Long reservationId);
+    @Query("SELECT gml FROM GuestMessageLog gml " +
+           "LEFT JOIN FETCH gml.guest " +
+           "LEFT JOIN FETCH gml.template " +
+           "WHERE gml.reservationId = :reservationId " +
+           "ORDER BY gml.createdAt DESC")
+    List<GuestMessageLog> findByReservationIdOrderByCreatedAtDesc(@Param("reservationId") Long reservationId);
 
     /**
      * Verifie si un message de ce type a deja ete envoye (ou est en attente)

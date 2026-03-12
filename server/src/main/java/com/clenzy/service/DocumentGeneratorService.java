@@ -28,13 +28,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Service principal de generation de documents.
@@ -73,6 +75,8 @@ public class DocumentGeneratorService {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final DocumentNumberingService numberingService;
     private final DocumentComplianceService complianceService;
+    private final InvoiceGeneratorService invoiceGeneratorService;
+    private final TaxRulePreValidator taxRulePreValidator;
     private final TenantContext tenantContext;
 
     private final Counter generationSuccessCounter;
@@ -94,6 +98,8 @@ public class DocumentGeneratorService {
             KafkaTemplate<String, Object> kafkaTemplate,
             DocumentNumberingService numberingService,
             DocumentComplianceService complianceService,
+            InvoiceGeneratorService invoiceGeneratorService,
+            TaxRulePreValidator taxRulePreValidator,
             TenantContext tenantContext,
             MeterRegistry meterRegistry
     ) {
@@ -111,6 +117,8 @@ public class DocumentGeneratorService {
         this.kafkaTemplate = kafkaTemplate;
         this.numberingService = numberingService;
         this.complianceService = complianceService;
+        this.invoiceGeneratorService = invoiceGeneratorService;
+        this.taxRulePreValidator = taxRulePreValidator;
         this.tenantContext = tenantContext;
 
         this.generationSuccessCounter = Counter.builder("clenzy.documents.generation.success")
@@ -133,7 +141,7 @@ public class DocumentGeneratorService {
 
     @Transactional(readOnly = true)
     public DocumentTemplate getTemplate(Long id) {
-        return templateRepository.findById(id)
+        return templateRepository.findByIdWithTags(id)
                 .orElseThrow(() -> new DocumentNotFoundException("Template introuvable: " + id));
     }
 
@@ -153,14 +161,19 @@ public class DocumentGeneratorService {
 
         DocumentType documentType = parseDocumentType(documentTypeStr);
 
-        String filePath = templateStorageService.store(file);
+        byte[] fileContent;
+        try {
+            fileContent = file.getBytes();
+        } catch (java.io.IOException e) {
+            throw new DocumentStorageException("Failed to read uploaded file", e);
+        }
 
         DocumentTemplate template = new DocumentTemplate();
         template.setName(name);
         template.setDescription(description);
         template.setDocumentType(documentType);
         template.setEventTrigger(eventTrigger);
-        template.setFilePath(filePath);
+        template.setFileContent(fileContent);
         template.setOriginalFilename(originalFilename);
         template.setEmailSubject(emailSubject);
         template.setEmailBody(emailBody);
@@ -170,8 +183,7 @@ public class DocumentGeneratorService {
 
         template = templateRepository.save(template);
 
-        Path absolutePath = templateStorageService.getAbsolutePath(filePath);
-        List<DocumentTemplateTag> tags = templateParserService.parseTemplate(absolutePath);
+        List<DocumentTemplateTag> tags = templateParserService.parseTemplate(fileContent);
         for (DocumentTemplateTag tag : tags) {
             tag.setTemplate(template);
         }
@@ -218,7 +230,10 @@ public class DocumentGeneratorService {
     public void deleteTemplate(Long id) {
         DocumentTemplate template = getTemplate(id);
         tagRepository.deleteByTemplateId(id);
-        templateStorageService.delete(template.getFilePath());
+        // Nettoyage legacy : supprimer le fichier sur disque si present
+        if (template.getFilePath() != null && !template.getFilePath().isBlank()) {
+            templateStorageService.delete(template.getFilePath());
+        }
         templateRepository.delete(template);
 
         auditLogService.logDelete("DocumentTemplate", String.valueOf(id),
@@ -231,8 +246,8 @@ public class DocumentGeneratorService {
         DocumentTemplate template = getTemplate(id);
         tagRepository.deleteByTemplateId(id);
 
-        Path absolutePath = templateStorageService.getAbsolutePath(template.getFilePath());
-        List<DocumentTemplateTag> tags = templateParserService.parseTemplate(absolutePath);
+        byte[] content = resolveTemplateContent(template);
+        List<DocumentTemplateTag> tags = templateParserService.parseTemplate(content);
         for (DocumentTemplateTag tag : tags) {
             tag.setTemplate(template);
         }
@@ -250,6 +265,12 @@ public class DocumentGeneratorService {
         DocumentType documentType = parseDocumentType(request.documentType());
         ReferenceType referenceType = parseReferenceType(request.referenceType());
 
+        // Pre-valider les regles fiscales avant de creer un DocumentGeneration
+        if (documentType == DocumentType.FACTURE) {
+            taxRulePreValidator.validateTaxRulesExist(
+                    tenantContext.getCountryCode(), java.time.LocalDate.now());
+        }
+
         DocumentTemplate template = templateRepository.findByDocumentTypeAndActiveTrue(documentType)
                 .orElseThrow(() -> new DocumentNotFoundException(
                         "Aucun template actif pour le type: " + documentType.getLabel()));
@@ -261,6 +282,12 @@ public class DocumentGeneratorService {
     @Transactional
     public DocumentGenerationDto generateFromEvent(DocumentType documentType, Long referenceId,
                                                      ReferenceType referenceType, String emailTo) {
+        // Pre-valider les regles fiscales avant de creer un DocumentGeneration
+        if (documentType == DocumentType.FACTURE) {
+            taxRulePreValidator.validateTaxRulesExist(
+                    tenantContext.getCountryCode(), java.time.LocalDate.now());
+        }
+
         DocumentTemplate template = templateRepository.findByDocumentTypeAndActiveTrue(documentType)
                 .orElse(null);
 
@@ -306,7 +333,7 @@ public class DocumentGeneratorService {
             }
 
             // 2. Charger le template .odt
-            Path templatePath = templateStorageService.getAbsolutePath(template.getFilePath());
+            byte[] templateContent = resolveTemplateContent(template);
 
             // 3. Resoudre les tags
             Map<String, Object> context = tagResolverService.resolveTagsForDocument(
@@ -321,8 +348,11 @@ public class DocumentGeneratorService {
                 context.put("nf", nfTags);
             }
 
+            // 3.9 Garantir que tous les tags du template ont un fallback vide
+            ensureTemplateTagsPresent(template, context);
+
             // 4. Remplir le template via XDocReport
-            byte[] filledOdt = fillTemplate(templatePath, context);
+            byte[] filledOdt = fillTemplate(templateContent, context);
 
             // 5. Convertir en PDF via LibreOffice
             byte[] pdfBytes = conversionService.convertToPdf(filledOdt, template.getOriginalFilename());
@@ -345,6 +375,12 @@ public class DocumentGeneratorService {
             // 8.5 [NF] Verrouiller le document (hash SHA-256) pour FACTURE/DEVIS
             if (numberingService.requiresLegalNumber(template.getDocumentType())) {
                 complianceService.lockDocument(generation, pdfBytes);
+            }
+
+            // 8.7 Creer l'Invoice correspondante (visible dans l'onglet Facturation)
+            if (template.getDocumentType() == DocumentType.FACTURE
+                    && referenceType != null && legalNumber != null) {
+                createInvoiceForFacture(referenceType, referenceId, legalNumber, generation.getId());
             }
 
             // 9. Envoyer par email si demande
@@ -426,8 +462,64 @@ public class DocumentGeneratorService {
         generationFailureCounter.increment();
     }
 
-    private byte[] fillTemplate(Path templatePath, Map<String, Object> contextMap) throws Exception {
-        try (InputStream is = Files.newInputStream(templatePath)) {
+    /**
+     * Resout le contenu binaire d'un template (DB-first, fallback filesystem pour legacy).
+     */
+    private byte[] resolveTemplateContent(DocumentTemplate template) {
+        if (template.getFileContent() != null) {
+            return template.getFileContent();
+        }
+        if (template.getFilePath() != null && !template.getFilePath().isBlank()) {
+            return templateStorageService.loadAsBytes(template.getFilePath());
+        }
+        throw new DocumentStorageException("No content for template: " + template.getId());
+    }
+
+    /**
+     * Valide que tous les tags references dans le template sont presents dans le contexte.
+     * Si des tags sont manquants, leve une erreur explicite avec la liste des tags absents
+     * pour permettre de corriger le template ou le code de resolution.
+     */
+    @SuppressWarnings("unchecked")
+    private void ensureTemplateTagsPresent(DocumentTemplate template, Map<String, Object> context) {
+        List<DocumentTemplateTag> tags = template.getTags();
+        if (tags == null || tags.isEmpty()) return;
+
+        List<String> missingTags = new ArrayList<>();
+
+        for (DocumentTemplateTag tag : tags) {
+            String tagName = tag.getTagName();
+            if (tagName == null || !tagName.contains(".")) continue;
+
+            int dotIndex = tagName.indexOf('.');
+            String group = tagName.substring(0, dotIndex);
+            String field = tagName.substring(dotIndex + 1);
+
+            Object groupObj = context.get(group);
+            if (groupObj == null) {
+                missingTags.add("${" + tagName + "} (groupe '" + group + "' absent)");
+            } else if (groupObj instanceof Map) {
+                Map<String, Object> groupMap = (Map<String, Object>) groupObj;
+                if (!groupMap.containsKey(field)) {
+                    missingTags.add("${" + tagName + "} (champ '" + field + "' absent du groupe '" + group + "')");
+                }
+            }
+        }
+
+        if (!missingTags.isEmpty()) {
+            String availableGroups = context.keySet().stream()
+                    .sorted()
+                    .collect(Collectors.joining(", "));
+            throw new DocumentGenerationException(
+                    "Le template '" + template.getName() + "' contient " + missingTags.size()
+                    + " tag(s) non resolus. Tags manquants : " + String.join(" | ", missingTags)
+                    + ". Groupes disponibles dans le contexte : [" + availableGroups + "]"
+                    + ". Corrigez le template ou ajoutez la resolution de ces tags dans TagResolverService/ComplianceService.");
+        }
+    }
+
+    private byte[] fillTemplate(byte[] templateContent, Map<String, Object> contextMap) throws Exception {
+        try (InputStream is = new ByteArrayInputStream(templateContent)) {
             IXDocReport report = XDocReportRegistry.getRegistry().loadReport(
                     is, TemplateEngineKind.Freemarker);
 
@@ -512,6 +604,35 @@ public class DocumentGeneratorService {
         } catch (IllegalArgumentException e) {
             throw new DocumentValidationException("Type de reference inconnu: " + value);
         }
+    }
+
+    /**
+     * Cree un enregistrement Invoice quand une FACTURE DocumentGeneration est produite.
+     * L'echec de cette etape ne bloque pas la generation du document.
+     */
+    private void createInvoiceForFacture(ReferenceType referenceType, Long referenceId,
+                                          String legalNumber, Long documentGenerationId) {
+        try {
+            Long orgId = tenantContext.getRequiredOrganizationId();
+            invoiceGeneratorService.createIssuedFromDocumentGeneration(
+                    referenceType, referenceId, orgId, legalNumber, documentGenerationId);
+            log.info("Invoice creee pour facture {} ({} #{})", legalNumber, referenceType, referenceId);
+        } catch (Exception e) {
+            log.warn("Impossible de creer l'Invoice pour la facture {} : {}", legalNumber, e.getMessage());
+        }
+    }
+
+    // ─── Generations par reference ──────────────────────────────────────────
+
+    /**
+     * Retourne les generations de documents pour un type de reference et un ID donnes.
+     */
+    @Transactional(readOnly = true)
+    public List<DocumentGenerationDto> getGenerationsByReference(ReferenceType referenceType, Long referenceId) {
+        return generationRepository.findByReferenceTypeAndReferenceIdOrderByCreatedAtDesc(referenceType, referenceId)
+                .stream()
+                .map(DocumentGenerationDto::fromEntity)
+                .toList();
     }
 
     // ─── Historique ─────────────────────────────────────────────────────────

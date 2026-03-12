@@ -1,12 +1,27 @@
 package com.clenzy.service;
 
+import com.clenzy.config.AiProperties;
+import com.clenzy.config.ai.AiProviderException;
+import com.clenzy.config.ai.AiRequest;
+import com.clenzy.config.ai.AiResponse;
+import com.clenzy.config.ai.AnthropicProvider;
+import com.clenzy.dto.AiPricingRecommendationDto;
 import com.clenzy.dto.PricePredictionDto;
+import com.clenzy.exception.AiNotConfiguredException;
+import com.clenzy.model.AiFeature;
 import com.clenzy.model.Property;
 import com.clenzy.model.RateOverride;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.AiKeyResolver.KeySource;
+import com.clenzy.service.AiKeyResolver.ResolvedKey;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -33,13 +48,31 @@ public class AiPricingService {
     private final ReservationRepository reservationRepository;
     private final PropertyRepository propertyRepository;
     private final RateOverrideRepository rateOverrideRepository;
+    private final AiProperties aiProperties;
+    private final AnthropicProvider anthropicProvider;
+    private final AiAnonymizationService anonymizationService;
+    private final AiTokenBudgetService tokenBudgetService;
+    private final AiKeyResolver aiKeyResolver;
+    private final ObjectMapper objectMapper;
 
     public AiPricingService(ReservationRepository reservationRepository,
                              PropertyRepository propertyRepository,
-                             RateOverrideRepository rateOverrideRepository) {
+                             RateOverrideRepository rateOverrideRepository,
+                             AiProperties aiProperties,
+                             AnthropicProvider anthropicProvider,
+                             AiAnonymizationService anonymizationService,
+                             AiTokenBudgetService tokenBudgetService,
+                             AiKeyResolver aiKeyResolver,
+                             ObjectMapper objectMapper) {
         this.reservationRepository = reservationRepository;
         this.propertyRepository = propertyRepository;
         this.rateOverrideRepository = rateOverrideRepository;
+        this.aiProperties = aiProperties;
+        this.anthropicProvider = anthropicProvider;
+        this.anonymizationService = anonymizationService;
+        this.tokenBudgetService = tokenBudgetService;
+        this.aiKeyResolver = aiKeyResolver;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -141,5 +174,64 @@ public class AiPricingService {
         double dataConfidence = Math.min(1.0, historicalDataPoints / 20.0);
         double timeConfidence = daysUntil <= 7 ? 0.9 : daysUntil <= 30 ? 0.7 : 0.5;
         return Math.round((dataConfidence * 0.6 + timeConfidence * 0.4) * 100.0) / 100.0;
+    }
+
+    // ─── AI-powered predictions (LLM) ───────────────────────────────────
+
+    /**
+     * Predictions de prix via LLM (Anthropic Claude).
+     * Necessite que le feature flag pricingAi soit active.
+     * Fallback sur le rule-based en cas d'erreur.
+     */
+    @CircuitBreaker(name = "ai-pricing")
+    @Retry(name = "ai-pricing")
+    public List<AiPricingRecommendationDto> getAiPredictions(Long propertyId, Long orgId,
+                                                              LocalDate from, LocalDate to) {
+        if (!aiProperties.getFeatures().isPricingAi()) {
+            throw new AiNotConfiguredException("AI_FEATURE_DISABLED", "pricing",
+                    "AI pricing is disabled. Enable via clenzy.ai.features.pricing-ai=true");
+        }
+
+        tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.PRICING);
+        ResolvedKey key = aiKeyResolver.resolve(orgId, anthropicProvider.name());
+        tokenBudgetService.requireBudget(orgId, AiFeature.PRICING, key.source());
+
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new IllegalArgumentException("Property not found: " + propertyId));
+
+        BigDecimal basePrice = property.getNightlyPrice() != null ? property.getNightlyPrice() : new BigDecimal("100");
+
+        List<Reservation> historical = reservationRepository.findByPropertyIdsAndDateRange(
+                List.of(propertyId), from.minusYears(1), to, orgId);
+
+        double avgOccupancy = historical.isEmpty() ? 0.0 :
+                historical.stream()
+                        .filter(r -> r.getCheckIn() != null && r.getCheckOut() != null)
+                        .count() / 365.0;
+
+        String userPrompt = AiPricingPrompts.buildUserPrompt(
+                propertyId, basePrice, from, to, historical.size(), avgOccupancy, null);
+
+        String anonymizedPrompt = anonymizationService.anonymize(userPrompt);
+
+        AiRequest request = new AiRequest(
+                AiPricingPrompts.SYSTEM_PROMPT,
+                anonymizedPrompt,
+                null, 0.3, 4096, false
+        );
+
+        AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
+        AiResponse response = (key.source() == KeySource.ORGANIZATION)
+                ? anthropicProvider.chat(resolved, key.apiKey())
+                : anthropicProvider.chat(resolved);
+
+        tokenBudgetService.recordUsage(orgId, AiFeature.PRICING, anthropicProvider.name(), response);
+
+        try {
+            return objectMapper.readValue(response.content(), new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse AI pricing response: {}", e.getMessage());
+            throw new AiProviderException("anthropic", "Failed to parse pricing response", e);
+        }
     }
 }

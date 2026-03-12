@@ -241,6 +241,8 @@ public class PropertyService {
             }
         }
         property.setCleaningNotes(dto.cleaningNotes);
+        // Booking Engine
+        if (dto.bookingEngineVisible != null) property.setBookingEngineVisible(dto.bookingEngineVisible);
         // Horaires par défaut
         if (dto.defaultCheckInTime != null) property.setDefaultCheckInTime(dto.defaultCheckInTime);
         if (dto.defaultCheckOutTime != null) property.setDefaultCheckOutTime(dto.defaultCheckOutTime);
@@ -305,6 +307,7 @@ public class PropertyService {
                 dto.amenities = new ArrayList<>();
             }
             dto.cleaningNotes = p.getCleaningNotes();
+            dto.bookingEngineVisible = p.isBookingEngineVisible();
             dto.defaultCheckInTime = p.getDefaultCheckInTime();
             dto.defaultCheckOutTime = p.getDefaultCheckOutTime();
 

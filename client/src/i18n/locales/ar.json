@@ -79,6 +79,7 @@
     "invoices": "الفواتير",
     "wallets": "المحفظة",
     "channels": "القنوات",
+    "bookingEngine": "محرك الحجز",
     "contracts": "عقود الإدارة",
     "messaging": "المراسلة",
     "messageTemplates": "القوالب",
@@ -412,6 +413,8 @@
       "noiseCta": "إعداد",
       "locksCta": "إعداد",
       "keysCta": "إعداد",
+      "booking": "محرك الحجز",
+      "bookingCta": "إعداد",
       "active": "نشط"
     },
     "activityFeed": {
@@ -780,6 +783,8 @@
     "defaultHours": "الأوقات الافتراضية",
     "checkInTime": "وقت الوصول الافتراضي",
     "checkOutTime": "وقت المغادرة الافتراضي",
+    "bookingEngineVisible": "مرئي على محرك الحجز",
+    "bookingEngineVisibleHelper": "جعل هذا العقار متاحاً للحجز عبر الإنترنت",
     "cleaningPricing": "تسعيرة التنظيف",
     "cleaningBasePrice": "السعر الأساسي (€)",
     "cleaningBasePriceHelper": "سعر ثابت لكل تدخل",
@@ -2663,6 +2668,287 @@
       "taxAmount": "مبلغ ضريبة القيمة المضافة",
       "lineCount": "الأسطر",
       "noData": "لا توجد بيانات ضريبية لهذه الفترة"
+    }
+  },
+  "bookingEngine": {
+    "title": "محرك الحجز",
+    "subtitle": "قم بتكوين قوالب محرك الحجز عبر الإنترنت",
+    "save": "حفظ",
+    "saving": "جاري الحفظ...",
+    "tabs": {
+      "list": "القوالب",
+      "configuration": "الإعدادات"
+    },
+    "steps": {
+      "general": "عام",
+      "appearance": "المظهر",
+      "settings": "الإعدادات",
+      "customization": "التخصيص"
+    },
+    "actions": {
+      "newTemplate": "قالب جديد",
+      "editTemplate": "تعديل",
+      "deleteTemplate": "حذف القالب",
+      "deleteConfirm": "هل أنت متأكد من حذف القالب « {name} »؟ لا يمكن التراجع عن هذا الإجراء.",
+      "backToList": "العودة إلى القائمة"
+    },
+    "sections": {
+      "statusApiKey": "الحالة ومفتاح API",
+      "theming": "المظهر",
+      "behavior": "السلوك",
+      "policies": "الشروط",
+      "security": "الأمان",
+      "displayOptions": "خيارات العرض",
+      "componentVisibility": "إظهار المكونات",
+      "customCss": "CSS مخصص",
+      "customJs": "JS مخصص",
+      "preview": "معاينة مباشرة",
+      "aiDesign": "تحليل التصميم بالذكاء الاصطناعي",
+      "designTokens": "رموز التصميم",
+      "aiCssRegenerate": "توليد CSS بالذكاء الاصطناعي"
+    },
+    "fields": {
+      "enabled": "تفعيل محرك الحجز",
+      "apiKey": "مفتاح API",
+      "copyKey": "نسخ المفتاح",
+      "regenerateKey": "إعادة توليد المفتاح",
+      "regenerateConfirm": "هل أنت متأكد من إعادة توليد مفتاح API؟ المفتاح القديم سيتوقف عن العمل فوراً.",
+      "name": "اسم القالب",
+      "namePlaceholder": "مثال: القالب الرئيسي، ويدجت المدونة...",
+      "primaryColor": "اللون الرئيسي",
+      "accentColor": "لون التمييز",
+      "logoUrl": "رابط الشعار",
+      "fontFamily": "نوع الخط",
+      "defaultLanguage": "اللغة الافتراضية",
+      "defaultCurrency": "العملة الافتراضية",
+      "minAdvanceDays": "حد أدنى للحجز (أيام)",
+      "maxAdvanceDays": "حد أقصى للحجز (أيام)",
+      "cancellationPolicy": "سياسة الإلغاء",
+      "termsUrl": "رابط الشروط والأحكام",
+      "privacyUrl": "رابط سياسة الخصوصية",
+      "allowedOrigins": "الأصول المسموحة (CORS)",
+      "allowedOriginsHelper": "النطاقات المسموحة، مفصولة بفواصل (مثال: https://mysite.com)",
+      "collectPaymentOnBooking": "تحصيل الدفع عند الحجز",
+      "autoConfirm": "تأكيد تلقائي للحجوزات",
+      "showCleaningFee": "إظهار رسوم التنظيف",
+      "showTouristTax": "إظهار الضريبة السياحية",
+      "customCssHelper": "CSS مطبق على أداة الحجز. استخدم .booking-widget كمحدد جذري.",
+      "customJsHelper": "JavaScript يتم تنفيذه بعد تحميل الأداة. الأحداث المتاحة: booking-confirmed, booking-cancelled."
+    },
+    "status": {
+      "active": "نشط",
+      "inactive": "غير نشط"
+    },
+    "list": {
+      "empty": "لا توجد قوالب مكونة",
+      "emptyDescription": "أنشئ أول قالب لتفعيل محرك الحجز عبر الإنترنت."
+    },
+    "components": {
+      "searchBar": "شريط البحث",
+      "propertyList": "قائمة العقارات",
+      "propertyGallery": "معرض الصور",
+      "availabilityCalendar": "تقويم التوفر",
+      "priceBreakdown": "تفاصيل الأسعار",
+      "guestForm": "نموذج الضيف",
+      "paymentSection": "قسم الدفع",
+      "reviewsSection": "قسم التقييمات",
+      "mapSection": "قسم الخريطة",
+      "cancellationPolicy": "سياسة الإلغاء",
+      "contactSection": "قسم التواصل"
+    },
+    "preview": {
+      "title": "محرك الحجز",
+      "searchPlaceholder": "البحث عن عقار...",
+      "night": "ليلة",
+      "calendar": "التوفر",
+      "priceBreakdown": "تفاصيل السعر",
+      "cleaning": "التنظيف",
+      "touristTax": "الضريبة السياحية",
+      "payment": "دفع آمن",
+      "cancellationPolicy": "إلغاء مرن",
+      "contact": "اتصل بنا",
+      "map": "خريطة تفاعلية",
+      "bookNow": "احجز الآن"
+    },
+    "messages": {
+      "saved": "تم حفظ تكوين محرك الحجز",
+      "created": "تم إنشاء القالب بنجاح",
+      "deleted": "تم حذف القالب",
+      "error": "خطأ أثناء الحفظ",
+      "keyRegenerated": "تم إعادة توليد مفتاح API بنجاح",
+      "keyCopied": "تم نسخ مفتاح API",
+      "toggled": "محرك الحجز {status}"
+    },
+    "ai": {
+      "websiteUrl": "رابط موقع العميل",
+      "analyzeDesign": "تحليل التصميم",
+      "analyzing": "جاري تحليل الموقع... استخراج الألوان والخطوط والأنماط عبر الذكاء الاصطناعي.",
+      "analyzeSuccess": "تم تحليل التصميم بنجاح! تم استخراج الرموز.",
+      "analyzeError": "خطأ أثناء تحليل الموقع",
+      "saveFirst": "احفظ القالب أولاً قبل استخدام تحليل الذكاء الاصطناعي",
+      "tokensApplied": "تم تطبيق رموز التصميم وتوليد CSS",
+      "additionalInstructions": "تعليمات إضافية",
+      "instructionsPlaceholder": "مثال: زوايا أكثر استدارة، أسلوب أكثر بساطة...",
+      "regenerateCss": "إعادة توليد CSS",
+      "cssRegenerated": "تم إعادة توليد CSS بنجاح",
+      "cssRegenerateError": "خطأ أثناء إعادة توليد CSS",
+      "insights": {
+        "title": "رؤى الذكاء الاصطناعي",
+        "noInsights": "لا توجد رؤى متاحة لهذه الفترة",
+        "anomaly": "شذوذ",
+        "trend": "اتجاه",
+        "recommendation": "توصية",
+        "warning": "تنبيه",
+        "severity": "الخطورة",
+        "loading": "جاري تحليل الذكاء الاصطناعي..."
+      },
+      "usage": {
+        "title": "استخدام الذكاء الاصطناعي",
+        "tokensUsed": "الرموز المستخدمة",
+        "budget": "الميزانية",
+        "feature": "الميزة",
+        "remaining": "المتبقي",
+        "noData": "لا توجد بيانات استخدام"
+      },
+      "pricing": {
+        "title": "توصيات التسعير بالذكاء الاصطناعي",
+        "suggestedPrice": "السعر المقترح",
+        "confidence": "الثقة",
+        "factors": "العوامل",
+        "marketComparison": "مقارنة السوق",
+        "loading": "جاري تحليل التسعير..."
+      },
+      "messaging": {
+        "detectIntent": "كشف النية",
+        "suggestResponse": "اقتراح رد",
+        "intent": "النية",
+        "confidence": "الثقة",
+        "language": "اللغة",
+        "urgent": "عاجل",
+        "tone": "النبرة",
+        "alternatives": "بدائل",
+        "loading": "جاري تحليل الذكاء الاصطناعي..."
+      },
+      "sentiment": {
+        "title": "تحليل المشاعر بالذكاء الاصطناعي",
+        "positive": "إيجابي",
+        "negative": "سلبي",
+        "neutral": "محايد",
+        "mixed": "مختلط",
+        "themes": "المواضيع",
+        "suggestedResponse": "الرد المقترح"
+      },
+      "guidance": {
+        "usage": {
+          "text": "لم يتم تكوين الذكاء الاصطناعي بعد. قم بربط حساب OpenAI أو Anthropic لتفعيل ميزات الذكاء الاصطناعي.",
+          "button": "الإعداد في الإعدادات"
+        },
+        "pricing": {
+          "text": "لم يتم تفعيل توصيات التسعير بالذكاء الاصطناعي بعد. قم بتكوين حساب الذكاء الاصطناعي للحصول على اقتراحات أسعار ذكية.",
+          "button": "الإعداد في الإعدادات"
+        },
+        "messaging": {
+          "title": "مساعد الذكاء الاصطناعي",
+          "text": "لم يتم تكوين مساعد المراسلة بالذكاء الاصطناعي بعد. قم بربط حساب الذكاء الاصطناعي لاستخدام كشف النية واقتراحات الردود.",
+          "button": "الإعداد في الإعدادات",
+          "placeholder": "رسالة الضيف...",
+          "contextPlaceholder": "السياق",
+          "languagePlaceholder": "اللغة (en، fr...)"
+        }
+      },
+      "settings": {
+        "title": "تكوين الذكاء الاصطناعي",
+        "subtitle": "قم بربط حسابات OpenAI أو Anthropic الخاصة بك لاستخدام الذكاء الاصطناعي بدون حدود للرموز. بشكل افتراضي، تستخدم المنصة مفتاحاً مشتركاً بميزانية شهرية.",
+        "personalKey": "مفتاح شخصي",
+        "sharedKey": "مفتاح مشترك",
+        "keyLabel": "المفتاح",
+        "modelLabel": "النموذج",
+        "validated": "تم التحقق",
+        "notValidated": "لم يتم التحقق",
+        "sharedKeyDescription": "يستخدم المفتاح المشترك للمنصة. قم بربط حسابك الخاص لاستهلاك المزيد من الرموز بدون حدود.",
+        "modify": "تعديل",
+        "connect": "ربط",
+        "disconnect": "فصل",
+        "configureProvider": "تكوين {{provider}}",
+        "apiKeyLabel": "مفتاح API",
+        "modelOverrideLabel": "نموذج مخصص (اختياري)",
+        "modelOverrideHelper": "اتركه فارغاً لاستخدام النموذج الافتراضي",
+        "byokInfo": "مع مفتاحك الخاص، لا يتم تطبيق حدود رموز المنصة. سيتم تحصيل استهلاكك مباشرة من {{provider}}.",
+        "cancel": "إلغاء",
+        "test": "اختبار",
+        "save": "حفظ",
+        "saveError": "خطأ أثناء الحفظ. تحقق من مفتاح API.",
+        "loadError": "تعذر تحميل تكوين الذكاء الاصطناعي. يرجى المحاولة مرة أخرى."
+      },
+      "features": {
+        "title": "حلول الذكاء الاصطناعي Clenzy",
+        "subtitle": "قم بتفعيل أو تعطيل وحدات الذكاء الاصطناعي حسب احتياجاتك",
+        "design": {
+          "name": "تصميم ذكي",
+          "description": "توليد CSS لودجت الحجز",
+          "menu": "محرك الحجز"
+        },
+        "pricing": {
+          "name": "تسعير ذكي",
+          "description": "توصيات أسعار ذكية",
+          "menu": "الأسعار الديناميكية"
+        },
+        "messaging": {
+          "name": "رسائل ذكية",
+          "description": "كشف النية والردود المقترحة",
+          "menu": "اتصل بنا"
+        },
+        "analytics": {
+          "name": "تحليلات ذكية",
+          "description": "رؤى وتوصيات الأداء",
+          "menu": "لوحة القيادة"
+        },
+        "sentiment": {
+          "name": "تحليل المشاعر",
+          "description": "تحليل مشاعر تقييمات الضيوف",
+          "menu": "التقييمات"
+        }
+      }
+    },
+    "designTokens": {
+      "none": "لا شيء",
+      "colors": "الألوان",
+      "primaryColor": "اللون الرئيسي",
+      "secondaryColor": "اللون الثانوي",
+      "accentColor": "لون التمييز",
+      "backgroundColor": "لون الخلفية",
+      "surfaceColor": "لون السطح",
+      "textColor": "لون النص",
+      "textSecondaryColor": "النص الثانوي",
+      "borderColor": "لون الحدود",
+      "dividerColor": "لون الفاصل",
+      "typography": "الخطوط",
+      "headingFontFamily": "خط العناوين",
+      "bodyFontFamily": "خط النص",
+      "baseFontSize": "حجم الخط الأساسي",
+      "headingFontWeight": "سمك خط العناوين",
+      "spacing": "المسافات والحدود",
+      "borderRadius": "نصف قطر الحدود",
+      "buttonBorderRadius": "نصف قطر الزر",
+      "cardBorderRadius": "نصف قطر البطاقة",
+      "spacingUnit": "المسافة",
+      "shadows": "الظلال",
+      "boxShadow": "ظل عام",
+      "cardShadow": "ظل البطاقة",
+      "shadowNone": "بدون",
+      "shadowSubtle": "خفيف",
+      "shadowMedium": "متوسط",
+      "shadowStrong": "قوي",
+      "buttons": "الأزرار",
+      "buttonStyle": "نمط الزر",
+      "buttonFilled": "معبأ",
+      "buttonOutlined": "محدد",
+      "buttonRounded": "مستدير",
+      "buttonTextTransform": "تحويل النص",
+      "textTransformNone": "بدون",
+      "textTransformUppercase": "أحرف كبيرة",
+      "textTransformCapitalize": "حرف أول كبير",
+      "regenerateCss": "إعادة توليد CSS بالذكاء الاصطناعي"
     }
   }
 }

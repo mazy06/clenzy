@@ -90,6 +90,11 @@ public class CacheConfig {
                 .entryTtl(Duration.ZERO)
                 .prefixCacheNameWith("clenzy:roles:"));
 
+        // Cache AI design tokens (24 heures)
+        cacheConfigurations.put("ai-design-tokens", defaultConfig
+                .entryTtl(Duration.ofHours(24))
+                .prefixCacheNameWith("clenzy:ai-design:"));
+
         RedisCacheManager redisCacheManager = RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigurations)

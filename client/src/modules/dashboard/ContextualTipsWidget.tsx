@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -139,6 +139,9 @@ const ALL_TIPS: Tip[] = [
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
+/** Auto-rotate interval in ms. */
+const AUTO_ROTATE_MS = 6_000;
+
 const ContextualTipsWidget: React.FC = React.memo(() => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -156,18 +159,48 @@ const ContextualTipsWidget: React.FC = React.memo(() => {
 
   // Rotate through tips — start at random position to vary experience
   const [index, setIndex] = useState(() => Math.floor(Math.random() * Math.max(filteredTips.length, 1)));
+  const [fade, setFade] = useState(true);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const currentTip = filteredTips[index % filteredTips.length];
 
+  // ── Transition helper: fade out → change index → fade in ──────────────────
+  const transitionTo = useCallback((nextIndex: number) => {
+    setFade(false);
+    setTimeout(() => {
+      setIndex(nextIndex);
+      setFade(true);
+    }, 200);
+  }, []);
+
   const goNext = useCallback(() => {
-    setIndex((prev) => (prev + 1) % filteredTips.length);
-  }, [filteredTips.length]);
+    transitionTo((index + 1) % filteredTips.length);
+  }, [index, filteredTips.length, transitionTo]);
 
   const goPrev = useCallback(() => {
-    setIndex((prev) => (prev - 1 + filteredTips.length) % filteredTips.length);
-  }, [filteredTips.length]);
+    transitionTo((index - 1 + filteredTips.length) % filteredTips.length);
+  }, [index, filteredTips.length, transitionTo]);
+
+  // ── Auto-rotate — reset timer on manual navigation ────────────────────────
+  useEffect(() => {
+    if (filteredTips.length <= 1) return;
+
+    timerRef.current = setInterval(() => {
+      setFade(false);
+      setTimeout(() => {
+        setIndex((prev) => (prev + 1) % filteredTips.length);
+        setFade(true);
+      }, 200);
+    }, AUTO_ROTATE_MS);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [filteredTips.length, index]); // reset timer when index changes (manual nav)
 
   if (!currentTip || filteredTips.length === 0) return null;
+
+  const activeIdx = index % filteredTips.length;
 
   return (
     <Box
@@ -193,16 +226,20 @@ const ContextualTipsWidget: React.FC = React.memo(() => {
           </Typography>
         </Box>
         <Typography sx={{ fontSize: '0.6rem', color: 'text.disabled', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-          {(index % filteredTips.length) + 1}/{filteredTips.length}
+          {activeIdx + 1}/{filteredTips.length}
         </Typography>
       </Box>
 
-      {/* ── Tip content ─────────────────────────────────────────── */}
+      {/* ── Tip content — fixed height so all steps are uniform ── */}
       <Box
         sx={{
           display: 'flex',
           gap: 1.5,
           flex: 1,
+          minHeight: 64,
+          opacity: fade ? 1 : 0,
+          transition: 'opacity 0.2s ease',
+          alignItems: 'flex-start',
         }}
       >
         {/* Icon */}
@@ -261,11 +298,11 @@ const ContextualTipsWidget: React.FC = React.memo(() => {
               <Box
                 key={i}
                 sx={{
-                  width: 5,
+                  width: activeIdx === i ? 12 : 5,
                   height: 5,
-                  borderRadius: '50%',
-                  bgcolor: (index % filteredTips.length) === i ? C.primary : 'action.disabled',
-                  transition: 'all 0.2s ease',
+                  borderRadius: activeIdx === i ? '2.5px' : '50%',
+                  bgcolor: activeIdx === i ? C.primary : 'action.disabled',
+                  transition: 'all 0.3s ease',
                 }}
               />
             ))}
@@ -291,6 +328,8 @@ const ContextualTipsWidget: React.FC = React.memo(() => {
             py: 0.25,
             minWidth: 0,
             borderRadius: '6px',
+            opacity: fade ? 1 : 0,
+            transition: 'opacity 0.2s ease',
             '&:hover': {
               bgcolor: `${currentTip.color}08`,
             },

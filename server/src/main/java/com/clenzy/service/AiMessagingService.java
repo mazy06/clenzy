@@ -1,5 +1,20 @@
 package com.clenzy.service;
 
+import com.clenzy.config.AiProperties;
+import com.clenzy.config.ai.AiProviderException;
+import com.clenzy.config.ai.AiRequest;
+import com.clenzy.config.ai.AiResponse;
+import com.clenzy.config.ai.AnthropicProvider;
+import com.clenzy.dto.AiIntentDetectionDto;
+import com.clenzy.dto.AiSuggestedResponseDto;
+import com.clenzy.exception.AiNotConfiguredException;
+import com.clenzy.model.AiFeature;
+import com.clenzy.service.AiKeyResolver.KeySource;
+import com.clenzy.service.AiKeyResolver.ResolvedKey;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -11,6 +26,29 @@ import java.util.Map;
 public class AiMessagingService {
 
     private static final Logger log = LoggerFactory.getLogger(AiMessagingService.class);
+
+    private final AiProperties aiProperties;
+    private final AnthropicProvider anthropicProvider;
+    private final AiAnonymizationService anonymizationService;
+    private final AiTokenBudgetService tokenBudgetService;
+    private final AiKeyResolver aiKeyResolver;
+    private final ObjectMapper objectMapper;
+
+    public AiMessagingService(AiProperties aiProperties,
+                               AnthropicProvider anthropicProvider,
+                               AiAnonymizationService anonymizationService,
+                               AiTokenBudgetService tokenBudgetService,
+                               AiKeyResolver aiKeyResolver,
+                               ObjectMapper objectMapper) {
+        this.aiProperties = aiProperties;
+        this.anthropicProvider = anthropicProvider;
+        this.anonymizationService = anonymizationService;
+        this.tokenBudgetService = tokenBudgetService;
+        this.aiKeyResolver = aiKeyResolver;
+        this.objectMapper = objectMapper;
+    }
+
+    // ─── Rule-based (existing) ──────────────────────────────────────────
 
     private static final Map<String, List<String>> INTENT_KEYWORDS = Map.of(
         "CHECK_IN", List.of("check-in", "checkin", "arrive", "arrivee", "entree", "cle", "key", "code"),
@@ -34,55 +72,38 @@ public class AiMessagingService {
         "EXTENSION", "Merci pour votre interet a prolonger votre sejour ! Nous verifions la disponibilite et revenons vers vous rapidement."
     );
 
-    /**
-     * Detecte l'intention du message du guest.
-     */
     public String detectIntent(String message) {
         if (message == null || message.isBlank()) return "UNKNOWN";
 
         String lower = message.toLowerCase();
-
         String bestIntent = "UNKNOWN";
         int bestScore = 0;
 
         for (Map.Entry<String, List<String>> entry : INTENT_KEYWORDS.entrySet()) {
             int score = 0;
             for (String keyword : entry.getValue()) {
-                if (lower.contains(keyword)) {
-                    score++;
-                }
+                if (lower.contains(keyword)) score++;
             }
             if (score > bestScore) {
                 bestScore = score;
                 bestIntent = entry.getKey();
             }
         }
-
         return bestIntent;
     }
 
-    /**
-     * Genere une reponse suggeree basee sur l'intention detectee.
-     */
     public String generateSuggestedResponse(String message, Map<String, String> propertyVars) {
         String intent = detectIntent(message);
         String template = RESPONSE_TEMPLATES.getOrDefault(intent,
             "Merci pour votre message. Nous avons bien recu votre demande et nous y repondrons dans les plus brefs delais.");
 
-        // Replace variables
         for (Map.Entry<String, String> var : propertyVars.entrySet()) {
             template = template.replace("{" + var.getKey() + "}", var.getValue());
         }
-
-        // Remove unreplaced variables
         template = template.replaceAll("\\{[^}]+\\}", "[a configurer]");
-
         return template;
     }
 
-    /**
-     * Evalue si un message est urgent.
-     */
     public boolean isUrgent(String message) {
         if (message == null) return false;
         String lower = message.toLowerCase();
@@ -92,9 +113,6 @@ public class AiMessagingService {
             || lower.contains("locked out") || lower.contains("enferme");
     }
 
-    /**
-     * Score de sentiment du message (-1 negatif, 0 neutre, 1 positif).
-     */
     public double analyzeSentiment(String message) {
         if (message == null || message.isBlank()) return 0;
         String lower = message.toLowerCase();
@@ -112,5 +130,70 @@ public class AiMessagingService {
         if (positive > negative) return Math.min(1.0, positive * 0.3);
         if (negative > positive) return -Math.min(1.0, negative * 0.3);
         return 0;
+    }
+
+    // ─── AI-powered NLU (LLM) ───────────────────────────────────────────
+
+    @CircuitBreaker(name = "ai-messaging")
+    @Retry(name = "ai-messaging")
+    public AiIntentDetectionDto detectIntentAi(String message, Long orgId) {
+        if (!aiProperties.getFeatures().isMessagingAi()) {
+            throw new AiNotConfiguredException("AI_FEATURE_DISABLED", "messaging",
+                    "AI messaging is disabled. Enable via clenzy.ai.features.messaging-ai=true");
+        }
+
+        tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.MESSAGING);
+        ResolvedKey key = aiKeyResolver.resolve(orgId, anthropicProvider.name());
+        tokenBudgetService.requireBudget(orgId, AiFeature.MESSAGING, key.source());
+
+        String anonymized = anonymizationService.anonymize(message);
+        String userPrompt = AiMessagingPrompts.buildIntentPrompt(anonymized);
+
+        AiRequest request = AiRequest.of(AiMessagingPrompts.INTENT_DETECTION_SYSTEM, userPrompt);
+        AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
+        AiResponse response = (key.source() == KeySource.ORGANIZATION)
+                ? anthropicProvider.chat(resolved, key.apiKey())
+                : anthropicProvider.chat(resolved);
+
+        tokenBudgetService.recordUsage(orgId, AiFeature.MESSAGING, anthropicProvider.name(), response);
+
+        try {
+            return objectMapper.readValue(response.content(), AiIntentDetectionDto.class);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse AI intent detection response: {}", e.getMessage());
+            throw new AiProviderException("anthropic", "Failed to parse intent detection", e);
+        }
+    }
+
+    @CircuitBreaker(name = "ai-messaging")
+    @Retry(name = "ai-messaging")
+    public AiSuggestedResponseDto generateSuggestedResponseAi(String message, String context,
+                                                                String language, Long orgId) {
+        if (!aiProperties.getFeatures().isMessagingAi()) {
+            throw new AiNotConfiguredException("AI_FEATURE_DISABLED", "messaging",
+                    "AI messaging is disabled. Enable via clenzy.ai.features.messaging-ai=true");
+        }
+
+        tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.MESSAGING);
+        ResolvedKey key = aiKeyResolver.resolve(orgId, anthropicProvider.name());
+        tokenBudgetService.requireBudget(orgId, AiFeature.MESSAGING, key.source());
+
+        String anonymized = anonymizationService.anonymize(message);
+        String userPrompt = AiMessagingPrompts.buildResponsePrompt(anonymized, context, language);
+
+        AiRequest request = AiRequest.of(AiMessagingPrompts.SUGGESTED_RESPONSE_SYSTEM, userPrompt);
+        AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
+        AiResponse response = (key.source() == KeySource.ORGANIZATION)
+                ? anthropicProvider.chat(resolved, key.apiKey())
+                : anthropicProvider.chat(resolved);
+
+        tokenBudgetService.recordUsage(orgId, AiFeature.MESSAGING, anthropicProvider.name(), response);
+
+        try {
+            return objectMapper.readValue(response.content(), AiSuggestedResponseDto.class);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse AI suggested response: {}", e.getMessage());
+            throw new AiProviderException("anthropic", "Failed to parse suggested response", e);
+        }
     }
 }

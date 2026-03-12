@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -77,18 +78,37 @@ public class TemplateParserService {
      */
     public List<DocumentTemplateTag> parseTemplate(Path templatePath) {
         log.info("Parsing template: {}", templatePath.getFileName());
+        try (InputStream is = Files.newInputStream(templatePath)) {
+            return parseTemplateFromStream(is, templatePath.getFileName().toString());
+        } catch (IOException e) {
+            log.warn("Failed to open template file {}: {}", templatePath.getFileName(), e.getMessage());
+            return List.of();
+        }
+    }
 
+    /**
+     * Parse un template .odt a partir de son contenu binaire (byte[]).
+     */
+    public List<DocumentTemplateTag> parseTemplate(byte[] content) {
+        log.info("Parsing template from byte[] ({} bytes)", content.length);
+        try (InputStream is = new ByteArrayInputStream(content)) {
+            return parseTemplateFromStream(is, "byte[]");
+        } catch (IOException e) {
+            log.warn("Failed to parse template from bytes: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    private List<DocumentTemplateTag> parseTemplateFromStream(InputStream inputStream, String sourceName) {
         Set<String> rawTags = new LinkedHashSet<>();
 
-        // Extraction regex sur le contenu XML brut du .odt
         try {
-            String xmlContent = extractOdtTextContent(templatePath);
+            String xmlContent = extractOdtTextContent(inputStream);
             extractFreemarkerTags(xmlContent, rawTags);
         } catch (Exception e) {
-            log.warn("Failed to extract tags via regex from {}: {}", templatePath.getFileName(), e.getMessage());
+            log.warn("Failed to extract tags via regex from {}: {}", sourceName, e.getMessage());
         }
 
-        // Convertir les tags bruts en entites
         List<DocumentTemplateTag> tags = new ArrayList<>();
         for (String rawTag : rawTags) {
             DocumentTemplateTag tag = buildTag(rawTag);
@@ -97,16 +117,16 @@ public class TemplateParserService {
             }
         }
 
-        log.info("Parsed {} tags from template {}", tags.size(), templatePath.getFileName());
+        log.info("Parsed {} tags from template {}", tags.size(), sourceName);
         return tags;
     }
 
     /**
-     * Extrait le contenu texte XML d'un fichier .odt (format ZIP contenant content.xml).
+     * Extrait le contenu texte XML d'un .odt (format ZIP contenant content.xml).
      */
-    private String extractOdtTextContent(Path odtPath) throws IOException {
+    private String extractOdtTextContent(InputStream odtStream) throws IOException {
         StringBuilder content = new StringBuilder();
-        try (java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(Files.newInputStream(odtPath))) {
+        try (java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(odtStream)) {
             java.util.zip.ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
                 if ("content.xml".equals(entry.getName()) || "styles.xml".equals(entry.getName())) {

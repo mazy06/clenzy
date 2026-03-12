@@ -596,3 +596,89 @@ databaseChangeLog:
       sqlFile:
         path: changes/0067__add_auto_assign_notification_keys.sql
         relativeToChangelogFile: true
+
+  # --- 0068 : Create booking engine configs table ---
+  - changeSet:
+      id: "0068-create-booking-engine-configs"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0068__create_booking_engine_configs.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0069 : Fix booking_engine_visible NOT NULL ---
+  - changeSet:
+      id: "0069-fix-booking-engine-visible-not-null"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0069__fix_booking_engine_visible_not_null.sql
+        relativeToChangelogFile: true
+
+  # --- 0070 : Booking engine multi-templates ---
+  - changeSet:
+      id: "0070-booking-engine-templates"
+      author: clenzy-team
+      changes:
+        - sqlFile:
+            path: changes/0070__booking_engine_templates.sql
+            relativeToChangelogFile: true
+            splitStatements: false
+            stripComments: false
+
+  # --- 0071 : Booking engine AI design analysis ---
+  - changeSet:
+      id: "0071-booking-engine-ai-design"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0071__booking_engine_ai_design.sql
+        relativeToChangelogFile: true
+
+  # --- 0072 : AI token budget and usage tracking ---
+  - changeSet:
+      id: "0072-create-ai-token-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0072__create_ai_token_tables.sql
+        relativeToChangelogFile: true
+
+  # --- 0073 : Per-organization AI API keys (BYOK) ---
+  - changeSet:
+      id: "0073-create-org-ai-api-keys"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0073__create_org_ai_api_keys.sql
+        relativeToChangelogFile: true
+
+  # --- 0074 : Store template file content in DB (BYTEA) ---
+  - changeSet:
+      id: "0074-store-template-content-in-db"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0074__store_template_content_in_db.sql
+        relativeToChangelogFile: true
+
+  # --- 0075 : Fix audit_log_action_check constraint ---
+  - changeSet:
+      id: "0075-fix-audit-log-action-check"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0075__fix_audit_log_action_check.sql
+        relativeToChangelogFile: true
+
+  # --- 0076 : Fix document_number_sequences unique constraint (add organization_id) ---
+  - changeSet:
+      id: "0076-fix-doc-num-seq-unique-constraint"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0076__fix_document_number_sequences_unique_constraint.sql
+        relativeToChangelogFile: true
+
+  # --- 0077 : Seed initial tax rules for FR, MA, SA ---
+  - changeSet:
+      id: "0077-seed-initial-tax-rules"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0077__seed_initial_tax_rules.sql
+        relativeToChangelogFile: true

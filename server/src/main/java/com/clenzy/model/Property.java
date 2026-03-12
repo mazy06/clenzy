@@ -165,6 +165,11 @@ public class Property {
     @Column(name = "amenities", columnDefinition = "TEXT")
     private String amenities;
 
+    // ─── Booking Engine ─────────────────────────────────────────────────────────
+
+    @Column(name = "booking_engine_visible", nullable = false)
+    private boolean bookingEngineVisible = false;
+
     @Column(name = "cleaning_notes", columnDefinition = "TEXT")
     private String cleaningNotes;
 
@@ -585,6 +590,14 @@ public class Property {
 
     public void setCleaningNotes(String cleaningNotes) {
         this.cleaningNotes = cleaningNotes;
+    }
+
+    public boolean isBookingEngineVisible() {
+        return bookingEngineVisible;
+    }
+
+    public void setBookingEngineVisible(boolean bookingEngineVisible) {
+        this.bookingEngineVisible = bookingEngineVisible;
     }
 
     public Long getOrganizationId() { return organizationId; }

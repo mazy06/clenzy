@@ -30,6 +30,8 @@ import {
   type MessageTemplate,
 } from '../../services/api/guestMessagingApi';
 import MessageTemplateEditor from './MessageTemplateEditor';
+import AiMessagingControls from './AiMessagingControls';
+import { useIsAiFeatureEnabled } from '../../hooks/useAi';
 
 const TYPE_COLORS: Record<string, 'success' | 'warning' | 'info' | 'default'> = {
   CHECK_IN: 'success',
@@ -49,6 +51,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function MessageTemplatesPage() {
   const { t } = useTranslation();
+  const isMessagingAiEnabled = useIsAiFeatureEnabled('MESSAGING');
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -205,6 +208,13 @@ export default function MessageTemplatesPage() {
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+
+      {/* AI Messaging Controls */}
+      {isMessagingAiEnabled && (
+        <Box sx={{ mt: 2 }}>
+          <AiMessagingControls />
+        </Box>
       )}
 
       {/* Editor Dialog */}

@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "document_number_sequences",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"document_type", "year"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"document_type", "year", "organization_id"}))
 @org.hibernate.annotations.Filter(
     name = "organizationFilter",
     condition = "organization_id = :orgId"
