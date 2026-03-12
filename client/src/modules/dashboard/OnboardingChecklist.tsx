@@ -5,6 +5,7 @@ import {
   LinearProgress,
   IconButton,
   Tooltip,
+  Button,
   useTheme,
 } from '@mui/material';
 import {
@@ -16,6 +17,7 @@ import {
   Sync,
   Close,
   Replay,
+  Add,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -239,6 +241,72 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = React.memo(({
           </Box>
         ))}
       </Box>
+
+      {/* ── Welcome CTA when no properties yet ──────────────────────── */}
+      {!hasProperties && (
+        <Box
+          sx={{
+            mt: 1.5,
+            pt: 1.5,
+            borderTop: '1px solid',
+            borderTopColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+          }}
+        >
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: '0 2px 8px rgba(107,138,154,0.20)',
+            }}
+          >
+            <Home sx={{ fontSize: 18, color: '#fff' }} />
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'text.primary', lineHeight: 1.3 }}>
+              {t('dashboard.emptyState.title')}
+            </Typography>
+            <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', lineHeight: 1.4 }}>
+              {t('dashboard.emptyState.description')}
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<Add sx={{ fontSize: 14 }} />}
+            onClick={() => navigate('/properties/new')}
+            sx={{
+              background: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
+              color: '#fff',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              textTransform: 'none',
+              borderRadius: '8px',
+              px: 2,
+              py: 0.5,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              boxShadow: isDark
+                ? '0 2px 8px rgba(0,0,0,0.3)'
+                : '0 2px 8px rgba(107,138,154,0.25)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #5A7684 0%, #7B9CAC 100%)',
+                boxShadow: '0 4px 12px rgba(107,138,154,0.35)',
+              },
+            }}
+          >
+            {t('dashboard.emptyState.cta')}
+          </Button>
+        </Box>
+      )}
     </Box>
   );
 });
