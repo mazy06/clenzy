@@ -33,7 +33,12 @@ public class TwilioWebhookController {
 
     public TwilioWebhookController(TwilioConfig config) {
         this.config = config;
-        this.requestValidator = new RequestValidator(config.getAuthToken());
+        if (config.isConfigured()) {
+            this.requestValidator = new RequestValidator(config.getAuthToken());
+        } else {
+            log.warn("Twilio webhook controller charge mais auth-token absent — validation des signatures desactivee");
+            this.requestValidator = null;
+        }
     }
 
     /**
@@ -97,6 +102,11 @@ public class TwilioWebhookController {
      */
     private boolean validateTwilioSignature(HttpServletRequest request, Map<String, String> params) {
         try {
+            if (requestValidator == null) {
+                log.warn("Twilio RequestValidator non initialise — rejet de la requete");
+                return false;
+            }
+
             String signature = request.getHeader("X-Twilio-Signature");
             if (signature == null || signature.isBlank()) {
                 return false;
