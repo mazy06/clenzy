@@ -79,6 +79,7 @@
     "invoices": "Factures",
     "wallets": "Portefeuille",
     "channels": "Channels",
+    "bookingEngine": "Booking Engine",
     "contracts": "Contrats de gestion",
     "messaging": "Messagerie",
     "messageTemplates": "Templates",
@@ -412,6 +413,8 @@
       "noiseCta": "Configurer",
       "locksCta": "Configurer",
       "keysCta": "Configurer",
+      "booking": "Booking Engine",
+      "bookingCta": "Configurer",
       "active": "actif(s)"
     },
     "activityFeed": {
@@ -780,6 +783,8 @@
     "defaultHours": "Heures par défaut",
     "checkInTime": "Heure d'arrivée par défaut",
     "checkOutTime": "Heure de départ par défaut",
+    "bookingEngineVisible": "Visible sur le Booking Engine",
+    "bookingEngineVisibleHelper": "Rendre cette propriété disponible à la réservation en ligne",
     "cleaningPricing": "Tarification ménage",
     "cleaningBasePrice": "Prix de base (€)",
     "cleaningBasePriceHelper": "Prix fixe par intervention",
@@ -2672,6 +2677,38 @@
       "freqQuarterly": "Trimestrielle",
       "freqAnnual": "Annuelle"
     },
+    "taxRules": {
+      "title": "Regles fiscales",
+      "add": "Ajouter",
+      "addTitle": "Nouvelle regle fiscale",
+      "editTitle": "Modifier la regle fiscale",
+      "category": "Categorie",
+      "taxName": "Nom de la taxe",
+      "rate": "Taux",
+      "ratePercent": "Taux (%)",
+      "rateHelp": "Saisissez le taux en pourcentage (ex: 20 pour 20%)",
+      "countryLabel": "Pays",
+      "from": "Depuis",
+      "to": "Jusqu'au",
+      "toHelp": "Laisser vide si la regle est toujours en vigueur",
+      "description": "Description",
+      "actions": "Actions",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "save": "Enregistrer",
+      "saving": "Sauvegarde...",
+      "cancel": "Annuler",
+      "created": "Regle fiscale creee avec succes",
+      "updated": "Regle fiscale mise a jour avec succes",
+      "deleted": "Regle fiscale supprimee",
+      "deleting": "Suppression...",
+      "error": "Erreur lors de l'operation",
+      "loadError": "Impossible de charger les regles fiscales",
+      "retry": "Reessayer",
+      "noRules": "Aucune regle fiscale configuree pour ce pays. Ajoutez-en pour pouvoir generer des factures.",
+      "deleteConfirmTitle": "Supprimer la regle fiscale ?",
+      "deleteConfirmMessage": "Etes-vous sur de vouloir supprimer la regle \"{{name}}\" ({{category}}) ? Cette action est irreversible."
+    },
     "reporting": {
       "title": "Rapport Fiscal",
       "monthly": "Mensuel",
@@ -2689,6 +2726,287 @@
       "taxAmount": "Montant TVA",
       "lineCount": "Lignes",
       "noData": "Aucune donnee fiscale pour cette periode"
+    }
+  },
+  "bookingEngine": {
+    "title": "Booking Engine",
+    "subtitle": "Configurez vos templates de réservation en ligne",
+    "save": "Sauvegarder",
+    "saving": "Sauvegarde...",
+    "tabs": {
+      "list": "Templates",
+      "configuration": "Configuration"
+    },
+    "steps": {
+      "general": "Général",
+      "appearance": "Apparence",
+      "settings": "Réglages",
+      "customization": "Personnalisation"
+    },
+    "actions": {
+      "newTemplate": "Nouveau template",
+      "editTemplate": "Modifier",
+      "deleteTemplate": "Supprimer le template",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer le template « {name} » ? Cette action est irréversible.",
+      "backToList": "Retour à la liste"
+    },
+    "sections": {
+      "statusApiKey": "Statut & Clé API",
+      "theming": "Apparence",
+      "behavior": "Comportement",
+      "policies": "Conditions",
+      "security": "Sécurité",
+      "displayOptions": "Options d'affichage",
+      "componentVisibility": "Visibilité des composants",
+      "customCss": "CSS personnalisé",
+      "customJs": "JS personnalisé",
+      "preview": "Aperçu en temps réel",
+      "aiDesign": "Analyse IA du design",
+      "designTokens": "Tokens de design",
+      "aiCssRegenerate": "Régénération CSS par IA"
+    },
+    "fields": {
+      "enabled": "Activer le Booking Engine",
+      "apiKey": "Clé API",
+      "copyKey": "Copier la clé",
+      "regenerateKey": "Régénérer la clé",
+      "regenerateConfirm": "Êtes-vous sûr de vouloir régénérer la clé API ? L'ancienne clé ne fonctionnera plus.",
+      "name": "Nom du template",
+      "namePlaceholder": "Ex: Template principal, Widget blog...",
+      "primaryColor": "Couleur principale",
+      "accentColor": "Couleur d'accent",
+      "logoUrl": "URL du logo",
+      "fontFamily": "Police de caractères",
+      "defaultLanguage": "Langue par défaut",
+      "defaultCurrency": "Devise par défaut",
+      "minAdvanceDays": "Réservation min. (jours)",
+      "maxAdvanceDays": "Réservation max. (jours)",
+      "cancellationPolicy": "Politique d'annulation",
+      "termsUrl": "URL des conditions générales",
+      "privacyUrl": "URL de la politique de confidentialité",
+      "allowedOrigins": "Origines autorisées (CORS)",
+      "allowedOriginsHelper": "Domaines autorisés, séparés par des virgules (ex: https://monsite.com)",
+      "collectPaymentOnBooking": "Collecter le paiement à la réservation",
+      "autoConfirm": "Confirmation automatique",
+      "showCleaningFee": "Afficher les frais de ménage",
+      "showTouristTax": "Afficher la taxe de séjour",
+      "customCssHelper": "CSS appliqué au widget de réservation. Utilisez .booking-widget comme sélecteur racine.",
+      "customJsHelper": "JavaScript exécuté après le chargement du widget. Événements disponibles : booking-confirmed, booking-cancelled."
+    },
+    "status": {
+      "active": "Actif",
+      "inactive": "Inactif"
+    },
+    "list": {
+      "empty": "Aucun template configuré",
+      "emptyDescription": "Créez votre premier template pour activer le moteur de réservation en ligne."
+    },
+    "components": {
+      "searchBar": "Barre de recherche",
+      "propertyList": "Liste des propriétés",
+      "propertyGallery": "Galerie photos",
+      "availabilityCalendar": "Calendrier de disponibilité",
+      "priceBreakdown": "Détail des prix",
+      "guestForm": "Formulaire voyageur",
+      "paymentSection": "Section paiement",
+      "reviewsSection": "Section avis",
+      "mapSection": "Section carte",
+      "cancellationPolicy": "Politique d'annulation",
+      "contactSection": "Section contact"
+    },
+    "preview": {
+      "title": "Booking Engine",
+      "searchPlaceholder": "Rechercher une propriété...",
+      "night": "nuit",
+      "calendar": "Disponibilités",
+      "priceBreakdown": "Détail du prix",
+      "cleaning": "Ménage",
+      "touristTax": "Taxe de séjour",
+      "payment": "Paiement sécurisé",
+      "cancellationPolicy": "Annulation flexible",
+      "contact": "Nous contacter",
+      "map": "Carte interactive",
+      "bookNow": "Réserver maintenant"
+    },
+    "messages": {
+      "saved": "Configuration du Booking Engine sauvegardée",
+      "created": "Template créé avec succès",
+      "deleted": "Template supprimé",
+      "error": "Erreur lors de la sauvegarde",
+      "keyRegenerated": "Clé API régénérée avec succès",
+      "keyCopied": "Clé API copiée dans le presse-papier",
+      "toggled": "Booking Engine {status}"
+    },
+    "ai": {
+      "websiteUrl": "URL du site web du client",
+      "analyzeDesign": "Analyser le design",
+      "analyzing": "Analyse du site en cours... Extraction des couleurs, polices et styles via l'IA.",
+      "analyzeSuccess": "Design analysé avec succès ! Les tokens ont été extraits.",
+      "analyzeError": "Erreur lors de l'analyse du site web",
+      "saveFirst": "Sauvegardez d'abord le template avant d'utiliser l'analyse IA",
+      "tokensApplied": "Tokens de design appliqués et CSS généré",
+      "additionalInstructions": "Instructions supplémentaires",
+      "instructionsPlaceholder": "Ex : coins plus arrondis, style plus minimaliste...",
+      "regenerateCss": "Régénérer le CSS",
+      "cssRegenerated": "CSS régénéré avec succès",
+      "cssRegenerateError": "Erreur lors de la régénération du CSS",
+      "insights": {
+        "title": "Insights IA",
+        "noInsights": "Aucun insight disponible pour cette période",
+        "anomaly": "Anomalie",
+        "trend": "Tendance",
+        "recommendation": "Recommandation",
+        "warning": "Alerte",
+        "severity": "Sévérité",
+        "loading": "Analyse IA en cours..."
+      },
+      "usage": {
+        "title": "Utilisation IA",
+        "tokensUsed": "Tokens utilisés",
+        "budget": "Budget",
+        "feature": "Fonctionnalité",
+        "remaining": "Restant",
+        "noData": "Aucune donnée d'utilisation"
+      },
+      "pricing": {
+        "title": "Recommandations tarifaires IA",
+        "suggestedPrice": "Prix suggéré",
+        "confidence": "Confiance",
+        "factors": "Facteurs",
+        "marketComparison": "Comparaison marché",
+        "loading": "Analyse tarifaire en cours..."
+      },
+      "messaging": {
+        "detectIntent": "Détecter l'intention",
+        "suggestResponse": "Suggérer une réponse",
+        "intent": "Intention",
+        "confidence": "Confiance",
+        "language": "Langue",
+        "urgent": "Urgent",
+        "tone": "Ton",
+        "alternatives": "Alternatives",
+        "loading": "Analyse IA en cours..."
+      },
+      "sentiment": {
+        "title": "Analyse de sentiment IA",
+        "positive": "Positif",
+        "negative": "Négatif",
+        "neutral": "Neutre",
+        "mixed": "Mixte",
+        "themes": "Thèmes",
+        "suggestedResponse": "Réponse suggérée"
+      },
+      "guidance": {
+        "usage": {
+          "text": "L'IA n'est pas encore configurée. Connectez votre compte OpenAI ou Anthropic pour activer les fonctionnalités IA.",
+          "button": "Configurer dans les paramètres"
+        },
+        "pricing": {
+          "text": "Les recommandations tarifaires IA ne sont pas encore activées. Configurez votre compte IA pour obtenir des suggestions de prix intelligentes.",
+          "button": "Configurer dans les paramètres"
+        },
+        "messaging": {
+          "title": "Assistant IA",
+          "text": "L'assistant IA de messagerie n'est pas encore configuré. Connectez votre compte IA pour utiliser la détection d'intention et les suggestions de réponses.",
+          "button": "Configurer dans les paramètres",
+          "placeholder": "Message du client...",
+          "contextPlaceholder": "Contexte",
+          "languagePlaceholder": "Langue (en, fr...)"
+        }
+      },
+      "settings": {
+        "title": "Configuration IA",
+        "subtitle": "Connectez vos propres comptes OpenAI ou Anthropic pour utiliser l'IA sans limite de tokens. Par défaut, la plateforme utilise une clé partagée avec un budget mensuel.",
+        "personalKey": "Clé personnelle",
+        "sharedKey": "Clé partagée",
+        "keyLabel": "Clé",
+        "modelLabel": "Modèle",
+        "validated": "Validée",
+        "notValidated": "Non validée",
+        "sharedKeyDescription": "Utilise la clé partagée de la plateforme. Connectez votre propre compte pour consommer plus de tokens sans limite.",
+        "modify": "Modifier",
+        "connect": "Connecter",
+        "disconnect": "Déconnecter",
+        "configureProvider": "Configurer {{provider}}",
+        "apiKeyLabel": "Clé API",
+        "modelOverrideLabel": "Modèle personnalisé (optionnel)",
+        "modelOverrideHelper": "Laissez vide pour utiliser le modèle par défaut",
+        "byokInfo": "Avec votre propre clé, les limites de tokens de la plateforme ne sont pas appliquées. Votre consommation sera facturée directement par {{provider}}.",
+        "cancel": "Annuler",
+        "test": "Tester",
+        "save": "Sauvegarder",
+        "saveError": "Erreur lors de la sauvegarde. Vérifiez votre clé API.",
+        "loadError": "Impossible de charger la configuration IA. Veuillez réessayer."
+      },
+      "features": {
+        "title": "Solutions IA Clenzy",
+        "subtitle": "Activez ou désactivez les modules IA selon vos besoins",
+        "design": {
+          "name": "Design IA",
+          "description": "Génération CSS du widget de réservation",
+          "menu": "Booking Engine"
+        },
+        "pricing": {
+          "name": "Tarification IA",
+          "description": "Recommandations de prix intelligentes",
+          "menu": "Prix Dynamiques"
+        },
+        "messaging": {
+          "name": "Messagerie IA",
+          "description": "Détection d'intention et réponses suggérées",
+          "menu": "Contact"
+        },
+        "analytics": {
+          "name": "Analytics IA",
+          "description": "Insights et recommandations de performance",
+          "menu": "Dashboard"
+        },
+        "sentiment": {
+          "name": "Sentiment IA",
+          "description": "Analyse de sentiment des avis guests",
+          "menu": "Avis"
+        }
+      }
+    },
+    "designTokens": {
+      "none": "Aucun",
+      "colors": "Couleurs",
+      "primaryColor": "Couleur principale",
+      "secondaryColor": "Couleur secondaire",
+      "accentColor": "Couleur d'accent",
+      "backgroundColor": "Couleur de fond",
+      "surfaceColor": "Couleur de surface",
+      "textColor": "Couleur du texte",
+      "textSecondaryColor": "Texte secondaire",
+      "borderColor": "Couleur de bordure",
+      "dividerColor": "Couleur de séparation",
+      "typography": "Typographie",
+      "headingFontFamily": "Police des titres",
+      "bodyFontFamily": "Police du corps",
+      "baseFontSize": "Taille de base",
+      "headingFontWeight": "Graisse des titres",
+      "spacing": "Espacement & Bordures",
+      "borderRadius": "Rayon de bordure",
+      "buttonBorderRadius": "Rayon bouton",
+      "cardBorderRadius": "Rayon carte",
+      "spacingUnit": "Espacement",
+      "shadows": "Ombres",
+      "boxShadow": "Ombre générale",
+      "cardShadow": "Ombre carte",
+      "shadowNone": "Aucune",
+      "shadowSubtle": "Subtile",
+      "shadowMedium": "Moyenne",
+      "shadowStrong": "Forte",
+      "buttons": "Boutons",
+      "buttonStyle": "Style du bouton",
+      "buttonFilled": "Rempli",
+      "buttonOutlined": "Contour",
+      "buttonRounded": "Arrondi",
+      "buttonTextTransform": "Transformation du texte",
+      "textTransformNone": "Aucune",
+      "textTransformUppercase": "MAJUSCULES",
+      "textTransformCapitalize": "Capitaliser",
+      "regenerateCss": "Régénérer le CSS avec l'IA"
     }
   }
 }

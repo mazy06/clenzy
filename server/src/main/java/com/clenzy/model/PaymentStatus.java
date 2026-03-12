@@ -6,7 +6,8 @@ public enum PaymentStatus {
     PAID("Payé"),
     FAILED("Échec du paiement"),
     REFUNDED("Remboursé"),
-    CANCELLED("Annulé");
+    CANCELLED("Annulé"),
+    NOT_REQUIRED("Paiement non requis");
     
     private final String displayName;
     

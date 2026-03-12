@@ -30,6 +30,8 @@ import RatePlanForm from './RatePlanForm';
 import PricingOverviewView from './PricingOverviewView';
 import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPricingApi';
+import AiPricingRecommendations from './AiPricingRecommendations';
+import { useIsAiFeatureEnabled } from '../../hooks/useAi';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
 
@@ -73,6 +75,7 @@ interface DynamicPricingProps {
 const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actionsContainer }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const isPricingAiEnabled = useIsAiFeatureEnabled('PRICING');
   const [activeTab, setActiveTab] = useState(0);
 
   // Role-based: only SUPER_ADMIN / SUPER_MANAGER see the owner selector
@@ -351,6 +354,15 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
               </Box>
             )}
           </Box>
+
+          {/* AI Pricing Recommendations (hidden when PRICING feature is disabled) */}
+          {isPricingAiEnabled && selectedPropertyId && (
+            <AiPricingRecommendations
+              propertyId={selectedPropertyId}
+              from={from}
+              to={to}
+            />
+          )}
 
           {/* Full-width row: Rate Plan list */}
           {selectedPropertyId && (

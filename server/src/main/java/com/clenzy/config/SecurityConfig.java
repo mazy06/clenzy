@@ -219,6 +219,7 @@ public class SecurityConfig {
         config.addAllowedHeader("Content-Type");
         config.addAllowedHeader("Accept");
         config.addAllowedHeader("X-Organization-Id");
+        config.addAllowedHeader("X-Booking-Key");
         config.addExposedHeader("X-Organization-Id");
         config.addExposedHeader("X-RateLimit-Limit");
         config.addExposedHeader("X-RateLimit-Remaining");
@@ -228,7 +229,16 @@ public class SecurityConfig {
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
+        // Booking Engine public : CORS dynamique gere par BookingApiKeyFilter
+        CorsConfiguration bookingConfig = new CorsConfiguration();
+        bookingConfig.addAllowedOriginPattern("*");
+        bookingConfig.setAllowedHeaders(java.util.List.of("Content-Type", "X-Booking-Key"));
+        bookingConfig.setAllowedMethods(java.util.List.of("GET", "POST", "OPTIONS"));
+        bookingConfig.setAllowCredentials(false);
+        bookingConfig.setMaxAge(3600L);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/public/booking/**", bookingConfig);
         source.registerCorsConfiguration("/**", config);
         return source;
     }

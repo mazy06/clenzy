@@ -24,6 +24,10 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.web.bind.annotation.*;
 
 import javax.sql.DataSource;
@@ -51,6 +55,8 @@ public class MonitoringController {
     private final DataSource dataSource;
     private final RedisConnectionFactory redisConnectionFactory;
     private final MeterRegistry meterRegistry;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final JavaMailSender mailSender;
 
     @Value("${keycloak.auth-server-url:}")
     private String keycloakUrl;
@@ -58,18 +64,25 @@ public class MonitoringController {
     @Value("${clenzy.jacoco.report-path:}")
     private String jacocoReportPath;
 
+    @Value("${stripe.secret-key:}")
+    private String stripeSecretKey;
+
     public MonitoringController(SecurityAuditLogRepository auditLogRepository,
                                 UserRepository userRepository,
                                 JwtTokenService jwtTokenService,
                                 DataSource dataSource,
                                 RedisConnectionFactory redisConnectionFactory,
-                                MeterRegistry meterRegistry) {
+                                MeterRegistry meterRegistry,
+                                ObjectProvider<KafkaTemplate<String, Object>> kafkaTemplateProvider,
+                                ObjectProvider<JavaMailSender> mailSenderProvider) {
         this.auditLogRepository = auditLogRepository;
         this.userRepository = userRepository;
         this.jwtTokenService = jwtTokenService;
         this.dataSource = dataSource;
         this.redisConnectionFactory = redisConnectionFactory;
         this.meterRegistry = meterRegistry;
+        this.kafkaTemplate = kafkaTemplateProvider.getIfAvailable();
+        this.mailSender = mailSenderProvider.getIfAvailable();
     }
 
     // ── Health ──────────────────────────────────────────────────────────────────
@@ -83,6 +96,10 @@ public class MonitoringController {
         services.add(checkPostgres());
         services.add(checkRedis());
         services.add(checkKeycloak());
+        services.add(checkKafka());
+        services.add(checkSmtp());
+        services.add(checkStripe());
+        services.add(checkStorage());
 
         Map<String, Object> systemMetrics = buildSystemMetrics();
 
@@ -332,6 +349,111 @@ public class MonitoringController {
             long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             log.warn("Keycloak health check failed: {}", e.getMessage());
             return serviceEntry("Keycloak", "DOWN", elapsed, "AUTHENTICATION", true,
+                "Error: " + e.getMessage());
+        }
+    }
+
+    private Map<String, Object> checkKafka() {
+        if (kafkaTemplate == null) {
+            return serviceEntry("Kafka", "UNKNOWN", 0, "MESSAGING", false,
+                "Non configure (clenzy.kafka.enabled=false)");
+        }
+        long start = System.nanoTime();
+        try {
+            var metrics = kafkaTemplate.metrics();
+            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+            if (metrics == null || metrics.isEmpty()) {
+                return serviceEntry("Kafka", "DEGRADED", elapsed, "MESSAGING", false,
+                    "Pas de metriques producer disponibles");
+            }
+
+            boolean hasConnections = metrics.entrySet().stream()
+                .anyMatch(e -> "connection-count".equals(e.getKey().name())
+                    && e.getValue().metricValue() instanceof Number n
+                    && n.doubleValue() > 0);
+
+            String status = hasConnections ? "UP" : "DEGRADED";
+            String details = String.format("%d metriques, connexions: %s",
+                metrics.size(), hasConnections ? "oui" : "aucune");
+            return serviceEntry("Kafka", status, elapsed, "MESSAGING", false, details);
+        } catch (Exception e) {
+            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            log.warn("Kafka health check failed: {}", e.getMessage());
+            return serviceEntry("Kafka", "DOWN", elapsed, "MESSAGING", false,
+                "Error: " + e.getMessage());
+        }
+    }
+
+    private Map<String, Object> checkSmtp() {
+        if (mailSender == null) {
+            return serviceEntry("SMTP (Email)", "UNKNOWN", 0, "EMAIL", true,
+                "Non configure (spring.mail.host absent)");
+        }
+        long start = System.nanoTime();
+        try {
+            if (mailSender instanceof JavaMailSenderImpl impl) {
+                impl.testConnection();
+                long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+                String details = String.format("Host: %s:%d", impl.getHost(), impl.getPort());
+                return serviceEntry("SMTP (Email)", "UP", elapsed, "EMAIL", true, details);
+            }
+            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            return serviceEntry("SMTP (Email)", "UP", elapsed, "EMAIL", true, "Connecte");
+        } catch (Exception e) {
+            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            log.warn("SMTP health check failed: {}", e.getMessage());
+            return serviceEntry("SMTP (Email)", "DOWN", elapsed, "EMAIL", true,
+                "Error: " + e.getMessage());
+        }
+    }
+
+    private Map<String, Object> checkStripe() {
+        if (stripeSecretKey == null || stripeSecretKey.isBlank()) {
+            return serviceEntry("Stripe", "UNKNOWN", 0, "PAYMENT", true,
+                "Non configure (stripe.secret-key absent)");
+        }
+        long start = System.nanoTime();
+        try {
+            var options = com.stripe.net.RequestOptions.builder()
+                .setApiKey(stripeSecretKey)
+                .build();
+            com.stripe.model.Balance.retrieve(options);
+            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            String mode = stripeSecretKey.startsWith("sk_test_") ? "TEST" : "LIVE";
+            return serviceEntry("Stripe", "UP", elapsed, "PAYMENT", true,
+                "Mode: " + mode + ", API accessible");
+        } catch (Exception e) {
+            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            log.warn("Stripe health check failed: {}", e.getMessage());
+            String mode = stripeSecretKey.startsWith("sk_test_") ? "TEST" : "LIVE";
+            return serviceEntry("Stripe", "DOWN", elapsed, "PAYMENT", true,
+                "Mode: " + mode + ", Error: " + e.getMessage());
+        }
+    }
+
+    private Map<String, Object> checkStorage() {
+        long start = System.nanoTime();
+        try {
+            File tmpDir = new File(System.getProperty("java.io.tmpdir"));
+            // Verifier l'acces en ecriture
+            File testFile = File.createTempFile("clenzy-health-", ".tmp", tmpDir);
+            testFile.delete();
+
+            long totalSpace = tmpDir.getTotalSpace();
+            long usableSpace = tmpDir.getUsableSpace();
+            double usedPercent = totalSpace > 0
+                ? (double) (totalSpace - usableSpace) / totalSpace * 100 : 0;
+
+            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            String status = usedPercent > 90 ? "DEGRADED" : "UP";
+            String details = String.format("Libre: %d Mo, Utilise: %.1f%%",
+                usableSpace / (1024 * 1024), usedPercent);
+            return serviceEntry("Stockage disque", status, elapsed, "STORAGE", false, details);
+        } catch (Exception e) {
+            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            log.warn("Storage health check failed: {}", e.getMessage());
+            return serviceEntry("Stockage disque", "DOWN", elapsed, "STORAGE", false,
                 "Error: " + e.getMessage());
         }
     }

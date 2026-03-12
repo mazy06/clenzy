@@ -106,6 +106,21 @@ resilience4j:
         baseConfig: external-api
       pennylane-api:
         baseConfig: external-api
+      ai-design:
+        baseConfig: external-api
+        waitDurationInOpenState: 120s
+      ai-pricing:
+        baseConfig: external-api
+        waitDurationInOpenState: 60s
+      ai-messaging:
+        baseConfig: external-api
+        waitDurationInOpenState: 60s
+      ai-analytics:
+        baseConfig: external-api
+        waitDurationInOpenState: 60s
+      ai-sentiment:
+        baseConfig: external-api
+        waitDurationInOpenState: 60s
   retry:
     configs:
       default:
@@ -120,6 +135,50 @@ resilience4j:
       email-smtp:
         baseConfig: default
         maxAttempts: 3
+      ai-design:
+        baseConfig: default
+        maxAttempts: 2
+        waitDuration: 2s
+      ai-pricing:
+        baseConfig: default
+        maxAttempts: 2
+        waitDuration: 2s
+      ai-messaging:
+        baseConfig: default
+        maxAttempts: 2
+        waitDuration: 2s
+      ai-analytics:
+        baseConfig: default
+        maxAttempts: 2
+        waitDuration: 2s
+      ai-sentiment:
+        baseConfig: default
+        maxAttempts: 2
+        waitDuration: 2s
+
+# ─── AI Module ────────────────────────────────────────────────────────────────
+clenzy:
+  ai:
+    enabled: false
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      model: gpt-4o
+      base-url: https://api.openai.com/v1
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+      model: claude-sonnet-4-20250514
+      base-url: https://api.anthropic.com/v1
+    website-fetch:
+      timeout-seconds: 15
+      max-content-length-kb: 512
+    token-budget:
+      default-monthly-tokens: 100000
+      enforced: true
+    features:
+      pricing-ai: false
+      messaging-ai: false
+      analytics-ai: false
+      sentiment-ai: false
 
 # ─── Firebase Cloud Messaging ─────────────────────────────────────────────────
 firebase:

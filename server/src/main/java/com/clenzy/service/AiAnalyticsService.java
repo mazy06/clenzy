@@ -1,11 +1,25 @@
 package com.clenzy.service;
 
+import com.clenzy.config.AiProperties;
+import com.clenzy.config.ai.AiProviderException;
+import com.clenzy.config.ai.AiRequest;
+import com.clenzy.config.ai.AiResponse;
+import com.clenzy.config.ai.AnthropicProvider;
+import com.clenzy.dto.AiInsightDto;
 import com.clenzy.dto.OccupancyForecastDto;
 import com.clenzy.dto.RevenueAnalyticsDto;
+import com.clenzy.exception.AiNotConfiguredException;
+import com.clenzy.model.AiFeature;
+import com.clenzy.service.AiKeyResolver.KeySource;
+import com.clenzy.service.AiKeyResolver.ResolvedKey;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -51,11 +65,29 @@ public class AiAnalyticsService {
 
     private final ReservationRepository reservationRepository;
     private final PropertyRepository propertyRepository;
+    private final AiProperties aiProperties;
+    private final AnthropicProvider anthropicProvider;
+    private final AiAnonymizationService anonymizationService;
+    private final AiTokenBudgetService tokenBudgetService;
+    private final AiKeyResolver aiKeyResolver;
+    private final ObjectMapper objectMapper;
 
     public AiAnalyticsService(ReservationRepository reservationRepository,
-                               PropertyRepository propertyRepository) {
+                               PropertyRepository propertyRepository,
+                               AiProperties aiProperties,
+                               AnthropicProvider anthropicProvider,
+                               AiAnonymizationService anonymizationService,
+                               AiTokenBudgetService tokenBudgetService,
+                               AiKeyResolver aiKeyResolver,
+                               ObjectMapper objectMapper) {
         this.reservationRepository = reservationRepository;
         this.propertyRepository = propertyRepository;
+        this.aiProperties = aiProperties;
+        this.anthropicProvider = anthropicProvider;
+        this.anonymizationService = anonymizationService;
+        this.tokenBudgetService = tokenBudgetService;
+        this.aiKeyResolver = aiKeyResolver;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -300,5 +332,52 @@ public class AiAnalyticsService {
         }
 
         return reason.toString();
+    }
+
+    // ─── AI-powered insights ──────────────────────────────────────────
+
+    @CircuitBreaker(name = "ai-analytics")
+    @Retry(name = "ai-analytics")
+    public List<AiInsightDto> getAiInsights(Long propertyId, Long orgId,
+                                              LocalDate from, LocalDate to) {
+        if (!aiProperties.getFeatures().isAnalyticsAi()) {
+            throw new AiNotConfiguredException("AI_FEATURE_DISABLED", "analytics",
+                    "AI analytics is disabled. Enable via clenzy.ai.features.analytics-ai=true");
+        }
+
+        tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.ANALYTICS);
+        ResolvedKey key = aiKeyResolver.resolve(orgId, anthropicProvider.name());
+        tokenBudgetService.requireBudget(orgId, AiFeature.ANALYTICS, key.source());
+
+        // Build analytics data to send to AI
+        RevenueAnalyticsDto analytics = getAnalytics(propertyId, orgId, from, to);
+
+        String userPrompt = AiAnalyticsPrompts.buildUserPrompt(
+            propertyId, from, to,
+            analytics.totalNights(), analytics.bookedNights(),
+            analytics.occupancyRate(),
+            analytics.totalRevenue(), analytics.averageDailyRate(), analytics.revPar(),
+            analytics.occupancyByMonth(), analytics.revenueByMonth(), analytics.bookingsBySource()
+        );
+
+        String anonymized = anonymizationService.anonymize(userPrompt);
+
+        AiRequest request = AiRequest.of(AiAnalyticsPrompts.SYSTEM_PROMPT, anonymized);
+        AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
+        AiResponse response = (key.source() == KeySource.ORGANIZATION)
+                ? anthropicProvider.chat(resolved, key.apiKey())
+                : anthropicProvider.chat(resolved);
+
+        tokenBudgetService.recordUsage(orgId, AiFeature.ANALYTICS, anthropicProvider.name(), response);
+
+        try {
+            return objectMapper.readValue(
+                response.content(),
+                objectMapper.getTypeFactory().constructCollectionType(List.class, AiInsightDto.class)
+            );
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse AI analytics insights: {}", e.getMessage());
+            throw new AiProviderException("anthropic", "Failed to parse analytics insights", e);
+        }
     }
 }

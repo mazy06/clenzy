@@ -23,6 +23,8 @@ import ContextualTipsWidget from './ContextualTipsWidget';
 import MiniPlanningWidget from './MiniPlanningWidget';
 import ActionCountersWidget from './ActionCountersWidget';
 import ServicesStatusWidget from './ServicesStatusWidget';
+import AiUsageWidget from './AiUsageWidget';
+import { useAiFeatureToggles } from '../../hooks/useAi';
 import { pricingConfigApi } from '../../services/api/pricingConfigApi';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import { channelConnectionApi } from '../../services/api/channelConnectionApi';
@@ -70,6 +72,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const { data: aiToggles } = useAiFeatureToggles();
+  const hasAnyAiEnabled = useMemo(() => {
+    if (!aiToggles) return true; // show by default while loading
+    return aiToggles.some((t) => t.enabled);
+  }, [aiToggles]);
 
   // ─── Roles ──────────────────────────────────────────────────────────────
   const isAdmin = user?.roles?.includes('SUPER_ADMIN') || false;
@@ -312,6 +319,12 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                     t={t}
                   />
                 </DashboardErrorBoundary>
+
+                {hasAnyAiEnabled && (
+                  <DashboardErrorBoundary widgetName="AiUsage">
+                    <AiUsageWidget layout="inline" />
+                  </DashboardErrorBoundary>
+                )}
               </Box>
             </GridSection>
           </DashboardErrorBoundary>

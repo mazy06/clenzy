@@ -40,8 +40,11 @@ public class DocumentTemplate {
     @Column(name = "event_trigger", length = 100)
     private String eventTrigger;
 
-    @Column(name = "file_path", nullable = false, length = 500)
+    @Column(name = "file_path", length = 500)
     private String filePath;
+
+    @Column(name = "file_content", columnDefinition = "BYTEA")
+    private byte[] fileContent;
 
     @Column(name = "original_filename", nullable = false, length = 255)
     private String originalFilename;
@@ -94,6 +97,9 @@ public class DocumentTemplate {
 
     public String getFilePath() { return filePath; }
     public void setFilePath(String filePath) { this.filePath = filePath; }
+
+    public byte[] getFileContent() { return fileContent; }
+    public void setFileContent(byte[] fileContent) { this.fileContent = fileContent; }
 
     public String getOriginalFilename() { return originalFilename; }
     public void setOriginalFilename(String originalFilename) { this.originalFilename = originalFilename; }

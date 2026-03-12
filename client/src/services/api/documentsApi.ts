@@ -184,6 +184,13 @@ export const documentsApi = {
     window.URL.revokeObjectURL(blobUrl);
   },
 
+  /** Generations par reference (ex: RESERVATION + reservationId) */
+  getGenerationsByReference(referenceType: string, referenceId: number) {
+    return apiClient.get<DocumentGeneration[]>('/documents/generations/by-reference', {
+      params: { referenceType, referenceId },
+    });
+  },
+
   // ─── References ─────────────────────────────────────────────────────────
 
   getDocumentTypes() {

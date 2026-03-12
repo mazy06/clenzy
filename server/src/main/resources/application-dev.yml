@@ -191,6 +191,8 @@ stripe:
     return-url: ${FRONTEND_URL:http://localhost:3000}/inscription/success
 
 clenzy:
+  ai:
+    enabled: true
   mail:
     provider: ${MAIL_PROVIDER:generic}
     from: ${MAIL_FROM:info@clenzy.fr}

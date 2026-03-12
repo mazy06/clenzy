@@ -181,6 +181,9 @@ public class TagResolverService {
                 guestFallback.put("nom_complet", safeStr(reservation.getGuestName()));
                 guestFallback.put("email", "");
                 guestFallback.put("telephone", "");
+                guestFallback.put("societe", "");
+                guestFallback.put("code_postal", "");
+                guestFallback.put("ville", "");
                 context.put("client", guestFallback);
             }
 
@@ -196,6 +199,31 @@ public class TagResolverService {
 
             // Tags paiement
             context.put("paiement", resolveReservationPaymentTags(reservation));
+
+            // Ligne de facturation (detail du sejour)
+            context.put("ligne", resolveReservationLigneTags(reservation));
+
+            // Intervention liee
+            if (reservation.getIntervention() != null) {
+                Intervention intervention = reservation.getIntervention();
+                context.put("intervention", resolveInterventionTags(intervention));
+
+                if (intervention.getAssignedUser() != null) {
+                    context.put("technicien", resolveClientTags(intervention.getAssignedUser()));
+                }
+            }
+
+            // Fallback technicien si absent (pas d'intervention ou pas d'assignedUser)
+            context.putIfAbsent("technicien", emptyClientTags());
+
+            // Surcharger intervention.lignes avec les lignes de facturation du sejour
+            @SuppressWarnings("unchecked")
+            Map<String, Object> interventionMap = (Map<String, Object>) context.get("intervention");
+            if (interventionMap == null) {
+                interventionMap = new LinkedHashMap<>();
+                context.put("intervention", interventionMap);
+            }
+            interventionMap.put("lignes", buildReservationLignes(reservation));
         });
     }
 
@@ -242,6 +270,23 @@ public class TagResolverService {
         return tags;
     }
 
+    /**
+     * Tags client/technicien vides — fallback quand l'entite n'existe pas.
+     */
+    private Map<String, Object> emptyClientTags() {
+        Map<String, Object> tags = new LinkedHashMap<>();
+        tags.put("nom", "");
+        tags.put("prenom", "");
+        tags.put("nom_complet", "");
+        tags.put("email", "");
+        tags.put("telephone", "");
+        tags.put("societe", "");
+        tags.put("ville", "");
+        tags.put("code_postal", "");
+        tags.put("role", "");
+        return tags;
+    }
+
     private Map<String, Object> resolvePropertyTags(Property property) {
         Map<String, Object> tags = new LinkedHashMap<>();
         tags.put("nom", safeStr(property.getName()));
@@ -284,6 +329,15 @@ public class TagResolverService {
         tags.put("instructions", safeStr(intervention.getSpecialInstructions()));
         tags.put("progression", intervention.getProgressPercentage() != null
                 ? intervention.getProgressPercentage() + "%" : "0%");
+        // Liste par defaut : une seule ligne avec la description de l'intervention
+        Map<String, Object> defaultLine = new LinkedHashMap<>();
+        defaultLine.put("description", safeStr(intervention.getDescription()));
+        defaultLine.put("quantite", "1");
+        defaultLine.put("prix_unitaire", formatMoney(intervention.getActualCost() != null
+                ? intervention.getActualCost() : intervention.getEstimatedCost()));
+        defaultLine.put("total", formatMoney(intervention.getActualCost() != null
+                ? intervention.getActualCost() : intervention.getEstimatedCost()));
+        tags.put("lignes", List.of(defaultLine));
         return tags;
     }
 
@@ -342,13 +396,124 @@ public class TagResolverService {
         tags.put("telephone", safeStr(guest.getPhone()));
         tags.put("langue", safeStr(guest.getLanguage()));
         tags.put("pays", safeStr(guest.getCountryCode()));
+        // Champs absents du modele Guest mais requis par les templates FACTURE
+        tags.put("societe", "");
+        tags.put("code_postal", "");
+        tags.put("ville", "");
         return tags;
+    }
+
+    private Map<String, Object> resolveReservationLigneTags(Reservation reservation) {
+        Map<String, Object> tags = new LinkedHashMap<>();
+
+        // Description : "Hebergement - [property] - du [check_in] au [check_out]"
+        String propertyName = reservation.getProperty() != null
+                ? safeStr(reservation.getProperty().getName()) : "";
+        String checkIn = reservation.getCheckIn() != null
+                ? reservation.getCheckIn().format(DATE_FORMAT) : "";
+        String checkOut = reservation.getCheckOut() != null
+                ? reservation.getCheckOut().format(DATE_FORMAT) : "";
+        tags.put("description", "Hebergement - " + propertyName + " - du " + checkIn + " au " + checkOut);
+
+        // Quantite = nombre de nuits
+        long nights = 0;
+        if (reservation.getCheckIn() != null && reservation.getCheckOut() != null) {
+            nights = java.time.temporal.ChronoUnit.DAYS.between(
+                    reservation.getCheckIn(), reservation.getCheckOut());
+        }
+        tags.put("quantite", String.valueOf(nights));
+
+        // Prix unitaire = revenu chambre / nuits (ou totalPrice / nuits)
+        BigDecimal unitPrice = BigDecimal.ZERO;
+        if (nights > 0) {
+            BigDecimal revenue = reservation.getRoomRevenue() != null
+                    ? reservation.getRoomRevenue() : reservation.getTotalPrice();
+            if (revenue != null) {
+                unitPrice = revenue.divide(BigDecimal.valueOf(nights), 2, java.math.RoundingMode.HALF_UP);
+            }
+        }
+        tags.put("prix_unitaire", formatMoney(unitPrice));
+
+        // Total
+        tags.put("total", formatMoney(reservation.getTotalPrice()));
+
+        return tags;
+    }
+
+    /**
+     * Construit la liste des lignes de facturation a partir d'une reservation.
+     * Produit 1 a 3 lignes : hebergement, frais de menage, taxe de sejour.
+     * Utilisee pour alimenter intervention.lignes dans le contexte FACTURE/RESERVATION.
+     */
+    private List<Map<String, Object>> buildReservationLignes(Reservation reservation) {
+        List<Map<String, Object>> lignes = new ArrayList<>();
+
+        // Nombre de nuits
+        long nights = 0;
+        if (reservation.getCheckIn() != null && reservation.getCheckOut() != null) {
+            nights = java.time.temporal.ChronoUnit.DAYS.between(
+                    reservation.getCheckIn(), reservation.getCheckOut());
+        }
+
+        // Ligne 1 : Hebergement
+        Map<String, Object> hebergement = new LinkedHashMap<>();
+        String propertyName = reservation.getProperty() != null
+                ? safeStr(reservation.getProperty().getName()) : "";
+        String checkIn = reservation.getCheckIn() != null
+                ? reservation.getCheckIn().format(DATE_FORMAT) : "";
+        String checkOut = reservation.getCheckOut() != null
+                ? reservation.getCheckOut().format(DATE_FORMAT) : "";
+        hebergement.put("description",
+                "Hebergement - " + propertyName + " - du " + checkIn + " au " + checkOut);
+        hebergement.put("quantite", String.valueOf(nights));
+        BigDecimal roomRevenue = reservation.getRoomRevenue() != null
+                ? reservation.getRoomRevenue() : reservation.getTotalPrice();
+        BigDecimal unitPrice = BigDecimal.ZERO;
+        if (nights > 0 && roomRevenue != null) {
+            unitPrice = roomRevenue.divide(BigDecimal.valueOf(nights), 2,
+                    java.math.RoundingMode.HALF_UP);
+        }
+        hebergement.put("prix_unitaire", formatMoney(unitPrice));
+        hebergement.put("total", formatMoney(roomRevenue));
+        lignes.add(hebergement);
+
+        // Ligne 2 : Frais de menage (si applicable)
+        if (reservation.getCleaningFee() != null
+                && reservation.getCleaningFee().compareTo(BigDecimal.ZERO) > 0) {
+            Map<String, Object> cleaning = new LinkedHashMap<>();
+            cleaning.put("description", "Frais de menage");
+            cleaning.put("quantite", "1");
+            cleaning.put("prix_unitaire", formatMoney(reservation.getCleaningFee()));
+            cleaning.put("total", formatMoney(reservation.getCleaningFee()));
+            lignes.add(cleaning);
+        }
+
+        // Ligne 3 : Taxe de sejour (si applicable)
+        if (reservation.getTouristTaxAmount() != null
+                && reservation.getTouristTaxAmount().compareTo(BigDecimal.ZERO) > 0) {
+            Map<String, Object> tax = new LinkedHashMap<>();
+            tax.put("description", "Taxe de sejour");
+            tax.put("quantite", String.valueOf(nights));
+            BigDecimal taxUnit = BigDecimal.ZERO;
+            if (nights > 0) {
+                taxUnit = reservation.getTouristTaxAmount().divide(
+                        BigDecimal.valueOf(nights), 2, java.math.RoundingMode.HALF_UP);
+            }
+            tax.put("prix_unitaire", formatMoney(taxUnit));
+            tax.put("total", formatMoney(reservation.getTouristTaxAmount()));
+            lignes.add(tax);
+        }
+
+        return lignes;
     }
 
     private Map<String, Object> resolveReservationPaymentTags(Reservation reservation) {
         Map<String, Object> tags = new LinkedHashMap<>();
         tags.put("montant", formatMoney(reservation.getTotalPrice()));
         tags.put("devise", safeStr(reservation.getCurrency()));
+        tags.put("statut", reservation.getPaymentStatus() != null
+                ? reservation.getPaymentStatus().name() : "PENDING");
+        tags.put("date_paiement", formatDateTime(reservation.getPaidAt()));
         // Payment link sent tracking
         tags.put("lien_envoye_le", reservation.getPaymentLinkSentAt() != null
                 ? reservation.getPaymentLinkSentAt().format(DATETIME_FORMAT) : "");

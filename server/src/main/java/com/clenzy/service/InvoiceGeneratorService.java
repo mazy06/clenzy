@@ -12,12 +12,14 @@ import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Service de generation de factures a partir des reservations.
@@ -553,6 +555,75 @@ public class InvoiceGeneratorService {
             duplicate.getInvoiceNumber(), original.getInvoiceNumber(), duplicate.getTotalTtc());
 
         return InvoiceDto.from(duplicate);
+    }
+
+    // --- Bridge DocumentGeneration → Invoice ---
+
+    /**
+     * Cree une facture ISSUED a partir d'une DocumentGeneration FACTURE.
+     * Utilise le numero legal deja attribue par DocumentNumberingService.
+     * Idempotent : si une Invoice existe deja pour cette reference, elle est simplement liee.
+     *
+     * @param refType        RESERVATION ou INTERVENTION
+     * @param referenceId    ID de la reservation ou intervention
+     * @param orgId          ID de l'organisation
+     * @param invoiceNumber  Numero legal (ex: FA-2026-00001) deja genere
+     * @param documentGenerationId  ID de la DocumentGeneration a lier
+     * @return l'Invoice creee ou existante
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Invoice createIssuedFromDocumentGeneration(ReferenceType refType, Long referenceId,
+                                                       Long orgId, String invoiceNumber,
+                                                       Long documentGenerationId) {
+        // Idempotence : verifier si une Invoice existe deja
+        Optional<Invoice> existing = findExistingInvoice(refType, referenceId);
+        if (existing.isPresent()) {
+            return linkDocumentGeneration(existing.get(), documentGenerationId);
+        }
+
+        Invoice invoice;
+        if (refType == ReferenceType.RESERVATION) {
+            Reservation reservation = reservationRepository.findById(referenceId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                    "Reservation introuvable: " + referenceId));
+            invoice = generateFromReservation(reservation, orgId);
+        } else if (refType == ReferenceType.INTERVENTION) {
+            Intervention intervention = interventionRepository.findById(referenceId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                    "Intervention introuvable: " + referenceId));
+            invoice = generateFromIntervention(intervention, orgId);
+        } else {
+            throw new IllegalArgumentException(
+                "Type de reference non supporte pour la facturation: " + refType);
+        }
+
+        // Passer de DRAFT a ISSUED avec le numero deja genere
+        invoice.setInvoiceNumber(invoiceNumber);
+        invoice.setStatus(InvoiceStatus.ISSUED);
+        invoice.setDocumentGenerationId(documentGenerationId);
+        invoice = invoiceRepository.save(invoice);
+
+        log.info("Invoice ISSUED {} creee depuis DocumentGeneration #{} ({} {})",
+            invoiceNumber, documentGenerationId, refType, referenceId);
+        return invoice;
+    }
+
+    private Optional<Invoice> findExistingInvoice(ReferenceType refType, Long referenceId) {
+        if (refType == ReferenceType.RESERVATION) {
+            return invoiceRepository.findByReservationId(referenceId);
+        } else if (refType == ReferenceType.INTERVENTION) {
+            return invoiceRepository.findByInterventionId(referenceId);
+        }
+        return Optional.empty();
+    }
+
+    private Invoice linkDocumentGeneration(Invoice invoice, Long documentGenerationId) {
+        if (invoice.getDocumentGenerationId() == null) {
+            invoice.setDocumentGenerationId(documentGenerationId);
+            invoice = invoiceRepository.save(invoice);
+            log.info("Invoice {} liee a DocumentGeneration #{}", invoice.getInvoiceNumber(), documentGenerationId);
+        }
+        return invoice;
     }
 
     // --- Helpers ---
