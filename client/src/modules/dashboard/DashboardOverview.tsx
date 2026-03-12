@@ -15,7 +15,6 @@ import { useDashboardOverview } from '../../hooks/useDashboardOverview';
 import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import { GridSection, AnalyticsWidgetCard } from './analytics';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
-import DashboardEmptyState from './DashboardEmptyState';
 import OnboardingChecklist from './OnboardingChecklist';
 import ContractCTABanner from './ContractCTABanner';
 import ChannelHealthWidget from './ChannelHealthWidget';
@@ -152,8 +151,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
     return () => { cancelled = true; };
   }, []);
 
-  const isNewUser = !loading && !hasProperties;
-
   const globalData = analytics?.global ?? null;
   const isKpiLoading = loading || analyticsLoading;
 
@@ -163,31 +160,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   // Show sidebar widgets? (admin/manager see channel health + tips + contract CTA)
   const showSidebar = isAdmin || isManager;
 
-  // ─── New user: onboarding + empty state ─────────────────────────────────
-  if (isNewUser) {
-    return (
-      <Box sx={{ pt: 1.5, pb: 2, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
-        <Box sx={{ display: 'flex', gap: 2, mb: 2, flexDirection: { xs: 'column', lg: 'row' }, alignItems: 'flex-start' }}>
-          <Box sx={{ flex: '1 1 0', minWidth: 0 }}>
-            <OnboardingChecklist
-              hasProperties={hasProperties}
-              hasPropertyDetails={hasPropertyDetails}
-              hasPricing={hasPricing}
-              hasChannels={hasChannels}
-            />
-          </Box>
-          {showSidebar && (
-            <Box sx={{ flex: '0 0 auto', width: { xs: '100%', lg: 280 }, minWidth: 0 }}>
-              <ContractCTABanner />
-            </Box>
-          )}
-        </Box>
-        <DashboardEmptyState />
-      </Box>
-    );
-  }
-
-  // ─── Full dashboard ─────────────────────────────────────────────────────
+  // ─── Full dashboard (always rendered, even for new users) ──────────────
   return (
     <Box sx={{ pt: 1.5, pb: 2, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
 
