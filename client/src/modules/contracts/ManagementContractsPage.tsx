@@ -17,6 +17,8 @@ import {
   type ContractStatus,
   type ContractType,
 } from '../../services/api/managementContractsApi';
+import { splitConfigApi } from '../../services/api/splitConfigApi';
+import type { SplitRatios } from '../../types/payment';
 import apiClient from '../../services/apiClient';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -53,6 +55,7 @@ const ManagementContractsPage: React.FC = () => {
   const [terminatingId, setTerminatingId] = useState<number | null>(null);
   const [terminateReason, setTerminateReason] = useState('');
   const [statusFilter, setStatusFilter] = useState<ContractStatus | ''>('');
+  const [splitRatios, setSplitRatios] = useState<SplitRatios | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false, message: '', severity: 'success',
   });
@@ -98,8 +101,18 @@ const ManagementContractsPage: React.FC = () => {
     }
   }, []);
 
+  const loadSplitRatios = useCallback(async () => {
+    try {
+      const ratios = await splitConfigApi.getCurrentRatios();
+      setSplitRatios(ratios);
+    } catch {
+      // Fallback handled in preview computation
+    }
+  }, []);
+
   useEffect(() => { loadContracts(); }, [loadContracts]);
   useEffect(() => { loadProperties(); }, [loadProperties]);
+  useEffect(() => { loadSplitRatios(); }, [loadSplitRatios]);
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -480,13 +493,24 @@ const ManagementContractsPage: React.FC = () => {
             size="small"
           />
 
-          {/* Commission breakdown preview */}
+          {/* Commission breakdown preview — uses actual split ratios from org config */}
           <Alert severity="info" sx={{ mt: 1 }}>
             <Typography variant="body2" fontWeight={600}>{t('contracts.splitPreview')}</Typography>
             <Typography variant="body2">
-              {t('contracts.ownerGets')}: {((1 - form.commissionRate) * 100).toFixed(0)}%
-              {' | '}{t('contracts.platformGets')}: {(form.commissionRate * 100 * 0.25).toFixed(1)}%
-              {' | '}{t('contracts.conciergeGets')}: {(form.commissionRate * 100 * 0.75).toFixed(1)}%
+              {(() => {
+                const commissionPct = form.commissionRate * 100;
+                const ownerPct = 100 - commissionPct;
+                // Derive platform/concierge split from org SplitRatios
+                const platformBase = splitRatios?.platformShare ?? 0.05;
+                const conciergeBase = splitRatios?.conciergeShare ?? 0.15;
+                const commissionTotal = platformBase + conciergeBase;
+                // Ratio of commission going to platform vs concierge
+                const platformRatio = commissionTotal > 0 ? platformBase / commissionTotal : 0.25;
+                const conciergeRatio = commissionTotal > 0 ? conciergeBase / commissionTotal : 0.75;
+                const platformPct = commissionPct * platformRatio;
+                const conciergePct = commissionPct * conciergeRatio;
+                return `${t('contracts.ownerGets')}: ${ownerPct.toFixed(0)}% | ${t('contracts.platformGets')}: ${platformPct.toFixed(1)}% | ${t('contracts.conciergeGets')}: ${conciergePct.toFixed(1)}%`;
+              })()}
             </Typography>
           </Alert>
         </DialogContent>

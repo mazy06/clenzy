@@ -48,6 +48,7 @@ public class DocumentComplianceService {
     private final DocumentStorageService storageService;
     private final AuditLogService auditLogService;
     private final ComplianceStrategyRegistry strategyRegistry;
+    private final FiscalProfileRepository fiscalProfileRepository;
     private final TenantContext tenantContext;
 
     public DocumentComplianceService(
@@ -59,6 +60,7 @@ public class DocumentComplianceService {
             DocumentStorageService storageService,
             AuditLogService auditLogService,
             ComplianceStrategyRegistry strategyRegistry,
+            FiscalProfileRepository fiscalProfileRepository,
             TenantContext tenantContext
     ) {
         this.generationRepository = generationRepository;
@@ -69,6 +71,7 @@ public class DocumentComplianceService {
         this.storageService = storageService;
         this.auditLogService = auditLogService;
         this.strategyRegistry = strategyRegistry;
+        this.fiscalProfileRepository = fiscalProfileRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -257,10 +260,39 @@ public class DocumentComplianceService {
                 mentions.add(req.getLabel());
             }
         }
+
+        // Mentions legales personnalisees depuis le profil fiscal de l'organisation
+        resolveFiscalProfileMentions(tags);
+
         tags.put("mentions", mentions);
         tags.put("compliance_standard", strategy.getStandardName());
 
         return tags;
+    }
+
+    /**
+     * Resout les mentions legales personnalisees depuis le FiscalProfile de l'organisation.
+     * Le champ {@code legalMentions} est splite par ligne pour produire
+     * {@code legal_mention_1}, {@code legal_mention_2}, etc.
+     */
+    private void resolveFiscalProfileMentions(Map<String, Object> tags) {
+        Long orgId = tenantContext.getOrganizationId();
+        if (orgId == null) return;
+
+        fiscalProfileRepository.findByOrganizationId(orgId).ifPresent(fp -> {
+            String raw = fp.getLegalMentions();
+            if (raw == null || raw.isBlank()) return;
+
+            String[] lines = raw.split("\\r?\\n");
+            int index = 1;
+            for (String line : lines) {
+                String trimmed = line.trim();
+                if (!trimmed.isEmpty()) {
+                    tags.putIfAbsent("legal_mention_" + index, trimmed);
+                    index++;
+                }
+            }
+        });
     }
 
     /**

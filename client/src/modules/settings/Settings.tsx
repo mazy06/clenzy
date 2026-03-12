@@ -41,6 +41,7 @@ import {
   TrendingUp,
   AccountBalance,
   Payment,
+  AutoAwesome,
 } from '@mui/icons-material';
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import type { MessagingAutomationConfig } from '../../services/api/guestMessagingApi';
@@ -59,7 +60,9 @@ import type { NotificationPreferencesHandle } from './NotificationPreferencesCar
 import OrganizationSection from '../organization/OrganizationSection';
 import MessagingAutomationSection from '../messaging/MessagingAutomationSection';
 import FiscalProfileSection from './FiscalProfileSection';
+import TaxRulesSection from './TaxRulesSection';
 import PaymentSettings from './PaymentSettings';
+import AiSettingsSection from './AiSettingsSection';
 import { CURRENCY_OPTIONS } from '../../utils/currencyUtils';
 
 // ─── TabPanel ─────────────────────────────────────────────────────────────────
@@ -358,10 +361,18 @@ export default function Settings() {
           />
           {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
             <Tab
+              icon={<AutoAwesome sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label="IA"
+              {...a11yProps(3)}
+            />
+          )}
+          {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
+            <Tab
               icon={<AccountBalance sx={{ fontSize: 18 }} />}
               iconPosition="start"
               label="Fiscal"
-              {...a11yProps(3)}
+              {...a11yProps(4)}
             />
           )}
           {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
@@ -369,7 +380,7 @@ export default function Settings() {
               icon={<GroupAdd sx={{ fontSize: 18 }} />}
               iconPosition="start"
               label="Organisation"
-              {...a11yProps(4)}
+              {...a11yProps(5)}
             />
           )}
           {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
@@ -377,7 +388,7 @@ export default function Settings() {
               icon={<Payment sx={{ fontSize: 18 }} />}
               iconPosition="start"
               label="Paiement"
-              {...a11yProps(5)}
+              {...a11yProps(6)}
             />
           )}
         </Tabs>
@@ -789,16 +800,25 @@ export default function Settings() {
         <MessagingAutomationSection />
       </TabPanel>
 
-      {/* ─── Onglet Fiscal (ADMIN/MANAGER) ────────────────────────── */}
+      {/* ─── Onglet IA (ADMIN/MANAGER) ───────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
         <TabPanel value={tabValue} index={3}>
+          <AiSettingsSection />
+        </TabPanel>
+      )}
+
+      {/* ─── Onglet Fiscal (ADMIN/MANAGER) ────────────────────────── */}
+      {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
+        <TabPanel value={tabValue} index={4}>
           <FiscalProfileSection />
+          <Box sx={{ mt: 3 }} />
+          <TaxRulesSection />
         </TabPanel>
       )}
 
       {/* ─── Onglet Organisation (ADMIN/MANAGER) ─────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
-        <TabPanel value={tabValue} index={4}>
+        <TabPanel value={tabValue} index={5}>
           <OrganizationSection
             organizationId={user?.organizationId}
             organizationName={user?.organizationName}
@@ -808,7 +828,7 @@ export default function Settings() {
 
       {/* ─── Onglet Paiement (ADMIN/MANAGER) ─────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
-        <TabPanel value={tabValue} index={5}>
+        <TabPanel value={tabValue} index={6}>
           <PaymentSettings />
         </TabPanel>
       )}

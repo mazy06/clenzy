@@ -300,3 +300,16 @@ export type { ProspectDto, ImportResult } from './prospectsApi';
 
 export { workflowSettingsApi } from './workflowSettingsApi';
 export type { WorkflowSettingsData } from './workflowSettingsApi';
+
+export { aiApi } from './aiApi';
+export type {
+  AiUsageStats,
+  AiPricingRecommendation,
+  AiIntentDetection,
+  AiSuggestedResponse,
+  AiInsight,
+  AiSentimentResult,
+  AiApiKeyStatus,
+  AiApiKeyTestResult,
+  SaveAiApiKeyRequest,
+} from './aiApi';

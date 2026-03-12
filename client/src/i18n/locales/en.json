@@ -80,6 +80,7 @@
     "wallets": "Wallets",
     "invoices": "Invoices",
     "channels": "Channels",
+    "bookingEngine": "Booking Engine",
     "contracts": "Management Contracts",
     "messaging": "Messaging",
     "messageTemplates": "Templates",
@@ -413,6 +414,8 @@
       "noiseCta": "Set up",
       "locksCta": "Set up",
       "keysCta": "Set up",
+      "booking": "Booking Engine",
+      "bookingCta": "Set up",
       "active": "active"
     },
     "activityFeed": {
@@ -771,6 +774,8 @@
     "defaultHours": "Default hours",
     "checkInTime": "Default check-in time",
     "checkOutTime": "Default check-out time",
+    "bookingEngineVisible": "Visible on Booking Engine",
+    "bookingEngineVisibleHelper": "Make this property available for online booking",
     "cleaningPricing": "Cleaning pricing",
     "cleaningBasePrice": "Base price (€)",
     "cleaningBasePriceHelper": "Fixed price per intervention",
@@ -2654,6 +2659,287 @@
       "taxAmount": "Tax amount",
       "lineCount": "Lines",
       "noData": "No fiscal data for this period"
+    }
+  },
+  "bookingEngine": {
+    "title": "Booking Engine",
+    "subtitle": "Configure your online booking engine templates",
+    "save": "Save",
+    "saving": "Saving...",
+    "tabs": {
+      "list": "Templates",
+      "configuration": "Configuration"
+    },
+    "steps": {
+      "general": "General",
+      "appearance": "Appearance",
+      "settings": "Settings",
+      "customization": "Customization"
+    },
+    "actions": {
+      "newTemplate": "New template",
+      "editTemplate": "Edit",
+      "deleteTemplate": "Delete template",
+      "deleteConfirm": "Are you sure you want to delete the template \"{name}\"? This action cannot be undone.",
+      "backToList": "Back to list"
+    },
+    "sections": {
+      "statusApiKey": "Status & API Key",
+      "theming": "Appearance",
+      "behavior": "Behavior",
+      "policies": "Policies",
+      "security": "Security",
+      "displayOptions": "Display Options",
+      "componentVisibility": "Component Visibility",
+      "customCss": "Custom CSS",
+      "customJs": "Custom JS",
+      "preview": "Live Preview",
+      "aiDesign": "AI Design Analysis",
+      "designTokens": "Design Tokens",
+      "aiCssRegenerate": "AI CSS Generation"
+    },
+    "fields": {
+      "enabled": "Enable Booking Engine",
+      "apiKey": "API Key",
+      "copyKey": "Copy key",
+      "regenerateKey": "Regenerate key",
+      "regenerateConfirm": "Are you sure you want to regenerate the API key? The old key will stop working immediately.",
+      "name": "Template name",
+      "namePlaceholder": "E.g. Main template, Blog widget...",
+      "primaryColor": "Primary color",
+      "accentColor": "Accent color",
+      "logoUrl": "Logo URL",
+      "fontFamily": "Font family",
+      "defaultLanguage": "Default language",
+      "defaultCurrency": "Default currency",
+      "minAdvanceDays": "Min. booking advance (days)",
+      "maxAdvanceDays": "Max. booking advance (days)",
+      "cancellationPolicy": "Cancellation policy",
+      "termsUrl": "Terms & conditions URL",
+      "privacyUrl": "Privacy policy URL",
+      "allowedOrigins": "Allowed origins (CORS)",
+      "allowedOriginsHelper": "Allowed domains, separated by commas (e.g., https://mysite.com)",
+      "collectPaymentOnBooking": "Collect payment on booking",
+      "autoConfirm": "Auto-confirm reservations",
+      "showCleaningFee": "Show cleaning fee",
+      "showTouristTax": "Show tourist tax",
+      "customCssHelper": "CSS applied to the booking widget. Use .booking-widget as root selector.",
+      "customJsHelper": "JavaScript executed after widget load. Available events: booking-confirmed, booking-cancelled."
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "list": {
+      "empty": "No templates configured",
+      "emptyDescription": "Create your first template to activate the online booking engine."
+    },
+    "components": {
+      "searchBar": "Search bar",
+      "propertyList": "Property list",
+      "propertyGallery": "Photo gallery",
+      "availabilityCalendar": "Availability calendar",
+      "priceBreakdown": "Price breakdown",
+      "guestForm": "Guest form",
+      "paymentSection": "Payment section",
+      "reviewsSection": "Reviews section",
+      "mapSection": "Map section",
+      "cancellationPolicy": "Cancellation policy",
+      "contactSection": "Contact section"
+    },
+    "preview": {
+      "title": "Booking Engine",
+      "searchPlaceholder": "Search a property...",
+      "night": "night",
+      "calendar": "Availability",
+      "priceBreakdown": "Price breakdown",
+      "cleaning": "Cleaning",
+      "touristTax": "Tourist tax",
+      "payment": "Secure payment",
+      "cancellationPolicy": "Flexible cancellation",
+      "contact": "Contact us",
+      "map": "Interactive map",
+      "bookNow": "Book now"
+    },
+    "messages": {
+      "saved": "Booking Engine configuration saved",
+      "created": "Template created successfully",
+      "deleted": "Template deleted",
+      "error": "Error saving configuration",
+      "keyRegenerated": "API key regenerated successfully",
+      "keyCopied": "API key copied to clipboard",
+      "toggled": "Booking Engine {status}"
+    },
+    "ai": {
+      "websiteUrl": "Client website URL",
+      "analyzeDesign": "Analyze design",
+      "analyzing": "Analyzing website... Extracting colors, fonts, and styles via AI.",
+      "analyzeSuccess": "Design analyzed successfully! Tokens have been extracted.",
+      "analyzeError": "Error analyzing the website",
+      "saveFirst": "Save the template first before using AI analysis",
+      "tokensApplied": "Design tokens applied and CSS generated",
+      "additionalInstructions": "Additional instructions",
+      "instructionsPlaceholder": "E.g. more rounded corners, more minimalist style...",
+      "regenerateCss": "Regenerate CSS",
+      "cssRegenerated": "CSS regenerated successfully",
+      "cssRegenerateError": "Error regenerating CSS",
+      "insights": {
+        "title": "AI Insights",
+        "noInsights": "No insights available for this period",
+        "anomaly": "Anomaly",
+        "trend": "Trend",
+        "recommendation": "Recommendation",
+        "warning": "Warning",
+        "severity": "Severity",
+        "loading": "AI analysis in progress..."
+      },
+      "usage": {
+        "title": "AI Usage",
+        "tokensUsed": "Tokens used",
+        "budget": "Budget",
+        "feature": "Feature",
+        "remaining": "Remaining",
+        "noData": "No usage data"
+      },
+      "pricing": {
+        "title": "AI Pricing Recommendations",
+        "suggestedPrice": "Suggested price",
+        "confidence": "Confidence",
+        "factors": "Factors",
+        "marketComparison": "Market comparison",
+        "loading": "Pricing analysis in progress..."
+      },
+      "messaging": {
+        "detectIntent": "Detect intent",
+        "suggestResponse": "Suggest response",
+        "intent": "Intent",
+        "confidence": "Confidence",
+        "language": "Language",
+        "urgent": "Urgent",
+        "tone": "Tone",
+        "alternatives": "Alternatives",
+        "loading": "AI analysis in progress..."
+      },
+      "sentiment": {
+        "title": "AI Sentiment Analysis",
+        "positive": "Positive",
+        "negative": "Negative",
+        "neutral": "Neutral",
+        "mixed": "Mixed",
+        "themes": "Themes",
+        "suggestedResponse": "Suggested response"
+      },
+      "guidance": {
+        "usage": {
+          "text": "AI is not yet configured. Connect your OpenAI or Anthropic account to enable AI features.",
+          "button": "Configure in settings"
+        },
+        "pricing": {
+          "text": "AI pricing recommendations are not yet enabled. Configure your AI account to get smart pricing suggestions.",
+          "button": "Configure in settings"
+        },
+        "messaging": {
+          "title": "AI Assistant",
+          "text": "The AI messaging assistant is not yet configured. Connect your AI account to use intent detection and response suggestions.",
+          "button": "Configure in settings",
+          "placeholder": "Guest message...",
+          "contextPlaceholder": "Context",
+          "languagePlaceholder": "Language (en, fr...)"
+        }
+      },
+      "settings": {
+        "title": "AI Configuration",
+        "subtitle": "Connect your own OpenAI or Anthropic accounts to use AI without token limits. By default, the platform uses a shared key with a monthly budget.",
+        "personalKey": "Personal key",
+        "sharedKey": "Shared key",
+        "keyLabel": "Key",
+        "modelLabel": "Model",
+        "validated": "Validated",
+        "notValidated": "Not validated",
+        "sharedKeyDescription": "Uses the platform's shared key. Connect your own account to consume more tokens without limits.",
+        "modify": "Modify",
+        "connect": "Connect",
+        "disconnect": "Disconnect",
+        "configureProvider": "Configure {{provider}}",
+        "apiKeyLabel": "API Key",
+        "modelOverrideLabel": "Custom model (optional)",
+        "modelOverrideHelper": "Leave empty to use the default model",
+        "byokInfo": "With your own key, platform token limits are not enforced. Your usage will be billed directly by {{provider}}.",
+        "cancel": "Cancel",
+        "test": "Test",
+        "save": "Save",
+        "saveError": "Error saving. Check your API key.",
+        "loadError": "Unable to load AI configuration. Please try again."
+      },
+      "features": {
+        "title": "Clenzy AI Solutions",
+        "subtitle": "Enable or disable AI modules based on your needs",
+        "design": {
+          "name": "Design AI",
+          "description": "CSS generation for the booking widget",
+          "menu": "Booking Engine"
+        },
+        "pricing": {
+          "name": "Pricing AI",
+          "description": "Smart pricing recommendations",
+          "menu": "Dynamic Pricing"
+        },
+        "messaging": {
+          "name": "Messaging AI",
+          "description": "Intent detection and suggested responses",
+          "menu": "Contact"
+        },
+        "analytics": {
+          "name": "Analytics AI",
+          "description": "Performance insights and recommendations",
+          "menu": "Dashboard"
+        },
+        "sentiment": {
+          "name": "Sentiment AI",
+          "description": "Guest review sentiment analysis",
+          "menu": "Reviews"
+        }
+      }
+    },
+    "designTokens": {
+      "none": "None",
+      "colors": "Colors",
+      "primaryColor": "Primary color",
+      "secondaryColor": "Secondary color",
+      "accentColor": "Accent color",
+      "backgroundColor": "Background color",
+      "surfaceColor": "Surface color",
+      "textColor": "Text color",
+      "textSecondaryColor": "Secondary text",
+      "borderColor": "Border color",
+      "dividerColor": "Divider color",
+      "typography": "Typography",
+      "headingFontFamily": "Heading font",
+      "bodyFontFamily": "Body font",
+      "baseFontSize": "Base font size",
+      "headingFontWeight": "Heading weight",
+      "spacing": "Spacing & Borders",
+      "borderRadius": "Border radius",
+      "buttonBorderRadius": "Button radius",
+      "cardBorderRadius": "Card radius",
+      "spacingUnit": "Spacing",
+      "shadows": "Shadows",
+      "boxShadow": "Box shadow",
+      "cardShadow": "Card shadow",
+      "shadowNone": "None",
+      "shadowSubtle": "Subtle",
+      "shadowMedium": "Medium",
+      "shadowStrong": "Strong",
+      "buttons": "Buttons",
+      "buttonStyle": "Button style",
+      "buttonFilled": "Filled",
+      "buttonOutlined": "Outlined",
+      "buttonRounded": "Rounded",
+      "buttonTextTransform": "Text transform",
+      "textTransformNone": "None",
+      "textTransformUppercase": "UPPERCASE",
+      "textTransformCapitalize": "Capitalize",
+      "regenerateCss": "Regenerate CSS with AI"
     }
   }
 }

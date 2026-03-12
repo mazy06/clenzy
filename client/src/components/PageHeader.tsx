@@ -6,8 +6,10 @@ import { useNavigate } from 'react-router-dom';
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
-  backPath: string;
+  backPath?: string;
   backLabel?: string;
+  /** Callback invoked when the back button is clicked. Takes priority over backPath. */
+  onBack?: () => void;
   actions?: React.ReactNode;
   /** Slot for search / filter elements rendered inline with actions on the title row */
   filters?: React.ReactNode;
@@ -20,12 +22,21 @@ export default function PageHeader({
   subtitle,
   backPath,
   backLabel = 'Retour',
+  onBack,
   actions,
   filters,
   showBackButton = true,
   showBackButtonWithActions = false
 }: PageHeaderProps) {
   const navigate = useNavigate();
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (backPath) {
+      navigate(backPath);
+    }
+  };
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -145,7 +156,7 @@ export default function PageHeader({
                 variant="outlined"
                 size="small"
                 startIcon={isCompact ? undefined : <ArrowBackIcon sx={{ fontSize: '18px' }} />}
-                onClick={() => navigate(backPath)}
+                onClick={handleBack}
                 title={backLabel}
                 sx={{
                   borderWidth: 1.5,
@@ -166,7 +177,7 @@ export default function PageHeader({
                 variant="outlined"
                 size="small"
                 startIcon={isCompact ? undefined : <ArrowBackIcon sx={{ fontSize: '18px' }} />}
-                onClick={() => navigate(backPath)}
+                onClick={handleBack}
                 title={backLabel}
                 sx={{
                   borderWidth: 1.5,

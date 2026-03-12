@@ -294,6 +294,39 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
   const [extraFees, setExtraFees] = useState<LocalExtraFee[]>([]);
   const [invoices, setInvoices] = useState<GeneratedInvoice[]>([]);
 
+  // Charger les factures deja generees pour cette reservation/intervention
+  useEffect(() => {
+    const loadExistingInvoices = async () => {
+      try {
+        const { documentsApi } = await import('../../../services/api/documentsApi');
+        let allGenerations: GeneratedInvoice[] = [];
+
+        // Factures pour la reservation
+        if (reservation?.id) {
+          const resGens = await documentsApi.getGenerationsByReference('RESERVATION', reservation.id);
+          const factureGens = resGens.filter((g) => g.documentType === 'FACTURE' && g.status !== 'FAILED');
+          allGenerations = [
+            ...allGenerations,
+            ...factureGens.map((g) => ({
+              id: g.id,
+              fileName: g.fileName,
+              status: g.status,
+              legalNumber: g.legalNumber,
+              createdAt: g.createdAt?.split('T')[0] ?? '',
+            })),
+          ];
+        }
+
+        if (allGenerations.length > 0) {
+          setInvoices(allGenerations);
+        }
+      } catch {
+        // Silencieux — les factures existantes ne sont pas critiques au montage
+      }
+    };
+    loadExistingInvoices();
+  }, [reservation?.id]);
+
   // Sync payments state when reservation payment status changes (e.g. auto-check confirms payment)
   useEffect(() => {
     if (!reservation) return;

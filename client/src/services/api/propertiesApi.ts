@@ -39,6 +39,8 @@ export interface Property {
   hasDisinfection?: boolean;
   amenities?: string[];
   cleaningNotes?: string;
+  // Booking Engine
+  bookingEngineVisible?: boolean;
   // Geolocalisation
   latitude?: number;
   longitude?: number;
@@ -81,6 +83,8 @@ export interface PropertyFormData {
   hasDisinfection?: boolean;
   amenities?: string[];
   cleaningNotes?: string;
+  // Booking Engine
+  bookingEngineVisible?: boolean;
   // Geolocalisation
   latitude?: number;
   longitude?: number;

@@ -1,15 +1,29 @@
 package com.clenzy.service;
 
+import com.clenzy.config.AiProperties;
+import com.clenzy.config.ai.AiProviderException;
+import com.clenzy.config.ai.AiResponse;
+import com.clenzy.config.ai.AnthropicProvider;
+import com.clenzy.dto.AiPricingRecommendationDto;
 import com.clenzy.dto.PricePredictionDto;
+import com.clenzy.exception.AiNotConfiguredException;
+import com.clenzy.model.AiFeature;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.AiKeyResolver.KeySource;
+import com.clenzy.service.AiKeyResolver.ResolvedKey;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -20,7 +34,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AiPricingServiceTest {
@@ -28,6 +42,12 @@ class AiPricingServiceTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private RateOverrideRepository rateOverrideRepository;
+    @Mock private AiProperties aiProperties;
+    @Mock private AnthropicProvider anthropicProvider;
+    @Mock private AiAnonymizationService anonymizationService;
+    @Mock private AiTokenBudgetService tokenBudgetService;
+    @Mock private AiKeyResolver aiKeyResolver;
+    @Spy  private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     @InjectMocks private AiPricingService service;
 
     private static final Long ORG_ID = 1L;
@@ -46,6 +66,8 @@ class AiPricingServiceTest {
         r.setCheckOut(checkOut);
         return r;
     }
+
+    // ─── Rule-based predictions (existing tests) ─────────────────────────
 
     @Test
     void getPredictions_returnsCorrectNumberOfDays() {
@@ -139,5 +161,117 @@ class AiPricingServiceTest {
 
         assertThrows(IllegalArgumentException.class,
             () -> service.getPredictions(PROPERTY_ID, ORG_ID, LocalDate.now(), LocalDate.now().plusDays(7)));
+    }
+
+    // ─── AI-powered predictions (LLM) ───────────────────────────────────
+
+    @Nested
+    @DisplayName("AI-powered predictions")
+    class AiPowered {
+
+        private static final ResolvedKey PLATFORM_KEY = new ResolvedKey("sk-platform", null, KeySource.PLATFORM);
+
+        @Test
+        void featureFlagDisabled_throwsException() {
+            AiProperties.Features features = new AiProperties.Features();
+            features.setPricingAi(false);
+            when(aiProperties.getFeatures()).thenReturn(features);
+
+            assertThrows(AiNotConfiguredException.class,
+                    () -> service.getAiPredictions(PROPERTY_ID, ORG_ID,
+                            LocalDate.now(), LocalDate.now().plusDays(3)));
+        }
+
+        @Test
+        void validResponse_parsesCorrectly() {
+            // Setup feature flag
+            AiProperties.Features features = new AiProperties.Features();
+            features.setPricingAi(true);
+            when(aiProperties.getFeatures()).thenReturn(features);
+
+            // Key resolver → platform key
+            when(aiKeyResolver.resolve(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+
+            // Budget OK
+            doNothing().when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM);
+
+            // Property
+            when(propertyRepository.findById(PROPERTY_ID))
+                    .thenReturn(Optional.of(createProperty(new BigDecimal("150"))));
+            when(reservationRepository.findByPropertyIdsAndDateRange(any(), any(), any(), eq(ORG_ID)))
+                    .thenReturn(List.of());
+
+            // Anonymization passthrough
+            when(anonymizationService.anonymize(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            // LLM response
+            String aiJson = """
+                [
+                  {
+                    "date": "2026-03-15",
+                    "suggestedPrice": 175.00,
+                    "explanation": "Weekend premium plus spring demand increase",
+                    "confidence": 0.82,
+                    "marketComparison": "10% above local average",
+                    "factors": ["weekend", "spring season", "local event"]
+                  }
+                ]
+                """;
+            AiResponse aiResponse = new AiResponse(aiJson, 200, 100, 300, "claude-sonnet-4-20250514", "end_turn");
+            when(anthropicProvider.chat(any())).thenReturn(aiResponse);
+            when(anthropicProvider.name()).thenReturn("anthropic");
+
+            List<AiPricingRecommendationDto> results = service.getAiPredictions(
+                    PROPERTY_ID, ORG_ID, LocalDate.of(2026, 3, 15), LocalDate.of(2026, 3, 15));
+
+            assertEquals(1, results.size());
+            assertEquals(new BigDecimal("175.00"), results.get(0).suggestedPrice());
+            assertEquals(0.82, results.get(0).confidence());
+            assertEquals(3, results.get(0).factors().size());
+
+            // Verify budget was checked and usage recorded
+            verify(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM);
+            verify(tokenBudgetService).recordUsage(eq(ORG_ID), eq(AiFeature.PRICING), eq("anthropic"), eq(aiResponse));
+        }
+
+        @Test
+        void anonymizationCalled() {
+            AiProperties.Features features = new AiProperties.Features();
+            features.setPricingAi(true);
+            when(aiProperties.getFeatures()).thenReturn(features);
+            when(aiKeyResolver.resolve(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            doNothing().when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM);
+            when(propertyRepository.findById(PROPERTY_ID))
+                    .thenReturn(Optional.of(createProperty(new BigDecimal("100"))));
+            when(reservationRepository.findByPropertyIdsAndDateRange(any(), any(), any(), eq(ORG_ID)))
+                    .thenReturn(List.of());
+            when(anonymizationService.anonymize(any())).thenReturn("anonymized prompt");
+
+            String aiJson = "[{\"date\":\"2026-03-15\",\"suggestedPrice\":100.00,\"explanation\":\"ok\"," +
+                    "\"confidence\":0.5,\"marketComparison\":\"avg\",\"factors\":[]}]";
+            when(anthropicProvider.chat(any())).thenReturn(
+                    new AiResponse(aiJson, 10, 5, 15, "claude-sonnet-4-20250514", "end_turn"));
+            when(anthropicProvider.name()).thenReturn("anthropic");
+
+            service.getAiPredictions(PROPERTY_ID, ORG_ID,
+                    LocalDate.of(2026, 3, 15), LocalDate.of(2026, 3, 15));
+
+            verify(anonymizationService).anonymize(any());
+        }
+
+        @Test
+        void budgetExceeded_throwsException() {
+            AiProperties.Features features = new AiProperties.Features();
+            features.setPricingAi(true);
+            when(aiProperties.getFeatures()).thenReturn(features);
+            when(anthropicProvider.name()).thenReturn("anthropic");
+            when(aiKeyResolver.resolve(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            doThrow(new IllegalStateException("budget exceeded"))
+                    .when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM);
+
+            assertThrows(IllegalStateException.class,
+                    () -> service.getAiPredictions(PROPERTY_ID, ORG_ID,
+                            LocalDate.now(), LocalDate.now().plusDays(3)));
+        }
     }
 }

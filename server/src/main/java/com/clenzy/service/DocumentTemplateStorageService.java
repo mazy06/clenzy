@@ -14,7 +14,11 @@ import java.nio.file.Paths;
 /**
  * Service de stockage des templates de documents (.odt) sur le filesystem.
  * Les fichiers sont stockes sous : {templatesDir}/{uuid}_{filename}
+ *
+ * @deprecated Les nouveaux templates sont stockes en DB (BYTEA).
+ * Cette classe est conservee pour le fallback legacy (templates uploades avant la migration 0074).
  */
+@Deprecated
 @Service
 public class DocumentTemplateStorageService extends AbstractFileStorageService {
 

@@ -96,6 +96,7 @@ import DatabaseAdminPage from './admin/DatabaseAdminPage';
 // Channels & Integrations
 import ChannelsPage from './channels/ChannelsPage';
 import ReviewsPage from './channels/ReviewsPage';
+import BookingEnginePage from './booking-engine/BookingEnginePage';
 
 // Messaging — pages now merged into Documents module (redirected via Navigate)
 // import MessageTemplatesPage from './messaging/MessageTemplatesPage';
@@ -408,6 +409,15 @@ const AuthenticatedApp: React.FC = () => {
           <ProtectedRoute requiredPermission="properties:view">
             <ErrorBoundary>
               <ReviewsPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        {/* Booking Engine Configuration */}
+        <Route path="/booking-engine" element={
+          <ProtectedRoute requiredPermission="settings:view">
+            <ErrorBoundary>
+              <BookingEnginePage />
             </ErrorBoundary>
           </ProtectedRoute>
         } />

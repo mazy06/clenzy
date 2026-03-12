@@ -48,7 +48,6 @@ const TemplateDetails: React.FC = () => {
   const [editData, setEditData] = useState({
     name: '',
     description: '',
-    eventTrigger: '',
     emailSubject: '',
     emailBody: '',
   });
@@ -58,7 +57,6 @@ const TemplateDetails: React.FC = () => {
       setEditData({
         name: template.name || '',
         description: template.description || '',
-        eventTrigger: template.eventTrigger || '',
         emailSubject: template.emailSubject || '',
         emailBody: template.emailBody || '',
       });
@@ -179,7 +177,6 @@ const TemplateDetails: React.FC = () => {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <TextField label="Nom" value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} fullWidth size="small" />
                 <TextField label="Description" value={editData.description} onChange={(e) => setEditData({ ...editData, description: e.target.value })} fullWidth size="small" multiline rows={2} />
-                <TextField label="Déclencheur" value={editData.eventTrigger} onChange={(e) => setEditData({ ...editData, eventTrigger: e.target.value })} fullWidth size="small" />
                 <Divider />
                 <TextField label="Objet email" value={editData.emailSubject} onChange={(e) => setEditData({ ...editData, emailSubject: e.target.value })} fullWidth size="small" />
                 <TextField label="Corps email" value={editData.emailBody} onChange={(e) => setEditData({ ...editData, emailBody: e.target.value })} fullWidth size="small" multiline rows={3} />
@@ -189,7 +186,6 @@ const TemplateDetails: React.FC = () => {
                 <InfoRow label="Type de document" value={template.documentType} />
                 <InfoRow label="Fichier original" value={template.originalFilename} />
                 <InfoRow label="Version" value={`v${template.version}`} />
-                <InfoRow label="Déclencheur" value={template.eventTrigger || '—'} />
                 <InfoRow label="Créé par" value={template.createdBy || '—'} />
                 <InfoRow label="Créé le" value={template.createdAt ? new Date(template.createdAt).toLocaleDateString('fr-FR') : '—'} />
                 {template.emailSubject && (

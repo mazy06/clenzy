@@ -38,6 +38,9 @@ ENV SPRING_PROFILES_ACTIVE=prod
 
 COPY --from=build /workspace/target/clenzy-platform-1.0.0.jar /app/app.jar
 
+# Create upload directories before switching to non-root user
+RUN mkdir -p /app/uploads/templates /app/uploads/documents /app/uploads/contact
+
 RUN chown -R clenzy:clenzy /app
 
 USER clenzy

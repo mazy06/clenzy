@@ -27,7 +27,6 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [documentType, setDocumentType] = useState('');
-  const [eventTrigger, setEventTrigger] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +62,6 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
       formData.append('name', name);
       formData.append('documentType', documentType);
       if (description) formData.append('description', description);
-      if (eventTrigger) formData.append('eventTrigger', eventTrigger);
       if (emailSubject) formData.append('emailSubject', emailSubject);
       if (emailBody) formData.append('emailBody', emailBody);
 
@@ -80,7 +78,6 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
     setName('');
     setDescription('');
     setDocumentType('');
-    setEventTrigger('');
     setEmailSubject('');
     setEmailBody('');
     setError(null);
@@ -155,16 +152,6 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
             fullWidth
             multiline
             rows={2}
-          />
-
-          <TextField
-            label="Déclencheur (événement)"
-            size="small"
-            value={eventTrigger}
-            onChange={(e) => setEventTrigger(e.target.value)}
-            fullWidth
-            placeholder="Ex: intervention.completed"
-            helperText="Événement métier qui déclenche la génération automatique"
           />
 
           <Divider sx={{ my: 1 }}>

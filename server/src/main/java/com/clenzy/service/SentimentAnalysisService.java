@@ -1,7 +1,23 @@
 package com.clenzy.service;
 
+import com.clenzy.config.AiProperties;
+import com.clenzy.config.ai.AiProviderException;
+import com.clenzy.config.ai.AiRequest;
+import com.clenzy.config.ai.AiResponse;
+import com.clenzy.config.ai.AnthropicProvider;
+import com.clenzy.dto.AiSentimentResultDto;
+import com.clenzy.exception.AiNotConfiguredException;
+import com.clenzy.model.AiFeature;
 import com.clenzy.model.ReviewTag;
 import com.clenzy.model.SentimentLabel;
+import com.clenzy.service.AiKeyResolver.KeySource;
+import com.clenzy.service.AiKeyResolver.ResolvedKey;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -9,6 +25,29 @@ import java.util.stream.Collectors;
 
 @Service
 public class SentimentAnalysisService {
+
+    private static final Logger log = LoggerFactory.getLogger(SentimentAnalysisService.class);
+
+    private final AiProperties aiProperties;
+    private final AnthropicProvider anthropicProvider;
+    private final AiAnonymizationService anonymizationService;
+    private final AiTokenBudgetService tokenBudgetService;
+    private final AiKeyResolver aiKeyResolver;
+    private final ObjectMapper objectMapper;
+
+    public SentimentAnalysisService(AiProperties aiProperties,
+                                     AnthropicProvider anthropicProvider,
+                                     AiAnonymizationService anonymizationService,
+                                     AiTokenBudgetService tokenBudgetService,
+                                     AiKeyResolver aiKeyResolver,
+                                     ObjectMapper objectMapper) {
+        this.aiProperties = aiProperties;
+        this.anthropicProvider = anthropicProvider;
+        this.anonymizationService = anonymizationService;
+        this.tokenBudgetService = tokenBudgetService;
+        this.aiKeyResolver = aiKeyResolver;
+        this.objectMapper = objectMapper;
+    }
 
     public record SentimentResult(double score, SentimentLabel label, List<ReviewTag> tags) {}
 
@@ -149,5 +188,38 @@ public class SentimentAnalysisService {
 
     private double clamp(double value) {
         return Math.max(-1.0, Math.min(1.0, value));
+    }
+
+    // ─── AI-powered sentiment analysis ────────────────────────────────
+
+    @CircuitBreaker(name = "ai-sentiment")
+    @Retry(name = "ai-sentiment")
+    public AiSentimentResultDto analyzeAi(String text, String language, Long orgId) {
+        if (!aiProperties.getFeatures().isSentimentAi()) {
+            throw new AiNotConfiguredException("AI_FEATURE_DISABLED", "sentiment",
+                    "AI sentiment is disabled. Enable via clenzy.ai.features.sentiment-ai=true");
+        }
+
+        tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.SENTIMENT);
+        ResolvedKey key = aiKeyResolver.resolve(orgId, anthropicProvider.name());
+        tokenBudgetService.requireBudget(orgId, AiFeature.SENTIMENT, key.source());
+
+        String anonymized = anonymizationService.anonymize(text);
+        String userPrompt = AiSentimentPrompts.buildUserPrompt(anonymized, language);
+
+        AiRequest request = AiRequest.of(AiSentimentPrompts.SYSTEM_PROMPT, userPrompt);
+        AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
+        AiResponse response = (key.source() == KeySource.ORGANIZATION)
+                ? anthropicProvider.chat(resolved, key.apiKey())
+                : anthropicProvider.chat(resolved);
+
+        tokenBudgetService.recordUsage(orgId, AiFeature.SENTIMENT, anthropicProvider.name(), response);
+
+        try {
+            return objectMapper.readValue(response.content(), AiSentimentResultDto.class);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse AI sentiment analysis: {}", e.getMessage());
+            throw new AiProviderException("anthropic", "Failed to parse sentiment analysis", e);
+        }
     }
 }

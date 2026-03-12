@@ -16,9 +16,12 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.mail.javamail.JavaMailSender;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -44,11 +47,16 @@ class MonitoringControllerTest {
 
     private MonitoringController controller;
 
+    @SuppressWarnings("unchecked")
     @BeforeEach
     void setUp() {
+        ObjectProvider<KafkaTemplate<String, Object>> kafkaProvider = mock(ObjectProvider.class);
+        ObjectProvider<JavaMailSender> mailProvider = mock(ObjectProvider.class);
+
         controller = new MonitoringController(
             auditLogRepository, userRepository, jwtTokenService,
-            dataSource, redisConnectionFactory, meterRegistry);
+            dataSource, redisConnectionFactory, meterRegistry,
+            kafkaProvider, mailProvider);
     }
 
     // ── Health endpoint ─────────────────────────────────────────────

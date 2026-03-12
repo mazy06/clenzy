@@ -69,6 +69,37 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
      */
     @Query("SELECT p FROM Property p LEFT JOIN FETCH p.owner WHERE p.id = :id")
     java.util.Optional<Property> findByIdWithOwnerNoOrgFilter(@Param("id") Long id);
+
+    // ─── Booking Engine (public) ─────────────────────────────────────────────────
+
+    /**
+     * Proprietes visibles dans le Booking Engine public.
+     * Filtre : ACTIVE + bookingEngineVisible = true + organisation donnee.
+     */
+    @Query("""
+        SELECT p FROM Property p
+        LEFT JOIN FETCH p.photos
+        WHERE p.organizationId = :orgId
+          AND p.status = com.clenzy.model.PropertyStatus.ACTIVE
+          AND p.bookingEngineVisible = true
+        ORDER BY p.name
+        """)
+    @QueryHints(@QueryHint(name = "org.hibernate.readOnly", value = "true"))
+    List<Property> findBookingEngineVisible(@Param("orgId") Long orgId);
+
+    /**
+     * Detail d'une propriete visible dans le Booking Engine.
+     */
+    @Query("""
+        SELECT p FROM Property p
+        LEFT JOIN FETCH p.photos
+        WHERE p.id = :id
+          AND p.organizationId = :orgId
+          AND p.status = com.clenzy.model.PropertyStatus.ACTIVE
+          AND p.bookingEngineVisible = true
+        """)
+    @QueryHints(@QueryHint(name = "org.hibernate.readOnly", value = "true"))
+    java.util.Optional<Property> findBookingEngineProperty(@Param("id") Long id, @Param("orgId") Long orgId);
 }
 
 

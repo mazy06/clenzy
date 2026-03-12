@@ -34,6 +34,8 @@ export const propertySchema = z.object({
   // Équipements
   amenities: z.array(z.string()).default([]),
   cleaningNotes: z.string().optional(),
+  // Booking Engine
+  bookingEngineVisible: z.boolean().default(false),
   // Geolocalisation
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),

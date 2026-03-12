@@ -79,6 +79,7 @@ public class DocumentNumberingService {
                 .orElseGet(() -> {
                     log.info("Creation de la sequence {} pour l'annee {} [{}]", type.name(), currentYear, countryCode);
                     DocumentNumberSequence newSeq = new DocumentNumberSequence(type.name(), currentYear, prefix);
+                    newSeq.setOrganizationId(tenantContext.getRequiredOrganizationId());
                     return sequenceRepository.save(newSeq);
                 });
 
