@@ -12,6 +12,7 @@ import {
   FormControlLabel,
   Checkbox,
   Divider,
+  Switch,
 } from '@mui/material';
 import {
   Person,
@@ -19,6 +20,7 @@ import {
   CleaningServices,
   Window,
   Checklist,
+  Language,
 } from '@mui/icons-material';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
@@ -124,6 +126,46 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                     </Select>
                     {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
                   </FormControl>
+                )}
+              />
+            </Grid>
+
+            {/* Booking Engine Visibility */}
+            <Grid item xs={12}>
+              <Controller
+                name="bookingEngineVisible"
+                control={control}
+                render={({ field }) => (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      py: 1,
+                      px: 1.5,
+                      borderRadius: 1.5,
+                      bgcolor: field.value ? 'success.50' : 'grey.50',
+                      border: '1px solid',
+                      borderColor: field.value ? 'success.200' : 'grey.200',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <Language sx={{ fontSize: 18, color: field.value ? 'success.main' : 'text.disabled' }} />
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                        {t('properties.bookingEngineVisible')}
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
+                        {t('properties.bookingEngineVisibleHelper')}
+                      </Typography>
+                    </Box>
+                    <Switch
+                      checked={field.value ?? false}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      size="small"
+                      color="success"
+                    />
+                  </Box>
                 )}
               />
             </Grid>

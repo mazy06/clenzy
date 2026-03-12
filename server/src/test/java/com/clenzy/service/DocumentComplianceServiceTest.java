@@ -40,6 +40,7 @@ class DocumentComplianceServiceTest {
     @Mock private DocumentTemplateTagRepository templateTagRepository;
     @Mock private DocumentStorageService storageService;
     @Mock private AuditLogService auditLogService;
+    @Mock private FiscalProfileRepository fiscalProfileRepository;
     @Mock private TenantContext tenantContext;
 
     private DocumentComplianceService service;
@@ -55,7 +56,8 @@ class DocumentComplianceServiceTest {
 
         service = new DocumentComplianceService(generationRepository, legalRequirementRepository,
                 complianceReportRepository, templateRepository, templateTagRepository,
-                storageService, auditLogService, strategyRegistry, tenantContext);
+                storageService, auditLogService, strategyRegistry, fiscalProfileRepository,
+                tenantContext);
     }
 
     // ===== COMPUTE HASH =====

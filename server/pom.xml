@@ -324,6 +324,13 @@
             <version>10.1.0</version>
         </dependency>
 
+        <!-- Jsoup — HTML parsing for AI design analysis (website fetching) -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.17.2</version>
+        </dependency>
+
         <!-- Test Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

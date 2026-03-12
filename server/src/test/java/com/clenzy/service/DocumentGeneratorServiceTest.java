@@ -52,6 +52,8 @@ class DocumentGeneratorServiceTest {
     @Mock private KafkaTemplate<String, Object> kafkaTemplate;
     @Mock private DocumentNumberingService numberingService;
     @Mock private DocumentComplianceService complianceService;
+    @Mock private InvoiceGeneratorService invoiceGeneratorService;
+    @Mock private TaxRulePreValidator taxRulePreValidator;
     @Mock private TenantContext tenantContext;
 
     private DocumentGeneratorService service;
@@ -66,7 +68,7 @@ class DocumentGeneratorServiceTest {
                 templateParserService, tagResolverService, conversionService,
                 emailService, notificationService, auditLogService,
                 kafkaTemplate, numberingService, complianceService,
-                tenantContext, meterRegistry
+                invoiceGeneratorService, taxRulePreValidator, tenantContext, meterRegistry
         );
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
@@ -95,11 +97,11 @@ class DocumentGeneratorServiceTest {
         @Test void whenFound_thenReturns() {
             DocumentTemplate t = new DocumentTemplate();
             t.setId(1L);
-            when(templateRepository.findById(1L)).thenReturn(Optional.of(t));
+            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
             assertThat(service.getTemplate(1L).getId()).isEqualTo(1L);
         }
         @Test void whenNotFound_thenThrows() {
-            when(templateRepository.findById(99L)).thenReturn(Optional.empty());
+            when(templateRepository.findByIdWithTags(99L)).thenReturn(Optional.empty());
             assertThatThrownBy(() -> service.getTemplate(99L))
                     .isInstanceOf(DocumentNotFoundException.class);
         }
@@ -142,7 +144,7 @@ class DocumentGeneratorServiceTest {
             DocumentTemplate t = new DocumentTemplate();
             t.setId(1L);
             t.setName("Old");
-            when(templateRepository.findById(1L)).thenReturn(Optional.of(t));
+            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
             when(templateRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
             DocumentTemplate result = service.updateTemplate(1L, "New", "Desc", "EVENT", "Subject", "Body");
@@ -157,7 +159,7 @@ class DocumentGeneratorServiceTest {
             DocumentTemplate t = new DocumentTemplate();
             t.setId(1L);
             t.setDocumentType(DocumentType.FACTURE);
-            when(templateRepository.findById(1L)).thenReturn(Optional.of(t));
+            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
             when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
             when(templateRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -175,7 +177,7 @@ class DocumentGeneratorServiceTest {
             t.setId(1L);
             t.setName("Test");
             t.setFilePath("/path/to/file.odt");
-            when(templateRepository.findById(1L)).thenReturn(Optional.of(t));
+            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
 
             service.deleteTemplate(1L);
 
@@ -191,10 +193,9 @@ class DocumentGeneratorServiceTest {
         @Test void whenCalled_thenReparseTags() {
             DocumentTemplate t = new DocumentTemplate();
             t.setId(1L);
-            t.setFilePath("/path/file.odt");
-            when(templateRepository.findById(1L)).thenReturn(Optional.of(t));
-            when(templateStorageService.getAbsolutePath("/path/file.odt")).thenReturn(Path.of("/abs/path/file.odt"));
-            when(templateParserService.parseTemplate(any())).thenReturn(List.of());
+            t.setFileContent(new byte[]{1, 2, 3});
+            when(templateRepository.findByIdWithTags(1L)).thenReturn(Optional.of(t));
+            when(templateParserService.parseTemplate(any(byte[].class))).thenReturn(List.of());
 
             DocumentTemplate result = service.reparseTemplate(1L);
             verify(tagRepository).deleteByTemplateId(1L);

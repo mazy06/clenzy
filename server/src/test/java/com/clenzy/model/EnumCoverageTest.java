@@ -145,7 +145,7 @@ class EnumCoverageTest {
     @DisplayName("PaymentStatus")
     class PaymentStatusTests {
         @Test void allValues() {
-            assertThat(PaymentStatus.values()).hasSize(6);
+            assertThat(PaymentStatus.values()).hasSize(7);
         }
         @Test void displayNames() {
             for (PaymentStatus s : PaymentStatus.values()) {
@@ -159,6 +159,7 @@ class EnumCoverageTest {
             assertThat(PaymentStatus.fromString("PROCESSING")).isEqualTo(PaymentStatus.PROCESSING);
             assertThat(PaymentStatus.fromString("FAILED")).isEqualTo(PaymentStatus.FAILED);
             assertThat(PaymentStatus.fromString("CANCELLED")).isEqualTo(PaymentStatus.CANCELLED);
+            assertThat(PaymentStatus.fromString("NOT_REQUIRED")).isEqualTo(PaymentStatus.NOT_REQUIRED);
         }
         @Test void fromString_null() {
             assertThat(PaymentStatus.fromString(null)).isNull();

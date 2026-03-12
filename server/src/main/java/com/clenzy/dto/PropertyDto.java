@@ -97,6 +97,9 @@ public class PropertyDto {
 
     public String cleaningNotes;
 
+    // Booking Engine
+    public Boolean bookingEngineVisible;
+
     // Horaires par défaut (check-in / check-out)
     public String defaultCheckInTime;
     public String defaultCheckOutTime;

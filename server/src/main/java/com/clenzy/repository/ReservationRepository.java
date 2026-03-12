@@ -129,6 +129,27 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("propertyId") Long propertyId,
             @Param("orgId") Long orgId);
 
+    // ─── Booking Engine (public) ────────────────────────────────────────────────
+
+    /**
+     * Trouve une reservation par son code de confirmation et organisation.
+     * Utilise par le Booking Engine public pour checkout et confirmation.
+     */
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property LEFT JOIN FETCH r.guest " +
+           "WHERE r.confirmationCode = :code AND r.organizationId = :orgId")
+    Optional<Reservation> findByConfirmationCodeAndOrganizationId(
+        @Param("code") String code,
+        @Param("orgId") Long orgId);
+
+    /**
+     * Reservations PENDING expirees (non payees apres le delai).
+     * Utilise par un scheduler pour annuler automatiquement les reservations abandonnees.
+     */
+    @Query("SELECT r FROM Reservation r JOIN FETCH r.property " +
+           "WHERE r.status = 'pending' AND r.paymentStatus = com.clenzy.model.PaymentStatus.PENDING " +
+           "AND r.createdAt < :cutoff")
+    List<Reservation> findExpiredPendingReservations(@Param("cutoff") java.time.LocalDateTime cutoff);
+
     // ─── Payment queries ────────────────────────────────────────────────────────
 
     /**

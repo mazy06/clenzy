@@ -26,6 +26,7 @@ import {
   CalendarViewWeek,
   PersonSearch,
   Contacts,
+  Language,
 } from '@mui/icons-material';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -163,6 +164,14 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
     permission: 'properties:view',
     translationKey: 'navigation.channels',
+    group: 'management',
+  },
+  {
+    icon: <Language />,
+    path: '/booking-engine',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
+    permission: 'settings:view',
+    translationKey: 'navigation.bookingEngine',
     group: 'management',
   },
   // Messagerie fusionnee dans Documents — supprime de la sidebar

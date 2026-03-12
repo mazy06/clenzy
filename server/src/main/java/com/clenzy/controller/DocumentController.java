@@ -158,6 +158,22 @@ public class DocumentController {
         return ResponseEntity.ok(generatorService.listGenerations(pageable));
     }
 
+    @GetMapping("/generations/by-reference")
+    @Operation(summary = "Generations de documents par type de reference et ID")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    public ResponseEntity<List<DocumentGenerationDto>> getGenerationsByReference(
+            @RequestParam String referenceType,
+            @RequestParam Long referenceId
+    ) {
+        com.clenzy.model.ReferenceType refType;
+        try {
+            refType = com.clenzy.model.ReferenceType.valueOf(referenceType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new DocumentValidationException("Type de reference inconnu: " + referenceType);
+        }
+        return ResponseEntity.ok(generatorService.getGenerationsByReference(refType, referenceId));
+    }
+
     @GetMapping("/generations/{id}/download")
     @Operation(summary = "Telecharger un document genere")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")

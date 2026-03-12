@@ -14,8 +14,12 @@ public interface DocumentTemplateRepository extends JpaRepository<DocumentTempla
 
     Optional<DocumentTemplate> findByDocumentTypeAndActiveTrue(DocumentType documentType);
 
+    @Query("SELECT t FROM DocumentTemplate t LEFT JOIN FETCH t.tags WHERE t.id = :id")
+    Optional<DocumentTemplate> findByIdWithTags(@Param("id") Long id);
+
     List<DocumentTemplate> findByDocumentTypeOrderByVersionDesc(DocumentType documentType);
 
+    @Query("SELECT DISTINCT t FROM DocumentTemplate t LEFT JOIN FETCH t.tags ORDER BY t.documentType ASC, t.version DESC")
     List<DocumentTemplate> findAllByOrderByDocumentTypeAscVersionDesc();
 
     boolean existsByDocumentTypeAndActiveTrue(DocumentType documentType);

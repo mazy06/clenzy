@@ -74,6 +74,32 @@ public class GlobalExceptionHandler {
                 .body(errorResponse);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        logger.warn("Argument invalide: {}", ex.getMessage());
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Requete invalide");
+        errorResponse.put("message", ex.getMessage());
+        errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(AiNotConfiguredException.class)
+    public ResponseEntity<Map<String, Object>> handleAiNotConfigured(AiNotConfiguredException ex) {
+        logger.info("AI not configured: errorCode={} feature={}", ex.getErrorCode(), ex.getFeature());
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "IA non configuree");
+        errorResponse.put("message", ex.getMessage());
+        errorResponse.put("errorCode", ex.getErrorCode());
+        errorResponse.put("feature", ex.getFeature());
+        errorResponse.put("status", HttpStatus.UNPROCESSABLE_ENTITY.value());
+
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException ex) {
         logger.warn("Accès refusé: {}", ex.getMessage());
