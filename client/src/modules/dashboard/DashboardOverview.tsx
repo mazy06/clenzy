@@ -53,6 +53,7 @@ const EMPTY_INTERVENTIONS: Array<{
 const kpiHoverSx = (isDark: boolean) => ({
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   borderRadius: '12px',
+  height: '100%',
   '&:hover': {
     transform: 'translateY(-3px)',
     '& > .MuiCard-root': {
@@ -263,7 +264,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                       title={t('dashboard.analytics.activeProperties')}
                       value={stats ? `${stats.properties.active}` : '-'}
                       subtitle={`${stats?.properties.total ?? 0} ${t('dashboard.overview.total')}`}
-                      trend={stats ? { value: stats.properties.growth } : undefined}
+                      trend={stats && stats.properties.growth !== 0 ? { value: stats.properties.growth } : undefined}
                       icon={<Home color="primary" />}
                       loading={isKpiLoading}
                     />
@@ -275,7 +276,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                       title={t('dashboard.stats.todayInterventions')}
                       value={stats ? `${stats.interventions.today}` : '-'}
                       subtitle={`${stats?.interventions.total ?? 0} ${t('dashboard.overview.total')}`}
-                      trend={stats ? { value: stats.interventions.growth } : undefined}
+                      trend={stats && stats.interventions.growth !== 0 ? { value: stats.interventions.growth } : undefined}
                       icon={<Build color="info" />}
                       loading={isKpiLoading}
                     />
