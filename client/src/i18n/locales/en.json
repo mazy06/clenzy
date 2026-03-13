@@ -300,7 +300,14 @@
       "benefit1": "Automatic revenue split on each reservation",
       "benefit2": "Transparent commission tracking in wallets",
       "benefit3": "Custom commission rate per property",
-      "cta": "Create a management contract"
+      "cta": "Create a management contract",
+      "activeTitle": "Active contracts",
+      "commissions": "Commissions earned",
+      "ownerPayouts": "Paid to owners",
+      "viewAll": "View all contracts",
+      "moreContracts": "+{{count}} more",
+      "noPayouts": "No payout cycle yet",
+      "avgRate": "Avg. rate"
     },
     "miniPlanning": {
       "title": "7-Day Planning",
@@ -343,9 +350,20 @@
       "configureDetails": "Configure property details",
       "definePricing": "Set up pricing",
       "connectChannels": "Connect booking channels",
+      "configureBilling": "Set up billing",
       "skipForNow": "Do this later",
       "reshow": "Show initial setup again",
-      "reshowShort": "Setup"
+      "reshowShort": "Setup",
+      "channelsCta": {
+        "title": "Import your reservations",
+        "description": "Connect your Airbnb, Booking or other platform calendars via an iCal link to automatically sync your reservations.",
+        "action": "Import iCal calendar"
+      },
+      "billingCta": {
+        "title": "Set up your billing profile",
+        "description": "Enter your tax and legal details (Tax ID, VAT, company name) to generate compliant invoices.",
+        "action": "Configure"
+      }
     },
     "channelHealth": {
       "title": "Booking channels",
