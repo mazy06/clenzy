@@ -15,13 +15,17 @@ import {
   Tune,
   Euro,
   Sync,
+  Receipt,
   Close,
   Replay,
   Add,
+  CalendarMonth,
+  Settings,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { STORAGE_KEYS, getItem, setItem, removeItem } from '../../services/storageService';
+import ICalImportModal from './ICalImportModal';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -30,6 +34,7 @@ interface OnboardingChecklistProps {
   hasPropertyDetails: boolean;
   hasPricing: boolean;
   hasChannels: boolean;
+  hasBillingProfile: boolean;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -39,6 +44,7 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = React.memo(({
   hasPropertyDetails,
   hasPricing,
   hasChannels,
+  hasBillingProfile,
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -47,13 +53,15 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = React.memo(({
   const [dismissed, setDismissed] = useState(
     () => getItem(STORAGE_KEYS.ONBOARDING_DISMISSED) === 'true',
   );
+  const [icalOpen, setIcalOpen] = useState(false);
 
   const steps = useMemo(() => [
     { label: t('dashboard.onboarding.createProperty'), done: hasProperties, path: '/properties/new', icon: <Home sx={{ fontSize: 16 }} /> },
     { label: t('dashboard.onboarding.configureDetails'), done: hasPropertyDetails, path: '/properties', icon: <Tune sx={{ fontSize: 16 }} /> },
     { label: t('dashboard.onboarding.definePricing'), done: hasPricing, path: '/tarification', icon: <Euro sx={{ fontSize: 16 }} /> },
     { label: t('dashboard.onboarding.connectChannels'), done: hasChannels, path: '/channels', icon: <Sync sx={{ fontSize: 16 }} /> },
-  ], [t, hasProperties, hasPropertyDetails, hasPricing, hasChannels]);
+    { label: t('dashboard.onboarding.configureBilling'), done: hasBillingProfile, path: '/settings', icon: <Receipt sx={{ fontSize: 16 }} /> },
+  ], [t, hasProperties, hasPropertyDetails, hasPricing, hasChannels, hasBillingProfile]);
 
   const completedCount = steps.filter((s) => s.done).length;
   const allCompleted = completedCount === steps.length;
@@ -99,218 +107,299 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = React.memo(({
   // Auto-hide when all completed
   if (allCompleted) return null;
 
-  return (
-    <Box
-      sx={{
-        bgcolor: 'background.paper',
-        borderRadius: '10px',
-        borderLeft: '3px solid',
-        borderLeftColor: 'primary.main',
-        boxShadow: isDark
-          ? '0 1px 6px rgba(0,0,0,0.3)'
-          : '0 1px 6px rgba(107,138,154,0.10)',
-        px: 2,
-        py: 1.25,
-        height: '100%',
-      }}
-    >
-      {/* ── Header row: title + progress + bar + dismiss ────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-        <Typography
-          sx={{
-            fontSize: '0.7rem',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-            color: 'text.secondary',
-            lineHeight: 1,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {t('dashboard.onboarding.title')}
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{
-            fontSize: '0.625rem',
-            color: 'text.disabled',
-            fontWeight: 600,
-            fontVariantNumeric: 'tabular-nums',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {t('dashboard.onboarding.progress', { completed: completedCount, total: steps.length })}
-        </Typography>
-        <LinearProgress
-          variant="determinate"
-          value={progressPercent}
-          sx={{
-            flex: 1,
-            height: 4,
-            borderRadius: 2,
-            minWidth: 40,
-            bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'action.hover',
-            '& .MuiLinearProgress-bar': {
-              borderRadius: 2,
-              background: 'linear-gradient(90deg, #6B8A9A 0%, #4A9B8E 100%)',
-            },
-          }}
-        />
-        <IconButton
-          size="small"
-          onClick={handleDismiss}
-          sx={{ color: 'text.disabled', p: 0.25, '&:hover': { color: 'text.secondary' } }}
-        >
-          <Close sx={{ fontSize: 14 }} />
-        </IconButton>
-      </Box>
+  // ── Determine which CTA to show (first uncompleted step with a CTA) ──
+  const showPropertyCta = !hasProperties;
+  const showChannelsCta = hasProperties && !hasChannels;
+  const showBillingCta = !showPropertyCta && !showChannelsCta && !hasBillingProfile;
 
-      {/* ── Steps: single horizontal row ─────────────────────────── */}
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        {steps.map((step, idx) => (
-          <Box
-            key={idx}
-            onClick={() => navigate(step.path)}
+  return (
+    <>
+      <Box
+        sx={{
+          bgcolor: 'background.paper',
+          borderRadius: '10px',
+          borderLeft: '3px solid',
+          borderLeftColor: 'primary.main',
+          boxShadow: isDark
+            ? '0 1px 6px rgba(0,0,0,0.3)'
+            : '0 1px 6px rgba(107,138,154,0.10)',
+          px: 2,
+          py: 1.25,
+          height: '100%',
+        }}
+      >
+        {/* ── Header row: title + progress + bar + dismiss ────────── */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+          <Typography
+            sx={{
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              color: 'text.secondary',
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t('dashboard.onboarding.title')}
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              fontSize: '0.625rem',
+              color: 'text.disabled',
+              fontWeight: 600,
+              fontVariantNumeric: 'tabular-nums',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t('dashboard.onboarding.progress', { completed: completedCount, total: steps.length })}
+          </Typography>
+          <LinearProgress
+            variant="determinate"
+            value={progressPercent}
             sx={{
               flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              px: 1.25,
-              py: 0.75,
-              borderRadius: '8px',
-              border: '1px solid',
-              borderColor: step.done
-                ? (isDark ? 'rgba(74,155,142,0.25)' : 'rgba(74,155,142,0.15)')
-                : 'divider',
-              bgcolor: step.done
-                ? (isDark ? 'rgba(74,155,142,0.06)' : 'rgba(74,155,142,0.03)')
-                : 'transparent',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              '&:hover': {
-                borderColor: 'primary.main',
-                transform: 'translateY(-1px)',
-                boxShadow: isDark
-                  ? '0 2px 8px rgba(0,0,0,0.15)'
-                  : '0 2px 8px rgba(107,138,154,0.10)',
+              height: 4,
+              borderRadius: 2,
+              minWidth: 40,
+              bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'action.hover',
+              '& .MuiLinearProgress-bar': {
+                borderRadius: 2,
+                background: 'linear-gradient(90deg, #6B8A9A 0%, #4A9B8E 100%)',
               },
             }}
+          />
+          <IconButton
+            size="small"
+            onClick={handleDismiss}
+            sx={{ color: 'text.disabled', p: 0.25, '&:hover': { color: 'text.secondary' } }}
           >
-            {/* Icon */}
+            <Close sx={{ fontSize: 14 }} />
+          </IconButton>
+        </Box>
+
+        {/* ── Steps: horizontal row with wrapping ─────────────────── */}
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          {steps.map((step, idx) => (
             <Box
+              key={idx}
+              onClick={() => navigate(step.path)}
               sx={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                bgcolor: step.done
-                  ? (isDark ? 'rgba(74,155,142,0.12)' : 'rgba(74,155,142,0.08)')
-                  : (isDark ? 'rgba(107,138,154,0.10)' : 'rgba(107,138,154,0.06)'),
+                flex: '1 1 auto',
+                minWidth: { xs: 'calc(50% - 4px)', sm: 'auto' },
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                color: step.done ? 'success.main' : 'text.secondary',
+                gap: 1,
+                px: 1.25,
+                py: 0.75,
+                borderRadius: '8px',
+                border: '1px solid',
+                borderColor: step.done
+                  ? (isDark ? 'rgba(74,155,142,0.25)' : 'rgba(74,155,142,0.15)')
+                  : 'divider',
+                bgcolor: step.done
+                  ? (isDark ? 'rgba(74,155,142,0.06)' : 'rgba(74,155,142,0.03)')
+                  : 'transparent',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  transform: 'translateY(-1px)',
+                  boxShadow: isDark
+                    ? '0 2px 8px rgba(0,0,0,0.15)'
+                    : '0 2px 8px rgba(107,138,154,0.10)',
+                },
               }}
             >
-              {step.icon}
+              {/* Icon */}
+              <Box
+                sx={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  bgcolor: step.done
+                    ? (isDark ? 'rgba(74,155,142,0.12)' : 'rgba(74,155,142,0.08)')
+                    : (isDark ? 'rgba(107,138,154,0.10)' : 'rgba(107,138,154,0.06)'),
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  color: step.done ? 'success.main' : 'text.secondary',
+                }}
+              >
+                {step.icon}
+              </Box>
+
+              {/* Label */}
+              <Typography
+                sx={{
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  lineHeight: 1.3,
+                  flex: 1,
+                  minWidth: 0,
+                  color: step.done ? 'text.disabled' : 'text.primary',
+                  textDecoration: step.done ? 'line-through' : 'none',
+                }}
+                noWrap
+              >
+                {step.label}
+              </Typography>
+
+              {/* Status */}
+              {step.done ? (
+                <CheckCircle sx={{ fontSize: 14, color: 'success.main', flexShrink: 0 }} />
+              ) : (
+                <RadioButtonUnchecked sx={{ fontSize: 14, color: 'text.disabled', flexShrink: 0 }} />
+              )}
             </Box>
+          ))}
+        </Box>
 
-            {/* Label */}
-            <Typography
-              sx={{
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                lineHeight: 1.3,
-                flex: 1,
-                minWidth: 0,
-                color: step.done ? 'text.disabled' : 'text.primary',
-                textDecoration: step.done ? 'line-through' : 'none',
-              }}
-              noWrap
-            >
-              {step.label}
-            </Typography>
+        {/* ── CTA: Create property (when no property) ──────────────── */}
+        {showPropertyCta && (
+          <CtaSection
+            icon={<Home sx={{ fontSize: 18, color: '#fff' }} />}
+            gradient="linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)"
+            title={t('dashboard.emptyState.title')}
+            description={t('dashboard.emptyState.description')}
+            actionLabel={t('dashboard.emptyState.cta')}
+            actionIcon={<Add sx={{ fontSize: 14 }} />}
+            onAction={() => navigate('/properties/new')}
+            isDark={isDark}
+          />
+        )}
 
-            {/* Status */}
-            {step.done ? (
-              <CheckCircle sx={{ fontSize: 14, color: 'success.main', flexShrink: 0 }} />
-            ) : (
-              <RadioButtonUnchecked sx={{ fontSize: 14, color: 'text.disabled', flexShrink: 0 }} />
-            )}
-          </Box>
-        ))}
+        {/* ── CTA: Import iCal (when property exists but no channels) ── */}
+        {showChannelsCta && (
+          <CtaSection
+            icon={<CalendarMonth sx={{ fontSize: 18, color: '#fff' }} />}
+            gradient="linear-gradient(135deg, #FF5A5F 0%, #FF8A8E 100%)"
+            title={t('dashboard.onboarding.channelsCta.title')}
+            description={t('dashboard.onboarding.channelsCta.description')}
+            actionLabel={t('dashboard.onboarding.channelsCta.action')}
+            actionIcon={<Sync sx={{ fontSize: 14 }} />}
+            onAction={() => setIcalOpen(true)}
+            isDark={isDark}
+            accentColor="#FF5A5F"
+          />
+        )}
+
+        {/* ── CTA: Configure billing (when channels done but no billing) ── */}
+        {showBillingCta && (
+          <CtaSection
+            icon={<Settings sx={{ fontSize: 18, color: '#fff' }} />}
+            gradient="linear-gradient(135deg, #D4A574 0%, #E8C49A 100%)"
+            title={t('dashboard.onboarding.billingCta.title')}
+            description={t('dashboard.onboarding.billingCta.description')}
+            actionLabel={t('dashboard.onboarding.billingCta.action')}
+            actionIcon={<Receipt sx={{ fontSize: 14 }} />}
+            onAction={() => navigate('/settings')}
+            isDark={isDark}
+            accentColor="#D4A574"
+          />
+        )}
       </Box>
 
-      {/* ── Welcome CTA when no properties yet ──────────────────────── */}
-      {!hasProperties && (
-        <Box
-          sx={{
-            mt: 1.5,
-            pt: 1.5,
-            borderTop: '1px solid',
-            borderTopColor: 'divider',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-          }}
-        >
-          <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              boxShadow: '0 2px 8px rgba(107,138,154,0.20)',
-            }}
-          >
-            <Home sx={{ fontSize: 18, color: '#fff' }} />
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'text.primary', lineHeight: 1.3 }}>
-              {t('dashboard.emptyState.title')}
-            </Typography>
-            <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', lineHeight: 1.4 }}>
-              {t('dashboard.emptyState.description')}
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<Add sx={{ fontSize: 14 }} />}
-            onClick={() => navigate('/properties/new')}
-            sx={{
-              background: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
-              color: '#fff',
-              fontWeight: 600,
-              fontSize: '0.75rem',
-              textTransform: 'none',
-              borderRadius: '8px',
-              px: 2,
-              py: 0.5,
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              boxShadow: isDark
-                ? '0 2px 8px rgba(0,0,0,0.3)'
-                : '0 2px 8px rgba(107,138,154,0.25)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #5A7684 0%, #7B9CAC 100%)',
-                boxShadow: '0 4px 12px rgba(107,138,154,0.35)',
-              },
-            }}
-          >
-            {t('dashboard.emptyState.cta')}
-          </Button>
-        </Box>
-      )}
-    </Box>
+      {/* iCal Import Modal */}
+      <ICalImportModal
+        open={icalOpen}
+        onClose={() => setIcalOpen(false)}
+      />
+    </>
   );
 });
 
 OnboardingChecklist.displayName = 'OnboardingChecklist';
 
 export default OnboardingChecklist;
+
+// ─── Reusable CTA Section ────────────────────────────────────────────────────
+
+interface CtaSectionProps {
+  icon: React.ReactNode;
+  gradient: string;
+  title: string;
+  description: string;
+  actionLabel: string;
+  actionIcon: React.ReactNode;
+  onAction: () => void;
+  isDark: boolean;
+  accentColor?: string;
+}
+
+const CtaSection: React.FC<CtaSectionProps> = ({
+  icon,
+  gradient,
+  title,
+  description,
+  actionLabel,
+  actionIcon,
+  onAction,
+  isDark,
+  accentColor = '#6B8A9A',
+}) => (
+  <Box
+    sx={{
+      mt: 1.5,
+      pt: 1.5,
+      borderTop: '1px solid',
+      borderTopColor: 'divider',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 2,
+    }}
+  >
+    <Box
+      sx={{
+        width: 36,
+        height: 36,
+        borderRadius: '50%',
+        background: gradient,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        boxShadow: `0 2px 8px ${accentColor}33`,
+      }}
+    >
+      {icon}
+    </Box>
+    <Box sx={{ flex: 1, minWidth: 0 }}>
+      <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: 'text.primary', lineHeight: 1.3 }}>
+        {title}
+      </Typography>
+      <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', lineHeight: 1.4 }}>
+        {description}
+      </Typography>
+    </Box>
+    <Button
+      variant="contained"
+      size="small"
+      startIcon={actionIcon}
+      onClick={onAction}
+      sx={{
+        background: gradient,
+        color: '#fff',
+        fontWeight: 600,
+        fontSize: '0.75rem',
+        textTransform: 'none',
+        borderRadius: '8px',
+        px: 2,
+        py: 0.5,
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+        boxShadow: isDark
+          ? '0 2px 8px rgba(0,0,0,0.3)'
+          : `0 2px 8px ${accentColor}40`,
+        '&:hover': {
+          filter: 'brightness(0.9)',
+          boxShadow: `0 4px 12px ${accentColor}55`,
+        },
+      }}
+    >
+      {actionLabel}
+    </Button>
+  </Box>
+);

@@ -92,7 +92,7 @@ const AnalyticsWidgetCard: React.FC<AnalyticsWidgetCardProps> = React.memo(({
       sx={{
         ...CARD_SX,
         minWidth,
-        height: height || 'auto',
+        height: height || '100%',
         cursor: onClick ? 'pointer' : 'default',
       }}
       onClick={onClick}

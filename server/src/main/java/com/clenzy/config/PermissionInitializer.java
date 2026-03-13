@@ -208,7 +208,8 @@ public class PermissionInitializer {
             permissionService.invalidateAllCache();
         }
 
-        log.info("Verification des permissions terminee ({} permissions verifiees).", 42);
+        long totalPermissions = permissionRepository.count();
+        log.info("Verification des permissions terminee ({} permissions verifiees).", totalPermissions);
     }
 
     private boolean ensurePermission(String name, String description, String module, List<String> roleNames) {
