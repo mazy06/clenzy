@@ -299,7 +299,14 @@
       "benefit1": "Répartition automatique des revenus à chaque réservation",
       "benefit2": "Suivi transparent des commissions dans les portefeuilles",
       "benefit3": "Taux de commission personnalisable par propriété",
-      "cta": "Créer un contrat de gestion"
+      "cta": "Créer un contrat de gestion",
+      "activeTitle": "Contrats actifs",
+      "commissions": "Commissions perçues",
+      "ownerPayouts": "Reversé propriétaires",
+      "viewAll": "Voir tous les contrats",
+      "moreContracts": "+{{count}} autre(s)",
+      "noPayouts": "Aucun cycle de paiement",
+      "avgRate": "Taux moyen"
     },
     "miniPlanning": {
       "title": "Planning 7 jours",
@@ -342,9 +349,20 @@
       "configureDetails": "Configurer les détails de la propriété",
       "definePricing": "Définir la tarification",
       "connectChannels": "Connecter les canaux de réservation",
+      "configureBilling": "Configurer la facturation",
       "skipForNow": "Faire plus tard",
       "reshow": "Afficher à nouveau la configuration initiale",
-      "reshowShort": "Configuration"
+      "reshowShort": "Configuration",
+      "channelsCta": {
+        "title": "Importez vos réservations",
+        "description": "Connectez vos calendriers Airbnb, Booking ou autre plateforme via un lien iCal pour synchroniser automatiquement vos réservations.",
+        "action": "Importer un calendrier iCal"
+      },
+      "billingCta": {
+        "title": "Paramétrez votre facturation",
+        "description": "Renseignez vos informations fiscales et légales (SIRET, TVA, raison sociale) pour générer des factures conformes.",
+        "action": "Configurer"
+      }
     },
     "channelHealth": {
       "title": "Canaux de réservation",

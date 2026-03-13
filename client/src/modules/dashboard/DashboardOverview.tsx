@@ -27,6 +27,7 @@ import { useAiFeatureToggles } from '../../hooks/useAi';
 import { pricingConfigApi } from '../../services/api/pricingConfigApi';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import { channelConnectionApi } from '../../services/api/channelConnectionApi';
+import { fiscalProfileApi } from '../../services/api/fiscalProfileApi';
 import type { DashboardPeriod } from './DashboardDateFilter';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
@@ -121,6 +122,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
 
   const [hasPricing, setHasPricing] = useState(false);
   const [hasChannels, setHasChannels] = useState(false);
+  const [hasBillingProfile, setHasBillingProfile] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,6 +150,17 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
         // No channels — leave false
       }
     })();
+    // Check if billing/fiscal profile is configured
+    (async () => {
+      try {
+        const profile = await fiscalProfileApi.get();
+        if (!cancelled && profile && (profile.taxIdNumber || profile.legalEntityName)) {
+          setHasBillingProfile(true);
+        }
+      } catch {
+        // No profile yet — leave false
+      }
+    })();
     return () => { cancelled = true; };
   }, []);
 
@@ -157,8 +170,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   // Shared hover lift style
   const hoverLift = kpiHoverSx(isDark);
 
-  // Show sidebar widgets? (admin/manager see channel health + tips + contract CTA)
-  const showSidebar = isAdmin || isManager;
+  // Show sidebar widgets (tips, channel health, contract CTA) for management & host roles
+  const showSidebar = isAdmin || isManager || isHost;
 
   // ─── Full dashboard (always rendered, even for new users) ──────────────
   return (
@@ -176,6 +189,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
             hasPropertyDetails={hasPropertyDetails}
             hasPricing={hasPricing}
             hasChannels={hasChannels}
+            hasBillingProfile={hasBillingProfile}
           />
 
           {/* Services Status (noise, locks, keys) */}
