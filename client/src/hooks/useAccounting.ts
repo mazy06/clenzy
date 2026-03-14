@@ -69,3 +69,23 @@ export function useSaveCommission() {
     },
   });
 }
+
+export function useExecutePayout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => accountingApi.executePayout(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: accountingKeys.payouts });
+    },
+  });
+}
+
+export function useRetryPayout() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => accountingApi.retryPayout(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: accountingKeys.payouts });
+    },
+  });
+}

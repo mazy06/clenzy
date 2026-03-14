@@ -1,7 +1,9 @@
 package com.clenzy.dto;
 
 import com.clenzy.model.OwnerPayout;
+import com.clenzy.model.OwnerPayout.PayoutGenerationType;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
+import com.clenzy.model.PayoutMethod;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -19,32 +21,28 @@ public record OwnerPayoutDto(
     BigDecimal expenses,
     BigDecimal netAmount,
     PayoutStatus status,
+    PayoutGenerationType generationType,
+    PayoutMethod payoutMethod,
+    String stripeTransferId,
     String paymentReference,
     Instant paidAt,
+    String failureReason,
+    int retryCount,
     String notes,
     Instant createdAt
 ) {
-    /**
-     * Conversion sans resolution du nom (retro-compatible).
-     */
     public static OwnerPayoutDto from(OwnerPayout p) {
-        return new OwnerPayoutDto(
-            p.getId(), p.getOwnerId(), null, p.getPeriodStart(), p.getPeriodEnd(),
-            p.getGrossRevenue(), p.getCommissionAmount(), p.getCommissionRate(),
-            p.getExpenses(), p.getNetAmount(), p.getStatus(),
-            p.getPaymentReference(), p.getPaidAt(), p.getNotes(), p.getCreatedAt()
-        );
+        return from(p, null);
     }
 
-    /**
-     * Conversion avec nom du proprietaire resolu.
-     */
     public static OwnerPayoutDto from(OwnerPayout p, String ownerName) {
         return new OwnerPayoutDto(
             p.getId(), p.getOwnerId(), ownerName, p.getPeriodStart(), p.getPeriodEnd(),
             p.getGrossRevenue(), p.getCommissionAmount(), p.getCommissionRate(),
-            p.getExpenses(), p.getNetAmount(), p.getStatus(),
-            p.getPaymentReference(), p.getPaidAt(), p.getNotes(), p.getCreatedAt()
+            p.getExpenses(), p.getNetAmount(), p.getStatus(), p.getGenerationType(),
+            p.getPayoutMethod(), p.getStripeTransferId(),
+            p.getPaymentReference(), p.getPaidAt(), p.getFailureReason(),
+            p.getRetryCount(), p.getNotes(), p.getCreatedAt()
         );
     }
 }

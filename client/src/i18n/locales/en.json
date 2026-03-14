@@ -333,8 +333,13 @@
     "actionCounters": {
       "urgencies": "Urgencies",
       "pendingPayments": "Pending payments",
+      "pendingPayouts": "Payouts",
       "pendingRequests": "Requests",
       "todayInterventions": "Today"
+    },
+    "payouts": {
+      "pendingTitle": "Pending payouts",
+      "pendingTooltip": "Generated payouts awaiting approval"
     },
     "commandRecommendations": {
       "title": "Recommendations",
@@ -1699,6 +1704,84 @@
       "noConfig": "No configuration found. Default values will be used.",
       "defaults": "Defaults: Owner 80%, Platform 5%, Concierge 15%"
     },
+    "commissions": {
+      "title": "Channel Commissions",
+      "subtitle": "Commission rate charged by each booking platform. External platform rates cannot be modified. Only the booking engine rate is configurable.",
+      "channel": "Channel",
+      "rate": "Rate (%)",
+      "error": "Error loading commissions",
+      "empty": "No booking channel configured"
+    },
+    "payoutSchedule": {
+      "title": "Payout schedule",
+      "subtitle": "Configure the automatic generation frequency for owner payouts.",
+      "autoGenerate": "Automatic generation",
+      "autoGenerateHelper": "Payouts will be automatically generated according to the configured schedule.",
+      "daysOfMonth": "Payout days",
+      "daysOfMonthHelper": "Select the days of the month when payouts will be generated (1-28).",
+      "gracePeriod": "Reminder delay (days)",
+      "gracePeriodHelper": "Number of days after generation before sending an approval reminder.",
+      "save": "Save schedule",
+      "saved": "Payout schedule updated",
+      "error": "Error updating schedule",
+      "validationDays": "Please select at least one payout day"
+    },
+    "ownerPayout": {
+      "title": "Owner payout configuration",
+      "subtitle": "Configure the payment method for each owner (Stripe Connect, SEPA bank transfer or manual).",
+      "empty": "No configuration found. Configurations are created automatically when generating the first payout.",
+      "col": {
+        "owner": "Owner",
+        "method": "Method",
+        "details": "Details",
+        "status": "Status"
+      },
+      "ownerLabel": "Owner",
+      "methodUpdated": "Payment method updated",
+      "methodError": "Error updating payment method",
+      "editSepaTitle": "SEPA bank details",
+      "editSepa": "Edit SEPA",
+      "iban": "IBAN",
+      "bic": "BIC/SWIFT",
+      "holder": "Account holder",
+      "current": "Current",
+      "ibanInvalid": "Invalid IBAN format",
+      "sepaSaved": "SEPA details saved",
+      "sepaError": "Error saving details",
+      "verify": "Verify",
+      "verified": "Configuration verified",
+      "verifyError": "Error verifying configuration",
+      "verifiedLabel": "Verified",
+      "pendingLabel": "Pending",
+      "stripeConnected": "Account connected",
+      "stripeNotConnected": "Onboarding in progress...",
+      "manualNote": "Manual transfer"
+    },
+    "myPayout": {
+      "tabLabel": "My payouts",
+      "title": "My payout details",
+      "subtitle": "Enter your bank details to receive your payouts.",
+      "statusLabel": "Status",
+      "verified": "Verified",
+      "pendingVerification": "Pending verification",
+      "sepaSection": "Bank transfer (SEPA)",
+      "currentIban": "Current IBAN",
+      "ibanLabel": "IBAN",
+      "bicLabel": "BIC / SWIFT",
+      "holderLabel": "Account holder",
+      "saveSepa": "Save",
+      "ibanInvalid": "Invalid IBAN format (e.g. FR7630006000011234567890189)",
+      "sepaSuccess": "Bank details saved",
+      "sepaError": "Error saving details",
+      "verificationNote": "After modification, your details will be verified by Clenzy before activation.",
+      "stripeSection": "Stripe Connect",
+      "stripeDescription": "Connect your Stripe account to receive your payouts automatically.",
+      "stripeConnectBtn": "Connect my Stripe account",
+      "stripeResumeBtn": "Resume Stripe onboarding",
+      "stripeConnected": "Your Stripe account is connected and active.",
+      "stripeOnboardingPending": "Your Stripe onboarding is not complete. Please finish it.",
+      "stripeError": "Error connecting to Stripe"
+    },
     "integrations": {
       "title": "Integrations",
       "comingSoon": "More integrations (PriceLabs, QuickBooks, etc.) will be available soon.",
@@ -1968,10 +2051,14 @@
   },
   "billing": {
     "title": "Billing",
-    "subtitle": "Payments and invoices",
+    "subtitle": "Payments, invoices, payouts, expenses and accounting reports",
     "tabs": {
       "payments": "Payments",
-      "invoices": "Invoices"
+      "invoices": "Invoices",
+      "payouts": "Payouts",
+      "expenses": "Expenses",
+      "reportsExports": "Reports & Exports",
+      "exportsSection": "Accounting Exports"
     },
     "basePlan": "Base subscription",
     "seats": "Additional users",
@@ -3023,6 +3110,13 @@
       "emptyDescription": "Generate your first payout to calculate the amount owed to an owner.",
       "emptyAction": "Generate your first payout"
     },
+    "executePayout": "Execute transfer",
+    "executeSuccess": "Transfer executed successfully",
+    "executeError": "Error executing transfer",
+    "retrySuccess": "Retry executed successfully",
+    "retryError": "Error retrying transfer",
+    "processing": "Processing...",
+    "failedPayout": "Transfer failed",
     "commissions": {
       "help": {
         "title": "How do commissions work?",

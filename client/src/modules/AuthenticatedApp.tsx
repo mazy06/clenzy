@@ -105,8 +105,7 @@ import BookingEnginePage from './booking-engine/BookingEnginePage';
 // Channel Promotions
 import ChannelPromotionsPage from './promotions/ChannelPromotionsPage';
 
-// Accounting
-import AccountingPage from './accounting/AccountingPage';
+// AccountingPage import removed — tabs now embedded in BillingPage
 
 // Owner Portal
 import OwnerPortalPage from './owner-portal/OwnerPortalPage';
@@ -443,13 +442,8 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/accounting" element={
-          <ProtectedRoute requiredPermission="payments:view">
-            <ErrorBoundary>
-              <AccountingPage />
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
+        {/* Comptabilite fusionnee dans Facturation */}
+        <Route path="/accounting" element={<Navigate to="/billing?tab=3" replace />} />
 
         {/* Backward-compat redirects — wallets merged into billing */}
         <Route path="/wallets" element={<Navigate to="/billing?tab=2" replace />} />
