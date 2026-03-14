@@ -149,6 +149,14 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.billing',
     group: 'management',
   },
+  {
+    icon: <Receipt />,
+    path: '/accounting',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
+    permission: 'payments:view',
+    translationKey: 'navigation.accounting',
+    group: 'management',
+  },
   // Portefeuille fusionné dans Facturation (/billing?tab=2)
   {
     icon: <Handshake />,

@@ -9,7 +9,8 @@ public enum ReferenceType {
     SERVICE_REQUEST("Demande de service"),
     PROPERTY("Bien immobilier"),
     USER("Utilisateur"),
-    RESERVATION("Reservation");
+    RESERVATION("Reservation"),
+    PROVIDER_EXPENSE("Depense prestataire");
 
     private final String label;
 

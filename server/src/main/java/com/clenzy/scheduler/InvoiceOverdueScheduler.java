@@ -27,18 +27,18 @@ public class InvoiceOverdueScheduler {
         this.invoiceRepository = invoiceRepository;
     }
 
+    private static final List<InvoiceStatus> OVERDUE_CANDIDATE_STATUSES =
+        List.of(InvoiceStatus.SENT, InvoiceStatus.ISSUED);
+
     @Scheduled(cron = "0 0 8 * * *")  // Daily at 8:00 AM
     @Transactional
     public void checkOverdueInvoices() {
         log.debug("Checking for overdue invoices...");
         LocalDate today = LocalDate.now();
 
-        // Find SENT and ISSUED invoices past their due date
-        List<Invoice> candidates = invoiceRepository.findAll().stream()
-            .filter(inv -> inv.getStatus() == InvoiceStatus.SENT
-                        || inv.getStatus() == InvoiceStatus.ISSUED)
-            .filter(inv -> inv.getDueDate() != null && inv.getDueDate().isBefore(today))
-            .toList();
+        // Query DB directement pour eviter le full table scan cross-tenant
+        List<Invoice> candidates = invoiceRepository.findOverdueCandidates(
+            OVERDUE_CANDIDATE_STATUSES, today);
 
         int overdueCount = 0;
         for (Invoice invoice : candidates) {

@@ -682,3 +682,27 @@ databaseChangeLog:
       sqlFile:
         path: changes/0077__seed_initial_tax_rules.sql
         relativeToChangelogFile: true
+
+  # --- 0078 : Cleanup obsolete portfolio permissions (from V7) ---
+  - changeSet:
+      id: "0078-cleanup-obsolete-portfolio-permissions"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0078__cleanup_obsolete_portfolio_permissions.sql
+        relativeToChangelogFile: true
+
+  # --- 0079 : Create provider_expenses table ---
+  - changeSet:
+      id: "0079-create-provider-expenses"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0079__create_provider_expenses.sql
+        relativeToChangelogFile: true
+
+  # --- 0080 : Pennylane accounting integration ---
+  - changeSet:
+      id: "0080-add-pennylane-accounting-integration"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0080__add_pennylane_accounting_integration.sql
+        relativeToChangelogFile: true

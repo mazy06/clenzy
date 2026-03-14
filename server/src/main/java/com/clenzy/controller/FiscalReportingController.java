@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.VatSummaryDto;
 import com.clenzy.service.FiscalReportingService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ import java.time.LocalDate;
  */
 @RestController
 @RequestMapping("/api/fiscal-reports")
+@PreAuthorize("isAuthenticated()")
 public class FiscalReportingController {
 
     private final FiscalReportingService reportingService;

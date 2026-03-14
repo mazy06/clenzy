@@ -67,13 +67,10 @@ public class AutoInvoiceService {
         // Generer DRAFT
         Invoice invoice = invoiceGeneratorService.generateFromReservation(reservation, orgId);
 
-        // Emettre (numero sequentiel)
+        // Emettre et marquer PAID directement (paiement Stripe deja recu)
         String number = numberingService.generateNextNumber(orgId);
         invoice.setInvoiceNumber(number);
         invoice.setInvoiceDate(java.time.LocalDate.now());
-        invoice.setStatus(InvoiceStatus.ISSUED);
-
-        // Marquer PAID
         invoice.setStatus(InvoiceStatus.PAID);
         invoice.setPaidAt(LocalDateTime.now());
         invoice.setPaymentMethod("STRIPE");
@@ -112,13 +109,10 @@ public class AutoInvoiceService {
         // Generer DRAFT
         Invoice invoice = invoiceGeneratorService.generateFromIntervention(intervention, orgId);
 
-        // Emettre (numero sequentiel)
+        // Emettre et marquer PAID directement (paiement Stripe deja recu)
         String number = numberingService.generateNextNumber(orgId);
         invoice.setInvoiceNumber(number);
         invoice.setInvoiceDate(java.time.LocalDate.now());
-        invoice.setStatus(InvoiceStatus.ISSUED);
-
-        // Marquer PAID
         invoice.setStatus(InvoiceStatus.PAID);
         invoice.setPaidAt(LocalDateTime.now());
         invoice.setPaymentMethod("STRIPE");

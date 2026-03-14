@@ -24,10 +24,11 @@ import ActionCountersWidget from './ActionCountersWidget';
 import ServicesStatusWidget from './ServicesStatusWidget';
 import AiUsageWidget from './AiUsageWidget';
 import { useAiFeatureToggles } from '../../hooks/useAi';
-import { pricingConfigApi } from '../../services/api/pricingConfigApi';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import { channelConnectionApi } from '../../services/api/channelConnectionApi';
 import { fiscalProfileApi } from '../../services/api/fiscalProfileApi';
+import { propertiesApi } from '../../services/api/propertiesApi';
+import { calendarPricingApi } from '../../services/api/calendarPricingApi';
 import type { DashboardPeriod } from './DashboardDateFilter';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
@@ -127,13 +128,15 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
 
   useEffect(() => {
     let cancelled = false;
-    // Check if pricing config exists
+    // Check if first property has rate plans (dynamic pricing configured)
     (async () => {
       try {
-        const config = await pricingConfigApi.get();
-        if (!cancelled && config) setHasPricing(true);
+        const props = await propertiesApi.getAll({ size: 1 });
+        if (cancelled || props.length === 0) return;
+        const ratePlans = await calendarPricingApi.getRatePlans(props[0].id);
+        if (!cancelled && ratePlans.length > 0) setHasPricing(true);
       } catch {
-        // No config yet — leave false
+        // No properties or no rate plans — leave false
       }
     })();
     // Check if any channel is connected
