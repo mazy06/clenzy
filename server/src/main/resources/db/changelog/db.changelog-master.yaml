@@ -706,3 +706,35 @@ databaseChangeLog:
       sqlFile:
         path: changes/0080__add_pennylane_accounting_integration.sql
         relativeToChangelogFile: true
+
+  # --- 0081 : Re-ensure tax rules seed data for FR, MA, SA ---
+  - changeSet:
+      id: "0081-ensure-tax-rules-seed-data"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0081__ensure_tax_rules_seed_data.sql
+        relativeToChangelogFile: true
+
+  # --- 0082 : Create payout_schedule_config table ---
+  - changeSet:
+      id: "0082-payout-schedule-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0082__payout_schedule_config.sql
+        relativeToChangelogFile: true
+
+  # --- 0083 : Extend owner_payouts for automated generation ---
+  - changeSet:
+      id: "0083-owner-payout-extensions"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0083__owner_payout_extensions.sql
+        relativeToChangelogFile: true
+
+  # --- 0084 : Owner payout config (Stripe Connect / SEPA) ---
+  - changeSet:
+      id: "0084-owner-payout-config"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0084__owner_payout_config.sql
+        relativeToChangelogFile: true

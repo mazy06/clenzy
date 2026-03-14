@@ -158,9 +158,16 @@ public enum NotificationKey {
 
     // ─── REVIEW (2 cles) ──────────────────────────────────────────────────
     REVIEW_RECEIVED(NotificationType.INFO, NotificationCategory.REVIEW, true),
-    REVIEW_NEGATIVE_ALERT(NotificationType.WARNING, NotificationCategory.REVIEW, true);
+    REVIEW_NEGATIVE_ALERT(NotificationType.WARNING, NotificationCategory.REVIEW, true),
 
-    // Total: 96 + 2 = 98
+    // ─── PAYOUT (5 cles) ──────────────────────────────────────────────────
+    PAYOUT_BATCH_GENERATED(NotificationType.INFO, NotificationCategory.PAYMENT, true),
+    PAYOUT_PENDING_APPROVAL(NotificationType.WARNING, NotificationCategory.PAYMENT, true),
+    PAYOUT_APPROVED(NotificationType.SUCCESS, NotificationCategory.PAYMENT, true),
+    PAYOUT_EXECUTED(NotificationType.SUCCESS, NotificationCategory.PAYMENT, true),
+    PAYOUT_FAILED(NotificationType.ERROR, NotificationCategory.PAYMENT, true);
+
+    // Total: 98 + 5 = 103
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

@@ -36,6 +36,8 @@ class AccountingServiceTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private ProviderExpenseRepository providerExpenseRepository;
     @Mock private ManagementContractService managementContractService;
+    @Mock private NotificationService notificationService;
+    @Mock private com.clenzy.repository.UserRepository userRepository;
 
     @InjectMocks
     private AccountingService service;

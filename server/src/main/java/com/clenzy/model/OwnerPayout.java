@@ -13,7 +13,11 @@ import java.time.LocalDate;
 public class OwnerPayout {
 
     public enum PayoutStatus {
-        PENDING, APPROVED, PAID, CANCELLED
+        PENDING, APPROVED, PROCESSING, PAID, FAILED, CANCELLED
+    }
+
+    public enum PayoutGenerationType {
+        MANUAL, AUTO
     }
 
     @Id
@@ -54,11 +58,28 @@ public class OwnerPayout {
     @Column(nullable = false, length = 20)
     private PayoutStatus status = PayoutStatus.PENDING;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "generation_type", nullable = false, length = 10)
+    private PayoutGenerationType generationType = PayoutGenerationType.MANUAL;
+
     @Column(name = "payment_reference")
     private String paymentReference;
 
     @Column(name = "paid_at")
     private Instant paidAt;
+
+    @Column(name = "failure_reason", columnDefinition = "TEXT")
+    private String failureReason;
+
+    @Column(name = "retry_count", nullable = false)
+    private int retryCount = 0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payout_method", length = 20)
+    private PayoutMethod payoutMethod;
+
+    @Column(name = "stripe_transfer_id")
+    private String stripeTransferId;
 
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
@@ -103,14 +124,24 @@ public class OwnerPayout {
     public void setNetAmount(BigDecimal netAmount) { this.netAmount = netAmount; }
     public PayoutStatus getStatus() { return status; }
     public void setStatus(PayoutStatus status) { this.status = status; }
+    public PayoutGenerationType getGenerationType() { return generationType; }
+    public void setGenerationType(PayoutGenerationType generationType) { this.generationType = generationType; }
     public String getPaymentReference() { return paymentReference; }
     public void setPaymentReference(String paymentReference) { this.paymentReference = paymentReference; }
     public Instant getPaidAt() { return paidAt; }
     public void setPaidAt(Instant paidAt) { this.paidAt = paidAt; }
+    public String getFailureReason() { return failureReason; }
+    public void setFailureReason(String failureReason) { this.failureReason = failureReason; }
+    public int getRetryCount() { return retryCount; }
+    public void setRetryCount(int retryCount) { this.retryCount = retryCount; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }
+    public PayoutMethod getPayoutMethod() { return payoutMethod; }
+    public void setPayoutMethod(PayoutMethod payoutMethod) { this.payoutMethod = payoutMethod; }
+    public String getStripeTransferId() { return stripeTransferId; }
+    public void setStripeTransferId(String stripeTransferId) { this.stripeTransferId = stripeTransferId; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }
