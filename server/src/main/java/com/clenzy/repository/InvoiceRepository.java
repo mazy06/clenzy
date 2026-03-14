@@ -38,4 +38,35 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
         @Param("from") LocalDate from,
         @Param("to") LocalDate to
     );
+
+    /**
+     * Factures non encore synchronisees vers Pennylane (statuts syncables uniquement).
+     */
+    @Query("SELECT i FROM Invoice i WHERE i.organizationId = :orgId " +
+           "AND i.pennylaneInvoiceId IS NULL " +
+           "AND i.status IN :statuses " +
+           "ORDER BY i.invoiceDate DESC")
+    List<Invoice> findPendingPennylaneSync(
+        @Param("orgId") Long organizationId,
+        @Param("statuses") List<InvoiceStatus> statuses
+    );
+
+    @Query("SELECT COUNT(i) FROM Invoice i WHERE i.organizationId = :orgId " +
+           "AND i.pennylaneInvoiceId IS NULL " +
+           "AND i.status IN :statuses")
+    long countPendingPennylaneSync(
+        @Param("orgId") Long organizationId,
+        @Param("statuses") List<InvoiceStatus> statuses
+    );
+
+    /**
+     * Factures SENT ou ISSUED dont la date d'echeance est depassee.
+     * Utilisee par InvoiceOverdueScheduler (cross-tenant, pas de filtre org).
+     */
+    @Query("SELECT i FROM Invoice i WHERE i.status IN :statuses " +
+           "AND i.dueDate IS NOT NULL AND i.dueDate < :today")
+    List<Invoice> findOverdueCandidates(
+        @Param("statuses") List<InvoiceStatus> statuses,
+        @Param("today") LocalDate today
+    );
 }

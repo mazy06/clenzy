@@ -2,11 +2,12 @@ import apiClient from '../apiClient';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type PayoutStatus = 'DRAFT' | 'APPROVED' | 'PAID';
+export type PayoutStatus = 'PENDING' | 'APPROVED' | 'PAID' | 'CANCELLED';
 
 export interface OwnerPayout {
   id: number;
   ownerId: number;
+  ownerName: string | null;
   periodStart: string;
   periodEnd: string;
   grossRevenue: number;
@@ -29,9 +30,10 @@ export interface ChannelCommission {
 }
 
 export const PAYOUT_STATUS_COLORS: Record<PayoutStatus, string> = {
-  DRAFT: '#D4A574',
+  PENDING: '#D4A574',
   APPROVED: '#1976d2',
   PAID: '#4A9B8E',
+  CANCELLED: '#d32f2f',
 };
 
 // ─── API ────────────────────────────────────────────────────────────────────

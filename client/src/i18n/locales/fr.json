@@ -47,6 +47,7 @@
     "tarification": "Tarification",
     "payments": "Paiements",
     "billing": "Facturation",
+    "accounting": "Comptabilité",
     "monitoring": "Monitoring",
     "syncDiagnostics": "Sync & Diagnostics",
     "kpiReadiness": "KPI Readiness",
@@ -311,7 +312,8 @@
     "miniPlanning": {
       "title": "Planning 7 jours",
       "viewAll": "Voir tout",
-      "noProperties": "Aucune propriété configurée",
+      "noProperties": "Ajoutez votre premier logement pour voir le planning ici",
+      "addProperty": "Créer un logement",
       "legend": {
         "reservation": "Réservation",
         "cleaning": "Ménage",
@@ -353,6 +355,16 @@
       "skipForNow": "Faire plus tard",
       "reshow": "Afficher à nouveau la configuration initiale",
       "reshowShort": "Configuration",
+      "detailsCta": {
+        "title": "Complétez les détails de votre logement",
+        "description": "Ajoutez les informations essentielles : nombre de chambres, équipements, horaires de check-in/check-out pour personnaliser la gestion.",
+        "action": "Configurer les détails"
+      },
+      "pricingCta": {
+        "title": "Définissez vos prix dynamiques",
+        "description": "Créez vos plans tarifaires (base, saison haute, promotions) pour optimiser vos revenus automatiquement.",
+        "action": "Configurer les prix"
+      },
       "channelsCta": {
         "title": "Importez vos réservations",
         "description": "Connectez vos calendriers Airbnb, Booking ou autre plateforme via un lien iCal pour synchroniser automatiquement vos réservations.",
@@ -1695,6 +1707,38 @@
       "configName": "Configuration par défaut",
       "noConfig": "Aucune configuration trouvée. Les valeurs par défaut seront utilisées.",
       "defaults": "Valeurs par défaut : Propriétaire 80%, Plateforme 5%, Conciergerie 15%"
+    },
+    "integrations": {
+      "title": "Intégrations",
+      "comingSoon": "D'autres intégrations (PriceLabs, QuickBooks, etc.) seront disponibles prochainement.",
+      "pennylane": {
+        "title": "Pennylane",
+        "description": "Synchronisez vos factures et dépenses vers votre comptabilité Pennylane",
+        "connect": "Connecter",
+        "disconnect": "Déconnecter",
+        "connected": "Connecté",
+        "notConnected": "Non connecté",
+        "connectedAt": "Connecté le",
+        "lastSync": "Dernière synchronisation",
+        "syncInvoices": "Synchroniser les factures",
+        "syncExpenses": "Synchroniser les dépenses",
+        "syncAll": "Tout synchroniser",
+        "syncing": "Synchronisation...",
+        "syncSuccess": "Synchronisation terminée",
+        "syncError": "Erreur de synchronisation",
+        "pendingInvoices": "factures en attente",
+        "pendingExpenses": "dépenses en attente",
+        "invoicesSynced": "factures synchronisées",
+        "expensesSynced": "dépenses synchronisées",
+        "elementsSynced": "éléments synchronisés",
+        "failed": "échoués",
+        "connectionSuccess": "Connexion Pennylane réussie",
+        "connectionError": "Erreur de connexion Pennylane",
+        "disconnected": "Pennylane déconnecté",
+        "disconnectError": "Erreur lors de la déconnexion",
+        "disconnectTitle": "Déconnecter Pennylane",
+        "disconnectConfirm": "Voulez-vous déconnecter Pennylane ? La synchronisation comptable sera interrompue."
+      }
     }
   },
   "contracts": {
@@ -3025,6 +3069,144 @@
       "textTransformUppercase": "MAJUSCULES",
       "textTransformCapitalize": "Capitaliser",
       "regenerateCss": "Régénérer le CSS avec l'IA"
+    }
+  },
+  "accounting": {
+    "title": "Comptabilité",
+    "subtitle": "Payouts propriétaires, commissions, dépenses et exports comptables",
+    "payouts": {
+      "help": {
+        "title": "Comment fonctionnent les payouts ?",
+        "description": "Les payouts vous permettent de calculer et suivre les reversements dus à chaque propriétaire.",
+        "step1Title": "Générer",
+        "step1Desc": "Sélectionnez un propriétaire et une période pour calculer le reversement.",
+        "step2Title": "Vérifier",
+        "step2Desc": "Le système calcule : revenus − commission − dépenses = montant net.",
+        "step3Title": "Valider & Payer",
+        "step3Desc": "Approuvez le payout puis marquez-le comme payé après le virement.",
+        "dismiss": "Ne plus afficher"
+      },
+      "emptyTitle": "Aucun payout trouvé",
+      "emptyDescription": "Générez votre premier payout pour calculer le reversement dû à un propriétaire.",
+      "emptyAction": "Générer votre premier payout"
+    },
+    "commissions": {
+      "help": {
+        "title": "Comment fonctionnent les commissions ?",
+        "description": "Les commissions représentent le pourcentage prélevé par chaque canal de réservation (Airbnb, Booking...) sur vos revenus.",
+        "step1Title": "Canaux",
+        "step1Desc": "Chaque plateforme (Airbnb, Booking...) applique un taux de commission différent.",
+        "step2Title": "Configurer",
+        "step2Desc": "Ajustez le taux de commission pour chaque canal selon votre contrat.",
+        "step3Title": "Impact",
+        "step3Desc": "Les commissions sont déduites automatiquement lors du calcul des payouts propriétaires.",
+        "dismiss": "Ne plus afficher"
+      }
+    },
+    "fiscal": {
+      "help": {
+        "title": "Comment fonctionne le rapport fiscal ?",
+        "description": "Consultez la synthèse TVA de vos factures par période pour préparer vos déclarations fiscales.",
+        "step1Title": "Période",
+        "step1Desc": "Choisissez la granularité (mensuel, trimestriel, annuel) et la période souhaitée.",
+        "step2Title": "Ventilation TVA",
+        "step2Desc": "Le rapport ventile automatiquement la TVA par taux (20%, 10%, 5.5%) et catégorie.",
+        "step3Title": "Déclaration",
+        "step3Desc": "Utilisez les totaux HT/TVA/TTC pour compléter votre déclaration de TVA.",
+        "dismiss": "Ne plus afficher"
+      }
+    },
+    "tabs": {
+      "payouts": "Payouts",
+      "commissions": "Commissions",
+      "expenses": "Dépenses",
+      "fiscalReport": "Rapport fiscal",
+      "exports": "Exports"
+    },
+    "exports": {
+      "title": "Exports comptables",
+      "help": {
+        "title": "Comment fonctionnent les exports ?",
+        "description": "Exportez vos données comptables dans différents formats pour votre comptable ou vos déclarations.",
+        "step1Title": "Période",
+        "step1Desc": "Définissez la plage de dates des données à exporter.",
+        "step2Title": "Format",
+        "step2Desc": "FEC (norme DGFiP), CSV réservations, payouts, dépenses ou factures.",
+        "step3Title": "Télécharger",
+        "step3Desc": "Cliquez sur Télécharger pour obtenir le fichier prêt à transmettre.",
+        "dismiss": "Ne plus afficher"
+      },
+      "period": "Période d'export",
+      "from": "Du",
+      "to": "Au",
+      "fec": "FEC (Écritures comptables)",
+      "fecDesc": "Fichier des Écritures Comptables — format légal français (tab-separated, norme DGFiP)",
+      "reservationsCsv": "Réservations CSV",
+      "reservationsCsvDesc": "Export brut de toutes les réservations sur la période",
+      "payoutsCsv": "Payouts CSV",
+      "payoutsCsvDesc": "Reversements propriétaires avec commissions et dépenses",
+      "expensesCsv": "Dépenses CSV",
+      "expensesCsvDesc": "Dépenses prestataires avec montants HT/TTC et TVA",
+      "invoicesCsv": "Factures CSV",
+      "invoicesCsvDesc": "Toutes les factures émises sur la période",
+      "download": "Télécharger",
+      "downloading": "Téléchargement...",
+      "error": "Erreur lors du téléchargement"
+    },
+    "expenses": {
+      "help": {
+        "title": "Comment fonctionnent les dépenses ?",
+        "description": "Suivez et gérez les dépenses des prestataires (ménage, maintenance...) liées à vos logements.",
+        "step1Title": "Créer",
+        "step1Desc": "Ajoutez une dépense avec le prestataire, le logement, le montant et la catégorie.",
+        "step2Title": "Approuver",
+        "step2Desc": "Validez les dépenses en brouillon. Joignez un justificatif (PDF, photo).",
+        "step3Title": "Déduire",
+        "step3Desc": "Les dépenses approuvées sont automatiquement déduites des payouts propriétaires.",
+        "dismiss": "Ne plus afficher"
+      },
+      "title": "Dépenses prestataires",
+      "create": "Nouvelle dépense",
+      "provider": "Prestataire",
+      "property": "Logement",
+      "description": "Description",
+      "amountHt": "Montant HT",
+      "taxRate": "TVA %",
+      "amountTtc": "Montant TTC",
+      "category": "Catégorie",
+      "date": "Date",
+      "status": "Statut",
+      "invoiceRef": "Réf. facture",
+      "notes": "Notes",
+      "approve": "Approuver",
+      "markPaid": "Marquer payé",
+      "cancel": "Annuler",
+      "generatePo": "Bon de commande",
+      "totalExpenses": "Total dépenses",
+      "pendingCount": "En attente",
+      "approvedCount": "Approuvées",
+      "approveSuccess": "Dépense approuvée",
+      "cancelSuccess": "Dépense annulée",
+      "paidSuccess": "Dépense marquée comme payée",
+      "createSuccess": "Dépense créée avec succès",
+      "empty": "Aucune dépense prestataire",
+      "error": "Erreur lors du chargement des dépenses",
+      "paymentRef": "Référence de paiement",
+      "categories": {
+        "CLEANING": "Ménage",
+        "MAINTENANCE": "Maintenance",
+        "LAUNDRY": "Blanchisserie",
+        "SUPPLIES": "Fournitures",
+        "LANDSCAPING": "Extérieur",
+        "OTHER": "Autre"
+      },
+      "statuses": {
+        "DRAFT": "Brouillon",
+        "APPROVED": "Approuvée",
+        "INCLUDED": "Incluse au payout",
+        "PAID": "Payée",
+        "CANCELLED": "Annulée"
+      }
     }
   }
 }

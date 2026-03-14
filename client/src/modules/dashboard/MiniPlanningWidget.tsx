@@ -8,7 +8,7 @@ import {
   Skeleton,
   useTheme,
 } from '@mui/material';
-import { ArrowForward, CalendarMonth } from '@mui/icons-material';
+import { ArrowForward, CalendarMonth, Add } from '@mui/icons-material';
 import type { NavigateFunction } from 'react-router-dom';
 import { useDashboardPlanning } from '../../hooks/useDashboardPlanning';
 import {
@@ -273,13 +273,34 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
             ))}
           </Box>
         ) : visibleProperties.length === 0 ? (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ textAlign: 'center', py: 3, fontSize: '0.8125rem' }}
-          >
-            {t('dashboard.miniPlanning.noProperties')}
-          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 3 }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ textAlign: 'center', fontSize: '0.8125rem' }}
+            >
+              {t('dashboard.miniPlanning.noProperties')}
+            </Typography>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Add sx={{ fontSize: 14 }} />}
+              onClick={() => navigate('/properties/new')}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                borderRadius: '8px',
+                px: 2,
+                py: 0.5,
+                background: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
+                color: '#fff',
+                '&:hover': { filter: 'brightness(0.9)' },
+              }}
+            >
+              {t('dashboard.miniPlanning.addProperty')}
+            </Button>
+          </Box>
         ) : (
           <>
             {/* Day headers */}

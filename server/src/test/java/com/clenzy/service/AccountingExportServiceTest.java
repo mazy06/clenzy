@@ -1,11 +1,12 @@
 package com.clenzy.service;
 
-import com.clenzy.model.OwnerPayout;
+import com.clenzy.model.*;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
-import com.clenzy.model.Property;
-import com.clenzy.model.Reservation;
+import com.clenzy.repository.InvoiceRepository;
 import com.clenzy.repository.OwnerPayoutRepository;
+import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -15,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -25,6 +27,9 @@ class AccountingExportServiceTest {
 
     @Mock private ReservationRepository reservationRepository;
     @Mock private OwnerPayoutRepository payoutRepository;
+    @Mock private ProviderExpenseRepository expenseRepository;
+    @Mock private InvoiceRepository invoiceRepository;
+    @Mock private UserRepository userRepository;
 
     @InjectMocks
     private AccountingExportService service;
@@ -36,18 +41,18 @@ class AccountingExportServiceTest {
         LocalDate from = LocalDate.of(2025, 7, 1);
         LocalDate to = LocalDate.of(2025, 7, 31);
 
-        Property property = new Property();
-        property.setName("Beach House");
+        Invoice inv = new Invoice();
+        inv.setInvoiceNumber("FAC-001");
+        inv.setInvoiceDate(from.plusDays(5));
+        inv.setBuyerName("John Doe");
+        inv.setTotalTtc(new BigDecimal("500.00"));
+        inv.setTotalHt(new BigDecimal("416.67"));
+        inv.setTotalTax(new BigDecimal("83.33"));
+        inv.setCurrency("EUR");
+        inv.setStatus(InvoiceStatus.ISSUED);
 
-        Reservation r = new Reservation();
-        r.setProperty(property);
-        r.setGuestName("John Doe");
-        r.setCheckIn(from.plusDays(5));
-        r.setCheckOut(from.plusDays(10));
-        r.setTotalPrice(new BigDecimal("500.00"));
-
-        when(reservationRepository.findAllByDateRange(from, to, ORG_ID))
-            .thenReturn(List.of(r));
+        when(invoiceRepository.findByOrganizationIdAndDateRange(ORG_ID, from, to))
+            .thenReturn(List.of(inv));
 
         String result = service.exportFec(ORG_ID, from, to);
 
@@ -64,7 +69,7 @@ class AccountingExportServiceTest {
         LocalDate from = LocalDate.of(2025, 7, 1);
         LocalDate to = LocalDate.of(2025, 7, 31);
 
-        when(reservationRepository.findAllByDateRange(from, to, ORG_ID))
+        when(invoiceRepository.findByOrganizationIdAndDateRange(ORG_ID, from, to))
             .thenReturn(List.of());
 
         String result = service.exportFec(ORG_ID, from, to);
@@ -120,7 +125,13 @@ class AccountingExportServiceTest {
         payout.setStatus(PayoutStatus.PAID);
         payout.setPaymentReference("WIRE-123");
 
+        User owner = new User();
+        owner.setId(10L);
+        owner.setFirstName("Jean");
+        owner.setLastName("Dupont");
+
         when(payoutRepository.findAllByOrgId(ORG_ID)).thenReturn(List.of(payout));
+        when(userRepository.findAllById(Set.of(10L))).thenReturn(List.of(owner));
 
         String result = service.exportPayoutsCsv(ORG_ID, from, to);
 
@@ -135,23 +146,23 @@ class AccountingExportServiceTest {
         LocalDate from = LocalDate.of(2025, 7, 1);
         LocalDate to = LocalDate.of(2025, 7, 31);
 
-        Property property = new Property();
-        property.setName("Apt");
+        Invoice inv = new Invoice();
+        inv.setInvoiceNumber("FAC-002");
+        inv.setInvoiceDate(from.plusDays(1));
+        inv.setBuyerName("Guest");
+        inv.setTotalTtc(new BigDecimal("250.00"));
+        inv.setTotalHt(new BigDecimal("250.00"));
+        inv.setTotalTax(BigDecimal.ZERO);
+        inv.setCurrency("EUR");
+        inv.setStatus(InvoiceStatus.PAID);
 
-        Reservation r = new Reservation();
-        r.setProperty(property);
-        r.setGuestName("Guest");
-        r.setCheckIn(from.plusDays(1));
-        r.setCheckOut(from.plusDays(3));
-        r.setTotalPrice(new BigDecimal("250.00"));
-
-        when(reservationRepository.findAllByDateRange(from, to, ORG_ID))
-            .thenReturn(List.of(r));
+        when(invoiceRepository.findByOrganizationIdAndDateRange(ORG_ID, from, to))
+            .thenReturn(List.of(inv));
 
         String result = service.exportFec(ORG_ID, from, to);
 
         String[] lines = result.split("\n");
-        // Header + 2 lines (debit + credit) per reservation
+        // Header + 2 lines (debit 411 + credit 706), no TVA line since tax=0
         assertEquals(3, lines.length);
     }
 }

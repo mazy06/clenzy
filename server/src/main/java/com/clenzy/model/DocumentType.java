@@ -13,7 +13,8 @@ public enum DocumentType {
     BON_INTERVENTION("Bon d'intervention"),
     VALIDATION_FIN_MISSION("Validation fin de mission"),
     JUSTIFICATIF_PAIEMENT("Justificatif de paiement"),
-    JUSTIFICATIF_REMBOURSEMENT("Justificatif de remboursement");
+    JUSTIFICATIF_REMBOURSEMENT("Justificatif de remboursement"),
+    BON_COMMANDE("Bon de commande");
 
     private final String label;
 

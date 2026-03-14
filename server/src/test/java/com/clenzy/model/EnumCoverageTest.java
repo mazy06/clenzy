@@ -247,7 +247,7 @@ class EnumCoverageTest {
     @DisplayName("DocumentType")
     class DocumentTypeTests {
         @Test void allValues() {
-            assertThat(DocumentType.values()).hasSize(8);
+            assertThat(DocumentType.values()).hasSize(9);
         }
         @Test void labels() {
             for (DocumentType t : DocumentType.values()) {

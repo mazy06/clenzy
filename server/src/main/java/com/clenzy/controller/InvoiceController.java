@@ -13,6 +13,7 @@ import com.clenzy.service.InvoicePaymentService;
 import com.clenzy.service.InvoicePdfService;
 import com.clenzy.tenant.TenantContext;
 import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,6 +36,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/invoices")
+@PreAuthorize("isAuthenticated()")
 public class InvoiceController {
 
     private final InvoiceGeneratorService invoiceGeneratorService;

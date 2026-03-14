@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.model.*;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
@@ -46,6 +47,7 @@ public class TagResolverService {
     private final InterventionRepository interventionRepository;
     private final ServiceRequestRepository serviceRequestRepository;
     private final ReservationRepository reservationRepository;
+    private final ProviderExpenseRepository providerExpenseRepository;
 
     @Value("${clenzy.company.name:Clenzy}")
     private String companyName;
@@ -67,13 +69,15 @@ public class TagResolverService {
             PropertyRepository propertyRepository,
             InterventionRepository interventionRepository,
             ServiceRequestRepository serviceRequestRepository,
-            ReservationRepository reservationRepository
+            ReservationRepository reservationRepository,
+            ProviderExpenseRepository providerExpenseRepository
     ) {
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
         this.interventionRepository = interventionRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.reservationRepository = reservationRepository;
+        this.providerExpenseRepository = providerExpenseRepository;
     }
 
     /**
@@ -100,6 +104,7 @@ public class TagResolverService {
             case "service_request" -> resolveFromServiceRequest(referenceId, context);
             case "property" -> resolveFromProperty(referenceId, context);
             case "user" -> resolveFromUser(referenceId, context);
+            case "provider_expense" -> resolveFromProviderExpense(referenceId, context);
             default -> log.warn("Unknown reference type: {}", referenceType);
         }
 
@@ -233,6 +238,50 @@ public class TagResolverService {
         userRepository.findById(userId).ifPresent(user ->
                 context.put("client", resolveClientTags(user))
         );
+    }
+
+    private void resolveFromProviderExpense(Long expenseId, Map<String, Object> context) {
+        if (expenseId == null) return;
+
+        providerExpenseRepository.findById(expenseId).ifPresent(expense -> {
+            context.put("depense", resolveExpenseTags(expense));
+
+            // Prestataire
+            if (expense.getProvider() != null) {
+                context.put("prestataire", resolveClientTags(expense.getProvider()));
+            }
+
+            // Logement
+            if (expense.getProperty() != null) {
+                context.put("property", resolvePropertyTags(expense.getProperty()));
+
+                // Proprietaire du logement
+                if (expense.getProperty().getOwner() != null) {
+                    context.put("client", resolveClientTags(expense.getProperty().getOwner()));
+                }
+            }
+        });
+    }
+
+    private Map<String, Object> resolveExpenseTags(ProviderExpense expense) {
+        Map<String, Object> tags = new LinkedHashMap<>();
+        tags.put("id", String.valueOf(expense.getId()));
+        tags.put("description", safeStr(expense.getDescription()));
+        tags.put("montant_ht", formatMoney(expense.getAmountHt()));
+        tags.put("taux_tva", expense.getTaxRate() != null
+                ? expense.getTaxRate().multiply(java.math.BigDecimal.valueOf(100)).stripTrailingZeros().toPlainString() + " %"
+                : "0 %");
+        tags.put("montant_tva", formatMoney(expense.getTaxAmount()));
+        tags.put("montant_ttc", formatMoney(expense.getAmountTtc()));
+        tags.put("devise", safeStr(expense.getCurrency()));
+        tags.put("categorie", expense.getCategory() != null ? expense.getCategory().getLabel() : "");
+        tags.put("date", expense.getExpenseDate() != null
+                ? expense.getExpenseDate().format(DATE_FORMAT) : "");
+        tags.put("statut", expense.getStatus() != null ? expense.getStatus().name() : "");
+        tags.put("reference_facture", safeStr(expense.getInvoiceReference()));
+        tags.put("notes", safeStr(expense.getNotes()));
+        tags.put("reference_paiement", safeStr(expense.getPaymentReference()));
+        return tags;
     }
 
     // ─── Builders de tags par categorie ─────────────────────────────────────

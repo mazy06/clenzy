@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.dto.FiscalProfileDto;
 import com.clenzy.service.FiscalProfileService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/fiscal-profile")
+@PreAuthorize("isAuthenticated()")
 public class FiscalProfileController {
 
     private final FiscalProfileService fiscalProfileService;
