@@ -141,6 +141,16 @@ public class Invoice {
 
     // --- End B2B Payment fields ---
 
+    // --- Pennylane sync tracking ---
+
+    @Column(name = "pennylane_invoice_id", length = 50)
+    private String pennylaneInvoiceId;
+
+    @Column(name = "pennylane_synced_at")
+    private java.time.Instant pennylaneSyncedAt;
+
+    // --- End Pennylane sync tracking ---
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -253,6 +263,12 @@ public class Invoice {
 
     public LocalDateTime getOverdueNotifiedAt() { return overdueNotifiedAt; }
     public void setOverdueNotifiedAt(LocalDateTime overdueNotifiedAt) { this.overdueNotifiedAt = overdueNotifiedAt; }
+
+    public String getPennylaneInvoiceId() { return pennylaneInvoiceId; }
+    public void setPennylaneInvoiceId(String pennylaneInvoiceId) { this.pennylaneInvoiceId = pennylaneInvoiceId; }
+
+    public java.time.Instant getPennylaneSyncedAt() { return pennylaneSyncedAt; }
+    public void setPennylaneSyncedAt(java.time.Instant pennylaneSyncedAt) { this.pennylaneSyncedAt = pennylaneSyncedAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

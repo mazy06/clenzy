@@ -4,12 +4,14 @@ import { getAccessToken } from '../storageService';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PAID' | 'CANCELLED' | 'CREDIT_NOTE';
+export type InvoiceStatus = 'DRAFT' | 'SENT' | 'ISSUED' | 'PAID' | 'OVERDUE' | 'CANCELLED' | 'CREDIT_NOTE';
 
 export const INVOICE_STATUS_COLORS: Record<InvoiceStatus, string> = {
   DRAFT: '#D4A574',
+  SENT: '#7B61FF',
   ISSUED: '#1976d2',
   PAID: '#4A9B8E',
+  OVERDUE: '#e65100',
   CANCELLED: '#9e9e9e',
   CREDIT_NOTE: '#f44336',
 };
@@ -93,15 +95,15 @@ export const invoicesApi = {
   },
 
   async issue(id: number): Promise<Invoice> {
-    return apiClient.put<Invoice>(`/invoices/${id}/issue`);
+    return apiClient.post<Invoice>(`/invoices/${id}/issue`);
   },
 
   async markPaid(id: number): Promise<Invoice> {
-    return apiClient.put<Invoice>(`/invoices/${id}/pay`);
+    return apiClient.post<Invoice>(`/invoices/${id}/pay`);
   },
 
   async cancel(id: number): Promise<Invoice> {
-    return apiClient.put<Invoice>(`/invoices/${id}/cancel`);
+    return apiClient.post<Invoice>(`/invoices/${id}/cancel`);
   },
 
   async downloadPdf(id: number): Promise<Blob> {

@@ -4,7 +4,14 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   ToggleButton, ToggleButtonGroup,
 } from '@mui/material';
-import { AccountBalance } from '@mui/icons-material';
+import {
+  AccountBalance,
+  Gavel as StepTvaIcon,
+  Assessment as StepReportIcon,
+  DateRange as StepPeriodIcon,
+} from '@mui/icons-material';
+import HelpBanner from '../../components/HelpBanner';
+import { useTranslation } from '../../hooks/useTranslation';
 import { useMonthlyVatSummary, useQuarterlyVatSummary, useAnnualVatSummary } from '../../hooks/useFiscalReporting';
 import { formatCurrency, formatTaxRate } from '../../utils/currencyUtils';
 import type { VatSummary } from '../../services/api/fiscalReportingApi';
@@ -24,6 +31,7 @@ const MONTHS = [
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const FiscalReportSection: React.FC = () => {
+  const { t } = useTranslation();
   const now = new Date();
   const [mode, setMode] = useState<PeriodMode>('monthly');
   const [year, setYear] = useState(now.getFullYear());
@@ -55,6 +63,18 @@ const FiscalReportSection: React.FC = () => {
 
   return (
     <Box>
+      <HelpBanner
+        storageKey="clenzy_fiscal_help_dismissed"
+        title={t('accounting.fiscal.help.title', 'Comment fonctionne le rapport fiscal ?')}
+        description={t('accounting.fiscal.help.description', 'Consultez la synthese TVA de vos factures par periode pour preparer vos declarations fiscales.')}
+        dismissLabel={t('accounting.fiscal.help.dismiss', 'Ne plus afficher')}
+        steps={[
+          { icon: <StepPeriodIcon sx={{ fontSize: 16 }} />, title: t('accounting.fiscal.help.step1Title', 'Periode'), description: t('accounting.fiscal.help.step1Desc', 'Choisissez la granularite (mensuel, trimestriel, annuel) et la periode souhaitee.') },
+          { icon: <StepTvaIcon sx={{ fontSize: 16 }} />, title: t('accounting.fiscal.help.step2Title', 'Ventilation TVA'), description: t('accounting.fiscal.help.step2Desc', 'Le rapport ventile automatiquement la TVA par taux (20%, 10%, 5.5%) et categorie.') },
+          { icon: <StepReportIcon sx={{ fontSize: 16 }} />, title: t('accounting.fiscal.help.step3Title', 'Declaration'), description: t('accounting.fiscal.help.step3Desc', 'Utilisez les totaux HT/TVA/TTC pour completer votre declaration de TVA.') },
+        ]}
+      />
+
       {/* Period selector */}
       <Paper sx={{ p: 2, mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5 }}>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>

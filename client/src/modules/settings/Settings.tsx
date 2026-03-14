@@ -42,6 +42,7 @@ import {
   AccountBalance,
   Payment,
   AutoAwesome,
+  Extension,
 } from '@mui/icons-material';
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import type { MessagingAutomationConfig } from '../../services/api/guestMessagingApi';
@@ -50,6 +51,8 @@ import { useNoiseMonitoring } from '../../hooks/useNoiseMonitoring';
 import { useAuth } from '../../hooks/useAuth';
 import { useThemeMode } from '../../hooks/useThemeMode';
 import storageService, { STORAGE_KEYS } from '../../services/storageService';
+import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 import { useQueryClient } from '@tanstack/react-query';
 import { reservationsApi } from '../../services/api/reservationsApi';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -63,6 +66,7 @@ import FiscalProfileSection from './FiscalProfileSection';
 import TaxRulesSection from './TaxRulesSection';
 import PaymentSettings from './PaymentSettings';
 import AiSettingsSection from './AiSettingsSection';
+import IntegrationsSection from './IntegrationsSection';
 import { CURRENCY_OPTIONS } from '../../utils/currencyUtils';
 
 // ─── TabPanel ─────────────────────────────────────────────────────────────────
@@ -99,10 +103,27 @@ function a11yProps(index: number) {
 
 export default function Settings() {
   const { user, hasPermissionAsync, hasAnyRole } = useAuth();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { settings: workflowSettings, updateSettings: updateWorkflowSettings } = useWorkflowSettings();
   const { mode: themeMode, setMode: setThemeMode, isDark } = useThemeMode();
-  const [tabValue, setTabValue] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const initialTab = tabParam === 'integrations' ? 7 : parseInt(tabParam || '0', 10);
+  const [tabValue, setTabValue] = useState(isNaN(initialTab) ? 0 : initialTab);
+
+  // OAuth callback status handling
+  const oauthStatus = searchParams.get('status');
+  const isValidOauthStatus = oauthStatus === 'success' || oauthStatus === 'error';
+  const [oauthSnackbar, setOauthSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: isValidOauthStatus,
+    message: oauthStatus === 'success'
+      ? t('settings.integrations.pennylane.connectionSuccess')
+      : oauthStatus === 'error'
+        ? t('settings.integrations.pennylane.connectionError')
+        : '',
+    severity: oauthStatus === 'error' ? 'error' : 'success',
+  });
 
   // Ref pour NotificationPreferencesCard
   const notifRef = useRef<NotificationPreferencesHandle>(null);
@@ -269,6 +290,7 @@ export default function Settings() {
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+    setSearchParams(newValue === 0 ? {} : { tab: String(newValue) }, { replace: true });
   };
 
   const handleNotifSave = async () => {
@@ -389,6 +411,14 @@ export default function Settings() {
               iconPosition="start"
               label="Paiement"
               {...a11yProps(6)}
+            />
+          )}
+          {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
+            <Tab
+              icon={<Extension sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label="Intégrations"
+              {...a11yProps(7)}
             />
           )}
         </Tabs>
@@ -833,6 +863,13 @@ export default function Settings() {
         </TabPanel>
       )}
 
+      {/* ─── Onglet Intégrations (ADMIN/MANAGER) ──────────────────────── */}
+      {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
+        <TabPanel value={tabValue} index={7}>
+          <IntegrationsSection />
+        </TabPanel>
+      )}
+
       {/* Snackbar de confirmation */}
       <Snackbar
         open={snackbarOpen}
@@ -845,6 +882,30 @@ export default function Settings() {
           sx={{ width: '100%' }}
         >
           {snackbarMessage}
+        </Alert>
+      </Snackbar>
+
+      {/* OAuth callback snackbar */}
+      <Snackbar
+        open={oauthSnackbar.open}
+        autoHideDuration={6000}
+        onClose={() => {
+          setOauthSnackbar(prev => ({ ...prev, open: false }));
+          // Clean URL params
+          searchParams.delete('status');
+          setSearchParams(searchParams, { replace: true });
+        }}
+      >
+        <Alert
+          onClose={() => {
+            setOauthSnackbar(prev => ({ ...prev, open: false }));
+            searchParams.delete('status');
+            setSearchParams(searchParams, { replace: true });
+          }}
+          severity={oauthSnackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {oauthSnackbar.message}
         </Alert>
       </Snackbar>
     </Box>

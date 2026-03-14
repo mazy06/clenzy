@@ -61,16 +61,20 @@ import { getAccessToken } from '../../services/storageService';
 const STATUS_OPTIONS: { value: InvoiceStatus | ''; label: string }[] = [
   { value: '', label: 'Tous' },
   { value: 'DRAFT', label: 'Brouillon' },
+  { value: 'SENT', label: 'Envoyee' },
   { value: 'ISSUED', label: 'Emise' },
   { value: 'PAID', label: 'Payee' },
+  { value: 'OVERDUE', label: 'En retard' },
   { value: 'CANCELLED', label: 'Annulee' },
   { value: 'CREDIT_NOTE', label: 'Avoir' },
 ];
 
 const STATUS_LABELS: Record<InvoiceStatus, string> = {
   DRAFT: 'Brouillon',
+  SENT: 'Envoyee',
   ISSUED: 'Emise',
   PAID: 'Payee',
+  OVERDUE: 'En retard',
   CANCELLED: 'Annulee',
   CREDIT_NOTE: 'Avoir',
 };
