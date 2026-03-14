@@ -43,10 +43,10 @@ spring:
           poolSize: ${MAIL_SMTP_POOL_SIZE:10}
           quitwait: false
           ssl:
-            enable: false
+            enable: ${MAIL_SMTP_SSL_ENABLE:false}
           starttls:
-            enable: true
-            required: true
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
+            required: ${MAIL_SMTP_STARTTLS_REQUIRED:true}
   security:
     oauth2:
       resourceserver:
