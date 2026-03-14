@@ -135,10 +135,18 @@ public class TagResolverService {
 
             if (intervention.getAssignedUser() != null) {
                 context.put("technicien", resolveClientTags(intervention.getAssignedUser()));
+            } else {
+                context.put("technicien", emptyClientTags());
             }
 
             // Tags paiement
             context.put("paiement", resolvePaymentTags(intervention));
+
+            // Tags ligne de facturation (top-level pour les templates FACTURE)
+            context.put("ligne", resolveInterventionLigneTags(intervention));
+
+            // Numero de facture (tag nf.*)
+            context.put("nf", resolveInterventionNfTags(intervention));
         });
     }
 
@@ -568,6 +576,32 @@ public class TagResolverService {
                 ? reservation.getPaymentLinkSentAt().format(DATETIME_FORMAT) : "");
         tags.put("email_paiement", safeStr(reservation.getPaymentLinkEmail()));
         tags.put("reference_stripe", safeStr(reservation.getStripeSessionId()));
+        return tags;
+    }
+
+    /**
+     * Tags ligne de facturation pour une intervention (top-level ${ligne.*}).
+     * Utilise le cout reel ou estime comme montant.
+     */
+    private Map<String, Object> resolveInterventionLigneTags(Intervention intervention) {
+        Map<String, Object> tags = new LinkedHashMap<>();
+        tags.put("description", safeStr(intervention.getDescription()));
+        tags.put("quantite", "1");
+        BigDecimal cost = intervention.getActualCost() != null
+                ? intervention.getActualCost() : intervention.getEstimatedCost();
+        tags.put("prix_unitaire", formatMoney(cost));
+        tags.put("total", formatMoney(cost));
+        return tags;
+    }
+
+    /**
+     * Tags numero de facture pour une intervention (top-level ${nf.*}).
+     * Le vrai numero est attribue par DocumentNumberingService, ici on fournit des fallbacks.
+     */
+    private Map<String, Object> resolveInterventionNfTags(Intervention intervention) {
+        Map<String, Object> tags = new LinkedHashMap<>();
+        tags.put("numero", "");
+        tags.put("date", LocalDateTime.now().format(DATE_FORMAT));
         return tags;
     }
 
