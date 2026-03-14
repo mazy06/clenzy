@@ -6,6 +6,7 @@ import com.clenzy.model.OwnerPayout.PayoutStatus;
 import com.clenzy.repository.ChannelCommissionRepository;
 import com.clenzy.repository.OwnerPayoutRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.ReservationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,17 +35,20 @@ public class AccountingService {
     private final ChannelCommissionRepository commissionRepository;
     private final ReservationRepository reservationRepository;
     private final PropertyRepository propertyRepository;
+    private final ProviderExpenseRepository providerExpenseRepository;
     private final ManagementContractService managementContractService;
 
     public AccountingService(OwnerPayoutRepository payoutRepository,
                              ChannelCommissionRepository commissionRepository,
                              ReservationRepository reservationRepository,
                              PropertyRepository propertyRepository,
+                             ProviderExpenseRepository providerExpenseRepository,
                              ManagementContractService managementContractService) {
         this.payoutRepository = payoutRepository;
         this.commissionRepository = commissionRepository;
         this.reservationRepository = reservationRepository;
         this.propertyRepository = propertyRepository;
+        this.providerExpenseRepository = providerExpenseRepository;
         this.managementContractService = managementContractService;
     }
 
@@ -93,7 +97,16 @@ public class AccountingService {
         // Resolve commission rate from ManagementContract
         BigDecimal commissionRate = resolveCommissionRate(ownerId, orgId, reservations);
         BigDecimal commissionAmount = grossRevenue.multiply(commissionRate).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal netAmount = grossRevenue.subtract(commissionAmount);
+
+        // Aggregate APPROVED provider expenses for the owner's properties in this period
+        List<ProviderExpense> approvedExpenses = providerExpenseRepository
+                .findApprovedByPropertyOwnerAndPeriod(ownerId, from, to, orgId);
+        BigDecimal totalExpenses = approvedExpenses.stream()
+                .map(ProviderExpense::getAmountTtc)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal netAmount = grossRevenue.subtract(commissionAmount).subtract(totalExpenses);
 
         OwnerPayout payout = new OwnerPayout();
         payout.setOrganizationId(orgId);
@@ -103,12 +116,25 @@ public class AccountingService {
         payout.setGrossRevenue(grossRevenue);
         payout.setCommissionRate(commissionRate);
         payout.setCommissionAmount(commissionAmount);
+        payout.setExpenses(totalExpenses);
         payout.setNetAmount(netAmount);
         payout.setStatus(PayoutStatus.PENDING);
 
-        log.info("Generated payout for owner {} period {}-{}: gross={} commission={}% net={}",
-            ownerId, from, to, grossRevenue, commissionRate.multiply(BigDecimal.valueOf(100)), netAmount);
-        return payoutRepository.save(payout);
+        OwnerPayout savedPayout = payoutRepository.save(payout);
+
+        // Mark expenses as INCLUDED and link to this payout
+        for (ProviderExpense expense : approvedExpenses) {
+            expense.setStatus(ExpenseStatus.INCLUDED);
+            expense.setOwnerPayout(savedPayout);
+        }
+        if (!approvedExpenses.isEmpty()) {
+            providerExpenseRepository.saveAll(approvedExpenses);
+        }
+
+        log.info("Generated payout for owner {} period {}-{}: gross={} commission={}% expenses={} net={}",
+            ownerId, from, to, grossRevenue, commissionRate.multiply(BigDecimal.valueOf(100)),
+            totalExpenses, netAmount);
+        return savedPayout;
     }
 
     @Transactional

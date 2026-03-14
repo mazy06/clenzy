@@ -9,6 +9,7 @@ import com.clenzy.model.Property;
 import com.clenzy.repository.ChannelCommissionRepository;
 import com.clenzy.repository.OwnerPayoutRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.ReservationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,7 @@ class AccountingServiceTest {
     @Mock private ChannelCommissionRepository commissionRepository;
     @Mock private ReservationRepository reservationRepository;
     @Mock private PropertyRepository propertyRepository;
+    @Mock private ProviderExpenseRepository providerExpenseRepository;
     @Mock private ManagementContractService managementContractService;
 
     @InjectMocks
@@ -68,6 +70,9 @@ class AccountingServiceTest {
         // No ManagementContract → uses default 20% commission rate
         when(managementContractService.getActiveContract(anyLong(), eq(ORG_ID)))
             .thenReturn(Optional.empty());
+        // No provider expenses
+        when(providerExpenseRepository.findApprovedByPropertyOwnerAndPeriod(eq(OWNER_ID), eq(from), eq(to), eq(ORG_ID)))
+            .thenReturn(List.of());
         when(payoutRepository.save(any(OwnerPayout.class))).thenAnswer(inv -> {
             OwnerPayout p = inv.getArgument(0);
             p.setId(1L);

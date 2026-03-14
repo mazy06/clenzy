@@ -5,7 +5,6 @@ import {
   Schedule as ScheduleIcon,
   People as PeopleIcon,
   Home as HomeIcon,
-  AccountBalance as AccountBalanceIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
@@ -83,15 +82,6 @@ const Reports: React.FC = () => {
       canView: permissions['reports:view'],
       route: '/reports/properties'
     },
-    {
-      id: 'fiscal',
-      title: t('reports.sections.fiscal.title', 'Rapport Fiscal'),
-      icon: <AccountBalanceIcon color="secondary" />,
-      description: t('reports.sections.fiscal.description', 'TVA, taxes et declarations fiscales'),
-      permission: 'reports:view',
-      canView: permissions['reports:view'],
-      route: '/reports/fiscal'
-    }
   ];
 
   const handleCardClick = (section: typeof reportSections[0]) => {

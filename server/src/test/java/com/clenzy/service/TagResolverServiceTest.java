@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.model.*;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
+import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,13 +30,15 @@ class TagResolverServiceTest {
     @Mock private InterventionRepository interventionRepository;
     @Mock private ServiceRequestRepository serviceRequestRepository;
     @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
+    @Mock private ProviderExpenseRepository providerExpenseRepository;
 
     private TagResolverService service;
 
     @BeforeEach
     void setUp() {
         service = new TagResolverService(userRepository, propertyRepository,
-                interventionRepository, serviceRequestRepository, reservationRepository);
+                interventionRepository, serviceRequestRepository, reservationRepository,
+                providerExpenseRepository);
         ReflectionTestUtils.setField(service, "companyName", "Clenzy");
         ReflectionTestUtils.setField(service, "companyAddress", "10 rue de Paris");
         ReflectionTestUtils.setField(service, "companySiret", "12345678900001");

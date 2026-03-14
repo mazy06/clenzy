@@ -48,6 +48,7 @@
     "tarification": "Pricing",
     "payments": "Payments",
     "billing": "Billing",
+    "accounting": "Accounting",
     "monitoring": "Monitoring",
     "syncDiagnostics": "Sync & Diagnostics",
     "kpiReadiness": "KPI Readiness",
@@ -312,7 +313,8 @@
     "miniPlanning": {
       "title": "7-Day Planning",
       "viewAll": "View all",
-      "noProperties": "No properties configured",
+      "noProperties": "Add your first property to see the planning here",
+      "addProperty": "Create a property",
       "legend": {
         "reservation": "Reservation",
         "cleaning": "Cleaning",
@@ -354,6 +356,16 @@
       "skipForNow": "Do this later",
       "reshow": "Show initial setup again",
       "reshowShort": "Setup",
+      "detailsCta": {
+        "title": "Complete your property details",
+        "description": "Add essential information: bedrooms, amenities, check-in/check-out times to personalize your management.",
+        "action": "Configure details"
+      },
+      "pricingCta": {
+        "title": "Set up your dynamic pricing",
+        "description": "Create your rate plans (base, high season, promotions) to optimize your revenue automatically.",
+        "action": "Configure pricing"
+      },
       "channelsCta": {
         "title": "Import your reservations",
         "description": "Connect your Airbnb, Booking or other platform calendars via an iCal link to automatically sync your reservations.",
@@ -1686,6 +1698,38 @@
       "configName": "Default configuration",
       "noConfig": "No configuration found. Default values will be used.",
       "defaults": "Defaults: Owner 80%, Platform 5%, Concierge 15%"
+    },
+    "integrations": {
+      "title": "Integrations",
+      "comingSoon": "More integrations (PriceLabs, QuickBooks, etc.) will be available soon.",
+      "pennylane": {
+        "title": "Pennylane",
+        "description": "Sync your invoices and expenses to your Pennylane accounting",
+        "connect": "Connect",
+        "disconnect": "Disconnect",
+        "connected": "Connected",
+        "notConnected": "Not connected",
+        "connectedAt": "Connected on",
+        "lastSync": "Last sync",
+        "syncInvoices": "Sync invoices",
+        "syncExpenses": "Sync expenses",
+        "syncAll": "Sync all",
+        "syncing": "Syncing...",
+        "syncSuccess": "Sync completed",
+        "syncError": "Sync error",
+        "pendingInvoices": "pending invoices",
+        "pendingExpenses": "pending expenses",
+        "invoicesSynced": "invoices synced",
+        "expensesSynced": "expenses synced",
+        "elementsSynced": "elements synced",
+        "failed": "failed",
+        "connectionSuccess": "Pennylane connection successful",
+        "connectionError": "Pennylane connection error",
+        "disconnected": "Pennylane disconnected",
+        "disconnectError": "Error disconnecting",
+        "disconnectTitle": "Disconnect Pennylane",
+        "disconnectConfirm": "Do you want to disconnect Pennylane? Accounting sync will be stopped."
+      }
     }
   },
   "contracts": {
@@ -2958,6 +3002,144 @@
       "textTransformUppercase": "UPPERCASE",
       "textTransformCapitalize": "Capitalize",
       "regenerateCss": "Regenerate CSS with AI"
+    }
+  },
+  "accounting": {
+    "title": "Accounting",
+    "subtitle": "Owner payouts, commissions, expenses and accounting exports",
+    "payouts": {
+      "help": {
+        "title": "How do payouts work?",
+        "description": "Payouts let you calculate and track the amounts owed to each property owner.",
+        "step1Title": "Generate",
+        "step1Desc": "Select an owner and a period to calculate the payout.",
+        "step2Title": "Review",
+        "step2Desc": "The system calculates: revenue \u2212 commission \u2212 expenses = net amount.",
+        "step3Title": "Approve & Pay",
+        "step3Desc": "Approve the payout then mark it as paid after the bank transfer.",
+        "dismiss": "Don't show again"
+      },
+      "emptyTitle": "No payouts found",
+      "emptyDescription": "Generate your first payout to calculate the amount owed to an owner.",
+      "emptyAction": "Generate your first payout"
+    },
+    "commissions": {
+      "help": {
+        "title": "How do commissions work?",
+        "description": "Commissions represent the percentage charged by each booking channel (Airbnb, Booking...) on your revenue.",
+        "step1Title": "Channels",
+        "step1Desc": "Each platform (Airbnb, Booking...) applies a different commission rate.",
+        "step2Title": "Configure",
+        "step2Desc": "Adjust the commission rate for each channel according to your contract.",
+        "step3Title": "Impact",
+        "step3Desc": "Commissions are automatically deducted when calculating owner payouts.",
+        "dismiss": "Don't show again"
+      }
+    },
+    "fiscal": {
+      "help": {
+        "title": "How does the fiscal report work?",
+        "description": "View the VAT summary of your invoices by period to prepare your tax returns.",
+        "step1Title": "Period",
+        "step1Desc": "Choose the granularity (monthly, quarterly, annual) and the desired period.",
+        "step2Title": "VAT Breakdown",
+        "step2Desc": "The report automatically breaks down VAT by rate (20%, 10%, 5.5%) and category.",
+        "step3Title": "Tax Return",
+        "step3Desc": "Use the excl./VAT/incl. totals to complete your VAT return.",
+        "dismiss": "Don't show again"
+      }
+    },
+    "tabs": {
+      "payouts": "Payouts",
+      "commissions": "Commissions",
+      "expenses": "Expenses",
+      "fiscalReport": "Fiscal Report",
+      "exports": "Exports"
+    },
+    "exports": {
+      "title": "Accounting Exports",
+      "help": {
+        "title": "How do exports work?",
+        "description": "Export your accounting data in various formats for your accountant or tax returns.",
+        "step1Title": "Period",
+        "step1Desc": "Define the date range for the data to export.",
+        "step2Title": "Format",
+        "step2Desc": "FEC (DGFiP standard), CSV reservations, payouts, expenses or invoices.",
+        "step3Title": "Download",
+        "step3Desc": "Click Download to get the file ready to send.",
+        "dismiss": "Don't show again"
+      },
+      "period": "Export period",
+      "from": "From",
+      "to": "To",
+      "fec": "FEC (Accounting Entries)",
+      "fecDesc": "French legal accounting entries file (tab-separated, DGFiP standard)",
+      "reservationsCsv": "Reservations CSV",
+      "reservationsCsvDesc": "Raw export of all reservations for the period",
+      "payoutsCsv": "Payouts CSV",
+      "payoutsCsvDesc": "Owner payouts with commissions and expenses",
+      "expensesCsv": "Expenses CSV",
+      "expensesCsvDesc": "Provider expenses with excl./incl. tax amounts and VAT",
+      "invoicesCsv": "Invoices CSV",
+      "invoicesCsvDesc": "All invoices issued for the period",
+      "download": "Download",
+      "downloading": "Downloading...",
+      "error": "Error during download"
+    },
+    "expenses": {
+      "help": {
+        "title": "How do expenses work?",
+        "description": "Track and manage provider expenses (cleaning, maintenance...) related to your properties.",
+        "step1Title": "Create",
+        "step1Desc": "Add an expense with the provider, property, amount and category.",
+        "step2Title": "Approve",
+        "step2Desc": "Validate draft expenses. Attach a receipt (PDF, photo).",
+        "step3Title": "Deduct",
+        "step3Desc": "Approved expenses are automatically deducted from owner payouts.",
+        "dismiss": "Don't show again"
+      },
+      "title": "Provider expenses",
+      "create": "New expense",
+      "provider": "Provider",
+      "property": "Property",
+      "description": "Description",
+      "amountHt": "Amount excl. tax",
+      "taxRate": "VAT %",
+      "amountTtc": "Amount incl. tax",
+      "category": "Category",
+      "date": "Date",
+      "status": "Status",
+      "invoiceRef": "Invoice ref.",
+      "notes": "Notes",
+      "approve": "Approve",
+      "markPaid": "Mark as paid",
+      "cancel": "Cancel",
+      "generatePo": "Purchase order",
+      "totalExpenses": "Total expenses",
+      "pendingCount": "Pending",
+      "approvedCount": "Approved",
+      "approveSuccess": "Expense approved",
+      "cancelSuccess": "Expense cancelled",
+      "paidSuccess": "Expense marked as paid",
+      "createSuccess": "Expense created successfully",
+      "empty": "No provider expenses",
+      "error": "Error loading expenses",
+      "paymentRef": "Payment reference",
+      "categories": {
+        "CLEANING": "Cleaning",
+        "MAINTENANCE": "Maintenance",
+        "LAUNDRY": "Laundry",
+        "SUPPLIES": "Supplies",
+        "LANDSCAPING": "Landscaping",
+        "OTHER": "Other"
+      },
+      "statuses": {
+        "DRAFT": "Draft",
+        "APPROVED": "Approved",
+        "INCLUDED": "Included in payout",
+        "PAID": "Paid",
+        "CANCELLED": "Cancelled"
+      }
     }
   }
 }

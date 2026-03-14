@@ -1,13 +1,12 @@
--- Migration V104: Nettoyage des permissions portfolio obsoletes
--- Date: 2026-03-13
---
--- La migration V7 avait cree des permissions granulaires pour les portefeuilles
--- (portfolios:create, portfolios:edit, portfolios:delete, portfolios:manage_clients, portfolios:manage_team).
--- Le PermissionInitializer les a remplacees par un schema simplifie :
+-- Nettoyage des permissions portfolio obsoletes.
+-- La migration 0005 (ex V7) avait cree des permissions granulaires :
+--   portfolios:create, portfolios:edit, portfolios:delete,
+--   portfolios:manage_clients, portfolios:manage_team
+-- Le PermissionInitializer les a remplacees par :
 --   portfolios:view, portfolios:manage, portfolios:manage_all
--- Les anciennes permissions ne sont plus utilisees par le frontend ni le backend.
+-- Les anciennes ne sont plus utilisees (frontend ni backend).
 
--- 1. Supprimer les associations role_permissions pour les permissions obsoletes
+-- 1. Supprimer les associations role_permissions
 DELETE FROM role_permissions
 WHERE permission_id IN (
     SELECT id FROM permissions
