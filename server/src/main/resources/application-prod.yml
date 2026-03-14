@@ -43,10 +43,10 @@ spring:
           poolSize: ${MAIL_SMTP_POOL_SIZE:50}
           quitwait: false
           ssl:
-            enable: false
+            enable: ${MAIL_SMTP_SSL_ENABLE:false}
           starttls:
-            enable: true
-            required: true
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
+            required: ${MAIL_SMTP_STARTTLS_REQUIRED:true}
   security:
     oauth2:
       resourceserver:
@@ -177,6 +177,12 @@ clenzy:
     api-url: ${PENNYLANE_API_URL:https://app.pennylane.com/api}
     client-id: ${PENNYLANE_CLIENT_ID:}
     client-secret: ${PENNYLANE_CLIENT_SECRET:}
+    redirect-uri: ${PENNYLANE_REDIRECT_URI:}
+    authorization-url: ${PENNYLANE_AUTHORIZATION_URL:https://app.pennylane.com/oauth/authorize}
+    token-url: ${PENNYLANE_TOKEN_URL:https://app.pennylane.com/oauth/token}
+    revoke-url: ${PENNYLANE_REVOKE_URL:https://app.pennylane.com/oauth/revoke}
+    scopes: ${PENNYLANE_SCOPES:customer_invoices:all supplier_invoices:all customers:all suppliers:all journals:readonly ledger_accounts:readonly}
+    accounting-api-base-url: ${PENNYLANE_ACCOUNTING_API_BASE_URL:https://app.pennylane.com/api/external/v2}
   # Webhooks — Zapier & automation
   webhooks:
     enabled: ${WEBHOOKS_ENABLED:true}
