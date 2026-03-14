@@ -377,7 +377,15 @@ public class OrganizationInvitationService {
         if (realmAccess != null) {
             @SuppressWarnings("unchecked")
             List<String> roles = (List<String>) realmAccess.get("roles");
-            if (roles != null && roles.contains(role)) return true;
+            if (roles != null) {
+                for (String r : roles) {
+                    String normalized = r.toUpperCase();
+                    // Normalisation identique a SecurityConfigProd.keycloakRoleConverter
+                    if ("ADMIN".equals(normalized)) normalized = "SUPER_ADMIN";
+                    else if ("MANAGER".equals(normalized)) normalized = "SUPER_MANAGER";
+                    if (normalized.equals(role)) return true;
+                }
+            }
         }
         return false;
     }
