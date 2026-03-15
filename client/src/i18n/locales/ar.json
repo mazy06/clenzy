@@ -1790,6 +1790,18 @@
       "stripeOnboardingPending": "تسجيل Stripe غير مكتمل. يرجى إكماله.",
       "stripeError": "خطأ في الاتصال بـ Stripe"
     },
+    "sepaDebtor": {
+      "title": "الحساب البنكي المدين (SEPA)",
+      "description": "أدخل البيانات البنكية لمؤسستك. ستُستخدم كمدين في ملفات SEPA XML (pain.001).",
+      "configured": "مُهيأ",
+      "nameLabel": "اسم صاحب الحساب",
+      "ibanLabel": "IBAN",
+      "bicLabel": "BIC / SWIFT",
+      "ibanMasked": "IBAN الحالي: ",
+      "ibanChangeHint": " — اتركه فارغاً للحفاظ على الحالي",
+      "saveSuccess": "تم حفظ الإعدادات",
+      "saveError": "خطأ في حفظ الإعدادات"
+    },
     "integrations": {
       "title": "التكاملات",
       "comingSoon": "ستتوفر المزيد من التكاملات (PriceLabs، QuickBooks، إلخ) قريباً.",
@@ -3134,6 +3146,7 @@
     "retryError": "خطأ في إعادة محاولة التحويل",
     "processing": "قيد التنفيذ...",
     "failedPayout": "فشل التحويل",
+    "downloadSepaXml": "SEPA XML",
     "commissions": {
       "help": {
         "title": "كيف تعمل العمولات؟",

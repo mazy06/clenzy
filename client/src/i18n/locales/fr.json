@@ -1791,6 +1791,18 @@
       "stripeOnboardingPending": "Votre inscription Stripe n'est pas terminee. Veuillez la completer.",
       "stripeError": "Erreur lors de la connexion Stripe"
     },
+    "sepaDebtor": {
+      "title": "Compte bancaire debiteur (SEPA)",
+      "description": "Renseignez les coordonnees bancaires de votre organisation. Elles seront utilisees comme debiteur dans les fichiers SEPA XML (pain.001).",
+      "configured": "Configure",
+      "nameLabel": "Nom du titulaire",
+      "ibanLabel": "IBAN",
+      "bicLabel": "BIC / SWIFT",
+      "ibanMasked": "IBAN actuel : ",
+      "ibanChangeHint": " — laissez vide pour conserver",
+      "saveSuccess": "Configuration sauvegardee",
+      "saveError": "Erreur lors de la sauvegarde"
+    },
     "integrations": {
       "title": "Intégrations",
       "comingSoon": "D'autres intégrations (PriceLabs, QuickBooks, etc.) seront disponibles prochainement.",
@@ -3192,6 +3204,7 @@
     "retryError": "Erreur lors de la relance du virement",
     "processing": "En cours...",
     "failedPayout": "Échec du reversement",
+    "downloadSepaXml": "SEPA XML",
     "commissions": {
       "help": {
         "title": "Comment fonctionnent les commissions ?",
