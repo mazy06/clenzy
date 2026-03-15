@@ -747,3 +747,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0085__add_payout_notification_keys.sql
         relativeToChangelogFile: true
+
+  # --- 0086 : Fix owner_payouts status CHECK (add PROCESSING) ---
+  - changeSet:
+      id: "0086-fix-owner-payouts-status-check"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0086__fix_owner_payouts_status_check.sql
+        relativeToChangelogFile: true
