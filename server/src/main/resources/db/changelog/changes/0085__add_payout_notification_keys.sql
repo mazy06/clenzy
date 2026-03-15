@@ -1,5 +1,24 @@
--- 0085: Add payout notification keys to notifications CHECK constraint
+-- 0085: Add all missing notification keys and categories to CHECK constraints
 
+-- 1. Update category constraint to include CONVERSATION, REVIEW, PAYOUT
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_category_check;
+
+ALTER TABLE notifications ADD CONSTRAINT notifications_category_check
+    CHECK (category IN (
+        'INTERVENTION',
+        'SERVICE_REQUEST',
+        'PAYMENT',
+        'SYSTEM',
+        'TEAM',
+        'CONTACT',
+        'DOCUMENT',
+        'GUEST_MESSAGING',
+        'NOISE_ALERT',
+        'CONVERSATION',
+        'REVIEW'
+    ));
+
+-- 2. Update notification_key constraint with all keys from NotificationKey enum
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_notification_key_check;
 
 ALTER TABLE notifications ADD CONSTRAINT notifications_notification_key_check
@@ -23,7 +42,7 @@ ALTER TABLE notifications ADD CONSTRAINT notifications_notification_key_check
         'INTERVENTION_NOTES_UPDATED',
         'INTERVENTION_OVERDUE',
         'INTERVENTION_REMINDER',
-        -- SERVICE_REQUEST (8)
+        -- SERVICE_REQUEST (11)
         'SERVICE_REQUEST_CREATED',
         'SERVICE_REQUEST_UPDATED',
         'SERVICE_REQUEST_APPROVED',
@@ -32,6 +51,9 @@ ALTER TABLE notifications ADD CONSTRAINT notifications_notification_key_check
         'SERVICE_REQUEST_ASSIGNED',
         'SERVICE_REQUEST_CANCELLED',
         'SERVICE_REQUEST_URGENT',
+        'SERVICE_REQUEST_NO_TEAM_AVAILABLE',
+        'SERVICE_REQUEST_ESCALATION',
+        'SERVICE_REQUEST_TEAM_ASSIGNED',
         -- PAYMENT (10)
         'PAYMENT_SESSION_CREATED',
         'PAYMENT_CONFIRMED',
@@ -120,6 +142,12 @@ ALTER TABLE notifications ADD CONSTRAINT notifications_notification_key_check
         'NOISE_ALERT_CRITICAL',
         'NOISE_ALERT_RESOLVED',
         'NOISE_ALERT_CONFIG_CHANGED',
+        -- CONVERSATION (2)
+        'CONVERSATION_NEW_MESSAGE',
+        'CONVERSATION_ASSIGNED',
+        -- ONLINE CHECKIN (2)
+        'ONLINE_CHECKIN_STARTED',
+        'ONLINE_CHECKIN_COMPLETED',
         -- REVIEW (2)
         'REVIEW_RECEIVED',
         'REVIEW_NEGATIVE_ALERT'
