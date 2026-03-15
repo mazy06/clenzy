@@ -2,7 +2,9 @@ import apiClient from '../apiClient';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type PayoutStatus = 'PENDING' | 'APPROVED' | 'PAID' | 'CANCELLED';
+export type PayoutStatus = 'PENDING' | 'APPROVED' | 'PROCESSING' | 'PAID' | 'FAILED' | 'CANCELLED';
+export type PayoutGenerationType = 'MANUAL' | 'AUTO';
+export type PayoutMethod = 'MANUAL' | 'STRIPE_CONNECT' | 'SEPA_TRANSFER';
 
 export interface OwnerPayout {
   id: number;
@@ -16,10 +18,42 @@ export interface OwnerPayout {
   expenses: number;
   netAmount: number;
   status: PayoutStatus;
+  generationType: PayoutGenerationType;
+  payoutMethod: PayoutMethod | null;
+  stripeTransferId: string | null;
   paymentReference: string | null;
   paidAt: string | null;
+  failureReason: string | null;
+  retryCount: number;
   notes: string | null;
   createdAt: string;
+}
+
+export interface OwnerPayoutConfig {
+  id: number;
+  ownerId: number;
+  payoutMethod: PayoutMethod;
+  stripeConnectedAccountId: string | null;
+  stripeOnboardingComplete: boolean;
+  maskedIban: string | null;
+  bic: string | null;
+  bankAccountHolder: string | null;
+  verified: boolean;
+}
+
+export interface UpdateSepaRequest {
+  iban: string;
+  bic: string;
+  bankAccountHolder: string;
+}
+
+export interface UpdateMethodRequest {
+  payoutMethod: PayoutMethod;
+}
+
+export interface StripeConnectInitResponse {
+  onboardingUrl: string;
+  config: OwnerPayoutConfig;
 }
 
 export interface ChannelCommission {
@@ -29,10 +63,31 @@ export interface ChannelCommission {
   organizationId?: number;
 }
 
+export interface PendingPayoutCount {
+  pendingCount: number;
+  totalPendingAmount: number;
+}
+
+export interface PayoutScheduleConfig {
+  id: number;
+  payoutDaysOfMonth: number[];
+  gracePeriodDays: number;
+  autoGenerateEnabled: boolean;
+  updatedAt: string | null;
+}
+
+export interface UpdatePayoutScheduleRequest {
+  payoutDaysOfMonth?: number[];
+  gracePeriodDays?: number;
+  autoGenerateEnabled?: boolean;
+}
+
 export const PAYOUT_STATUS_COLORS: Record<PayoutStatus, string> = {
   PENDING: '#D4A574',
   APPROVED: '#1976d2',
+  PROCESSING: '#9c27b0',
   PAID: '#4A9B8E',
+  FAILED: '#f44336',
   CANCELLED: '#d32f2f',
 };
 
@@ -66,11 +121,75 @@ export const accountingApi = {
     });
   },
 
+  async getPendingPayoutCount(): Promise<PendingPayoutCount> {
+    return apiClient.get<PendingPayoutCount>('/accounting/payouts/pending-count');
+  },
+
   async getCommissions(): Promise<ChannelCommission[]> {
     return apiClient.get<ChannelCommission[]>('/accounting/commissions');
   },
 
   async saveCommission(channel: string, data: ChannelCommission): Promise<ChannelCommission> {
     return apiClient.put<ChannelCommission>(`/accounting/commissions/${channel}`, data);
+  },
+
+  // ─── Payout Execution ────────────────────────────────────────────────
+
+  async executePayout(id: number): Promise<OwnerPayout> {
+    return apiClient.post<OwnerPayout>(`/accounting/payouts/${id}/execute`);
+  },
+
+  async retryPayout(id: number): Promise<OwnerPayout> {
+    return apiClient.post<OwnerPayout>(`/accounting/payouts/${id}/retry`);
+  },
+
+  // ─── Owner Payout Config ───────────────────────────────────────────
+
+  async getOwnerPayoutConfig(ownerId: number): Promise<OwnerPayoutConfig> {
+    return apiClient.get<OwnerPayoutConfig>(`/owner-payout-config/${ownerId}`);
+  },
+
+  async getAllOwnerPayoutConfigs(): Promise<OwnerPayoutConfig[]> {
+    return apiClient.get<OwnerPayoutConfig[]>('/owner-payout-config');
+  },
+
+  async updatePayoutMethod(ownerId: number, data: UpdateMethodRequest): Promise<OwnerPayoutConfig> {
+    return apiClient.put<OwnerPayoutConfig>(`/owner-payout-config/${ownerId}/method`, data);
+  },
+
+  async updateSepaDetails(ownerId: number, data: UpdateSepaRequest): Promise<OwnerPayoutConfig> {
+    return apiClient.put<OwnerPayoutConfig>(`/owner-payout-config/${ownerId}/sepa`, data);
+  },
+
+  async verifyOwnerConfig(ownerId: number): Promise<OwnerPayoutConfig> {
+    return apiClient.put<OwnerPayoutConfig>(`/owner-payout-config/${ownerId}/verify`);
+  },
+
+  // ─── Self-service (current user) ────────────────────────────────────
+
+  async getMyPayoutConfig(): Promise<OwnerPayoutConfig> {
+    return apiClient.get<OwnerPayoutConfig>('/owner-payout-config/me');
+  },
+
+  async updateMySepa(data: UpdateSepaRequest): Promise<OwnerPayoutConfig> {
+    return apiClient.put<OwnerPayoutConfig>('/owner-payout-config/me/sepa', data);
+  },
+
+  async initMyStripeConnect(): Promise<StripeConnectInitResponse> {
+    return apiClient.post<StripeConnectInitResponse>('/owner-payout-config/me/stripe-connect/init');
+  },
+
+  async getMyStripeOnboardingLink(): Promise<{ url: string }> {
+    return apiClient.get<{ url: string }>('/owner-payout-config/me/stripe-connect/onboarding-link');
+  },
+
+  // ─── Payout Schedule Config ───────────────────────────────────────────
+
+  async getPayoutSchedule(): Promise<PayoutScheduleConfig> {
+    return apiClient.get<PayoutScheduleConfig>('/settings/payout-schedule');
+  },
+
+  async updatePayoutSchedule(data: UpdatePayoutScheduleRequest): Promise<PayoutScheduleConfig> {
+    return apiClient.put<PayoutScheduleConfig>('/settings/payout-schedule', data);
   },
 };

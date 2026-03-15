@@ -3,11 +3,13 @@ package com.clenzy.service;
 import com.clenzy.integration.channel.ChannelName;
 import com.clenzy.model.*;
 import com.clenzy.model.OwnerPayout.PayoutStatus;
+import com.clenzy.model.User;
 import com.clenzy.repository.ChannelCommissionRepository;
 import com.clenzy.repository.OwnerPayoutRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -37,19 +39,25 @@ public class AccountingService {
     private final PropertyRepository propertyRepository;
     private final ProviderExpenseRepository providerExpenseRepository;
     private final ManagementContractService managementContractService;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     public AccountingService(OwnerPayoutRepository payoutRepository,
                              ChannelCommissionRepository commissionRepository,
                              ReservationRepository reservationRepository,
                              PropertyRepository propertyRepository,
                              ProviderExpenseRepository providerExpenseRepository,
-                             ManagementContractService managementContractService) {
+                             ManagementContractService managementContractService,
+                             NotificationService notificationService,
+                             UserRepository userRepository) {
         this.payoutRepository = payoutRepository;
         this.commissionRepository = commissionRepository;
         this.reservationRepository = reservationRepository;
         this.propertyRepository = propertyRepository;
         this.providerExpenseRepository = providerExpenseRepository;
         this.managementContractService = managementContractService;
+        this.notificationService = notificationService;
+        this.userRepository = userRepository;
     }
 
     // ── Owner Payouts ──────────────────────────────────────────────────────
@@ -141,7 +149,23 @@ public class AccountingService {
     public OwnerPayout approvePayout(Long id, Long orgId) {
         OwnerPayout payout = getPayoutById(id, orgId);
         payout.setStatus(PayoutStatus.APPROVED);
-        return payoutRepository.save(payout);
+        OwnerPayout saved = payoutRepository.save(payout);
+
+        String amount = saved.getNetAmount() + " " + saved.getCurrency();
+
+        notificationService.notifyAdminsAndManagersByOrgId(
+                orgId,
+                NotificationKey.PAYOUT_APPROVED,
+                "Reversement approuve",
+                "Le reversement #" + saved.getId() + " (" + amount + ") a ete approuve.",
+                "/billing?tab=3"
+        );
+
+        notifyOwner(saved, NotificationKey.PAYOUT_APPROVED,
+                "Reversement approuve",
+                "Votre reversement de " + amount + " (periode " + saved.getPeriodStart() + " - " + saved.getPeriodEnd() + ") a ete approuve.");
+
+        return saved;
     }
 
     @Transactional
@@ -150,7 +174,23 @@ public class AccountingService {
         payout.setStatus(PayoutStatus.PAID);
         payout.setPaymentReference(paymentReference);
         payout.setPaidAt(Instant.now());
-        return payoutRepository.save(payout);
+        OwnerPayout saved = payoutRepository.save(payout);
+
+        String amount = saved.getNetAmount() + " " + saved.getCurrency();
+
+        notificationService.notifyAdminsAndManagersByOrgId(
+                orgId,
+                NotificationKey.PAYOUT_EXECUTED,
+                "Reversement execute",
+                "Le reversement #" + saved.getId() + " (" + amount + ") a ete paye. Ref: " + paymentReference,
+                "/billing?tab=3"
+        );
+
+        notifyOwner(saved, NotificationKey.PAYOUT_EXECUTED,
+                "Reversement effectue",
+                "Votre reversement de " + amount + " a ete effectue. Reference: " + paymentReference);
+
+        return saved;
     }
 
     // ── Channel Commissions ────────────────────────────────────────────────
@@ -169,6 +209,21 @@ public class AccountingService {
     }
 
     // ── Private Helpers ────────────────────────────────────────────────────
+
+    /**
+     * Sends an in-app notification to the owner of a payout.
+     * Silently skipped if the owner user is not found (defensive).
+     */
+    private void notifyOwner(OwnerPayout payout, NotificationKey key, String title, String message) {
+        userRepository.findById(payout.getOwnerId()).ifPresent(owner -> {
+            if (owner.getKeycloakId() != null) {
+                notificationService.sendByOrgId(
+                        owner.getKeycloakId(), key, title, message,
+                        "/billing?tab=3", payout.getOrganizationId()
+                );
+            }
+        });
+    }
 
     /**
      * Resolves commission rate for a set of reservations belonging to an owner.

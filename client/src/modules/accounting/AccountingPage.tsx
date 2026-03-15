@@ -43,6 +43,8 @@ import {
   useGeneratePayout,
   useApprovePayout,
   useMarkAsPaid,
+  useExecutePayout,
+  useRetryPayout,
   useCommissions,
   useSaveCommission,
 } from '../../hooks/useAccounting';
@@ -72,7 +74,9 @@ const STATUS_OPTIONS: { value: PayoutStatus | ''; label: string }[] = [
   { value: '', label: 'Tous' },
   { value: 'PENDING', label: 'Brouillon' },
   { value: 'APPROVED', label: 'Approuve' },
+  { value: 'PROCESSING', label: 'En cours' },
   { value: 'PAID', label: 'Paye' },
+  { value: 'FAILED', label: 'Echoue' },
   { value: 'CANCELLED', label: 'Annule' },
 ];
 
@@ -139,7 +143,7 @@ const AccountingPage: React.FC = () => {
 //  Payouts Tab
 // ═══════════════════════════════════════════════════════════════════════════
 
-const PayoutsTab: React.FC = () => {
+export const PayoutsTab: React.FC = () => {
   const { t } = useTranslation();
 
   // Filters
@@ -171,6 +175,8 @@ const PayoutsTab: React.FC = () => {
   const generateMutation = useGeneratePayout();
   const approveMutation = useApprovePayout();
   const markPaidMutation = useMarkAsPaid();
+  const executeMutation = useExecutePayout();
+  const retryMutation = useRetryPayout();
 
   // Owner list from payouts (unique owners with resolved names)
   const ownerOptions = useMemo(() => {
@@ -294,6 +300,26 @@ const PayoutsTab: React.FC = () => {
           {t('accounting.approveSuccess', 'Payout approuve')}
         </Alert>
       )}
+      {executeMutation.isSuccess && (
+        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => executeMutation.reset()}>
+          {t('accounting.executeSuccess', 'Virement execute avec succes')}
+        </Alert>
+      )}
+      {executeMutation.isError && (
+        <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => executeMutation.reset()}>
+          {t('accounting.executeError', 'Erreur lors de l\'execution du virement')}
+        </Alert>
+      )}
+      {retryMutation.isSuccess && (
+        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => retryMutation.reset()}>
+          {t('accounting.retrySuccess', 'Relance effectuee avec succes')}
+        </Alert>
+      )}
+      {retryMutation.isError && (
+        <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => retryMutation.reset()}>
+          {t('accounting.retryError', 'Erreur lors de la relance du virement')}
+        </Alert>
+      )}
       {markPaidMutation.isSuccess && (
         <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => markPaidMutation.reset()}>
           {t('accounting.paidSuccess', 'Payout marque comme paye')}
@@ -393,14 +419,55 @@ const PayoutsTab: React.FC = () => {
                       </Tooltip>
                     )}
                     {payout.status === 'APPROVED' && (
-                      <Tooltip title={t('accounting.markPaid', 'Marquer paye')}>
+                      <>
+                        <Tooltip title={t('accounting.executePayout', 'Executer le virement')}>
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => executeMutation.mutate(payout.id)}
+                            disabled={executeMutation.isPending}
+                          >
+                            {executeMutation.isPending ? (
+                              <CircularProgress size={14} />
+                            ) : (
+                              <AccountIcon sx={{ fontSize: '1rem' }} />
+                            )}
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title={t('accounting.markPaid', 'Marquer paye')}>
+                          <IconButton
+                            size="small"
+                            color="success"
+                            onClick={() => openPayDialog(payout)}
+                            disabled={markPaidMutation.isPending}
+                          >
+                            <PaidIcon sx={{ fontSize: '1rem' }} />
+                          </IconButton>
+                        </Tooltip>
+                      </>
+                    )}
+                    {payout.status === 'PROCESSING' && (
+                      <Chip
+                        label={t('accounting.processing', 'En cours...')}
+                        size="small"
+                        sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
+                        color="secondary"
+                        variant="outlined"
+                      />
+                    )}
+                    {payout.status === 'FAILED' && (
+                      <Tooltip title={payout.failureReason ?? t('accounting.failedPayout', 'Echec du reversement')}>
                         <IconButton
                           size="small"
-                          color="success"
-                          onClick={() => openPayDialog(payout)}
-                          disabled={markPaidMutation.isPending}
+                          color="warning"
+                          onClick={() => retryMutation.mutate(payout.id)}
+                          disabled={retryMutation.isPending || payout.retryCount >= 3}
                         >
-                          <PaidIcon sx={{ fontSize: '1rem' }} />
+                          {retryMutation.isPending ? (
+                            <CircularProgress size={14} />
+                          ) : (
+                            <BuildIcon sx={{ fontSize: '1rem' }} />
+                          )}
                         </IconButton>
                       </Tooltip>
                     )}
@@ -545,7 +612,7 @@ const PayoutsTab: React.FC = () => {
 //  Commissions Tab
 // ═══════════════════════════════════════════════════════════════════════════
 
-const CommissionsTab: React.FC = () => {
+export const CommissionsTab: React.FC = () => {
   const { t } = useTranslation();
   const { data: commissions = [], isLoading, isError } = useCommissions();
   const saveMutation = useSaveCommission();
@@ -699,7 +766,7 @@ const EXPENSE_STATUS_OPTIONS: { value: ExpenseStatus | ''; label: string; labelK
 
 const CATEGORY_OPTIONS: ExpenseCategory[] = ['CLEANING', 'MAINTENANCE', 'LAUNDRY', 'SUPPLIES', 'LANDSCAPING', 'OTHER'];
 
-const ExpensesTab: React.FC = () => {
+export const ExpensesTab: React.FC = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -1364,7 +1431,7 @@ const EXPORT_CARDS: ExportCardDef[] = [
   },
 ];
 
-const ExportsTab: React.FC = () => {
+export const ExportsTab: React.FC = () => {
   const { t } = useTranslation();
 
   // Default period: first day of current year → today

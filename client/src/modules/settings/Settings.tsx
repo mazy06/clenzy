@@ -43,6 +43,7 @@ import {
   Payment,
   AutoAwesome,
   Extension,
+  CalendarMonth,
 } from '@mui/icons-material';
 import { guestMessagingApi } from '../../services/api/guestMessagingApi';
 import type { MessagingAutomationConfig } from '../../services/api/guestMessagingApi';
@@ -67,6 +68,9 @@ import TaxRulesSection from './TaxRulesSection';
 import PaymentSettings from './PaymentSettings';
 import AiSettingsSection from './AiSettingsSection';
 import IntegrationsSection from './IntegrationsSection';
+import PayoutScheduleSettings from './PayoutScheduleSettings';
+import OwnerPayoutSettings from './OwnerPayoutSettings';
+import MyPayoutSettings from './MyPayoutSettings';
 import { CURRENCY_OPTIONS } from '../../utils/currencyUtils';
 
 // ─── TabPanel ─────────────────────────────────────────────────────────────────
@@ -381,6 +385,14 @@ export default function Settings() {
             label="Messagerie"
             {...a11yProps(2)}
           />
+          {hasAnyRole(['HOST']) && (
+            <Tab
+              icon={<AccountBalance sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label={t('settings.myPayout.tabLabel', 'Mes reversements')}
+              {...a11yProps(3)}
+            />
+          )}
           {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
             <Tab
               icon={<AutoAwesome sx={{ fontSize: 18 }} />}
@@ -419,6 +431,14 @@ export default function Settings() {
               iconPosition="start"
               label="Intégrations"
               {...a11yProps(7)}
+            />
+          )}
+          {hasAnyRole(['SUPER_ADMIN']) && (
+            <Tab
+              icon={<CalendarMonth sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label="Reversements"
+              {...a11yProps(8)}
             />
           )}
         </Tabs>
@@ -830,6 +850,13 @@ export default function Settings() {
         <MessagingAutomationSection />
       </TabPanel>
 
+      {/* ─── Onglet Mes reversements (HOST) ────────────────────────── */}
+      {hasAnyRole(['HOST']) && (
+        <TabPanel value={tabValue} index={3}>
+          <MyPayoutSettings />
+        </TabPanel>
+      )}
+
       {/* ─── Onglet IA (ADMIN/MANAGER) ───────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
         <TabPanel value={tabValue} index={3}>
@@ -867,6 +894,15 @@ export default function Settings() {
       {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
         <TabPanel value={tabValue} index={7}>
           <IntegrationsSection />
+        </TabPanel>
+      )}
+
+      {/* ─── Onglet Reversements (SUPER_ADMIN) ──────────────────────────── */}
+      {hasAnyRole(['SUPER_ADMIN']) && (
+        <TabPanel value={tabValue} index={8}>
+          <PayoutScheduleSettings />
+          <Box sx={{ mt: 4 }} />
+          <OwnerPayoutSettings />
         </TabPanel>
       )}
 

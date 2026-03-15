@@ -24,6 +24,7 @@ import ActionCountersWidget from './ActionCountersWidget';
 import ServicesStatusWidget from './ServicesStatusWidget';
 import AiUsageWidget from './AiUsageWidget';
 import { useAiFeatureToggles } from '../../hooks/useAi';
+import { usePendingPayouts } from '../../hooks/usePendingPayouts';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import { channelConnectionApi } from '../../services/api/channelConnectionApi';
 import { fiscalProfileApi } from '../../services/api/fiscalProfileApi';
@@ -117,6 +118,8 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
     period,
     interventions: EMPTY_INTERVENTIONS,
   });
+
+  const { data: pendingPayoutsData, isLoading: pendingPayoutsLoading } = usePendingPayouts();
 
   // ─── Onboarding: wire hasPricing & hasChannels to real data ───────────
   const hasProperties = (stats?.properties.total ?? 0) > 0;
@@ -305,6 +308,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                     alerts={alerts}
                     stats={stats}
                     pendingPaymentsCount={pendingPaymentsCount}
+                    pendingPayoutsCount={pendingPayoutsData?.pendingCount ?? 0}
                     loading={loading}
                     navigate={navigate}
                     t={t}
