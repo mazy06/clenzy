@@ -1,6 +1,12 @@
--- 0085: Add all missing notification keys and categories to CHECK constraints
+-- 0085: Fix CHECK constraints for notifications and owner_payouts
 
--- 1. Update category constraint to include CONVERSATION, REVIEW, PAYOUT
+-- 0. Fix owner_payouts status CHECK constraint (add PROCESSING status)
+ALTER TABLE owner_payouts DROP CONSTRAINT IF EXISTS owner_payouts_status_check;
+
+ALTER TABLE owner_payouts ADD CONSTRAINT owner_payouts_status_check
+    CHECK (status IN ('PENDING', 'APPROVED', 'PROCESSING', 'PAID', 'FAILED', 'CANCELLED'));
+
+-- 1. Update category constraint to include CONVERSATION, REVIEW
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_category_check;
 
 ALTER TABLE notifications ADD CONSTRAINT notifications_category_check
