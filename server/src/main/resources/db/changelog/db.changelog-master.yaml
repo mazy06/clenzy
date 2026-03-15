@@ -738,3 +738,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0084__owner_payout_config.sql
         relativeToChangelogFile: true
+
+  # --- 0085 : Add payout notification keys to CHECK constraint ---
+  - changeSet:
+      id: "0085-add-payout-notification-keys"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0085__add_payout_notification_keys.sql
+        relativeToChangelogFile: true
