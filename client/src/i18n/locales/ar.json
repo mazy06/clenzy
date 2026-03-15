@@ -3119,6 +3119,14 @@
       "emptyDescription": "أنشئ أول دفعة لحساب المبلغ المستحق لمالك العقار.",
       "emptyAction": "إنشاء أول دفعة"
     },
+    "payoutStatuses": {
+      "PENDING": "قيد الانتظار",
+      "APPROVED": "موافق عليه",
+      "PROCESSING": "قيد التنفيذ",
+      "PAID": "مدفوع",
+      "FAILED": "فشل",
+      "CANCELLED": "ملغى"
+    },
     "executePayout": "تنفيذ التحويل",
     "executeSuccess": "تم تنفيذ التحويل بنجاح",
     "executeError": "خطأ في تنفيذ التحويل",
