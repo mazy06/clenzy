@@ -512,9 +512,16 @@ export const PayoutsTab: React.FC = () => {
               label={t('accounting.form.owner', 'Proprietaire')}
               sx={{ fontSize: '0.8125rem' }}
             >
-              {properties.map((p: Property) => (
-                <MenuItem key={p.id} value={p.id} sx={{ fontSize: '0.8125rem' }}>
-                  {p.name} (#{p.id})
+              {Array.from(
+                properties.reduce((map: Map<number, string>, p: Property) => {
+                  if (!map.has(p.ownerId)) {
+                    map.set(p.ownerId, p.ownerName || `Proprietaire #${p.ownerId}`);
+                  }
+                  return map;
+                }, new Map<number, string>())
+              ).map(([id, name]) => (
+                <MenuItem key={id} value={id} sx={{ fontSize: '0.8125rem' }}>
+                  {name}
                 </MenuItem>
               ))}
             </Select>
