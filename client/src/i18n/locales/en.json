@@ -3110,6 +3110,14 @@
       "emptyDescription": "Generate your first payout to calculate the amount owed to an owner.",
       "emptyAction": "Generate your first payout"
     },
+    "payoutStatuses": {
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "PROCESSING": "Processing",
+      "PAID": "Paid",
+      "FAILED": "Failed",
+      "CANCELLED": "Cancelled"
+    },
     "executePayout": "Execute transfer",
     "executeSuccess": "Transfer executed successfully",
     "executeError": "Error executing transfer",

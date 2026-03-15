@@ -70,14 +70,8 @@ import { formatCurrency } from '../../utils/currencyUtils';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const STATUS_OPTIONS: { value: PayoutStatus | ''; label: string }[] = [
-  { value: '', label: 'Tous' },
-  { value: 'PENDING', label: 'Brouillon' },
-  { value: 'APPROVED', label: 'Approuve' },
-  { value: 'PROCESSING', label: 'En cours' },
-  { value: 'PAID', label: 'Paye' },
-  { value: 'FAILED', label: 'Echoue' },
-  { value: 'CANCELLED', label: 'Annule' },
+const PAYOUT_STATUS_VALUES: (PayoutStatus | '')[] = [
+  '', 'PENDING', 'APPROVED', 'PROCESSING', 'PAID', 'FAILED', 'CANCELLED',
 ];
 
 const CARD_SX = {
@@ -258,18 +252,18 @@ export const PayoutsTab: React.FC = () => {
         </FormControl>
 
         <Box sx={{ display: 'flex', gap: 0.5 }}>
-          {STATUS_OPTIONS.map((opt) => (
+          {PAYOUT_STATUS_VALUES.map((val) => (
             <Chip
-              key={opt.value}
-              label={opt.label}
+              key={val}
+              label={val === '' ? t('common.all', 'Tous') : t(`accounting.payoutStatuses.${val}`, val)}
               size="small"
-              variant={filterStatus === opt.value ? 'filled' : 'outlined'}
-              onClick={() => setFilterStatus(opt.value as PayoutStatus | '')}
+              variant={filterStatus === val ? 'filled' : 'outlined'}
+              onClick={() => setFilterStatus(val as PayoutStatus | '')}
               sx={{
                 fontSize: '0.6875rem',
                 fontWeight: 600,
-                ...(filterStatus === opt.value && opt.value !== ''
-                  ? { backgroundColor: PAYOUT_STATUS_COLORS[opt.value as PayoutStatus], color: '#fff' }
+                ...(filterStatus === val && val !== ''
+                  ? { backgroundColor: PAYOUT_STATUS_COLORS[val as PayoutStatus], color: '#fff' }
                   : {}),
               }}
             />
@@ -395,7 +389,7 @@ export const PayoutsTab: React.FC = () => {
                   </TableCell>
                   <TableCell align="center">
                     <Chip
-                      label={payout.status}
+                      label={t(`accounting.payoutStatuses.${payout.status}`, payout.status)}
                       size="small"
                       sx={{
                         fontSize: '0.625rem',

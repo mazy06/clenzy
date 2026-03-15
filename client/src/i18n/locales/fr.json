@@ -3177,6 +3177,14 @@
       "emptyDescription": "Générez votre premier payout pour calculer le reversement dû à un propriétaire.",
       "emptyAction": "Générer votre premier payout"
     },
+    "payoutStatuses": {
+      "PENDING": "En attente",
+      "APPROVED": "Approuvé",
+      "PROCESSING": "En cours",
+      "PAID": "Payé",
+      "FAILED": "Échoué",
+      "CANCELLED": "Annulé"
+    },
     "executePayout": "Exécuter le virement",
     "executeSuccess": "Virement exécuté avec succès",
     "executeError": "Erreur lors de l'exécution du virement",
