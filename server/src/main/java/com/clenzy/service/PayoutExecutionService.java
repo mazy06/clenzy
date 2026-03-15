@@ -51,17 +51,21 @@ public class PayoutExecutionService {
         }
 
         OwnerPayoutConfig config = configRepository.findByOwnerIdAndOrgId(payout.getOwnerId(), orgId)
-                .orElseThrow(() -> new IllegalStateException(
-                        "No payout config found for owner " + payout.getOwnerId()));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Le proprietaire n'a pas encore configure sa methode de paiement. "
+                        + "Il doit renseigner son IBAN ou connecter son compte Stripe dans Parametres > Mes reversements."));
 
         if (!config.isVerified()) {
-            throw new IllegalStateException("Owner payout config is not verified yet");
+            throw new IllegalArgumentException(
+                    "La configuration de paiement du proprietaire n'est pas encore verifiee.");
         }
 
         return switch (config.getPayoutMethod()) {
             case STRIPE_CONNECT -> executeStripeTransfer(payout, config);
             case SEPA_TRANSFER -> markSepaProcessing(payout);
-            case MANUAL -> throw new IllegalStateException("Manual payouts cannot be auto-executed");
+            case MANUAL -> throw new IllegalArgumentException(
+                    "Les reversements en mode manuel ne peuvent pas etre executes automatiquement. "
+                    + "Changez la methode de paiement du proprietaire en SEPA ou Stripe Connect.");
         };
     }
 
