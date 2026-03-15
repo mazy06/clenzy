@@ -1,11 +1,13 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.OwnerPayoutConfigDto;
+import com.clenzy.model.NotificationKey;
 import com.clenzy.model.OwnerPayoutConfig;
 import com.clenzy.model.PayoutMethod;
 import com.clenzy.model.User;
 import com.clenzy.repository.OwnerPayoutConfigRepository;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.NotificationService;
 import com.clenzy.service.StripeConnectService;
 import com.clenzy.tenant.TenantContext;
 import com.stripe.exception.StripeException;
@@ -34,15 +36,18 @@ public class OwnerPayoutConfigController {
     private final TenantContext tenantContext;
     private final UserRepository userRepository;
     private final StripeConnectService stripeConnectService;
+    private final NotificationService notificationService;
 
     public OwnerPayoutConfigController(OwnerPayoutConfigRepository configRepository,
                                         TenantContext tenantContext,
                                         UserRepository userRepository,
-                                        StripeConnectService stripeConnectService) {
+                                        StripeConnectService stripeConnectService,
+                                        NotificationService notificationService) {
         this.configRepository = configRepository;
         this.tenantContext = tenantContext;
         this.userRepository = userRepository;
         this.stripeConnectService = stripeConnectService;
+        this.notificationService = notificationService;
     }
 
     // ─── Self-service endpoints (current user) ─────────────────────────────────
@@ -60,7 +65,17 @@ public class OwnerPayoutConfigController {
     public OwnerPayoutConfigDto updateMySepa(@AuthenticationPrincipal Jwt jwt,
                                               @RequestBody UpdateSepaRequest request) {
         User currentUser = resolveCurrentUser(jwt);
-        return updateSepaInternal(currentUser.getId(), request);
+        OwnerPayoutConfigDto result = updateSepaInternal(currentUser.getId(), request);
+
+        String ownerName = currentUser.getFirstName() + " " + currentUser.getLastName();
+        notificationService.notifyAdminsAndManagers(
+                NotificationKey.PAYOUT_CONFIG_SUBMITTED,
+                "Configuration de paiement a verifier",
+                ownerName + " a renseigne ses coordonnees bancaires (IBAN). Verification requise.",
+                "/settings?tab=reversements"
+        );
+
+        return result;
     }
 
     @PostMapping("/me/stripe-connect/init")
@@ -72,6 +87,15 @@ public class OwnerPayoutConfigController {
             OwnerPayoutConfig config = stripeConnectService.createConnectedAccount(currentUser.getId(), orgId);
             String onboardingUrl = stripeConnectService.generateOnboardingLink(
                     config.getStripeConnectedAccountId());
+
+            String ownerName = currentUser.getFirstName() + " " + currentUser.getLastName();
+            notificationService.notifyAdminsAndManagers(
+                    NotificationKey.PAYOUT_CONFIG_SUBMITTED,
+                    "Connexion Stripe Connect initiee",
+                    ownerName + " a initie la connexion de son compte Stripe Connect. Onboarding en cours.",
+                    "/settings?tab=reversements"
+            );
+
             return ResponseEntity.ok(new StripeConnectInitResponse(onboardingUrl, OwnerPayoutConfigDto.from(config)));
         } catch (StripeException e) {
             log.error("Erreur Stripe Connect init pour user {}: {}", currentUser.getId(), e.getMessage(), e);
@@ -147,7 +171,20 @@ public class OwnerPayoutConfigController {
         OwnerPayoutConfig config = configRepository.findByOwnerIdAndOrgId(ownerId, orgId)
                 .orElseThrow(() -> new IllegalArgumentException("Config not found for owner " + ownerId));
         config.setVerified(true);
-        return OwnerPayoutConfigDto.from(configRepository.save(config));
+        OwnerPayoutConfigDto result = OwnerPayoutConfigDto.from(configRepository.save(config));
+
+        // Notify the owner that their config has been verified
+        userRepository.findById(ownerId).ifPresent(owner ->
+                notificationService.notify(
+                        owner.getKeycloakId(),
+                        NotificationKey.PAYOUT_CONFIG_VERIFIED,
+                        "Configuration de paiement validee",
+                        "Vos coordonnees bancaires ont ete verifiees. Vos reversements seront desormais traites automatiquement.",
+                        "/settings?tab=reversements"
+                )
+        );
+
+        return result;
     }
 
     // ─── Internal helpers ───────────────────────────────────────────────────────
