@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.service.InscriptionService;
 import com.clenzy.service.MobilePaymentService;
 import com.clenzy.service.PaymentOrchestrationService;
+import com.clenzy.service.StripeConnectService;
 import com.clenzy.service.StripeService;
 import com.clenzy.service.SubscriptionService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -10,10 +11,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stripe.Stripe;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
+import com.stripe.model.Account;
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.PaymentIntent;
 import com.stripe.model.StripeObject;
+import com.stripe.model.Transfer;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import org.slf4j.Logger;
@@ -37,6 +40,7 @@ public class StripeWebhookController {
     private final SubscriptionService subscriptionService;
     private final MobilePaymentService mobilePaymentService;
     private final PaymentOrchestrationService orchestrationService;
+    private final StripeConnectService stripeConnectService;
 
     @Value("${stripe.webhook-secret}")
     private String webhookSecret;
@@ -48,12 +52,14 @@ public class StripeWebhookController {
                                    InscriptionService inscriptionService,
                                    SubscriptionService subscriptionService,
                                    MobilePaymentService mobilePaymentService,
-                                   PaymentOrchestrationService orchestrationService) {
+                                   PaymentOrchestrationService orchestrationService,
+                                   StripeConnectService stripeConnectService) {
         this.stripeService = stripeService;
         this.inscriptionService = inscriptionService;
         this.subscriptionService = subscriptionService;
         this.mobilePaymentService = mobilePaymentService;
         this.orchestrationService = orchestrationService;
+        this.stripeConnectService = stripeConnectService;
     }
 
     /**
@@ -111,6 +117,14 @@ public class StripeWebhookController {
 
             case "payment_intent.payment_failed":
                 handlePaymentIntentFailed(event);
+                break;
+
+            case "account.updated":
+                handleAccountUpdated(event);
+                break;
+
+            case "transfer.failed":
+                handleTransferFailed(event);
                 break;
 
             default:
@@ -413,5 +427,51 @@ public class StripeWebhookController {
             }
         }
         // Pour mobile_upgrade, pas d'action speciale (la subscription reste incomplete)
+    }
+
+    /**
+     * Handles Stripe Connect account.updated event.
+     * Updates onboarding completion status when the connected account becomes fully active.
+     */
+    private void handleAccountUpdated(Event event) {
+        Account account = (Account) event.getDataObjectDeserializer()
+                .getObject()
+                .orElse(null);
+
+        if (account == null) {
+            logger.warn("Account null dans account.updated");
+            return;
+        }
+
+        boolean chargesEnabled = Boolean.TRUE.equals(account.getChargesEnabled());
+        boolean payoutsEnabled = Boolean.TRUE.equals(account.getPayoutsEnabled());
+
+        logger.info("account.updated: id={}, chargesEnabled={}, payoutsEnabled={}",
+                account.getId(), chargesEnabled, payoutsEnabled);
+
+        try {
+            stripeConnectService.handleAccountUpdated(account.getId(), chargesEnabled, payoutsEnabled);
+        } catch (Exception e) {
+            logger.error("Erreur lors du traitement account.updated pour {}: {}",
+                    account.getId(), e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Handles Stripe Connect transfer.failed event.
+     * Logs the failure — payout failure is already handled during execution.
+     */
+    private void handleTransferFailed(Event event) {
+        Transfer transfer = (Transfer) event.getDataObjectDeserializer()
+                .getObject()
+                .orElse(null);
+
+        if (transfer == null) {
+            logger.warn("Transfer null dans transfer.failed");
+            return;
+        }
+
+        logger.error("Stripe transfer failed: id={}, destination={}, amount={}",
+                transfer.getId(), transfer.getDestination(), transfer.getAmount());
     }
 }

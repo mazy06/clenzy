@@ -332,8 +332,13 @@
     "actionCounters": {
       "urgencies": "حالات طوارئ",
       "pendingPayments": "مدفوعات معلقة",
+      "pendingPayouts": "تحويلات",
       "pendingRequests": "الطلبات",
       "todayInterventions": "اليوم"
+    },
+    "payouts": {
+      "pendingTitle": "تحويلات معلقة",
+      "pendingTooltip": "تحويلات تم إنشاؤها بانتظار الموافقة"
     },
     "commandRecommendations": {
       "title": "التوصيات",
@@ -1707,6 +1712,84 @@
       "noConfig": "لم يتم العثور على إعداد. سيتم استخدام القيم الافتراضية.",
       "defaults": "القيم الافتراضية: المالك 80%، المنصة 5%، الكونسيرج 15%"
     },
+    "commissions": {
+      "title": "عمولات القنوات",
+      "subtitle": "نسبة العمولة التي تفرضها كل منصة حجز. نسب المنصات الخارجية غير قابلة للتعديل. فقط نسبة محرك الحجز يمكن تعديلها.",
+      "channel": "القناة",
+      "rate": "النسبة (%)",
+      "error": "خطأ في تحميل العمولات",
+      "empty": "لا توجد قنوات حجز مُهيأة"
+    },
+    "payoutSchedule": {
+      "title": "جدول التحويلات",
+      "subtitle": "تكوين تكرار الإنشاء التلقائي لتحويلات الملاك.",
+      "autoGenerate": "الإنشاء التلقائي",
+      "autoGenerateHelper": "سيتم إنشاء التحويلات تلقائياً وفقاً للجدول المُهيأ.",
+      "daysOfMonth": "أيام التحويل",
+      "daysOfMonthHelper": "حدد أيام الشهر التي سيتم فيها إنشاء التحويلات (1-28).",
+      "gracePeriod": "مهلة التذكير (أيام)",
+      "gracePeriodHelper": "عدد الأيام بعد الإنشاء قبل إرسال تذكير بالموافقة.",
+      "save": "حفظ الجدول",
+      "saved": "تم تحديث جدول التحويلات",
+      "error": "خطأ في تحديث الجدول",
+      "validationDays": "يرجى تحديد يوم واحد على الأقل للتحويل"
+    },
+    "ownerPayout": {
+      "title": "تكوين تحويلات الملاك",
+      "subtitle": "تكوين طريقة الدفع لكل مالك (Stripe Connect، تحويل SEPA أو يدوي).",
+      "empty": "لم يتم العثور على أي تكوين. يتم إنشاء التكوينات تلقائياً عند إنشاء أول تحويل.",
+      "col": {
+        "owner": "المالك",
+        "method": "الطريقة",
+        "details": "التفاصيل",
+        "status": "الحالة"
+      },
+      "ownerLabel": "المالك",
+      "methodUpdated": "تم تحديث طريقة الدفع",
+      "methodError": "خطأ في تحديث طريقة الدفع",
+      "editSepaTitle": "البيانات البنكية SEPA",
+      "editSepa": "تعديل SEPA",
+      "iban": "IBAN",
+      "bic": "BIC/SWIFT",
+      "holder": "صاحب الحساب",
+      "current": "الحالي",
+      "ibanInvalid": "صيغة IBAN غير صالحة",
+      "sepaSaved": "تم حفظ بيانات SEPA",
+      "sepaError": "خطأ في الحفظ",
+      "verify": "تحقق",
+      "verified": "تم التحقق من التكوين",
+      "verifyError": "خطأ في التحقق",
+      "verifiedLabel": "تم التحقق",
+      "pendingLabel": "في الانتظار",
+      "stripeConnected": "حساب متصل",
+      "stripeNotConnected": "الإعداد قيد التقدم...",
+      "manualNote": "تحويل يدوي"
+    },
+    "myPayout": {
+      "tabLabel": "تحويلاتي",
+      "title": "بيانات التحويل الخاصة بي",
+      "subtitle": "أدخل بياناتك البنكية لاستلام تحويلاتك.",
+      "statusLabel": "الحالة",
+      "verified": "تم التحقق",
+      "pendingVerification": "في انتظار التحقق",
+      "sepaSection": "تحويل بنكي (SEPA)",
+      "currentIban": "IBAN الحالي",
+      "ibanLabel": "IBAN",
+      "bicLabel": "BIC / SWIFT",
+      "holderLabel": "صاحب الحساب",
+      "saveSepa": "حفظ",
+      "ibanInvalid": "صيغة IBAN غير صالحة (مثال: FR7630006000011234567890189)",
+      "sepaSuccess": "تم حفظ البيانات البنكية",
+      "sepaError": "خطأ في الحفظ",
+      "verificationNote": "بعد التعديل، سيتم التحقق من بياناتك من قبل Clenzy قبل التفعيل.",
+      "stripeSection": "Stripe Connect",
+      "stripeDescription": "اربط حساب Stripe الخاص بك لاستلام تحويلاتك تلقائياً.",
+      "stripeConnectBtn": "ربط حساب Stripe",
+      "stripeResumeBtn": "استئناف تسجيل Stripe",
+      "stripeConnected": "حساب Stripe الخاص بك متصل ونشط.",
+      "stripeOnboardingPending": "تسجيل Stripe غير مكتمل. يرجى إكماله.",
+      "stripeError": "خطأ في الاتصال بـ Stripe"
+    },
     "integrations": {
       "title": "التكاملات",
       "comingSoon": "ستتوفر المزيد من التكاملات (PriceLabs، QuickBooks، إلخ) قريباً.",
@@ -1976,10 +2059,14 @@
   },
   "billing": {
     "title": "الفوترة",
-    "subtitle": "المدفوعات والفواتير",
+    "subtitle": "المدفوعات، الفواتير، التحويلات، المصاريف والتقارير المحاسبية",
     "tabs": {
       "payments": "المدفوعات",
-      "invoices": "الفواتير"
+      "invoices": "الفواتير",
+      "payouts": "التحويلات",
+      "expenses": "المصاريف",
+      "reportsExports": "التقارير والتصدير",
+      "exportsSection": "التصدير المحاسبي"
     }
   },
   "workOrders": {
@@ -3032,6 +3119,13 @@
       "emptyDescription": "أنشئ أول دفعة لحساب المبلغ المستحق لمالك العقار.",
       "emptyAction": "إنشاء أول دفعة"
     },
+    "executePayout": "تنفيذ التحويل",
+    "executeSuccess": "تم تنفيذ التحويل بنجاح",
+    "executeError": "خطأ في تنفيذ التحويل",
+    "retrySuccess": "تمت إعادة المحاولة بنجاح",
+    "retryError": "خطأ في إعادة محاولة التحويل",
+    "processing": "قيد التنفيذ...",
+    "failedPayout": "فشل التحويل",
     "commissions": {
       "help": {
         "title": "كيف تعمل العمولات؟",

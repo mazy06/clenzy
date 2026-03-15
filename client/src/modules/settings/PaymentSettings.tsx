@@ -17,6 +17,14 @@ import {
   Button,
   InputAdornment,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import { Save } from '@mui/icons-material';
 import { paymentConfigApi } from '../../services/api/paymentConfigApi';
@@ -24,6 +32,8 @@ import { splitConfigApi } from '../../services/api/splitConfigApi';
 import type { PaymentMethodConfig, PaymentProviderType, SplitConfiguration } from '../../types/payment';
 import { PAYMENT_PROVIDER_LABELS } from '../../types/payment';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCommissions, useSaveCommission } from '../../hooks/useAccounting';
+import type { ChannelCommission } from '../../services/api/accountingApi';
 
 export default function PaymentSettings() {
   const { t } = useTranslation();
@@ -356,6 +366,10 @@ export default function PaymentSettings() {
         )}
       </Paper>
 
+      {/* ─── Channel Commissions ─── */}
+      <Divider sx={{ my: 4 }} />
+      <ChannelCommissionsSection />
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
@@ -365,6 +379,148 @@ export default function PaymentSettings() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+    </Box>
+  );
+}
+
+// ─── Channel Commissions Section ────────────────────────────────────────────
+
+const CHANNEL_COLORS: Record<string, string> = { AIRBNB: '#FF5A5F', BOOKING: '#003580', DIRECT: '#4A9B8E' };
+
+// Seul le booking engine (DIRECT) est modifiable — les plateformes externes fixent leurs propres taux
+const EDITABLE_CHANNELS = new Set(['DIRECT']);
+
+function ChannelCommissionsSection() {
+  const { t } = useTranslation();
+  const { data: commissions = [], isLoading, isError } = useCommissions();
+  const saveMutation = useSaveCommission();
+
+  const [editRates, setEditRates] = useState<Record<string, string>>({});
+  const [savedChannel, setSavedChannel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (commissions.length > 0 && Object.keys(editRates).length === 0) {
+      const rates: Record<string, string> = {};
+      for (const c of commissions) {
+        if (EDITABLE_CHANNELS.has(c.channelName)) {
+          rates[c.channelName] = String(c.commissionRate);
+        }
+      }
+      setEditRates(rates);
+    }
+  }, [commissions, editRates]);
+
+  const handleSave = useCallback(
+    async (commission: ChannelCommission) => {
+      const newRate = parseFloat(editRates[commission.channelName] ?? '0');
+      if (isNaN(newRate) || newRate < 0 || newRate > 100) return;
+      await saveMutation.mutateAsync({
+        channel: commission.channelName,
+        data: { ...commission, commissionRate: newRate },
+      });
+      setSavedChannel(commission.channelName);
+      setTimeout(() => setSavedChannel(null), 2000);
+    },
+    [editRates, saveMutation],
+  );
+
+  return (
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        {t('settings.commissions.title', 'Commissions canaux')}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" gutterBottom>
+        {t('settings.commissions.subtitle', 'Taux de commission prélevé par chaque plateforme de réservation. Les taux des plateformes externes ne sont pas modifiables. Seul le taux du booking engine est configurable.')}
+      </Typography>
+
+      {isLoading ? (
+        <Box display="flex" justifyContent="center" p={4}>
+          <CircularProgress />
+        </Box>
+      ) : isError ? (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {t('settings.commissions.error', 'Erreur lors du chargement des commissions')}
+        </Alert>
+      ) : commissions.length === 0 ? (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          {t('settings.commissions.empty', 'Aucun canal de réservation configuré')}
+        </Alert>
+      ) : (
+        <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem' }}>
+                  {t('settings.commissions.channel', 'Canal')}
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.75rem' }}>
+                  {t('settings.commissions.rate', 'Taux (%)')}
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.75rem', width: 80 }} />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {commissions.map((c) => {
+                const isEditable = EDITABLE_CHANNELS.has(c.channelName);
+                return (
+                  <TableRow key={c.channelName} hover>
+                    <TableCell>
+                      <Chip
+                        label={c.channelName === 'DIRECT' ? 'Booking Engine' : c.channelName}
+                        size="small"
+                        sx={{
+                          fontSize: '0.6875rem',
+                          fontWeight: 700,
+                          backgroundColor: CHANNEL_COLORS[c.channelName] ?? '#666',
+                          color: '#fff',
+                          height: 22,
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      {isEditable ? (
+                        <TextField
+                          type="number"
+                          size="small"
+                          value={editRates[c.channelName] ?? c.commissionRate}
+                          onChange={(e) =>
+                            setEditRates((prev) => ({ ...prev, [c.channelName]: e.target.value }))
+                          }
+                          inputProps={{ min: 0, max: 100, step: 0.5, style: { textAlign: 'center' } }}
+                          sx={{ width: 100 }}
+                          InputProps={{ sx: { fontSize: '0.8125rem' } }}
+                        />
+                      ) : (
+                        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                          {c.commissionRate}%
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="right">
+                      {isEditable && (
+                        savedChannel === c.channelName ? (
+                          <Chip label={t('common.saved', 'Sauvegardé')} size="small" color="success" sx={{ fontSize: '0.6875rem', height: 22 }} />
+                        ) : (
+                          <Tooltip title={t('common.save', 'Enregistrer')}>
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleSave(c)}
+                              disabled={saveMutation.isPending}
+                            >
+                              <Save sx={{ fontSize: '1rem' }} />
+                            </IconButton>
+                          </Tooltip>
+                        )
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </Box>
   );
 }

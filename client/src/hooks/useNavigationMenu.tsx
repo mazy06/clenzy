@@ -22,7 +22,6 @@ import {
   Handshake,
   ChatBubbleOutline,
   Storage,
-  Receipt,
   CalendarViewWeek,
   PersonSearch,
   Contacts,
@@ -149,14 +148,7 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     translationKey: 'navigation.billing',
     group: 'management',
   },
-  {
-    icon: <Receipt />,
-    path: '/accounting',
-    roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
-    permission: 'payments:view',
-    translationKey: 'navigation.accounting',
-    group: 'management',
-  },
+  // Comptabilité fusionnée dans Facturation (/billing?tab=3+)
   // Portefeuille fusionné dans Facturation (/billing?tab=2)
   {
     icon: <Handshake />,

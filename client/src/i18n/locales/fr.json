@@ -332,8 +332,13 @@
     "actionCounters": {
       "urgencies": "Urgences",
       "pendingPayments": "Paiements en attente",
+      "pendingPayouts": "Reversements",
       "pendingRequests": "Demandes",
       "todayInterventions": "Aujourd'hui"
+    },
+    "payouts": {
+      "pendingTitle": "Reversements en attente",
+      "pendingTooltip": "Reversements generés en attente d'approbation"
     },
     "commandRecommendations": {
       "title": "Recommandations",
@@ -1708,6 +1713,84 @@
       "noConfig": "Aucune configuration trouvée. Les valeurs par défaut seront utilisées.",
       "defaults": "Valeurs par défaut : Propriétaire 80%, Plateforme 5%, Conciergerie 15%"
     },
+    "commissions": {
+      "title": "Commissions canaux",
+      "subtitle": "Taux de commission prélevé par chaque plateforme de réservation. Les taux des plateformes externes ne sont pas modifiables. Seul le taux du booking engine est configurable.",
+      "channel": "Canal",
+      "rate": "Taux (%)",
+      "error": "Erreur lors du chargement des commissions",
+      "empty": "Aucun canal de réservation configuré"
+    },
+    "payoutSchedule": {
+      "title": "Calendrier de reversement",
+      "subtitle": "Configurez la fréquence de génération automatique des reversements aux propriétaires.",
+      "autoGenerate": "Génération automatique",
+      "autoGenerateHelper": "Les reversements seront générés automatiquement selon le calendrier configuré.",
+      "daysOfMonth": "Jours de reversement",
+      "daysOfMonthHelper": "Sélectionnez les jours du mois où les reversements seront générés (1-28).",
+      "gracePeriod": "Délai de rappel (jours)",
+      "gracePeriodHelper": "Nombre de jours après la génération avant d'envoyer un rappel d'approbation.",
+      "save": "Enregistrer le calendrier",
+      "saved": "Calendrier de reversement mis à jour",
+      "error": "Erreur lors de la mise à jour du calendrier",
+      "validationDays": "Veuillez sélectionner au moins un jour de reversement"
+    },
+    "ownerPayout": {
+      "title": "Configuration des reversements propriétaires",
+      "subtitle": "Configurez la méthode de paiement pour chaque propriétaire (Stripe Connect, virement SEPA ou manuel).",
+      "empty": "Aucune configuration trouvée. Les configurations sont créées automatiquement lors de la première génération de payout.",
+      "col": {
+        "owner": "Propriétaire",
+        "method": "Méthode",
+        "details": "Détails",
+        "status": "Statut"
+      },
+      "ownerLabel": "Propriétaire",
+      "methodUpdated": "Méthode de paiement mise à jour",
+      "methodError": "Erreur lors de la mise à jour de la méthode",
+      "editSepaTitle": "Coordonnées bancaires SEPA",
+      "editSepa": "Modifier SEPA",
+      "iban": "IBAN",
+      "bic": "BIC/SWIFT",
+      "holder": "Titulaire du compte",
+      "current": "Actuel",
+      "ibanInvalid": "Format IBAN invalide",
+      "sepaSaved": "Coordonnées SEPA enregistrées",
+      "sepaError": "Erreur lors de l'enregistrement",
+      "verify": "Vérifier",
+      "verified": "Configuration vérifiée",
+      "verifyError": "Erreur lors de la vérification",
+      "verifiedLabel": "Vérifié",
+      "pendingLabel": "En attente",
+      "stripeConnected": "Compte connecté",
+      "stripeNotConnected": "Onboarding en cours...",
+      "manualNote": "Virement manuel"
+    },
+    "myPayout": {
+      "tabLabel": "Mes reversements",
+      "title": "Mes coordonnees de reversement",
+      "subtitle": "Renseignez vos coordonnees bancaires pour recevoir vos reversements.",
+      "statusLabel": "Statut",
+      "verified": "Verifie",
+      "pendingVerification": "En attente de verification",
+      "sepaSection": "Virement bancaire (SEPA)",
+      "currentIban": "IBAN actuel",
+      "ibanLabel": "IBAN",
+      "bicLabel": "BIC / SWIFT",
+      "holderLabel": "Titulaire du compte",
+      "saveSepa": "Enregistrer",
+      "ibanInvalid": "Format IBAN invalide (ex: FR7630006000011234567890189)",
+      "sepaSuccess": "Coordonnees bancaires enregistrees",
+      "sepaError": "Erreur lors de l'enregistrement",
+      "verificationNote": "Apres modification, vos coordonnees seront verifiees par Clenzy avant activation.",
+      "stripeSection": "Stripe Connect",
+      "stripeDescription": "Connectez votre compte Stripe pour recevoir vos reversements automatiquement.",
+      "stripeConnectBtn": "Connecter mon compte Stripe",
+      "stripeResumeBtn": "Reprendre l'inscription Stripe",
+      "stripeConnected": "Votre compte Stripe est connecte et actif.",
+      "stripeOnboardingPending": "Votre inscription Stripe n'est pas terminee. Veuillez la completer.",
+      "stripeError": "Erreur lors de la connexion Stripe"
+    },
     "integrations": {
       "title": "Intégrations",
       "comingSoon": "D'autres intégrations (PriceLabs, QuickBooks, etc.) seront disponibles prochainement.",
@@ -1977,10 +2060,14 @@
   },
   "billing": {
     "title": "Facturation",
-    "subtitle": "Paiements et factures",
+    "subtitle": "Paiements, factures, reversements, dépenses et rapports comptables",
     "tabs": {
       "payments": "Paiements",
-      "invoices": "Factures"
+      "invoices": "Factures",
+      "payouts": "Reversements",
+      "expenses": "Dépenses",
+      "reportsExports": "Rapports & Exports",
+      "exportsSection": "Exports comptables"
     },
     "basePlan": "Abonnement de base",
     "seats": "Utilisateurs suppl.",
@@ -3090,6 +3177,13 @@
       "emptyDescription": "Générez votre premier payout pour calculer le reversement dû à un propriétaire.",
       "emptyAction": "Générer votre premier payout"
     },
+    "executePayout": "Exécuter le virement",
+    "executeSuccess": "Virement exécuté avec succès",
+    "executeError": "Erreur lors de l'exécution du virement",
+    "retrySuccess": "Relance effectuée avec succès",
+    "retryError": "Erreur lors de la relance du virement",
+    "processing": "En cours...",
+    "failedPayout": "Échec du reversement",
     "commissions": {
       "help": {
         "title": "Comment fonctionnent les commissions ?",

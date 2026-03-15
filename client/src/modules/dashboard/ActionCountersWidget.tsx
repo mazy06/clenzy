@@ -13,6 +13,7 @@ import {
   Payment,
   Assignment,
   Build,
+  AccountBalance,
 } from '@mui/icons-material';
 import type { NavigateFunction } from 'react-router-dom';
 import type { AlertItem, DashboardStats } from '../../types/dashboard';
@@ -25,6 +26,7 @@ interface ActionCountersWidgetProps {
   alerts: AlertItem[];
   stats: DashboardStats | null;
   pendingPaymentsCount: number;
+  pendingPayoutsCount: number;
   loading: boolean;
   navigate: NavigateFunction;
   t: TranslationFn;
@@ -98,6 +100,7 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
   alerts,
   stats,
   pendingPaymentsCount,
+  pendingPayoutsCount,
   loading,
   navigate,
   t,
@@ -126,6 +129,14 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
         route: '/billing',
       },
       {
+        key: 'payouts',
+        label: t('dashboard.actionCounters.pendingPayouts'),
+        value: pendingPayoutsCount,
+        icon: <AccountBalance sx={{ fontSize: 16, color: '#8B7EC8' }} />,
+        color: '#8B7EC8',
+        route: '/billing?tab=3',
+      },
+      {
         key: 'requests',
         label: t('dashboard.actionCounters.pendingRequests'),
         value: stats?.serviceRequests.pending ?? 0,
@@ -142,15 +153,15 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
         route: '/interventions',
       },
     ];
-  }, [alerts, stats, pendingPaymentsCount, t]);
+  }, [alerts, stats, pendingPaymentsCount, pendingPayoutsCount, t]);
 
   const cardSx = useMemo(() => COUNTER_CARD_SX(isDark), [isDark]);
 
   if (loading) {
     return (
       <Grid container spacing={1.5}>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Grid item xs={6} sm={3} key={i}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Grid item xs={6} sm key={i}>
             <Card sx={{ borderRadius: '12px' }}>
               <CardContent sx={CARD_CONTENT_SX}>
                 <Skeleton variant="circular" width={32} height={32} />
@@ -167,7 +178,7 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
   return (
     <Grid container spacing={1.5}>
       {counters.map((counter) => (
-        <Grid item xs={6} sm={3} key={counter.key}>
+        <Grid item xs={6} sm key={counter.key}>
           <Card
             sx={cardSx}
             onClick={() => navigate(counter.route)}

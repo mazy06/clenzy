@@ -4,11 +4,16 @@ import {
   Tabs,
   Tab,
   Paper,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import {
   Payment,
   Receipt,
   AccountBalanceWallet,
+  AccountBalance,
+  Category,
+  Assessment,
 } from '@mui/icons-material';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -17,22 +22,59 @@ import PageHeader from '../../components/PageHeader';
 import PaymentHistoryPage from '../payments/PaymentHistoryPage';
 import InvoicesList from '../invoices/InvoicesList';
 import WalletDashboard from '../finance/WalletDashboard';
+import { PayoutsTab, ExpensesTab, ExportsTab } from '../accounting/AccountingPage';
+import FiscalReportSection from '../reports/FiscalReportSection';
 
 // ─── Tab indices (logical, stable) ──────────────────────────────────────────
 
 const TAB_PAYMENTS = 0;
 const TAB_INVOICES = 1;
 const TAB_WALLETS = 2;
+const TAB_PAYOUTS = 3;
+const TAB_EXPENSES = 4;
+const TAB_REPORTS = 5;
+
+// ─── Merged Reports & Exports Tab ──────────────────────────────────────────
+
+const ReportsExportsTab: React.FC = () => {
+  const { t } = useTranslation();
+  const [view, setView] = useState<'fiscal' | 'exports'>('fiscal');
+
+  return (
+    <Box>
+      <Paper sx={{ p: 1.5, mb: 2, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5 }}>
+        <ToggleButtonGroup
+          value={view}
+          exclusive
+          onChange={(_e, v) => v && setView(v)}
+          size="small"
+          sx={{ '& .MuiToggleButton-root': { textTransform: 'none', fontSize: '0.8125rem', px: 3 } }}
+        >
+          <ToggleButton value="fiscal">
+            {t('billing.tabs.fiscalReport', 'Rapport fiscal')}
+          </ToggleButton>
+          <ToggleButton value="exports">
+            {t('billing.tabs.exports', 'Exports comptables')}
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Paper>
+
+      {view === 'fiscal' && <FiscalReportSection />}
+      {view === 'exports' && <ExportsTab />}
+    </Box>
+  );
+};
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const BillingPage: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, hasAnyRole } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const canViewInvoices = user?.permissions?.includes('reports:view') ?? false;
   const canViewWallets = user?.permissions?.includes('payments:manage') ?? false;
+  const canViewAccounting = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
 
   // Build visible tabs dynamically (order preserved)
   const visibleTabs: { index: number; key: string }[] = [
@@ -40,6 +82,11 @@ const BillingPage: React.FC = () => {
   ];
   if (canViewInvoices) visibleTabs.push({ index: TAB_INVOICES, key: 'invoices' });
   if (canViewWallets) visibleTabs.push({ index: TAB_WALLETS, key: 'wallets' });
+  if (canViewAccounting) {
+    visibleTabs.push({ index: TAB_PAYOUTS, key: 'payouts' });
+    visibleTabs.push({ index: TAB_EXPENSES, key: 'expenses' });
+    visibleTabs.push({ index: TAB_REPORTS, key: 'reports' });
+  }
 
   // Map URL ?tab=<logicalIndex> → visible position
   const getInitialPos = () => {
@@ -116,6 +163,27 @@ const BillingPage: React.FC = () => {
                 label={t('navigation.wallets')}
               />
             )}
+            {canViewAccounting && (
+              <Tab
+                icon={<AccountBalance sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label={t('billing.tabs.payouts', 'Reversements')}
+              />
+            )}
+            {canViewAccounting && (
+              <Tab
+                icon={<Category sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label={t('billing.tabs.expenses', 'Depenses')}
+              />
+            )}
+            {canViewAccounting && (
+              <Tab
+                icon={<Assessment sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label={t('billing.tabs.reportsExports', 'Rapports & Exports')}
+              />
+            )}
           </Tabs>
         </Box>
       </Paper>
@@ -124,6 +192,9 @@ const BillingPage: React.FC = () => {
       {activeLogicalIndex === TAB_PAYMENTS && <PaymentHistoryPage embedded />}
       {activeLogicalIndex === TAB_INVOICES && canViewInvoices && <InvoicesList embedded />}
       {activeLogicalIndex === TAB_WALLETS && canViewWallets && <WalletDashboard embedded />}
+      {activeLogicalIndex === TAB_PAYOUTS && canViewAccounting && <PayoutsTab />}
+      {activeLogicalIndex === TAB_EXPENSES && canViewAccounting && <ExpensesTab />}
+      {activeLogicalIndex === TAB_REPORTS && canViewAccounting && <ReportsExportsTab />}
     </Box>
   );
 };
