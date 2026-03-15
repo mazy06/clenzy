@@ -307,7 +307,7 @@ export const PayoutsTab: React.FC = () => {
       )}
       {executeMutation.isError && (
         <Alert severity="error" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => executeMutation.reset()}>
-          {(executeMutation.error as any)?.response?.data?.message
+          {(executeMutation.error as { message?: string })?.message
             || t('accounting.executeError', 'Erreur lors de l\'execution du virement')}
         </Alert>
       )}
