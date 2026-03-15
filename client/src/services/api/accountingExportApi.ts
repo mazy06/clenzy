@@ -30,6 +30,35 @@ function buildDateParams(from: string, to: string): string {
   return `?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
 }
 
+async function downloadFilePost(endpoint: string, body: unknown, filename: string): Promise<void> {
+  const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}${endpoint}`;
+  const token = getAccessToken();
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(text || `Erreur ${response.status} lors du telechargement`);
+  }
+
+  const blob = await response.blob();
+  const blobUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(blobUrl);
+}
+
 // ─── API ────────────────────────────────────────────────────────────────────
 
 export const accountingExportApi = {
@@ -61,5 +90,12 @@ export const accountingExportApi = {
   async downloadInvoicesCsv(from: string, to: string): Promise<void> {
     const filename = `factures_${from}_${to}.csv`;
     return downloadFile(`/accounting/export/invoices-csv${buildDateParams(from, to)}`, filename);
+  },
+
+  /** SEPA XML pain.001 pour virements bancaires */
+  async downloadSepaXml(payoutIds: number[]): Promise<void> {
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const filename = `SEPA_${today}.xml`;
+    return downloadFilePost('/accounting/export/sepa-xml', payoutIds, filename);
   },
 };

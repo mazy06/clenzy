@@ -755,3 +755,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0086__fix_owner_payouts_status_check.sql
         relativeToChangelogFile: true
+
+  # --- 0087 : Add SEPA debtor fields to organizations ---
+  - changeSet:
+      id: "0087-add-sepa-debtor-fields"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0087__add_sepa_debtor_fields_to_organizations.sql
+        relativeToChangelogFile: true

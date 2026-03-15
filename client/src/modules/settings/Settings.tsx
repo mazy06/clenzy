@@ -70,6 +70,7 @@ import AiSettingsSection from './AiSettingsSection';
 import IntegrationsSection from './IntegrationsSection';
 import PayoutScheduleSettings from './PayoutScheduleSettings';
 import OwnerPayoutSettings from './OwnerPayoutSettings';
+import SepaDebtorSettings from './SepaDebtorSettings';
 import MyPayoutSettings from './MyPayoutSettings';
 import { CURRENCY_OPTIONS } from '../../utils/currencyUtils';
 
@@ -900,6 +901,8 @@ export default function Settings() {
       {/* ─── Onglet Reversements (SUPER_ADMIN) ──────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN']) && (
         <TabPanel value={tabValue} index={8}>
+          <SepaDebtorSettings />
+          <Box sx={{ mt: 4 }} />
           <PayoutScheduleSettings />
           <Box sx={{ mt: 4 }} />
           <OwnerPayoutSettings />

@@ -165,6 +165,9 @@ export const PayoutsTab: React.FC = () => {
     staleTime: 120_000,
   });
 
+  // SEPA XML download
+  const [sepaDownloading, setSepaDownloading] = useState(false);
+
   // Mutations
   const generateMutation = useGeneratePayout();
   const approveMutation = useApprovePayout();
@@ -212,6 +215,23 @@ export const PayoutsTab: React.FC = () => {
     setPayTarget(payout);
     setPayRef('');
     setPayOpen(true);
+  }, []);
+
+  const processingSepaPayouts = useMemo(
+    () => payouts.filter((p) => p.status === 'PROCESSING' && p.payoutMethod === 'SEPA_TRANSFER'),
+    [payouts],
+  );
+
+  const handleDownloadSepaXml = useCallback(async (ids: number[]) => {
+    if (ids.length === 0) return;
+    setSepaDownloading(true);
+    try {
+      await accountingExportApi.downloadSepaXml(ids);
+    } catch {
+      // error handled by caller or ignored
+    } finally {
+      setSepaDownloading(false);
+    }
   }, []);
 
   return (
@@ -270,7 +290,19 @@ export const PayoutsTab: React.FC = () => {
           ))}
         </Box>
 
-        <Box sx={{ ml: 'auto' }}>
+        <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+          {processingSepaPayouts.length > 0 && (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={sepaDownloading ? <CircularProgress size={14} /> : <DownloadIcon />}
+              onClick={() => handleDownloadSepaXml(processingSepaPayouts.map((p) => p.id))}
+              disabled={sepaDownloading}
+              sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+            >
+              {t('accounting.downloadSepaXml', 'SEPA XML')} ({processingSepaPayouts.length})
+            </Button>
+          )}
           <Button
             size="small"
             variant="contained"
@@ -442,13 +474,26 @@ export const PayoutsTab: React.FC = () => {
                       </>
                     )}
                     {payout.status === 'PROCESSING' && (
-                      <Chip
-                        label={t('accounting.processing', 'En cours...')}
-                        size="small"
-                        sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
-                        color="secondary"
-                        variant="outlined"
-                      />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Chip
+                          label={t('accounting.processing', 'En cours...')}
+                          size="small"
+                          sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
+                          color="secondary"
+                          variant="outlined"
+                        />
+                        {payout.payoutMethod === 'SEPA_TRANSFER' && (
+                          <Tooltip title={t('accounting.downloadSepaXml', 'SEPA XML')}>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDownloadSepaXml([payout.id])}
+                              disabled={sepaDownloading}
+                            >
+                              <DownloadIcon sx={{ fontSize: '1rem' }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Box>
                     )}
                     {payout.status === 'FAILED' && (
                       <Tooltip title={payout.failureReason ?? t('accounting.failedPayout', 'Echec du reversement')}>
