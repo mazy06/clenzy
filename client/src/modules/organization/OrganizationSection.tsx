@@ -214,17 +214,6 @@ export default function OrganizationSection({ organizationId, organizationName }
                   refreshTrigger={refreshTrigger}
                   onMemberChanged={triggerRefresh}
                 />
-
-                <Divider sx={{ my: 2 }} />
-
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 500 }}>
-                  Invitations envoyees
-                </Typography>
-
-                <InvitationsList
-                  organizationId={effectiveOrgId}
-                  refreshTrigger={refreshTrigger}
-                />
               </>
             ) : (
               <Alert severity="info" icon={<InfoOutlined />}>
@@ -249,6 +238,21 @@ export default function OrganizationSection({ organizationId, organizationName }
             </Paper>
           )}
         </Grid>
+
+        {/* ─── Ligne pleine largeur : Invitations ──────────────────── */}
+        {effectiveOrgId && (
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 500 }}>
+                Invitations envoyees
+              </Typography>
+              <InvitationsList
+                organizationId={effectiveOrgId}
+                refreshTrigger={refreshTrigger}
+              />
+            </Paper>
+          </Grid>
+        )}
       </Grid>
 
       {effectiveOrgId && (
