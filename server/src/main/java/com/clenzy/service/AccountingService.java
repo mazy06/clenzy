@@ -158,7 +158,7 @@ public class AccountingService {
                 NotificationKey.PAYOUT_APPROVED,
                 "Reversement approuve",
                 "Le reversement #" + saved.getId() + " (" + amount + ") a ete approuve.",
-                "/billing?tab=3"
+                "/billing"
         );
 
         notifyOwner(saved, NotificationKey.PAYOUT_APPROVED,
@@ -183,7 +183,7 @@ public class AccountingService {
                 NotificationKey.PAYOUT_EXECUTED,
                 "Reversement execute",
                 "Le reversement #" + saved.getId() + " (" + amount + ") a ete paye. Ref: " + paymentReference,
-                "/billing?tab=3"
+                "/billing"
         );
 
         notifyOwner(saved, NotificationKey.PAYOUT_EXECUTED,
@@ -219,7 +219,7 @@ public class AccountingService {
             if (owner.getKeycloakId() != null) {
                 notificationService.sendByOrgId(
                         owner.getKeycloakId(), key, title, message,
-                        "/billing?tab=3", payout.getOrganizationId()
+                        "/billing", payout.getOrganizationId()
                 );
             }
         });

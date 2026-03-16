@@ -34,7 +34,6 @@ import DirectoryPage from './directory/DirectoryPage';
 
 // Reports
 import Reports from './reports/Reports';
-import ReportDetails from './reports/ReportDetails';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 // Users
@@ -58,9 +57,6 @@ import ContactCreatePage from './contact/ContactCreatePage';
 // Documents
 import DocumentsPage from './documents/DocumentsPage';
 import TemplateDetails from './documents/TemplateDetails';
-
-// Profile
-import UserProfilePage from './profile/UserProfilePage';
 
 // Notifications
 import NotificationsPage from './notifications/NotificationsPage';
@@ -275,13 +271,7 @@ const AuthenticatedApp: React.FC = () => {
             <Reports />
           </ProtectedRoute>
         } />
-        <Route path="/reports/:type" element={
-          <ProtectedRoute requiredPermission="reports:view">
-            <ErrorBoundary>
-              <ReportDetails />
-            </ErrorBoundary>
-          </ProtectedRoute>
-        } />
+        <Route path="/reports/:type" element={<Navigate to="/reports" replace />} />
         
         <Route path="/users" element={<Navigate to="/directory" replace />} />
         <Route path="/users/new" element={
@@ -340,9 +330,7 @@ const AuthenticatedApp: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        <Route path="/profile" element={
-          <UserProfilePage />
-        } />
+        {/* /profile supprime — champs profil déplacés dans Settings > Général > Mon compte */}
 
         <Route path="/notifications" element={
           <NotificationsPage />

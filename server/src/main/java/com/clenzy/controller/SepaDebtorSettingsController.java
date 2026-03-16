@@ -55,8 +55,8 @@ public class SepaDebtorSettingsController {
         }
         if (request.bic() != null) {
             String cleanBic = request.bic().replaceAll("\\s", "").toUpperCase();
-            if (cleanBic.length() != 8 && cleanBic.length() != 11) {
-                throw new IllegalArgumentException("Le BIC doit contenir 8 ou 11 caracteres");
+            if (!cleanBic.matches("^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$")) {
+                throw new IllegalArgumentException("Le BIC doit contenir 8 ou 11 caracteres alphanumeriques au format SWIFT");
             }
             org.setSepaDebtorBic(cleanBic);
         }

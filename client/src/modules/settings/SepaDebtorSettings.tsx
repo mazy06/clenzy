@@ -45,7 +45,7 @@ const SepaDebtorSettings: React.FC = () => {
   }
 
   return (
-    <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5 }}>
+    <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, height: '100%' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
         <AccountBalance sx={{ fontSize: 20, color: 'primary.main' }} />
         <Typography variant="h6" sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
@@ -71,7 +71,7 @@ const SepaDebtorSettings: React.FC = () => {
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 500 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <TextField
           label={t('settings.sepaDebtor.nameLabel', 'Nom du titulaire')}
           value={name}

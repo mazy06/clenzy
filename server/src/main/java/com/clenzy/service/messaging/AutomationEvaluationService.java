@@ -87,7 +87,7 @@ public class AutomationEvaluationService {
             execution.setStatus(AutomationExecutionStatus.FAILED);
             execution.setErrorMessage(e.getMessage());
             log.error("Erreur automation {} pour reservation {}: {}",
-                rule.getName(), reservation.getId(), e.getMessage());
+                rule.getName(), reservation.getId(), e.getMessage(), e);
         }
         executionRepository.save(execution);
     }

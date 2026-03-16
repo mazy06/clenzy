@@ -128,15 +128,26 @@ public class AccountingExportController {
         Organization org = organizationRepository.findById(orgId)
                 .orElseThrow(() -> new IllegalArgumentException("Organisation introuvable"));
 
-        List<OwnerPayout> payouts = payoutRepository.findByIdsAndOrgId(payoutIds, orgId);
+        List<OwnerPayout> payouts = payoutRepository.findByIdsAndOrgId(payoutIds, orgId).stream()
+                .filter(p -> p.getStatus() == OwnerPayout.PayoutStatus.APPROVED || p.getStatus() == OwnerPayout.PayoutStatus.PROCESSING)
+                .toList();
         if (payouts.isEmpty()) {
-            throw new IllegalArgumentException("Aucun payout trouve pour les IDs fournis");
+            throw new IllegalArgumentException("Aucun payout eligible (statut APPROVED ou PROCESSING) pour les IDs fournis");
         }
 
         List<Long> ownerIds = payouts.stream().map(OwnerPayout::getOwnerId).distinct().toList();
         Map<Long, OwnerPayoutConfig> configsByOwnerId = configRepository.findAllByOrgId(orgId).stream()
                 .filter(c -> ownerIds.contains(c.getOwnerId()))
+                .filter(OwnerPayoutConfig::isVerified)
                 .collect(Collectors.toMap(OwnerPayoutConfig::getOwnerId, Function.identity()));
+
+        List<Long> unverifiedOwners = ownerIds.stream()
+                .filter(id -> !configsByOwnerId.containsKey(id))
+                .toList();
+        if (!unverifiedOwners.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Configuration bancaire non verifiee pour les proprietaires: " + unverifiedOwners);
+        }
 
         String xml = sepaXmlService.generatePain001(org, payouts, configsByOwnerId);
         String filename = "SEPA_" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE) + ".xml";

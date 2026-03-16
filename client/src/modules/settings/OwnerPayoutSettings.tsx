@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -9,14 +9,13 @@ import {
   Snackbar,
   CircularProgress,
   Chip,
-  ToggleButton,
-  ToggleButtonGroup,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   IconButton,
   Tooltip,
   Dialog,
@@ -28,7 +27,6 @@ import {
   AccountBalance,
   Save,
   VerifiedUser,
-  CreditCard,
   Warning,
   Edit as EditIcon,
   CheckCircle,
@@ -61,6 +59,13 @@ const HEAD_CELL_SX = { fontSize: '0.75rem', fontWeight: 700, py: 1, color: 'text
 
 const IBAN_REGEX = /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/;
 
+/** Estimated row height in px (py: 1.25 = 10px * 2 + ~21px content) */
+const ROW_HEIGHT = 41;
+/** Table header + pagination footer overhead */
+const TABLE_OVERHEAD = 100;
+/** Minimum rows per page */
+const MIN_ROWS = 3;
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function OwnerPayoutSettings() {
@@ -69,6 +74,37 @@ export default function OwnerPayoutSettings() {
   const updateMethodMutation = useUpdatePayoutMethod();
   const updateSepaMutation = useUpdateSepaDetails();
   const verifyMutation = useVerifyOwnerConfig();
+
+  // Pagination
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Dynamically compute rows per page based on available viewport height
+  const computeRowsPerPage = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const availableHeight = window.innerHeight - rect.top;
+    const rows = Math.max(MIN_ROWS, Math.floor((availableHeight - TABLE_OVERHEAD) / ROW_HEIGHT));
+    setRowsPerPage(rows);
+  }, []);
+
+  useEffect(() => {
+    computeRowsPerPage();
+    window.addEventListener('resize', computeRowsPerPage);
+    return () => window.removeEventListener('resize', computeRowsPerPage);
+  }, [computeRowsPerPage]);
+
+  // Reset page when configs change or rowsPerPage changes
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(configs.length / rowsPerPage) - 1);
+    if (page > maxPage) setPage(maxPage);
+  }, [configs.length, rowsPerPage, page]);
+
+  const paginatedConfigs = useMemo(
+    () => configs.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [configs, page, rowsPerPage],
+  );
 
   // SEPA edit dialog
   const [sepaOpen, setSepaOpen] = useState(false);
@@ -136,7 +172,7 @@ export default function OwnerPayoutSettings() {
   }
 
   return (
-    <Box>
+    <Box ref={containerRef}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
         <AccountBalance sx={{ color: '#A6C0CE', fontSize: 20 }} />
@@ -156,101 +192,123 @@ export default function OwnerPayoutSettings() {
           </Typography>
         </Paper>
       ) : (
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={HEAD_CELL_SX}>{t('settings.ownerPayout.col.owner', 'Proprietaire')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('settings.ownerPayout.col.method', 'Methode')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX}>{t('settings.ownerPayout.col.details', 'Details')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="center">{t('settings.ownerPayout.col.status', 'Statut')}</TableCell>
-                <TableCell sx={HEAD_CELL_SX} align="right">{t('common.actions', 'Actions')}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {configs.map((config) => (
-                <TableRow key={config.id} hover>
-                  <TableCell sx={CELL_SX}>
-                    {t('settings.ownerPayout.ownerLabel', 'Proprietaire')} #{config.ownerId}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={PAYOUT_METHOD_LABELS[config.payoutMethod]}
-                      size="small"
-                      sx={{
-                        fontSize: '0.625rem',
-                        height: 20,
-                        fontWeight: 700,
-                        backgroundColor: PAYOUT_METHOD_COLORS[config.payoutMethod],
-                        color: '#fff',
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ ...CELL_SX, fontSize: '0.75rem' }}>
-                    {config.payoutMethod === 'SEPA_TRANSFER' && config.maskedIban && (
-                      <Typography component="span" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
-                        {config.maskedIban}
-                        {config.bic ? ` / ${config.bic}` : ''}
-                      </Typography>
-                    )}
-                    {config.payoutMethod === 'STRIPE_CONNECT' && (
-                      <Typography component="span" sx={{ fontSize: '0.75rem' }}>
-                        {config.stripeOnboardingComplete
-                          ? t('settings.ownerPayout.stripeConnected', 'Compte connecte')
-                          : t('settings.ownerPayout.stripeNotConnected', 'Onboarding en cours...')}
-                      </Typography>
-                    )}
-                    {config.payoutMethod === 'MANUAL' && (
-                      <Typography component="span" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                        {t('settings.ownerPayout.manualNote', 'Virement manuel')}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell align="center">
-                    {config.verified ? (
+        <Paper variant="outlined">
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={HEAD_CELL_SX}>{t('settings.ownerPayout.col.owner', 'Proprietaire')}</TableCell>
+                  <TableCell sx={HEAD_CELL_SX}>{t('settings.ownerPayout.col.method', 'Methode')}</TableCell>
+                  <TableCell sx={HEAD_CELL_SX}>{t('settings.ownerPayout.col.details', 'Details')}</TableCell>
+                  <TableCell sx={HEAD_CELL_SX} align="center">{t('settings.ownerPayout.col.status', 'Statut')}</TableCell>
+                  <TableCell sx={HEAD_CELL_SX} align="right">{t('common.actions', 'Actions')}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paginatedConfigs.map((config) => (
+                  <TableRow key={config.id} hover>
+                    <TableCell sx={CELL_SX}>
+                      {t('settings.ownerPayout.ownerLabel', 'Proprietaire')} #{config.ownerId}
+                    </TableCell>
+                    <TableCell>
                       <Chip
-                        icon={<VerifiedUser sx={{ fontSize: '0.75rem !important' }} />}
-                        label={t('settings.ownerPayout.verifiedLabel', 'Verifie')}
+                        label={PAYOUT_METHOD_LABELS[config.payoutMethod]}
                         size="small"
-                        color="success"
-                        sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
+                        sx={{
+                          fontSize: '0.625rem',
+                          height: 20,
+                          fontWeight: 700,
+                          backgroundColor: PAYOUT_METHOD_COLORS[config.payoutMethod],
+                          color: '#fff',
+                        }}
                       />
-                    ) : (
-                      <Chip
-                        icon={<Warning sx={{ fontSize: '0.75rem !important' }} />}
-                        label={t('settings.ownerPayout.pendingLabel', 'En attente')}
-                        size="small"
-                        color="warning"
-                        sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell align="right">
-                    {config.payoutMethod === 'SEPA_TRANSFER' && (
-                      <Tooltip title={t('settings.ownerPayout.editSepa', 'Modifier SEPA')}>
-                        <IconButton size="small" onClick={() => openSepaDialog(config)}>
-                          <EditIcon sx={{ fontSize: '1rem' }} />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                    {!config.verified && (
-                      <Tooltip title={t('settings.ownerPayout.verify', 'Verifier')}>
-                        <IconButton
+                    </TableCell>
+                    <TableCell sx={{ ...CELL_SX, fontSize: '0.75rem' }}>
+                      {config.payoutMethod === 'SEPA_TRANSFER' && config.maskedIban && (
+                        <Typography component="span" sx={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                          {config.maskedIban}
+                          {config.bic ? ` / ${config.bic}` : ''}
+                        </Typography>
+                      )}
+                      {config.payoutMethod === 'STRIPE_CONNECT' && (
+                        <Typography component="span" sx={{ fontSize: '0.75rem' }}>
+                          {config.stripeOnboardingComplete
+                            ? t('settings.ownerPayout.stripeConnected', 'Compte connecte')
+                            : t('settings.ownerPayout.stripeNotConnected', 'Onboarding en cours...')}
+                        </Typography>
+                      )}
+                      {config.payoutMethod === 'MANUAL' && (
+                        <Typography component="span" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                          {t('settings.ownerPayout.manualNote', 'Virement manuel')}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="center">
+                      {config.verified ? (
+                        <Chip
+                          icon={<VerifiedUser sx={{ fontSize: '0.75rem !important' }} />}
+                          label={t('settings.ownerPayout.verifiedLabel', 'Verifie')}
                           size="small"
                           color="success"
-                          onClick={() => handleVerify(config.ownerId)}
-                          disabled={verifyMutation.isPending}
-                        >
-                          <CheckCircle sx={{ fontSize: '1rem' }} />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                          sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
+                        />
+                      ) : (
+                        <Chip
+                          icon={<Warning sx={{ fontSize: '0.75rem !important' }} />}
+                          label={t('settings.ownerPayout.pendingLabel', 'En attente')}
+                          size="small"
+                          color="warning"
+                          sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell align="right">
+                      {config.payoutMethod === 'SEPA_TRANSFER' && (
+                        <Tooltip title={t('settings.ownerPayout.editSepa', 'Modifier SEPA')}>
+                          <IconButton size="small" onClick={() => openSepaDialog(config)}>
+                            <EditIcon sx={{ fontSize: '1rem' }} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {!config.verified && (
+                        <Tooltip title={t('settings.ownerPayout.verify', 'Verifier')}>
+                          <IconButton
+                            size="small"
+                            color="success"
+                            onClick={() => handleVerify(config.ownerId)}
+                            disabled={verifyMutation.isPending}
+                          >
+                            <CheckCircle sx={{ fontSize: '1rem' }} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            component="div"
+            count={configs.length}
+            page={page}
+            onPageChange={(_e, newPage) => setPage(newPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+            rowsPerPageOptions={[rowsPerPage]}
+            labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
+            sx={{
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              '& .MuiTablePagination-toolbar': { minHeight: 40 },
+              '& .MuiTablePagination-displayedRows': { fontSize: '0.75rem' },
+              '& .MuiTablePagination-actions': { ml: 1 },
+            }}
+          />
+        </Paper>
       )}
 
       {/* ── SEPA Edit Dialog ── */}

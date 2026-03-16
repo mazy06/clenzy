@@ -136,7 +136,7 @@ public class PayoutExecutionService {
                 "Virement SEPA a effectuer",
                 "Le reversement #" + payout.getId() + " (" + payout.getNetAmount() + " " + payout.getCurrency()
                         + ") est pret pour virement SEPA.",
-                "/billing?tab=3"
+                "/billing"
         );
 
         log.info("SEPA payout {} marked as PROCESSING, awaiting manual bank transfer", payout.getId());
@@ -154,7 +154,7 @@ public class PayoutExecutionService {
                 NotificationKey.PAYOUT_FAILED,
                 "Echec du reversement",
                 "Le reversement #" + payout.getId() + " a echoue: " + e.getMessage(),
-                "/billing?tab=3"
+                "/billing"
         );
 
         notifyOwner(saved, NotificationKey.PAYOUT_FAILED,
@@ -174,7 +174,7 @@ public class PayoutExecutionService {
                 NotificationKey.PAYOUT_EXECUTED,
                 "Reversement execute",
                 "Le reversement #" + payout.getId() + " (" + amount + ") a ete execute avec succes.",
-                "/billing?tab=3"
+                "/billing"
         );
 
         notifyOwner(payout, NotificationKey.PAYOUT_EXECUTED,
@@ -187,7 +187,7 @@ public class PayoutExecutionService {
             if (owner.getKeycloakId() != null) {
                 notificationService.sendByOrgId(
                         owner.getKeycloakId(), key, title, message,
-                        "/billing?tab=3", payout.getOrganizationId()
+                        "/billing", payout.getOrganizationId()
                 );
             }
         });

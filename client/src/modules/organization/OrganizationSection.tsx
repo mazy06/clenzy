@@ -10,6 +10,7 @@ import {
   TextField,
   Chip,
   CircularProgress,
+  Grid,
 } from '@mui/material';
 import {
   Business,
@@ -121,121 +122,134 @@ export default function OrganizationSection({ organizationId, organizationName }
 
   return (
     <>
-      <Paper sx={{ p: 2, height: '100%' }}>
-        {/* ─── Header ───────────────────────────────────────────────────── */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Business sx={{ color: 'primary.main', fontSize: 20 }} />
-            <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-              Organisations
-            </Typography>
-          </Box>
-          {effectiveOrgId && (
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<PersonAdd />}
-              onClick={() => setDialogOpen(true)}
-              sx={{ textTransform: 'none', fontWeight: 600 }}
-            >
-              Inviter
-            </Button>
-          )}
-        </Box>
-
-        <Divider sx={{ mb: 1.5 }} />
-
-        {/* ─── Selecteur d'organisation ──────────────────────────────────── */}
-        {orgsError && (
-          <Alert severity="error" sx={{ mb: 1.5 }}>{orgsError}</Alert>
-        )}
-
-        <Autocomplete
-          size="small"
-          options={organizations}
-          value={selectedOrg}
-          loading={orgsLoading}
-          onChange={(_event, newValue) => {
-            setSelectedOrg(newValue);
-            setRefreshTrigger(0);
-          }}
-          getOptionLabel={(option) => option.name}
-          isOptionEqualToValue={(option, value) => option.id === value.id}
-          renderOption={(props, option) => (
-            <li {...props} key={option.id}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                <Typography variant="body2" sx={{ fontWeight: 500, flex: 1 }}>
-                  {option.name}
-                </Typography>
-                <Chip
-                  label={getOrgTypeLabel(option.type)}
-                  size="small"
-                  variant="outlined"
-                  sx={{ fontSize: '0.7rem', height: 20 }}
-                />
-                <Typography variant="caption" color="text.secondary">
-                  {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
+      <Grid container spacing={3}>
+        {/* ─── Colonne gauche : Organisation ─────────────────────────── */}
+        <Grid item xs={12} md={7}>
+          <Paper sx={{ p: 2, height: '100%' }}>
+            {/* Header */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Business sx={{ color: 'primary.main', fontSize: 20 }} />
+                <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+                  Organisations
                 </Typography>
               </Box>
-            </li>
-          )}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Selectionner une organisation"
-              InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                  <>
-                    {orgsLoading ? <CircularProgress color="inherit" size={18} /> : null}
-                    {params.InputProps.endAdornment}
-                  </>
-                ),
+              {effectiveOrgId && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<PersonAdd />}
+                  onClick={() => setDialogOpen(true)}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
+                >
+                  Inviter
+                </Button>
+              )}
+            </Box>
+
+            <Divider sx={{ mb: 1.5 }} />
+
+            {/* Selecteur d'organisation */}
+            {orgsError && (
+              <Alert severity="error" sx={{ mb: 1.5 }}>{orgsError}</Alert>
+            )}
+
+            <Autocomplete
+              size="small"
+              options={organizations}
+              value={selectedOrg}
+              loading={orgsLoading}
+              onChange={(_event, newValue) => {
+                setSelectedOrg(newValue);
+                setRefreshTrigger(0);
               }}
+              getOptionLabel={(option) => option.name}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              renderOption={(props, option) => (
+                <li {...props} key={option.id}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 500, flex: 1 }}>
+                      {option.name}
+                    </Typography>
+                    <Chip
+                      label={getOrgTypeLabel(option.type)}
+                      size="small"
+                      variant="outlined"
+                      sx={{ fontSize: '0.7rem', height: 20 }}
+                    />
+                    <Typography variant="caption" color="text.secondary">
+                      {option.memberCount} membre{option.memberCount !== 1 ? 's' : ''}
+                    </Typography>
+                  </Box>
+                </li>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Selectionner une organisation"
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {orgsLoading ? <CircularProgress color="inherit" size={18} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+              sx={{ mb: 2 }}
+              noOptionsText="Aucune organisation"
             />
-          )}
-          sx={{ mb: 2 }}
-          noOptionsText="Aucune organisation"
-        />
 
-        {/* ─── Contenu de l'organisation selectionnee ─────────────────── */}
-        {effectiveOrgId ? (
-          <>
-            {/* Section Membres */}
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 500 }}>
-              Membres de l'organisation
-            </Typography>
+            {/* Contenu de l'organisation selectionnee */}
+            {effectiveOrgId ? (
+              <>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 500 }}>
+                  Membres de l'organisation
+                </Typography>
 
-            <MembersList
-              organizationId={effectiveOrgId}
-              refreshTrigger={refreshTrigger}
-              onMemberChanged={triggerRefresh}
-            />
+                <MembersList
+                  organizationId={effectiveOrgId}
+                  refreshTrigger={refreshTrigger}
+                  onMemberChanged={triggerRefresh}
+                />
 
-            {/* Résumé de facturation per-seat */}
+                <Divider sx={{ my: 2 }} />
+
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 500 }}>
+                  Invitations envoyees
+                </Typography>
+
+                <InvitationsList
+                  organizationId={effectiveOrgId}
+                  refreshTrigger={refreshTrigger}
+                />
+              </>
+            ) : (
+              <Alert severity="info" icon={<InfoOutlined />}>
+                Selectionnez une organisation pour voir ses membres et invitations.
+              </Alert>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* ─── Colonne droite : Facturation ──────────────────────────── */}
+        <Grid item xs={12} md={5}>
+          {effectiveOrgId ? (
             <BillingSummaryCard
               organizationId={effectiveOrgId}
               refreshTrigger={refreshTrigger}
             />
-
-            <Divider sx={{ my: 2 }} />
-
-            {/* Section Invitations */}
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 500 }}>
-              Invitations envoyees
-            </Typography>
-
-            <InvitationsList
-              organizationId={effectiveOrgId}
-              refreshTrigger={refreshTrigger}
-            />
-          </>
-        ) : (
-          <Alert severity="info" icon={<InfoOutlined />}>
-            Selectionnez une organisation pour voir ses membres et invitations.
-          </Alert>
-        )}
-      </Paper>
+          ) : (
+            <Paper sx={{ p: 2, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                Selectionnez une organisation pour voir la facturation.
+              </Typography>
+            </Paper>
+          )}
+        </Grid>
+      </Grid>
 
       {effectiveOrgId && (
         <SendInvitationDialog

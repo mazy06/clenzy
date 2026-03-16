@@ -134,7 +134,7 @@ const ActionCountersWidget: React.FC<ActionCountersWidgetProps> = React.memo(({
         value: pendingPayoutsCount,
         icon: <AccountBalance sx={{ fontSize: 16, color: '#8B7EC8' }} />,
         color: '#8B7EC8',
-        route: '/billing?tab=3',
+        route: '/billing',
       },
       {
         key: 'requests',

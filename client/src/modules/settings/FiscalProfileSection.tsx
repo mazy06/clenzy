@@ -13,6 +13,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { getCountryDefaults } from '../../utils/countryDefaults';
 import { STORAGE_KEYS, getItem } from '../../services/storageService';
 import type { FiscalProfileUpdate, FiscalRegime } from '../../services/api/fiscalProfileApi';
+import { AddressAutocomplete } from '../../components/AddressAutocomplete';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -283,8 +284,8 @@ const FiscalProfileSection: React.FC = () => {
         </Grid>
 
         {/* ── Section 2 : Informations legales ── */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, height: '100%' }}>
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <AccountBalance sx={{ color: 'secondary.main', fontSize: 20 }} />
               <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
@@ -293,29 +294,33 @@ const FiscalProfileSection: React.FC = () => {
             </Box>
 
             <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={t('fiscal.profile.legalName')}
-                  value={form.legalEntityName}
-                  onChange={(e) => handleChange('legalEntityName', e.target.value)}
-                  size="small"
-                />
+              {/* Colonne gauche : Raison sociale + Adresse */}
+              <Grid item xs={12} md={5}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label={t('fiscal.profile.legalName')}
+                      value={form.legalEntityName}
+                      onChange={(e) => handleChange('legalEntityName', e.target.value)}
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <AddressAutocomplete
+                      value={form.legalAddress ?? ''}
+                      label={t('fiscal.profile.legalAddress')}
+                      placeholder="Rechercher une adresse..."
+                      onChange={(val) => handleChange('legalAddress', val)}
+                      onSelect={(address) => handleChange('legalAddress', address.label)}
+                      size="small"
+                    />
+                  </Grid>
+                </Grid>
               </Grid>
 
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label={t('fiscal.profile.legalAddress')}
-                  value={form.legalAddress}
-                  onChange={(e) => handleChange('legalAddress', e.target.value)}
-                  size="small"
-                  multiline
-                  rows={2}
-                />
-              </Grid>
-
-              <Grid item xs={12}>
+              {/* Colonne droite : Mentions légales (plus d'espace) */}
+              <Grid item xs={12} md={7}>
                 <TextField
                   fullWidth
                   label={t('fiscal.profile.legalMentions')}
@@ -323,7 +328,7 @@ const FiscalProfileSection: React.FC = () => {
                   onChange={(e) => handleChange('legalMentions', e.target.value)}
                   size="small"
                   multiline
-                  rows={2}
+                  rows={5}
                   placeholder="Mentions legales obligatoires sur les factures"
                 />
               </Grid>

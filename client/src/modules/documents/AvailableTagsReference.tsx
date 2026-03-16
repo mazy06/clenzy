@@ -297,11 +297,11 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
       <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="body2">
           <strong>Comment utiliser les tags :</strong> Dans votre fichier .odt, insérez les tags sous la forme{' '}
-          <code style={{ backgroundColor: '#e3f2fd', padding: '2px 6px', borderRadius: 4 }}>
+          <code style={{ backgroundColor: 'rgba(25, 118, 210, 0.12)', padding: '2px 6px', borderRadius: 4 }}>
             {'${categorie.champ}'}
           </code>
           . Par exemple{' '}
-          <code style={{ backgroundColor: '#e3f2fd', padding: '2px 6px', borderRadius: 4 }}>
+          <code style={{ backgroundColor: 'rgba(25, 118, 210, 0.12)', padding: '2px 6px', borderRadius: 4 }}>
             {'${client.nom}'}
           </code>{' '}
           sera remplacé par le nom du client.
@@ -339,7 +339,7 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
             <TableContainer>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: 'grey.50' }}>
+                  <TableRow sx={{ backgroundColor: 'action.hover' }}>
                     <TableCell sx={{ fontWeight: 600, width: '30%' }}>Tag</TableCell>
                     <TableCell sx={{ fontWeight: 600, width: '30%' }}>Description</TableCell>
                     <TableCell sx={{ fontWeight: 600, width: '10%' }}>Type</TableCell>
@@ -359,12 +359,13 @@ const AvailableTagsReference: React.FC<AvailableTagsReferenceProps> = ({ search 
                       <TableCell>
                         <code
                           style={{
-                            backgroundColor: '#f5f5f5',
+                            backgroundColor: 'rgba(107, 138, 154, 0.12)',
                             padding: '3px 8px',
                             borderRadius: 4,
                             fontSize: '0.85rem',
                             fontFamily: 'monospace',
-                            border: '1px solid #e0e0e0',
+                            border: '1px solid rgba(107, 138, 154, 0.25)',
+                            color: 'inherit',
                           }}
                         >
                           {'${' + tagDef.tag + '}'}

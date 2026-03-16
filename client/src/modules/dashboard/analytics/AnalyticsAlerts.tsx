@@ -59,7 +59,7 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
       <Grid container spacing={1.5}>
         {loading ? (
           Array.from({ length: 2 }).map((_, i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
+            <Grid item xs={12} key={i}>
               <Card sx={{ ...CARD_SX, opacity: 0.5 }}>
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                   <Box sx={{ height: 60 }} />
@@ -96,7 +96,7 @@ const AnalyticsAlerts: React.FC<Props> = React.memo(({ data, loading }) => {
           </Grid>
         ) : (
           alerts.map((alert) => (
-            <Grid item xs={12} sm={6} md={4} key={alert.id}>
+            <Grid item xs={12} key={alert.id}>
               <Card
                 sx={{
                   ...CARD_SX,

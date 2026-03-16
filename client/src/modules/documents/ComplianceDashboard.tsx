@@ -1,4 +1,4 @@
-import React, { useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
   Box,
   Typography,
@@ -21,6 +21,7 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  LinearProgress,
 } from '@mui/material';
 import {
   Lock,
@@ -32,6 +33,7 @@ import {
   Public,
   ExpandMore,
   Check,
+  Refresh,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -93,6 +95,13 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [countryMenuAnchor, setCountryMenuAnchor] = useState<HTMLElement | null>(null);
 
+  // Auto-verification state
+  const [autoCheckProgress, setAutoCheckProgress] = useState(0);
+  const [autoCheckTotal, setAutoCheckTotal] = useState(0);
+  const [autoCheckRunning, setAutoCheckRunning] = useState(false);
+  const [currentCheckingId, setCurrentCheckingId] = useState<number | null>(null);
+  const autoCheckRanRef = useRef(false);
+
   const { data: stats, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useComplianceStats();
   const { data: templates = [], isLoading: templatesLoading, refetch: refetchTemplates } = useTemplates();
   const checkMutation = useCheckTemplateCompliance();
@@ -102,30 +111,63 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
   const loading = statsLoading || templatesLoading;
   const error = actionError || (statsError ? t('documents.compliance.loadError') : null);
 
+  // ─── Auto-verification: check all templates sequentially on load ───
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const runAutoCheck = useCallback(async (templateList: typeof templates) => {
+    if (templateList.length === 0) return;
+    setAutoCheckRunning(true);
+    setAutoCheckProgress(0);
+    setAutoCheckTotal(templateList.length);
+    setComplianceResults({});
+
+    for (let i = 0; i < templateList.length; i++) {
+      const tpl = templateList[i];
+      setCurrentCheckingId(tpl.id);
+      // Minimum visible duration per template for a polished feel
+      const [report] = await Promise.all([
+        documentsApi.checkTemplateCompliance(tpl.id).catch(() => null),
+        delay(800 + Math.random() * 400), // 800-1200ms per template
+      ]);
+      if (report) {
+        setComplianceResults((prev) => ({ ...prev, [tpl.id]: report }));
+      }
+      setAutoCheckProgress(i + 1);
+      // Short pause between items for visual rhythm
+      await delay(150);
+    }
+
+    setCurrentCheckingId(null);
+    setAutoCheckRunning(false);
+    refetchStats();
+  }, [refetchStats]);
+
+  // Trigger auto-check when templates are loaded
+  useEffect(() => {
+    if (!templatesLoading && templates.length > 0 && !autoCheckRanRef.current) {
+      autoCheckRanRef.current = true;
+      runAutoCheck(templates);
+    }
+  }, [templatesLoading, templates, runAutoCheck]);
+
   const refetchAll = () => {
     refetchStats();
     refetchTemplates();
   };
 
+  const handleManualRecheck = () => {
+    autoCheckRanRef.current = false;
+    setComplianceResults({});
+    runAutoCheck(templates);
+  };
+
   useImperativeHandle(ref, () => ({
-    fetchData: refetchAll,
+    fetchData: () => {
+      refetchAll();
+      handleManualRecheck();
+    },
     searchByNumber: handleSearchByNumber,
   }));
-
-  const handleCheckCompliance = async (templateId: number) => {
-    setActionError(null);
-    try {
-      const report = await checkMutation.mutateAsync(templateId);
-      setComplianceResults((prev) => ({ ...prev, [templateId]: report }));
-      setSuccess(
-        report.compliant
-          ? `Template "${report.templateName}" : ${t('documents.compliance.compliant').toUpperCase()} (score: ${report.score}%)`
-          : `Template "${report.templateName}" : ${t('documents.compliance.nonCompliant').toUpperCase()} (score: ${report.score}%) — ${report.missingMentions.length} ${t('documents.compliance.missingMentions')}`
-      );
-    } catch {
-      setActionError(t('documents.compliance.checkError'));
-    }
-  };
 
   const handleSearchByNumber = async (number: string) => {
     if (!number.trim()) return;
@@ -310,9 +352,54 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
       {/* ─── Template compliance check ────────────────────────────────── */}
       <Card>
         <CardContent>
-          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
-            {t('documents.compliance.templateVerification')}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Typography variant="subtitle1" fontWeight={600}>
+              {t('documents.compliance.templateVerification')}
+            </Typography>
+            <Tooltip title="Relancer la verification">
+              <IconButton
+                size="small"
+                onClick={handleManualRecheck}
+                disabled={autoCheckRunning}
+                sx={{ color: 'primary.main' }}
+              >
+                <Refresh sx={{ animation: autoCheckRunning ? 'spin 1s linear infinite' : 'none', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+          {/* Progress bar during auto-check */}
+          {autoCheckRunning && (
+            <Box sx={{ mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Verification en cours... {autoCheckProgress}/{autoCheckTotal}
+                </Typography>
+                <Typography variant="caption" fontWeight={600} color="primary.main">
+                  {autoCheckTotal > 0 ? Math.round((autoCheckProgress / autoCheckTotal) * 100) : 0}%
+                </Typography>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={autoCheckTotal > 0 ? (autoCheckProgress / autoCheckTotal) * 100 : 0}
+                sx={{
+                  height: 6,
+                  borderRadius: 3,
+                  '& .MuiLinearProgress-bar': {
+                    transition: 'transform 0.6s ease',
+                    borderRadius: 3,
+                  },
+                }}
+              />
+            </Box>
+          )}
+
+          {/* Completion message */}
+          {!autoCheckRunning && autoCheckTotal > 0 && autoCheckProgress === autoCheckTotal && (
+            <Alert severity="success" sx={{ mb: 2 }} icon={<GppGood />}>
+              Verification terminee — {autoCheckTotal} templates verifies
+            </Alert>
+          )}
 
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
@@ -336,9 +423,24 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                 ) : (
                   templates.map((tpl) => {
                     const report = complianceResults[tpl.id];
-                    const checking = checkMutation.isPending && checkMutation.variables === tpl.id;
+                    const isChecking = currentCheckingId === tpl.id;
                     return (
-                      <TableRow key={tpl.id} hover>
+                      <TableRow
+                        key={tpl.id}
+                        hover
+                        sx={{
+                          transition: 'all 0.4s ease',
+                          ...(isChecking && {
+                            backgroundColor: 'action.hover',
+                            boxShadow: 'inset 3px 0 0 0',
+                            boxShadowColor: 'primary.main',
+                          }),
+                          '@keyframes fadeIn': {
+                            from: { opacity: 0, transform: 'translateX(-8px)' },
+                            to: { opacity: 1, transform: 'translateX(0)' },
+                          },
+                        }}
+                      >
                         <TableCell>
                           <Typography variant="body2" fontWeight={500}>{tpl.name}</Typography>
                         </TableCell>
@@ -356,7 +458,12 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                           ); })()}
                         </TableCell>
                         <TableCell>
-                          {report ? (
+                          {isChecking ? (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <CircularProgress size={16} />
+                              <Typography variant="caption" color="text.secondary">Verification...</Typography>
+                            </Box>
+                          ) : report ? (
                             <Tooltip title={
                               report.compliant
                                 ? t('documents.compliance.allMentionsPresent')
@@ -367,40 +474,42 @@ const ComplianceDashboard = forwardRef<ComplianceDashboardRef>((_, ref) => {
                                 icon={report.compliant ? <GppGood sx={{ color: `${c} !important` }} /> : <GppBad sx={{ color: `${c} !important` }} />}
                                 label={report.compliant ? t('documents.compliance.compliant') : t('documents.compliance.nonCompliant')}
                                 size="small"
-                                sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 } }}
+                                sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.75rem', height: 24, '& .MuiChip-label': { px: 1 }, animation: 'fadeIn 0.4s ease' }}
                               />
                               ); })()}
                             </Tooltip>
                           ) : (
-                            <Typography variant="caption" color="text.secondary">{t('documents.compliance.notChecked')}</Typography>
+                            <Typography variant="caption" color="text.secondary">En attente</Typography>
                           )}
                         </TableCell>
                         <TableCell>
-                          {report ? (
+                          {isChecking ? (
+                            <CircularProgress size={16} />
+                          ) : report ? (
                             <Typography
                               variant="body2"
                               fontWeight={600}
                               color={report.score >= 80 ? 'success.main' : report.score >= 50 ? 'warning.main' : 'error.main'}
+                              sx={{ animation: 'fadeIn 0.4s ease' }}
                             >
                               {report.score}%
                             </Typography>
                           ) : '\u2014'}
                         </TableCell>
                         <TableCell align="right">
-                          <Tooltip title={`${t('documents.compliance.checkAction')} (${standardName})`}>
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleCheckCompliance(tpl.id)}
-                              disabled={checking}
-                            >
-                              {checking ? (
-                                <CircularProgress size={18} />
+                          {report ? (
+                            <Tooltip title={report.compliant ? 'Conforme' : 'Non conforme'}>
+                              {report.compliant ? (
+                                <GppGood sx={{ fontSize: 20, color: '#4A9B8E', animation: 'fadeIn 0.4s ease' }} />
                               ) : (
-                                <VerifiedUser />
+                                <GppBad sx={{ fontSize: 20, color: '#d32f2f', animation: 'fadeIn 0.4s ease' }} />
                               )}
-                            </IconButton>
-                          </Tooltip>
+                            </Tooltip>
+                          ) : isChecking ? (
+                            <CircularProgress size={18} />
+                          ) : (
+                            <VerifiedUser sx={{ fontSize: 20, color: 'text.disabled' }} />
+                          )}
                         </TableCell>
                       </TableRow>
                     );
