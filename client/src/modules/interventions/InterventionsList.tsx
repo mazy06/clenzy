@@ -99,6 +99,10 @@ interface InterventionsListProps {
   filtersContainer?: HTMLElement | null;
 }
 
+/** COMPLETED interventions always show 100% regardless of stored value */
+const getProgress = (i: Intervention): number =>
+  i.status === 'COMPLETED' ? 100 : (i.progressPercentage ?? 0);
+
 export default function InterventionsList({ embedded = false, actionsContainer, filtersContainer }: InterventionsListProps) {
   const {
     // State
@@ -581,7 +585,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 70 }}>
                                   <LinearProgress
                                     variant="determinate"
-                                    value={intervention.progressPercentage}
+                                    value={getProgress(intervention)}
                                     sx={{
                                       flex: 1,
                                       height: 5,
@@ -589,13 +593,13 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
                                       bgcolor: 'grey.200',
                                       '& .MuiLinearProgress-bar': {
                                         borderRadius: 3,
-                                        bgcolor: intervention.progressPercentage === 100 ? 'success.main'
-                                          : intervention.progressPercentage >= 50 ? 'info.main' : 'warning.main',
+                                        bgcolor: getProgress(intervention) === 100 ? 'success.main'
+                                          : getProgress(intervention) >= 50 ? 'info.main' : 'warning.main',
                                       },
                                     }}
                                   />
                                   <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.68rem', minWidth: 24 }}>
-                                    {intervention.progressPercentage}%
+                                    {getProgress(intervention)}%
                                   </Typography>
                                 </Box>
                                 {intervention.assignedToName && (
@@ -788,7 +792,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 80 }}>
                               <LinearProgress
                                 variant="determinate"
-                                value={intervention.progressPercentage}
+                                value={getProgress(intervention)}
                                 sx={{
                                   flex: 1,
                                   height: 6,
@@ -796,13 +800,13 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
                                   bgcolor: 'grey.200',
                                   '& .MuiLinearProgress-bar': {
                                     borderRadius: 3,
-                                    bgcolor: intervention.progressPercentage === 100 ? 'success.main'
-                                      : intervention.progressPercentage >= 50 ? 'info.main' : 'warning.main',
+                                    bgcolor: getProgress(intervention) === 100 ? 'success.main'
+                                      : getProgress(intervention) >= 50 ? 'info.main' : 'warning.main',
                                   },
                                 }}
                               />
                               <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.68rem', minWidth: 28 }}>
-                                {intervention.progressPercentage}%
+                                {getProgress(intervention)}%
                               </Typography>
                             </Box>
                           </TableCell>
