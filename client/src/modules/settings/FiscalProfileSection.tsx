@@ -268,6 +268,33 @@ const FiscalProfileSection: React.FC = () => {
                 </TextField>
               </Grid>
 
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label={t('fiscal.profile.invoiceLanguage')}
+                  value={form.invoiceLanguage || 'fr'}
+                  onChange={(e) => handleChange('invoiceLanguage', e.target.value)}
+                  size="small"
+                >
+                  {LANGUAGE_OPTIONS.map(l => (
+                    <MenuItem key={l.value} value={l.value}>{l.label}</MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label={t('fiscal.profile.invoicePrefix')}
+                  value={form.invoicePrefix}
+                  onChange={(e) => handleChange('invoicePrefix', e.target.value)}
+                  size="small"
+                  placeholder="FA"
+                  helperText="Ex: FA-2026-0001"
+                />
+              </Grid>
+
               <Grid item xs={12}>
                 <FormControlLabel
                   control={
@@ -284,8 +311,8 @@ const FiscalProfileSection: React.FC = () => {
         </Grid>
 
         {/* ── Section 2 : Informations legales ── */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 2, height: '100%' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
               <AccountBalance sx={{ color: 'secondary.main', fontSize: 20 }} />
               <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
@@ -294,33 +321,26 @@ const FiscalProfileSection: React.FC = () => {
             </Box>
 
             <Grid container spacing={2}>
-              {/* Colonne gauche : Raison sociale + Adresse */}
-              <Grid item xs={12} md={5}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label={t('fiscal.profile.legalName')}
-                      value={form.legalEntityName}
-                      onChange={(e) => handleChange('legalEntityName', e.target.value)}
-                      size="small"
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <AddressAutocomplete
-                      value={form.legalAddress ?? ''}
-                      label={t('fiscal.profile.legalAddress')}
-                      placeholder="Rechercher une adresse..."
-                      onChange={(val) => handleChange('legalAddress', val)}
-                      onSelect={(address) => handleChange('legalAddress', address.label)}
-                      size="small"
-                    />
-                  </Grid>
-                </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label={t('fiscal.profile.legalName')}
+                  value={form.legalEntityName}
+                  onChange={(e) => handleChange('legalEntityName', e.target.value)}
+                  size="small"
+                />
               </Grid>
-
-              {/* Colonne droite : Mentions légales (plus d'espace) */}
-              <Grid item xs={12} md={7}>
+              <Grid item xs={12}>
+                <AddressAutocomplete
+                  value={form.legalAddress ?? ''}
+                  label={t('fiscal.profile.legalAddress')}
+                  placeholder="Rechercher une adresse..."
+                  onChange={(val) => handleChange('legalAddress', val)}
+                  onSelect={(address) => handleChange('legalAddress', address.label)}
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
                   label={t('fiscal.profile.legalMentions')}
@@ -328,49 +348,8 @@ const FiscalProfileSection: React.FC = () => {
                   onChange={(e) => handleChange('legalMentions', e.target.value)}
                   size="small"
                   multiline
-                  rows={5}
+                  rows={4}
                   placeholder="Mentions legales obligatoires sur les factures"
-                />
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
-
-        {/* ── Section 3 : Facturation ── */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <AccountBalance sx={{ color: 'info.main', fontSize: 20 }} />
-              <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-                {t('fiscal.profile.sectionInvoicing')}
-              </Typography>
-            </Box>
-
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  select
-                  label={t('fiscal.profile.invoiceLanguage')}
-                  value={form.invoiceLanguage || 'fr'}
-                  onChange={(e) => handleChange('invoiceLanguage', e.target.value)}
-                  size="small"
-                >
-                  {LANGUAGE_OPTIONS.map(l => (
-                    <MenuItem key={l.value} value={l.value}>{l.label}</MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label={t('fiscal.profile.invoicePrefix')}
-                  value={form.invoicePrefix}
-                  onChange={(e) => handleChange('invoicePrefix', e.target.value)}
-                  size="small"
-                  placeholder="FA"
-                  helperText="Ex: FA-2026-0001"
                 />
               </Grid>
             </Grid>
