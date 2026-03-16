@@ -40,7 +40,6 @@ export function useInterventionState(id: string | undefined) {
   // UI-only state
   const [starting, setStarting] = useState(false);
   const [completing, setCompleting] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Local intervention state (updated by mutations in child hooks)
@@ -321,9 +320,6 @@ export function useInterventionState(id: string | undefined) {
     starting,
     completing,
     setCompleting,
-    showSidebar,
-    setShowSidebar,
-
     // Property
     propertyDetails,
 
