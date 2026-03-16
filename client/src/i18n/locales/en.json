@@ -1304,6 +1304,7 @@
     "createFirst": "Create your first team",
     "edit": "Edit team",
     "details": "Team details",
+    "searchPlaceholder": "Search a team...",
     "allTypes": "All types",
     "team": "team",
     "teams": "teams",

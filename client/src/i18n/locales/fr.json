@@ -1313,6 +1313,7 @@
     "createFirst": "Créer votre première équipe",
     "edit": "Modifier l'équipe",
     "details": "Détails de l'équipe",
+    "searchPlaceholder": "Rechercher une équipe...",
     "allTypes": "Tous les types",
     "team": "équipe",
     "teams": "équipes",

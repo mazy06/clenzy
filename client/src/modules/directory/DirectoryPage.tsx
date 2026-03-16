@@ -34,6 +34,8 @@ interface TabDef {
   labelKey: string;
   icon: React.ReactElement;
   permission: string;
+  /** If set, user must also have one of these roles */
+  roles?: string[];
 }
 
 const ALL_TABS: TabDef[] = [
@@ -42,7 +44,7 @@ const ALL_TABS: TabDef[] = [
   { key: 'portfolios', labelKey: 'directoryPage.tabs.portfolios', icon: <Business sx={{ fontSize: 18 }} />, permission: 'portfolios:view' },
   { key: 'organizations', labelKey: 'directoryPage.tabs.organizations', icon: <CorporateFare sx={{ fontSize: 18 }} />, permission: 'users:manage' },
   { key: 'guests', labelKey: 'directoryPage.tabs.guests', icon: <PersonSearch sx={{ fontSize: 18 }} />, permission: 'guests:view' },
-  { key: 'prospection', labelKey: 'directoryPage.tabs.prospection', icon: <TrendingUp sx={{ fontSize: 18 }} />, permission: 'teams:view' },
+  { key: 'prospection', labelKey: 'directoryPage.tabs.prospection', icon: <TrendingUp sx={{ fontSize: 18 }} />, permission: 'teams:view', roles: ['SUPER_ADMIN', 'SUPER_MANAGER'] },
 ];
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -55,8 +57,12 @@ const DirectoryPage: React.FC = () => {
   // Build visible tabs based on user permissions
   const visibleTabs = useMemo(() => {
     if (!user?.permissions) return [];
-    return ALL_TABS.filter((tab) => user.permissions!.includes(tab.permission));
-  }, [user?.permissions]);
+    return ALL_TABS.filter((tab) => {
+      if (!user.permissions!.includes(tab.permission)) return false;
+      if (tab.roles && !tab.roles.some((r) => user.roles?.includes(r))) return false;
+      return true;
+    });
+  }, [user?.permissions, user?.roles]);
 
   const maxTab = Math.max(0, visibleTabs.length - 1);
   const initialTab = parseInt(searchParams.get('tab') || '0', 10);
