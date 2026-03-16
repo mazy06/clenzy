@@ -59,7 +59,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onLogout }) => {
   };
 
   const handleProfileNavigation = () => {
-    navigate('/profile');
+    navigate('/settings');
     handleMenuClose();
   };
 

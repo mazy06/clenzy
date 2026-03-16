@@ -23,7 +23,7 @@ async function downloadFile(endpoint: string, filename: string): Promise<void> {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  window.URL.revokeObjectURL(blobUrl);
+  setTimeout(() => window.URL.revokeObjectURL(blobUrl), 200);
 }
 
 function buildDateParams(from: string, to: string): string {
@@ -56,7 +56,7 @@ async function downloadFilePost(endpoint: string, body: unknown, filename: strin
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  window.URL.revokeObjectURL(blobUrl);
+  setTimeout(() => window.URL.revokeObjectURL(blobUrl), 200);
 }
 
 // ─── API ────────────────────────────────────────────────────────────────────

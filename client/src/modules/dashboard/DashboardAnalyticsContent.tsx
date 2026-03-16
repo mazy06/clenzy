@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Box } from '@mui/material';
+import { Box, Grid } from '@mui/material';
 import { useAuth } from '../../hooks/useAuth';
 import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
@@ -64,17 +64,24 @@ const DashboardAnalyticsContent: React.FC<DashboardAnalyticsContentProps> = Reac
             {/* ── Tab 0 : Vue d'ensemble ───────────────────────────── */}
             {subTab === 0 && (
               <>
+                {/* Hero + Secondary KPIs */}
                 <DashboardErrorBoundary widgetName="Performance Globale">
                   <AnalyticsGlobalPerformance data={analytics?.global ?? null} loading={analyticsLoading} />
                 </DashboardErrorBoundary>
 
-                <DashboardErrorBoundary widgetName="Alertes Business">
-                  <AnalyticsAlerts data={analytics?.alerts ?? null} loading={analyticsLoading} />
-                </DashboardErrorBoundary>
-
-                <DashboardErrorBoundary widgetName="Recommandations">
-                  <AnalyticsRecommendations data={analytics?.recommendations ?? null} loading={analyticsLoading} />
-                </DashboardErrorBoundary>
+                {/* Alerts & Recommendations side by side */}
+                <Grid container spacing={1.5}>
+                  <Grid item xs={12} md={6}>
+                    <DashboardErrorBoundary widgetName="Alertes Business">
+                      <AnalyticsAlerts data={analytics?.alerts ?? null} loading={analyticsLoading} />
+                    </DashboardErrorBoundary>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <DashboardErrorBoundary widgetName="Recommandations">
+                      <AnalyticsRecommendations data={analytics?.recommendations ?? null} loading={analyticsLoading} />
+                    </DashboardErrorBoundary>
+                  </Grid>
+                </Grid>
               </>
             )}
 

@@ -12,7 +12,6 @@ import {
   Alert,
   Snackbar,
   CircularProgress,
-  Divider,
   TextField,
   Button,
   InputAdornment,
@@ -25,8 +24,17 @@ import {
   TableRow,
   IconButton,
   Tooltip,
+  Grid,
+  Card,
+  CardContent,
 } from '@mui/material';
-import { Save } from '@mui/icons-material';
+import {
+  Save,
+  Payment,
+  AccountBalance,
+  PieChart,
+  CreditCard,
+} from '@mui/icons-material';
 import { paymentConfigApi } from '../../services/api/paymentConfigApi';
 import { splitConfigApi } from '../../services/api/splitConfigApi';
 import type { PaymentMethodConfig, PaymentProviderType, SplitConfiguration } from '../../types/payment';
@@ -34,6 +42,24 @@ import { PAYMENT_PROVIDER_LABELS } from '../../types/payment';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCommissions, useSaveCommission } from '../../hooks/useAccounting';
 import type { ChannelCommission } from '../../services/api/accountingApi';
+
+// ─── Provider metadata ───────────────────────────────────────────────────────
+
+const PROVIDER_COLORS: Record<string, string> = {
+  STRIPE: '#635BFF',
+  PAYTABS: '#1A8FE3',
+  CMI: '#E4002B',
+  PAYZONE: '#00B67A',
+  PAYPAL: '#003087',
+};
+
+const PROVIDER_REGIONS: Record<string, string> = {
+  STRIPE: 'Europe',
+  PAYTABS: 'Arabie Saoudite',
+  CMI: 'Maroc',
+  PAYZONE: 'Maroc',
+  PAYPAL: 'Global',
+};
 
 export default function PaymentSettings() {
   const { t } = useTranslation();
@@ -138,7 +164,6 @@ export default function PaymentSettings() {
     }
   };
 
-  // Show all providers, including those not yet configured
   const allProviders: PaymentProviderType[] = ['STRIPE', 'PAYTABS', 'CMI', 'PAYZONE', 'PAYPAL'];
 
   const getConfig = (type: PaymentProviderType): PaymentMethodConfig | undefined =>
@@ -157,218 +182,274 @@ export default function PaymentSettings() {
 
   return (
     <Box>
-      {/* ─── Payment Providers ─── */}
-      <Typography variant="h6" gutterBottom>
-        Fournisseurs de paiement
-      </Typography>
-      <Typography variant="body2" color="text.secondary" gutterBottom>
-        Activez ou désactivez les fournisseurs de paiement pour votre organisation.
-        Seul Stripe est actuellement opérationnel. Les autres fournisseurs seront disponibles prochainement.
-      </Typography>
+      <Grid container spacing={3}>
+        {/* ═══ LEFT COLUMN — Payment Providers ═══ */}
+        <Grid item xs={12} md={6}>
+          <Card variant="outlined" sx={{ height: '100%' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                <Payment sx={{ color: 'primary.main', fontSize: 22 }} />
+                <Typography variant="subtitle1" fontWeight={700}>
+                  Fournisseurs de paiement
+                </Typography>
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                Activez ou désactivez les fournisseurs pour votre organisation.
+              </Typography>
 
-      <Paper variant="outlined" sx={{ mt: 2 }}>
-        <List disablePadding>
-          {allProviders.map((type, index) => {
-            const config = getConfig(type);
-            const enabled = config?.enabled ?? false;
-            const isStub = type !== 'STRIPE';
+              <List disablePadding>
+                {allProviders.map((type, index) => {
+                  const config = getConfig(type);
+                  const enabled = config?.enabled ?? false;
+                  const isStub = type !== 'STRIPE';
+                  const color = PROVIDER_COLORS[type] ?? '#666';
 
-            return (
-              <ListItem
-                key={type}
-                divider={index < allProviders.length - 1}
-                sx={{ py: 2 }}
-              >
-                <ListItemText
-                  primary={
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Typography fontWeight={600}>
-                        {PAYMENT_PROVIDER_LABELS[type]}
-                      </Typography>
-                      {isStub && (
-                        <Chip label="Bientôt" size="small" color="default" variant="outlined" />
-                      )}
-                      {enabled && !isStub && (
-                        <Chip label="Actif" size="small" color="success" />
-                      )}
-                      {config?.sandboxMode && (
-                        <Chip label="Sandbox" size="small" color="warning" variant="outlined" />
+                  return (
+                    <ListItem
+                      key={type}
+                      divider={index < allProviders.length - 1}
+                      sx={{ px: 0, py: 1.5 }}
+                    >
+                      <Box
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 1.5,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          bgcolor: `${color}14`,
+                          mr: 1.5,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <CreditCard sx={{ fontSize: 18, color }} />
+                      </Box>
+                      <ListItemText
+                        primary={
+                          <Box display="flex" alignItems="center" gap={0.75}>
+                            <Typography variant="body2" fontWeight={600}>
+                              {PAYMENT_PROVIDER_LABELS[type]}
+                            </Typography>
+                            {isStub && (
+                              <Chip
+                                label="Bientôt"
+                                size="small"
+                                sx={{
+                                  fontSize: '0.65rem',
+                                  height: 18,
+                                  bgcolor: 'action.hover',
+                                  '& .MuiChip-label': { px: 0.75 },
+                                }}
+                              />
+                            )}
+                            {enabled && !isStub && (
+                              <Chip
+                                label="Actif"
+                                size="small"
+                                sx={{
+                                  fontSize: '0.65rem',
+                                  height: 18,
+                                  bgcolor: '#4A9B8E18',
+                                  color: '#4A9B8E',
+                                  fontWeight: 600,
+                                  '& .MuiChip-label': { px: 0.75 },
+                                }}
+                              />
+                            )}
+                            {config?.sandboxMode && (
+                              <Chip
+                                label="Sandbox"
+                                size="small"
+                                color="warning"
+                                variant="outlined"
+                                sx={{ fontSize: '0.65rem', height: 18, '& .MuiChip-label': { px: 0.75 } }}
+                              />
+                            )}
+                          </Box>
+                        }
+                        secondary={PROVIDER_REGIONS[type]}
+                        secondaryTypographyProps={{ variant: 'caption' }}
+                      />
+                      <ListItemSecondaryAction>
+                        <Switch
+                          edge="end"
+                          size="small"
+                          checked={enabled}
+                          onChange={() => handleToggle(type, enabled)}
+                          disabled={isStub}
+                        />
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  );
+                })}
+              </List>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* ═══ RIGHT COLUMN — Revenue Split + Commissions ═══ */}
+        <Grid item xs={12} md={6}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%' }}>
+            {/* ─── Revenue Split ─── */}
+            <Card variant="outlined">
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <PieChart sx={{ color: '#D4A574', fontSize: 22 }} />
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    {t('settings.split.title')}
+                  </Typography>
+                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                  {t('settings.split.subtitle')}
+                </Typography>
+
+                {/* Visual split bar */}
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', height: 28, borderRadius: 1, overflow: 'hidden' }}>
+                    <Box
+                      sx={{
+                        width: `${parseFloat(ownerPct) || 0}%`,
+                        bgcolor: '#4A9B8E',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'width 0.3s',
+                      }}
+                    >
+                      {parseFloat(ownerPct) >= 15 && (
+                        <Typography variant="caption" color="white" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
+                          {ownerPct}%
+                        </Typography>
                       )}
                     </Box>
-                  }
-                  secondary={
-                    config?.countryCodes?.length
-                      ? `Pays: ${config.countryCodes.join(', ')}`
-                      : 'Tous les pays supportés'
-                  }
-                />
-                <ListItemSecondaryAction>
-                  <Switch
-                    edge="end"
-                    checked={enabled}
-                    onChange={() => handleToggle(type, enabled)}
-                    disabled={isStub}
+                    <Box
+                      sx={{
+                        width: `${parseFloat(platformPct) || 0}%`,
+                        bgcolor: '#6B8A9A',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'width 0.3s',
+                      }}
+                    >
+                      {parseFloat(platformPct) >= 8 && (
+                        <Typography variant="caption" color="white" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
+                          {platformPct}%
+                        </Typography>
+                      )}
+                    </Box>
+                    <Box
+                      sx={{
+                        width: `${parseFloat(conciergePct) || 0}%`,
+                        bgcolor: '#D4A574',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'width 0.3s',
+                      }}
+                    >
+                      {parseFloat(conciergePct) >= 10 && (
+                        <Typography variant="caption" color="white" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
+                          {conciergePct}%
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 2, mt: 0.75 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#4A9B8E' }} />
+                      <Typography variant="caption" sx={{ fontSize: '0.68rem' }}>{t('settings.split.ownerShare')}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#6B8A9A' }} />
+                      <Typography variant="caption" sx={{ fontSize: '0.68rem' }}>{t('settings.split.platformShare')}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#D4A574' }} />
+                      <Typography variant="caption" sx={{ fontSize: '0.68rem' }}>{t('settings.split.conciergeShare')}</Typography>
+                    </Box>
+                  </Box>
+                </Box>
+
+                {/* Input fields */}
+                <Stack direction="row" spacing={1.5} sx={{ mb: 1.5 }}>
+                  <TextField
+                    label={t('settings.split.ownerShare')}
+                    type="number"
+                    size="small"
+                    value={ownerPct}
+                    onChange={(e) => setOwnerPct(e.target.value)}
+                    InputProps={{
+                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                      inputProps: { min: 0, max: 100, step: 0.01 },
+                    }}
+                    fullWidth
                   />
-                </ListItemSecondaryAction>
-              </ListItem>
-            );
-          })}
-        </List>
-      </Paper>
+                  <TextField
+                    label={t('settings.split.platformShare')}
+                    type="number"
+                    size="small"
+                    value={platformPct}
+                    onChange={(e) => setPlatformPct(e.target.value)}
+                    InputProps={{
+                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                      inputProps: { min: 0, max: 100, step: 0.01 },
+                    }}
+                    fullWidth
+                  />
+                  <TextField
+                    label={t('settings.split.conciergeShare')}
+                    type="number"
+                    size="small"
+                    value={conciergePct}
+                    onChange={(e) => setConciergePct(e.target.value)}
+                    InputProps={{
+                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                      inputProps: { min: 0, max: 100, step: 0.01 },
+                    }}
+                    fullWidth
+                  />
+                </Stack>
 
-      {/* ─── Revenue Split Configuration ─── */}
-      <Divider sx={{ my: 4 }} />
+                {/* Total + Save */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography
+                    variant="body2"
+                    color={isValidTotal ? 'text.secondary' : 'error'}
+                    fontWeight={isValidTotal ? 400 : 600}
+                  >
+                    Total : {total}%
+                    {!isValidTotal && ` — ${t('settings.split.totalError')}`}
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<Save />}
+                    disabled={!isValidTotal || splitSaving}
+                    onClick={handleSaveSplit}
+                  >
+                    {splitSaving ? <CircularProgress size={20} /> : t('settings.split.save')}
+                  </Button>
+                </Box>
 
-      <Typography variant="h6" gutterBottom>
-        {t('settings.split.title')}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" gutterBottom>
-        {t('settings.split.subtitle')}
-      </Typography>
+                {!splitConfig && (
+                  <Alert severity="info" sx={{ mt: 2 }}>
+                    {t('settings.split.defaults')}
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
 
-      <Paper variant="outlined" sx={{ mt: 2, p: 3 }}>
-        {/* Visual split bar */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-            {t('settings.split.currentRatios')}
-          </Typography>
-          <Box sx={{ display: 'flex', height: 32, borderRadius: 1, overflow: 'hidden' }}>
-            <Box
-              sx={{
-                width: `${parseFloat(ownerPct) || 0}%`,
-                bgcolor: '#4A9B8E',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'width 0.3s',
-              }}
-            >
-              {parseFloat(ownerPct) >= 15 && (
-                <Typography variant="caption" color="white" fontWeight={600}>
-                  {ownerPct}%
-                </Typography>
-              )}
-            </Box>
-            <Box
-              sx={{
-                width: `${parseFloat(platformPct) || 0}%`,
-                bgcolor: '#6B8A9A',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'width 0.3s',
-              }}
-            >
-              {parseFloat(platformPct) >= 8 && (
-                <Typography variant="caption" color="white" fontWeight={600}>
-                  {platformPct}%
-                </Typography>
-              )}
-            </Box>
-            <Box
-              sx={{
-                width: `${parseFloat(conciergePct) || 0}%`,
-                bgcolor: '#D4A574',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'width 0.3s',
-              }}
-            >
-              {parseFloat(conciergePct) >= 10 && (
-                <Typography variant="caption" color="white" fontWeight={600}>
-                  {conciergePct}%
-                </Typography>
-              )}
-            </Box>
+            {/* ─── Channel Commissions ─── */}
+            <Card variant="outlined" sx={{ flex: 1 }}>
+              <CardContent>
+                <ChannelCommissionsSection />
+              </CardContent>
+            </Card>
           </Box>
-          <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#4A9B8E' }} />
-              <Typography variant="caption">{t('settings.split.ownerShare')}</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#6B8A9A' }} />
-              <Typography variant="caption">{t('settings.split.platformShare')}</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#D4A574' }} />
-              <Typography variant="caption">{t('settings.split.conciergeShare')}</Typography>
-            </Box>
-          </Box>
-        </Box>
-
-        {/* Input fields */}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
-          <TextField
-            label={t('settings.split.ownerShare')}
-            type="number"
-            size="small"
-            value={ownerPct}
-            onChange={(e) => setOwnerPct(e.target.value)}
-            InputProps={{
-              endAdornment: <InputAdornment position="end">%</InputAdornment>,
-              inputProps: { min: 0, max: 100, step: 0.01 },
-            }}
-            fullWidth
-          />
-          <TextField
-            label={t('settings.split.platformShare')}
-            type="number"
-            size="small"
-            value={platformPct}
-            onChange={(e) => setPlatformPct(e.target.value)}
-            InputProps={{
-              endAdornment: <InputAdornment position="end">%</InputAdornment>,
-              inputProps: { min: 0, max: 100, step: 0.01 },
-            }}
-            fullWidth
-          />
-          <TextField
-            label={t('settings.split.conciergeShare')}
-            type="number"
-            size="small"
-            value={conciergePct}
-            onChange={(e) => setConciergePct(e.target.value)}
-            InputProps={{
-              endAdornment: <InputAdornment position="end">%</InputAdornment>,
-              inputProps: { min: 0, max: 100, step: 0.01 },
-            }}
-            fullWidth
-          />
-        </Stack>
-
-        {/* Total validation */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography
-            variant="body2"
-            color={isValidTotal ? 'text.secondary' : 'error'}
-            fontWeight={isValidTotal ? 400 : 600}
-          >
-            Total : {total}%
-            {!isValidTotal && ` — ${t('settings.split.totalError')}`}
-          </Typography>
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<Save />}
-            disabled={!isValidTotal || splitSaving}
-            onClick={handleSaveSplit}
-          >
-            {splitSaving ? <CircularProgress size={20} /> : t('settings.split.save')}
-          </Button>
-        </Box>
-
-        {!splitConfig && (
-          <Alert severity="info" sx={{ mt: 2 }}>
-            {t('settings.split.defaults')}
-          </Alert>
-        )}
-      </Paper>
-
-      {/* ─── Channel Commissions ─── */}
-      <Divider sx={{ my: 4 }} />
-      <ChannelCommissionsSection />
+        </Grid>
+      </Grid>
 
       <Snackbar
         open={snackbar.open}
@@ -387,7 +468,6 @@ export default function PaymentSettings() {
 
 const CHANNEL_COLORS: Record<string, string> = { AIRBNB: '#FF5A5F', BOOKING: '#003580', DIRECT: '#4A9B8E' };
 
-// Seul le booking engine (DIRECT) est modifiable — les plateformes externes fixent leurs propres taux
 const EDITABLE_CHANNELS = new Set(['DIRECT']);
 
 function ChannelCommissionsSection() {
@@ -426,27 +506,30 @@ function ChannelCommissionsSection() {
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>
-        {t('settings.commissions.title', 'Commissions canaux')}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" gutterBottom>
-        {t('settings.commissions.subtitle', 'Taux de commission prélevé par chaque plateforme de réservation. Les taux des plateformes externes ne sont pas modifiables. Seul le taux du booking engine est configurable.')}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+        <AccountBalance sx={{ color: '#6B8A9A', fontSize: 22 }} />
+        <Typography variant="subtitle1" fontWeight={700}>
+          {t('settings.commissions.title', 'Commissions canaux')}
+        </Typography>
+      </Box>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+        {t('settings.commissions.subtitle', 'Taux de commission par plateforme. Seul le booking engine est configurable.')}
       </Typography>
 
       {isLoading ? (
-        <Box display="flex" justifyContent="center" p={4}>
-          <CircularProgress />
+        <Box display="flex" justifyContent="center" p={3}>
+          <CircularProgress size={24} />
         </Box>
       ) : isError ? (
-        <Alert severity="error" sx={{ mt: 2 }}>
+        <Alert severity="error">
           {t('settings.commissions.error', 'Erreur lors du chargement des commissions')}
         </Alert>
       ) : commissions.length === 0 ? (
-        <Alert severity="info" sx={{ mt: 2 }}>
+        <Alert severity="info">
           {t('settings.commissions.empty', 'Aucun canal de réservation configuré')}
         </Alert>
       ) : (
-        <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
+        <TableContainer component={Paper} variant="outlined">
           <Table size="small">
             <TableHead>
               <TableRow>

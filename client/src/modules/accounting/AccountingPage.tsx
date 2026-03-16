@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   Box, Paper, Typography, Button, Chip, IconButton, Tooltip,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
@@ -35,12 +35,12 @@ import {
 import PageHeader from '../../components/PageHeader';
 import HelpBanner from '../../components/HelpBanner';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useSearchParams } from 'react-router-dom';
 import { SPACING } from '../../theme/spacing';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import type { Property } from '../../services/api/propertiesApi';
 import {
   usePayouts,
-  useGeneratePayout,
   useApprovePayout,
   useMarkAsPaid,
   useExecutePayout,
@@ -99,7 +99,14 @@ const fmtPercent = (n: number) => `${(n * 100).toFixed(1)}%`;
 
 const AccountingPage: React.FC = () => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = parseInt(searchParams.get('tab') || '0', 10);
+  const [activeTab, setActiveTab] = useState(isNaN(tabParam) ? 0 : tabParam);
+
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+    setSearchParams(newValue === 0 ? {} : { tab: String(newValue) }, { replace: true });
+  };
 
   return (
     <Box sx={{ p: SPACING.PAGE_PADDING }}>
@@ -113,7 +120,7 @@ const AccountingPage: React.FC = () => {
       <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
         <Tabs
           value={activeTab}
-          onChange={(_, v) => setActiveTab(v)}
+          onChange={handleTabChange}
           sx={{ borderBottom: 1, borderColor: 'divider', minHeight: 40 }}
         >
           <Tab label={t('accounting.tabs.payouts', 'Payouts')} sx={TAB_SX} />
@@ -145,31 +152,20 @@ export const PayoutsTab: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<PayoutStatus | ''>('');
 
   // Dialogs
-  const [generateOpen, setGenerateOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [payTarget, setPayTarget] = useState<OwnerPayout | null>(null);
   const [payRef, setPayRef] = useState('');
-
-  // Generate form
-  const [genOwnerId, setGenOwnerId] = useState<number | ''>('');
-  const [genFrom, setGenFrom] = useState('');
-  const [genTo, setGenTo] = useState('');
 
   // Data
   const ownerId = filterOwnerId === '' ? undefined : filterOwnerId;
   const status = filterStatus === '' ? undefined : filterStatus;
   const { data: payouts = [], isLoading, isError } = usePayouts(ownerId, status);
-  const { data: properties = [] } = useQuery({
-    queryKey: ['properties-list'],
-    queryFn: () => propertiesApi.getAll(),
-    staleTime: 120_000,
-  });
 
   // SEPA XML download
   const [sepaDownloading, setSepaDownloading] = useState(false);
+  const [sepaError, setSepaError] = useState<string | null>(null);
 
   // Mutations
-  const generateMutation = useGeneratePayout();
   const approveMutation = useApprovePayout();
   const markPaidMutation = useMarkAsPaid();
   const executeMutation = useExecutePayout();
@@ -189,15 +185,6 @@ export const PayoutsTab: React.FC = () => {
   }, [payouts]);
 
   // Handlers
-  const handleGenerate = useCallback(async () => {
-    if (genOwnerId === '' || !genFrom || !genTo) return;
-    await generateMutation.mutateAsync({ ownerId: genOwnerId as number, from: genFrom, to: genTo });
-    setGenerateOpen(false);
-    setGenOwnerId('');
-    setGenFrom('');
-    setGenTo('');
-  }, [genOwnerId, genFrom, genTo, generateMutation]);
-
   const handleApprove = useCallback(
     (id: number) => approveMutation.mutate(id),
     [approveMutation],
@@ -225,14 +212,15 @@ export const PayoutsTab: React.FC = () => {
   const handleDownloadSepaXml = useCallback(async (ids: number[]) => {
     if (ids.length === 0) return;
     setSepaDownloading(true);
+    setSepaError(null);
     try {
       await accountingExportApi.downloadSepaXml(ids);
-    } catch {
-      // error handled by caller or ignored
+    } catch (err) {
+      setSepaError((err as Error)?.message || t('accounting.sepaDownloadError', 'Erreur lors du telechargement SEPA'));
     } finally {
       setSepaDownloading(false);
     }
-  }, []);
+  }, [t]);
 
   return (
     <>
@@ -290,6 +278,12 @@ export const PayoutsTab: React.FC = () => {
           ))}
         </Box>
 
+        {sepaError && (
+          <Alert severity="error" sx={{ fontSize: '0.8125rem' }} onClose={() => setSepaError(null)}>
+            {sepaError}
+          </Alert>
+        )}
+
         <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
           {processingSepaPayouts.length > 0 && (
             <Button
@@ -303,24 +297,10 @@ export const PayoutsTab: React.FC = () => {
               {t('accounting.downloadSepaXml', 'SEPA XML')} ({processingSepaPayouts.length})
             </Button>
           )}
-          <Button
-            size="small"
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setGenerateOpen(true)}
-            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-          >
-            {t('accounting.generatePayout', 'Generer un payout')}
-          </Button>
         </Box>
       </Paper>
 
       {/* ── Alerts ── */}
-      {generateMutation.isSuccess && (
-        <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => generateMutation.reset()}>
-          {t('accounting.generateSuccess', 'Payout genere avec succes')}
-        </Alert>
-      )}
       {approveMutation.isSuccess && (
         <Alert severity="success" sx={{ mb: 1.5, fontSize: '0.8125rem' }} onClose={() => approveMutation.reset()}>
           {t('accounting.approveSuccess', 'Payout approuve')}
@@ -374,15 +354,9 @@ export const PayoutsTab: React.FC = () => {
               'Generez votre premier payout pour calculer le reversement du a un proprietaire.',
             )}
           </Typography>
-          <Button
-            size="small"
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setGenerateOpen(true)}
-            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-          >
-            {t('accounting.payouts.emptyAction', 'Generer votre premier payout')}
-          </Button>
+          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', maxWidth: 400, mx: 'auto' }}>
+            {t('accounting.payouts.emptyAutoHint', 'Les payouts sont generes automatiquement selon la planification configuree dans les parametres.')}
+          </Typography>
         </Paper>
       ) : (
         <TableContainer component={Paper} sx={CARD_SX}>
@@ -528,82 +502,6 @@ export const PayoutsTab: React.FC = () => {
           </Table>
         </TableContainer>
       )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          Generate Payout Dialog
-          ═══════════════════════════════════════════════════════════════════════ */}
-      <Dialog
-        open={generateOpen}
-        onClose={() => setGenerateOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
-      >
-        <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
-          {t('accounting.generateTitle', 'Generer un payout')}
-        </DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
-          <FormControl size="small" fullWidth>
-            <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('accounting.form.owner', 'Proprietaire')}</InputLabel>
-            <Select
-              value={genOwnerId}
-              onChange={(e) => setGenOwnerId(e.target.value as number | '')}
-              label={t('accounting.form.owner', 'Proprietaire')}
-              sx={{ fontSize: '0.8125rem' }}
-            >
-              {Array.from(
-                properties.reduce((map: Map<number, string>, p: Property) => {
-                  if (!map.has(p.ownerId)) {
-                    map.set(p.ownerId, p.ownerName || `Proprietaire #${p.ownerId}`);
-                  }
-                  return map;
-                }, new Map<number, string>())
-              ).map(([id, name]) => (
-                <MenuItem key={id} value={id} sx={{ fontSize: '0.8125rem' }}>
-                  {name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <Box sx={{ display: 'flex', gap: 1.5 }}>
-            <TextField
-              label={t('accounting.form.from', 'Du')}
-              type="date"
-              size="small"
-              fullWidth
-              value={genFrom}
-              onChange={(e) => setGenFrom(e.target.value)}
-              InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-              InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            />
-            <TextField
-              label={t('accounting.form.to', 'Au')}
-              type="date"
-              size="small"
-              fullWidth
-              value={genTo}
-              onChange={(e) => setGenTo(e.target.value)}
-              InputLabelProps={{ shrink: true, sx: { fontSize: '0.8125rem' } }}
-              InputProps={{ sx: { fontSize: '0.8125rem' } }}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setGenerateOpen(false)} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
-            {t('common.cancel', 'Annuler')}
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={handleGenerate}
-            disabled={generateMutation.isPending || genOwnerId === '' || !genFrom || !genTo}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-          >
-            {generateMutation.isPending ? <CircularProgress size={16} /> : t('accounting.generate', 'Generer')}
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* ═══════════════════════════════════════════════════════════════════════
           Mark as Paid Dialog

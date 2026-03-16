@@ -106,7 +106,7 @@ public class SepaXmlService {
         appendTextElement(doc, grpHdr, "MsgId", msgId);
         appendTextElement(doc, grpHdr, "CreDtTm", LocalDateTime.now().format(ISO_DATETIME));
         appendTextElement(doc, grpHdr, "NbOfTxs", String.valueOf(nbOfTxs));
-        appendTextElement(doc, grpHdr, "CtrlSum", ctrlSum.toPlainString());
+        appendTextElement(doc, grpHdr, "CtrlSum", ctrlSum.setScale(2).toPlainString());
 
         Element initgPty = appendElement(doc, grpHdr, "InitgPty");
         appendTextElement(doc, initgPty, "Nm", truncate(org.getSepaDebtorName(), 70));
@@ -119,7 +119,7 @@ public class SepaXmlService {
         appendTextElement(doc, pmtInf, "PmtInfId", "PMT-" + msgId);
         appendTextElement(doc, pmtInf, "PmtMtd", "TRF");
         appendTextElement(doc, pmtInf, "NbOfTxs", String.valueOf(payouts.size()));
-        appendTextElement(doc, pmtInf, "CtrlSum", ctrlSum.toPlainString());
+        appendTextElement(doc, pmtInf, "CtrlSum", ctrlSum.setScale(2).toPlainString());
 
         Element pmtTpInf = appendElement(doc, pmtInf, "PmtTpInf");
         Element svcLvl = appendElement(doc, pmtTpInf, "SvcLvl");
@@ -154,7 +154,7 @@ public class SepaXmlService {
 
         Element amt = appendElement(doc, cdtTrfTxInf, "Amt");
         Element instdAmt = doc.createElement("InstdAmt");
-        instdAmt.setAttribute("Ccy", payout.getCurrency() != null ? payout.getCurrency() : "EUR");
+        instdAmt.setAttribute("Ccy", "EUR");
         instdAmt.setTextContent(payout.getNetAmount().setScale(2).toPlainString());
         amt.appendChild(instdAmt);
 

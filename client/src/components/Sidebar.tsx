@@ -254,9 +254,9 @@ export default function Sidebar({
           borderColor: 'divider',
         }}
       >
-        {/* User badge — cliquable vers /profile */}
+        {/* User badge — cliquable vers /settings */}
         <Box
-          onClick={() => handleNavigation('/profile')}
+          onClick={() => handleNavigation('/settings')}
           sx={{
             display: 'flex',
             alignItems: 'center',

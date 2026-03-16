@@ -55,7 +55,7 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
         {loading ? (
           // Skeleton placeholders
           Array.from({ length: 3 }).map((_, i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
+            <Grid item xs={12} key={i}>
               <Card sx={{ ...CARD_SX, opacity: 0.5 }}>
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                   <Box sx={{ height: 80 }} />
@@ -75,7 +75,7 @@ const AnalyticsRecommendations: React.FC<Props> = React.memo(({ data, loading })
           </Grid>
         ) : (
           recs.map((rec) => (
-            <Grid item xs={12} sm={6} md={4} key={rec.id}>
+            <Grid item xs={12} key={rec.id}>
               <Card sx={CARD_SX}>
                 <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
                   {/* Header: icon + title */}
