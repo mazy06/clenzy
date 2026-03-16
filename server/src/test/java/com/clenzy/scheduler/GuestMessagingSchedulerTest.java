@@ -52,6 +52,10 @@ class GuestMessagingSchedulerTest {
 
         reservation = new Reservation();
         reservation.setId(100L);
+
+        Guest guest = new Guest();
+        guest.setEmail("guest@example.com");
+        reservation.setGuest(guest);
     }
 
     @Test
@@ -150,6 +154,9 @@ class GuestMessagingSchedulerTest {
     void whenSendThrows_thenContinuesWithoutPropagation() {
         Reservation reservation2 = new Reservation();
         reservation2.setId(200L);
+        Guest guest2 = new Guest();
+        guest2.setEmail("guest2@example.com");
+        reservation2.setGuest(guest2);
 
         when(configRepository.findByAutoSendCheckInTrueOrAutoSendCheckOutTrue())
             .thenReturn(List.of(config));
