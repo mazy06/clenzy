@@ -6,6 +6,7 @@ import {
   CheckCircle as CheckCircleIcon,
   PlayArrow as PlayArrowIcon,
   Replay as ReplayIcon,
+  Description as DescriptionIcon,
 } from '@mui/icons-material';
 import type { InterventionDetailsData, PropertyDetails } from './interventionUtils';
 import PhotoGallery from '../../components/PhotoGallery';
@@ -17,42 +18,32 @@ import ProgressStepPhotos from './ProgressStepPhotos';
 
 interface InterventionProgressStepsProps {
   intervention: InterventionDetailsData;
-  // Progression
   calculateProgress: () => number;
   canUpdateProgress: boolean;
   canStartIntervention: boolean;
   canStartOrUpdateIntervention: boolean;
-  // Property & rooms
   propertyDetails: PropertyDetails | null;
   getTotalRooms: () => number;
   getRoomNames: () => string[];
   validatedRooms: Set<number>;
   allRoomsValidated: boolean;
   inspectionComplete: boolean;
-  // Photos
   beforePhotos: string[];
   afterPhotos: string[];
   completedSteps: Set<string>;
-  // Notes
   getStepNote: (step: 'inspection' | 'rooms' | 'after_photos') => string;
-  // Handlers
   handleStartIntervention: () => void;
   handleCompleteIntervention: () => void;
   handleReopenIntervention: () => void;
   handleRoomValidation: (roomIndex: number) => void;
   handleOpenNotesDialog: (step: 'inspection' | 'rooms' | 'after_photos') => void;
   handleUpdateProgressValue: (progress: number) => void;
-  // State setters
   setPhotoType: (type: 'before' | 'after') => void;
   setPhotosDialogOpen: (open: boolean) => void;
   setInspectionComplete: (value: boolean) => void;
   setCompletedSteps: React.Dispatch<React.SetStateAction<Set<string>>>;
-  setAllRoomsValidated: (value: boolean) => void;
-  saveCompletedSteps: (steps: Set<string>) => void;
-  // Loading states
   starting: boolean;
   completing: boolean;
-  // All steps completed check
   areAllStepsCompleted: boolean;
 }
 
@@ -84,39 +75,70 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   setPhotosDialogOpen,
   setInspectionComplete,
   setCompletedSteps,
-  setAllRoomsValidated,
-  saveCompletedSteps,
   starting,
   completing,
   areAllStepsCompleted,
 }) => {
+  const progress = calculateProgress();
+
   return (
     <>
-      {/* Progression */}
-      <Box mb={1.5}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.75}>
-          <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
+      {/* ── Barre de progression ────────────────────────────────────────── */}
+      <Box sx={{ mt: 2, mb: 2 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="baseline" mb={0.75}>
+          <Typography variant="body2" fontWeight={600}>
             Progression
           </Typography>
-          <Typography variant="subtitle1" fontWeight={700} color="primary" sx={{ fontSize: '0.95rem' }}>
-            {calculateProgress()}%
+          <Typography
+            variant="body2"
+            fontWeight={700}
+            color={progress === 100 ? 'success.main' : 'primary.main'}
+          >
+            {progress}%
           </Typography>
         </Box>
         <LinearProgress
           variant="determinate"
-          value={calculateProgress()}
+          value={progress}
+          color={progress === 100 ? 'success' : 'primary'}
           sx={{ height: 6, borderRadius: 3 }}
         />
       </Box>
 
-      {/* Étapes de progression */}
+      {/* ── Étapes de progression ───────────────────────────────────────── */}
       {canUpdateProgress && propertyDetails && (
         <Box mb={2}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5, fontSize: '0.95rem' }}>
+          <Typography variant="body2" fontWeight={600} sx={{ mb: 1.5 }}>
             Étapes de progression
           </Typography>
 
-          {/* Étape 3 — Photos après intervention (most recent, shown on top) */}
+          <ProgressStepInspection
+            inspectionComplete={inspectionComplete}
+            beforePhotos={beforePhotos}
+            completedSteps={completedSteps}
+            getStepNote={getStepNote}
+            handleOpenNotesDialog={handleOpenNotesDialog}
+            handleUpdateProgressValue={handleUpdateProgressValue}
+            setPhotoType={setPhotoType}
+            setPhotosDialogOpen={setPhotosDialogOpen}
+            setInspectionComplete={setInspectionComplete}
+            setCompletedSteps={setCompletedSteps}
+            calculateProgress={calculateProgress}
+          />
+
+          {inspectionComplete && (
+            <ProgressStepRooms
+              inspectionComplete={inspectionComplete}
+              validatedRooms={validatedRooms}
+              allRoomsValidated={allRoomsValidated}
+              getTotalRooms={getTotalRooms}
+              getRoomNames={getRoomNames}
+              getStepNote={getStepNote}
+              handleRoomValidation={handleRoomValidation}
+              handleOpenNotesDialog={handleOpenNotesDialog}
+            />
+          )}
+
           {allRoomsValidated && (
             <ProgressStepPhotos
               intervention={intervention}
@@ -132,44 +154,10 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               areAllStepsCompleted={areAllStepsCompleted}
             />
           )}
-
-          {/* Étape 2 — Validation par pièce */}
-          {inspectionComplete && (
-            <ProgressStepRooms
-              inspectionComplete={inspectionComplete}
-              validatedRooms={validatedRooms}
-              allRoomsValidated={allRoomsValidated}
-              getTotalRooms={getTotalRooms}
-              getRoomNames={getRoomNames}
-              getStepNote={getStepNote}
-              handleRoomValidation={handleRoomValidation}
-              handleOpenNotesDialog={handleOpenNotesDialog}
-              handleUpdateProgressValue={handleUpdateProgressValue}
-              setAllRoomsValidated={setAllRoomsValidated}
-              setCompletedSteps={setCompletedSteps}
-              saveCompletedSteps={saveCompletedSteps}
-              calculateProgress={calculateProgress}
-            />
-          )}
-
-          {/* Étape 1 — Inspection générale (oldest, shown at bottom) */}
-          <ProgressStepInspection
-            inspectionComplete={inspectionComplete}
-            beforePhotos={beforePhotos}
-            completedSteps={completedSteps}
-            getStepNote={getStepNote}
-            handleOpenNotesDialog={handleOpenNotesDialog}
-            handleUpdateProgressValue={handleUpdateProgressValue}
-            setPhotoType={setPhotoType}
-            setPhotosDialogOpen={setPhotosDialogOpen}
-            setInspectionComplete={setInspectionComplete}
-            setCompletedSteps={setCompletedSteps}
-            calculateProgress={calculateProgress}
-          />
         </Box>
       )}
 
-      {/* Bouton pour démarrer l'intervention */}
+      {/* ── Bouton démarrer ─────────────────────────────────────────────── */}
       {canStartIntervention && (
         <Box sx={{ mt: 2 }}>
           <Button
@@ -179,24 +167,32 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             fullWidth
             onClick={handleStartIntervention}
             disabled={starting}
-            sx={{ py: 1 }}
+            sx={{ py: 1.25, textTransform: 'none', fontWeight: 600, fontSize: '0.875rem' }}
           >
             {starting ? 'Démarrage...' : 'Démarrer l\'intervention'}
           </Button>
+          <Alert
+            severity="info"
+            icon={<DescriptionIcon sx={{ fontSize: 18 }} />}
+            sx={{ mt: 1.5, py: 0.5 }}
+          >
+            <Typography variant="body2">
+              Un bon d'intervention sera automatiquement généré et envoyé par email au démarrage.
+            </Typography>
+          </Alert>
         </Box>
       )}
 
-      {/* Bouton pour rouvrir une intervention terminée */}
-      {intervention && intervention.status === 'COMPLETED' && canStartOrUpdateIntervention && (
+      {/* ── Bouton réouvrir ─────────────────────────────────────────────── */}
+      {intervention?.status === 'COMPLETED' && canStartOrUpdateIntervention && (
         <Box
           sx={{
-            mt: 3,
+            mt: 2,
             p: 2,
             borderRadius: 2,
-            bgcolor: 'background.paper',
+            bgcolor: 'rgba(237, 108, 2, 0.04)',
             border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            borderColor: 'warning.light',
           }}
         >
           <Box
@@ -207,74 +203,60 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
               gap: 2,
             }}
           >
-            <Alert
-              severity="info"
-              sx={{
-                flex: { xs: '1 1 auto', sm: '1 1 60%' },
-                mb: { xs: 0, sm: 0 },
-                '& .MuiAlert-message': {
-                  width: '100%',
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  bgcolor: 'success.main',
                   display: 'flex',
                   alignItems: 'center',
-                },
-              }}
-              icon={false}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    bgcolor: 'info.main',
-                    flexShrink: 0,
-                  }}
-                >
-                  <CheckCircleIcon sx={{ fontSize: 20, color: 'white' }} />
-                </Box>
-                <Typography variant="body2" sx={{ fontSize: '0.85rem', lineHeight: 1.6, flex: 1 }}>
-                  Cette intervention est terminée. Vous pouvez la rouvrir pour effectuer des modifications ou corriger des oublis.
-                </Typography>
-              </Box>
-            </Alert>
-            <Box
-              sx={{
-                flex: { xs: '1 1 auto', sm: '0 0 auto' },
-                minWidth: { xs: '100%', sm: '200px' },
-                maxWidth: { xs: '100%', sm: '250px' },
-              }}
-            >
-              <Button
-                variant="contained"
-                color="warning"
-                startIcon={<ReplayIcon />}
-                fullWidth
-                onClick={handleReopenIntervention}
-                disabled={completing}
-                sx={{
-                  py: 1.5,
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                  '&:hover': {
-                    boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-                  },
+                  justifyContent: 'center',
+                  flexShrink: 0,
                 }}
               >
-                {completing ? 'Réouverture...' : 'Réouvrir l\'intervention'}
-              </Button>
+                <CheckCircleIcon sx={{ fontSize: 20, color: 'white' }} />
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+                Intervention terminée. Vous pouvez la rouvrir pour effectuer des modifications.
+              </Typography>
             </Box>
+            <Button
+              variant="contained"
+              color="warning"
+              startIcon={<ReplayIcon />}
+              onClick={handleReopenIntervention}
+              disabled={completing}
+              sx={{
+                py: 1.25,
+                px: 3,
+                fontWeight: 600,
+                textTransform: 'none',
+                fontSize: '0.875rem',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              {completing ? 'Réouverture...' : 'Réouvrir'}
+            </Button>
           </Box>
         </Box>
       )}
 
-      {/* Photos avant intervention — standalone (only when step not yet validated) */}
+      {/* ── Message avant démarrage ─────────────────────────────────────── */}
+      {canStartIntervention && (
+        <Alert severity="warning" sx={{ mt: 2, py: 0.5 }}>
+          <Typography variant="body2">
+            Les photos et étapes ne seront disponibles qu'après le démarrage.
+          </Typography>
+        </Alert>
+      )}
+
+      {/* ── Photos avant (standalone, avant validation étape 1) ─────────── */}
       {canUpdateProgress && beforePhotos.length > 0 && !inspectionComplete && (
-        <Box sx={{ mb: 2, mt: 2 }}>
-          <Typography variant="subtitle2" fontWeight={600} gutterBottom sx={{ mb: 1 }}>
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
             Photos avant intervention
           </Typography>
           <PhotoGallery photos={beforePhotos} columns={3} />

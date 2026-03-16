@@ -11,6 +11,7 @@ import {
   CircularProgress,
   Divider,
   IconButton,
+  Snackbar,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -134,6 +135,7 @@ export default function InterventionDetailsPage() {
     allRoomsValidated,
     canViewInterventions,
     canEditInterventions,
+    permissionsLoaded,
     // Setters
     setProgressDialogOpen,
     setProgressValue,
@@ -170,10 +172,20 @@ export default function InterventionDetailsPage() {
     getStepNote,
     // Sub-component setters needed by ProgressSteps
     setCompletedSteps,
-    setAllRoomsValidated,
     setInspectionComplete,
-    saveCompletedSteps,
+    // Success feedback
+    startSuccessMessage,
+    setStartSuccessMessage,
   } = useInterventionDetails(id);
+
+  // Attendre que les permissions soient chargées avant d'afficher quoi que ce soit
+  if (!permissionsLoaded || loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   // Si l'utilisateur n'a pas la permission de voir les interventions
   if (!canViewInterventions) {
@@ -360,8 +372,6 @@ export default function InterventionDetailsPage() {
                   setPhotosDialogOpen={setPhotosDialogOpen}
                   setInspectionComplete={setInspectionComplete}
                   setCompletedSteps={setCompletedSteps}
-                  setAllRoomsValidated={setAllRoomsValidated}
-                  saveCompletedSteps={saveCompletedSteps}
                   starting={starting}
                   completing={completing}
                 />
@@ -418,6 +428,22 @@ export default function InterventionDetailsPage() {
         onSubmit={handlePhotoUpload}
         uploading={uploadingPhotos}
       />
+
+      {/* Success snackbar after starting intervention */}
+      <Snackbar
+        open={!!startSuccessMessage}
+        autoHideDuration={6000}
+        onClose={() => setStartSuccessMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity="success"
+          onClose={() => setStartSuccessMessage(null)}
+          sx={{ width: '100%' }}
+        >
+          {startSuccessMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

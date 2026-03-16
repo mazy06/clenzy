@@ -49,6 +49,7 @@ export function useInterventionState(id: string | undefined) {
   // Permission states
   const [canViewInterventions, setCanViewInterventions] = useState(false);
   const [canEditInterventions, setCanEditInterventions] = useState(false);
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
 
   // ------------------------------------------------------------------
   // Permission checks
@@ -56,16 +57,13 @@ export function useInterventionState(id: string | undefined) {
 
   useEffect(() => {
     const checkPermissions = async () => {
-      const canView = await hasPermissionAsync('interventions:view');
+      const [canView, canEdit] = await Promise.all([
+        hasPermissionAsync('interventions:view'),
+        hasPermissionAsync('interventions:edit'),
+      ]);
       setCanViewInterventions(canView);
-    };
-    checkPermissions();
-  }, [hasPermissionAsync]);
-
-  useEffect(() => {
-    const checkPermissions = async () => {
-      const canEdit = await hasPermissionAsync('interventions:edit');
       setCanEditInterventions(canEdit);
+      setPermissionsLoaded(true);
     };
     checkPermissions();
   }, [hasPermissionAsync]);
@@ -194,10 +192,10 @@ export function useInterventionState(id: string | undefined) {
         if (Array.isArray(parsedRooms)) {
           loadedValidatedRooms = new Set(parsedRooms);
           if (loadedPropertyDetails) {
-            const totalRooms = (loadedPropertyDetails.bedrooms || 0) +
-              (loadedPropertyDetails.bathrooms || 0) +
-              (loadedPropertyDetails.livingRooms || 0) +
-              (loadedPropertyDetails.kitchens || 0);
+            const totalRooms = (loadedPropertyDetails.bedroomCount || 0) +
+              (loadedPropertyDetails.bathroomCount || 0) +
+              (loadedPropertyDetails.livingRooms || 1) +
+              (loadedPropertyDetails.kitchens || 1);
             if (parsedRooms.length === totalRooms && totalRooms > 0) {
               computedAllRoomsValidated = true;
               computedCompletedSteps.add('rooms');
@@ -231,7 +229,13 @@ export function useInterventionState(id: string | undefined) {
     if (!intervention) return false;
     const isOperationalUser = isTechnician() || isHousekeeper() || isSupervisor();
     if (!isOperationalUser) return false;
-    return intervention.assignedToId !== undefined && intervention.assignedToId !== null;
+    if (intervention.assignedToId === undefined || intervention.assignedToId === null) return false;
+    // Vérifier que le user connecté est bien l'assigné (ou membre de l'équipe assignée)
+    if (intervention.assignedToType === 'user') {
+      return user?.databaseId === intervention.assignedToId;
+    }
+    // assignedToType === 'team' : tout membre opérationnel de l'org peut agir
+    return true;
   };
 
   const canStartIntervention = (): boolean => {
@@ -249,7 +253,7 @@ export function useInterventionState(id: string | undefined) {
     if (!intervention) return false;
     if (intervention.assignedToType === 'team') return true;
     if (intervention.assignedToType === 'user') {
-      return String(user?.id) === String(intervention.assignedToId);
+      return user?.databaseId === intervention.assignedToId;
     }
     return false;
   };
@@ -258,11 +262,14 @@ export function useInterventionState(id: string | undefined) {
   // Mutations: start & complete
   // ------------------------------------------------------------------
 
+  const [startSuccessMessage, setStartSuccessMessage] = useState<string | null>(null);
+
   const startMutation = useMutation({
     mutationFn: () => interventionsApi.start(Number(id)) as unknown as Promise<InterventionDetailsData>,
     onSuccess: (updated) => {
       setIntervention(updated);
       setError(null);
+      setStartSuccessMessage('Intervention démarrée ! Un bon d\'intervention a été généré et envoyé par email.');
       queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
     },
     onError: (err: Error) => {
@@ -323,6 +330,7 @@ export function useInterventionState(id: string | undefined) {
     // Permissions
     canViewInterventions,
     canEditInterventions,
+    permissionsLoaded,
 
     // Computed helpers
     canStartOrUpdateIntervention,
@@ -333,6 +341,10 @@ export function useInterventionState(id: string | undefined) {
     // Actions
     handleStartIntervention,
     handleCompleteIntervention,
+
+    // Success feedback
+    startSuccessMessage,
+    setStartSuccessMessage,
 
     // Initial load data for sibling hooks
     initialLoadData,

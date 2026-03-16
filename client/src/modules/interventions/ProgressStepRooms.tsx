@@ -1,12 +1,11 @@
 import React from 'react';
 import {
-  Box, Typography, Button, Alert, Grid,
+  Box, Typography, Button, Alert, Chip,
   Accordion, AccordionSummary, AccordionDetails,
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
-  RadioButtonUnchecked as RadioButtonUncheckedIcon,
   Comment as CommentIcon,
   Room as RoomIcon,
   ExpandMore as ExpandMoreIcon,
@@ -21,16 +20,70 @@ export interface ProgressStepRoomsProps {
   getTotalRooms: () => number;
   getRoomNames: () => string[];
   getStepNote: (step: 'inspection' | 'rooms' | 'after_photos') => string;
-  // Handlers
   handleRoomValidation: (roomIndex: number) => void;
   handleOpenNotesDialog: (step: 'inspection' | 'rooms' | 'after_photos') => void;
-  handleUpdateProgressValue: (progress: number) => void;
-  // State setters
-  setAllRoomsValidated: (value: boolean) => void;
-  setCompletedSteps: React.Dispatch<React.SetStateAction<Set<string>>>;
-  saveCompletedSteps: (steps: Set<string>) => void;
-  calculateProgress: () => number;
 }
+
+// ─── Shared styles ──────────────────────────────────────────────────────────
+
+const stepStyles = {
+  accordion: {
+    mb: 1,
+    borderRadius: '8px !important',
+    border: '1px solid',
+    borderColor: 'success.light',
+    bgcolor: 'rgba(46, 125, 50, 0.04)',
+    '&:before': { display: 'none' },
+    boxShadow: 'none',
+    overflow: 'hidden',
+  },
+  accordionSummary: {
+    minHeight: 48,
+    '& .MuiAccordionSummary-content': {
+      alignItems: 'center',
+      gap: 1,
+      my: 0.75,
+    },
+  },
+  activeCard: {
+    mb: 1,
+    p: 2,
+    borderRadius: 2,
+    border: '1px solid',
+    borderColor: 'primary.light',
+    bgcolor: 'rgba(25, 118, 210, 0.02)',
+  },
+  stepBadge: (completed: boolean) => ({
+    width: 28,
+    height: 28,
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    bgcolor: completed ? 'success.main' : 'primary.main',
+    color: 'white',
+    fontSize: '0.75rem',
+    fontWeight: 700,
+    flexShrink: 0,
+  }),
+  noteBox: {
+    p: 1.5,
+    bgcolor: 'grey.50',
+    borderRadius: 1.5,
+    border: '1px solid',
+    borderColor: 'grey.200',
+  },
+  roomChip: (validated: boolean) => ({
+    height: 32,
+    fontSize: '0.8125rem',
+    fontWeight: 500,
+    borderRadius: '16px',
+    transition: 'all 0.2s ease',
+    ...(!validated && {
+      '&:hover': { transform: 'translateY(-1px)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
+    }),
+  }),
+} as const;
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -43,248 +96,145 @@ const ProgressStepRooms: React.FC<ProgressStepRoomsProps> = ({
   getStepNote,
   handleRoomValidation,
   handleOpenNotesDialog,
-  handleUpdateProgressValue,
-  setAllRoomsValidated,
-  setCompletedSteps,
-  saveCompletedSteps,
-  calculateProgress,
 }) => {
-  // ── Completed (accordion) state ────────────────────────────────────────────
+  const totalRooms = getTotalRooms();
+  const roomNames = getRoomNames();
+
+  // ── Completed (accordion) ─────────────────────────────────────────────────
 
   if (allRoomsValidated) {
     return (
-      <Accordion
-        defaultExpanded={false}
-        sx={{
-          mb: 1.5,
-          border: '1px solid',
-          borderColor: 'success.main',
-          bgcolor: 'success.50',
-          '&:before': { display: 'none' },
-          boxShadow: 'none',
-        }}
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          sx={{
-            '& .MuiAccordionSummary-content': {
-              alignItems: 'center',
-              gap: 1,
-            },
-          }}
-        >
-          <CheckCircleIcon color="success" sx={{ fontSize: 20 }} />
-          <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
-            Étape 2: Validation des pièces ({validatedRooms.size}/{getTotalRooms()})
+      <Accordion defaultExpanded={false} sx={stepStyles.accordion}>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={stepStyles.accordionSummary}>
+          <Box sx={stepStyles.stepBadge(true)}>
+            <CheckCircleIcon sx={{ fontSize: 16, color: 'white' }} />
+          </Box>
+          <Typography variant="body2" fontWeight={600} sx={{ flex: 1 }}>
+            Validation des pièces
           </Typography>
-          <Box sx={{ ml: 'auto', mr: 2 }}>
-            <Alert severity="success" sx={{ py: 0.5, mb: 0 }}>
-              <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-                ✓ Toutes les pièces sont validées ! Vous pouvez maintenant prendre les photos après intervention.
-              </Typography>
-            </Alert>
-          </Box>
+          <Chip
+            label={`${validatedRooms.size}/${totalRooms}`}
+            size="small"
+            color="success"
+            variant="outlined"
+            sx={{ height: 24, fontSize: '0.75rem', mr: 1 }}
+          />
         </AccordionSummary>
-        <AccordionDetails>
-          <Box sx={{ pt: 1 }}>
-            <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.75rem', display: 'block', mb: 1 }}>
-              Cliquez sur chaque pièce pour la valider après nettoyage
-            </Typography>
-
-            {/* Validated rooms list */}
-            {validatedRooms.size > 0 && (
-              <Box sx={{ mb: 1.5 }}>
-                <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-                  <CheckCircleOutlineIcon sx={{ fontSize: 14, color: 'success.main' }} />
-                  {validatedRooms.size} pièce(s) validée(s)
-                </Typography>
-                <Grid container spacing={1}>
-                  {getRoomNames().map((roomName, index) => (
-                    validatedRooms.has(index) && (
-                      <Grid item xs="auto" key={index}>
-                        <Button
-                          variant="contained"
-                          color="success"
-                          size="small"
-                          startIcon={<CheckCircleOutlineIcon />}
-                          disabled
-                          sx={{
-                            fontSize: '0.75rem',
-                            minWidth: 'auto',
-                            px: 2,
-                          }}
-                        >
-                          {roomName} ✓
-                        </Button>
-                      </Grid>
-                    )
-                  ))}
-                </Grid>
-              </Box>
-            )}
-
-            {/* Notes */}
-            {getStepNote('rooms') && (
-              <Box sx={{ mt: 1.5, mb: 1.5 }}>
-                <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.75rem', display: 'block', mb: 0.5 }}>
-                  Notes de validation
-                </Typography>
-                <Box
-                  sx={{
-                    p: 1,
-                    bgcolor: 'grey.50',
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                  }}
-                >
-                  <Typography variant="caption" sx={{ fontSize: '0.75rem', whiteSpace: 'pre-wrap' }}>
-                    {getStepNote('rooms')}
-                  </Typography>
-                </Box>
-              </Box>
-            )}
+        <AccordionDetails sx={{ pt: 0, pb: 2 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
+            {roomNames.map((roomName, index) => (
+              validatedRooms.has(index) && (
+                <Chip
+                  key={index}
+                  icon={<CheckCircleOutlineIcon />}
+                  label={roomName}
+                  size="small"
+                  color="success"
+                  variant="filled"
+                  sx={stepStyles.roomChip(true)}
+                />
+              )
+            ))}
           </Box>
+
+          {getStepNote('rooms') && (
+            <Box>
+              <Typography variant="caption" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
+                Notes
+              </Typography>
+              <Box sx={stepStyles.noteBox}>
+                <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {getStepNote('rooms')}
+                </Typography>
+              </Box>
+            </Box>
+          )}
         </AccordionDetails>
       </Accordion>
     );
   }
 
-  // ── Active (not yet completed) state ─────────────────────────────────────
+  // ── Active (not yet completed) ────────────────────────────────────────────
 
   return (
-    <Box
-      sx={{
-        mb: 1.5,
-        p: 1.5,
-        borderRadius: 1,
-        border: '1px solid',
-        borderColor: 'divider',
-        bgcolor: 'background.paper',
-      }}
-    >
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+    <Box sx={stepStyles.activeCard}>
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
         <Box display="flex" alignItems="center" gap={1}>
-          <RadioButtonUncheckedIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
-          <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
-            Étape 2: Validation des pièces ({validatedRooms.size}/{getTotalRooms()})
-          </Typography>
+          <Box sx={stepStyles.stepBadge(false)}>2</Box>
+          <Box>
+            <Typography variant="body2" fontWeight={600}>
+              Validation des pièces
+            </Typography>
+            {totalRooms > 0 && (
+              <Typography variant="caption" color="text.secondary">
+                {validatedRooms.size} sur {totalRooms} validée(s)
+              </Typography>
+            )}
+          </Box>
         </Box>
 
         {inspectionComplete && (
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<CommentIcon />}
-              onClick={() => handleOpenNotesDialog('rooms')}
-            >
-              {getStepNote('rooms') ? 'Modifier note' : 'Ajouter note'}
-            </Button>
-
-            {/* "Valider cette étape" button — visible only when all rooms are validated */}
-            {validatedRooms.size === getTotalRooms() && !allRoomsValidated && (
-              <Button
-                variant="contained"
-                color="primary"
-                size="small"
-                startIcon={<CheckCircleOutlineIcon />}
-                onClick={() => {
-                  setAllRoomsValidated(true);
-                  setCompletedSteps(prev => {
-                    const newSet = new Set(prev).add('rooms');
-                    saveCompletedSteps(newSet);
-                    return newSet;
-                  });
-                  const newProgress = calculateProgress();
-                  handleUpdateProgressValue(newProgress);
-                }}
-                sx={{
-                  animation: 'pulse 2s infinite',
-                  '@keyframes pulse': {
-                    '0%, 100%': { opacity: 1 },
-                    '50%': { opacity: 0.7 },
-                  },
-                }}
-              >
-                Valider cette étape
-              </Button>
-            )}
-          </Box>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<CommentIcon />}
+            onClick={() => handleOpenNotesDialog('rooms')}
+            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
+          >
+            {getStepNote('rooms') ? 'Modifier note' : 'Note'}
+          </Button>
         )}
       </Box>
 
-      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.75rem', ml: 4, display: 'block', mb: 1 }}>
-        Cliquez sur chaque pièce pour la valider après nettoyage
-      </Typography>
-
       {inspectionComplete ? (
-        <>
-          <Box sx={{ ml: 4, mt: 1 }}>
-            <Grid container spacing={1}>
-              {getRoomNames().map((roomName, index) => (
-                <Grid item xs="auto" key={index}>
-                  <Button
-                    variant={validatedRooms.has(index) ? 'contained' : 'outlined'}
-                    color={validatedRooms.has(index) ? 'success' : 'primary'}
-                    size="small"
-                    startIcon={validatedRooms.has(index) ? <CheckCircleOutlineIcon /> : <RoomIcon />}
-                    onClick={() => handleRoomValidation(index)}
-                    sx={{
-                      fontSize: '0.75rem',
-                      transition: 'all 0.3s ease',
-                      minWidth: 'auto',
-                      px: 2,
-                      '&:hover': {
-                        transform: 'scale(1.05)',
-                      },
-                    }}
-                    disabled={validatedRooms.has(index)}
-                  >
-                    {roomName}
-                    {validatedRooms.has(index) && ' ✓'}
-                  </Button>
-                </Grid>
-              ))}
-            </Grid>
-
-            {validatedRooms.size > 0 && validatedRooms.size < getTotalRooms() && (
-              <Alert severity="info" sx={{ mt: 1.5, py: 0.5 }}>
-                <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-                  {validatedRooms.size} sur {getTotalRooms()} pièces validées. Continuez à valider les pièces restantes.
-                </Typography>
-              </Alert>
-            )}
-
-            {/* Notes */}
-            {getStepNote('rooms') && (
-              <Box sx={{ mt: 1.5 }}>
-                <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.75rem', display: 'block', mb: 0.5 }}>
-                  Notes de validation
-                </Typography>
-                <Box
-                  sx={{
-                    p: 1,
-                    bgcolor: 'grey.50',
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                  }}
-                >
-                  <Typography variant="caption" sx={{ fontSize: '0.75rem', whiteSpace: 'pre-wrap' }}>
-                    {getStepNote('rooms')}
-                  </Typography>
-                </Box>
-              </Box>
-            )}
-          </Box>
-        </>
-      ) : (
-        <Alert severity="info" sx={{ ml: 4, mt: 1, py: 0.5 }}>
-          <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-            ⓘ Cette étape sera disponible après la validation de l'inspection générale.
+        <Box sx={{ ml: 4.5 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Cliquez sur chaque pièce pour la valider après nettoyage
           </Typography>
-        </Alert>
+
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+            {roomNames.map((roomName, index) => (
+              <Chip
+                key={index}
+                icon={validatedRooms.has(index) ? <CheckCircleOutlineIcon /> : <RoomIcon />}
+                label={roomName}
+                size="small"
+                color={validatedRooms.has(index) ? 'success' : 'primary'}
+                variant={validatedRooms.has(index) ? 'filled' : 'outlined'}
+                onClick={validatedRooms.has(index) ? undefined : () => handleRoomValidation(index)}
+                disabled={validatedRooms.has(index)}
+                sx={stepStyles.roomChip(validatedRooms.has(index))}
+              />
+            ))}
+          </Box>
+
+          {validatedRooms.size > 0 && validatedRooms.size < totalRooms && (
+            <Alert severity="info" sx={{ mt: 1.5, py: 0.25, '& .MuiAlert-message': { py: 0.5 } }}>
+              <Typography variant="body2">
+                {validatedRooms.size} sur {totalRooms} — continuez à valider les pièces restantes.
+              </Typography>
+            </Alert>
+          )}
+
+          {getStepNote('rooms') && (
+            <Box sx={{ mt: 1.5 }}>
+              <Typography variant="caption" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
+                Notes
+              </Typography>
+              <Box sx={stepStyles.noteBox}>
+                <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {getStepNote('rooms')}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </Box>
+      ) : (
+        <Box sx={{ ml: 4.5 }}>
+          <Typography variant="body2" color="text.secondary">
+            Disponible après la validation de l'inspection générale
+          </Typography>
+        </Box>
       )}
     </Box>
   );
