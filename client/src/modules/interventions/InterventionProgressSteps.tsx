@@ -112,6 +112,8 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             Étapes de progression
           </Typography>
 
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 1.5 }}>
+
           <ProgressStepInspection
             inspectionComplete={inspectionComplete}
             beforePhotos={beforePhotos}
@@ -126,34 +128,32 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             calculateProgress={calculateProgress}
           />
 
-          {inspectionComplete && (
-            <ProgressStepRooms
-              inspectionComplete={inspectionComplete}
-              validatedRooms={validatedRooms}
-              allRoomsValidated={allRoomsValidated}
-              getTotalRooms={getTotalRooms}
-              getRoomNames={getRoomNames}
-              getStepNote={getStepNote}
-              handleRoomValidation={handleRoomValidation}
-              handleOpenNotesDialog={handleOpenNotesDialog}
-            />
-          )}
+          <ProgressStepRooms
+            inspectionComplete={inspectionComplete}
+            validatedRooms={validatedRooms}
+            allRoomsValidated={allRoomsValidated}
+            getTotalRooms={getTotalRooms}
+            getRoomNames={getRoomNames}
+            getStepNote={getStepNote}
+            handleRoomValidation={handleRoomValidation}
+            handleOpenNotesDialog={handleOpenNotesDialog}
+          />
 
-          {allRoomsValidated && (
-            <ProgressStepPhotos
-              intervention={intervention}
-              allRoomsValidated={allRoomsValidated}
-              afterPhotos={afterPhotos}
-              completedSteps={completedSteps}
-              getStepNote={getStepNote}
-              handleCompleteIntervention={handleCompleteIntervention}
-              handleOpenNotesDialog={handleOpenNotesDialog}
-              setPhotoType={setPhotoType}
-              setPhotosDialogOpen={setPhotosDialogOpen}
-              completing={completing}
-              areAllStepsCompleted={areAllStepsCompleted}
-            />
-          )}
+          <ProgressStepPhotos
+            intervention={intervention}
+            allRoomsValidated={allRoomsValidated}
+            afterPhotos={afterPhotos}
+            completedSteps={completedSteps}
+            getStepNote={getStepNote}
+            handleCompleteIntervention={handleCompleteIntervention}
+            handleOpenNotesDialog={handleOpenNotesDialog}
+            setPhotoType={setPhotoType}
+            setPhotosDialogOpen={setPhotosDialogOpen}
+            completing={completing}
+            areAllStepsCompleted={areAllStepsCompleted}
+          />
+
+          </Box>{/* end grid */}
         </Box>
       )}
 

@@ -257,7 +257,7 @@ export default function InterventionDetailsPage() {
       )}
 
       {intervention && !loading && (
-        <Card sx={{ maxWidth: 900 }}>
+        <Card>
           <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
 
             {/* ── Description ──────────────────────────────────────── */}

@@ -28,7 +28,7 @@ export interface ProgressStepRoomsProps {
 
 const stepStyles = {
   accordion: {
-    mb: 1,
+    mb: 0,
     borderRadius: '8px !important',
     border: '1px solid',
     borderColor: 'success.light',
@@ -46,7 +46,7 @@ const stepStyles = {
     },
   },
   activeCard: {
-    mb: 1,
+    mb: 0,
     p: 2,
     borderRadius: 2,
     border: '1px solid',
@@ -157,42 +157,28 @@ const ProgressStepRooms: React.FC<ProgressStepRoomsProps> = ({
   // ── Active (not yet completed) ────────────────────────────────────────────
 
   return (
-    <Box sx={stepStyles.activeCard}>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
-        <Box display="flex" alignItems="center" gap={1}>
-          <Box sx={stepStyles.stepBadge(false)}>2</Box>
-          <Box>
-            <Typography variant="body2" fontWeight={600}>
-              Validation des pièces
+    <Box sx={{ ...stepStyles.activeCard, display: 'flex', flexDirection: 'column', opacity: inspectionComplete ? 1 : 0.5 }}>
+      <Box display="flex" alignItems="center" gap={1} mb={1}>
+        <Box sx={stepStyles.stepBadge(false)}>2</Box>
+        <Box>
+          <Typography variant="body2" fontWeight={600}>
+            Validation des pièces
+          </Typography>
+          {totalRooms > 0 && inspectionComplete && (
+            <Typography variant="caption" color="text.secondary">
+              {validatedRooms.size} sur {totalRooms} validée(s)
             </Typography>
-            {totalRooms > 0 && (
-              <Typography variant="caption" color="text.secondary">
-                {validatedRooms.size} sur {totalRooms} validée(s)
-              </Typography>
-            )}
-          </Box>
+          )}
         </Box>
-
-        {inspectionComplete && (
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<CommentIcon />}
-            onClick={() => handleOpenNotesDialog('rooms')}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-          >
-            {getStepNote('rooms') ? 'Modifier note' : 'Note'}
-          </Button>
-        )}
       </Box>
 
       {inspectionComplete ? (
-        <Box sx={{ ml: 4.5 }}>
+        <>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
             Cliquez sur chaque pièce pour la valider après nettoyage
           </Typography>
 
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
             {roomNames.map((roomName, index) => (
               <Chip
                 key={index}
@@ -208,16 +194,8 @@ const ProgressStepRooms: React.FC<ProgressStepRoomsProps> = ({
             ))}
           </Box>
 
-          {validatedRooms.size > 0 && validatedRooms.size < totalRooms && (
-            <Alert severity="info" sx={{ mt: 1.5, py: 0.25, '& .MuiAlert-message': { py: 0.5 } }}>
-              <Typography variant="body2">
-                {validatedRooms.size} sur {totalRooms} — continuez à valider les pièces restantes.
-              </Typography>
-            </Alert>
-          )}
-
           {getStepNote('rooms') && (
-            <Box sx={{ mt: 1.5 }}>
+            <Box sx={{ mb: 1.5 }}>
               <Typography variant="caption" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
                 Notes
               </Typography>
@@ -228,13 +206,24 @@ const ProgressStepRooms: React.FC<ProgressStepRoomsProps> = ({
               </Box>
             </Box>
           )}
-        </Box>
+
+          <Box sx={{ mt: 'auto' }}>
+            <Button
+              variant="outlined"
+              size="small"
+              fullWidth
+              startIcon={<CommentIcon />}
+              onClick={() => handleOpenNotesDialog('rooms')}
+              sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
+            >
+              {getStepNote('rooms') ? 'Modifier note' : 'Note'}
+            </Button>
+          </Box>
+        </>
       ) : (
-        <Box sx={{ ml: 4.5 }}>
-          <Typography variant="body2" color="text.secondary">
-            Disponible après la validation de l'inspection générale
-          </Typography>
-        </Box>
+        <Typography variant="body2" color="text.secondary">
+          Disponible après la validation de l'inspection générale
+        </Typography>
       )}
     </Box>
   );
