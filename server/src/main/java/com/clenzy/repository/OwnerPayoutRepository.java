@@ -30,6 +30,9 @@ public interface OwnerPayoutRepository extends JpaRepository<OwnerPayout, Long> 
     Optional<OwnerPayout> findByOwnerAndPeriod(@Param("ownerId") Long ownerId,
         @Param("start") LocalDate start, @Param("end") LocalDate end, @Param("orgId") Long orgId);
 
+    @Query("SELECT p FROM OwnerPayout p WHERE p.id IN :ids AND p.organizationId = :orgId")
+    List<OwnerPayout> findByIdsAndOrgId(@Param("ids") List<Long> ids, @Param("orgId") Long orgId);
+
     // ── Pending payouts queries (for dashboard + schedulers) ──────────────
 
     @Query("SELECT COUNT(p) FROM OwnerPayout p WHERE p.status = 'PENDING' AND p.organizationId = :orgId")

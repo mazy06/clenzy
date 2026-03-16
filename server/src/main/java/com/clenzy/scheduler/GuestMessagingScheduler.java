@@ -66,7 +66,7 @@ public class GuestMessagingScheduler {
                 totalSent += processCheckOut(config, orgId);
             } catch (Exception e) {
                 totalErrors++;
-                log.error("Erreur messaging auto pour org={}: {}", orgId, e.getMessage());
+                log.error("Erreur messaging auto pour org={}: {}", orgId, e.getMessage(), e);
             }
         }
 
@@ -97,11 +97,16 @@ public class GuestMessagingScheduler {
             if (messagingService.alreadySent(reservation.getId(), MessageTemplateType.CHECK_IN)) {
                 continue;
             }
+            if (!hasValidRecipient(reservation)) {
+                log.warn("Check-in auto ignore pour reservation={} : pas de guest ou email manquant",
+                    reservation.getId());
+                continue;
+            }
             try {
                 messagingService.sendForReservation(reservation, template, orgId);
                 sent++;
             } catch (Exception e) {
-                log.error("Erreur envoi check-in pour reservation={}: {}", reservation.getId(), e.getMessage());
+                log.error("Erreur envoi check-in pour reservation={}: {}", reservation.getId(), e.getMessage(), e);
             }
         }
         return sent;
@@ -127,13 +132,28 @@ public class GuestMessagingScheduler {
             if (messagingService.alreadySent(reservation.getId(), MessageTemplateType.CHECK_OUT)) {
                 continue;
             }
+            if (!hasValidRecipient(reservation)) {
+                log.warn("Check-out auto ignore pour reservation={} : pas de guest ou email manquant",
+                    reservation.getId());
+                continue;
+            }
             try {
                 messagingService.sendForReservation(reservation, template, orgId);
                 sent++;
             } catch (Exception e) {
-                log.error("Erreur envoi check-out pour reservation={}: {}", reservation.getId(), e.getMessage());
+                log.error("Erreur envoi check-out pour reservation={}: {}", reservation.getId(), e.getMessage(), e);
             }
         }
         return sent;
+    }
+
+    /**
+     * Verifie que la reservation a un guest avec un email valide
+     * pour eviter de tenter l'envoi inutilement.
+     */
+    private boolean hasValidRecipient(Reservation reservation) {
+        return reservation.getGuest() != null
+            && reservation.getGuest().getEmail() != null
+            && !reservation.getGuest().getEmail().isBlank();
     }
 }

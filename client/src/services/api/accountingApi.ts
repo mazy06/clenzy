@@ -82,6 +82,19 @@ export interface UpdatePayoutScheduleRequest {
   autoGenerateEnabled?: boolean;
 }
 
+export interface SepaDebtorConfig {
+  name: string | null;
+  iban: string | null;
+  bic: string | null;
+  configured: boolean;
+}
+
+export interface UpdateSepaDebtorRequest {
+  name?: string;
+  iban?: string;
+  bic?: string;
+}
+
 export const PAYOUT_STATUS_COLORS: Record<PayoutStatus, string> = {
   PENDING: '#D4A574',
   APPROVED: '#1976d2',
@@ -191,5 +204,15 @@ export const accountingApi = {
 
   async updatePayoutSchedule(data: UpdatePayoutScheduleRequest): Promise<PayoutScheduleConfig> {
     return apiClient.put<PayoutScheduleConfig>('/settings/payout-schedule', data);
+  },
+
+  // ─── SEPA Debtor Config ───────────────────────────────────────────
+
+  async getSepaDebtorConfig(): Promise<SepaDebtorConfig> {
+    return apiClient.get<SepaDebtorConfig>('/settings/sepa-debtor');
+  },
+
+  async updateSepaDebtorConfig(data: UpdateSepaDebtorRequest): Promise<SepaDebtorConfig> {
+    return apiClient.put<SepaDebtorConfig>('/settings/sepa-debtor', data);
   },
 };

@@ -2,13 +2,9 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
-  Card,
-  CardActionArea,
-  CardContent,
   Tabs,
   Tab,
   Button,
-  Chip,
   IconButton,
   Tooltip,
 } from '@mui/material';
@@ -20,7 +16,7 @@ import {
   Groups,
   Email,
   DoneAll,
-  Delete,
+  DeleteOutline,
   Circle,
   NotificationsNone,
 } from '@mui/icons-material';
@@ -37,18 +33,14 @@ import DataFetchWrapper from '../../components/DataFetchWrapper';
 type TabFilter = 'all' | 'unread' | 'intervention' | 'service_request' | 'payment' | 'system' | 'contact' | 'document';
 
 const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
-  intervention: <Build sx={{ fontSize: 20, color: '#1976d2' }} />,
-  service_request: <Description sx={{ fontSize: 20, color: '#ed6c02' }} />,
-  payment: <Payment sx={{ fontSize: 20, color: '#2e7d32' }} />,
-  system: <Info sx={{ fontSize: 20, color: '#9c27b0' }} />,
-  team: <Groups sx={{ fontSize: 20, color: '#0288d1' }} />,
-  contact: <Email sx={{ fontSize: 20, color: '#e91e63' }} />,
-  document: <Description sx={{ fontSize: 20, color: '#f57c00' }} />,
+  intervention: <Build sx={{ fontSize: 18, color: 'primary.main' }} />,
+  service_request: <Description sx={{ fontSize: 18, color: 'warning.main' }} />,
+  payment: <Payment sx={{ fontSize: 18, color: 'success.main' }} />,
+  system: <Info sx={{ fontSize: 18, color: 'secondary.main' }} />,
+  team: <Groups sx={{ fontSize: 18, color: 'info.main' }} />,
+  contact: <Email sx={{ fontSize: 18, color: 'error.main' }} />,
+  document: <Description sx={{ fontSize: 18, color: 'warning.dark' }} />,
 };
-
-function getTypeColor(type: Notification['type']): 'info' | 'success' | 'warning' | 'error' {
-  return type;
-}
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -76,7 +68,6 @@ export default function NotificationsPage() {
     notificationsApi.resetAvailability();
   }, []);
 
-  // Fetch notifications
   const {
     data: notifications,
     loading,
@@ -85,7 +76,6 @@ export default function NotificationsPage() {
     setData,
   } = useAsync(() => notificationsApi.getAll(), { immediate: true });
 
-  // Filter notifications based on active tab
   const filtered = useMemo(() => {
     if (!notifications) return [];
     switch (activeTab) {
@@ -103,7 +93,6 @@ export default function NotificationsPage() {
     }
   }, [notifications, activeTab]);
 
-  // Mark a single notification as read
   const handleClick = useCallback(
     async (notification: Notification) => {
       if (!notification.read) {
@@ -121,13 +110,11 @@ export default function NotificationsPage() {
     [notifications, navigate, setData],
   );
 
-  // Mark all as read
   const handleMarkAllRead = useCallback(async () => {
     await notificationsApi.markAllAsRead();
     setData((notifications ?? []).map((n) => ({ ...n, read: true })));
   }, [notifications, setData]);
 
-  // Delete a notification
   const handleDelete = useCallback(
     async (e: React.MouseEvent, id: number) => {
       e.stopPropagation();
@@ -151,7 +138,7 @@ export default function NotificationsPage() {
   ];
 
   return (
-    <Box>
+    <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 1, sm: 2 } }}>
       <PageHeader
         title={t('notifications.title') || 'Notifications'}
         subtitle={
@@ -184,7 +171,7 @@ export default function NotificationsPage() {
         variant="scrollable"
         scrollButtons="auto"
         sx={{
-          mb: 2,
+          mb: 1,
           minHeight: 36,
           '& .MuiTab-root': { minHeight: 36, py: 0.5, fontSize: '0.8125rem', textTransform: 'none' },
         }}
@@ -214,85 +201,113 @@ export default function NotificationsPage() {
           </Box>
         }
       >
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          {filtered.map((notification) => (
-            <Card
+        <Box>
+          {filtered.map((notification, index) => (
+            <Box
               key={notification.id}
+              onClick={() => handleClick(notification)}
               sx={{
-                borderLeft: 3,
-                borderColor: notification.read ? 'divider' : `${getTypeColor(notification.type)}.main`,
-                opacity: notification.read ? 0.75 : 1,
-                transition: 'opacity 0.2s, box-shadow 0.2s',
-                '&:hover': { boxShadow: 3 },
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                px: 2,
+                py: 1.5,
+                cursor: 'pointer',
+                borderBottom: index < filtered.length - 1 ? '1px solid' : 'none',
+                borderColor: 'divider',
+                transition: 'background-color 0.15s',
+                bgcolor: notification.read ? 'transparent' : 'action.hover',
+                '&:hover': {
+                  bgcolor: 'action.selected',
+                },
+                '&:hover .delete-btn': {
+                  opacity: 1,
+                },
+                borderRadius: index === 0 ? '8px 8px 0 0' : index === filtered.length - 1 ? '0 0 8px 8px' : 0,
               }}
             >
-              <CardActionArea onClick={() => handleClick(notification)} sx={{ p: 0 }}>
-                <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                    {/* Category icon */}
-                    <Box sx={{ pt: 0.25, flexShrink: 0 }}>
-                      {CATEGORY_ICONS[notification.category] ?? <Info sx={{ fontSize: 20 }} />}
-                    </Box>
+              {/* Icon */}
+              <Box
+                sx={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: 'action.hover',
+                  flexShrink: 0,
+                }}
+              >
+                {CATEGORY_ICONS[notification.category] ?? <Info sx={{ fontSize: 18 }} />}
+              </Box>
 
-                    {/* Text content */}
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.25 }}>
-                        {!notification.read && (
-                          <Circle sx={{ fontSize: 8, color: 'primary.main', flexShrink: 0 }} />
-                        )}
-                        <Typography
-                          variant="body2"
-                          fontWeight={notification.read ? 400 : 600}
-                          sx={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            fontSize: '0.875rem',
-                          }}
-                        >
-                          {notification.title}
-                        </Typography>
-                      </Box>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          fontSize: '0.8125rem',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {notification.message}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                        <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.75rem' }}>
-                          {timeAgo(notification.createdAt)}
-                        </Typography>
-                        <Chip
-                          label={notification.category.replace('_', ' ')}
-                          size="small"
-                          variant="outlined"
-                          sx={{ height: 20, fontSize: '0.6875rem' }}
-                        />
-                      </Box>
-                    </Box>
+              {/* Text */}
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  {!notification.read && (
+                    <Circle sx={{ fontSize: 7, color: 'primary.main', flexShrink: 0 }} />
+                  )}
+                  <Typography
+                    variant="body2"
+                    fontWeight={notification.read ? 400 : 600}
+                    sx={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      fontSize: '0.84rem',
+                      color: notification.read ? 'text.secondary' : 'text.primary',
+                    }}
+                  >
+                    {notification.title}
+                  </Typography>
+                </Box>
+                <Typography
+                  variant="body2"
+                  color="text.disabled"
+                  sx={{
+                    fontSize: '0.78rem',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    mt: 0.15,
+                  }}
+                >
+                  {notification.message}
+                </Typography>
+              </Box>
 
-                    {/* Delete button */}
-                    <Tooltip title={t('common.delete') || 'Supprimer'}>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleDelete(e, notification.id)}
-                        sx={{ flexShrink: 0, mt: -0.25 }}
-                      >
-                        <Delete sx={{ fontSize: 18 }} />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </CardContent>
-              </CardActionArea>
-            </Card>
+              {/* Time */}
+              <Typography
+                variant="caption"
+                color="text.disabled"
+                sx={{
+                  fontSize: '0.72rem',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {timeAgo(notification.createdAt)}
+              </Typography>
+
+              {/* Delete — visible on hover */}
+              <Tooltip title={t('common.delete') || 'Supprimer'}>
+                <IconButton
+                  className="delete-btn"
+                  size="small"
+                  onClick={(e) => handleDelete(e, notification.id)}
+                  sx={{
+                    flexShrink: 0,
+                    opacity: 0,
+                    transition: 'opacity 0.15s',
+                    color: 'text.disabled',
+                    '&:hover': { color: 'error.main' },
+                  }}
+                >
+                  <DeleteOutline sx={{ fontSize: 17 }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
           ))}
         </Box>
       </DataFetchWrapper>

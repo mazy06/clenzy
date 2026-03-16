@@ -23,7 +23,6 @@ import {
 import {
   Notifications,
   Security,
-  Business,
   Person,
   Save,
   Refresh,
@@ -70,6 +69,7 @@ import AiSettingsSection from './AiSettingsSection';
 import IntegrationsSection from './IntegrationsSection';
 import PayoutScheduleSettings from './PayoutScheduleSettings';
 import OwnerPayoutSettings from './OwnerPayoutSettings';
+import SepaDebtorSettings from './SepaDebtorSettings';
 import MyPayoutSettings from './MyPayoutSettings';
 import { CURRENCY_OPTIONS } from '../../utils/currencyUtils';
 
@@ -506,23 +506,61 @@ export default function Settings() {
             </Paper>
           </Grid>
 
-          {/* Entreprise */}
+          {/* Mon compte */}
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 2, height: '100%' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                <Business sx={{ color: 'secondary.main', fontSize: 20 }} />
+                <Person sx={{ color: 'secondary.main', fontSize: 20 }} />
                 <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-                  Entreprise
+                  Mon compte
                 </Typography>
               </Box>
 
               <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Prenom"
+                    value={user?.firstName || ''}
+                    disabled
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Nom"
+                    value={user?.lastName || ''}
+                    disabled
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Nom d'utilisateur"
+                    value={user?.username || ''}
+                    disabled
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    value={user?.email || ''}
+                    disabled
+                    size="small"
+                  />
+                </Grid>
+
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
                     label="Nom de l'entreprise"
                     value={settings.business.companyName}
                     onChange={(e) => handleSettingChange('business', 'companyName', e.target.value)}
+                    size="small"
                   />
                 </Grid>
 
@@ -533,9 +571,8 @@ export default function Settings() {
                     value={settings.business.timezone}
                     onChange={(e) => handleSettingChange('business', 'timezone', e.target.value)}
                     select
-                    SelectProps={{
-                      native: true,
-                    }}
+                    size="small"
+                    SelectProps={{ native: true }}
                   >
                     <option value="Europe/Paris">Europe/Paris</option>
                     <option value="Europe/London">Europe/London</option>
@@ -551,9 +588,8 @@ export default function Settings() {
                     value={settings.business.currency}
                     onChange={(e) => handleSettingChange('business', 'currency', e.target.value)}
                     select
-                    SelectProps={{
-                      native: true,
-                    }}
+                    size="small"
+                    SelectProps={{ native: true }}
                   >
                     {CURRENCY_OPTIONS.map(c => (
                       <option key={c.code} value={c.code}>{c.label}</option>
@@ -568,9 +604,8 @@ export default function Settings() {
                     value={settings.business.language}
                     onChange={(e) => handleSettingChange('business', 'language', e.target.value)}
                     select
-                    SelectProps={{
-                      native: true,
-                    }}
+                    size="small"
+                    SelectProps={{ native: true }}
                   >
                     <option value="fr">Français</option>
                     <option value="en">English</option>
@@ -900,7 +935,14 @@ export default function Settings() {
       {/* ─── Onglet Reversements (SUPER_ADMIN) ──────────────────────────── */}
       {hasAnyRole(['SUPER_ADMIN']) && (
         <TabPanel value={tabValue} index={8}>
-          <PayoutScheduleSettings />
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <SepaDebtorSettings />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <PayoutScheduleSettings />
+            </Grid>
+          </Grid>
           <Box sx={{ mt: 4 }} />
           <OwnerPayoutSettings />
         </TabPanel>

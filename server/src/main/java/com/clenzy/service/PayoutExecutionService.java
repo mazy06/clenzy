@@ -51,17 +51,21 @@ public class PayoutExecutionService {
         }
 
         OwnerPayoutConfig config = configRepository.findByOwnerIdAndOrgId(payout.getOwnerId(), orgId)
-                .orElseThrow(() -> new IllegalStateException(
-                        "No payout config found for owner " + payout.getOwnerId()));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Le proprietaire n'a pas encore configure sa methode de paiement. "
+                        + "Il doit renseigner son IBAN ou connecter son compte Stripe dans Parametres > Mes reversements."));
 
         if (!config.isVerified()) {
-            throw new IllegalStateException("Owner payout config is not verified yet");
+            throw new IllegalArgumentException(
+                    "La configuration de paiement du proprietaire n'est pas encore verifiee.");
         }
 
         return switch (config.getPayoutMethod()) {
             case STRIPE_CONNECT -> executeStripeTransfer(payout, config);
             case SEPA_TRANSFER -> markSepaProcessing(payout);
-            case MANUAL -> throw new IllegalStateException("Manual payouts cannot be auto-executed");
+            case MANUAL -> throw new IllegalArgumentException(
+                    "Les reversements en mode manuel ne peuvent pas etre executes automatiquement. "
+                    + "Changez la methode de paiement du proprietaire en SEPA ou Stripe Connect.");
         };
     }
 
@@ -132,7 +136,7 @@ public class PayoutExecutionService {
                 "Virement SEPA a effectuer",
                 "Le reversement #" + payout.getId() + " (" + payout.getNetAmount() + " " + payout.getCurrency()
                         + ") est pret pour virement SEPA.",
-                "/billing?tab=3"
+                "/billing"
         );
 
         log.info("SEPA payout {} marked as PROCESSING, awaiting manual bank transfer", payout.getId());
@@ -150,7 +154,7 @@ public class PayoutExecutionService {
                 NotificationKey.PAYOUT_FAILED,
                 "Echec du reversement",
                 "Le reversement #" + payout.getId() + " a echoue: " + e.getMessage(),
-                "/billing?tab=3"
+                "/billing"
         );
 
         notifyOwner(saved, NotificationKey.PAYOUT_FAILED,
@@ -170,7 +174,7 @@ public class PayoutExecutionService {
                 NotificationKey.PAYOUT_EXECUTED,
                 "Reversement execute",
                 "Le reversement #" + payout.getId() + " (" + amount + ") a ete execute avec succes.",
-                "/billing?tab=3"
+                "/billing"
         );
 
         notifyOwner(payout, NotificationKey.PAYOUT_EXECUTED,
@@ -183,7 +187,7 @@ public class PayoutExecutionService {
             if (owner.getKeycloakId() != null) {
                 notificationService.sendByOrgId(
                         owner.getKeycloakId(), key, title, message,
-                        "/billing?tab=3", payout.getOrganizationId()
+                        "/billing", payout.getOrganizationId()
                 );
             }
         });

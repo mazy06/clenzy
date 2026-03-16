@@ -1,94 +1,142 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Grid, Card, CardContent, CardHeader, CardActionArea } from '@mui/material';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Box, Tab, Tabs, CircularProgress, Alert } from '@mui/material';
 import {
   Euro as EuroIcon,
   Schedule as ScheduleIcon,
   People as PeopleIcon,
   Home as HomeIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
+import {
+  FinancialReport,
+  InterventionsReport,
+  TeamsReport,
+  PropertiesReport,
+} from './ReportDetails';
+
+// ─── Tab configuration ──────────────────────────────────────────────────────
+
+interface ReportTab {
+  id: string;
+  labelKey: string;
+  icon: React.ReactElement;
+  permission: string;
+  Component: React.FC;
+}
+
+const REPORT_TABS: ReportTab[] = [
+  {
+    id: 'financial',
+    labelKey: 'reports.sections.financial.title',
+    icon: <EuroIcon />,
+    permission: 'reports:view',
+    Component: FinancialReport,
+  },
+  {
+    id: 'interventions',
+    labelKey: 'reports.sections.interventions.title',
+    icon: <ScheduleIcon />,
+    permission: 'reports:view',
+    Component: InterventionsReport,
+  },
+  {
+    id: 'teams',
+    labelKey: 'reports.sections.teams.title',
+    icon: <PeopleIcon />,
+    permission: 'reports:view',
+    Component: TeamsReport,
+  },
+  {
+    id: 'properties',
+    labelKey: 'reports.sections.properties.title',
+    icon: <HomeIcon />,
+    permission: 'reports:view',
+    Component: PropertiesReport,
+  },
+];
+
+// ─── Stable sx constants ────────────────────────────────────────────────────
+
+const TABS_SX = {
+  minHeight: 42,
+  '& .MuiTab-root': {
+    minHeight: 42,
+    textTransform: 'none' as const,
+    fontWeight: 600,
+    fontSize: '0.8125rem',
+    gap: 0.75,
+  },
+  '& .MuiTabs-indicator': {
+    height: 2.5,
+    borderRadius: '2px 2px 0 0',
+  },
+} as const;
+
+const TAB_PANEL_SX = { pt: 2.5 } as const;
+
+// ─── Component ──────────────────────────────────────────────────────────────
 
 const Reports: React.FC = () => {
-  const navigate = useNavigate();
-  const { user, hasPermissionAsync } = useAuth();
+  const { hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState(0);
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
+  const [allowedTabs, setAllowedTabs] = useState<boolean[]>([]);
 
-  // États pour les permissions
-  const [permissions, setPermissions] = useState({
-    'reports:view': false,
-    'interventions:view': false,
-    'teams:view': false,
-    'properties:view': false
-  });
-
-  // Vérifier toutes les permissions au chargement
+  // Check permissions for all tabs
   useEffect(() => {
-    const checkAllPermissions = async () => {
-      const perms = await Promise.all([
-        hasPermissionAsync('reports:view'),
-        hasPermissionAsync('interventions:view'),
-        hasPermissionAsync('teams:view'),
-        hasPermissionAsync('properties:view')
-      ]);
-      
-      setPermissions({
-        'reports:view': perms[0],
-        'interventions:view': perms[1],
-        'teams:view': perms[2],
-        'properties:view': perms[3]
-      });
+    const checkPermissions = async () => {
+      const results = await Promise.all(
+        REPORT_TABS.map((tab) => hasPermissionAsync(tab.permission)),
+      );
+      setAllowedTabs(results);
+      setPermissionsLoaded(true);
     };
-    
-    checkAllPermissions();
+    checkPermissions();
   }, [hasPermissionAsync]);
 
-  const reportSections = [
-    {
-      id: 'financial',
-      title: t('reports.sections.financial.title'),
-      icon: <EuroIcon color="primary" />,
-      description: t('reports.sections.financial.description'),
-      permission: 'reports:view',
-      canView: permissions['reports:view'],
-      route: '/reports/financial'
-    },
-    {
-      id: 'interventions',
-      title: t('reports.sections.interventions.title'),
-      icon: <ScheduleIcon color="success" />,
-      description: t('reports.sections.interventions.description'),
-      permission: 'reports:view',
-      canView: permissions['reports:view'],
-      route: '/reports/interventions'
-    },
-    {
-      id: 'teams',
-      title: t('reports.sections.teams.title'),
-      icon: <PeopleIcon color="info" />,
-      description: t('reports.sections.teams.description'),
-      permission: 'reports:view',
-      canView: permissions['reports:view'],
-      route: '/reports/teams'
-    },
-    {
-      id: 'properties',
-      title: t('reports.sections.properties.title'),
-      icon: <HomeIcon color="warning" />,
-      description: t('reports.sections.properties.description'),
-      permission: 'reports:view',
-      canView: permissions['reports:view'],
-      route: '/reports/properties'
-    },
-  ];
+  const handleTabChange = useCallback((_: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+  }, []);
 
-  const handleCardClick = (section: typeof reportSections[0]) => {
-    if (section.canView) {
-      navigate(section.route);
-    }
-  };
+  if (!permissionsLoaded) {
+    return (
+      <Box>
+        <PageHeader
+          title={t('reports.title')}
+          subtitle={t('reports.subtitle')}
+          backPath="/dashboard"
+          showBackButton={false}
+        />
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+          <CircularProgress />
+        </Box>
+      </Box>
+    );
+  }
+
+  // No tabs accessible
+  const hasAnyAccess = allowedTabs.some(Boolean);
+  if (!hasAnyAccess) {
+    return (
+      <Box>
+        <PageHeader
+          title={t('reports.title')}
+          subtitle={t('reports.subtitle')}
+          backPath="/dashboard"
+          showBackButton={false}
+        />
+        <Alert severity="info" sx={{ mt: 1 }}>
+          {t('reports.noPermissions')}
+        </Alert>
+      </Box>
+    );
+  }
+
+  const currentTab = REPORT_TABS[activeTab];
+  const CurrentComponent = currentTab.Component;
 
   return (
     <Box>
@@ -99,70 +147,33 @@ const Reports: React.FC = () => {
         showBackButton={false}
       />
 
-      {/* Grille des sections de rapports */}
-      <Grid container spacing={2}>
-        {reportSections.map((section, index) => (
-          <Grid item xs={12} sm={6} md={4} key={index}>
-            <Card 
-              sx={{ 
-                height: '100%',
-                opacity: section.canView ? 1 : 0.5,
-                cursor: section.canView ? 'pointer' : 'not-allowed',
-                '&:hover': section.canView ? {
-                  boxShadow: 3,
-                  transform: 'translateY(-2px)',
-                  transition: 'all 0.2s ease-in-out'
-                } : {}
-              }}
-              onClick={() => handleCardClick(section)}
-            >
-              <CardActionArea disabled={!section.canView}>
-                <CardHeader
-                  avatar={<Box sx={{ fontSize: 20 }}>{section.icon}</Box>}
-                  title={section.title}
-                  subheader={section.description}
-                  titleTypographyProps={{ variant: 'subtitle1', fontWeight: 600, sx: { fontSize: '0.95rem' } }}
-                  subheaderTypographyProps={{ variant: 'caption', sx: { fontSize: '0.7rem' } }}
-                  sx={{ pb: 1 }}
-                />
-                <CardContent sx={{ pt: 0, p: 1.5 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                      {t('reports.permission')}: {section.permission}
-                    </Typography>
-                    <Typography 
-                      variant="caption" 
-                      color={section.canView ? 'success.main' : 'text.disabled'}
-                      sx={{ fontWeight: 600, fontSize: '0.7rem' }}
-                    >
-                      {section.canView ? t('reports.available') : t('reports.notAuthorized')}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          </Grid>
+      <Tabs
+        value={activeTab}
+        onChange={handleTabChange}
+        variant="scrollable"
+        scrollButtons="auto"
+        sx={TABS_SX}
+      >
+        {REPORT_TABS.map((tab, index) => (
+          <Tab
+            key={tab.id}
+            icon={tab.icon}
+            iconPosition="start"
+            label={t(tab.labelKey)}
+            disabled={!allowedTabs[index]}
+          />
         ))}
-      </Grid>
+      </Tabs>
 
-      {/* Message d'information */}
-      {!permissions['reports:view'] && !permissions['interventions:view'] && !permissions['teams:view'] && !permissions['properties:view'] && (
-        <Paper sx={{ p: 2, mt: 2, bgcolor: 'info.light', border: '1px solid', borderColor: 'info.main' }}>
-          <Typography variant="body2" color="info.contrastText" sx={{ textAlign: 'center', fontSize: '0.85rem' }}>
-            {t('reports.noPermissions')}
-          </Typography>
-        </Paper>
-      )}
-
-      {/* Section de développement */}
-      <Paper sx={{ p: 2, mt: 2, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
-        <Typography variant="subtitle1" gutterBottom color="text.secondary" sx={{ mb: 1, fontSize: '0.95rem', fontWeight: 600 }}>
-          {t('reports.development.title')}
-        </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-          {t('reports.development.description')}
-        </Typography>
-      </Paper>
+      <Box sx={TAB_PANEL_SX}>
+        {allowedTabs[activeTab] ? (
+          <CurrentComponent />
+        ) : (
+          <Alert severity="warning">
+            {t('reports.noPermission')}
+          </Alert>
+        )}
+      </Box>
     </Box>
   );
 };

@@ -50,36 +50,7 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
       subtitle={t('dashboard.analytics.forecastsDesc')}
     >
       <Grid container spacing={1.5}>
-        {/* Forecast KPI cards */}
-        <Grid item xs={6} sm={4}>
-          <AnalyticsWidgetCard
-            title={t('dashboard.analytics.forecast30d')}
-            value={data ? `${data.revenue30d.toLocaleString('fr-FR')} €` : '-'}
-            subtitle={t('dashboard.analytics.next30days')}
-            icon={<Timeline color="primary" />}
-            loading={loading}
-          />
-        </Grid>
-        <Grid item xs={6} sm={4}>
-          <AnalyticsWidgetCard
-            title={t('dashboard.analytics.forecast90d')}
-            value={data ? `${data.revenue90d.toLocaleString('fr-FR')} €` : '-'}
-            subtitle={t('dashboard.analytics.next90days')}
-            icon={<Timeline color="info" />}
-            loading={loading}
-          />
-        </Grid>
-        <Grid item xs={6} sm={4}>
-          <AnalyticsWidgetCard
-            title={t('dashboard.analytics.forecast365d')}
-            value={data ? `${data.revenue365d.toLocaleString('fr-FR')} €` : '-'}
-            subtitle={t('dashboard.analytics.next365days')}
-            icon={<TrendIcon color="success" />}
-            loading={loading}
-          />
-        </Grid>
-
-        {/* Forecast chart with confidence zone */}
+        {/* Forecast chart with confidence zone — left column */}
         <Grid item xs={12} md={8}>
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
@@ -113,39 +84,65 @@ const AnalyticsForecasts: React.FC<Props> = React.memo(({ data, loading }) => {
           </Card>
         </Grid>
 
-        {/* Scenarios mini-table */}
+        {/* Right column — KPI cards + Scenarios */}
         <Grid item xs={12} md={4}>
-          <Card sx={{ width: '100%' }}>
-            <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
-              <Typography sx={SECTION_LABEL_SX}>
-                {t('dashboard.analytics.scenarios')}
-              </Typography>
-              {loading || !data ? (
-                <Box sx={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.disabled">...</Typography>
-                </Box>
-              ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.5 }}>
-                  {[data.scenarios.optimistic, data.scenarios.realistic, data.scenarios.pessimistic].map((s, i) => {
-                    const colors = ['#4A9B8E', '#6B8A9A', '#C97A7A'];
-                    return (
-                      <Box key={s.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colors[i], flexShrink: 0 }} />
-                        <Box sx={{ flex: 1 }}>
-                          <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.2 }}>
-                            {s.label}
-                          </Typography>
-                          <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary' }}>
-                            {s.revenue.toLocaleString('fr-FR')} € • {s.occupancy}% occ.
-                          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, height: '100%' }}>
+            {/* Forecast KPI cards stacked */}
+            <AnalyticsWidgetCard
+              title={t('dashboard.analytics.forecast30d')}
+              value={data ? `${data.revenue30d.toLocaleString('fr-FR')} €` : '-'}
+              subtitle={t('dashboard.analytics.next30days')}
+              icon={<Timeline color="primary" />}
+              loading={loading}
+            />
+            <AnalyticsWidgetCard
+              title={t('dashboard.analytics.forecast90d')}
+              value={data ? `${data.revenue90d.toLocaleString('fr-FR')} €` : '-'}
+              subtitle={t('dashboard.analytics.next90days')}
+              icon={<Timeline color="info" />}
+              loading={loading}
+            />
+            <AnalyticsWidgetCard
+              title={t('dashboard.analytics.forecast365d')}
+              value={data ? `${data.revenue365d.toLocaleString('fr-FR')} €` : '-'}
+              subtitle={t('dashboard.analytics.next365days')}
+              icon={<TrendIcon color="success" />}
+              loading={loading}
+            />
+
+            {/* Scenarios mini-table */}
+            <Card sx={{ width: '100%', flex: 1 }}>
+              <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
+                <Typography sx={SECTION_LABEL_SX}>
+                  {t('dashboard.analytics.scenarios')}
+                </Typography>
+                {loading || !data ? (
+                  <Box sx={{ height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Typography variant="caption" color="text.disabled">...</Typography>
+                  </Box>
+                ) : (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mt: 0.5 }}>
+                    {[data.scenarios.optimistic, data.scenarios.realistic, data.scenarios.pessimistic].map((s, i) => {
+                      const colors = ['#4A9B8E', '#6B8A9A', '#C97A7A'];
+                      return (
+                        <Box key={s.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: colors[i], flexShrink: 0 }} />
+                          <Box sx={{ flex: 1 }}>
+                            <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.2 }}>
+                              {s.label}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary' }}>
+                              {s.revenue.toLocaleString('fr-FR')} € • {s.occupancy}% occ.
+                            </Typography>
+                          </Box>
                         </Box>
-                      </Box>
-                    );
-                  })}
-                </Box>
-              )}
-            </CardContent>
-          </Card>
+                      );
+                    })}
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </Box>
         </Grid>
       </Grid>
     </GridSection>

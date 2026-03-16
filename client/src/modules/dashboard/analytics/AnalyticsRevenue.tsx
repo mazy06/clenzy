@@ -55,7 +55,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
     >
       <Grid container spacing={1.5}>
         {/* Revenue trend area chart */}
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12} sm={4}>
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
               <Typography sx={SECTION_LABEL_SX}>
@@ -84,7 +84,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
         </Grid>
 
         {/* Channel distribution donut */}
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12} sm={4}>
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
               <Typography sx={SECTION_LABEL_SX}>
@@ -132,7 +132,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
         </Grid>
 
         {/* Top properties bar chart */}
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12} sm={4}>
           <Card sx={CHART_CARD_SX}>
             <CardContent sx={CHART_CONTENT_SX}>
               <Typography sx={SECTION_LABEL_SX}>
@@ -160,7 +160,7 @@ const AnalyticsRevenue: React.FC<Props> = React.memo(({ data, loading }) => {
         </Grid>
 
         {/* Avg revenue per booking */}
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={4}>
           <AnalyticsWidgetCard
             title={t('dashboard.analytics.avgPerBooking')}
             value={data ? `${data.avgRevenuePerBooking.toLocaleString('fr-FR')} €` : '-'}
