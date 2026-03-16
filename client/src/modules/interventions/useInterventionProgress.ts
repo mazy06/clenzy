@@ -55,6 +55,7 @@ export function useInterventionProgress({
   const [allRoomsValidated, setAllRoomsValidated] = useState(false);
 
   const isInitialLoadRef = useRef<boolean>(true);
+  const isReopeningRef = useRef<boolean>(false);
 
   // ------------------------------------------------------------------
   // Hydrate from initial load
@@ -77,22 +78,29 @@ export function useInterventionProgress({
     if (!propertyDetails) return 0;
     const bedrooms = propertyDetails.bedroomCount || 0;
     const bathrooms = propertyDetails.bathroomCount || 0;
-    return bedrooms + bathrooms + 2;
+    const livingRooms = propertyDetails.livingRooms || 1;
+    const kitchens = propertyDetails.kitchens || 1;
+    return bedrooms + bathrooms + livingRooms + kitchens;
   };
 
   const getRoomNames = (): string[] => {
     if (!propertyDetails) return [];
     const bedrooms = propertyDetails.bedroomCount || 0;
     const bathrooms = propertyDetails.bathroomCount || 0;
+    const livingRooms = propertyDetails.livingRooms || 1;
+    const kitchens = propertyDetails.kitchens || 1;
     const rooms: string[] = [];
-    for (let i = 1; i <= bedrooms; i++) rooms.push(`Chambre ${i}`);
-    for (let i = 1; i <= bathrooms; i++) rooms.push(`Salle de bain ${i}`);
-    rooms.push('Salon');
-    rooms.push('Cuisine');
+    for (let i = 1; i <= bedrooms; i++) rooms.push(bedrooms === 1 ? 'Chambre' : `Chambre ${i}`);
+    for (let i = 1; i <= bathrooms; i++) rooms.push(bathrooms === 1 ? 'Salle de bain' : `Salle de bain ${i}`);
+    for (let i = 1; i <= livingRooms; i++) rooms.push(livingRooms === 1 ? 'Salon' : `Salon ${i}`);
+    for (let i = 1; i <= kitchens; i++) rooms.push(kitchens === 1 ? 'Cuisine' : `Cuisine ${i}`);
     return rooms;
   };
 
   const calculateProgress = (): number => {
+    // Une intervention terminée = 100% par définition
+    if (intervention?.status === 'COMPLETED') return 100;
+
     const totalRooms = getTotalRooms();
     const totalSteps = 2 + totalRooms;
     let completed = 0;
@@ -105,8 +113,7 @@ export function useInterventionProgress({
   const areAllStepsCompleted = (): boolean => {
     const totalRooms = getTotalRooms();
     const allRoomsDone = validatedRooms.size === totalRooms;
-    const afterPhotosDone =
-      (completedSteps.has('after_photos') && afterPhotos.length > 0) || afterPhotos.length > 0;
+    const afterPhotosDone = completedSteps.has('after_photos') && afterPhotos.length > 0;
     return (
       inspectionComplete &&
       beforePhotos.length > 0 &&
@@ -156,10 +163,10 @@ export function useInterventionProgress({
             }, 200);
 
             if (propertyDetails) {
-              const totalRooms = (propertyDetails.bedrooms || 0) +
-                (propertyDetails.bathrooms || 0) +
-                (propertyDetails.livingRooms || 0) +
-                (propertyDetails.kitchens || 0);
+              const totalRooms = (propertyDetails.bedroomCount || 0) +
+                (propertyDetails.bathroomCount || 0) +
+                (propertyDetails.livingRooms || 1) +
+                (propertyDetails.kitchens || 1);
               if (parsedRooms.length === totalRooms && totalRooms > 0) {
                 shouldKeepRoomsValidated = true;
                 setAllRoomsValidated(true);
@@ -171,22 +178,21 @@ export function useInterventionProgress({
         }
       }
 
-      setCompletedSteps(prev => {
-        const newSet = new Set(prev);
-        newSet.delete('after_photos');
-        if (shouldKeepRoomsValidated) newSet.add('rooms');
-        return newSet;
-      });
-
-      setTimeout(() => {
-        setTimeout(() => {
-          const newProgress = calculateProgress();
-          handleUpdateProgressValue(newProgress);
-        }, 300);
-      }, 200);
+      // Nettoyer after_photos et sauvegarder immédiatement sur le serveur
+      // pour éviter que l'hydration ne le restaure depuis la DB
+      const cleanedSteps = new Set(completedSteps);
+      cleanedSteps.delete('after_photos');
+      if (shouldKeepRoomsValidated) cleanedSteps.add('rooms');
+      setCompletedSteps(cleanedSteps);
+      saveCompletedSteps(cleanedSteps);
 
       setError(null);
       isInitialLoadRef.current = false;
+
+      // Lever le guard après que tous les states soient stabilisés
+      setTimeout(() => {
+        isReopeningRef.current = false;
+      }, 2000);
     },
     onError: (err: Error) => {
       setError(err.message || 'Erreur lors de la réouverture de l\'intervention');
@@ -230,8 +236,15 @@ export function useInterventionProgress({
     setValidatedRooms(newValidatedRooms);
 
     const totalRooms = getTotalRooms();
-    if (newValidatedRooms.size === totalRooms && totalRooms > 0) {
+    const allDone = newValidatedRooms.size === totalRooms && totalRooms > 0;
+    if (allDone) {
       setAllRoomsValidated(true);
+      // Auto-mark rooms step as completed — no manual "Valider" needed
+      setCompletedSteps(prev => {
+        const newSet = new Set(prev).add('rooms');
+        saveCompletedSteps(newSet);
+        return newSet;
+      });
     }
 
     if (id) {
@@ -246,6 +259,7 @@ export function useInterventionProgress({
 
   const handleReopenIntervention = async () => {
     if (!id || !intervention) return;
+    isReopeningRef.current = true;
     setCompleting(true);
     reopenMutation.mutate(Number(id), {
       onSettled: () => setCompleting(false),
@@ -256,8 +270,9 @@ export function useInterventionProgress({
   // Auto-sync effects
   // ------------------------------------------------------------------
 
-  // Auto-update progress when steps change
+  // Auto-update progress when steps change (skip during reopen to avoid re-completing)
   useEffect(() => {
+    if (isReopeningRef.current) return;
     if (intervention && canUpdateProgressFn() && intervention.status === 'IN_PROGRESS') {
       const newProgress = calculateProgress();
       if (Math.abs(newProgress - (intervention.progressPercentage || 0)) > 1) {
@@ -279,19 +294,8 @@ export function useInterventionProgress({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [completedSteps]);
 
-  // Auto-save validated rooms
-  useEffect(() => {
-    if (isInitialLoadRef.current) return;
-    if (validatedRooms.size > 0 && id && intervention && intervention.status === 'IN_PROGRESS') {
-      const timeoutId = setTimeout(() => {
-        const arr = Array.from(validatedRooms).sort((a, b) => a - b);
-        const json = JSON.stringify(arr);
-        updateRoomsMutation.mutate({ interventionId: Number(id), rooms: json });
-      }, 1000);
-      return () => clearTimeout(timeoutId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validatedRooms]);
+  // Note: validated rooms are saved immediately in handleRoomValidation
+  // No debounced auto-save needed (avoids duplicate API calls)
 
   // Save before unload — completed steps + validated rooms
   useEffect(() => {

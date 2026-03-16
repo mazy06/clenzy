@@ -84,6 +84,7 @@ export function useInterventionDetails(id: string | undefined) {
     allRoomsValidated: progress.allRoomsValidated,
     canViewInterventions: state.canViewInterventions,
     canEditInterventions: state.canEditInterventions,
+    permissionsLoaded: state.permissionsLoaded,
 
     // Setters
     setProgressDialogOpen: progress.setProgressDialogOpen,
@@ -125,5 +126,9 @@ export function useInterventionDetails(id: string | undefined) {
     getTotalRooms: progress.getTotalRooms,
     getRoomNames: progress.getRoomNames,
     getStepNote: notes.getStepNote,
+
+    // Success feedback
+    startSuccessMessage: state.startSuccessMessage,
+    setStartSuccessMessage: state.setStartSuccessMessage,
   };
 }

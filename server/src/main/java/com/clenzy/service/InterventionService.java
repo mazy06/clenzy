@@ -447,39 +447,26 @@ public class InterventionService {
         intervention.setStatus(InterventionStatus.IN_PROGRESS);
         // Ne pas réinitialiser completedAt pour garder l'historique
 
-        // Recalculer la progression en fonction des étapes complétées
-        // Si l'étape "after_photos" n'est pas dans completedSteps, la progression ne devrait pas être à 100%
+        // Retirer "after_photos" des completedSteps pour forcer la re-validation de l'étape 3
+        // Cela empêche le frontend de recalculer 100% et de re-terminer automatiquement
         try {
             String completedStepsJson = intervention.getCompletedSteps();
             if (completedStepsJson != null && !completedStepsJson.isEmpty()) {
-                // Vérifier simplement si "after_photos" est dans la chaîne JSON
-                // (plus simple que de parser complètement le JSON)
-                boolean hasAfterPhotos = completedStepsJson.contains("\"after_photos\"") ||
-                                         completedStepsJson.contains("'after_photos'");
-
-                // Si "after_photos" n'est pas dans les étapes complétées, recalculer la progression
-                if (!hasAfterPhotos) {
-                    // La progression ne peut pas être à 100% si l'étape finale n'est pas complétée
-                    // On va la mettre à environ 89% (étape 1 + étape 2 complétées, étape 3 manquante)
-                    // Le frontend recalculera plus précisément
-                    if (intervention.getProgressPercentage() != null && intervention.getProgressPercentage() >= 100) {
-                        intervention.setProgressPercentage(89);
-                        log.debug("Progress recalculated on reopen: 89% (final step not completed)");
-                    }
-                }
-            } else {
-                // Si aucune étape complétée n'est définie, réinitialiser la progression
-                if (intervention.getProgressPercentage() != null && intervention.getProgressPercentage() >= 100) {
-                    intervention.setProgressPercentage(0);
-                    log.debug("Progress reset on reopen: 0%");
-                }
+                var objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                java.util.List<String> steps = objectMapper.readValue(completedStepsJson,
+                        objectMapper.getTypeFactory().constructCollectionType(java.util.ArrayList.class, String.class));
+                steps.remove("after_photos");
+                intervention.setCompletedSteps(objectMapper.writeValueAsString(steps));
+                log.debug("Removed 'after_photos' from completedSteps on reopen, remaining: {}", steps);
             }
         } catch (Exception e) {
-            log.warn("Error recalculating progress on reopen: {}", e.getMessage());
-            // En cas d'erreur, garder la progression actuelle mais la forcer à moins de 100%
-            if (intervention.getProgressPercentage() != null && intervention.getProgressPercentage() >= 100) {
-                intervention.setProgressPercentage(89);
-            }
+            log.warn("Error cleaning completedSteps on reopen: {}", e.getMessage());
+        }
+
+        // Recalculer la progression : sans after_photos, jamais 100%
+        if (intervention.getProgressPercentage() != null && intervention.getProgressPercentage() >= 100) {
+            intervention.setProgressPercentage(89);
+            log.debug("Progress capped at 89% on reopen (after_photos step removed)");
         }
 
         intervention = interventionRepository.save(intervention);
