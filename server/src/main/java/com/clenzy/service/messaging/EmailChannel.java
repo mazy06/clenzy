@@ -66,7 +66,7 @@ public class EmailChannel implements MessageChannel {
             log.info("Email envoye a {} (subject={})", request.recipientEmail(), request.subject());
             return MessageDeliveryResult.success(messageId);
         } catch (Exception e) {
-            log.error("Erreur envoi email a {}: {}", request.recipientEmail(), e.getMessage());
+            log.error("Erreur envoi email a {}: {}", request.recipientEmail(), e.getMessage(), e);
             return MessageDeliveryResult.failure(e.getMessage());
         }
     }

@@ -738,3 +738,28 @@ databaseChangeLog:
       sqlFile:
         path: changes/0084__owner_payout_config.sql
         relativeToChangelogFile: true
+
+  # --- 0085 : Fix CHECK constraints (notifications + owner_payouts) ---
+  - changeSet:
+      id: "0085-add-payout-notification-keys"
+      author: clenzy-team
+      validCheckSum: "ANY"
+      sqlFile:
+        path: changes/0085__add_payout_notification_keys.sql
+        relativeToChangelogFile: true
+
+  # --- 0086 : Fix owner_payouts status CHECK (add PROCESSING) ---
+  - changeSet:
+      id: "0086-fix-owner-payouts-status-check"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0086__fix_owner_payouts_status_check.sql
+        relativeToChangelogFile: true
+
+  # --- 0087 : Add SEPA debtor fields to organizations ---
+  - changeSet:
+      id: "0087-add-sepa-debtor-fields"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0087__add_sepa_debtor_fields_to_organizations.sql
+        relativeToChangelogFile: true

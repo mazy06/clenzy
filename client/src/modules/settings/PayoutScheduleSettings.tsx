@@ -5,6 +5,7 @@ import {
   Switch,
   Paper,
   TextField,
+
   Button,
   Alert,
   Snackbar,
@@ -75,7 +76,7 @@ export default function PayoutScheduleSettings() {
   }
 
   return (
-    <Box>
+    <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, height: '100%' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
         <CalendarMonth sx={{ color: '#A6C0CE', fontSize: 20 }} />
@@ -177,6 +178,6 @@ export default function PayoutScheduleSettings() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </Paper>
   );
 }

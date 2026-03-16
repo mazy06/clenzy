@@ -66,7 +66,7 @@ public class PayoutReminderScheduler {
                         NotificationKey.PAYOUT_PENDING_APPROVAL,
                         "Reversements en attente d'approbation",
                         count + " reversement(s) en attente d'approbation depuis plus de " + graceDays + " jour(s).",
-                        "/billing?tab=3"
+                        "/billing"
                 );
                 totalReminders += count;
             } catch (Exception e) {

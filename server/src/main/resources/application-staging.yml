@@ -28,10 +28,10 @@ spring:
   jackson:
     time-zone: Europe/Paris
   mail:
-    host: ${MAIL_HOST:smtp-relay.brevo.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:${BREVO_SMTP_USERNAME:}}
-    password: ${MAIL_PASSWORD:${BREVO_SMTP_KEY:}}
+    host: ${MAIL_HOST:mail.clenzy.fr}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:info@clenzy.fr}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -43,10 +43,10 @@ spring:
           poolSize: ${MAIL_SMTP_POOL_SIZE:10}
           quitwait: false
           ssl:
-            enable: ${MAIL_SMTP_SSL_ENABLE:false}
+            enable: ${MAIL_SMTP_SSL_ENABLE:true}
           starttls:
-            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
-            required: ${MAIL_SMTP_STARTTLS_REQUIRED:true}
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:false}
+            required: ${MAIL_SMTP_STARTTLS_REQUIRED:false}
   security:
     oauth2:
       resourceserver:

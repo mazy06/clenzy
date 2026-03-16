@@ -116,7 +116,7 @@ public class GuestMessagingService {
                     accessResult.method(), property.getId(), reservation.getId());
         } catch (Exception e) {
             log.error("Erreur resolution code d'acces pour reservation={}: {}",
-                    reservation.getId(), e.getMessage());
+                    reservation.getId(), e.getMessage(), e);
             // Continue sans code dynamique — le code statique de CheckInInstructions sera utilise
         }
 

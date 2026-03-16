@@ -1782,6 +1782,18 @@
       "stripeOnboardingPending": "Your Stripe onboarding is not complete. Please finish it.",
       "stripeError": "Error connecting to Stripe"
     },
+    "sepaDebtor": {
+      "title": "Debtor bank account (SEPA)",
+      "description": "Enter your organization's bank details. They will be used as debtor in SEPA XML files (pain.001).",
+      "configured": "Configured",
+      "nameLabel": "Account holder name",
+      "ibanLabel": "IBAN",
+      "bicLabel": "BIC / SWIFT",
+      "ibanMasked": "Current IBAN: ",
+      "ibanChangeHint": " — leave empty to keep current",
+      "saveSuccess": "Configuration saved",
+      "saveError": "Error saving configuration"
+    },
     "integrations": {
       "title": "Integrations",
       "comingSoon": "More integrations (PriceLabs, QuickBooks, etc.) will be available soon.",
@@ -3110,6 +3122,14 @@
       "emptyDescription": "Generate your first payout to calculate the amount owed to an owner.",
       "emptyAction": "Generate your first payout"
     },
+    "payoutStatuses": {
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "PROCESSING": "Processing",
+      "PAID": "Paid",
+      "FAILED": "Failed",
+      "CANCELLED": "Cancelled"
+    },
     "executePayout": "Execute transfer",
     "executeSuccess": "Transfer executed successfully",
     "executeError": "Error executing transfer",
@@ -3117,6 +3137,7 @@
     "retryError": "Error retrying transfer",
     "processing": "Processing...",
     "failedPayout": "Transfer failed",
+    "downloadSepaXml": "SEPA XML",
     "commissions": {
       "help": {
         "title": "How do commissions work?",

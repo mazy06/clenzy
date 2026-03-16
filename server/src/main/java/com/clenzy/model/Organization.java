@@ -1,5 +1,6 @@
 package com.clenzy.model;
 
+import com.clenzy.config.EncryptedFieldConverter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -49,6 +50,18 @@ public class Organization {
 
     @Column(name = "deferred_payment", nullable = false)
     private boolean deferredPayment = false;
+
+    // --- SEPA debtor (organization's own bank details for pain.001) ---
+
+    @Column(name = "sepa_debtor_name", length = 70)
+    private String sepaDebtorName;
+
+    @Convert(converter = EncryptedFieldConverter.class)
+    @Column(name = "sepa_debtor_iban", length = 512)
+    private String sepaDebtorIban;
+
+    @Column(name = "sepa_debtor_bic", length = 20)
+    private String sepaDebtorBic;
 
     // --- Timestamps ---
 
@@ -103,6 +116,13 @@ public class Organization {
 
     public boolean isDeferredPayment() { return deferredPayment; }
     public void setDeferredPayment(boolean deferredPayment) { this.deferredPayment = deferredPayment; }
+
+    public String getSepaDebtorName() { return sepaDebtorName; }
+    public void setSepaDebtorName(String sepaDebtorName) { this.sepaDebtorName = sepaDebtorName; }
+    public String getSepaDebtorIban() { return sepaDebtorIban; }
+    public void setSepaDebtorIban(String sepaDebtorIban) { this.sepaDebtorIban = sepaDebtorIban; }
+    public String getSepaDebtorBic() { return sepaDebtorBic; }
+    public void setSepaDebtorBic(String sepaDebtorBic) { this.sepaDebtorBic = sepaDebtorBic; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
