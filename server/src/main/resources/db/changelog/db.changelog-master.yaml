@@ -763,3 +763,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0087__add_sepa_debtor_fields_to_organizations.sql
         relativeToChangelogFile: true
+
+  # --- 0088 : Seed default message templates for all organizations ---
+  - changeSet:
+      id: "0088-seed-default-message-templates"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0088__seed_default_message_templates.sql
+        relativeToChangelogFile: true
