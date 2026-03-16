@@ -109,7 +109,7 @@ public class PermissionInitializer {
         anyCreated |= ensurePermission("interventions:create", "Creer des interventions", "interventions",
                 List.of("SUPER_ADMIN", "SUPER_MANAGER"));
         anyCreated |= ensurePermission("interventions:edit", "Modifier des interventions", "interventions",
-                List.of("SUPER_ADMIN", "SUPER_MANAGER", "TECHNICIAN", "HOUSEKEEPER", "SUPERVISOR", "LAUNDRY", "EXTERIOR_TECH"));
+                List.of("SUPER_ADMIN", "SUPER_MANAGER"));
         anyCreated |= ensurePermission("interventions:delete", "Supprimer des interventions", "interventions",
                 List.of("SUPER_ADMIN"));
 
@@ -243,6 +243,17 @@ public class PermissionInitializer {
                 rp.setIsDefault(true);
                 rolePermissionRepository.save(rp);
                 log.info("Permission {} associee au role {}", name, roleName);
+                created = true;
+            }
+        }
+
+        // 3. Retirer les roles qui ne devraient plus avoir cette permission (default only)
+        List<RolePermission> existingAssignments = rolePermissionRepository.findByPermissionName(name);
+        for (RolePermission rp : existingAssignments) {
+            if (rp.getIsDefault() != null && rp.getIsDefault()
+                    && !roleNames.contains(rp.getRole().getName())) {
+                rolePermissionRepository.delete(rp);
+                log.info("Permission {} retiree du role {} (default sync)", name, rp.getRole().getName());
                 created = true;
             }
         }

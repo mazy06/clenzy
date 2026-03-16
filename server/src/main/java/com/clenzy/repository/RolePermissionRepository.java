@@ -103,4 +103,7 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
     @Modifying
     @Query("UPDATE RolePermission rp SET rp.isActive = false WHERE rp.role.name = :roleName")
     void deactivateByRoleName(@Param("roleName") String roleName);
+
+    @Query("SELECT rp FROM RolePermission rp WHERE rp.permission.name = :permissionName")
+    List<RolePermission> findByPermissionName(@Param("permissionName") String permissionName);
 }
