@@ -33,7 +33,7 @@ export interface ProgressStepInspectionProps {
 
 const stepStyles = {
   accordion: {
-    mb: 1,
+    mb: 0,
     borderRadius: '8px !important',
     border: '1px solid',
     borderColor: 'success.light',
@@ -51,7 +51,7 @@ const stepStyles = {
     },
   },
   activeCard: {
-    mb: 1,
+    mb: 0,
     p: 2,
     borderRadius: 2,
     border: '1px solid',
@@ -150,79 +150,27 @@ const ProgressStepInspection: React.FC<ProgressStepInspectionProps> = ({
   // ── Active (not yet completed) ────────────────────────────────────────────
 
   return (
-    <Box sx={stepStyles.activeCard}>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
-        <Box display="flex" alignItems="center" gap={1}>
-          <Box sx={stepStyles.stepBadge(false)}>1</Box>
-          <Typography variant="body2" fontWeight={600}>
-            Inspection générale
-          </Typography>
-        </Box>
-
-        <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<PhotoCameraIcon />}
-            onClick={() => { setPhotoType('before'); setPhotosDialogOpen(true); }}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-          >
-            Photos avant
-          </Button>
-
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<CommentIcon />}
-            onClick={() => handleOpenNotesDialog('inspection')}
-            sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-          >
-            {getStepNote('inspection') ? 'Modifier note' : 'Note'}
-          </Button>
-
-          {beforePhotos.length > 0 && (
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              startIcon={<CheckCircleOutlineIcon />}
-              onClick={() => {
-                setInspectionComplete(true);
-                setCompletedSteps(prev => new Set(prev).add('inspection'));
-                const newProgress = calculateProgress();
-                handleUpdateProgressValue(newProgress);
-              }}
-              sx={{
-                textTransform: 'none',
-                fontSize: '0.8125rem',
-                animation: 'pulse 2s infinite',
-                '@keyframes pulse': {
-                  '0%, 100%': { opacity: 1 },
-                  '50%': { opacity: 0.7 },
-                },
-              }}
-            >
-              Valider
-            </Button>
-          )}
-        </Box>
+    <Box sx={{ ...stepStyles.activeCard, display: 'flex', flexDirection: 'column' }}>
+      <Box display="flex" alignItems="center" gap={1} mb={1}>
+        <Box sx={stepStyles.stepBadge(false)}>1</Box>
+        <Typography variant="body2" fontWeight={600}>
+          Inspection générale
+        </Typography>
       </Box>
 
-      <Typography variant="body2" color="text.secondary" sx={{ ml: 4.5 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
         Vérifiez l'état des lieux et prenez des photos avant l'intervention
       </Typography>
 
       {beforePhotos.length > 0 && (
-        <Box sx={{ ml: 4.5, mt: 1 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <CheckCircleOutlineIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-            {beforePhotos.length} photo(s) ajoutée(s)
-          </Typography>
-        </Box>
+        <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+          <CheckCircleOutlineIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+          {beforePhotos.length} photo(s) ajoutée(s)
+        </Typography>
       )}
 
       {getStepNote('inspection') && (
-        <Box sx={{ ml: 4.5, mt: 1.5 }}>
+        <Box sx={{ mb: 1.5 }}>
           <Typography variant="caption" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
             Notes
           </Typography>
@@ -233,6 +181,57 @@ const ProgressStepInspection: React.FC<ProgressStepInspectionProps> = ({
           </Box>
         </Box>
       )}
+
+      <Box sx={{ mt: 'auto', display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+        <Button
+          variant="outlined"
+          size="small"
+          fullWidth
+          startIcon={<PhotoCameraIcon />}
+          onClick={() => { setPhotoType('before'); setPhotosDialogOpen(true); }}
+          sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
+        >
+          Photos avant
+        </Button>
+
+        <Button
+          variant="outlined"
+          size="small"
+          fullWidth
+          startIcon={<CommentIcon />}
+          onClick={() => handleOpenNotesDialog('inspection')}
+          sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
+        >
+          {getStepNote('inspection') ? 'Modifier note' : 'Note'}
+        </Button>
+
+        {beforePhotos.length > 0 && (
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            fullWidth
+            startIcon={<CheckCircleOutlineIcon />}
+            onClick={() => {
+              setInspectionComplete(true);
+              setCompletedSteps(prev => new Set(prev).add('inspection'));
+              const newProgress = calculateProgress();
+              handleUpdateProgressValue(newProgress);
+            }}
+            sx={{
+              textTransform: 'none',
+              fontSize: '0.8125rem',
+              animation: 'pulse 2s infinite',
+              '@keyframes pulse': {
+                '0%, 100%': { opacity: 1 },
+                '50%': { opacity: 0.7 },
+              },
+            }}
+          >
+            Valider
+          </Button>
+        )}
+      </Box>
     </Box>
   );
 };

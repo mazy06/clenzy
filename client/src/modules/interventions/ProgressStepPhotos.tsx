@@ -35,7 +35,7 @@ export interface ProgressStepPhotosProps {
 
 const stepStyles = {
   accordion: {
-    mb: 1,
+    mb: 0,
     borderRadius: '8px !important',
     border: '1px solid',
     borderColor: 'success.light',
@@ -53,7 +53,7 @@ const stepStyles = {
     },
   },
   activeCard: {
-    mb: 1,
+    mb: 0,
     p: 2,
     borderRadius: 2,
     border: '1px solid',
@@ -148,20 +148,45 @@ const ProgressStepPhotos: React.FC<ProgressStepPhotosProps> = ({
   // ── Active (not yet completed) ────────────────────────────────────────────
 
   return (
-    <Box sx={stepStyles.activeCard}>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
-        <Box display="flex" alignItems="center" gap={1}>
-          <Box sx={stepStyles.stepBadge(false)}>3</Box>
-          <Typography variant="body2" fontWeight={600}>
-            Photos après intervention
-          </Typography>
-        </Box>
+    <Box sx={{ ...stepStyles.activeCard, display: 'flex', flexDirection: 'column', opacity: allRoomsValidated ? 1 : 0.5 }}>
+      <Box display="flex" alignItems="center" gap={1} mb={1}>
+        <Box sx={stepStyles.stepBadge(false)}>3</Box>
+        <Typography variant="body2" fontWeight={600}>
+          Photos après intervention
+        </Typography>
+      </Box>
 
-        {allRoomsValidated && (
-          <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+      {allRoomsValidated ? (
+        <>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Prenez des photos après l'intervention pour finaliser
+          </Typography>
+
+          {afterPhotos.length > 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+              <CheckCircleOutlineIcon sx={{ fontSize: 16, color: 'success.main' }} />
+              {afterPhotos.length} photo(s) ajoutée(s)
+            </Typography>
+          )}
+
+          {getStepNote('after_photos') && (
+            <Box sx={{ mb: 1.5 }}>
+              <Typography variant="caption" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
+                Notes
+              </Typography>
+              <Box sx={stepStyles.noteBox}>
+                <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {getStepNote('after_photos')}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          <Box sx={{ mt: 'auto', display: 'flex', flexDirection: 'column', gap: 0.75 }}>
             <Button
               variant="outlined"
               size="small"
+              fullWidth
               startIcon={<PhotoCameraIcon />}
               onClick={() => { setPhotoType('after'); setPhotosDialogOpen(true); }}
               sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
@@ -172,6 +197,7 @@ const ProgressStepPhotos: React.FC<ProgressStepPhotosProps> = ({
             <Button
               variant="outlined"
               size="small"
+              fullWidth
               startIcon={<CommentIcon />}
               onClick={() => handleOpenNotesDialog('after_photos')}
               sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
@@ -183,6 +209,7 @@ const ProgressStepPhotos: React.FC<ProgressStepPhotosProps> = ({
               variant="contained"
               color="success"
               size="small"
+              fullWidth
               startIcon={<DoneIcon />}
               onClick={handleCompleteIntervention}
               disabled={!areAllStepsCompleted || completing || intervention.status === 'COMPLETED'}
@@ -201,44 +228,11 @@ const ProgressStepPhotos: React.FC<ProgressStepPhotosProps> = ({
               {completing ? 'Finalisation...' : (intervention.status === 'COMPLETED' ? 'Terminée' : 'Terminer')}
             </Button>
           </Box>
-        )}
-      </Box>
-
-      {allRoomsValidated ? (
-        <Box sx={{ ml: 4.5 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-            Prenez des photos des pièces après l'intervention pour finaliser
-          </Typography>
-
-          {getStepNote('after_photos') && (
-            <Box sx={{ mb: 1.5 }}>
-              <Typography variant="caption" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
-                Notes
-              </Typography>
-              <Box sx={stepStyles.noteBox}>
-                <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
-                  {getStepNote('after_photos')}
-                </Typography>
-              </Box>
-            </Box>
-          )}
-
-          {afterPhotos.length > 0 && (
-            <Box>
-              <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-                <CheckCircleOutlineIcon sx={{ fontSize: 16, color: 'success.main' }} />
-                {afterPhotos.length} photo(s) ajoutée(s)
-              </Typography>
-              <PhotoGallery photos={afterPhotos} columns={3} />
-            </Box>
-          )}
-        </Box>
+        </>
       ) : (
-        <Box sx={{ ml: 4.5 }}>
-          <Typography variant="body2" color="text.secondary">
-            Disponible après la validation de toutes les pièces
-          </Typography>
-        </Box>
+        <Typography variant="body2" color="text.secondary">
+          Disponible après la validation de toutes les pièces
+        </Typography>
       )}
     </Box>
   );
