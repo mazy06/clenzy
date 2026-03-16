@@ -4,13 +4,11 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
   Chip,
   Button,
   Alert,
   CircularProgress,
   Divider,
-  IconButton,
   Snackbar,
 } from '@mui/material';
 import {
@@ -22,11 +20,13 @@ import {
   Warning as WarningIcon,
   Error as ErrorIcon,
   Info as InfoIcon,
-  ChevronRight as ChevronRightIcon,
-  ChevronLeft as ChevronLeftIcon,
   Autorenew as AutorenewIcon,
   PlayCircleOutline as PlayCircleOutlineIcon,
   StopCircle as StopCircleIcon,
+  LocationOn as LocationIcon,
+  Person as PersonIcon,
+  Group as GroupIcon,
+  AccessTime as AccessTimeIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
@@ -40,35 +40,13 @@ import {
   getTypeLabel,
   getTypeHex,
   formatDate,
+  formatDuration,
+  formatCurrency,
 } from './interventionUtils';
-import InterventionSidebar from './InterventionSidebar';
 import InterventionProgressSteps from './InterventionProgressSteps';
 import { ProgressDialog, NotesDialog, PhotosDialog } from './InterventionDialogs';
 
 const styles = {
-  flexLayout: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 2,
-    '& > *': {
-      flex: '1 1 auto',
-      minWidth: { xs: '100%', sm: 'calc(50% - 8px)', md: 'calc(33.333% - 11px)' },
-      maxWidth: { xs: '100%', sm: 'calc(50% - 8px)', md: 'calc(33.333% - 11px)' },
-    },
-  },
-  iconBox: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 20,
-    height: 20,
-    flexShrink: 0,
-  },
-  sidebarToggle: {
-    mr: 1,
-    border: '1px solid',
-    borderColor: 'divider',
-  },
   spinIcon: {
     color: 'info.main',
     fontSize: 20,
@@ -78,18 +56,48 @@ const styles = {
       '100%': { transform: 'rotate(360deg)' },
     },
   },
+  infoGrid: {
+    display: 'grid',
+    gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+    gap: 2,
+  },
+  infoItem: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 1.5,
+  },
+  infoIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    bgcolor: 'primary.50',
+    flexShrink: 0,
+    mt: 0.25,
+  },
+  chipRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 1,
+    alignItems: 'center',
+  },
+  metaRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: { xs: 1, sm: 2 },
+    alignItems: 'center',
+  },
 } as const;
 
-// Fonction JSX pour l'icône de statut
 const getStatusIcon = (status: string) => {
   const iconSx = { fontSize: 20 };
   switch (status) {
     case 'PENDING':
       return <WarningIcon sx={{ color: 'warning.main', ...iconSx }} />;
     case 'IN_PROGRESS':
-      return (
-        <AutorenewIcon sx={styles.spinIcon} />
-      );
+      return <AutorenewIcon sx={styles.spinIcon} />;
     case 'COMPLETED':
       return <CheckCircleIcon sx={{ color: 'success.main', ...iconSx }} />;
     case 'CANCELLED':
@@ -99,15 +107,30 @@ const getStatusIcon = (status: string) => {
   }
 };
 
+const makeChip = (label: string, hexColor: string) => (
+  <Chip
+    label={label}
+    size="small"
+    sx={{
+      height: 24,
+      fontSize: '0.75rem',
+      fontWeight: 600,
+      backgroundColor: `${hexColor}18`,
+      color: hexColor,
+      border: `1px solid ${hexColor}40`,
+      borderRadius: '6px',
+      '& .MuiChip-label': { px: 1 },
+    }}
+  />
+);
+
 export default function InterventionDetailsPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
 
   const {
-    // Auth
     user,
-    // State
     intervention,
     loading,
     error,
@@ -125,7 +148,6 @@ export default function InterventionDetailsPage() {
     selectedPhotos,
     uploadingPhotos,
     photoType,
-    showSidebar,
     propertyDetails,
     completedSteps,
     beforePhotos,
@@ -136,7 +158,6 @@ export default function InterventionDetailsPage() {
     canViewInterventions,
     canEditInterventions,
     permissionsLoaded,
-    // Setters
     setProgressDialogOpen,
     setProgressValue,
     setNotesDialogOpen,
@@ -145,9 +166,7 @@ export default function InterventionDetailsPage() {
     setPhotosDialogOpen,
     setSelectedPhotos,
     setPhotoType,
-    setShowSidebar,
     setError,
-    // Handlers
     handleStartIntervention,
     handleUpdateProgress,
     handleCompleteIntervention,
@@ -160,7 +179,6 @@ export default function InterventionDetailsPage() {
     handleRoomValidation,
     handleAfterPhotosComplete,
     handleUpdateProgressValue,
-    // Computed
     canStartOrUpdateIntervention,
     canStartIntervention,
     canUpdateProgress,
@@ -170,15 +188,12 @@ export default function InterventionDetailsPage() {
     getTotalRooms,
     getRoomNames,
     getStepNote,
-    // Sub-component setters needed by ProgressSteps
     setCompletedSteps,
     setInspectionComplete,
-    // Success feedback
     startSuccessMessage,
     setStartSuccessMessage,
   } = useInterventionDetails(id);
 
-  // Attendre que les permissions soient chargées avant d'afficher quoi que ce soit
   if (!permissionsLoaded || loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -187,7 +202,6 @@ export default function InterventionDetailsPage() {
     );
   }
 
-  // Si l'utilisateur n'a pas la permission de voir les interventions
   if (!canViewInterventions) {
     return (
       <Box sx={{ p: 2 }}>
@@ -195,7 +209,7 @@ export default function InterventionDetailsPage() {
           <Typography variant="subtitle1" fontWeight={600} gutterBottom>
             Accès non autorisé
           </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+          <Typography variant="body2">
             Vous n'avez pas les permissions nécessaires pour visualiser les détails des interventions.
             <br />
             Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
@@ -214,177 +228,203 @@ export default function InterventionDetailsPage() {
         backPath="/interventions"
         backLabel="Retour aux interventions"
         actions={
-          <>
-            <IconButton
-              onClick={() => setShowSidebar(!showSidebar)}
+          canEditInterventions ? (
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<EditIcon />}
+              onClick={() => navigate(`/interventions/${id}/edit`)}
               size="small"
-              sx={styles.sidebarToggle}
-              title={showSidebar ? "Masquer les détails" : "Afficher les détails"}
             >
-              {showSidebar ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-            </IconButton>
-            {canEditInterventions && (
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<EditIcon />}
-                onClick={() => navigate(`/interventions/${id}/edit`)}
-                size="small"
-                title="Modifier"
-              >
-                Modifier
-              </Button>
-            )}
-          </>
+              Modifier
+            </Button>
+          ) : undefined
         }
         showBackButton={false}
         showBackButtonWithActions={true}
       />
 
-      {/* Loading */}
       {loading && (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
           <CircularProgress size={32} />
         </Box>
       )}
 
-      {/* Error */}
       {error && (
         <Alert severity="error" sx={{ mb: 2, py: 1 }}>
           {error}
         </Alert>
       )}
 
-      {/* Main content */}
       {intervention && !loading && (
-        <Grid container spacing={2}>
-          {/* Informations principales */}
-          <Grid item xs={12} md={showSidebar ? 8 : 12}>
-            <Card>
-              <CardContent sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
-                  Description
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph sx={{ fontSize: '0.85rem' }}>
-                  {intervention.description}
-                </Typography>
+        <Card sx={{ maxWidth: 900 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
 
-                <Divider sx={{ my: 1.5 }} />
+            {/* ── Description ──────────────────────────────────────── */}
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {intervention.description}
+            </Typography>
 
-                {/* Layout responsive avec flexbox */}
-                <Box sx={styles.flexLayout}>
-                  {/* Type */}
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Box sx={styles.iconBox}>
-                      <BuildIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                    </Box>
-                    <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Type:</Typography>
-                    {(() => { const c = getTypeHex(intervention.type); return (
-                    <Chip label={getTypeLabel(intervention.type, t)} size="small" sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.7rem', height: 22, '& .MuiChip-label': { px: 0.75 } }} />
-                    ); })()}
-                  </Box>
+            {/* ── Chips: Type + Statut + Priorité ──────────────────── */}
+            <Box sx={{ ...styles.chipRow, mb: 2 }}>
+              <Box display="flex" alignItems="center" gap={0.75}>
+                <BuildIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                {makeChip(getTypeLabel(intervention.type, t), getTypeHex(intervention.type))}
+              </Box>
+              <Box display="flex" alignItems="center" gap={0.75}>
+                {getStatusIcon(intervention.status)}
+                {makeChip(getStatusLabel(intervention.status, t), getStatusHex(intervention.status))}
+              </Box>
+              <Box display="flex" alignItems="center" gap={0.75}>
+                <PriorityHighIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                {makeChip(getPriorityLabel(intervention.priority, t), getPriorityHex(intervention.priority))}
+              </Box>
+            </Box>
 
-                  {/* Statut */}
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Box sx={styles.iconBox}>
-                      {getStatusIcon(intervention.status)}
-                    </Box>
-                    <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Statut:</Typography>
-                    {(() => { const c = getStatusHex(intervention.status); return (
-                      <Chip label={getStatusLabel(intervention.status, t)} size="small" sx={{ height: 24, fontSize: '0.75rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 1 } }} />
-                    ); })()}
-                  </Box>
+            {/* ── Dates en ligne ───────────────────────────────────── */}
+            <Box sx={{ ...styles.metaRow, mb: 2 }}>
+              <Box display="flex" alignItems="center" gap={0.5}>
+                <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                <Typography variant="caption" color="text.secondary">Planifié:</Typography>
+                <Typography variant="body2">{formatDate(intervention.scheduledDate)}</Typography>
+              </Box>
+              {intervention.startTime && (
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <PlayCircleOutlineIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                  <Typography variant="caption" color="text.secondary">Début:</Typography>
+                  <Typography variant="body2">{formatDate(intervention.startTime)}</Typography>
+                </Box>
+              )}
+              {intervention.endTime && (
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <StopCircleIcon sx={{ fontSize: 16, color: 'error.main' }} />
+                  <Typography variant="caption" color="text.secondary">Fin:</Typography>
+                  <Typography variant="body2">{formatDate(intervention.endTime)}</Typography>
+                </Box>
+              )}
+            </Box>
 
-                  {/* Priorité */}
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Box sx={styles.iconBox}>
-                      <PriorityHighIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                    </Box>
-                    <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Priorité:</Typography>
-                    {(() => { const c = getPriorityHex(intervention.priority); return (
-                      <Chip label={getPriorityLabel(intervention.priority, t)} size="small" sx={{ height: 24, fontSize: '0.75rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 1 } }} />
-                    ); })()}
-                  </Box>
+            <Divider sx={{ my: 2 }} />
 
-                  {/* Planifié */}
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Box sx={styles.iconBox}>
-                      <ScheduleIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                    </Box>
-                    <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Planifié:</Typography>
-                    <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                      {formatDate(intervention.scheduledDate)}
-                    </Typography>
-                  </Box>
+            {/* ── Informations détaillées (ex-sidebar) ─────────────── */}
+            <Box sx={styles.infoGrid}>
+              {/* Propriété */}
+              <Box sx={styles.infoItem}>
+                <Box sx={{ ...styles.infoIconBox, bgcolor: 'rgba(25, 118, 210, 0.08)' }}>
+                  <LocationIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2 }}>
+                    Propriété
+                  </Typography>
+                  <Typography variant="body2" fontWeight={500}>
+                    {intervention.propertyName}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {intervention.propertyAddress}{intervention.propertyCity ? `, ${intervention.propertyCity}` : ''}
+                  </Typography>
+                </Box>
+              </Box>
 
-                  {/* Date et heure de début */}
-                  {intervention.startTime && (
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Box sx={styles.iconBox}>
-                        <PlayCircleOutlineIcon sx={{ color: 'success.main', fontSize: 20 }} />
-                      </Box>
-                      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Début:</Typography>
-                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                        {formatDate(intervention.startTime)}
+              {/* Demandeur */}
+              <Box sx={styles.infoItem}>
+                <Box sx={{ ...styles.infoIconBox, bgcolor: 'rgba(46, 125, 50, 0.08)' }}>
+                  <PersonIcon sx={{ fontSize: 18, color: 'success.main' }} />
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2 }}>
+                    Demandeur
+                  </Typography>
+                  <Typography variant="body2" fontWeight={500}>
+                    {intervention.requestorName}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Assignation */}
+              <Box sx={styles.infoItem}>
+                <Box sx={{ ...styles.infoIconBox, bgcolor: 'rgba(156, 39, 176, 0.08)' }}>
+                  {intervention.assignedToType === 'team'
+                    ? <GroupIcon sx={{ fontSize: 18, color: 'secondary.main' }} />
+                    : <PersonIcon sx={{ fontSize: 18, color: 'secondary.main' }} />
+                  }
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2 }}>
+                    Assigné à
+                  </Typography>
+                  <Typography variant="body2" fontWeight={500}>
+                    {intervention.assignedToName}
+                  </Typography>
+                  <Chip
+                    label={intervention.assignedToType === 'team' ? 'Équipe' : 'Utilisateur'}
+                    size="small"
+                    variant="outlined"
+                    sx={{ height: 20, fontSize: '0.7rem', mt: 0.25, '& .MuiChip-label': { px: 0.75 } }}
+                  />
+                </Box>
+              </Box>
+
+              {/* Détails techniques */}
+              <Box sx={styles.infoItem}>
+                <Box sx={{ ...styles.infoIconBox, bgcolor: 'rgba(237, 108, 2, 0.08)' }}>
+                  <AccessTimeIcon sx={{ fontSize: 18, color: 'warning.main' }} />
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2 }}>
+                    Durée estimée
+                  </Typography>
+                  <Typography variant="body2" fontWeight={500}>
+                    {formatDuration(intervention.estimatedDurationHours)}
+                  </Typography>
+                  {intervention.estimatedCost != null && (
+                    <>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.2, mt: 0.5 }}>
+                        Coût estimé
                       </Typography>
-                    </Box>
-                  )}
-
-                  {/* Date de fin */}
-                  {intervention.endTime && (
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Box sx={styles.iconBox}>
-                        <StopCircleIcon sx={{ color: 'error.main', fontSize: 20 }} />
-                      </Box>
-                      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Fin:</Typography>
-                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                        {formatDate(intervention.endTime)}
+                      <Typography variant="body2" fontWeight={500}>
+                        {formatCurrency(intervention.estimatedCost)}
                       </Typography>
-                    </Box>
+                    </>
                   )}
                 </Box>
+              </Box>
+            </Box>
 
-                {/* Progression & Steps */}
-                <InterventionProgressSteps
-                  intervention={intervention}
-                  calculateProgress={calculateProgress}
-                  canUpdateProgress={canUpdateProgress()}
-                  canStartIntervention={canStartIntervention()}
-                  canStartOrUpdateIntervention={canStartOrUpdateIntervention()}
-                  areAllStepsCompleted={areAllStepsCompleted()}
-                  propertyDetails={propertyDetails}
-                  getTotalRooms={getTotalRooms}
-                  getRoomNames={getRoomNames}
-                  validatedRooms={validatedRooms}
-                  allRoomsValidated={allRoomsValidated}
-                  inspectionComplete={inspectionComplete}
-                  beforePhotos={beforePhotos}
-                  afterPhotos={afterPhotos}
-                  completedSteps={completedSteps}
-                  getStepNote={getStepNote}
-                  handleStartIntervention={handleStartIntervention}
-                  handleCompleteIntervention={handleCompleteIntervention}
-                  handleReopenIntervention={handleReopenIntervention}
-                  handleRoomValidation={handleRoomValidation}
-                  handleOpenNotesDialog={handleOpenNotesDialog}
-                  handleUpdateProgressValue={handleUpdateProgressValue}
-                  setPhotoType={setPhotoType}
-                  setPhotosDialogOpen={setPhotosDialogOpen}
-                  setInspectionComplete={setInspectionComplete}
-                  setCompletedSteps={setCompletedSteps}
-                  starting={starting}
-                  completing={completing}
-                />
+            {/* ── Progression & Steps ──────────────────────────────── */}
+            <InterventionProgressSteps
+              intervention={intervention}
+              calculateProgress={calculateProgress}
+              canUpdateProgress={canUpdateProgress()}
+              canStartIntervention={canStartIntervention()}
+              canStartOrUpdateIntervention={canStartOrUpdateIntervention()}
+              areAllStepsCompleted={areAllStepsCompleted()}
+              propertyDetails={propertyDetails}
+              getTotalRooms={getTotalRooms}
+              getRoomNames={getRoomNames}
+              validatedRooms={validatedRooms}
+              allRoomsValidated={allRoomsValidated}
+              inspectionComplete={inspectionComplete}
+              beforePhotos={beforePhotos}
+              afterPhotos={afterPhotos}
+              completedSteps={completedSteps}
+              getStepNote={getStepNote}
+              handleStartIntervention={handleStartIntervention}
+              handleCompleteIntervention={handleCompleteIntervention}
+              handleReopenIntervention={handleReopenIntervention}
+              handleRoomValidation={handleRoomValidation}
+              handleOpenNotesDialog={handleOpenNotesDialog}
+              handleUpdateProgressValue={handleUpdateProgressValue}
+              setPhotoType={setPhotoType}
+              setPhotosDialogOpen={setPhotosDialogOpen}
+              setInspectionComplete={setInspectionComplete}
+              setCompletedSteps={setCompletedSteps}
+              starting={starting}
+              completing={completing}
+            />
 
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Sidebar */}
-          {showSidebar && (
-            <InterventionSidebar intervention={intervention} />
-          )}
-        </Grid>
+          </CardContent>
+        </Card>
       )}
 
       {/* Dialogs */}
@@ -410,10 +450,7 @@ export default function InterventionDetailsPage() {
         onSubmit={handleUpdateNotes}
         updating={updatingNotes}
         stepNotes={stepNotes}
-        onStepNotesChange={(notes) => {
-          // This is handled by the hook's setStepNotes internally
-          // The dialog calls this to update step notes for auto-save
-        }}
+        onStepNotesChange={() => {}}
       />
 
       <PhotosDialog
@@ -429,7 +466,6 @@ export default function InterventionDetailsPage() {
         uploading={uploadingPhotos}
       />
 
-      {/* Success snackbar after starting intervention */}
       <Snackbar
         open={!!startSuccessMessage}
         autoHideDuration={6000}
