@@ -1,12 +1,13 @@
 import React from 'react';
 import {
-  Box, Typography, LinearProgress, Button, Alert,
+  Box, Typography, LinearProgress, Button, Alert, Divider,
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   PlayArrow as PlayArrowIcon,
   Replay as ReplayIcon,
   Description as DescriptionIcon,
+  RocketLaunch as RocketIcon,
 } from '@mui/icons-material';
 import type { InterventionDetailsData, PropertyDetails } from './interventionUtils';
 import PhotoGallery from '../../components/PhotoGallery';
@@ -80,40 +81,51 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   areAllStepsCompleted,
 }) => {
   const progress = calculateProgress();
+  const isComplete = progress === 100;
 
   return (
     <>
-      {/* ── Barre de progression ────────────────────────────────────────── */}
-      <Box sx={{ mt: 2, mb: 2 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="baseline" mb={0.75}>
-          <Typography variant="body2" fontWeight={600}>
+      <Divider sx={{ my: 2 }} />
+
+      {/* ── Progression bar ─────────────────────────────────────────── */}
+      <Box sx={{ mb: 2 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.75}>
+          <Typography variant="body2" fontWeight={600} color="text.primary">
             Progression
           </Typography>
-          <Typography
-            variant="body2"
-            fontWeight={700}
-            color={progress === 100 ? 'success.main' : 'primary.main'}
-          >
-            {progress}%
-          </Typography>
+          <Box sx={{
+            px: 1.25, py: 0.25, borderRadius: '12px',
+            bgcolor: isComplete ? 'rgba(46, 125, 50, 0.1)' : 'rgba(25, 118, 210, 0.1)',
+          }}>
+            <Typography variant="body2" fontWeight={700}
+              color={isComplete ? 'success.main' : 'primary.main'}
+              sx={{ fontSize: '0.8125rem' }}
+            >
+              {progress}%
+            </Typography>
+          </Box>
         </Box>
         <LinearProgress
           variant="determinate"
           value={progress}
-          color={progress === 100 ? 'success' : 'primary'}
-          sx={{ height: 6, borderRadius: 3 }}
+          color={isComplete ? 'success' : 'primary'}
+          sx={{
+            height: 8,
+            borderRadius: 4,
+            bgcolor: 'grey.100',
+            '& .MuiLinearProgress-bar': {
+              borderRadius: 4,
+              background: isComplete
+                ? 'linear-gradient(90deg, #43a047, #66bb6a)'
+                : 'linear-gradient(90deg, #1976d2, #42a5f5)',
+            },
+          }}
         />
       </Box>
 
-      {/* ── Étapes de progression ───────────────────────────────────────── */}
+      {/* ── Steps grid ──────────────────────────────────────────────── */}
       {canUpdateProgress && propertyDetails && (
-        <Box mb={2}>
-          <Typography variant="body2" fontWeight={600} sx={{ mb: 1.5 }}>
-            Étapes de progression
-          </Typography>
-
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 1.5 }}>
-
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 1.5, mb: 1 }}>
           <ProgressStepInspection
             inspectionComplete={inspectionComplete}
             beforePhotos={beforePhotos}
@@ -152,108 +164,85 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             completing={completing}
             areAllStepsCompleted={areAllStepsCompleted}
           />
-
-          </Box>{/* end grid */}
         </Box>
       )}
 
-      {/* ── Bouton démarrer ─────────────────────────────────────────────── */}
+      {/* ── Start CTA ───────────────────────────────────────────────── */}
       {canStartIntervention && (
-        <Box sx={{ mt: 2 }}>
+        <Box sx={{
+          mt: 2, p: 2.5, borderRadius: 2,
+          bgcolor: 'rgba(25, 118, 210, 0.04)',
+          border: '1px solid',
+          borderColor: 'rgba(25, 118, 210, 0.15)',
+          textAlign: 'center',
+        }}>
+          <RocketIcon sx={{ fontSize: 32, color: 'primary.main', mb: 1 }} />
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Démarrez l'intervention pour accéder aux étapes de progression.
+            Un bon d'intervention sera automatiquement envoyé par email.
+          </Typography>
           <Button
             variant="contained"
             color="primary"
             startIcon={<PlayArrowIcon />}
-            fullWidth
             onClick={handleStartIntervention}
             disabled={starting}
-            sx={{ py: 1.25, textTransform: 'none', fontWeight: 600, fontSize: '0.875rem' }}
+            sx={{
+              py: 1.25, px: 4,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              borderRadius: 2,
+              boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)',
+            }}
           >
             {starting ? 'Démarrage...' : 'Démarrer l\'intervention'}
           </Button>
-          <Alert
-            severity="info"
-            icon={<DescriptionIcon sx={{ fontSize: 18 }} />}
-            sx={{ mt: 1.5, py: 0.5 }}
-          >
-            <Typography variant="body2">
-              Un bon d'intervention sera automatiquement généré et envoyé par email au démarrage.
-            </Typography>
-          </Alert>
         </Box>
       )}
 
-      {/* ── Bouton réouvrir ─────────────────────────────────────────────── */}
+      {/* ── Reopen CTA ──────────────────────────────────────────────── */}
       {intervention?.status === 'COMPLETED' && canStartOrUpdateIntervention && (
-        <Box
-          sx={{
-            mt: 2,
-            p: 2,
-            borderRadius: 2,
-            bgcolor: 'rgba(237, 108, 2, 0.04)',
-            border: '1px solid',
-            borderColor: 'warning.light',
-          }}
-        >
-          <Box
+        <Box sx={{
+          mt: 2, p: 2,
+          borderRadius: 2,
+          bgcolor: 'rgba(237, 108, 2, 0.04)',
+          border: '1px solid',
+          borderColor: 'rgba(237, 108, 2, 0.15)',
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'stretch', sm: 'center' },
+          gap: 2,
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+            <Box sx={{
+              width: 36, height: 36, borderRadius: '50%',
+              bgcolor: 'success.main',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <CheckCircleIcon sx={{ fontSize: 20, color: 'white' }} />
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+              Intervention terminée. Vous pouvez la rouvrir pour effectuer des modifications.
+            </Typography>
+          </Box>
+          <Button
+            variant="contained" color="warning"
+            startIcon={<ReplayIcon />}
+            onClick={handleReopenIntervention}
+            disabled={completing}
             sx={{
-              display: 'flex',
-              flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: { xs: 'stretch', sm: 'center' },
-              gap: 2,
+              py: 1.25, px: 3, fontWeight: 600,
+              textTransform: 'none', fontSize: '0.875rem',
+              whiteSpace: 'nowrap', flexShrink: 0, borderRadius: 2,
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
-              <Box
-                sx={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  bgcolor: 'success.main',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <CheckCircleIcon sx={{ fontSize: 20, color: 'white' }} />
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
-                Intervention terminée. Vous pouvez la rouvrir pour effectuer des modifications.
-              </Typography>
-            </Box>
-            <Button
-              variant="contained"
-              color="warning"
-              startIcon={<ReplayIcon />}
-              onClick={handleReopenIntervention}
-              disabled={completing}
-              sx={{
-                py: 1.25,
-                px: 3,
-                fontWeight: 600,
-                textTransform: 'none',
-                fontSize: '0.875rem',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-              }}
-            >
-              {completing ? 'Réouverture...' : 'Réouvrir'}
-            </Button>
-          </Box>
+            {completing ? 'Réouverture...' : 'Réouvrir'}
+          </Button>
         </Box>
       )}
 
-      {/* ── Message avant démarrage ─────────────────────────────────────── */}
-      {canStartIntervention && (
-        <Alert severity="warning" sx={{ mt: 2, py: 0.5 }}>
-          <Typography variant="body2">
-            Les photos et étapes ne seront disponibles qu'après le démarrage.
-          </Typography>
-        </Alert>
-      )}
-
-      {/* ── Photos avant (standalone, avant validation étape 1) ─────────── */}
+      {/* ── Photos avant (standalone, avant validation étape 1) ────── */}
       {canUpdateProgress && beforePhotos.length > 0 && !inspectionComplete && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
