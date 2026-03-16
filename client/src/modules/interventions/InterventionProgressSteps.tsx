@@ -125,7 +125,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
 
       {/* ── Steps grid ──────────────────────────────────────────────── */}
       {canUpdateProgress && propertyDetails && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 1.5, mb: 1 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 1.5, mb: 1, alignItems: 'start' }}>
           <ProgressStepInspection
             inspectionComplete={inspectionComplete}
             beforePhotos={beforePhotos}
