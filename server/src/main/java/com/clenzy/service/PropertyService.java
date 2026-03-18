@@ -1,10 +1,12 @@
 package com.clenzy.service;
 
+import com.clenzy.dto.CheckInInstructionsDto;
 import com.clenzy.dto.PropertyDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Property;
 import com.clenzy.model.PropertyType;
 import com.clenzy.model.User;
+import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.repository.ManagerPropertyRepository;
@@ -41,6 +43,7 @@ public class PropertyService {
     private final ManagerPropertyRepository managerPropertyRepository;
     private final PortfolioClientRepository portfolioClientRepository;
     private final PortfolioRepository portfolioRepository;
+    private final CheckInInstructionsRepository checkInInstructionsRepository;
     private final NotificationService notificationService;
     private final TenantContext tenantContext;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -49,6 +52,7 @@ public class PropertyService {
                           ManagerPropertyRepository managerPropertyRepository,
                           PortfolioClientRepository portfolioClientRepository,
                           PortfolioRepository portfolioRepository,
+                          CheckInInstructionsRepository checkInInstructionsRepository,
                           NotificationService notificationService,
                           TenantContext tenantContext) {
         this.propertyRepository = propertyRepository;
@@ -56,6 +60,7 @@ public class PropertyService {
         this.managerPropertyRepository = managerPropertyRepository;
         this.portfolioClientRepository = portfolioClientRepository;
         this.portfolioRepository = portfolioRepository;
+        this.checkInInstructionsRepository = checkInInstructionsRepository;
         this.notificationService = notificationService;
         this.tenantContext = tenantContext;
     }
@@ -331,6 +336,15 @@ public class PropertyService {
             
             dto.createdAt = p.getCreatedAt();
             dto.updatedAt = p.getUpdatedAt();
+
+            // Check-in instructions (optional 1:1 relation)
+            try {
+                checkInInstructionsRepository.findByPropertyId(p.getId())
+                    .ifPresent(ci -> dto.checkInInstructions = CheckInInstructionsDto.fromEntity(ci));
+            } catch (Exception e) {
+                log.warn("PropertyService.toDto - Erreur lors du chargement des check-in instructions: {}", e.getMessage());
+            }
+
             return dto;
         } catch (Exception e) {
             log.error("PropertyService.toDto - Erreur lors de la conversion Property -> PropertyDto, Property ID: {}", (p != null ? p.getId() : "null"), e);

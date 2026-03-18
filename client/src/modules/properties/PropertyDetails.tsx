@@ -45,6 +45,12 @@ import {
   CheckCircle,
   Error as ErrorMuiIcon,
   FlightLand,
+  Wifi,
+  VpnKey,
+  LocalParking,
+  Gavel,
+  Phone,
+  OpenInNew,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -608,6 +614,57 @@ const PropertyDetails: React.FC = () => {
                   variant="cleaning"
                 />
               )}
+
+              {/* Instructions voyageur (summary) */}
+              {property.checkInInstructions && (() => {
+                const ci = property.checkInInstructions;
+                const hasAnyField = ci.accessCode || ci.wifiName || ci.wifiPassword || ci.parkingInfo
+                  || ci.arrivalInstructions || ci.departureInstructions || ci.houseRules || ci.emergencyContact;
+                if (!hasAnyField) return null;
+
+                const fields: { icon: React.ReactNode; label: string; value: string | null }[] = [
+                  { icon: <VpnKey sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.accessCode'), value: ci.accessCode },
+                  { icon: <Wifi sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.wifiName'), value: ci.wifiName },
+                  { icon: <Wifi sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.wifiPassword'), value: ci.wifiPassword },
+                  { icon: <LocalParking sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.parkingInfo'), value: ci.parkingInfo },
+                  { icon: <Login sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.arrivalInstructions'), value: ci.arrivalInstructions },
+                  { icon: <Logout sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.departureInstructions'), value: ci.departureInstructions },
+                  { icon: <Gavel sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.houseRules'), value: ci.houseRules },
+                  { icon: <Phone sx={{ fontSize: 16, color: 'text.secondary' }} />, label: t('channels.checkIn.emergencyContact'), value: ci.emergencyContact },
+                ];
+
+                const visibleFields = fields.filter(f => f.value);
+
+                return (
+                  <Paper sx={CARD_SX}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Typography sx={SECTION_TITLE_SX}>
+                        {t('channels.checkIn.title')}
+                      </Typography>
+                      <Button
+                        size="small"
+                        endIcon={<OpenInNew sx={{ fontSize: 12 }} />}
+                        onClick={() => setTabValue(3)}
+                        sx={{ fontSize: '0.625rem', textTransform: 'none', fontWeight: 600, minWidth: 0, px: 1, py: 0.25 }}
+                      >
+                        {t('properties.modify')}
+                      </Button>
+                    </Box>
+                    {visibleFields.map((field, idx) => (
+                      <React.Fragment key={idx}>
+                        {idx > 0 && <Divider sx={{ my: 0.5 }} />}
+                        <Box sx={INFO_ROW_SX}>
+                          {field.icon}
+                          <Box sx={{ flex: 1 }}>
+                            <Typography sx={INFO_LABEL_SX}>{field.label}</Typography>
+                            <Typography sx={{ ...INFO_VALUE_SX, whiteSpace: 'pre-line' }}>{field.value}</Typography>
+                          </Box>
+                        </Box>
+                      </React.Fragment>
+                    ))}
+                  </Paper>
+                );
+              })()}
 
               {/* Amenities */}
               {property.amenities && property.amenities.length > 0 && (

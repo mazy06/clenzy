@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.model.*;
+import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ProviderExpenseRepository;
@@ -50,6 +51,7 @@ public class TagResolverService {
     private final ServiceRequestRepository serviceRequestRepository;
     private final ReservationRepository reservationRepository;
     private final ProviderExpenseRepository providerExpenseRepository;
+    private final CheckInInstructionsRepository checkInInstructionsRepository;
 
     @Value("${clenzy.company.name:Clenzy}")
     private String companyName;
@@ -72,7 +74,8 @@ public class TagResolverService {
             InterventionRepository interventionRepository,
             ServiceRequestRepository serviceRequestRepository,
             ReservationRepository reservationRepository,
-            ProviderExpenseRepository providerExpenseRepository
+            ProviderExpenseRepository providerExpenseRepository,
+            CheckInInstructionsRepository checkInInstructionsRepository
     ) {
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
@@ -80,6 +83,7 @@ public class TagResolverService {
         this.serviceRequestRepository = serviceRequestRepository;
         this.reservationRepository = reservationRepository;
         this.providerExpenseRepository = providerExpenseRepository;
+        this.checkInInstructionsRepository = checkInInstructionsRepository;
     }
 
     /**
@@ -362,6 +366,30 @@ public class TagResolverService {
         tags.put("check_in", safeStr(property.getDefaultCheckInTime()));
         tags.put("check_out", safeStr(property.getDefaultCheckOutTime()));
         tags.put("instructions_acces", safeStr(property.getAccessInstructions()));
+
+        // Check-in instructions (from separate entity)
+        if (property.getId() != null) {
+            checkInInstructionsRepository.findByPropertyId(property.getId()).ifPresentOrElse(ci -> {
+                tags.put("access_code", safeStr(ci.getAccessCode()));
+                tags.put("wifi_name", safeStr(ci.getWifiName()));
+                tags.put("wifi_password", safeStr(ci.getWifiPassword()));
+                tags.put("parking_info", safeStr(ci.getParkingInfo()));
+                tags.put("arrival_instructions", safeStr(ci.getArrivalInstructions()));
+                tags.put("departure_instructions", safeStr(ci.getDepartureInstructions()));
+                tags.put("house_rules", safeStr(ci.getHouseRules()));
+                tags.put("emergency_contact", safeStr(ci.getEmergencyContact()));
+            }, () -> {
+                tags.put("access_code", "");
+                tags.put("wifi_name", "");
+                tags.put("wifi_password", "");
+                tags.put("parking_info", "");
+                tags.put("arrival_instructions", "");
+                tags.put("departure_instructions", "");
+                tags.put("house_rules", "");
+                tags.put("emergency_contact", "");
+            });
+        }
+
         return tags;
     }
 

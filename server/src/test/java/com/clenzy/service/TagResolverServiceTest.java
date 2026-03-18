@@ -1,6 +1,7 @@
 package com.clenzy.service;
 
 import com.clenzy.model.*;
+import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.InterventionRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ProviderExpenseRepository;
@@ -31,6 +32,7 @@ class TagResolverServiceTest {
     @Mock private ServiceRequestRepository serviceRequestRepository;
     @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
     @Mock private ProviderExpenseRepository providerExpenseRepository;
+    @Mock private CheckInInstructionsRepository checkInInstructionsRepository;
 
     private TagResolverService service;
 
@@ -38,7 +40,7 @@ class TagResolverServiceTest {
     void setUp() {
         service = new TagResolverService(userRepository, propertyRepository,
                 interventionRepository, serviceRequestRepository, reservationRepository,
-                providerExpenseRepository);
+                providerExpenseRepository, checkInInstructionsRepository);
         ReflectionTestUtils.setField(service, "companyName", "Clenzy");
         ReflectionTestUtils.setField(service, "companyAddress", "10 rue de Paris");
         ReflectionTestUtils.setField(service, "companySiret", "12345678900001");
@@ -164,6 +166,67 @@ class TagResolverServiceTest {
             Map<String, Object> propTags = (Map<String, Object>) context.get("property");
             assertThat(propTags.get("nom")).isEqualTo("Villa Nice");
             assertThat(propTags.get("ville")).isEqualTo("Nice");
+        }
+    }
+
+    // ===== CHECK-IN INSTRUCTIONS IN PROPERTY TAGS =====
+
+    @Nested
+    class CheckInInstructionsInPropertyTags {
+
+        @Test
+        void whenCheckInInstructionsExist_thenResolvesAllInstructionTags() {
+            Property property = new Property();
+            property.setId(10L);
+            property.setName("Villa Nice");
+            property.setCity("Nice");
+
+            CheckInInstructions ci = new CheckInInstructions();
+            ci.setAccessCode("1234A");
+            ci.setWifiName("VillaWifi");
+            ci.setWifiPassword("secret123");
+            ci.setParkingInfo("Place B12");
+            ci.setArrivalInstructions("Prendre l'ascenseur");
+            ci.setDepartureInstructions("Laisser les cles");
+            ci.setHouseRules("Pas de fete");
+            ci.setEmergencyContact("+33612345678");
+
+            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            when(checkInInstructionsRepository.findByPropertyId(10L)).thenReturn(Optional.of(ci));
+
+            Map<String, Object> context = service.resolveTagsForDocument(
+                    DocumentType.MANDAT_GESTION, 10L, "property");
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> propTags = (Map<String, Object>) context.get("property");
+            assertThat(propTags.get("access_code")).isEqualTo("1234A");
+            assertThat(propTags.get("wifi_name")).isEqualTo("VillaWifi");
+            assertThat(propTags.get("wifi_password")).isEqualTo("secret123");
+            assertThat(propTags.get("parking_info")).isEqualTo("Place B12");
+            assertThat(propTags.get("arrival_instructions")).isEqualTo("Prendre l'ascenseur");
+            assertThat(propTags.get("departure_instructions")).isEqualTo("Laisser les cles");
+            assertThat(propTags.get("house_rules")).isEqualTo("Pas de fete");
+            assertThat(propTags.get("emergency_contact")).isEqualTo("+33612345678");
+        }
+
+        @Test
+        void whenNoCheckInInstructions_thenTagsAreEmptyStrings() {
+            Property property = new Property();
+            property.setId(10L);
+            property.setName("Appart Lyon");
+
+            when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+            when(checkInInstructionsRepository.findByPropertyId(10L)).thenReturn(Optional.empty());
+
+            Map<String, Object> context = service.resolveTagsForDocument(
+                    DocumentType.MANDAT_GESTION, 10L, "property");
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> propTags = (Map<String, Object>) context.get("property");
+            assertThat(propTags.get("access_code")).isEqualTo("");
+            assertThat(propTags.get("wifi_name")).isEqualTo("");
+            assertThat(propTags.get("house_rules")).isEqualTo("");
+            assertThat(propTags.get("emergency_contact")).isEqualTo("");
         }
     }
 

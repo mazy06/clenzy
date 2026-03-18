@@ -106,6 +106,9 @@ public class PropertyDto {
 
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
+
+    // Instructions voyageur (check-in instructions)
+    public CheckInInstructionsDto checkInInstructions;
 }
 
 
