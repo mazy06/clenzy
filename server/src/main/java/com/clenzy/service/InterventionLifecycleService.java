@@ -122,7 +122,17 @@ public class InterventionLifecycleService {
             );
             log.debug("Outbox BON_INTERVENTION event persisted for intervention: {}", intervention.getId());
         } catch (Exception e) {
-            log.warn("Outbox persist error BON_INTERVENTION: {}", e.getMessage());
+            log.error("Outbox persist error BON_INTERVENTION: {}", e.getMessage(), e);
+            try {
+                notificationService.notifyAdminsAndManagers(
+                    NotificationKey.DOCUMENT_GENERATION_FAILED,
+                    "Erreur generation document",
+                    "Le document BON_INTERVENTION pour l'intervention #" + intervention.getId() + " n'a pas pu etre genere. Erreur: " + e.getMessage(),
+                    "/interventions/" + intervention.getId()
+                );
+            } catch (Exception ignored) {
+                // Best-effort notification
+            }
         }
 
         return interventionMapper.convertToResponse(intervention);
@@ -184,18 +194,7 @@ public class InterventionLifecycleService {
         intervention.setEndTime(null);
 
         // Retirer "after_photos" des completedSteps pour forcer la re-validation de l'etape 3
-        try {
-            String completedStepsJson = intervention.getCompletedSteps();
-            if (completedStepsJson != null && !completedStepsJson.isEmpty()) {
-                java.util.List<String> steps = objectMapper.readValue(completedStepsJson,
-                        objectMapper.getTypeFactory().constructCollectionType(java.util.ArrayList.class, String.class));
-                steps.remove("after_photos");
-                intervention.setCompletedSteps(objectMapper.writeValueAsString(steps));
-                log.debug("Removed 'after_photos' from completedSteps on reopen, remaining: {}", steps);
-            }
-        } catch (Exception e) {
-            log.warn("Error cleaning completedSteps on reopen: {}", e.getMessage());
-        }
+        removeStepFromCompletedSteps(intervention, "after_photos");
 
         // Recalculer la progression : sans after_photos, jamais 100%
         if (intervention.getProgressPercentage() != null && intervention.getProgressPercentage() >= 100) {
@@ -335,6 +334,27 @@ public class InterventionLifecycleService {
     // ── Private helpers ─────────────────────────────────────────────────────
 
     /**
+     * Retire un step de la liste JSON completedSteps.
+     * En cas de JSON malformed, reset a liste vide plutot que de laisser des donnees corrompues.
+     */
+    private void removeStepFromCompletedSteps(Intervention intervention, String stepToRemove) {
+        String json = intervention.getCompletedSteps();
+        if (json == null || json.isBlank()) return;
+
+        try {
+            java.util.List<String> steps = objectMapper.readValue(json,
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.List<String>>() {});
+            if (steps.remove(stepToRemove)) {
+                intervention.setCompletedSteps(objectMapper.writeValueAsString(steps));
+                log.debug("Removed '{}' from completedSteps, remaining: {}", stepToRemove, steps);
+            }
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            log.error("Malformed completedSteps JSON for intervention={}: {}", intervention.getId(), e.getMessage());
+            intervention.setCompletedSteps("[]");
+        }
+    }
+
+    /**
      * Persist outbox events for VALIDATION_FIN_MISSION documents (host + technician).
      * The OutboxRelay will send them to Kafka after the transaction commits.
      */
@@ -378,7 +398,17 @@ public class InterventionLifecycleService {
             }
             log.debug("Outbox VALIDATION_FIN_MISSION event(s) persisted for intervention: {}", intervention.getId());
         } catch (Exception e) {
-            log.warn("Outbox persist error VALIDATION_FIN_MISSION: {}", e.getMessage());
+            log.error("Outbox persist error VALIDATION_FIN_MISSION: {}", e.getMessage(), e);
+            try {
+                notificationService.notifyAdminsAndManagers(
+                    NotificationKey.DOCUMENT_GENERATION_FAILED,
+                    "Erreur generation document",
+                    "Le document VALIDATION_FIN_MISSION pour l'intervention #" + intervention.getId() + " n'a pas pu etre genere. Erreur: " + e.getMessage(),
+                    "/interventions/" + intervention.getId()
+                );
+            } catch (Exception ignored) {
+                // Best-effort notification
+            }
         }
     }
 
