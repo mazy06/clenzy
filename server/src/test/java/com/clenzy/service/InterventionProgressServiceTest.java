@@ -105,20 +105,25 @@ class InterventionProgressServiceTest {
         }
 
         @Test
-        @DisplayName("100% progress delegates to lifecycleService.completeIntervention")
-        void whenProgressIs100_thenDelegatesToComplete() {
+        @DisplayName("100% progress saves without auto-completing (no delegation to lifecycle)")
+        void whenProgressIs100_thenSavesWithoutAutoComplete() {
             Jwt jwt = mockJwtWithRole("SUPER_ADMIN");
 
             Intervention intervention = buildIntervention(1L, InterventionStatus.IN_PROGRESS);
-            InterventionResponse resultResponse = buildResultResponse(1L, "COMPLETED", "Test");
+            InterventionResponse resultResponse = buildResultResponse(1L, "IN_PROGRESS", "Test");
 
             when(interventionRepository.findById(1L)).thenReturn(Optional.of(intervention));
-            when(lifecycleService.completeIntervention(1L, jwt)).thenReturn(resultResponse);
+            when(interventionRepository.save(any())).thenReturn(intervention);
+            when(interventionMapper.convertToResponse(any())).thenReturn(resultResponse);
 
             InterventionResponse result = service.updateProgress(1L, 100, jwt);
 
-            assertThat(result.status()).isEqualTo("COMPLETED");
-            verify(lifecycleService).completeIntervention(1L, jwt);
+            assertThat(result.status()).isEqualTo("IN_PROGRESS");
+            verifyNoInteractions(lifecycleService);
+
+            ArgumentCaptor<Intervention> captor = ArgumentCaptor.forClass(Intervention.class);
+            verify(interventionRepository).save(captor.capture());
+            assertThat(captor.getValue().getProgressPercentage()).isEqualTo(100);
         }
 
         @Test
