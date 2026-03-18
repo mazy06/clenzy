@@ -50,12 +50,6 @@ export function useInterventionDetails(id: string | undefined) {
 
   // ---- Return the same flat API ----
   return {
-    // Auth-derived values
-    user: state.user,
-    isTechnician: state.isTechnician,
-    isHousekeeper: state.isHousekeeper,
-    isSupervisor: state.isSupervisor,
-
     // State
     intervention: state.intervention,
     loading: state.loading,
@@ -73,8 +67,10 @@ export function useInterventionDetails(id: string | undefined) {
     photosDialogOpen: photos.photosDialogOpen,
     selectedPhotos: photos.selectedPhotos,
     uploadingPhotos: photos.uploadingPhotos,
+    deletingPhotoId: photos.deletingPhotoId,
+    beforePhotoIds: photos.beforePhotoIds,
+    afterPhotoIds: photos.afterPhotoIds,
     photoType: photos.photoType,
-    showSidebar: state.showSidebar,
     propertyDetails: state.propertyDetails,
     completedSteps: photos.completedSteps,
     beforePhotos: photos.beforePhotos,
@@ -84,6 +80,7 @@ export function useInterventionDetails(id: string | undefined) {
     allRoomsValidated: progress.allRoomsValidated,
     canViewInterventions: state.canViewInterventions,
     canEditInterventions: state.canEditInterventions,
+    permissionsLoaded: state.permissionsLoaded,
 
     // Setters
     setProgressDialogOpen: progress.setProgressDialogOpen,
@@ -94,12 +91,9 @@ export function useInterventionDetails(id: string | undefined) {
     setPhotosDialogOpen: photos.setPhotosDialogOpen,
     setSelectedPhotos: photos.setSelectedPhotos,
     setPhotoType: photos.setPhotoType,
-    setShowSidebar: state.setShowSidebar,
     setError: state.setError,
     setCompletedSteps: photos.setCompletedSteps,
-    setAllRoomsValidated: progress.setAllRoomsValidated,
     setInspectionComplete: photos.setInspectionComplete,
-    saveCompletedSteps: photos.saveCompletedSteps,
 
     // Handler functions
     handleStartIntervention: state.handleStartIntervention,
@@ -109,21 +103,22 @@ export function useInterventionDetails(id: string | undefined) {
     handleOpenNotesDialog: notes.handleOpenNotesDialog,
     handleUpdateNotes: notes.handleUpdateNotes,
     handlePhotoUpload: photos.handlePhotoUpload,
-    handlePhotoSelect: photos.handlePhotoSelect,
-    handleInspectionComplete: photos.handleInspectionComplete,
+    handleDeletePhoto: photos.handleDeletePhoto,
     handleRoomValidation: progress.handleRoomValidation,
-    handleAfterPhotosComplete: photos.handleAfterPhotosComplete,
     handleUpdateProgressValue: progress.handleUpdateProgressValue,
 
     // Computed values
     canStartOrUpdateIntervention: state.canStartOrUpdateIntervention,
     canStartIntervention: state.canStartIntervention,
     canUpdateProgress: state.canUpdateProgress,
-    canModifyIntervention: state.canModifyIntervention,
     areAllStepsCompleted: progress.areAllStepsCompleted,
     calculateProgress: progress.calculateProgress,
     getTotalRooms: progress.getTotalRooms,
     getRoomNames: progress.getRoomNames,
     getStepNote: notes.getStepNote,
+
+    // Success feedback
+    startSuccessMessage: state.startSuccessMessage,
+    setStartSuccessMessage: state.setStartSuccessMessage,
   };
 }

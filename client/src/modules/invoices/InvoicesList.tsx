@@ -54,7 +54,7 @@ import { invoicesApi, INVOICE_STATUS_COLORS } from '../../services/api/invoicesA
 import type { InvoiceStatus, Invoice } from '../../services/api/invoicesApi';
 import { formatCurrency } from '../../utils/currencyUtils';
 import { API_CONFIG } from '../../config/api';
-import { getAccessToken } from '../../services/storageService';
+import { getAccessToken } from '../../keycloak';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -151,6 +151,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ embedded = false }) => {
       const token = getAccessToken();
       const response = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
       });
       if (!response.ok) throw new Error(`Erreur ${response.status}`);
       const blob = await response.blob();

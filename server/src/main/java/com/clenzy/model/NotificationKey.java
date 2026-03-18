@@ -137,10 +137,11 @@ public enum NotificationKey {
     KPI_THRESHOLD_BREACH(NotificationType.WARNING, NotificationCategory.SYSTEM, true),
     KPI_CRITICAL_FAILURE(NotificationType.ERROR, NotificationCategory.SYSTEM, true),
 
-    // ─── GUEST MESSAGING (3 cles) ───────────────────────────────────────────
+    // ─── GUEST MESSAGING (4 cles) ───────────────────────────────────────────
     GUEST_MESSAGE_SENT(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, true),
     GUEST_MESSAGE_FAILED(NotificationType.ERROR, NotificationCategory.GUEST_MESSAGING, true),
     GUEST_PRICING_PUSHED(NotificationType.INFO, NotificationCategory.GUEST_MESSAGING, false),
+    GUEST_NO_EMAIL_FOR_CHECKIN(NotificationType.WARNING, NotificationCategory.GUEST_MESSAGING, true),
 
     // ─── NOISE ALERT (4 cles) ──────────────────────────────────────────────
     NOISE_ALERT_WARNING(NotificationType.WARNING, NotificationCategory.NOISE_ALERT, true),

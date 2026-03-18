@@ -50,6 +50,8 @@ function convertServiceRequest(req: ServiceRequestApiResponse): ServiceRequest {
     estimatedCost: req.estimatedCost || undefined,
     dueDate: req.desiredDate || req.dueDate || '',
     createdAt: req.createdAt,
+    propertyLatitude: req.property?.latitude,
+    propertyLongitude: req.property?.longitude,
   };
 }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { getAccessToken } from '../../services/storageService';
+import { getAccessToken } from '../../keycloak';
 import { interventionsApi } from '../../services/api';
 import { buildApiUrl } from '../../config/api';
 import {
@@ -9,6 +9,7 @@ import {
   StepType,
 } from './interventionUtils';
 import type { InitialLoadData } from './useInterventionState';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface UseInterventionNotesArgs {
   id: string | undefined;
@@ -25,6 +26,7 @@ export function useInterventionNotes({
   setError,
   initialLoadData,
 }: UseInterventionNotesArgs) {
+  const { t } = useTranslation();
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [notesValue, setNotesValue] = useState('');
   const [updatingNotes, setUpdatingNotes] = useState(false);
@@ -48,9 +50,10 @@ export function useInterventionNotes({
       setNotesValue(initialLoadData.intervention.notes);
     }
     // Mark initial load done after delay
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       isInitialLoadRef.current = false;
     }, 1000);
+    return () => clearTimeout(timeoutId);
   }, [initialLoadData]);
 
   // ------------------------------------------------------------------
@@ -59,7 +62,7 @@ export function useInterventionNotes({
 
   const updateNotesMutation = useMutation({
     mutationFn: ({ interventionId, notes }: { interventionId: number; notes: string }) =>
-      interventionsApi.updateNotes(interventionId, notes) as unknown as Promise<InterventionDetailsData>,
+      interventionsApi.updateNotes(interventionId, notes),
     onSuccess: (updated) => {
       setIntervention(updated);
     },
@@ -157,7 +160,7 @@ export function useInterventionNotes({
       setCurrentStepForNotes(null);
       setError(null);
     } catch {
-      setError('Erreur lors de la mise à jour des notes');
+      setError(t('interventions.detailErrors.updatingNotes'));
     } finally {
       setUpdatingNotes(false);
     }
@@ -208,7 +211,8 @@ export function useInterventionNotes({
               'Content-Type': 'application/x-www-form-urlencoded'
             },
             body: formData.toString(),
-            keepalive: true
+            keepalive: true,
+            credentials: 'include',
           }).catch(() => { /* silent */ });
         }
       }

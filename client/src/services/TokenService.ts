@@ -1,6 +1,6 @@
 import Keycloak from 'keycloak-js';
 import keycloak from '../keycloak';
-import apiClient, { type ApiError } from './apiClient';
+import apiClient, { type ApiError, syncTokenCookie } from './apiClient';
 import storageService, { STORAGE_KEYS, saveTokens, setSessionCookie } from './storageService';
 
 // Types pour les événements de token
@@ -232,6 +232,9 @@ class TokenService {
         });
         setSessionCookie(keycloak.token);
 
+        // Sync to HttpOnly cookie (server-side, secure against XSS)
+        syncTokenCookie(keycloak.token).catch(() => { /* best-effort */ });
+
         this.notifyOtherTabs('refresh', { timestamp: Date.now() });
         return { success: true };
       } else {
@@ -460,7 +463,7 @@ class TokenService {
       action,
       payload,
       timestamp: Date.now(),
-    }, '*');
+    }, window.location.origin);
   }
 
   /**

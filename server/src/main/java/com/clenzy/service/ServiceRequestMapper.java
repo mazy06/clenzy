@@ -138,6 +138,8 @@ public class ServiceRequestMapper {
         dto.description = property.getDescription();
         dto.cleaningFrequency = property.getCleaningFrequency();
         dto.ownerId = property.getOwner() != null ? property.getOwner().getId() : null;
+        dto.latitude = property.getLatitude();
+        dto.longitude = property.getLongitude();
         dto.createdAt = property.getCreatedAt();
         dto.updatedAt = property.getUpdatedAt();
         return dto;

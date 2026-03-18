@@ -10,7 +10,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
+
+import org.apache.catalina.connector.ClientAbortException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -101,6 +104,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
     }
 
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<Map<String, Object>> handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
+        logger.warn("Conflit de version (modification concurrente): {}", ex.getMessage());
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Conflit de modification");
+        errorResponse.put("message", "Les donnees ont ete modifiees par un autre utilisateur. Veuillez rafraichir et reessayer.");
+        errorResponse.put("status", HttpStatus.CONFLICT.value());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException ex) {
         logger.warn("Accès refusé: {}", ex.getMessage());
@@ -135,6 +150,12 @@ public class GlobalExceptionHandler {
         errorResponse.put("status", HttpStatus.NOT_FOUND.value());
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(ClientAbortException.class)
+    public ResponseEntity<Void> handleClientAbort(ClientAbortException ex) {
+        logger.debug("Client disconnected (broken pipe): {}", ex.getMessage());
+        return ResponseEntity.noContent().build();
     }
 
     @ExceptionHandler(Exception.class)

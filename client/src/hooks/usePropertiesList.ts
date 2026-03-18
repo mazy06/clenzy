@@ -18,7 +18,6 @@ export interface PropertyListItem {
   postalCode?: string;
   country?: string;
   status: 'active' | 'inactive' | 'maintenance';
-  rating: number;
   nightlyPrice: number;
   guests: number;
   bedrooms: number;
@@ -66,7 +65,6 @@ function convertProperty(raw: ApiProperty): PropertyListItem {
     postalCode: raw.postalCode,
     country: raw.country,
     status: (raw.status?.toLowerCase() || 'active') as PropertyListItem['status'],
-    rating: 4.5,
     nightlyPrice: raw.nightlyPrice || 0,
     guests: raw.maxGuests || 2,
     bedrooms: raw.bedroomCount || 1,

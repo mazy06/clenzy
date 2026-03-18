@@ -129,6 +129,24 @@ public class AccountingController {
         );
     }
 
+    /**
+     * Returns pending payout count and amount for the authenticated user (prestataire).
+     * Uses the user's database ID as ownerId to filter payouts.
+     */
+    @GetMapping("/payouts/my-pending")
+    public Map<String, Object> getMyPendingPayout(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.oauth2.jwt.Jwt jwt) {
+        final String keycloakId = jwt.getSubject();
+        final User user = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+        final long count = payoutRepository.countPendingByOwnerId(user.getId());
+        final BigDecimal totalAmount = payoutRepository.sumPendingAmountByOwnerId(user.getId());
+        return Map.of(
+                "pendingCount", count,
+                "totalPendingAmount", totalAmount
+        );
+    }
+
     @GetMapping("/commissions")
     public List<ChannelCommission> getCommissions() {
         Long orgId = tenantContext.getOrganizationId();

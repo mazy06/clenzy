@@ -151,6 +151,27 @@ public class AuditLogService {
         saveAsync(entry);
     }
 
+    /**
+     * Overload accepting an explicit organizationId — safe to call from
+     * non-HTTP contexts (Kafka consumers, schedulers) where TenantContext
+     * is not available.
+     */
+    public void logAction(AuditAction action, String entityType, String entityId,
+                          String oldValue, String newValue, String details,
+                          AuditSource source, Long organizationId) {
+        AuditLog entry = new AuditLog(action, entityType, entityId);
+        entry.setOldValue(oldValue);
+        entry.setNewValue(newValue);
+        entry.setDetails(details);
+        entry.setSource(source);
+
+        enrichWithUserInfo(entry);
+        enrichWithRequestInfo(entry);
+        entry.setOrganizationId(organizationId);
+
+        saveAsync(entry);
+    }
+
     // ─── Consultation des logs ────────────────────────────────────────────────
 
     public Page<AuditLog> getByUser(String userId, Pageable pageable) {

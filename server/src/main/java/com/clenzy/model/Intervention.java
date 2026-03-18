@@ -21,6 +21,10 @@ public class Intervention {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(name = "version")
+    private Long version = 0L;
+
     @Column(name = "organization_id")
     private Long organizationId;
 
@@ -49,7 +53,7 @@ public class Intervention {
     @Column(name = "team_id")
     private Long teamId;
 
-    @Column(name = "start_time", nullable = false)
+    @Column(name = "start_time")
     private LocalDateTime startTime;
 
     @Column(name = "end_time")
@@ -76,9 +80,17 @@ public class Intervention {
     @Column(name = "follow_up_notes")
     private String followUpNotes;
 
+    /**
+     * @deprecated Legacy field. Use InterventionPhoto entity via InterventionPhotoService.loadPhotoBundle().
+     */
+    @Deprecated
     @Column(name = "after_photos_urls", columnDefinition = "TEXT")
     private String afterPhotosUrls;
 
+    /**
+     * @deprecated Legacy field. Use InterventionPhoto entity via InterventionPhotoService.loadPhotoBundle().
+     */
+    @Deprecated
     @Column(name = "before_photos_urls", columnDefinition = "TEXT")
     private String beforePhotosUrls;
     
@@ -91,10 +103,11 @@ public class Intervention {
     @Column(columnDefinition = "TEXT")
     private String notes;
     
-    // Ancien champ photos (déprécié, utiliser interventionPhotos à la place)
-    // Ne plus mettre à jour ce champ lors des sauvegardes
-    @Column(columnDefinition = "TEXT", updatable = false, insertable = false)
+    /**
+     * @deprecated Legacy field. Use InterventionPhoto entity via InterventionPhotoService.loadPhotoBundle().
+     */
     @Deprecated
+    @Column(columnDefinition = "TEXT", updatable = false, insertable = false)
     private String photos;
     
     @OneToMany(mappedBy = "intervention", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
@@ -185,7 +198,6 @@ public class Intervention {
     // Constructeurs
     public Intervention() {
         this.createdAt = LocalDateTime.now();
-        this.startTime = LocalDateTime.now();
         this.status = InterventionStatus.PENDING;
         this.priority = "NORMAL";
         this.progressPercentage = 0;
@@ -212,7 +224,15 @@ public class Intervention {
     public void setId(Long id) {
         this.id = id;
     }
-    
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+
     public String getTitle() {
         return title;
     }
@@ -528,18 +548,22 @@ public class Intervention {
         this.followUpNotes = followUpNotes;
     }
 
+    @Deprecated
     public String getAfterPhotosUrls() {
         return afterPhotosUrls;
     }
 
+    @Deprecated
     public void setAfterPhotosUrls(String afterPhotosUrls) {
         this.afterPhotosUrls = afterPhotosUrls;
     }
 
+    @Deprecated
     public String getBeforePhotosUrls() {
         return beforePhotosUrls;
     }
 
+    @Deprecated
     public void setBeforePhotosUrls(String beforePhotosUrls) {
         this.beforePhotosUrls = beforePhotosUrls;
     }
@@ -564,7 +588,13 @@ public class Intervention {
     public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
 
     // Méthodes utilitaires
+    /**
+     * Returns the assignment type. Invariant: exactly one of assignedUser or teamId
+     * should be non-null. If both are set (data inconsistency), the user assignment
+     * takes priority over the team assignment.
+     */
     public String getAssignedToType() {
+        // Data inconsistency — both user and team set; prioritize user
         if (assignedUser != null) return "user";
         if (teamId != null) return "team";
         return null;
@@ -573,12 +603,6 @@ public class Intervention {
     public Long getAssignedToId() {
         if (assignedUser != null) return assignedUser.getId();
         if (teamId != null) return teamId;
-        return null;
-    }
-    
-    public String getAssignedToName() {
-        if (assignedUser != null) return assignedUser.getFirstName() + " " + assignedUser.getLastName();
-        if (teamId != null) return "Équipe " + teamId; // TODO: Récupérer le nom de l'équipe depuis le service
         return null;
     }
     

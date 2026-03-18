@@ -73,6 +73,19 @@ export function isAuthenticated(): boolean {
   return Boolean(getAccessToken())
 }
 
+/**
+ * Sync the current Keycloak token to the server-side HttpOnly cookie.
+ * Called after login, token refresh, and bootstrap from storage.
+ * Import syncTokenCookie lazily to avoid circular dependency with apiClient.
+ */
+export async function syncAuthCookie(): Promise<void> {
+  const token = keycloak.token
+  if (!token) return
+  // Lazy import to avoid circular: keycloak -> apiClient -> keycloak
+  const { syncTokenCookie } = await import('./services/apiClient')
+  await syncTokenCookie(token)
+}
+
 export default keycloak
 
 

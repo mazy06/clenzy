@@ -1,16 +1,15 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Box,
   Typography,
   Card,
   CardContent,
-  Grid,
   Chip,
   Button,
   Alert,
   CircularProgress,
-  Divider,
-  IconButton,
+  LinearProgress,
+  Snackbar,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -21,11 +20,14 @@ import {
   Warning as WarningIcon,
   Error as ErrorIcon,
   Info as InfoIcon,
-  ChevronRight as ChevronRightIcon,
-  ChevronLeft as ChevronLeftIcon,
   Autorenew as AutorenewIcon,
   PlayCircleOutline as PlayCircleOutlineIcon,
   StopCircle as StopCircleIcon,
+  LocationOn as LocationIcon,
+  Person as PersonIcon,
+  Group as GroupIcon,
+  AccessTime as AccessTimeIcon,
+  CalendarMonth as CalendarIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
@@ -39,64 +41,102 @@ import {
   getTypeLabel,
   getTypeHex,
   formatDate,
+  formatDuration,
+  formatCurrency,
 } from './interventionUtils';
-import InterventionSidebar from './InterventionSidebar';
 import InterventionProgressSteps from './InterventionProgressSteps';
-import { ProgressDialog, NotesDialog, PhotosDialog } from './InterventionDialogs';
+import { NotesDialog, PhotosDialog } from './InterventionDialogs';
 
-const styles = {
-  flexLayout: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 2,
-    '& > *': {
-      flex: '1 1 auto',
-      minWidth: { xs: '100%', sm: 'calc(50% - 8px)', md: 'calc(33.333% - 11px)' },
-      maxWidth: { xs: '100%', sm: 'calc(50% - 8px)', md: 'calc(33.333% - 11px)' },
-    },
-  },
-  iconBox: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 20,
-    height: 20,
-    flexShrink: 0,
-  },
-  sidebarToggle: {
-    mr: 1,
-    border: '1px solid',
-    borderColor: 'divider',
-  },
-  spinIcon: {
-    color: 'info.main',
-    fontSize: 20,
-    animation: 'spin 2s linear infinite',
-    '@keyframes spin': {
-      '0%': { transform: 'rotate(0deg)' },
-      '100%': { transform: 'rotate(360deg)' },
-    },
-  },
-} as const;
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-// Fonction JSX pour l'icône de statut
 const getStatusIcon = (status: string) => {
-  const iconSx = { fontSize: 20 };
+  const sx = { fontSize: 18 };
   switch (status) {
-    case 'PENDING':
-      return <WarningIcon sx={{ color: 'warning.main', ...iconSx }} />;
-    case 'IN_PROGRESS':
-      return (
-        <AutorenewIcon sx={styles.spinIcon} />
-      );
-    case 'COMPLETED':
-      return <CheckCircleIcon sx={{ color: 'success.main', ...iconSx }} />;
-    case 'CANCELLED':
-      return <ErrorIcon sx={{ color: 'error.main', ...iconSx }} />;
-    default:
-      return <InfoIcon sx={{ color: 'info.main', ...iconSx }} />;
+    case 'PENDING':    return <WarningIcon sx={{ ...sx, color: 'warning.main' }} />;
+    case 'IN_PROGRESS': return <AutorenewIcon sx={{ ...sx, color: 'info.main', animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }} />;
+    case 'COMPLETED':  return <CheckCircleIcon sx={{ ...sx, color: 'success.main' }} />;
+    case 'CANCELLED':  return <ErrorIcon sx={{ ...sx, color: 'error.main' }} />;
+    default:           return <InfoIcon sx={{ ...sx, color: 'info.main' }} />;
   }
 };
+
+const StatusChip: React.FC<{ label: string; hex: string; icon?: React.ReactElement }> = ({ label, hex, icon }) => (
+  <Chip
+    icon={icon}
+    label={label}
+    size="small"
+    sx={{
+      height: 26,
+      fontSize: '0.75rem',
+      fontWeight: 600,
+      backgroundColor: `${hex}14`,
+      color: hex,
+      border: `1px solid ${hex}30`,
+      borderRadius: '6px',
+      '& .MuiChip-icon': { color: hex, ml: 0.5 },
+      '& .MuiChip-label': { px: 1 },
+    }}
+  />
+);
+
+const InfoCard: React.FC<{
+  icon: React.ReactElement;
+  iconBg: string;
+  label: string;
+  value: string;
+  sub?: string;
+  extra?: React.ReactNode;
+}> = ({ icon, iconBg, label, value, sub, extra }) => (
+  <Box sx={{
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 1.5,
+    p: 1.5,
+    borderRadius: 2,
+    bgcolor: 'grey.50',
+    border: '1px solid',
+    borderColor: 'grey.100',
+    minHeight: 64,
+  }}>
+    <Box sx={{
+      width: 36, height: 36, borderRadius: '10px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      bgcolor: iconBg, flexShrink: 0,
+    }}>
+      {icon}
+    </Box>
+    <Box sx={{ minWidth: 0, flex: 1 }}>
+      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2, display: 'block', mb: 0.25 }}>
+        {label}
+      </Typography>
+      <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+        {value}
+      </Typography>
+      {sub && (
+        <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.2 }}>
+          {sub}
+        </Typography>
+      )}
+      {extra}
+    </Box>
+  </Box>
+);
+
+const TimelineItem: React.FC<{ icon: React.ReactElement; label: string; value: string }> = ({ icon, label, value }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+    {icon}
+    <Box>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        {label}
+      </Typography>
+      <Typography variant="body2" fontWeight={500} sx={{ lineHeight: 1.3, fontSize: '0.8125rem' }}>
+        {value}
+      </Typography>
+    </Box>
+  </Box>
+);
+
+// ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function InterventionDetailsPage() {
   const navigate = useNavigate();
@@ -104,89 +144,61 @@ export default function InterventionDetailsPage() {
   const { t } = useTranslation();
 
   const {
-    // Auth
-    user,
-    // State
-    intervention,
-    loading,
-    error,
-    starting,
-    completing,
-    updatingProgress,
-    progressDialogOpen,
-    progressValue,
-    notesDialogOpen,
-    notesValue,
-    updatingNotes,
-    currentStepForNotes,
-    stepNotes,
-    photosDialogOpen,
-    selectedPhotos,
-    uploadingPhotos,
-    photoType,
-    showSidebar,
-    propertyDetails,
-    completedSteps,
-    beforePhotos,
-    afterPhotos,
-    validatedRooms,
-    inspectionComplete,
-    allRoomsValidated,
-    canViewInterventions,
-    canEditInterventions,
-    // Setters
-    setProgressDialogOpen,
-    setProgressValue,
-    setNotesDialogOpen,
-    setNotesValue,
-    setCurrentStepForNotes,
-    setPhotosDialogOpen,
-    setSelectedPhotos,
-    setPhotoType,
-    setShowSidebar,
-    setError,
-    // Handlers
-    handleStartIntervention,
-    handleUpdateProgress,
-    handleCompleteIntervention,
-    handleReopenIntervention,
-    handleOpenNotesDialog,
-    handleUpdateNotes,
-    handlePhotoUpload,
-    handlePhotoSelect,
-    handleInspectionComplete,
-    handleRoomValidation,
-    handleAfterPhotosComplete,
+    intervention, loading, error, starting, completing,
+    notesDialogOpen, notesValue, updatingNotes, currentStepForNotes, stepNotes,
+    photosDialogOpen, selectedPhotos, uploadingPhotos, deletingPhotoId, photoType,
+    beforePhotoIds, afterPhotoIds,
+    propertyDetails, completedSteps, beforePhotos, afterPhotos,
+    validatedRooms, inspectionComplete, allRoomsValidated,
+    canViewInterventions, canEditInterventions, permissionsLoaded,
+    setNotesDialogOpen, setNotesValue, setCurrentStepForNotes,
+    setPhotosDialogOpen, setSelectedPhotos, setPhotoType, setError,
+    handleStartIntervention, handleCompleteIntervention,
+    handleReopenIntervention, handleOpenNotesDialog, handleUpdateNotes,
+    handlePhotoUpload, handleDeletePhoto, handleRoomValidation,
     handleUpdateProgressValue,
-    // Computed
-    canStartOrUpdateIntervention,
-    canStartIntervention,
-    canUpdateProgress,
-    canModifyIntervention,
-    areAllStepsCompleted,
-    calculateProgress,
-    getTotalRooms,
-    getRoomNames,
-    getStepNote,
-    // Sub-component setters needed by ProgressSteps
-    setCompletedSteps,
-    setAllRoomsValidated,
-    setInspectionComplete,
-    saveCompletedSteps,
+    canStartOrUpdateIntervention, canStartIntervention, canUpdateProgress,
+    areAllStepsCompleted, calculateProgress, getTotalRooms, getRoomNames, getStepNote,
+    setCompletedSteps, setInspectionComplete,
+    startSuccessMessage, setStartSuccessMessage,
   } = useInterventionDetails(id);
 
-  // Si l'utilisateur n'a pas la permission de voir les interventions
+  const photosProps = useMemo(() => ({
+    beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds,
+    deletingPhotoId, handleDeletePhoto, setPhotoType, setPhotosDialogOpen,
+  }), [beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds, deletingPhotoId, handleDeletePhoto, setPhotoType, setPhotosDialogOpen]);
+
+  const roomsProps = useMemo(() => ({
+    propertyDetails, getTotalRooms, getRoomNames,
+    validatedRooms, allRoomsValidated, handleRoomValidation,
+  }), [propertyDetails, getTotalRooms, getRoomNames, validatedRooms, allRoomsValidated, handleRoomValidation]);
+
+  const stepsProps = useMemo(() => ({
+    inspectionComplete, setInspectionComplete, completedSteps,
+    setCompletedSteps, getStepNote, handleOpenNotesDialog,
+  }), [inspectionComplete, setInspectionComplete, completedSteps, setCompletedSteps, getStepNote, handleOpenNotesDialog]);
+
+  const progressProps = useMemo(() => ({
+    calculateProgress, areAllStepsCompleted: areAllStepsCompleted(),
+    canUpdateProgress, handleUpdateProgressValue,
+  }), [calculateProgress, areAllStepsCompleted, canUpdateProgress, handleUpdateProgressValue]);
+
+  if (!permissionsLoaded || loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   if (!canViewInterventions) {
     return (
       <Box sx={{ p: 2 }}>
         <Alert severity="info" sx={{ py: 1 }}>
-          <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-            Accès non autorisé
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-            Vous n'avez pas les permissions nécessaires pour visualiser les détails des interventions.
-            <br />
-            Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.
+          <Typography variant="subtitle1" fontWeight={600} gutterBottom>{t('interventions.detail.unauthorized')}</Typography>
+          <Typography variant="body2">
+            {t('interventions.detail.unauthorizedMessage')}
+            <br />{t('interventions.detail.unauthorizedContact')}
           </Typography>
         </Alert>
       </Box>
@@ -197,227 +209,218 @@ export default function InterventionDetailsPage() {
     <Box sx={{ p: 2 }}>
       {/* Header */}
       <PageHeader
-        title="Détails de l'intervention"
-        subtitle="Consultation et gestion des informations de l'intervention"
+        title={t('interventions.detail.title')}
+        subtitle={t('interventions.detail.subtitle')}
         backPath="/interventions"
-        backLabel="Retour aux interventions"
+        backLabel={t('interventions.detail.backToList')}
         actions={
-          <>
-            <IconButton
-              onClick={() => setShowSidebar(!showSidebar)}
-              size="small"
-              sx={styles.sidebarToggle}
-              title={showSidebar ? "Masquer les détails" : "Afficher les détails"}
-            >
-              {showSidebar ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-            </IconButton>
-            {canEditInterventions && (
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<EditIcon />}
-                onClick={() => navigate(`/interventions/${id}/edit`)}
-                size="small"
-                title="Modifier"
-              >
-                Modifier
-              </Button>
-            )}
-          </>
+          canEditInterventions ? (
+            <Button variant="contained" color="primary" startIcon={<EditIcon />}
+              onClick={() => navigate(`/interventions/${id}/edit`)} size="small">
+              {t('interventions.detail.editButton')}
+            </Button>
+          ) : undefined
         }
         showBackButton={false}
         showBackButtonWithActions={true}
       />
 
-      {/* Loading */}
-      {loading && (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress size={32} />
-        </Box>
-      )}
+      {error && <Alert severity="error" sx={{ mb: 2, py: 1 }} onClose={() => setError(null)}>{error}</Alert>}
 
-      {/* Error */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2, py: 1 }}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Main content */}
       {intervention && !loading && (
-        <Grid container spacing={2}>
-          {/* Informations principales */}
-          <Grid item xs={12} md={showSidebar ? 8 : 12}>
-            <Card>
-              <CardContent sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ mb: 1.5 }}>
-                  Description
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph sx={{ fontSize: '0.85rem' }}>
-                  {intervention.description}
-                </Typography>
+        <Card sx={{ borderRadius: 3, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
 
-                <Divider sx={{ my: 1.5 }} />
-
-                {/* Layout responsive avec flexbox */}
-                <Box sx={styles.flexLayout}>
-                  {/* Type */}
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Box sx={styles.iconBox}>
-                      <BuildIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                    </Box>
-                    <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Type:</Typography>
-                    {(() => { const c = getTypeHex(intervention.type); return (
-                    <Chip label={getTypeLabel(intervention.type, t)} size="small" sx={{ backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', fontWeight: 600, fontSize: '0.7rem', height: 22, '& .MuiChip-label': { px: 0.75 } }} />
-                    ); })()}
-                  </Box>
-
-                  {/* Statut */}
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Box sx={styles.iconBox}>
-                      {getStatusIcon(intervention.status)}
-                    </Box>
-                    <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Statut:</Typography>
-                    {(() => { const c = getStatusHex(intervention.status); return (
-                      <Chip label={getStatusLabel(intervention.status, t)} size="small" sx={{ height: 24, fontSize: '0.75rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 1 } }} />
-                    ); })()}
-                  </Box>
-
-                  {/* Priorité */}
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Box sx={styles.iconBox}>
-                      <PriorityHighIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                    </Box>
-                    <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Priorité:</Typography>
-                    {(() => { const c = getPriorityHex(intervention.priority); return (
-                      <Chip label={getPriorityLabel(intervention.priority, t)} size="small" sx={{ height: 24, fontSize: '0.75rem', fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 1 } }} />
-                    ); })()}
-                  </Box>
-
-                  {/* Planifié */}
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <Box sx={styles.iconBox}>
-                      <ScheduleIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-                    </Box>
-                    <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Planifié:</Typography>
-                    <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                      {formatDate(intervention.scheduledDate)}
+          {/* ── Status banner ────────────────────────────────────────── */}
+          <Box sx={{
+            px: { xs: 2, sm: 3 },
+            py: 1.5,
+            bgcolor: `${getStatusHex(intervention.status)}08`,
+            borderBottom: '1px solid',
+            borderColor: `${getStatusHex(intervention.status)}20`,
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 1,
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <StatusChip
+                icon={getStatusIcon(intervention.status)}
+                label={getStatusLabel(intervention.status, t)}
+                hex={getStatusHex(intervention.status)}
+              />
+              <StatusChip
+                icon={<BuildIcon sx={{ fontSize: 14 }} />}
+                label={getTypeLabel(intervention.type, t)}
+                hex={getTypeHex(intervention.type)}
+              />
+              <StatusChip
+                icon={<PriorityHighIcon sx={{ fontSize: 14 }} />}
+                label={getPriorityLabel(intervention.priority, t)}
+                hex={getPriorityHex(intervention.priority)}
+              />
+              {/* Inline progress bar */}
+              {(() => {
+                const progress = progressProps.calculateProgress();
+                const isComplete = progress === 100;
+                return (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, ml: 0.5 }}>
+                    <LinearProgress variant="determinate" value={progress}
+                      color={isComplete ? 'success' : 'primary'}
+                      sx={{
+                        width: 80, height: 5, borderRadius: 3, bgcolor: 'grey.200',
+                        '& .MuiLinearProgress-bar': { borderRadius: 3 },
+                      }}
+                    />
+                    <Typography variant="caption" fontWeight={700}
+                      color={isComplete ? 'success.main' : 'primary.main'}
+                      sx={{ fontSize: '0.7rem', lineHeight: 1 }}>
+                      {progress}%
                     </Typography>
                   </Box>
+                );
+              })()}
+            </Box>
 
-                  {/* Date et heure de début */}
-                  {intervention.startTime && (
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Box sx={styles.iconBox}>
-                        <PlayCircleOutlineIcon sx={{ color: 'success.main', fontSize: 20 }} />
-                      </Box>
-                      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Début:</Typography>
-                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                        {formatDate(intervention.startTime)}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Date de fin */}
-                  {intervention.endTime && (
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Box sx={styles.iconBox}>
-                        <StopCircleIcon sx={{ color: 'error.main', fontSize: 20 }} />
-                      </Box>
-                      <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>Fin:</Typography>
-                      <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                        {formatDate(intervention.endTime)}
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-
-                {/* Progression & Steps */}
-                <InterventionProgressSteps
-                  intervention={intervention}
-                  calculateProgress={calculateProgress}
-                  canUpdateProgress={canUpdateProgress()}
-                  canStartIntervention={canStartIntervention()}
-                  canStartOrUpdateIntervention={canStartOrUpdateIntervention()}
-                  areAllStepsCompleted={areAllStepsCompleted()}
-                  propertyDetails={propertyDetails}
-                  getTotalRooms={getTotalRooms}
-                  getRoomNames={getRoomNames}
-                  validatedRooms={validatedRooms}
-                  allRoomsValidated={allRoomsValidated}
-                  inspectionComplete={inspectionComplete}
-                  beforePhotos={beforePhotos}
-                  afterPhotos={afterPhotos}
-                  completedSteps={completedSteps}
-                  getStepNote={getStepNote}
-                  handleStartIntervention={handleStartIntervention}
-                  handleCompleteIntervention={handleCompleteIntervention}
-                  handleReopenIntervention={handleReopenIntervention}
-                  handleRoomValidation={handleRoomValidation}
-                  handleOpenNotesDialog={handleOpenNotesDialog}
-                  handleUpdateProgressValue={handleUpdateProgressValue}
-                  setPhotoType={setPhotoType}
-                  setPhotosDialogOpen={setPhotosDialogOpen}
-                  setInspectionComplete={setInspectionComplete}
-                  setCompletedSteps={setCompletedSteps}
-                  setAllRoomsValidated={setAllRoomsValidated}
-                  saveCompletedSteps={saveCompletedSteps}
-                  starting={starting}
-                  completing={completing}
+            {/* Timeline dates */}
+            <Box sx={{ display: 'flex', gap: { xs: 1.5, sm: 3 }, flexWrap: 'wrap' }}>
+              <TimelineItem
+                icon={<CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />}
+                label={t('interventions.detail.planned')}
+                value={formatDate(intervention.scheduledDate)}
+              />
+              {intervention.startTime && (
+                <TimelineItem
+                  icon={<PlayCircleOutlineIcon sx={{ fontSize: 16, color: 'success.main' }} />}
+                  label={t('interventions.detail.start')}
+                  value={formatDate(intervention.startTime)}
                 />
+              )}
+              {intervention.endTime && (
+                <TimelineItem
+                  icon={<StopCircleIcon sx={{ fontSize: 16, color: 'error.main' }} />}
+                  label={t('interventions.detail.end')}
+                  value={formatDate(intervention.endTime)}
+                />
+              )}
+            </Box>
+          </Box>
 
-              </CardContent>
-            </Card>
-          </Grid>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
 
-          {/* Sidebar */}
-          {showSidebar && (
-            <InterventionSidebar intervention={intervention} />
-          )}
-        </Grid>
+            {/* ── Description ────────────────────────────────────────── */}
+            {intervention.description && (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+                {intervention.description}
+              </Typography>
+            )}
+
+            {/* ── Info grid ──────────────────────────────────────────── */}
+            <Box sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
+              gap: 1.5,
+              mb: 2,
+            }}>
+              <InfoCard
+                icon={<LocationIcon sx={{ fontSize: 18, color: 'primary.main' }} />}
+                iconBg="rgba(25, 118, 210, 0.1)"
+                label={t('interventions.detail.property')}
+                value={intervention.propertyName}
+                sub={`${intervention.propertyAddress}${intervention.propertyCity ? `, ${intervention.propertyCity}` : ''}`}
+              />
+              <InfoCard
+                icon={<PersonIcon sx={{ fontSize: 18, color: '#2e7d32' }} />}
+                iconBg="rgba(46, 125, 50, 0.1)"
+                label={t('interventions.detail.requestor')}
+                value={intervention.requestorName}
+              />
+              <InfoCard
+                icon={intervention.assignedToType === 'team'
+                  ? <GroupIcon sx={{ fontSize: 18, color: '#7b1fa2' }} />
+                  : <PersonIcon sx={{ fontSize: 18, color: '#7b1fa2' }} />
+                }
+                iconBg="rgba(123, 31, 162, 0.1)"
+                label={t('interventions.detail.assignedTo')}
+                value={intervention.assignedToName}
+                extra={
+                  <Chip
+                    label={intervention.assignedToType === 'team'
+                      ? t('interventions.detail.teamType')
+                      : intervention.assignedUserRole
+                        ? t(`interventions.detail.roles.${intervention.assignedUserRole}`, intervention.assignedUserRole)
+                        : t('interventions.detail.userType')}
+                    size="small"
+                    variant="outlined"
+                    sx={{ height: 18, fontSize: '0.65rem', mt: 0.5, '& .MuiChip-label': { px: 0.5 } }}
+                  />
+                }
+              />
+              <InfoCard
+                icon={<AccessTimeIcon sx={{ fontSize: 18, color: '#ed6c02' }} />}
+                iconBg="rgba(237, 108, 2, 0.1)"
+                label={t('interventions.detail.estimatedDuration')}
+                value={formatDuration(intervention.estimatedDurationHours)}
+                sub={intervention.estimatedCost != null ? t('interventions.detail.costLabel', { cost: formatCurrency(intervention.estimatedCost) }) : undefined}
+              />
+            </Box>
+
+            {/* ── Progression & Steps ────────────────────────────────── */}
+            <InterventionProgressSteps
+              intervention={intervention}
+              photos={photosProps}
+              rooms={roomsProps}
+              steps={stepsProps}
+              progress={progressProps}
+              handleStartIntervention={handleStartIntervention}
+              handleCompleteIntervention={handleCompleteIntervention}
+              handleReopenIntervention={handleReopenIntervention}
+              starting={starting}
+              completing={completing}
+              canStartIntervention={canStartIntervention}
+              canStartOrUpdateIntervention={canStartOrUpdateIntervention}
+            />
+
+          </CardContent>
+        </Card>
       )}
 
       {/* Dialogs */}
-      <ProgressDialog
-        open={progressDialogOpen}
-        onClose={() => setProgressDialogOpen(false)}
-        progressValue={progressValue}
-        onProgressChange={setProgressValue}
-        onSubmit={handleUpdateProgress}
-        updating={updatingProgress}
-      />
-
       <NotesDialog
         open={notesDialogOpen}
-        onClose={() => {
-          setNotesDialogOpen(false);
-          setNotesValue('');
-          setCurrentStepForNotes(null);
-        }}
+        onClose={() => { setNotesDialogOpen(false); setNotesValue(''); setCurrentStepForNotes(null); }}
         currentStep={currentStepForNotes}
         notesValue={notesValue}
         onNotesChange={setNotesValue}
         onSubmit={handleUpdateNotes}
         updating={updatingNotes}
         stepNotes={stepNotes}
-        onStepNotesChange={(notes) => {
-          // This is handled by the hook's setStepNotes internally
-          // The dialog calls this to update step notes for auto-save
+        onStepNotesChange={() => {
+          // Notes state is managed internally by useInterventionNotes;
+          // the actual save happens via handleUpdateNotes on dialog submit.
         }}
       />
 
       <PhotosDialog
         open={photosDialogOpen}
-        onClose={() => {
-          setPhotosDialogOpen(false);
-          setSelectedPhotos([]);
-        }}
+        onClose={() => { if (!uploadingPhotos) { setPhotosDialogOpen(false); setSelectedPhotos([]); } }}
         photoType={photoType}
         selectedPhotos={selectedPhotos}
         onPhotosChange={setSelectedPhotos}
         onSubmit={handlePhotoUpload}
         uploading={uploadingPhotos}
       />
+
+      <Snackbar
+        open={!!startSuccessMessage}
+        autoHideDuration={6000}
+        onClose={() => setStartSuccessMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" onClose={() => setStartSuccessMessage(null)} sx={{ width: '100%' }}>
+          {startSuccessMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

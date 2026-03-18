@@ -8,6 +8,7 @@ import com.clenzy.model.*;
 import com.clenzy.repository.DocumentGenerationRepository;
 import com.clenzy.repository.DocumentTemplateRepository;
 import com.clenzy.repository.DocumentTemplateTagRepository;
+import com.clenzy.repository.FiscalProfileRepository;
 import com.clenzy.tenant.TenantContext;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -55,6 +56,7 @@ class DocumentGeneratorServiceTest {
     @Mock private InvoiceGeneratorService invoiceGeneratorService;
     @Mock private TaxRulePreValidator taxRulePreValidator;
     @Mock private TenantContext tenantContext;
+    @Mock private FiscalProfileRepository fiscalProfileRepository;
 
     private DocumentGeneratorService service;
     private Jwt jwt;
@@ -68,7 +70,7 @@ class DocumentGeneratorServiceTest {
                 templateParserService, tagResolverService, conversionService,
                 emailService, notificationService, auditLogService,
                 kafkaTemplate, numberingService, complianceService,
-                invoiceGeneratorService, taxRulePreValidator, tenantContext, meterRegistry
+                invoiceGeneratorService, taxRulePreValidator, tenantContext, fiscalProfileRepository, meterRegistry
         );
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
@@ -230,7 +232,7 @@ class DocumentGeneratorServiceTest {
                     .thenReturn(Optional.empty());
 
             DocumentGenerationDto result = service.generateFromEvent(DocumentType.FACTURE, 1L,
-                    ReferenceType.INTERVENTION, "client@test.com");
+                    ReferenceType.INTERVENTION, "client@test.com", 7L);
             assertThat(result).isNull();
         }
     }

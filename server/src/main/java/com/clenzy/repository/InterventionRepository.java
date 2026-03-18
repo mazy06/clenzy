@@ -28,42 +28,6 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     })
     List<Intervention> findByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
 
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.requestor WHERE i.assignedUser.id = :userId AND i.organizationId = :orgId")
-    @QueryHints({
-        @QueryHint(name = "org.hibernate.cacheable", value = "true")
-    })
-    List<Intervention> findByAssignedUserId(@Param("userId") Long userId, @Param("orgId") Long orgId);
-
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.requestor WHERE i.teamId = :teamId AND i.organizationId = :orgId")
-    @QueryHints({
-        @QueryHint(name = "org.hibernate.cacheable", value = "true")
-    })
-    List<Intervention> findByTeamId(@Param("teamId") Long teamId, @Param("orgId") Long orgId);
-
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.requestor WHERE i.requestor.id = :requestorId AND i.organizationId = :orgId")
-    @QueryHints({
-        @QueryHint(name = "org.hibernate.cacheable", value = "true")
-    })
-    List<Intervention> findByRequestorId(@Param("requestorId") Long requestorId, @Param("orgId") Long orgId);
-
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.requestor WHERE i.type = :type AND i.organizationId = :orgId")
-    @QueryHints({
-        @QueryHint(name = "org.hibernate.cacheable", value = "true")
-    })
-    List<Intervention> findByType(@Param("type") String type, @Param("orgId") Long orgId);
-
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.requestor WHERE i.status = :status AND i.organizationId = :orgId")
-    @QueryHints({
-        @QueryHint(name = "org.hibernate.cacheable", value = "true")
-    })
-    List<Intervention> findByStatus(@Param("status") String status, @Param("orgId") Long orgId);
-
-    @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser LEFT JOIN FETCH i.requestor WHERE i.priority = :priority AND i.organizationId = :orgId")
-    @QueryHints({
-        @QueryHint(name = "org.hibernate.cacheable", value = "true")
-    })
-    List<Intervention> findByPriority(@Param("priority") String priority, @Param("orgId") Long orgId);
-
     /**
      * Requêtes avec pagination optimisée
      */
@@ -126,7 +90,7 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      * Requêtes de comptage optimisées
      */
     @Query("SELECT COUNT(i) FROM Intervention i WHERE i.status = :status AND i.organizationId = :orgId")
-    long countByStatus(@Param("status") String status, @Param("orgId") Long orgId);
+    long countByStatus(@Param("status") InterventionStatus status, @Param("orgId") Long orgId);
 
     @Query("SELECT COUNT(i) FROM Intervention i WHERE i.priority = :priority AND i.organizationId = :orgId")
     long countByPriority(@Param("priority") String priority, @Param("orgId") Long orgId);
@@ -308,6 +272,22 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
             @Param("orgId") Long orgId);
 
     /**
+     * Batch count of active interventions per user for a date range.
+     * Returns pairs of [userId, count] to avoid N+1 in team availability checks.
+     */
+    @Query("SELECT i.assignedUser.id, COUNT(i) FROM Intervention i WHERE i.assignedUser.id IN :userIds " +
+           "AND i.status IN :activeStatuses " +
+           "AND i.scheduledDate >= :rangeStart AND i.scheduledDate < :rangeEnd " +
+           "AND i.organizationId = :orgId " +
+           "GROUP BY i.assignedUser.id")
+    List<Object[]> countActiveByUserIdsAndDateRange(
+            @Param("userIds") List<Long> userIds,
+            @Param("activeStatuses") List<InterventionStatus> activeStatuses,
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd,
+            @Param("orgId") Long orgId);
+
+    /**
      * Méthode de compatibilité pour les services existants
      */
     @Query("SELECT i FROM Intervention i WHERE " +
@@ -324,4 +304,12 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
                                    @Param("status") String status,
                                    @Param("priority") String priority,
                                    @Param("orgId") Long orgId);
+
+    /**
+     * Returns the keycloakId of the user assigned to the given intervention,
+     * or null if no user is assigned. Avoids lazy-loading issues in controller
+     * ownership checks (no open Hibernate session required).
+     */
+    @Query("SELECT u.keycloakId FROM Intervention i JOIN i.assignedUser u WHERE i.id = :interventionId")
+    String findAssignedUserKeycloakIdById(@Param("interventionId") Long interventionId);
 }

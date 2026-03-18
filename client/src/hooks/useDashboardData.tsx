@@ -432,6 +432,12 @@ export const DashboardDataProvider: React.FC<DashboardDataProviderProps> = ({
           today: todayInterventions,
           total: interventions.length,
           growth: calculateGrowth(todayInterventions, previousTodayInterventions),
+          upcoming: 0,
+          completed: 0,
+          overdue: 0,
+          completionRate: 0,
+          totalRevenue: 0,
+          monthlyRevenue: 0,
         },
         revenue: {
           current: currentRevenue,

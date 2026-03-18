@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -13,8 +13,6 @@ import {
   TablePagination,
   IconButton,
   Tooltip,
-  TextField,
-  MenuItem,
   CircularProgress,
   Alert,
   Dialog,
@@ -38,7 +36,8 @@ import { ReservationStatusChip, ReservationSourceBadge } from './ReservationStat
 import ReservationFormDialog from './ReservationFormDialog';
 import GuestProfileDialog from '../channels/GuestProfileDialog';
 import PageHeader from '../../components/PageHeader';
-import { SPACING } from '../../theme/spacing';
+import { FilterSearchBar } from '../../components/FilterSearchBar';
+
 import { formatCurrency } from '../../utils/currencyUtils';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 
@@ -117,6 +116,7 @@ const ReservationsList: React.FC = () => {
   const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null);
   const [guestDialogOpen, setGuestDialogOpen] = useState(false);
   const [selectedGuestId, setSelectedGuestId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // ─── Handlers ────────────────────────────────────────────────────
 
@@ -171,10 +171,85 @@ const ReservationsList: React.FC = () => {
     [setFilter],
   );
 
+  // ─── Search filter ───────────────────────────────────────────────
+  const filteredReservations = useMemo(() => {
+    if (!searchTerm.trim()) return reservations;
+    const term = searchTerm.toLowerCase();
+    return reservations.filter((r) =>
+      r.guestName?.toLowerCase().includes(term) ||
+      r.propertyName?.toLowerCase().includes(term) ||
+      r.confirmationCode?.toLowerCase().includes(term)
+    );
+  }, [reservations, searchTerm]);
+
   // ─── Pagination slice ────────────────────────────────────────────
-  const paginatedReservations = reservations.slice(
+  const paginatedReservations = filteredReservations.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage,
+  );
+
+  // ─── Filter options for FilterSearchBar ─────────────────────────
+  const statusOptions = useMemo(() => [
+    { value: '', label: t('reservations.filters.allStatuses') },
+    ...STATUS_OPTIONS.map((s) => ({ value: s, label: t(`reservations.status.${s}`) })),
+  ], [t]);
+
+  const sourceOptions = useMemo(() => [
+    { value: '', label: t('reservations.filters.allSources') },
+    ...SOURCE_OPTIONS.map((s) => ({ value: s, label: t(`reservations.source.${s}`) })),
+  ], [t]);
+
+  const iconButtonSx = {
+    p: 0.5,
+    borderRadius: 1,
+    border: '1px solid',
+    borderColor: 'divider',
+    color: 'text.secondary',
+    '&:hover': { bgcolor: 'rgba(107,138,154,0.08)', borderColor: 'primary.main', color: 'primary.main' },
+    '& .MuiSvgIcon-root': { fontSize: 18 },
+  } as const;
+
+  const actionButtons = (
+    <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
+      <Tooltip title={t('reservations.create')}>
+        <IconButton
+          size="small"
+          onClick={handleCreate}
+          sx={{ ...iconButtonSx, color: 'primary.main', borderColor: 'primary.main', bgcolor: 'rgba(107,138,154,0.06)' }}
+        >
+          <AddIcon />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+
+  const filterBar = (
+    <FilterSearchBar
+      bare
+      searchTerm={searchTerm}
+      onSearchChange={(v) => { setSearchTerm(v); setPage(0); }}
+      searchPlaceholder={t('reservations.search') || 'Rechercher une réservation...'}
+      filters={{
+        status: {
+          value: filters.status ?? '',
+          options: statusOptions,
+          onChange: (v) => handleFilterChange('status', (v || null) as ReservationStatus | null),
+          label: t('reservations.fields.status'),
+        },
+        source: {
+          value: filters.source ?? '',
+          options: sourceOptions,
+          onChange: (v) => handleFilterChange('source', (v || null) as ReservationSource | null),
+          label: t('reservations.fields.source'),
+        },
+      }}
+      counter={{
+        label: t('reservations.reservation') || 'réservation',
+        count: filteredReservations.length,
+        singular: '',
+        plural: 's',
+      }}
+    />
   );
 
   // ─── Render ──────────────────────────────────────────────────────
@@ -187,73 +262,8 @@ const ReservationsList: React.FC = () => {
           subtitle={t('reservations.subtitle')}
           backPath="/dashboard"
           showBackButton={false}
-          actions={
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleCreate}
-              size="small"
-              sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-            >
-              {t('reservations.create')}
-            </Button>
-          }
-          filters={
-            <>
-              <TextField
-                select
-                size="small"
-                label={t('reservations.fields.status')}
-                value={filters.status ?? ''}
-                onChange={(e) =>
-                  handleFilterChange('status', (e.target.value || null) as ReservationStatus | null)
-                }
-                sx={{ minWidth: 160 }}
-              >
-                <MenuItem value="">{t('reservations.filters.allStatuses')}</MenuItem>
-                {STATUS_OPTIONS.map((s) => (
-                  <MenuItem key={s} value={s}>
-                    {t(`reservations.status.${s}`)}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                size="small"
-                label={t('reservations.fields.source')}
-                value={filters.source ?? ''}
-                onChange={(e) =>
-                  handleFilterChange('source', (e.target.value || null) as ReservationSource | null)
-                }
-                sx={{ minWidth: 160 }}
-              >
-                <MenuItem value="">{t('reservations.filters.allSources')}</MenuItem>
-                {SOURCE_OPTIONS.map((s) => (
-                  <MenuItem key={s} value={s}>
-                    {t(`reservations.source.${s}`)}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                size="small"
-                type="date"
-                label={t('reservations.fields.checkIn')}
-                value={filters.from}
-                onChange={(e) => handleFilterChange('from', e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                sx={{ minWidth: 150 }}
-              />
-              <TextField
-                size="small"
-                type="date"
-                label={t('reservations.fields.checkOut')}
-                value={filters.to}
-                onChange={(e) => handleFilterChange('to', e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                sx={{ minWidth: 150 }}
-              />
-            </>
-          }
+          actions={actionButtons}
+          filters={filterBar}
         />
       </Box>
 
@@ -269,7 +279,7 @@ const ReservationsList: React.FC = () => {
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress size={32} />
         </Box>
-      ) : reservations.length === 0 ? (
+      ) : filteredReservations.length === 0 ? (
         /* Empty state */
         <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
           <EventNoteIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
@@ -398,7 +408,7 @@ const ReservationsList: React.FC = () => {
 
           <TablePagination
             component="div"
-            count={reservations.length}
+            count={filteredReservations.length}
             page={page}
             onPageChange={(_, newPage) => setPage(newPage)}
             rowsPerPage={rowsPerPage}

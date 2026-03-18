@@ -31,7 +31,6 @@ import {
   Visibility,
   Edit,
   LocationOn,
-  Star,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -61,16 +60,14 @@ import {
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
-const ACTION_BUTTON_SX = {
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  letterSpacing: '0.01em',
-  height: 28,
-  px: 1.5,
+const ICON_BUTTON_SX = {
+  p: 0.5,
   borderRadius: 1,
-  textTransform: 'none',
-  '& .MuiButton-startIcon': { mr: 0.5 },
-  '& .MuiSvgIcon-root': { fontSize: 14 },
+  border: '1px solid',
+  borderColor: 'divider',
+  color: 'text.secondary',
+  '&:hover': { bgcolor: 'rgba(107,138,154,0.08)', borderColor: 'primary.main', color: 'primary.main' },
+  '& .MuiSvgIcon-root': { fontSize: 18 },
 } as const;
 
 const PAGINATION_SX = {
@@ -130,7 +127,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
   const [selectedProperty, setSelectedProperty] = useState<PropertyListItem | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [page, setPage] = useState(0);
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('map');
   const [rowsPerPage, setRowsPerPage] = useState(LIST_DEFAULT_ROWS);
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
 
@@ -239,7 +236,6 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
     maxGuests: property.guests,
     contactPhone: property.contactPhone || '',
     contactEmail: property.contactEmail || '',
-    rating: property.rating,
     lastCleaning: property.lastCleaning,
     nextCleaning: property.nextCleaning,
     ownerId: property.ownerId,
@@ -291,18 +287,17 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
         data={filteredProperties}
         columns={exportColumns}
         fileName="proprietes"
+        variant="icon"
       />
-      <Button
-        variant="contained"
-        color="primary"
-        startIcon={<Add />}
-        onClick={() => navigate('/properties/new')}
-        size="small"
-        sx={ACTION_BUTTON_SX}
-        title={t('properties.create')}
-      >
-        {t('properties.create')}
-      </Button>
+      <Tooltip title={t('properties.create')}>
+        <IconButton
+          size="small"
+          onClick={() => navigate('/properties/new')}
+          sx={{ ...ICON_BUTTON_SX, color: 'primary.main', borderColor: 'primary.main', bgcolor: 'rgba(107,138,154,0.06)' }}
+        >
+          <Add />
+        </IconButton>
+      </Tooltip>
     </Box>
   );
 
@@ -395,7 +390,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                   startIcon={<Add />}
                   onClick={() => navigate('/properties/new')}
                   size="small"
-                  sx={ACTION_BUTTON_SX}
+                  sx={{ textTransform: 'none', fontSize: '0.75rem' }}
                 >
                   {t('properties.createFirst')}
                 </Button>
@@ -530,14 +525,6 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                                   /nuit
                                 </Typography>
                               </Typography>
-                            )}
-                            {property.rating > 0 && (
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                                <Star sx={{ fontSize: 14, color: '#f59e0b' }} />
-                                <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.72rem' }}>
-                                  {property.rating}
-                                </Typography>
-                              </Box>
                             )}
                             <Tooltip title="Détails">
                               <IconButton
