@@ -17,6 +17,7 @@ import {
 } from '@mui/icons-material';
 import { StepNotes } from './interventionUtils';
 import PhotoUploader from '../../components/PhotoUploader';
+import { useTranslation } from '../../hooks/useTranslation';
 
 // ============================================================
 // 1. ProgressDialog
@@ -39,6 +40,7 @@ export const ProgressDialog: React.FC<ProgressDialogProps> = ({
   onSubmit,
   updating
 }) => {
+  const { t } = useTranslation();
   return (
     <Dialog
       open={open}
@@ -47,12 +49,12 @@ export const ProgressDialog: React.FC<ProgressDialogProps> = ({
       fullWidth
     >
       <DialogTitle>
-        Mettre à jour la progression
+        {t('interventions.dialogs.progressTitle')}
       </DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Définissez le pourcentage de progression de l'intervention
+            {t('interventions.dialogs.progressDescription')}
           </Typography>
           <Box sx={{ px: 2 }}>
             <Slider
@@ -83,14 +85,14 @@ export const ProgressDialog: React.FC<ProgressDialogProps> = ({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>
-          Annuler
+          {t('interventions.dialogs.cancel')}
         </Button>
         <Button
           onClick={onSubmit}
           variant="contained"
           disabled={updating}
         >
-          {updating ? 'Mise à jour...' : 'Mettre à jour'}
+          {updating ? t('interventions.dialogs.updating') : t('interventions.dialogs.update')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -124,6 +126,7 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
   stepNotes,
   onStepNotesChange
 }) => {
+  const { t } = useTranslation();
   return (
     <Dialog
       open={open}
@@ -132,16 +135,16 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
       fullWidth
     >
       <DialogTitle>
-        {currentStep === 'inspection' && 'Notes de l\'inspection générale'}
-        {currentStep === 'rooms' && 'Notes de validation des pièces'}
-        {currentStep === 'after_photos' && 'Notes finales (après intervention)'}
+        {currentStep === 'inspection' && t('interventions.dialogs.notesInspectionTitle')}
+        {currentStep === 'rooms' && t('interventions.dialogs.notesRoomsTitle')}
+        {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterTitle')}
       </DialogTitle>
       <DialogContent>
         <Alert severity="info" sx={{ mb: 2, mt: 1 }}>
           <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-            {currentStep === 'inspection' && 'Ajoutez des notes sur l\'état de l\'appartement avant l\'intervention (casses, problèmes détectés, etc.)'}
-            {currentStep === 'rooms' && 'Ajoutez des notes sur la validation des pièces (problèmes rencontrés, points d\'attention, etc.)'}
-            {currentStep === 'after_photos' && 'Ajoutez des notes finales sur l\'intervention (remarques, points à suivre, etc.)'}
+            {currentStep === 'inspection' && t('interventions.dialogs.notesInspectionAlert')}
+            {currentStep === 'rooms' && t('interventions.dialogs.notesRoomsAlert')}
+            {currentStep === 'after_photos' && t('interventions.dialogs.notesAfterAlert')}
           </Typography>
         </Alert>
         <TextField
@@ -151,7 +154,6 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
           value={notesValue}
           onChange={(e) => {
             onNotesChange(e.target.value);
-            // Mettre à jour les notes localement pour la sauvegarde automatique
             if (currentStep) {
               const updatedStepNotes = { ...stepNotes };
               if (currentStep === 'rooms') {
@@ -167,29 +169,29 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
           }}
           placeholder={
             currentStep === 'inspection'
-              ? 'Ex: Aucune casse détectée, appartement en bon état général...'
+              ? t('interventions.dialogs.notesInspectionPlaceholder')
               : currentStep === 'rooms'
-              ? 'Ex: Toutes les pièces nettoyées, quelques taches difficiles dans la salle de bain...'
-              : 'Ex: Intervention terminée avec succès, client satisfait...'
+              ? t('interventions.dialogs.notesRoomsPlaceholder')
+              : t('interventions.dialogs.notesAfterPlaceholder')
           }
           sx={{ mt: 1 }}
         />
         <Alert severity="info" sx={{ mt: 1, py: 0.5 }}>
           <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
-            💾 Les modifications sont sauvegardées automatiquement après 2 secondes d'inactivité.
+            {t('interventions.dialogs.notesAutoSave')}
           </Typography>
         </Alert>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>
-          Annuler
+          {t('interventions.dialogs.cancel')}
         </Button>
         <Button
           onClick={onSubmit}
           variant="contained"
           disabled={updating}
         >
-          {updating ? 'Enregistrement...' : 'Enregistrer'}
+          {updating ? t('interventions.dialogs.saving') : t('interventions.dialogs.save')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -219,6 +221,7 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
   onSubmit,
   uploading,
 }) => {
+  const { t } = useTranslation();
   return (
     <Dialog
       open={open}
@@ -230,7 +233,7 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
         <Box display="flex" alignItems="center" gap={1}>
           <PhotoCameraIcon color={photoType === 'before' ? 'primary' : 'success'} />
           <Typography variant="h6">
-            Photos {photoType === 'before' ? 'avant' : 'après'} l'intervention
+            {photoType === 'before' ? t('interventions.dialogs.photosBeforeTitle') : t('interventions.dialogs.photosAfterTitle')}
           </Typography>
         </Box>
       </DialogTitle>
@@ -242,8 +245,8 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
           >
             <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
               {photoType === 'before'
-                ? 'Prenez des photos de toutes les pieces pour verifier qu\'il n\'y a aucune casse avant de commencer l\'intervention.'
-                : 'Prenez des photos de toutes les pieces apres le nettoyage pour finaliser l\'intervention.'}
+                ? t('interventions.dialogs.photosBeforeAlert')
+                : t('interventions.dialogs.photosAfterAlert')}
             </Typography>
           </Alert>
           <PhotoUploader
@@ -251,11 +254,11 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
             onPhotosChange={onPhotosChange}
             maxFiles={10}
             maxSizeMB={5}
-            label={photoType === 'before' ? 'Photos avant intervention' : 'Photos apres intervention'}
+            label={photoType === 'before' ? t('interventions.dialogs.photosBeforeLabel') : t('interventions.dialogs.photosAfterLabel')}
             helperText={
               photoType === 'before'
-                ? 'Ces photos serviront de reference pour l\'inspection generale.'
-                : 'Ces photos confirmeront que l\'intervention est terminee.'
+                ? t('interventions.dialogs.photosBeforeHelper')
+                : t('interventions.dialogs.photosAfterHelper')
             }
             columns={2}
           />
@@ -263,14 +266,14 @@ export const PhotosDialog: React.FC<PhotosDialogProps> = ({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>
-          Annuler
+          {t('interventions.dialogs.cancel')}
         </Button>
         <Button
           onClick={onSubmit}
           variant="contained"
           disabled={uploading || selectedPhotos.length === 0}
         >
-          {uploading ? 'Upload...' : 'Ajouter'}
+          {uploading ? t('interventions.dialogs.uploading') : t('interventions.dialogs.add')}
         </Button>
       </DialogActions>
     </Dialog>

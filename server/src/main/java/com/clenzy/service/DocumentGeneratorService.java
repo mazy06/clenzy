@@ -11,6 +11,7 @@ import com.clenzy.tenant.TenantContext;
 import com.clenzy.repository.DocumentGenerationRepository;
 import com.clenzy.repository.DocumentTemplateRepository;
 import com.clenzy.repository.DocumentTemplateTagRepository;
+import com.clenzy.repository.FiscalProfileRepository;
 import fr.opensagres.xdocreport.document.IXDocReport;
 import fr.opensagres.xdocreport.document.registry.XDocReportRegistry;
 import fr.opensagres.xdocreport.template.IContext;
@@ -78,6 +79,7 @@ public class DocumentGeneratorService {
     private final InvoiceGeneratorService invoiceGeneratorService;
     private final TaxRulePreValidator taxRulePreValidator;
     private final TenantContext tenantContext;
+    private final FiscalProfileRepository fiscalProfileRepository;
 
     private final Counter generationSuccessCounter;
     private final Counter generationFailureCounter;
@@ -101,6 +103,7 @@ public class DocumentGeneratorService {
             InvoiceGeneratorService invoiceGeneratorService,
             TaxRulePreValidator taxRulePreValidator,
             TenantContext tenantContext,
+            FiscalProfileRepository fiscalProfileRepository,
             MeterRegistry meterRegistry
     ) {
         this.templateRepository = templateRepository;
@@ -120,6 +123,7 @@ public class DocumentGeneratorService {
         this.invoiceGeneratorService = invoiceGeneratorService;
         this.taxRulePreValidator = taxRulePreValidator;
         this.tenantContext = tenantContext;
+        this.fiscalProfileRepository = fiscalProfileRepository;
 
         this.generationSuccessCounter = Counter.builder("clenzy.documents.generation.success")
                 .description("Nombre de documents generes avec succes")
@@ -276,16 +280,24 @@ public class DocumentGeneratorService {
                         "Aucun template actif pour le type: " + documentType.getLabel()));
 
         return executeGeneration(template, request.referenceId(), referenceType,
-                request.emailTo(), request.sendEmail(), jwt);
+                request.emailTo(), request.sendEmail(), jwt, null, null);
     }
 
+    /**
+     * Generation depuis un evenement Kafka (contexte async, pas de HTTP request).
+     * L'organizationId est transmis dans le payload Kafka car TenantContext
+     * (request-scoped) n'est pas disponible dans le consumer Kafka.
+     */
     @Transactional
     public DocumentGenerationDto generateFromEvent(DocumentType documentType, Long referenceId,
-                                                     ReferenceType referenceType, String emailTo) {
+                                                     ReferenceType referenceType, String emailTo,
+                                                     Long organizationId) {
+        // Resoudre le countryCode depuis FiscalProfile (TenantContext indisponible en Kafka)
+        String countryCode = resolveCountryCode(organizationId);
+
         // Pre-valider les regles fiscales avant de creer un DocumentGeneration
         if (documentType == DocumentType.FACTURE) {
-            taxRulePreValidator.validateTaxRulesExist(
-                    tenantContext.getCountryCode(), java.time.LocalDate.now());
+            taxRulePreValidator.validateTaxRulesExist(countryCode, java.time.LocalDate.now());
         }
 
         DocumentTemplate template = templateRepository.findByDocumentTypeAndActiveTrue(documentType)
@@ -297,16 +309,25 @@ public class DocumentGeneratorService {
         }
 
         return executeGeneration(template, referenceId, referenceType,
-                emailTo, emailTo != null && !emailTo.isBlank(), null);
+                emailTo, emailTo != null && !emailTo.isBlank(), null, organizationId, countryCode);
     }
 
     /**
      * Pipeline complet de generation.
+     * @param explicitOrgId organizationId transmis par le Kafka event (non-null en contexte async).
+     *                      Si null, on utilise le TenantContext (contexte HTTP).
+     * @param explicitCountryCode countryCode resolu depuis FiscalProfile en contexte Kafka.
+     *                            Si null, on utilise le TenantContext (contexte HTTP).
      */
     private DocumentGenerationDto executeGeneration(DocumentTemplate template, Long referenceId,
                                                      ReferenceType referenceType, String emailTo,
-                                                     boolean sendEmail, Jwt jwt) {
+                                                     boolean sendEmail, Jwt jwt, Long explicitOrgId,
+                                                     String explicitCountryCode) {
         long startTime = System.currentTimeMillis();
+
+        // Resoudre l'organizationId : explicite (Kafka) ou via TenantContext (HTTP)
+        final Long orgId = explicitOrgId != null ? explicitOrgId : tenantContext.getOrganizationId();
+        final String countryCode = explicitCountryCode != null ? explicitCountryCode : tenantContext.getCountryCode();
 
         // 1. Creer l'enregistrement via Builder
         DocumentGeneration generation = DocumentGeneration.builder()
@@ -319,14 +340,14 @@ public class DocumentGeneratorService {
                 .status(DocumentGenerationStatus.GENERATING)
                 .emailTo(emailTo)
                 .build();
-        generation.setOrganizationId(tenantContext.getOrganizationId());
+        generation.setOrganizationId(orgId);
         generation = generationRepository.save(generation);
 
         try {
             // 2.5 [NF] Generer le numero legal sequentiel (FACTURE/DEVIS)
             String legalNumber = null;
-            if (numberingService.requiresLegalNumber(template.getDocumentType())) {
-                legalNumber = numberingService.generateNextNumber(template.getDocumentType());
+            if (numberingService.requiresLegalNumber(template.getDocumentType(), countryCode)) {
+                legalNumber = numberingService.generateNextNumber(template.getDocumentType(), countryCode, orgId);
                 generation.setLegalNumber(legalNumber);
                 generationRepository.save(generation);
                 log.info("Numero legal attribue: {} pour generation #{}", legalNumber, generation.getId());
@@ -373,14 +394,14 @@ public class DocumentGeneratorService {
             generation.setGenerationTimeMs(generationTimeMs);
 
             // 8.5 [NF] Verrouiller le document (hash SHA-256) pour FACTURE/DEVIS
-            if (numberingService.requiresLegalNumber(template.getDocumentType())) {
+            if (numberingService.requiresLegalNumber(template.getDocumentType(), countryCode)) {
                 complianceService.lockDocument(generation, pdfBytes);
             }
 
             // 8.7 Creer l'Invoice correspondante (visible dans l'onglet Facturation)
             if (template.getDocumentType() == DocumentType.FACTURE
                     && referenceType != null && legalNumber != null) {
-                createInvoiceForFacture(referenceType, referenceId, legalNumber, generation.getId());
+                createInvoiceForFacture(referenceType, referenceId, legalNumber, generation.getId(), orgId);
             }
 
             // 9. Envoyer par email si demande
@@ -395,7 +416,8 @@ public class DocumentGeneratorService {
                             NotificationKey.DOCUMENT_SENT_BY_EMAIL,
                             "Document envoye par email",
                             template.getDocumentType().getLabel() + " envoye a " + emailTo,
-                            "/documents"
+                            "/documents",
+                            orgId
                     );
                 } catch (Exception emailEx) {
                     log.error("Failed to send document email: {}", emailEx.getMessage());
@@ -410,13 +432,14 @@ public class DocumentGeneratorService {
                     NotificationKey.DOCUMENT_GENERATED,
                     "Document genere : " + template.getDocumentType().getLabel(),
                     pdfFilename + " (" + formatFileSize(pdfBytes.length) + ") genere en " + generationTimeMs + "ms",
-                    "/documents"
+                    "/documents",
+                    orgId
             );
 
             auditLogService.logAction(AuditAction.DOCUMENT_GENERATE, "DocumentGeneration",
                     String.valueOf(generation.getId()), null, null,
                     "Generated: " + pdfFilename + " (" + generationTimeMs + "ms)",
-                    AuditSource.WEB);
+                    AuditSource.WEB, orgId);
 
             generationSuccessCounter.increment();
             generationTimer.record(java.time.Duration.ofMillis(generationTimeMs));
@@ -428,25 +451,25 @@ public class DocumentGeneratorService {
 
         } catch (DocumentValidationException e) {
             log.warn("Document generation invalid request: {}", e.getMessage());
-            handleGenerationFailure(generation, template, startTime, e);
+            handleGenerationFailure(generation, template, startTime, e, orgId);
             throw e;
         } catch (DocumentNotFoundException e) {
             log.warn("Document generation missing data: {}", e.getMessage());
-            handleGenerationFailure(generation, template, startTime, e);
+            handleGenerationFailure(generation, template, startTime, e, orgId);
             throw e;
         } catch (DocumentStorageException e) {
             log.error("Document generation storage error: {}", e.getMessage(), e);
-            handleGenerationFailure(generation, template, startTime, e);
+            handleGenerationFailure(generation, template, startTime, e, orgId);
             throw new DocumentGenerationException("Erreur de stockage lors de la generation: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("Document generation failed: {}", e.getMessage(), e);
-            handleGenerationFailure(generation, template, startTime, e);
+            handleGenerationFailure(generation, template, startTime, e, orgId);
             throw new DocumentGenerationException("Generation du document echouee: " + e.getMessage(), e);
         }
     }
 
     private void handleGenerationFailure(DocumentGeneration generation, DocumentTemplate template,
-                                           long startTime, Exception e) {
+                                           long startTime, Exception e, Long orgId) {
         generation.setStatus(DocumentGenerationStatus.FAILED);
         generation.setErrorMessage(e.getMessage());
         generation.setGenerationTimeMs((int) (System.currentTimeMillis() - startTime));
@@ -456,7 +479,8 @@ public class DocumentGeneratorService {
                 NotificationKey.DOCUMENT_GENERATION_FAILED,
                 "Echec generation document",
                 template.getDocumentType().getLabel() + " : " + e.getMessage(),
-                "/documents"
+                "/documents",
+                orgId
         );
 
         generationFailureCounter.increment();
@@ -607,13 +631,24 @@ public class DocumentGeneratorService {
     }
 
     /**
+     * Resout le countryCode depuis le FiscalProfile de l'organisation.
+     * Utilise en contexte Kafka ou TenantContext n'est pas disponible.
+     * Fallback : "FR" (defaut historique).
+     */
+    private String resolveCountryCode(Long organizationId) {
+        if (organizationId == null) return "FR";
+        return fiscalProfileRepository.findByOrganizationId(organizationId)
+                .map(fp -> fp.getCountryCode() != null ? fp.getCountryCode() : "FR")
+                .orElse("FR");
+    }
+
+    /**
      * Cree un enregistrement Invoice quand une FACTURE DocumentGeneration est produite.
      * L'echec de cette etape ne bloque pas la generation du document.
      */
     private void createInvoiceForFacture(ReferenceType referenceType, Long referenceId,
-                                          String legalNumber, Long documentGenerationId) {
+                                          String legalNumber, Long documentGenerationId, Long orgId) {
         try {
-            Long orgId = tenantContext.getRequiredOrganizationId();
             invoiceGeneratorService.createIssuedFromDocumentGeneration(
                     referenceType, referenceId, orgId, legalNumber, documentGenerationId);
             log.info("Invoice creee pour facture {} ({} #{})", legalNumber, referenceType, referenceId);

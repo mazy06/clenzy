@@ -1,9 +1,10 @@
 package com.clenzy.service;
 
-import com.clenzy.dto.InterventionDto;
+import com.clenzy.dto.CreateInterventionRequest;
+import com.clenzy.dto.InterventionResponse;
+import com.clenzy.dto.UpdateInterventionRequest;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.Intervention;
-import com.clenzy.model.InterventionStatus;
 import com.clenzy.model.Property;
 import com.clenzy.model.Team;
 import com.clenzy.model.User;
@@ -13,17 +14,18 @@ import com.clenzy.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
- * Handles bidirectional mapping between {@link Intervention} entities and {@link InterventionDto}.
+ * Handles bidirectional mapping between {@link Intervention} entities and DTOs.
  * Extracted from InterventionService to respect SRP.
  */
 @Service
+@Transactional(readOnly = true)
 public class InterventionMapper {
 
     private static final Logger log = LoggerFactory.getLogger(InterventionMapper.class);
@@ -44,168 +46,202 @@ public class InterventionMapper {
     }
 
     /**
-     * Apply DTO field values onto an existing entity (create or update).
+     * Apply create request fields onto a new entity.
      */
-    public void apply(InterventionDto dto, Intervention intervention) {
-        if (dto.title != null) intervention.setTitle(dto.title);
-        if (dto.description != null) intervention.setDescription(dto.description);
-        if (dto.type != null) intervention.setType(dto.type);
-        if (dto.status != null) {
-            try {
-                InterventionStatus status = InterventionStatus.fromString(dto.status);
-                intervention.setStatus(status);
-                log.debug("apply - status updated: {}", status);
-            } catch (IllegalArgumentException e) {
-                log.warn("apply - invalid status: {}", dto.status);
-                throw new IllegalArgumentException("Statut invalide: " + dto.status + ". Valeurs autorisees: " +
-                        Arrays.stream(InterventionStatus.values()).map(InterventionStatus::name).collect(Collectors.joining(", ")));
-            }
-        }
-        if (dto.priority != null) intervention.setPriority(dto.priority);
-        if (dto.estimatedDurationHours != null) intervention.setEstimatedDurationHours(dto.estimatedDurationHours);
-        if (dto.estimatedCost != null) intervention.setEstimatedCost(dto.estimatedCost);
-        if (dto.notes != null) intervention.setNotes(dto.notes);
-        if (dto.progressPercentage != null) intervention.setProgressPercentage(dto.progressPercentage);
+    public void apply(CreateInterventionRequest request, Intervention intervention) {
+        intervention.setTitle(request.title());
+        if (request.description() != null) intervention.setDescription(request.description());
+        intervention.setType(request.type());
+        intervention.setPriority(request.priority());
+        if (request.estimatedDurationHours() != null) intervention.setEstimatedDurationHours(request.estimatedDurationHours());
 
         // Assignment handling
-        if (dto.assignedToType != null && dto.assignedToId != null) {
-            if ("user".equals(dto.assignedToType)) {
-                intervention.setAssignedTechnicianId(dto.assignedToId);
-                intervention.setTeamId(null);
-
-                User assignedUser = userRepository.findById(dto.assignedToId).orElse(null);
-                if (assignedUser != null) {
-                    intervention.setAssignedUser(assignedUser);
-                    log.debug("apply - user assigned: {}", assignedUser.getFullName());
-                }
-            } else if ("team".equals(dto.assignedToType)) {
-                intervention.setTeamId(dto.assignedToId);
-                intervention.setAssignedTechnicianId(null);
-                intervention.setAssignedUser(null);
-
-                Team assignedTeam = teamRepository.findById(dto.assignedToId).orElse(null);
-                if (assignedTeam != null) {
-                    log.debug("apply - team assigned: {}", assignedTeam.getName());
-                } else {
-                    log.warn("apply - team not found for id: {}", dto.assignedToId);
-                }
-            }
+        if (request.assignedToType() != null && request.assignedToId() != null) {
+            applyAssignment(request.assignedToType(), request.assignedToId(), intervention);
         }
 
-        if (dto.propertyId != null) {
-            Property property = propertyRepository.findById(dto.propertyId)
-                    .orElseThrow(() -> new NotFoundException("Propriete non trouvee"));
-            intervention.setProperty(property);
-        }
+        Property property = propertyRepository.findById(request.propertyId())
+                .orElseThrow(() -> new NotFoundException("Propriete non trouvee"));
+        intervention.setProperty(property);
 
-        if (dto.requestorId != null) {
-            User requestor = userRepository.findById(dto.requestorId)
-                    .orElseThrow(() -> new NotFoundException("Demandeur non trouve"));
-            intervention.setRequestor(requestor);
-        }
+        User requestor = userRepository.findById(request.requestorId())
+                .orElseThrow(() -> new NotFoundException("Demandeur non trouve"));
+        intervention.setRequestor(requestor);
 
-        if (dto.scheduledDate != null) {
-            LocalDateTime scheduledDate = LocalDateTime.parse(dto.scheduledDate,
-                    DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-            intervention.setScheduledDate(scheduledDate);
+        LocalDateTime scheduledDate = LocalDateTime.parse(request.scheduledDate(),
+                DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        intervention.setScheduledDate(scheduledDate);
+    }
+
+    /**
+     * Apply update request fields onto an existing entity (partial update).
+     * Status changes must go through dedicated lifecycle endpoints.
+     */
+    public void applyUpdate(UpdateInterventionRequest request, Intervention intervention) {
+        if (request.title() != null) intervention.setTitle(request.title());
+        if (request.description() != null) intervention.setDescription(request.description());
+        if (request.type() != null) intervention.setType(request.type());
+        if (request.priority() != null) intervention.setPriority(request.priority());
+        if (request.estimatedDurationHours() != null) intervention.setEstimatedDurationHours(request.estimatedDurationHours());
+        if (request.estimatedCost() != null) intervention.setEstimatedCost(request.estimatedCost());
+        if (request.notes() != null) intervention.setNotes(request.notes());
+
+        // Assignment handling
+        if (request.assignedToType() != null && request.assignedToId() != null) {
+            applyAssignment(request.assignedToType(), request.assignedToId(), intervention);
         }
     }
 
     /**
-     * Convert an entity to its DTO representation.
+     * Convert an entity to its response representation, using a pre-loaded team name map
+     * to avoid N+1 queries when converting lists of interventions.
      */
-    public InterventionDto convertToDto(Intervention intervention) {
-        try {
-            InterventionDto dto = new InterventionDto();
+    public InterventionResponse convertToResponse(Intervention intervention, Map<Long, String> teamNameMap) {
+        return convertToResponseInternal(intervention, teamNameMap);
+    }
 
-            // Basic properties
-            dto.id = intervention.getId();
-            dto.title = intervention.getTitle();
-            dto.description = intervention.getDescription();
-            dto.type = intervention.getType();
-            dto.status = intervention.getStatus().name();
-            dto.priority = intervention.getPriority();
-            dto.estimatedDurationHours = intervention.getEstimatedDurationHours();
-            dto.actualDurationMinutes = intervention.getActualDurationMinutes();
-            dto.estimatedCost = intervention.getEstimatedCost();
-            dto.actualCost = intervention.getActualCost();
-            dto.notes = intervention.getNotes();
-            // Convert BYTEA photos to base64 data URLs for frontend compatibility
-            dto.photos = photoService.convertPhotosToBase64Urls(intervention);
-            dto.beforePhotosUrls = photoService.convertPhotosToBase64UrlsByType(intervention, "before");
-            dto.afterPhotosUrls = photoService.convertPhotosToBase64UrlsByType(intervention, "after");
-            dto.validatedRooms = intervention.getValidatedRooms();
-            dto.completedSteps = intervention.getCompletedSteps();
-            dto.progressPercentage = intervention.getProgressPercentage();
+    /**
+     * Convert an entity to its response representation.
+     */
+    public InterventionResponse convertToResponse(Intervention intervention) {
+        return convertToResponseInternal(intervention, null);
+    }
 
-            // Dates
-            if (intervention.getScheduledDate() != null) {
-                dto.scheduledDate = intervention.getScheduledDate().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-            } else {
-                dto.scheduledDate = null;
+    /**
+     * Convert an entity to a lightweight response for list views.
+     * Identical to convertToResponseInternal but SKIPS photo loading to avoid N+1 BYTEA loads.
+     */
+    public InterventionResponse convertToListResponse(Intervention intervention, Map<Long, String> teamNameMap) {
+        return convertToResponseInternal(intervention, teamNameMap, false);
+    }
+
+    private InterventionResponse convertToResponseInternal(Intervention intervention, Map<Long, String> teamNameMap) {
+        return convertToResponseInternal(intervention, teamNameMap, true);
+    }
+
+    private InterventionResponse convertToResponseInternal(Intervention intervention, Map<Long, String> teamNameMap, boolean loadPhotos) {
+        InterventionResponse.Builder builder = InterventionResponse.builder();
+
+        // Basic properties
+        builder.id(intervention.getId())
+               .title(intervention.getTitle())
+               .description(intervention.getDescription())
+               .type(intervention.getType())
+               .status(intervention.getStatus().name())
+               .priority(intervention.getPriority())
+               .estimatedDurationHours(intervention.getEstimatedDurationHours())
+               .actualDurationMinutes(intervention.getActualDurationMinutes())
+               .estimatedCost(intervention.getEstimatedCost())
+               .actualCost(intervention.getActualCost())
+               .notes(intervention.getNotes());
+
+        if (loadPhotos) {
+            // Convert BYTEA photos to base64 data URLs for frontend compatibility (single query)
+            InterventionPhotoService.PhotoBundle photoBundle = photoService.loadPhotoBundle(intervention);
+            builder.photos(photoBundle.allPhotosJson())
+                   .beforePhotosUrls(photoBundle.beforeUrls())
+                   .afterPhotosUrls(photoBundle.afterUrls())
+                   .beforePhotoIds(photoBundle.beforeIds())
+                   .afterPhotoIds(photoBundle.afterIds());
+        }
+
+        builder.validatedRooms(intervention.getValidatedRooms())
+               .completedSteps(intervention.getCompletedSteps())
+               .progressPercentage(intervention.getProgressPercentage());
+
+        // Dates
+        if (intervention.getScheduledDate() != null) {
+            builder.scheduledDate(intervention.getScheduledDate().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        }
+
+        builder.createdAt(intervention.getCreatedAt())
+               .updatedAt(intervention.getUpdatedAt())
+               .completedAt(intervention.getCompletedAt())
+               .startTime(intervention.getStartTime())
+               .endTime(intervention.getEndTime());
+
+        // Relations
+        if (intervention.getProperty() != null) {
+            Property prop = intervention.getProperty();
+            builder.propertyId(prop.getId())
+                   .propertyName(prop.getName())
+                   .propertyAddress(prop.getAddress());
+            if (prop.getType() != null) {
+                builder.propertyType(prop.getType().name().toLowerCase());
             }
+            builder.propertyLatitude(prop.getLatitude() != null ? prop.getLatitude().doubleValue() : null)
+                   .propertyLongitude(prop.getLongitude() != null ? prop.getLongitude().doubleValue() : null);
+        }
 
-            dto.createdAt = intervention.getCreatedAt();
-            dto.updatedAt = intervention.getUpdatedAt();
-            dto.completedAt = intervention.getCompletedAt();
-            dto.startTime = intervention.getStartTime();
-            dto.endTime = intervention.getEndTime();
+        if (intervention.getRequestor() != null) {
+            builder.requestorId(intervention.getRequestor().getId())
+                   .requestorName(intervention.getRequestor().getFullName());
+        }
 
-            // Relations
-            if (intervention.getProperty() != null) {
-                Property prop = intervention.getProperty();
-                dto.propertyId = prop.getId();
-                dto.propertyName = prop.getName();
-                dto.propertyAddress = prop.getAddress();
-                if (prop.getType() != null) {
-                    dto.propertyType = prop.getType().name().toLowerCase();
+        // Assignment handling
+        if (intervention.getAssignedToType() != null) {
+            builder.assignedToType(intervention.getAssignedToType())
+                   .assignedToId(intervention.getAssignedToId());
+
+            if ("user".equals(intervention.getAssignedToType()) && intervention.getAssignedUser() != null) {
+                builder.assignedToName(intervention.getAssignedUser().getFullName());
+                if (intervention.getAssignedUser().getRole() != null) {
+                    builder.assignedUserRole(intervention.getAssignedUser().getRole().name());
                 }
-                dto.propertyLatitude = prop.getLatitude() != null ? prop.getLatitude().doubleValue() : null;
-                dto.propertyLongitude = prop.getLongitude() != null ? prop.getLongitude().doubleValue() : null;
-            }
-
-            if (intervention.getRequestor() != null) {
-                dto.requestorId = intervention.getRequestor().getId();
-                dto.requestorName = intervention.getRequestor().getFullName();
-            }
-
-            // Assignment handling
-            if (intervention.getAssignedToType() != null) {
-                dto.assignedToType = intervention.getAssignedToType();
-                dto.assignedToId = intervention.getAssignedToId();
-
-                if ("user".equals(intervention.getAssignedToType()) && intervention.getAssignedUser() != null) {
-                    dto.assignedToName = intervention.getAssignedUser().getFullName();
-                } else if ("team".equals(intervention.getAssignedToType()) && intervention.getTeamId() != null) {
+            } else if ("team".equals(intervention.getAssignedToType()) && intervention.getTeamId() != null) {
+                // Use pre-loaded team name map when available (list conversions) to avoid N+1
+                String teamName = teamNameMap != null ? teamNameMap.get(intervention.getTeamId()) : null;
+                if (teamName != null) {
+                    builder.assignedToName(teamName);
+                } else {
                     Team assignedTeam = teamRepository.findById(intervention.getTeamId()).orElse(null);
                     if (assignedTeam != null) {
-                        dto.assignedToName = assignedTeam.getName();
+                        builder.assignedToName(assignedTeam.getName());
                     } else {
-                        dto.assignedToName = "Equipe inconnue";
-                        log.warn("convertToDto - team not found for id: {}", intervention.getTeamId());
+                        builder.assignedToName("Equipe inconnue");
+                        log.warn("convertToResponse - team not found for id: {}", intervention.getTeamId());
                     }
-                } else {
-                    dto.assignedToName = null;
                 }
+            }
+        }
+
+        // Payment fields
+        if (intervention.getPaymentStatus() != null) {
+            builder.paymentStatus(intervention.getPaymentStatus().name());
+        }
+        builder.stripePaymentIntentId(intervention.getStripePaymentIntentId())
+               .stripeSessionId(intervention.getStripeSessionId())
+               .paidAt(intervention.getPaidAt())
+               .preferredTimeSlot(intervention.getPreferredTimeSlot());
+
+        return builder.build();
+    }
+
+    // ── Private helpers ─────────────────────────────────────────────────────
+
+    private void applyAssignment(String assignedToType, Long assignedToId, Intervention intervention) {
+        if ("user".equals(assignedToType)) {
+            intervention.setAssignedTechnicianId(assignedToId);
+            intervention.setTeamId(null);
+
+            User assignedUser = userRepository.findById(assignedToId).orElse(null);
+            if (assignedUser != null) {
+                intervention.setAssignedUser(assignedUser);
+                log.debug("apply - user assigned: {}", assignedUser.getFullName());
+            }
+        } else if ("team".equals(assignedToType)) {
+            intervention.setTeamId(assignedToId);
+            intervention.setAssignedTechnicianId(null);
+            intervention.setAssignedUser(null);
+
+            Team assignedTeam = teamRepository.findById(assignedToId).orElse(null);
+            if (assignedTeam != null) {
+                log.debug("apply - team assigned: {}", assignedTeam.getName());
             } else {
-                dto.assignedToType = null;
-                dto.assignedToId = null;
-                dto.assignedToName = null;
+                log.warn("apply - team not found for id: {}", assignedToId);
             }
-
-            // Payment fields
-            if (intervention.getPaymentStatus() != null) {
-                dto.paymentStatus = intervention.getPaymentStatus().name();
-            }
-            dto.stripePaymentIntentId = intervention.getStripePaymentIntentId();
-            dto.stripeSessionId = intervention.getStripeSessionId();
-            dto.paidAt = intervention.getPaidAt();
-            dto.preferredTimeSlot = intervention.getPreferredTimeSlot();
-
-            return dto;
-        } catch (Exception e) {
-            log.error("convertToDto - error converting intervention id={}", intervention.getId(), e);
-            throw e;
+        } else {
+            throw new IllegalArgumentException("assignedToType doit etre 'user' ou 'team', recu: " + assignedToType);
         }
     }
 }

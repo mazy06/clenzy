@@ -1,6 +1,6 @@
 import apiClient from '../apiClient';
 import { API_CONFIG } from '../../config/api';
-import { getAccessToken } from '../storageService';
+import { getAccessToken } from '../../keycloak';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -124,6 +124,7 @@ export const invoicesApi = {
     const token = getAccessToken();
     const response = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
     });
     if (!response.ok) {
       throw new Error(`Erreur ${response.status} lors du telechargement`);

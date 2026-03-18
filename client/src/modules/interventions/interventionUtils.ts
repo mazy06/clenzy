@@ -26,11 +26,12 @@ export interface InterventionDetailsData {
   propertyCity: string;
   propertyPostalCode: string;
   propertyCountry: string;
-  requestorId: number;
+  requestorId?: number;
   requestorName: string;
-  assignedToId: number;
+  assignedToId?: number;
   assignedToType: 'user' | 'team';
   assignedToName: string;
+  assignedUserRole?: string;
   scheduledDate: string;
   estimatedDurationHours: number;
   actualDurationMinutes: number;
@@ -46,6 +47,8 @@ export interface InterventionDetailsData {
   endTime?: string;
   beforePhotosUrls?: string;
   afterPhotosUrls?: string;
+  beforePhotoIds?: string;
+  afterPhotoIds?: string;
   completedSteps?: string;
   validatedRooms?: string;
   paymentStatus?: string;
@@ -54,8 +57,6 @@ export interface InterventionDetailsData {
 export interface PropertyDetails {
   bedroomCount?: number;
   bathroomCount?: number;
-  bedrooms?: number;
-  bathrooms?: number;
   livingRooms?: number;
   kitchens?: number;
 }

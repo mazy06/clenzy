@@ -2,12 +2,12 @@ package com.clenzy.controller;
 
 import com.clenzy.dto.*;
 import com.clenzy.exception.*;
-import com.clenzy.model.DocumentGeneration;
-import com.clenzy.model.DocumentType;
-import com.clenzy.model.TagCategory;
+import com.clenzy.model.*;
+import com.clenzy.repository.InterventionRepository;
 import com.clenzy.service.DocumentComplianceService;
 import com.clenzy.service.DocumentGeneratorService;
 import com.clenzy.service.DocumentStorageService;
+import com.clenzy.util.JwtRoleExtractor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
@@ -19,9 +19,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -43,13 +45,46 @@ public class DocumentController {
     private final DocumentGeneratorService generatorService;
     private final DocumentStorageService documentStorageService;
     private final DocumentComplianceService complianceService;
+    private final InterventionRepository interventionRepository;
 
     public DocumentController(DocumentGeneratorService generatorService,
                                DocumentStorageService documentStorageService,
-                               DocumentComplianceService complianceService) {
+                               DocumentComplianceService complianceService,
+                               InterventionRepository interventionRepository) {
         this.generatorService = generatorService;
         this.documentStorageService = documentStorageService;
         this.complianceService = complianceService;
+        this.interventionRepository = interventionRepository;
+    }
+
+    /**
+     * Verifie que l'utilisateur a le droit d'acceder aux documents d'une intervention.
+     * Les roles de management (SUPER_ADMIN, SUPER_MANAGER, ADMIN, MANAGER, SUPERVISOR)
+     * ont acces a tous les documents de l'org (filtre Hibernate).
+     * Les roles operationnels (HOUSEKEEPER, TECHNICIAN, etc.) ne voient que les documents
+     * des interventions qui leur sont assignees.
+     */
+    /**
+     * Verifie que l'utilisateur a le droit d'acceder aux documents d'une intervention.
+     * Staff plateforme et superviseurs voient tout (dans leur org via le filtre Hibernate).
+     * Les roles operationnels (HOUSEKEEPER, TECHNICIAN, etc.) ne voient que les documents
+     * des interventions qui leur sont assignees.
+     */
+    private void validateInterventionOwnership(Jwt jwt, Long interventionId) {
+        final UserRole role = JwtRoleExtractor.extractUserRole(jwt);
+
+        // Staff plateforme + superviseurs : acces a toute l'org
+        if (role.isPlatformStaff() || role == UserRole.SUPERVISOR || role == UserRole.HOST) return;
+
+        // Roles operationnels : verifier l'assignation
+        // Uses a scalar JPQL projection to avoid LazyInitializationException
+        // (no open Hibernate session in the controller layer).
+        final String keycloakId = jwt.getSubject();
+        final String assignedKeycloakId = interventionRepository.findAssignedUserKeycloakIdById(interventionId);
+
+        if (assignedKeycloakId == null || !keycloakId.equals(assignedKeycloakId)) {
+            throw new AccessDeniedException("Acces refuse : vous n'etes pas assigne a cette intervention");
+        }
     }
 
     // ─── Templates ──────────────────────────────────────────────────────────
@@ -160,25 +195,56 @@ public class DocumentController {
 
     @GetMapping("/generations/by-reference")
     @Operation(summary = "Generations de documents par type de reference et ID")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    @PreAuthorize("isAuthenticated()")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<DocumentGenerationDto>> getGenerationsByReference(
+            @AuthenticationPrincipal Jwt jwt,
             @RequestParam String referenceType,
             @RequestParam Long referenceId
     ) {
-        com.clenzy.model.ReferenceType refType;
+        ReferenceType refType;
         try {
-            refType = com.clenzy.model.ReferenceType.valueOf(referenceType.toUpperCase());
+            refType = ReferenceType.valueOf(referenceType.toUpperCase());
         } catch (IllegalArgumentException e) {
             throw new DocumentValidationException("Type de reference inconnu: " + referenceType);
         }
-        return ResponseEntity.ok(generatorService.getGenerationsByReference(refType, referenceId));
+
+        // Ownership check pour les interventions
+        if (refType == ReferenceType.INTERVENTION) {
+            validateInterventionOwnership(jwt, referenceId);
+        }
+
+        List<DocumentGenerationDto> generations = generatorService.getGenerationsByReference(refType, referenceId);
+
+        // Operational roles only see documents addressed to them (by email).
+        // Platform staff and supervisors see all documents.
+        final UserRole role = JwtRoleExtractor.extractUserRole(jwt);
+        if (!role.isPlatformStaff() && role != UserRole.SUPERVISOR) {
+            final String userEmail = jwt.getClaimAsString("email");
+            if (userEmail != null) {
+                generations = generations.stream()
+                        .filter(g -> userEmail.equalsIgnoreCase(g.emailTo()))
+                        .toList();
+            }
+        }
+
+        return ResponseEntity.ok(generations);
     }
 
     @GetMapping("/generations/{id}/download")
     @Operation(summary = "Telecharger un document genere")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
-    public ResponseEntity<Resource> downloadGeneration(@PathVariable Long id) {
+    @PreAuthorize("isAuthenticated()")
+    @Transactional(readOnly = true)
+    public ResponseEntity<Resource> downloadGeneration(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long id
+    ) {
         DocumentGeneration generation = generatorService.getGeneration(id);
+
+        // Ownership check : si le document reference une intervention
+        if (generation.getReferenceType() == ReferenceType.INTERVENTION && generation.getReferenceId() != null) {
+            validateInterventionOwnership(jwt, generation.getReferenceId());
+        }
 
         if (generation.getFilePath() == null || generation.getFilePath().isBlank()) {
             throw new DocumentNotFoundException("Fichier non disponible pour cette generation");
@@ -297,6 +363,11 @@ public class DocumentController {
         log.error("Document storage error: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Erreur de stockage du document"));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
     }
 
     @ExceptionHandler(SecurityException.class)

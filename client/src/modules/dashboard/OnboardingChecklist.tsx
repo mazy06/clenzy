@@ -22,150 +22,152 @@ import {
   CalendarMonth,
   Settings,
   Lock,
+  Person,
+  Assignment,
+  Group,
+  Build,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
-import { STORAGE_KEYS, getItem, setItem, removeItem } from '../../services/storageService';
+import { useOnboarding } from '../../hooks/useOnboarding';
+import type { OnboardingStepWithStatus } from '../../hooks/useOnboarding';
 import ICalImportModal from './ICalImportModal';
 
-// ─── Props ──────────────────────────────────────────────────────────────────
+// ─── Step icon & CTA style mapping ─────────────────────────────────────────
 
-interface OnboardingChecklistProps {
-  hasProperties: boolean;
-  hasPropertyDetails: boolean;
-  hasPricing: boolean;
-  hasChannels: boolean;
-  hasBillingProfile: boolean;
-}
-
-// ─── Step CTA config ────────────────────────────────────────────────────────
-
-interface StepCta {
+interface StepVisual {
   icon: React.ReactNode;
   gradient: string;
-  titleKey: string;
-  descriptionKey: string;
-  actionKey: string;
-  actionIcon: React.ReactNode;
   accentColor: string;
+  actionIcon: React.ReactNode;
 }
+
+const STEP_VISUALS: Record<string, StepVisual> = {
+  create_property: {
+    icon: <Home sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
+    accentColor: '#6B8A9A',
+    actionIcon: <Add sx={{ fontSize: 14 }} />,
+  },
+  configure_details: {
+    icon: <Tune sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
+    accentColor: '#6B8A9A',
+    actionIcon: <Tune sx={{ fontSize: 14 }} />,
+  },
+  define_pricing: {
+    icon: <Euro sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
+    accentColor: '#4A9B8E',
+    actionIcon: <Euro sx={{ fontSize: 14 }} />,
+  },
+  connect_channels: {
+    icon: <CalendarMonth sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #FF5A5F 0%, #FF8A8E 100%)',
+    accentColor: '#FF5A5F',
+    actionIcon: <Sync sx={{ fontSize: 14 }} />,
+  },
+  configure_billing: {
+    icon: <Receipt sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #D4A574 0%, #E8C49A 100%)',
+    accentColor: '#D4A574',
+    actionIcon: <Receipt sx={{ fontSize: 14 }} />,
+  },
+  configure_org: {
+    icon: <Settings sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
+    accentColor: '#6B8A9A',
+    actionIcon: <Settings sx={{ fontSize: 14 }} />,
+  },
+  invite_members: {
+    icon: <Group sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
+    accentColor: '#4A9B8E',
+    actionIcon: <Add sx={{ fontSize: 14 }} />,
+  },
+  setup_settings: {
+    icon: <Tune sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #D4A574 0%, #E8C49A 100%)',
+    accentColor: '#D4A574',
+    actionIcon: <Tune sx={{ fontSize: 14 }} />,
+  },
+  complete_profile: {
+    icon: <Person sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
+    accentColor: '#6B8A9A',
+    actionIcon: <Person sx={{ fontSize: 14 }} />,
+  },
+  view_interventions: {
+    icon: <Assignment sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
+    accentColor: '#4A9B8E',
+    actionIcon: <Build sx={{ fontSize: 14 }} />,
+  },
+  create_team: {
+    icon: <Group sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
+    accentColor: '#4A9B8E',
+    actionIcon: <Add sx={{ fontSize: 14 }} />,
+  },
+};
+
+const DEFAULT_VISUAL: StepVisual = {
+  icon: <Settings sx={{ fontSize: 16 }} />,
+  gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
+  accentColor: '#6B8A9A',
+  actionIcon: <Settings sx={{ fontSize: 14 }} />,
+};
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const OnboardingChecklist: React.FC<OnboardingChecklistProps> = React.memo(({
-  hasProperties,
-  hasPropertyDetails,
-  hasPricing,
-  hasChannels,
-  hasBillingProfile,
-}) => {
+const OnboardingChecklist: React.FC = React.memo(() => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const [dismissed, setDismissed] = useState(
-    () => getItem(STORAGE_KEYS.ONBOARDING_DISMISSED) === 'true',
-  );
   const [icalOpen, setIcalOpen] = useState(false);
 
-  const steps = useMemo(() => [
-    { label: t('dashboard.onboarding.createProperty'), done: hasProperties, path: '/properties/new', icon: <Home sx={{ fontSize: 16 }} /> },
-    { label: t('dashboard.onboarding.configureDetails'), done: hasPropertyDetails, path: '/properties', icon: <Tune sx={{ fontSize: 16 }} /> },
-    { label: t('dashboard.onboarding.definePricing'), done: hasPricing, path: '/properties?tab=1', icon: <Euro sx={{ fontSize: 16 }} /> },
-    { label: t('dashboard.onboarding.connectChannels'), done: hasChannels, path: '/channels', icon: <Sync sx={{ fontSize: 16 }} /> },
-    { label: t('dashboard.onboarding.configureBilling'), done: hasBillingProfile, path: '/settings?tab=4', icon: <Receipt sx={{ fontSize: 16 }} /> },
-  ], [t, hasProperties, hasPropertyDetails, hasPricing, hasChannels, hasBillingProfile]);
+  const {
+    steps,
+    completedCount,
+    totalCount,
+    isAllCompleted,
+    isDismissed,
+    progressPercent,
+    activeStep,
+    isLoading,
+    completeStep,
+    dismiss,
+    reset,
+  } = useOnboarding();
 
-  // CTA config for each step
-  const stepCtas: StepCta[] = useMemo(() => [
-    {
-      icon: <Home sx={{ fontSize: 18, color: '#fff' }} />,
-      gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
-      titleKey: 'dashboard.emptyState.title',
-      descriptionKey: 'dashboard.emptyState.description',
-      actionKey: 'dashboard.emptyState.cta',
-      actionIcon: <Add sx={{ fontSize: 14 }} />,
-      accentColor: '#6B8A9A',
-    },
-    {
-      icon: <Tune sx={{ fontSize: 18, color: '#fff' }} />,
-      gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
-      titleKey: 'dashboard.onboarding.detailsCta.title',
-      descriptionKey: 'dashboard.onboarding.detailsCta.description',
-      actionKey: 'dashboard.onboarding.detailsCta.action',
-      actionIcon: <Tune sx={{ fontSize: 14 }} />,
-      accentColor: '#6B8A9A',
-    },
-    {
-      icon: <Euro sx={{ fontSize: 18, color: '#fff' }} />,
-      gradient: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
-      titleKey: 'dashboard.onboarding.pricingCta.title',
-      descriptionKey: 'dashboard.onboarding.pricingCta.description',
-      actionKey: 'dashboard.onboarding.pricingCta.action',
-      actionIcon: <Euro sx={{ fontSize: 14 }} />,
-      accentColor: '#4A9B8E',
-    },
-    {
-      icon: <CalendarMonth sx={{ fontSize: 18, color: '#fff' }} />,
-      gradient: 'linear-gradient(135deg, #FF5A5F 0%, #FF8A8E 100%)',
-      titleKey: 'dashboard.onboarding.channelsCta.title',
-      descriptionKey: 'dashboard.onboarding.channelsCta.description',
-      actionKey: 'dashboard.onboarding.channelsCta.action',
-      actionIcon: <Sync sx={{ fontSize: 14 }} />,
-      accentColor: '#FF5A5F',
-    },
-    {
-      icon: <Settings sx={{ fontSize: 18, color: '#fff' }} />,
-      gradient: 'linear-gradient(135deg, #D4A574 0%, #E8C49A 100%)',
-      titleKey: 'dashboard.onboarding.billingCta.title',
-      descriptionKey: 'dashboard.onboarding.billingCta.description',
-      actionKey: 'dashboard.onboarding.billingCta.action',
-      actionIcon: <Receipt sx={{ fontSize: 14 }} />,
-      accentColor: '#D4A574',
-    },
-  ], []);
+  const handleDismiss = useCallback(() => dismiss(), [dismiss]);
+  const handleReshow = useCallback(() => reset(), [reset]);
 
-  const completedCount = steps.filter((s) => s.done).length;
-  const allCompleted = completedCount === steps.length;
-  const progressPercent = (completedCount / steps.length) * 100;
-
-  // Active step = first uncompleted step (sequential order)
-  const activeStepIdx = steps.findIndex((s) => !s.done);
-
-  const handleDismiss = useCallback(() => {
-    setItem(STORAGE_KEYS.ONBOARDING_DISMISSED, 'true');
-    setDismissed(true);
-  }, []);
-
-  const handleReshow = useCallback(() => {
-    removeItem(STORAGE_KEYS.ONBOARDING_DISMISSED);
-    setDismissed(false);
-  }, []);
-
-  const handleStepClick = useCallback((idx: number) => {
-    const step = steps[idx];
-    // Allow click on completed steps or the current active step
-    if (step.done || idx === activeStepIdx) {
-      // Step 4 (channels) opens iCal modal instead of navigating
-      if (idx === 3 && !step.done) {
+  const handleStepClick = useCallback((step: OnboardingStepWithStatus) => {
+    if (step.completed || (!step.locked && step === activeStep)) {
+      if (step.isModal && !step.completed) {
         setIcalOpen(true);
       } else {
-        navigate(step.path);
+        navigate(step.navigationPath);
       }
     }
-  }, [steps, activeStepIdx, navigate]);
+  }, [activeStep, navigate]);
 
-  const handleCtaAction = useCallback((idx: number) => {
-    // Step 4 (channels) opens iCal modal
-    if (idx === 3) {
+  const handleCtaAction = useCallback(() => {
+    if (!activeStep) return;
+    if (activeStep.isModal) {
       setIcalOpen(true);
     } else {
-      navigate(steps[idx].path);
+      navigate(activeStep.navigationPath);
     }
-  }, [steps, navigate]);
+  }, [activeStep, navigate]);
+
+  // Don't render while loading
+  if (isLoading || totalCount === 0) return null;
 
   // Show a mini "re-show" button when dismissed and not all completed
-  if (dismissed && !allCompleted) {
+  if (isDismissed && !isAllCompleted) {
     return (
       <Tooltip title={t('dashboard.onboarding.reshow')} arrow>
         <IconButton
@@ -192,9 +194,9 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = React.memo(({
   }
 
   // Auto-hide when all completed
-  if (allCompleted) return null;
+  if (isAllCompleted) return null;
 
-  const activeCta = activeStepIdx >= 0 ? stepCtas[activeStepIdx] : null;
+  const activeVisual = activeStep ? (STEP_VISUALS[activeStep.key] ?? DEFAULT_VISUAL) : null;
 
   return (
     <>
@@ -237,7 +239,7 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = React.memo(({
               whiteSpace: 'nowrap',
             }}
           >
-            {t('dashboard.onboarding.progress', { completed: completedCount, total: steps.length })}
+            {t('dashboard.onboarding.progress', { completed: completedCount, total: totalCount })}
           </Typography>
           <LinearProgress
             variant="determinate"
@@ -265,14 +267,14 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = React.memo(({
 
         {/* ── Steps: horizontal row with wrapping ─────────────────── */}
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          {steps.map((step, idx) => {
-            const isActive = idx === activeStepIdx;
-            const isLocked = !step.done && idx > activeStepIdx;
+          {steps.map((step) => {
+            const isActive = step === activeStep;
+            const visual = STEP_VISUALS[step.key] ?? DEFAULT_VISUAL;
 
             return (
               <Box
-                key={idx}
-                onClick={() => handleStepClick(idx)}
+                key={step.key}
+                onClick={() => handleStepClick(step)}
                 sx={{
                   flex: '1 1 auto',
                   minWidth: { xs: 'calc(50% - 4px)', sm: 'auto' },
@@ -283,20 +285,20 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = React.memo(({
                   py: 0.75,
                   borderRadius: '8px',
                   border: '1px solid',
-                  borderColor: step.done
+                  borderColor: step.completed
                     ? (isDark ? 'rgba(74,155,142,0.25)' : 'rgba(74,155,142,0.15)')
                     : isActive
                       ? 'primary.main'
                       : 'divider',
-                  bgcolor: step.done
+                  bgcolor: step.completed
                     ? (isDark ? 'rgba(74,155,142,0.06)' : 'rgba(74,155,142,0.03)')
                     : isActive
                       ? (isDark ? 'rgba(107,138,154,0.08)' : 'rgba(107,138,154,0.04)')
                       : 'transparent',
-                  cursor: isLocked ? 'default' : 'pointer',
-                  opacity: isLocked ? 0.45 : 1,
+                  cursor: step.locked ? 'default' : 'pointer',
+                  opacity: step.locked ? 0.45 : 1,
                   transition: 'all 0.15s ease',
-                  ...(!isLocked && {
+                  ...(!step.locked && {
                     '&:hover': {
                       borderColor: 'primary.main',
                       transform: 'translateY(-1px)',
@@ -313,7 +315,7 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = React.memo(({
                     width: 28,
                     height: 28,
                     borderRadius: '50%',
-                    bgcolor: step.done
+                    bgcolor: step.completed
                       ? (isDark ? 'rgba(74,155,142,0.12)' : 'rgba(74,155,142,0.08)')
                       : isActive
                         ? (isDark ? 'rgba(107,138,154,0.15)' : 'rgba(107,138,154,0.10)')
@@ -322,10 +324,10 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = React.memo(({
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    color: step.done ? 'success.main' : isActive ? 'primary.main' : 'text.secondary',
+                    color: step.completed ? 'success.main' : isActive ? 'primary.main' : 'text.secondary',
                   }}
                 >
-                  {step.icon}
+                  {visual.icon}
                 </Box>
 
                 {/* Label */}
@@ -336,18 +338,18 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = React.memo(({
                     lineHeight: 1.3,
                     flex: 1,
                     minWidth: 0,
-                    color: step.done ? 'text.disabled' : isActive ? 'text.primary' : 'text.secondary',
-                    textDecoration: step.done ? 'line-through' : 'none',
+                    color: step.completed ? 'text.disabled' : isActive ? 'text.primary' : 'text.secondary',
+                    textDecoration: step.completed ? 'line-through' : 'none',
                   }}
                   noWrap
                 >
-                  {step.label}
+                  {t(step.labelKey)}
                 </Typography>
 
                 {/* Status */}
-                {step.done ? (
+                {step.completed ? (
                   <CheckCircle sx={{ fontSize: 14, color: 'success.main', flexShrink: 0 }} />
-                ) : isLocked ? (
+                ) : step.locked ? (
                   <Lock sx={{ fontSize: 12, color: 'text.disabled', flexShrink: 0 }} />
                 ) : (
                   <RadioButtonUnchecked sx={{ fontSize: 14, color: 'text.disabled', flexShrink: 0 }} />
@@ -358,17 +360,17 @@ const OnboardingChecklist: React.FC<OnboardingChecklistProps> = React.memo(({
         </Box>
 
         {/* ── CTA: always show for the current active step ─────────── */}
-        {activeCta && (
+        {activeStep && activeVisual && (
           <CtaSection
-            icon={activeCta.icon}
-            gradient={activeCta.gradient}
-            title={t(activeCta.titleKey)}
-            description={t(activeCta.descriptionKey)}
-            actionLabel={t(activeCta.actionKey)}
-            actionIcon={activeCta.actionIcon}
-            onAction={() => handleCtaAction(activeStepIdx)}
+            icon={React.cloneElement(activeVisual.icon as React.ReactElement, { sx: { fontSize: 18, color: '#fff' } })}
+            gradient={activeVisual.gradient}
+            title={t(activeStep.labelKey)}
+            description={t(activeStep.descriptionKey)}
+            actionLabel={t(activeStep.labelKey)}
+            actionIcon={activeVisual.actionIcon}
+            onAction={handleCtaAction}
             isDark={isDark}
-            accentColor={activeCta.accentColor}
+            accentColor={activeVisual.accentColor}
           />
         )}
       </Box>

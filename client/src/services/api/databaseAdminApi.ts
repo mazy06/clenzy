@@ -1,6 +1,6 @@
 import apiClient from '../apiClient';
 import { API_CONFIG } from '../../config/api';
-import { getAccessToken } from '../storageService';
+import { getAccessToken } from '../../keycloak';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -28,6 +28,7 @@ export const databaseAdminApi = {
     // Use fetch to handle auth header, then download blob
     fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     })
       .then((res) => {
         if (!res.ok) throw new Error(`Download failed: ${res.status}`);

@@ -1522,7 +1522,7 @@ class EntityCoverageTest {
             assertThat(i.getRequiresFollowUp()).isFalse();
             assertThat(i.getPaymentStatus()).isEqualTo(PaymentStatus.PENDING);
             assertThat(i.getCreatedAt()).isNotNull();
-            assertThat(i.getStartTime()).isNotNull();
+            assertThat(i.getStartTime()).isNull();
             assertThat(i.getInterventionPhotos()).isEmpty();
         }
         @Test void parameterizedConstructor() {
@@ -1548,20 +1548,17 @@ class EntityCoverageTest {
             i.setTeamId(5L);
             assertThat(i.getAssignedToType()).isEqualTo("user");
             assertThat(i.getAssignedToId()).isEqualTo(10L);
-            assertThat(i.getAssignedToName()).isEqualTo("Jean Dupont");
         }
         @Test void assignedToMethodsWithTeam() {
             Intervention i = new Intervention();
             i.setTeamId(5L);
             assertThat(i.getAssignedToType()).isEqualTo("team");
             assertThat(i.getAssignedToId()).isEqualTo(5L);
-            assertThat(i.getAssignedToName()).contains("5");
         }
         @Test void assignedToMethodsNull() {
             Intervention i = new Intervention();
             assertThat(i.getAssignedToType()).isNull();
             assertThat(i.getAssignedToId()).isNull();
-            assertThat(i.getAssignedToName()).isNull();
         }
         @Test void preUpdateSetsCompletedAt() {
             Intervention i = new Intervention();

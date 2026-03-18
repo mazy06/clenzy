@@ -1,7 +1,7 @@
 import apiClient from '../apiClient';
 import { PaginatedResponse } from '../apiClient';
 import { API_CONFIG } from '../../config/api';
-import { getAccessToken } from '../storageService';
+import { getAccessToken } from '../../keycloak';
 
 export interface ContactAttachment {
   id: string;
@@ -116,6 +116,7 @@ export const contactApi = {
     const token = getAccessToken();
     const response = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
     });
     if (!response.ok) {
       throw new Error(`Erreur ${response.status} lors du telechargement`);
@@ -136,6 +137,7 @@ export const contactApi = {
     const token = getAccessToken();
     const response = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
     });
     if (!response.ok) {
       throw new Error(`Erreur ${response.status} lors du chargement`);

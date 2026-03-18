@@ -61,7 +61,14 @@ public class DocumentNumberingService {
      */
     @Transactional
     public String generateNextNumber(DocumentType type) {
-        String countryCode = tenantContext.getCountryCode();
+        return generateNextNumber(type, tenantContext.getCountryCode(), tenantContext.getRequiredOrganizationId());
+    }
+
+    /**
+     * Surcharge pour contexte async (Kafka) ou le TenantContext n'est pas disponible.
+     */
+    @Transactional
+    public String generateNextNumber(DocumentType type, String countryCode, Long orgId) {
         CountryComplianceStrategy strategy = strategyRegistry.get(countryCode);
 
         if (!strategy.requiresLegalNumber(type)) {
@@ -70,16 +77,16 @@ public class DocumentNumberingService {
                     + " (" + strategy.getStandardName() + ")");
         }
 
-        String prefix = resolvePrefix(type, strategy);
+        String prefix = resolvePrefix(type, strategy, orgId);
         int currentYear = LocalDate.now().getYear();
 
         // Verrouillage pessimiste : SELECT ... FOR UPDATE
         DocumentNumberSequence sequence = sequenceRepository
-                .findByDocumentTypeAndYearForUpdate(type.name(), currentYear, tenantContext.getRequiredOrganizationId())
+                .findByDocumentTypeAndYearForUpdate(type.name(), currentYear, orgId)
                 .orElseGet(() -> {
                     log.info("Creation de la sequence {} pour l'annee {} [{}]", type.name(), currentYear, countryCode);
                     DocumentNumberSequence newSeq = new DocumentNumberSequence(type.name(), currentYear, prefix);
-                    newSeq.setOrganizationId(tenantContext.getRequiredOrganizationId());
+                    newSeq.setOrganizationId(orgId);
                     return sequenceRepository.save(newSeq);
                 });
 
@@ -101,7 +108,13 @@ public class DocumentNumberingService {
      * selon la reglementation du pays de l'organisation.
      */
     public boolean requiresLegalNumber(DocumentType type) {
-        String countryCode = tenantContext.getCountryCode();
+        return requiresLegalNumber(type, tenantContext.getCountryCode());
+    }
+
+    /**
+     * Surcharge pour contexte async (Kafka) ou le TenantContext n'est pas disponible.
+     */
+    public boolean requiresLegalNumber(DocumentType type, String countryCode) {
         CountryComplianceStrategy strategy = strategyRegistry.get(countryCode);
         return strategy.requiresLegalNumber(type);
     }
@@ -122,8 +135,10 @@ public class DocumentNumberingService {
      * 2. Defaut du strategy par pays
      */
     private String resolvePrefix(DocumentType type, CountryComplianceStrategy strategy) {
-        Long orgId = tenantContext.getRequiredOrganizationId();
+        return resolvePrefix(type, strategy, tenantContext.getRequiredOrganizationId());
+    }
 
+    private String resolvePrefix(DocumentType type, CountryComplianceStrategy strategy, Long orgId) {
         if (type == DocumentType.FACTURE) {
             return fiscalProfileRepository.findByOrganizationId(orgId)
                 .filter(fp -> fp.getInvoicePrefix() != null && !fp.getInvoicePrefix().isBlank())

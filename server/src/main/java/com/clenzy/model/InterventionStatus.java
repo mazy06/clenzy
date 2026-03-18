@@ -36,11 +36,19 @@ public enum InterventionStatus {
         return allowed != null && allowed.contains(target);
     }
 
+    public void assertCanTransitionTo(InterventionStatus target) {
+        if (!canTransitionTo(target)) {
+            throw new IllegalStateException(
+                "Transition invalide : " + this.name() + " -> " + target.name()
+                + ". Transitions autorisees depuis " + this.name() + " : " + ALLOWED_TRANSITIONS.getOrDefault(this, Set.of()));
+        }
+    }
+
     public static InterventionStatus fromString(String status) {
         if (status == null) return null;
 
         for (InterventionStatus s : InterventionStatus.values()) {
-            if (s.name().equals(status.toUpperCase())) {
+            if (s.name().equalsIgnoreCase(status)) {
                 return s;
             }
         }

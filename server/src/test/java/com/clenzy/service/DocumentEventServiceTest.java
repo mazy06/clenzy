@@ -39,12 +39,28 @@ class DocumentEventServiceTest {
             event.put("referenceId", 42);
             event.put("referenceType", "INTERVENTION");
             event.put("emailTo", "client@example.com");
+            event.put("organizationId", 7);
 
             service.handleDocumentGenerationEvent(event);
 
             verify(generatorService).generateFromEvent(
-                    DocumentType.BON_INTERVENTION, 42L,
-                    ReferenceType.INTERVENTION, "client@example.com");
+                    eq(DocumentType.BON_INTERVENTION), eq(42L),
+                    eq(ReferenceType.INTERVENTION), eq("client@example.com"), eq(7L));
+        }
+
+        @Test
+        void whenValidEventWithoutOrgId_thenPassesNull() {
+            Map<String, Object> event = new HashMap<>();
+            event.put("documentType", "BON_INTERVENTION");
+            event.put("referenceId", 42);
+            event.put("referenceType", "INTERVENTION");
+            event.put("emailTo", "client@example.com");
+
+            service.handleDocumentGenerationEvent(event);
+
+            verify(generatorService).generateFromEvent(
+                    eq(DocumentType.BON_INTERVENTION), eq(42L),
+                    eq(ReferenceType.INTERVENTION), eq("client@example.com"), isNull());
         }
 
         @Test
@@ -54,7 +70,8 @@ class DocumentEventServiceTest {
 
             service.handleDocumentGenerationEvent(event);
 
-            verify(generatorService, never()).generateFromEvent(any(), anyLong(), any(), anyString());
+            verify(generatorService, never()).generateFromEvent(
+                    any(), anyLong(), any(), anyString(), any());
         }
 
         @Test
@@ -64,7 +81,8 @@ class DocumentEventServiceTest {
 
             service.handleDocumentGenerationEvent(event);
 
-            verify(generatorService, never()).generateFromEvent(any(), anyLong(), any(), anyString());
+            verify(generatorService, never()).generateFromEvent(
+                    any(), anyLong(), any(), anyString(), any());
         }
 
         @Test
@@ -74,12 +92,13 @@ class DocumentEventServiceTest {
             event.put("referenceId", "123");
             event.put("referenceType", "SERVICE_REQUEST");
             event.put("emailTo", null);
+            event.put("organizationId", 5);
 
             service.handleDocumentGenerationEvent(event);
 
             verify(generatorService).generateFromEvent(
-                    DocumentType.DEVIS, 123L,
-                    ReferenceType.SERVICE_REQUEST, null);
+                    eq(DocumentType.DEVIS), eq(123L),
+                    eq(ReferenceType.SERVICE_REQUEST), isNull(), eq(5L));
         }
 
         @Test
@@ -95,7 +114,8 @@ class DocumentEventServiceTest {
                 // IllegalArgumentException is caught for invalid enum
             }
 
-            verify(generatorService, never()).generateFromEvent(any(), anyLong(), any(), anyString());
+            verify(generatorService, never()).generateFromEvent(
+                    any(), anyLong(), any(), anyString(), any());
         }
 
         @Test
@@ -107,7 +127,7 @@ class DocumentEventServiceTest {
             service.handleDocumentGenerationEvent(event);
 
             verify(generatorService).generateFromEvent(
-                    DocumentType.FACTURE, 5L, null, null);
+                    eq(DocumentType.FACTURE), eq(5L), isNull(), isNull(), isNull());
         }
     }
 }
