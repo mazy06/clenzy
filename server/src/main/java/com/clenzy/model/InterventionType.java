@@ -1,5 +1,6 @@
 package com.clenzy.model;
 
+// TODO: This enum is not yet referenced by Intervention entity — wire it in when type validation is added.
 /**
  * Types d'intervention disponibles dans le système
  * Cette énumération doit être synchronisée avec le frontend TypeScript

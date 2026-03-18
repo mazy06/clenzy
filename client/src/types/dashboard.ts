@@ -117,6 +117,12 @@ export interface DashboardStats {
     today: number;
     total: number;
     growth: number;
+    upcoming: number;        // scheduled in next 7 days
+    completed: number;       // status COMPLETED
+    overdue: number;         // scheduled date passed, not completed
+    completionRate: number;  // completed / total * 100
+    totalRevenue: number;    // sum of actualCost (or estimatedCost) for completed interventions
+    monthlyRevenue: number;  // same but for current month only
   };
   revenue: {
     current: number;

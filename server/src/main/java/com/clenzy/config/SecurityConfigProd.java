@@ -76,13 +76,30 @@ public class SecurityConfigProd {
     }
 
     @Bean
+    public TokenCookieFilter tokenCookieFilter() {
+        return new TokenCookieFilter();
+    }
+
+    /**
+     * Desactive l'auto-enregistrement du TokenCookieFilter comme servlet filter.
+     * Meme pattern que TenantFilter : le filter s'execute uniquement dans la security chain.
+     */
+    @Bean
+    public FilterRegistrationBean<TokenCookieFilter> tokenCookieFilterRegistration(TokenCookieFilter tokenCookieFilter) {
+        FilterRegistrationBean<TokenCookieFilter> registration = new FilterRegistrationBean<>(tokenCookieFilter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, TenantFilter tenantFilter,
+                                                    TokenCookieFilter tokenCookieFilter,
                                                     SecurityAuditAccessDeniedHandler accessDeniedHandler,
                                                     SecurityAuditAuthEntryPoint authEntryPoint) throws Exception {
         http
-                // CSRF disabled: architecture JWT stateless sans cookies de session.
-                // Les tokens JWT sont transmis via le header Authorization (Bearer),
-                // ce qui rend les attaques CSRF non applicables (pas de credentials automatiques).
+                // CSRF disabled: le TokenCookieFilter injecte le cookie comme header Authorization,
+                // donc l'auth reste Bearer-based. SameSite=Strict sur le cookie previent le CSRF.
+                // Les requetes cross-origin (booking API) utilisent des API keys, pas de cookies.
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .headers(headers -> headers
@@ -110,6 +127,9 @@ public class SecurityConfigProd {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Endpoints publics
+                        // POST /api/auth/session est authentifie (besoin du JWT pour set le cookie)
+                        // DELETE /api/auth/session est public (le cookie peut etre expire)
+                        .requestMatchers(HttpMethod.DELETE, "/api/auth/session").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/api/webhooks/stripe").permitAll()
@@ -139,6 +159,10 @@ public class SecurityConfigProd {
                         .anyRequest().denyAll()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(keycloakRoleConverter())))
+                // TokenCookieFilter lit le cookie HttpOnly et l'injecte comme Authorization header
+                // AVANT que BearerTokenAuthenticationFilter le lise. Backward-compatible : si le
+                // header Authorization est deja present (appels legacy), le cookie est ignore.
+                .addFilterBefore(tokenCookieFilter, BearerTokenAuthenticationFilter.class)
                 .addFilterAfter(tenantFilter, BearerTokenAuthenticationFilter.class);
 
         return http.build();

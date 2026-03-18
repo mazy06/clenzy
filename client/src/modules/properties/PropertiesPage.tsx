@@ -37,6 +37,7 @@ const PropertiesPage: React.FC = () => {
   // Portal containers: child components render their actions/filters into these DOM elements
   const [actionsContainer, setActionsContainer] = useState<HTMLDivElement | null>(null);
   const [filtersContainer, setFiltersContainer] = useState<HTMLDivElement | null>(null);
+  const [tabInlineContainer, setTabInlineContainer] = useState<HTMLDivElement | null>(null);
 
   // Sync tab to URL param
   const handleTabChange = useCallback((_: React.SyntheticEvent, v: number) => {
@@ -88,6 +89,9 @@ const PropertiesPage: React.FC = () => {
               label={t('propertiesPage.tabs.pricing')}
             />
           </Tabs>
+          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1.5, pr: 1.5 }}>
+            <div ref={setTabInlineContainer} style={PORTAL_STYLE} />
+          </Box>
         </Box>
       </Paper>
 
@@ -96,7 +100,7 @@ const PropertiesPage: React.FC = () => {
         <PropertiesList embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
       )}
       {activeTab === TAB_PRICING && (
-        <DynamicPricing embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} />
+        <DynamicPricing embedded actionsContainer={actionsContainer} filtersContainer={filtersContainer} tabInlineContainer={tabInlineContainer} />
       )}
     </Box>
   );

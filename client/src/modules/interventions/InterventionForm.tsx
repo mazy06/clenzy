@@ -222,7 +222,7 @@ const InterventionForm: React.FC<InterventionFormProps> = ({ onClose, onSuccess,
       estimatedDurationHours: interventionData.estimatedDurationHours || 1,
       estimatedCost: interventionData.estimatedCost ?? undefined,
       notes: interventionData.notes || '',
-      photos: interventionData.photosUrl || '',
+      photos: interventionData.photos || '',
       progressPercentage: interventionData.progressPercentage || 0
     });
   }, [isEditMode, interventionQuery.data, reset]);

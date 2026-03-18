@@ -11,3 +11,13 @@ export function usePendingPayouts() {
     refetchInterval: 5 * 60_000,
   });
 }
+
+/** Returns pending payout for the authenticated prestataire only */
+export function useMyPendingPayout() {
+  return useQuery({
+    queryKey: ['my-pending-payout'],
+    queryFn: () => accountingApi.getMyPendingPayout(),
+    staleTime: 60_000,
+    refetchInterval: 5 * 60_000,
+  });
+}

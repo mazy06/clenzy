@@ -6,10 +6,12 @@ import {
   ImageListItem,
   ImageListItemBar,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
 import {
   PhotoCamera as PhotoCameraIcon,
   Download as DownloadIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import PhotoLightbox from './PhotoLightbox';
 
@@ -19,18 +21,27 @@ import PhotoLightbox from './PhotoLightbox';
 
 export interface PhotoGalleryProps {
   photos: string[];
+  /** Parallel array of photo database IDs (same order as photos) */
+  photoIds?: number[];
   columns?: number;
   maxDisplay?: number;
   emptyMessage?: string;
   showDownload?: boolean;
+  /** Called with the photo's database ID when user clicks delete */
+  onDelete?: (photoId: number) => void;
+  /** The photo ID currently being deleted (shows spinner) */
+  deletingPhotoId?: number | null;
 }
 
 const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   photos,
+  photoIds,
   columns = 3,
   maxDisplay,
   emptyMessage = 'Aucune photo disponible',
   showDownload = false,
+  onDelete,
+  deletingPhotoId,
 }) => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -78,15 +89,19 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   const displayPhotos = hasOverflow ? photos.slice(0, maxDisplay) : photos;
   const overflowCount = hasOverflow ? photos.length - maxDisplay! : 0;
 
+  const canDelete = onDelete && photoIds && photoIds.length === photos.length;
+
   return (
     <Box>
       <ImageList cols={columns} gap={8} sx={{ width: '100%', height: 'auto' }}>
         {displayPhotos.map((photoUrl, index) => {
           const isLastWithOverflow = hasOverflow && index === displayPhotos.length - 1;
+          const photoId = photoIds?.[index];
+          const isDeleting = deletingPhotoId != null && photoId === deletingPhotoId;
 
           return (
             <ImageListItem
-              key={`gallery-${index}`}
+              key={`gallery-${photoId ?? index}`}
               sx={{
                 cursor: 'pointer',
                 overflow: 'hidden',
@@ -95,6 +110,10 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                 '&:hover img': {
                   transform: 'scale(1.05)',
                 },
+                '&:hover .photo-actions': {
+                  opacity: 1,
+                },
+                ...(isDeleting && { opacity: 0.5, pointerEvents: 'none' }),
               }}
               onClick={() => handlePhotoClick(index)}
             >
@@ -110,50 +129,73 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                 }}
               />
 
+              {/* Loading overlay when deleting */}
+              {isDeleting && (
+                <Box sx={{
+                  position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  bgcolor: 'rgba(255,255,255,0.6)',
+                }}>
+                  <CircularProgress size={24} />
+                </Box>
+              )}
+
               {/* Overlay "+N more" sur la dernière photo */}
               {isLastWithOverflow && (
                 <Box
                   sx={{
                     position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
+                    top: 0, left: 0, right: 0, bottom: 0,
                     bgcolor: 'rgba(0, 0, 0, 0.6)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Typography
-                    variant="h6"
-                    sx={{ color: 'white', fontWeight: 700 }}
-                  >
+                  <Typography variant="h6" sx={{ color: 'white', fontWeight: 700 }}>
                     +{overflowCount}
                   </Typography>
                 </Box>
               )}
 
-              {/* Bouton de téléchargement */}
-              {showDownload && !isLastWithOverflow && (
+              {/* Action bar (delete + download) */}
+              {!isLastWithOverflow && (canDelete || showDownload) && (
                 <ImageListItemBar
+                  className="photo-actions"
                   sx={{
-                    background:
-                      'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)',
+                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)',
+                    opacity: 0,
+                    transition: 'opacity 0.2s ease',
                   }}
                   position="top"
                   actionPosition="right"
                   actionIcon={
-                    <IconButton
-                      size="small"
-                      sx={{ color: 'white' }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(photoUrl, index);
-                      }}
-                    >
-                      <DownloadIcon fontSize="small" />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', gap: 0.25 }}>
+                      {canDelete && photoId != null && (
+                        <IconButton
+                          size="small"
+                          sx={{ color: 'white', '&:hover': { color: 'error.light' } }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(photoId);
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                      {showDownload && (
+                        <IconButton
+                          size="small"
+                          sx={{ color: 'white' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(photoUrl, index);
+                          }}
+                        >
+                          <DownloadIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
                   }
                 />
               )}

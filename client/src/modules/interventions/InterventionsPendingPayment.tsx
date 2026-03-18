@@ -47,6 +47,7 @@ interface Intervention {
   propertyType?: string;
   propertyName: string;
   propertyAddress: string;
+  requestorId?: number;
   requestorName: string;
   scheduledDate: string;
   estimatedDurationHours: number;
@@ -98,11 +99,14 @@ const InterventionsPendingPayment: React.FC = () => {
       const data = await interventionsApi.getAll({ status: 'AWAITING_PAYMENT' });
       const allInterventions = extractApiList<Intervention>(data);
       // Filter to current user's interventions
-      const userFullName = user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
       return allInterventions.filter((intervention: Intervention) => {
-        return intervention.requestorName === userFullName ||
-               intervention.requestorName === user?.username ||
-               intervention.requestorName === user?.email;
+        // Primary: match by database ID (reliable)
+        if (user?.databaseId && intervention.requestorId) {
+          return intervention.requestorId === user.databaseId;
+        }
+        // Fallback: match by name (legacy, for interventions without requestorId)
+        const userFullName = user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+        return intervention.requestorName === userFullName;
       });
     },
     enabled: hasAccess,

@@ -11,6 +11,14 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Min;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+/**
+ * @deprecated Use {@link CreateInterventionRequest}, {@link UpdateInterventionRequest},
+ * and {@link InterventionResponse} instead. Retained temporarily for ServiceRequestService compatibility.
+ */
+@Deprecated(forRemoval = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class InterventionDto {
     public Long id;
 
@@ -24,7 +32,6 @@ public class InterventionDto {
     @NotBlank(groups = Create.class)
     public String type;
 
-    @NotBlank(groups = Create.class)
     public String status;
 
     @NotBlank(groups = Create.class)
@@ -53,6 +60,8 @@ public class InterventionDto {
     public String photos; // Ancien champ pour compatibilité
     public String beforePhotosUrls; // URLs des photos avant intervention
     public String afterPhotosUrls; // URLs des photos après intervention
+    public String beforePhotoIds; // JSON array of photo IDs matching beforePhotosUrls order
+    public String afterPhotoIds; // JSON array of photo IDs matching afterPhotosUrls order
     public String validatedRooms; // JSON array des indices des pièces validées (ex: "[0,1,2]")
     public String completedSteps; // JSON array des étapes complétées (ex: "[\"inspection\",\"rooms\",\"after_photos\"]")
     public Integer progressPercentage;

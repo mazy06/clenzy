@@ -9,6 +9,8 @@ import {
   StepNotes,
   parsePhotos
 } from './interventionUtils';
+import { useTranslation } from '../../hooks/useTranslation';
+import { documentKeys } from '../documents/hooks/useDocuments';
 
 /**
  * Loaded data produced by the initial fetch, consumed by sibling hooks
@@ -34,13 +36,13 @@ const detailKeys = {
 };
 
 export function useInterventionState(id: string | undefined) {
+  const { t } = useTranslation();
   const { user, hasPermissionAsync, isTechnician, isHousekeeper, isSupervisor } = useAuth();
   const queryClient = useQueryClient();
 
   // UI-only state
   const [starting, setStarting] = useState(false);
   const [completing, setCompleting] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Local intervention state (updated by mutations in child hooks)
@@ -49,6 +51,7 @@ export function useInterventionState(id: string | undefined) {
   // Permission states
   const [canViewInterventions, setCanViewInterventions] = useState(false);
   const [canEditInterventions, setCanEditInterventions] = useState(false);
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
 
   // ------------------------------------------------------------------
   // Permission checks
@@ -56,16 +59,13 @@ export function useInterventionState(id: string | undefined) {
 
   useEffect(() => {
     const checkPermissions = async () => {
-      const canView = await hasPermissionAsync('interventions:view');
+      const [canView, canEdit] = await Promise.all([
+        hasPermissionAsync('interventions:view'),
+        hasPermissionAsync('interventions:edit'),
+      ]);
       setCanViewInterventions(canView);
-    };
-    checkPermissions();
-  }, [hasPermissionAsync]);
-
-  useEffect(() => {
-    const checkPermissions = async () => {
-      const canEdit = await hasPermissionAsync('interventions:edit');
       setCanEditInterventions(canEdit);
+      setPermissionsLoaded(true);
     };
     checkPermissions();
   }, [hasPermissionAsync]);
@@ -76,7 +76,7 @@ export function useInterventionState(id: string | undefined) {
 
   const interventionQuery = useQuery({
     queryKey: interventionsKeys.detail(id ?? ''),
-    queryFn: () => interventionsApi.getById(Number(id)) as unknown as Promise<InterventionDetailsData>,
+    queryFn: () => interventionsApi.getById(Number(id)),
     enabled: !!id,
     staleTime: 30_000,
   });
@@ -90,9 +90,9 @@ export function useInterventionState(id: string | undefined) {
 
   useEffect(() => {
     if (interventionQuery.error) {
-      setError('Erreur lors du chargement de l\'intervention');
+      setError(t('interventions.detailErrors.loading'));
     }
-  }, [interventionQuery.error]);
+  }, [interventionQuery.error, t]);
 
   // ------------------------------------------------------------------
   // React Query: load property details
@@ -102,23 +102,30 @@ export function useInterventionState(id: string | undefined) {
     queryKey: detailKeys.property(id ?? ''),
     queryFn: async (): Promise<PropertyDetails | null> => {
       if (!interventionQuery.data?.propertyId) return null;
-      try {
-        const rawProperty = await propertiesApi.getById(interventionQuery.data.propertyId);
-        return {
-          bedroomCount: rawProperty.bedroomCount,
-          bathroomCount: rawProperty.bathroomCount,
-          bedrooms: rawProperty.bedroomCount,
-          bathrooms: rawProperty.bathroomCount,
-        };
-      } catch {
-        return null;
-      }
+      const rawProperty = await propertiesApi.getById(interventionQuery.data.propertyId);
+      return {
+        bedroomCount: rawProperty.bedroomCount,
+        bathroomCount: rawProperty.bathroomCount,
+      };
     },
+    retry: 1,
     enabled: !!interventionQuery.data?.propertyId,
     staleTime: 60_000,
   });
 
-  const propertyDetails = propertyQuery.data ?? null;
+  useEffect(() => {
+    if (propertyQuery.error) {
+      setError(t('interventions.detailErrors.loadingProperty'));
+    }
+  }, [propertyQuery.error, t]);
+
+  const propertyDetails = useMemo<PropertyDetails | null>(() => {
+    if (!propertyQuery.data) return null;
+    return {
+      bedroomCount: propertyQuery.data.bedroomCount,
+      bathroomCount: propertyQuery.data.bathroomCount,
+    };
+  }, [propertyQuery.data?.bedroomCount, propertyQuery.data?.bathroomCount]);
 
   // ------------------------------------------------------------------
   // Derived initial load data for sibling hooks (memoized)
@@ -159,12 +166,14 @@ export function useInterventionState(id: string | undefined) {
     }
 
     // ---- After photos ----
+    // On ne re-derive PAS 'after_photos' a partir de afterPhotosUrls.
+    // Seul le completedSteps persiste cote serveur fait foi.
+    // Sinon lors d'un reopen (qui retire 'after_photos' des completedSteps
+    // mais conserve les URLs), la re-hydratation re-ajouterait le step
+    // et la progression recalculerait a 100% → auto-completion.
     let loadedAfterPhotos: string[] = [];
     if (data.afterPhotosUrls) {
       loadedAfterPhotos = parsePhotos(data.afterPhotosUrls);
-      if (loadedAfterPhotos.length > 0) {
-        computedCompletedSteps.add('after_photos');
-      }
     }
 
     // ---- Notes ----
@@ -194,10 +203,10 @@ export function useInterventionState(id: string | undefined) {
         if (Array.isArray(parsedRooms)) {
           loadedValidatedRooms = new Set(parsedRooms);
           if (loadedPropertyDetails) {
-            const totalRooms = (loadedPropertyDetails.bedrooms || 0) +
-              (loadedPropertyDetails.bathrooms || 0) +
-              (loadedPropertyDetails.livingRooms || 0) +
-              (loadedPropertyDetails.kitchens || 0);
+            const totalRooms = (loadedPropertyDetails.bedroomCount || 0) +
+              (loadedPropertyDetails.bathroomCount || 0) +
+              (loadedPropertyDetails.livingRooms ?? 1) +
+              (loadedPropertyDetails.kitchens ?? 1);
             if (parsedRooms.length === totalRooms && totalRooms > 0) {
               computedAllRoomsValidated = true;
               computedCompletedSteps.add('rooms');
@@ -227,58 +236,84 @@ export function useInterventionState(id: string | undefined) {
   // Computed permission helpers
   // ------------------------------------------------------------------
 
-  const canStartOrUpdateIntervention = (): boolean => {
+  const canStartOrUpdateIntervention = useMemo(() => {
     if (!intervention) return false;
     const isOperationalUser = isTechnician() || isHousekeeper() || isSupervisor();
     if (!isOperationalUser) return false;
-    return intervention.assignedToId !== undefined && intervention.assignedToId !== null;
-  };
+    if (intervention.assignedToId === undefined || intervention.assignedToId === null) return false;
+    if (intervention.assignedToType === 'user') {
+      return user?.databaseId === intervention.assignedToId;
+    }
+    return true;
+  }, [intervention, user?.databaseId, isTechnician, isHousekeeper, isSupervisor]);
 
-  const canStartIntervention = (): boolean => {
+  const canStartIntervention = useMemo(() => {
     if (!intervention) return false;
-    return canStartOrUpdateIntervention() && intervention.status === 'PENDING';
-  };
+    return canStartOrUpdateIntervention && intervention.status === 'PENDING';
+  }, [intervention, canStartOrUpdateIntervention]);
 
-  const canUpdateProgress = (): boolean => {
+  const canUpdateProgress = useMemo(() => {
     if (!intervention) return false;
-    return canStartOrUpdateIntervention() && intervention.status === 'IN_PROGRESS';
-  };
+    return canStartOrUpdateIntervention && intervention.status === 'IN_PROGRESS';
+  }, [intervention, canStartOrUpdateIntervention]);
 
-  const canModifyIntervention = (): boolean => {
+  const canModifyIntervention = useMemo(() => {
     if (canEditInterventions) return true;
     if (!intervention) return false;
-    if (intervention.assignedToType === 'team') return true;
     if (intervention.assignedToType === 'user') {
-      return String(user?.id) === String(intervention.assignedToId);
+      return user?.databaseId === intervention.assignedToId;
+    }
+    if (intervention.assignedToType === 'team') {
+      return isTechnician() || isHousekeeper() || isSupervisor();
     }
     return false;
-  };
+  }, [canEditInterventions, intervention, user?.databaseId, isTechnician, isHousekeeper, isSupervisor]);
 
   // ------------------------------------------------------------------
   // Mutations: start & complete
   // ------------------------------------------------------------------
 
+  const [startSuccessMessage, setStartSuccessMessage] = useState<string | null>(null);
+
   const startMutation = useMutation({
-    mutationFn: () => interventionsApi.start(Number(id)) as unknown as Promise<InterventionDetailsData>,
+    mutationFn: () => interventionsApi.start(Number(id)),
     onSuccess: (updated) => {
       setIntervention(updated);
+      if (id) queryClient.setQueryData(interventionsKeys.detail(String(id)), updated);
       setError(null);
-      queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
+      setStartSuccessMessage(t('interventions.detailErrors.startSuccess'));
+      queryClient.invalidateQueries({ queryKey: interventionsKeys.lists() });
     },
     onError: (err: Error) => {
-      setError(err.message || 'Erreur lors du démarrage de l\'intervention');
+      setError(err.message || t('interventions.detailErrors.starting'));
     },
   });
 
   const completeMutation = useMutation({
-    mutationFn: () => interventionsApi.updateProgress(Number(id), 100) as unknown as Promise<InterventionDetailsData>,
+    mutationFn: () => interventionsApi.complete(Number(id)),
     onSuccess: (updated) => {
       setIntervention(updated);
+      if (id) queryClient.setQueryData(interventionsKeys.detail(String(id)), updated);
       setError(null);
-      queryClient.invalidateQueries({ queryKey: interventionsKeys.all });
+      queryClient.invalidateQueries({ queryKey: interventionsKeys.lists() });
+      // Documents are generated asynchronously via Kafka (~2-3s).
+      // Invalidate the document query after a delay so the recap shows them.
+      if (id) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({
+            queryKey: documentKeys.generationsByReference('INTERVENTION', Number(id)),
+          });
+        }, 4000);
+        // Second attempt in case Kafka was slower
+        setTimeout(() => {
+          queryClient.invalidateQueries({
+            queryKey: documentKeys.generationsByReference('INTERVENTION', Number(id)),
+          });
+        }, 8000);
+      }
     },
     onError: (err: Error) => {
-      setError(err.message || 'Erreur lors de la finalisation de l\'intervention');
+      setError(err.message || t('interventions.detailErrors.completing'));
     },
   });
 
@@ -314,15 +349,13 @@ export function useInterventionState(id: string | undefined) {
     starting,
     completing,
     setCompleting,
-    showSidebar,
-    setShowSidebar,
-
     // Property
     propertyDetails,
 
     // Permissions
     canViewInterventions,
     canEditInterventions,
+    permissionsLoaded,
 
     // Computed helpers
     canStartOrUpdateIntervention,
@@ -333,6 +366,10 @@ export function useInterventionState(id: string | undefined) {
     // Actions
     handleStartIntervention,
     handleCompleteIntervention,
+
+    // Success feedback
+    startSuccessMessage,
+    setStartSuccessMessage,
 
     // Initial load data for sibling hooks
     initialLoadData,

@@ -29,7 +29,6 @@ export interface PropertyDetailsData {
   maxGuests: number;
   contactPhone: string;
   contactEmail: string;
-  rating?: number;
   lastCleaning?: string;
   nextCleaning?: string;
   ownerId?: string;
@@ -102,7 +101,6 @@ function convertProperty(raw: Property): PropertyDetailsData {
     maxGuests: raw.maxGuests || 2,
     contactPhone: '',
     contactEmail: '',
-    rating: 4.5,
     lastCleaning: undefined,
     nextCleaning: undefined,
     ownerId: raw.ownerId?.toString(),

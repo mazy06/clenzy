@@ -556,6 +556,12 @@ export const useDashboardStats = (userRole?: string, user?: AuthUser | null, t?:
           today: interventionsStats.today,
           total: interventionsStats.total,
           growth: calculateGrowth(interventionsStats.today, interventionsStats.previous),
+          upcoming: 0,
+          completed: 0,
+          overdue: 0,
+          completionRate: 0,
+          totalRevenue: 0,
+          monthlyRevenue: 0,
         },
         revenue: {
           current: revenueStats.current,

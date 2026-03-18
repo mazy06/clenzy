@@ -111,7 +111,18 @@
       "monthlyRevenue": "Revenus du mois",
       "myNotifications": "Mes notifications",
       "assignedInterventions": "Interventions assignées",
-      "completedInterventions": "Interventions terminées",
+      "completedInterventions": "Terminées",
+      "upcomingInterventions": "À venir",
+      "overdueInterventions": "En retard",
+      "next7days": "7 prochains jours",
+      "completionRate": "complétion",
+      "serviceRequests": "Demandes de service",
+      "totalEarnings": "Revenus totaux",
+      "allCompletedInterventions": "Toutes interventions terminées",
+      "monthlyEarnings": "Revenus du mois",
+      "nextPayout": "Prochain reversement",
+      "pendingPayouts": "reversement(s) en attente",
+      "noPayoutPending": "Aucun reversement en attente",
       "workTime": "Temps de travail",
       "team": "Équipe"
     },
@@ -313,6 +324,7 @@
       "title": "Planning 7 jours",
       "viewAll": "Voir tout",
       "noProperties": "Ajoutez votre premier logement pour voir le planning ici",
+      "noInterventions": "Aucune intervention planifiée dans les 7 prochains jours",
       "addProperty": "Créer un logement",
       "legend": {
         "reservation": "Réservation",
@@ -1200,6 +1212,125 @@
       "RESTORATION": "Remise en État",
       "INSPECTION": "Inspection",
       "OTHER": "Autre"
+    },
+    "detail": {
+      "title": "Détails de l'intervention",
+      "subtitle": "Consultation et gestion des informations de l'intervention",
+      "backToList": "Retour aux interventions",
+      "editButton": "Modifier",
+      "unauthorized": "Accès non autorisé",
+      "unauthorizedMessage": "Vous n'avez pas les permissions nécessaires pour visualiser les détails des interventions.",
+      "unauthorizedContact": "Contactez votre administrateur si vous pensez qu'il s'agit d'une erreur.",
+      "property": "Propriété",
+      "requestor": "Demandeur",
+      "assignedTo": "Assigné à",
+      "teamType": "Équipe",
+      "userType": "Utilisateur",
+      "roles": {
+        "HOUSEKEEPER": "Housekeeper",
+        "TECHNICIAN": "Technicien",
+        "SUPERVISOR": "Superviseur",
+        "LAUNDRY": "Blanchisserie",
+        "EXTERIOR_TECH": "Tech. Extérieur",
+        "HOST": "Hôte"
+      },
+      "estimatedDuration": "Durée estimée",
+      "costLabel": "Coût: {{cost}}",
+      "planned": "Planifié",
+      "start": "Début",
+      "end": "Fin",
+      "notes": "Notes",
+      "beforePhotosStandalone": "Photos avant intervention"
+    },
+    "progressSteps": {
+      "inspection": "Inspection",
+      "rooms": "Pièces",
+      "photos": "Photos",
+      "recap": "Récap",
+      "progression": "Progression",
+      "inspectionTitle": "Inspection générale",
+      "inspectionDescription": "Vérifiez l'état des lieux et prenez des photos avant l'intervention.",
+      "beforePhotosCount": "{{count}} photo(s) avant intervention",
+      "afterPhotosCount": "{{count}} photo(s) après intervention",
+      "addPhotos": "Ajouter photos",
+      "addNote": "Ajouter note",
+      "editNote": "Modifier note",
+      "validateInspection": "Valider l'inspection",
+      "roomValidation": "Validation des pièces",
+      "roomValidationDesc": "Cliquez sur chaque pièce pour la marquer comme nettoyée.",
+      "afterPhotosTitle": "Photos après intervention",
+      "afterPhotosDesc": "Prenez des photos des pièces après l'intervention pour finaliser.",
+      "completing": "Finalisation...",
+      "complete": "Terminer l'intervention",
+      "recapTitle": "Récapitulatif de l'intervention",
+      "recapInspection": "Inspection",
+      "recapRooms": "Pièces ({{validated}}/{{total}})",
+      "recapAfterPhotos": "Photos après",
+      "beforePhotosShort": "{{count}} photo(s) avant",
+      "afterPhotosShort": "{{count}} photo(s) après",
+      "startIntervention": "Démarrer l'intervention",
+      "startDescription": "Démarrez l'intervention pour accéder aux étapes de progression. Un bon d'intervention sera automatiquement envoyé par email.",
+      "starting": "Démarrage...",
+      "completedMessage": "Intervention terminée. Vous pouvez la rouvrir pour effectuer des modifications.",
+      "reopen": "Réouvrir",
+      "reopening": "Réouverture...",
+      "documents": "Documents ({{count}})",
+      "docGenerated": "Généré",
+      "emailFailed": "Email échoué",
+      "viewPdf": "Voir",
+      "download": "Télécharger"
+    },
+    "roomNames": {
+      "bedroom": "Chambre",
+      "bedroom_n": "Chambre {{n}}",
+      "bathroom": "Salle de bain",
+      "bathroom_n": "Salle de bain {{n}}",
+      "livingRoom": "Salon",
+      "livingRoom_n": "Salon {{n}}",
+      "kitchen": "Cuisine",
+      "kitchen_n": "Cuisine {{n}}"
+    },
+    "detailErrors": {
+      "loading": "Erreur lors du chargement de l'intervention",
+      "starting": "Erreur lors du démarrage de l'intervention",
+      "completing": "Erreur lors de la finalisation de l'intervention",
+      "reopening": "Erreur lors de la réouverture de l'intervention",
+      "updatingProgress": "Erreur lors de la mise à jour de la progression",
+      "addingPhotos": "Erreur lors de l'ajout des photos",
+      "deletingPhoto": "Erreur lors de la suppression de la photo",
+      "startSuccess": "Intervention démarrée ! Un bon d'intervention a été généré et envoyé par email.",
+      "loadingProperty": "Erreur lors du chargement des détails de la propriété",
+      "updatingNotes": "Erreur lors de la mise à jour des notes",
+      "mustUploadBeforePhotosFirst": "Veuillez d'abord ajouter des photos avant intervention"
+    },
+    "dialogs": {
+      "cancel": "Annuler",
+      "update": "Mettre à jour",
+      "updating": "Mise à jour...",
+      "add": "Ajouter",
+      "progressTitle": "Mettre à jour la progression",
+      "progressDescription": "Définissez le pourcentage de progression de l'intervention",
+      "notesInspectionTitle": "Notes de l'inspection générale",
+      "notesRoomsTitle": "Notes de validation des pièces",
+      "notesAfterTitle": "Notes finales (après intervention)",
+      "notesInspectionAlert": "Ajoutez des notes sur l'état de l'appartement avant l'intervention (casses, problèmes détectés, etc.)",
+      "notesRoomsAlert": "Ajoutez des notes sur la validation des pièces (problèmes rencontrés, points d'attention, etc.)",
+      "notesAfterAlert": "Ajoutez des notes finales sur l'intervention (remarques, points à suivre, etc.)",
+      "notesInspectionPlaceholder": "Ex: Aucune casse détectée, appartement en bon état général...",
+      "notesRoomsPlaceholder": "Ex: Toutes les pièces nettoyées, quelques taches difficiles dans la salle de bain...",
+      "notesAfterPlaceholder": "Ex: Intervention terminée avec succès, client satisfait...",
+      "notesAutoSave": "Les modifications sont sauvegardées automatiquement après 2 secondes d'inactivité.",
+      "saving": "Enregistrement...",
+      "save": "Enregistrer",
+      "photosBeforeTitle": "Photos avant l'intervention",
+      "photosAfterTitle": "Photos après l'intervention",
+      "photosBeforeAlert": "Prenez des photos de toutes les pièces pour vérifier qu'il n'y a aucune casse avant de commencer l'intervention.",
+      "photosAfterAlert": "Prenez des photos de toutes les pièces après le nettoyage pour finaliser l'intervention.",
+      "photosBeforeLabel": "Photos avant intervention",
+      "photosAfterLabel": "Photos après intervention",
+      "photosBeforeHelper": "Ces photos serviront de référence pour l'inspection générale.",
+      "photosAfterHelper": "Ces photos confirmeront que l'intervention est terminée.",
+      "uploading": "Upload..."
     }
   },
   "reservations": {
@@ -1210,6 +1341,8 @@
     "cancel": "Annuler la réservation",
     "cancelConfirm": "Voulez-vous vraiment annuler cette réservation ?",
     "noReservations": "Aucune réservation trouvée",
+    "search": "Rechercher une réservation...",
+    "reservation": "réservation",
     "fields": {
       "guestName": "Nom du voyageur",
       "guestEmail": "Email du voyageur",
@@ -1313,6 +1446,7 @@
     "createFirst": "Créer votre première équipe",
     "edit": "Modifier l'équipe",
     "details": "Détails de l'équipe",
+    "searchPlaceholder": "Rechercher une équipe...",
     "allTypes": "Tous les types",
     "team": "équipe",
     "teams": "équipes",
@@ -3321,6 +3455,54 @@
         "INCLUDED": "Incluse au payout",
         "PAID": "Payée",
         "CANCELLED": "Annulée"
+      }
+    }
+  },
+  "onboarding": {
+    "steps": {
+      "configureOrg": {
+        "label": "Configurer l'organisation",
+        "description": "Renseignez les informations de votre organisation : nom, adresse, logo et coordonnées."
+      },
+      "inviteMembers": {
+        "label": "Inviter des membres",
+        "description": "Ajoutez vos collaborateurs et attribuez-leur des rôles pour une gestion collaborative."
+      },
+      "setupSettings": {
+        "label": "Paramétrer la plateforme",
+        "description": "Configurez les préférences de notifications, devises et paramètres généraux."
+      },
+      "createProperty": {
+        "label": "Créer votre première propriété",
+        "description": "Ajoutez votre premier logement pour commencer à gérer vos réservations et interventions."
+      },
+      "configureDetails": {
+        "label": "Configurer les détails",
+        "description": "Ajoutez les informations essentielles : chambres, équipements, horaires de check-in/check-out."
+      },
+      "definePricing": {
+        "label": "Définir la tarification",
+        "description": "Créez vos plans tarifaires pour optimiser vos revenus automatiquement."
+      },
+      "connectChannels": {
+        "label": "Connecter les canaux",
+        "description": "Synchronisez vos calendriers Airbnb, Booking ou autre plateforme via un lien iCal."
+      },
+      "configureBilling": {
+        "label": "Configurer la facturation",
+        "description": "Renseignez vos informations fiscales et légales pour générer des factures conformes."
+      },
+      "completeProfile": {
+        "label": "Compléter votre profil",
+        "description": "Renseignez vos informations personnelles : téléphone, adresse et photo de profil."
+      },
+      "viewInterventions": {
+        "label": "Consulter vos interventions",
+        "description": "Découvrez la liste de vos interventions assignées et familiarisez-vous avec l'interface."
+      },
+      "createTeam": {
+        "label": "Créer une équipe",
+        "description": "Constituez votre première équipe de techniciens ou housekeepers pour gérer les interventions."
       }
     }
   }

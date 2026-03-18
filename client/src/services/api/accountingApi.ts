@@ -138,6 +138,10 @@ export const accountingApi = {
     return apiClient.get<PendingPayoutCount>('/accounting/payouts/pending-count');
   },
 
+  async getMyPendingPayout(): Promise<PendingPayoutCount> {
+    return apiClient.get<PendingPayoutCount>('/accounting/payouts/my-pending');
+  },
+
   async getCommissions(): Promise<ChannelCommission[]> {
     return apiClient.get<ChannelCommission[]>('/accounting/commissions');
   },

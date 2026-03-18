@@ -31,6 +31,7 @@ import {
   DateRange as StepPeriodIcon,
   FileDownload as StepExportIcon,
   Inventory as StepFormatIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import PageHeader from '../../components/PageHeader';
 import HelpBanner from '../../components/HelpBanner';
@@ -48,8 +49,8 @@ import {
   useCommissions,
   useSaveCommission,
 } from '../../hooks/useAccounting';
-import type { OwnerPayout, ChannelCommission, PayoutStatus } from '../../services/api/accountingApi';
-import { PAYOUT_STATUS_COLORS } from '../../services/api/accountingApi';
+import type { OwnerPayout, OwnerPayoutConfig, ChannelCommission, PayoutStatus } from '../../services/api/accountingApi';
+import { PAYOUT_STATUS_COLORS, accountingApi } from '../../services/api/accountingApi';
 import {
   providerExpensesApi,
   EXPENSE_STATUS_COLORS,
@@ -155,6 +156,22 @@ export const PayoutsTab: React.FC = () => {
   const [payOpen, setPayOpen] = useState(false);
   const [payTarget, setPayTarget] = useState<OwnerPayout | null>(null);
   const [payRef, setPayRef] = useState('');
+
+  // Detail modal
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailPayout, setDetailPayout] = useState<OwnerPayout | null>(null);
+
+  // Owner payout configs (IBAN, BIC, holder)
+  const { data: payoutConfigs = [] } = useQuery<OwnerPayoutConfig[]>({
+    queryKey: ['ownerPayoutConfigs'],
+    queryFn: () => accountingApi.getAllOwnerPayoutConfigs(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const configByOwnerId = useMemo(() => {
+    const map = new Map<number, OwnerPayoutConfig>();
+    for (const c of payoutConfigs) map.set(c.ownerId, c);
+    return map;
+  }, [payoutConfigs]);
 
   // Data
   const ownerId = filterOwnerId === '' ? undefined : filterOwnerId;
@@ -406,7 +423,8 @@ export const PayoutsTab: React.FC = () => {
                       }}
                     />
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.25 }}>
                     {payout.status === 'PENDING' && (
                       <Tooltip title={t('accounting.approve', 'Approuver')}>
                         <IconButton
@@ -449,13 +467,16 @@ export const PayoutsTab: React.FC = () => {
                     )}
                     {payout.status === 'PROCESSING' && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <Chip
-                          label={t('accounting.processing', 'En cours...')}
-                          size="small"
-                          sx={{ fontSize: '0.625rem', height: 20, fontWeight: 600 }}
-                          color="secondary"
-                          variant="outlined"
-                        />
+                        <Tooltip title={t('accounting.markAsPaid', 'Marquer comme payé')}>
+                          <IconButton
+                            size="small"
+                            color="success"
+                            onClick={() => openPayDialog(payout)}
+                            disabled={markPaidMutation.isPending}
+                          >
+                            <PaidIcon sx={{ fontSize: '1rem' }} />
+                          </IconButton>
+                        </Tooltip>
                         {payout.payoutMethod === 'SEPA_TRANSFER' && (
                           <Tooltip title={t('accounting.downloadSepaXml', 'SEPA XML')}>
                             <IconButton
@@ -495,6 +516,18 @@ export const PayoutsTab: React.FC = () => {
                         </Typography>
                       </Tooltip>
                     )}
+                    {/* Detail button — all statuses except PENDING */}
+                    {payout.status !== 'PENDING' && (
+                      <Tooltip title={t('accounting.viewDetail', 'Voir le détail')}>
+                        <IconButton
+                          size="small"
+                          onClick={() => { setDetailPayout(payout); setDetailOpen(true); }}
+                        >
+                          <VisibilityIcon sx={{ fontSize: '1rem' }} />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}
@@ -546,6 +579,100 @@ export const PayoutsTab: React.FC = () => {
             sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
           >
             {markPaidMutation.isPending ? <CircularProgress size={16} /> : t('accounting.confirmPaid', 'Confirmer paiement')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          Detail SEPA Modal
+          ═══════════════════════════════════════════════════════════════════════ */}
+      <Dialog
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ fontSize: '0.9375rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AccountIcon sx={{ fontSize: '1.25rem', color: 'primary.main' }} />
+          {t('accounting.payoutDetail', 'Détail du reversement')}
+        </DialogTitle>
+        {detailPayout && (() => {
+          const config = configByOwnerId.get(detailPayout.ownerId);
+          return (
+            <DialogContent sx={{ pt: '8px !important' }}>
+              <Table size="small" sx={{ '& td, & th': { fontSize: '0.8125rem', py: 0.75, border: 'none' } }}>
+                <TableBody>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary', width: 160 }}>Bénéficiaire</TableCell>
+                    <TableCell>{config?.bankAccountHolder || detailPayout.ownerName || '—'}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>IBAN</TableCell>
+                    <TableCell sx={{ fontFamily: 'monospace', letterSpacing: 1 }}>{config?.maskedIban || '—'}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>BIC</TableCell>
+                    <TableCell sx={{ fontFamily: 'monospace' }}>{config?.bic || '—'}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Méthode</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={detailPayout.payoutMethod === 'SEPA_TRANSFER' ? 'Virement SEPA' : detailPayout.payoutMethod === 'STRIPE_CONNECT' ? 'Stripe Connect' : 'Manuel'}
+                        size="small"
+                        sx={{ fontSize: '0.6875rem', height: 22 }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                  <TableRow><TableCell colSpan={2} sx={{ pt: '12px !important' }}><Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} /></TableCell></TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Période</TableCell>
+                    <TableCell>{detailPayout.periodStart} → {detailPayout.periodEnd}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Revenu brut</TableCell>
+                    <TableCell>{fmtCurrency(detailPayout.grossRevenue)}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Commission ({(detailPayout.commissionRate * 100).toFixed(1)}%)</TableCell>
+                    <TableCell sx={{ color: 'error.main' }}>- {fmtCurrency(detailPayout.commissionAmount)}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Dépenses</TableCell>
+                    <TableCell sx={{ color: detailPayout.expenses > 0 ? 'error.main' : 'text.secondary' }}>
+                      {detailPayout.expenses > 0 ? `- ${fmtCurrency(detailPayout.expenses)}` : fmtCurrency(0)}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow><TableCell colSpan={2}><Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} /></TableCell></TableRow>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.875rem' }}>Net à virer</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.875rem', color: 'success.main' }}>{fmtCurrency(detailPayout.netAmount)}</TableCell>
+                  </TableRow>
+                  {detailPayout.paymentReference && (
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Réf. paiement</TableCell>
+                      <TableCell sx={{ fontFamily: 'monospace' }}>{detailPayout.paymentReference}</TableCell>
+                    </TableRow>
+                  )}
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.secondary' }}>Statut</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={detailPayout.status}
+                        size="small"
+                        sx={{ fontSize: '0.6875rem', height: 22, bgcolor: PAYOUT_STATUS_COLORS[detailPayout.status], color: '#fff' }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </DialogContent>
+          );
+        })()}
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDetailOpen(false)} size="small" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
+            {t('common.close', 'Fermer')}
           </Button>
         </DialogActions>
       </Dialog>

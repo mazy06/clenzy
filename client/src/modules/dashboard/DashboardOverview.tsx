@@ -7,6 +7,12 @@ import {
   TrendingUp as TrendIcon,
   Home,
   Build,
+  Schedule,
+  CheckCircle,
+  Assignment,
+  Speed,
+  AccountBalanceWallet,
+  CalendarMonth,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -24,7 +30,7 @@ import ActionCountersWidget from './ActionCountersWidget';
 import ServicesStatusWidget from './ServicesStatusWidget';
 import AiUsageWidget from './AiUsageWidget';
 import { useAiFeatureToggles } from '../../hooks/useAi';
-import { usePendingPayouts } from '../../hooks/usePendingPayouts';
+import { usePendingPayouts, useMyPendingPayout } from '../../hooks/usePendingPayouts';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import { channelConnectionApi } from '../../services/api/channelConnectionApi';
 import { fiscalProfileApi } from '../../services/api/fiscalProfileApi';
@@ -120,6 +126,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   });
 
   const { data: pendingPayoutsData, isLoading: pendingPayoutsLoading } = usePendingPayouts();
+  const { data: myPayoutData } = useMyPendingPayout();
 
   // ─── Onboarding: wire hasPricing & hasChannels to real data ───────────
   const hasProperties = (stats?.properties.total ?? 0) > 0;
@@ -177,8 +184,18 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   // Shared hover lift style
   const hoverLift = kpiHoverSx(isDark);
 
-  // Show sidebar widgets (tips, channel health, contract CTA) for management & host roles
+  // ─── Role-based widget visibility ──────────────────────────────────────
+  const isOperational = ['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH'].includes(userRole);
+  const isSupervisor = userRole === 'SUPERVISOR';
+
+  // Services (noise, locks, keys, booking engine) — only management & host
+  const showServices = isAdmin || isManager || isHost;
+  // Financial KPIs (occupation, revenu, ADR, REVPAN) — only management & host
+  const showFinancialKpis = isAdmin || isManager || isHost;
+  // Sidebar (contract CTA, tips, channel health) — only management & host
   const showSidebar = isAdmin || isManager || isHost;
+  // AI usage widget — respect admin toggle + only management & host
+  const showAiWidget = hasAnyAiEnabled && (isAdmin || isManager || isHost);
 
   // ─── Full dashboard (always rendered, even for new users) ──────────────
   return (
@@ -191,92 +208,90 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
         <Box sx={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
 
           {/* Onboarding checklist */}
-          <OnboardingChecklist
-            hasProperties={hasProperties}
-            hasPropertyDetails={hasPropertyDetails}
-            hasPricing={hasPricing}
-            hasChannels={hasChannels}
-            hasBillingProfile={hasBillingProfile}
-          />
+          <OnboardingChecklist />
 
-          {/* Services Status (noise, locks, keys) */}
-          {onNavigateTab && (
+          {/* Services Status (noise, locks, keys) — management & host only */}
+          {showServices && onNavigateTab && (
             <DashboardErrorBoundary widgetName="ServicesStatus">
               <ServicesStatusWidget onNavigateTab={onNavigateTab} />
             </DashboardErrorBoundary>
           )}
 
-          {/* KPIs */}
+          {/* KPIs — adapted per role */}
           <DashboardErrorBoundary widgetName="KPIs">
             <GridSection
               title={t('dashboard.overview.kpisTitle')}
               subtitle={t('dashboard.overview.kpisSubtitle')}
             >
               <Grid container spacing={2}>
-                <Grid item xs={6} sm={4} md={2}>
-                  <Box sx={hoverLift}>
-                    <AnalyticsWidgetCard
-                      title={t('dashboard.analytics.occupancyRate')}
-                      value={globalData ? `${globalData.occupancyRate.value}%` : '-'}
-                      subtitle={t('dashboard.analytics.occupancySubtitle')}
-                      trend={globalData ? { value: globalData.occupancyRate.growth } : undefined}
-                      icon={<Percent color="success" />}
-                      tooltip={t('dashboard.analytics.occupancyTooltip')}
-                      loading={isKpiLoading}
-                    />
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={4} md={2}>
-                  <Box sx={hoverLift}>
-                    <AnalyticsWidgetCard
-                      title={t('dashboard.analytics.totalRevenue')}
-                      value={globalData ? `${globalData.totalRevenue.value.toLocaleString('fr-FR')} €` : '-'}
-                      subtitle={t('dashboard.analytics.totalRevenueSubtitle')}
-                      trend={globalData ? { value: globalData.totalRevenue.growth } : undefined}
-                      icon={<TrendIcon color="success" />}
-                      loading={isKpiLoading}
-                    />
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={4} md={2}>
-                  <Box sx={hoverLift}>
-                    <AnalyticsWidgetCard
-                      title="ADR"
-                      value={globalData ? `${globalData.adr.value.toFixed(2)} €` : '-'}
-                      subtitle={t('dashboard.analytics.avgDailyRate')}
-                      trend={globalData ? { value: globalData.adr.growth } : undefined}
-                      icon={<Hotel color="info" />}
-                      tooltip={t('dashboard.analytics.adrTooltip')}
-                      loading={isKpiLoading}
-                    />
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={4} md={2}>
-                  <Box sx={hoverLift}>
-                    <AnalyticsWidgetCard
-                      title="RevPAN"
-                      value={globalData ? `${globalData.revPAN.value.toFixed(2)} €` : '-'}
-                      subtitle={t('dashboard.analytics.revenuePerNight')}
-                      trend={globalData ? { value: globalData.revPAN.growth } : undefined}
-                      icon={<Euro color="primary" />}
-                      tooltip={t('dashboard.analytics.revPANTooltip')}
-                      loading={isKpiLoading}
-                    />
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={4} md={2}>
-                  <Box sx={hoverLift}>
-                    <AnalyticsWidgetCard
-                      title={t('dashboard.analytics.activeProperties')}
-                      value={stats ? `${stats.properties.active}` : '-'}
-                      subtitle={`${stats?.properties.total ?? 0} ${t('dashboard.overview.total')}`}
-                      trend={stats && stats.properties.growth !== 0 ? { value: stats.properties.growth } : undefined}
-                      icon={<Home color="primary" />}
-                      loading={isKpiLoading}
-                    />
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={4} md={2}>
+                {showFinancialKpis && (
+                  <>
+                    <Grid item xs={6} sm={4} md={2}>
+                      <Box sx={hoverLift}>
+                        <AnalyticsWidgetCard
+                          title={t('dashboard.analytics.occupancyRate')}
+                          value={globalData ? `${globalData.occupancyRate.value}%` : '-'}
+                          subtitle={t('dashboard.analytics.occupancySubtitle')}
+                          trend={globalData ? { value: globalData.occupancyRate.growth } : undefined}
+                          icon={<Percent color="success" />}
+                          tooltip={t('dashboard.analytics.occupancyTooltip')}
+                          loading={isKpiLoading}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid item xs={6} sm={4} md={2}>
+                      <Box sx={hoverLift}>
+                        <AnalyticsWidgetCard
+                          title={t('dashboard.analytics.totalRevenue')}
+                          value={globalData ? `${globalData.totalRevenue.value.toLocaleString('fr-FR')} €` : '-'}
+                          subtitle={t('dashboard.analytics.totalRevenueSubtitle')}
+                          trend={globalData ? { value: globalData.totalRevenue.growth } : undefined}
+                          icon={<TrendIcon color="success" />}
+                          loading={isKpiLoading}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid item xs={6} sm={4} md={2}>
+                      <Box sx={hoverLift}>
+                        <AnalyticsWidgetCard
+                          title="ADR"
+                          value={globalData ? `${globalData.adr.value.toFixed(2)} €` : '-'}
+                          subtitle={t('dashboard.analytics.avgDailyRate')}
+                          trend={globalData ? { value: globalData.adr.growth } : undefined}
+                          icon={<Hotel color="info" />}
+                          tooltip={t('dashboard.analytics.adrTooltip')}
+                          loading={isKpiLoading}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid item xs={6} sm={4} md={2}>
+                      <Box sx={hoverLift}>
+                        <AnalyticsWidgetCard
+                          title="RevPAN"
+                          value={globalData ? `${globalData.revPAN.value.toFixed(2)} €` : '-'}
+                          subtitle={t('dashboard.analytics.revenuePerNight')}
+                          trend={globalData ? { value: globalData.revPAN.growth } : undefined}
+                          icon={<Euro color="primary" />}
+                          tooltip={t('dashboard.analytics.revPANTooltip')}
+                          loading={isKpiLoading}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid item xs={6} sm={4} md={2}>
+                      <Box sx={hoverLift}>
+                        <AnalyticsWidgetCard
+                          title={t('dashboard.analytics.activeProperties')}
+                          value={stats ? `${stats.properties.active}` : '-'}
+                          subtitle={`${stats?.properties.total ?? 0} ${t('dashboard.overview.total')}`}
+                          trend={stats && stats.properties.growth !== 0 ? { value: stats.properties.growth } : undefined}
+                          icon={<Home color="primary" />}
+                          loading={isKpiLoading}
+                        />
+                      </Box>
+                    </Grid>
+                  </>
+                )}
+                <Grid item xs={6} sm={4} md={showFinancialKpis ? 2 : 4}>
                   <Box sx={hoverLift}>
                     <AnalyticsWidgetCard
                       title={t('dashboard.stats.todayInterventions')}
@@ -288,6 +303,67 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                     />
                   </Box>
                 </Grid>
+                {!showFinancialKpis && (
+                  <>
+                    <Grid item xs={6} sm={4} md={4}>
+                      <Box sx={hoverLift}>
+                        <AnalyticsWidgetCard
+                          title={t('dashboard.stats.upcomingInterventions')}
+                          value={stats ? `${stats.interventions.upcoming}` : '-'}
+                          subtitle={t('dashboard.stats.next7days')}
+                          icon={<Schedule color="primary" />}
+                          loading={isKpiLoading}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid item xs={6} sm={4} md={4}>
+                      <Box sx={hoverLift}>
+                        <AnalyticsWidgetCard
+                          title={t('dashboard.stats.completedInterventions')}
+                          value={stats ? `${stats.interventions.completed}` : '-'}
+                          subtitle={`${stats?.interventions.completionRate ?? 0}% ${t('dashboard.stats.completionRate')}`}
+                          icon={<CheckCircle color="success" />}
+                          loading={isKpiLoading}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid item xs={6} sm={4} md={4}>
+                      <Box sx={hoverLift}>
+                        <AnalyticsWidgetCard
+                          title={t('dashboard.stats.serviceRequests')}
+                          value={stats ? `${stats.serviceRequests.pending}` : '-'}
+                          subtitle={`${stats?.serviceRequests.total ?? 0} ${t('dashboard.overview.total')}`}
+                          icon={<Assignment color={stats && stats.serviceRequests.pending > 0 ? 'warning' : 'disabled'} />}
+                          loading={isKpiLoading}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid item xs={6} sm={4} md={4}>
+                      <Box sx={hoverLift}>
+                        <AnalyticsWidgetCard
+                          title={t('dashboard.stats.totalEarnings')}
+                          value={stats ? `${stats.interventions.totalRevenue.toLocaleString('fr-FR')} €` : '-'}
+                          subtitle={t('dashboard.stats.allCompletedInterventions')}
+                          icon={<AccountBalanceWallet color="success" />}
+                          loading={isKpiLoading}
+                        />
+                      </Box>
+                    </Grid>
+                    <Grid item xs={6} sm={4} md={4}>
+                      <Box sx={hoverLift}>
+                        <AnalyticsWidgetCard
+                          title={t('dashboard.stats.nextPayout')}
+                          value={myPayoutData ? `${(myPayoutData.totalPendingAmount ?? 0).toLocaleString('fr-FR')} €` : '-'}
+                          subtitle={myPayoutData && myPayoutData.pendingCount > 0
+                            ? `${myPayoutData.pendingCount} ${t('dashboard.stats.pendingPayouts')}`
+                            : t('dashboard.stats.noPayoutPending')}
+                          icon={<CalendarMonth color={myPayoutData && myPayoutData.totalPendingAmount > 0 ? 'success' : 'disabled'} />}
+                          loading={isKpiLoading}
+                        />
+                      </Box>
+                    </Grid>
+                  </>
+                )}
               </Grid>
             </GridSection>
           </DashboardErrorBoundary>
@@ -300,7 +376,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
             >
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <DashboardErrorBoundary widgetName="MiniPlanning">
-                  <MiniPlanningWidget navigate={navigate} t={t} />
+                  <MiniPlanningWidget navigate={navigate} t={t} isOperational={isOperational} />
                 </DashboardErrorBoundary>
 
                 <DashboardErrorBoundary widgetName="ActionCounters">
@@ -315,7 +391,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                   />
                 </DashboardErrorBoundary>
 
-                {hasAnyAiEnabled && (
+                {showAiWidget && (
                   <DashboardErrorBoundary widgetName="AiUsage">
                     <AiUsageWidget layout="inline" />
                   </DashboardErrorBoundary>

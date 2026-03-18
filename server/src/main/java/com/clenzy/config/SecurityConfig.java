@@ -98,7 +98,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, TenantFilter tenantFilter) throws Exception {
+    public TokenCookieFilter tokenCookieFilter() {
+        return new TokenCookieFilter();
+    }
+
+    @Bean
+    public FilterRegistrationBean<TokenCookieFilter> tokenCookieFilterRegistration(TokenCookieFilter tokenCookieFilter) {
+        FilterRegistrationBean<TokenCookieFilter> registration = new FilterRegistrationBean<>(tokenCookieFilter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, TenantFilter tenantFilter,
+                                                    TokenCookieFilter tokenCookieFilter) throws Exception {
         http
             // CSRF disabled: architecture JWT stateless sans cookies de session (voir SecurityConfigProd)
             .csrf(csrf -> csrf.disable())
@@ -159,6 +172,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(keycloakRoleConverter())))
+            .addFilterBefore(tokenCookieFilter, BearerTokenAuthenticationFilter.class)
             .addFilterAfter(tenantFilter, BearerTokenAuthenticationFilter.class)
             .httpBasic(Customizer.withDefaults());
 

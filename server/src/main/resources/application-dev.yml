@@ -190,6 +190,10 @@ stripe:
   inscription:
     return-url: ${FRONTEND_URL:http://localhost:3000}/inscription/success
 
+# Cloudflare Turnstile (CAPTCHA)
+turnstile:
+  secret-key: ${TURNSTILE_SECRET_KEY:0x4AAAAAACsyHk5ar4VkwtwXyBJg3ywOkFU}
+
 clenzy:
   ai:
     enabled: true

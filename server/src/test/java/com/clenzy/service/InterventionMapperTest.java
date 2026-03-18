@@ -1,6 +1,8 @@
 package com.clenzy.service;
 
-import com.clenzy.dto.InterventionDto;
+import com.clenzy.dto.CreateInterventionRequest;
+import com.clenzy.dto.InterventionResponse;
+import com.clenzy.dto.UpdateInterventionRequest;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.*;
 import com.clenzy.repository.PropertyRepository;
@@ -20,12 +22,12 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
  * Tests for {@link InterventionMapper}.
- * Validates DTO→Entity (apply) and Entity→DTO (convertToDto) mapping.
+ * Validates DTO-to-Entity (apply/applyUpdate) and Entity-to-Response (convertToResponse) mapping.
  */
 @ExtendWith(MockitoExtension.class)
 class InterventionMapperTest {
@@ -75,76 +77,51 @@ class InterventionMapperTest {
     }
 
     @Nested
-    @DisplayName("apply - DTO to Entity")
+    @DisplayName("apply - CreateInterventionRequest to Entity")
     class Apply {
 
         @Test
         void whenAllFieldsProvided_thenAppliesAll() {
-            InterventionDto dto = new InterventionDto();
-            dto.title = "New Title";
-            dto.description = "New Description";
-            dto.type = "MAINTENANCE";
-            dto.status = "IN_PROGRESS";
-            dto.priority = "LOW";
-            dto.estimatedDurationHours = 3;
-            dto.estimatedCost = BigDecimal.valueOf(150);
-            dto.notes = "Some notes";
-            dto.progressPercentage = 50;
-            dto.scheduledDate = "2026-03-15T10:00:00";
+            Property property = createProperty(7L, "Appartement Nice");
+            User requestor = createUser(3L, "Marie", "Manager");
+            when(propertyRepository.findById(7L)).thenReturn(Optional.of(property));
+            when(userRepository.findById(3L)).thenReturn(Optional.of(requestor));
+
+            CreateInterventionRequest request = new CreateInterventionRequest(
+                    "New Title", "New Description", "MAINTENANCE", "LOW",
+                    7L, 3L, "2026-03-15T10:00:00", 3, null, null);
 
             Intervention intervention = createIntervention();
-            mapper.apply(dto, intervention);
+            mapper.apply(request, intervention);
 
             assertThat(intervention.getTitle()).isEqualTo("New Title");
             assertThat(intervention.getDescription()).isEqualTo("New Description");
             assertThat(intervention.getType()).isEqualTo("MAINTENANCE");
-            assertThat(intervention.getStatus()).isEqualTo(InterventionStatus.IN_PROGRESS);
+            assertThat(intervention.getStatus()).isEqualTo(InterventionStatus.PENDING); // unchanged
             assertThat(intervention.getPriority()).isEqualTo("LOW");
             assertThat(intervention.getEstimatedDurationHours()).isEqualTo(3);
-            assertThat(intervention.getEstimatedCost()).isEqualByComparingTo("150");
-            assertThat(intervention.getNotes()).isEqualTo("Some notes");
-            assertThat(intervention.getProgressPercentage()).isEqualTo(50);
             assertThat(intervention.getScheduledDate()).isEqualTo(LocalDateTime.of(2026, 3, 15, 10, 0));
-        }
-
-        @Test
-        void whenNullFields_thenDoesNotOverwrite() {
-            InterventionDto dto = new InterventionDto();
-            // All fields null
-
-            Intervention intervention = createIntervention();
-            String originalTitle = intervention.getTitle();
-
-            mapper.apply(dto, intervention);
-
-            assertThat(intervention.getTitle()).isEqualTo(originalTitle);
-        }
-
-        @Test
-        void whenInvalidStatus_thenThrowsIllegalArgumentException() {
-            InterventionDto dto = new InterventionDto();
-            dto.status = "INVALID_STATUS";
-
-            Intervention intervention = createIntervention();
-
-            assertThatThrownBy(() -> mapper.apply(dto, intervention))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("Statut invalide");
+            assertThat(intervention.getProperty()).isEqualTo(property);
+            assertThat(intervention.getRequestor()).isEqualTo(requestor);
         }
 
         @Test
         void whenAssignedToUser_thenSetsUserAndClearsTeam() {
             User user = createUser(10L, "Jean", "Tech");
+            Property property = createProperty(7L, "Appt");
+            User requestor = createUser(3L, "Marie", "Manager");
             when(userRepository.findById(10L)).thenReturn(Optional.of(user));
+            when(propertyRepository.findById(7L)).thenReturn(Optional.of(property));
+            when(userRepository.findById(3L)).thenReturn(Optional.of(requestor));
 
-            InterventionDto dto = new InterventionDto();
-            dto.assignedToType = "user";
-            dto.assignedToId = 10L;
+            CreateInterventionRequest request = new CreateInterventionRequest(
+                    "Title", null, "CLEANING", "HIGH",
+                    7L, 3L, "2026-03-15T10:00:00", null, "user", 10L);
 
             Intervention intervention = createIntervention();
             intervention.setTeamId(5L);
 
-            mapper.apply(dto, intervention);
+            mapper.apply(request, intervention);
 
             assertThat(intervention.getAssignedTechnicianId()).isEqualTo(10L);
             assertThat(intervention.getTeamId()).isNull();
@@ -156,16 +133,20 @@ class InterventionMapperTest {
             Team team = new Team();
             team.setId(5L);
             team.setName("Equipe Nettoyage");
+            Property property = createProperty(7L, "Appt");
+            User requestor = createUser(3L, "Marie", "Manager");
             when(teamRepository.findById(5L)).thenReturn(Optional.of(team));
+            when(propertyRepository.findById(7L)).thenReturn(Optional.of(property));
+            when(userRepository.findById(3L)).thenReturn(Optional.of(requestor));
 
-            InterventionDto dto = new InterventionDto();
-            dto.assignedToType = "team";
-            dto.assignedToId = 5L;
+            CreateInterventionRequest request = new CreateInterventionRequest(
+                    "Title", null, "CLEANING", "HIGH",
+                    7L, 3L, "2026-03-15T10:00:00", null, "team", 5L);
 
             Intervention intervention = createIntervention();
             intervention.setAssignedTechnicianId(10L);
 
-            mapper.apply(dto, intervention);
+            mapper.apply(request, intervention);
 
             assertThat(intervention.getTeamId()).isEqualTo(5L);
             assertThat(intervention.getAssignedTechnicianId()).isNull();
@@ -173,63 +154,94 @@ class InterventionMapperTest {
         }
 
         @Test
-        void whenPropertyProvided_thenSetsProperty() {
-            Property property = createProperty(7L, "Appartement Nice");
-            when(propertyRepository.findById(7L)).thenReturn(Optional.of(property));
-
-            InterventionDto dto = new InterventionDto();
-            dto.propertyId = 7L;
-
-            Intervention intervention = createIntervention();
-            mapper.apply(dto, intervention);
-
-            assertThat(intervention.getProperty()).isEqualTo(property);
-        }
-
-        @Test
         void whenPropertyNotFound_thenThrowsNotFoundException() {
             when(propertyRepository.findById(999L)).thenReturn(Optional.empty());
 
-            InterventionDto dto = new InterventionDto();
-            dto.propertyId = 999L;
+            CreateInterventionRequest request = new CreateInterventionRequest(
+                    "Title", null, "CLEANING", "HIGH",
+                    999L, 3L, "2026-03-15T10:00:00", null, null, null);
 
             Intervention intervention = createIntervention();
 
-            assertThatThrownBy(() -> mapper.apply(dto, intervention))
+            assertThatThrownBy(() -> mapper.apply(request, intervention))
                     .isInstanceOf(NotFoundException.class);
         }
 
         @Test
-        void whenRequestorProvided_thenSetsRequestor() {
-            User requestor = createUser(3L, "Marie", "Manager");
-            when(userRepository.findById(3L)).thenReturn(Optional.of(requestor));
-
-            InterventionDto dto = new InterventionDto();
-            dto.requestorId = 3L;
-
-            Intervention intervention = createIntervention();
-            mapper.apply(dto, intervention);
-
-            assertThat(intervention.getRequestor()).isEqualTo(requestor);
-        }
-
-        @Test
         void whenRequestorNotFound_thenThrowsNotFoundException() {
+            Property property = createProperty(7L, "Appt");
+            when(propertyRepository.findById(7L)).thenReturn(Optional.of(property));
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-            InterventionDto dto = new InterventionDto();
-            dto.requestorId = 999L;
+            CreateInterventionRequest request = new CreateInterventionRequest(
+                    "Title", null, "CLEANING", "HIGH",
+                    7L, 999L, "2026-03-15T10:00:00", null, null, null);
 
             Intervention intervention = createIntervention();
 
-            assertThatThrownBy(() -> mapper.apply(dto, intervention))
+            assertThatThrownBy(() -> mapper.apply(request, intervention))
                     .isInstanceOf(NotFoundException.class);
         }
     }
 
     @Nested
-    @DisplayName("convertToDto - Entity to DTO")
-    class ConvertToDto {
+    @DisplayName("applyUpdate - UpdateInterventionRequest to Entity")
+    class ApplyUpdate {
+
+        @Test
+        void whenAllFieldsProvided_thenAppliesAll() {
+            UpdateInterventionRequest request = new UpdateInterventionRequest(
+                    "Updated Title", "Updated Desc", "MAINTENANCE", "LOW",
+                    3, BigDecimal.valueOf(150), "Some notes", null, null);
+
+            Intervention intervention = createIntervention();
+            mapper.applyUpdate(request, intervention);
+
+            assertThat(intervention.getTitle()).isEqualTo("Updated Title");
+            assertThat(intervention.getDescription()).isEqualTo("Updated Desc");
+            assertThat(intervention.getType()).isEqualTo("MAINTENANCE");
+            assertThat(intervention.getStatus()).isEqualTo(InterventionStatus.PENDING); // unchanged
+            assertThat(intervention.getPriority()).isEqualTo("LOW");
+            assertThat(intervention.getEstimatedDurationHours()).isEqualTo(3);
+            assertThat(intervention.getEstimatedCost()).isEqualByComparingTo("150");
+            assertThat(intervention.getNotes()).isEqualTo("Some notes");
+        }
+
+        @Test
+        void whenNullFields_thenDoesNotOverwrite() {
+            UpdateInterventionRequest request = new UpdateInterventionRequest(
+                    null, null, null, null, null, null, null, null, null);
+
+            Intervention intervention = createIntervention();
+            String originalTitle = intervention.getTitle();
+
+            mapper.applyUpdate(request, intervention);
+
+            assertThat(intervention.getTitle()).isEqualTo(originalTitle);
+        }
+
+        @Test
+        void whenAssignedToUser_thenSetsUserAndClearsTeam() {
+            User user = createUser(10L, "Jean", "Tech");
+            when(userRepository.findById(10L)).thenReturn(Optional.of(user));
+
+            UpdateInterventionRequest request = new UpdateInterventionRequest(
+                    null, null, null, null, null, null, null, "user", 10L);
+
+            Intervention intervention = createIntervention();
+            intervention.setTeamId(5L);
+
+            mapper.applyUpdate(request, intervention);
+
+            assertThat(intervention.getAssignedTechnicianId()).isEqualTo(10L);
+            assertThat(intervention.getTeamId()).isNull();
+            assertThat(intervention.getAssignedUser()).isEqualTo(user);
+        }
+    }
+
+    @Nested
+    @DisplayName("convertToResponse - Entity to Response")
+    class ConvertToResponse {
 
         @Test
         void whenFullEntity_thenMapsAllFields() {
@@ -247,28 +259,27 @@ class InterventionMapperTest {
             User requestor = createUser(2L, "Marie", "Martin");
             intervention.setRequestor(requestor);
 
-            when(photoService.convertPhotosToBase64Urls(intervention)).thenReturn("[]");
-            when(photoService.convertPhotosToBase64UrlsByType(intervention, "before")).thenReturn("[]");
-            when(photoService.convertPhotosToBase64UrlsByType(intervention, "after")).thenReturn("[]");
+            when(photoService.loadPhotoBundle(any())).thenReturn(
+                    new InterventionPhotoService.PhotoBundle("[]", "[]", "[]", null, null));
 
-            InterventionDto dto = mapper.convertToDto(intervention);
+            InterventionResponse response = mapper.convertToResponse(intervention);
 
-            assertThat(dto.id).isEqualTo(1L);
-            assertThat(dto.title).isEqualTo("Test intervention");
-            assertThat(dto.description).isEqualTo("Description");
-            assertThat(dto.type).isEqualTo("CLEANING");
-            assertThat(dto.status).isEqualTo("PENDING");
-            assertThat(dto.priority).isEqualTo("HIGH");
-            assertThat(dto.estimatedDurationHours).isEqualTo(2);
-            assertThat(dto.estimatedCost).isEqualByComparingTo("100");
-            assertThat(dto.notes).isEqualTo("Test notes");
-            assertThat(dto.progressPercentage).isEqualTo(75);
-            assertThat(dto.scheduledDate).isEqualTo("2026-03-15T14:00:00");
-            assertThat(dto.propertyId).isEqualTo(1L);
-            assertThat(dto.propertyName).isEqualTo("Appt Paris");
-            assertThat(dto.propertyType).isEqualTo("apartment");
-            assertThat(dto.requestorId).isEqualTo(2L);
-            assertThat(dto.requestorName).isEqualTo("Marie Martin");
+            assertThat(response.id()).isEqualTo(1L);
+            assertThat(response.title()).isEqualTo("Test intervention");
+            assertThat(response.description()).isEqualTo("Description");
+            assertThat(response.type()).isEqualTo("CLEANING");
+            assertThat(response.status()).isEqualTo("PENDING");
+            assertThat(response.priority()).isEqualTo("HIGH");
+            assertThat(response.estimatedDurationHours()).isEqualTo(2);
+            assertThat(response.estimatedCost()).isEqualByComparingTo("100");
+            assertThat(response.notes()).isEqualTo("Test notes");
+            assertThat(response.progressPercentage()).isEqualTo(75);
+            assertThat(response.scheduledDate()).isEqualTo("2026-03-15T14:00:00");
+            assertThat(response.propertyId()).isEqualTo(1L);
+            assertThat(response.propertyName()).isEqualTo("Appt Paris");
+            assertThat(response.propertyType()).isEqualTo("apartment");
+            assertThat(response.requestorId()).isEqualTo(2L);
+            assertThat(response.requestorName()).isEqualTo("Marie Martin");
         }
 
         @Test
@@ -278,15 +289,14 @@ class InterventionMapperTest {
             intervention.setAssignedTechnicianId(10L);
             intervention.setAssignedUser(assignedUser);
 
-            when(photoService.convertPhotosToBase64Urls(intervention)).thenReturn(null);
-            when(photoService.convertPhotosToBase64UrlsByType(intervention, "before")).thenReturn(null);
-            when(photoService.convertPhotosToBase64UrlsByType(intervention, "after")).thenReturn(null);
+            when(photoService.loadPhotoBundle(any())).thenReturn(
+                    new InterventionPhotoService.PhotoBundle(null, null, null, null, null));
 
-            InterventionDto dto = mapper.convertToDto(intervention);
+            InterventionResponse response = mapper.convertToResponse(intervention);
 
-            assertThat(dto.assignedToType).isEqualTo("user");
-            assertThat(dto.assignedToId).isEqualTo(10L);
-            assertThat(dto.assignedToName).isEqualTo("Jean Tech");
+            assertThat(response.assignedToType()).isEqualTo("user");
+            assertThat(response.assignedToId()).isEqualTo(10L);
+            assertThat(response.assignedToName()).isEqualTo("Jean Tech");
         }
 
         @Test
@@ -298,15 +308,14 @@ class InterventionMapperTest {
             team.setId(5L);
             team.setName("Equipe Nettoyage");
             when(teamRepository.findById(5L)).thenReturn(Optional.of(team));
-            when(photoService.convertPhotosToBase64Urls(intervention)).thenReturn(null);
-            when(photoService.convertPhotosToBase64UrlsByType(intervention, "before")).thenReturn(null);
-            when(photoService.convertPhotosToBase64UrlsByType(intervention, "after")).thenReturn(null);
+            when(photoService.loadPhotoBundle(any())).thenReturn(
+                    new InterventionPhotoService.PhotoBundle(null, null, null, null, null));
 
-            InterventionDto dto = mapper.convertToDto(intervention);
+            InterventionResponse response = mapper.convertToResponse(intervention);
 
-            assertThat(dto.assignedToType).isEqualTo("team");
-            assertThat(dto.assignedToId).isEqualTo(5L);
-            assertThat(dto.assignedToName).isEqualTo("Equipe Nettoyage");
+            assertThat(response.assignedToType()).isEqualTo("team");
+            assertThat(response.assignedToId()).isEqualTo(5L);
+            assertThat(response.assignedToName()).isEqualTo("Equipe Nettoyage");
         }
 
         @Test
@@ -315,42 +324,39 @@ class InterventionMapperTest {
             intervention.setTeamId(999L);
 
             when(teamRepository.findById(999L)).thenReturn(Optional.empty());
-            when(photoService.convertPhotosToBase64Urls(intervention)).thenReturn(null);
-            when(photoService.convertPhotosToBase64UrlsByType(intervention, "before")).thenReturn(null);
-            when(photoService.convertPhotosToBase64UrlsByType(intervention, "after")).thenReturn(null);
+            when(photoService.loadPhotoBundle(any())).thenReturn(
+                    new InterventionPhotoService.PhotoBundle(null, null, null, null, null));
 
-            InterventionDto dto = mapper.convertToDto(intervention);
+            InterventionResponse response = mapper.convertToResponse(intervention);
 
-            assertThat(dto.assignedToName).isEqualTo("Equipe inconnue");
+            assertThat(response.assignedToName()).isEqualTo("Equipe inconnue");
         }
 
         @Test
         void whenNoAssignment_thenAllAssignmentFieldsNull() {
             Intervention intervention = createIntervention();
 
-            when(photoService.convertPhotosToBase64Urls(intervention)).thenReturn(null);
-            when(photoService.convertPhotosToBase64UrlsByType(intervention, "before")).thenReturn(null);
-            when(photoService.convertPhotosToBase64UrlsByType(intervention, "after")).thenReturn(null);
+            when(photoService.loadPhotoBundle(any())).thenReturn(
+                    new InterventionPhotoService.PhotoBundle(null, null, null, null, null));
 
-            InterventionDto dto = mapper.convertToDto(intervention);
+            InterventionResponse response = mapper.convertToResponse(intervention);
 
-            assertThat(dto.assignedToType).isNull();
-            assertThat(dto.assignedToId).isNull();
-            assertThat(dto.assignedToName).isNull();
+            assertThat(response.assignedToType()).isNull();
+            assertThat(response.assignedToId()).isNull();
+            assertThat(response.assignedToName()).isNull();
         }
 
         @Test
         void whenNoProperty_thenPropertyFieldsNull() {
             Intervention intervention = createIntervention();
 
-            when(photoService.convertPhotosToBase64Urls(intervention)).thenReturn(null);
-            when(photoService.convertPhotosToBase64UrlsByType(intervention, "before")).thenReturn(null);
-            when(photoService.convertPhotosToBase64UrlsByType(intervention, "after")).thenReturn(null);
+            when(photoService.loadPhotoBundle(any())).thenReturn(
+                    new InterventionPhotoService.PhotoBundle(null, null, null, null, null));
 
-            InterventionDto dto = mapper.convertToDto(intervention);
+            InterventionResponse response = mapper.convertToResponse(intervention);
 
-            assertThat(dto.propertyId).isNull();
-            assertThat(dto.propertyName).isNull();
+            assertThat(response.propertyId()).isNull();
+            assertThat(response.propertyName()).isNull();
         }
 
         @Test
@@ -358,13 +364,58 @@ class InterventionMapperTest {
             Intervention intervention = createIntervention();
             intervention.setScheduledDate(null);
 
-            when(photoService.convertPhotosToBase64Urls(intervention)).thenReturn(null);
-            when(photoService.convertPhotosToBase64UrlsByType(intervention, "before")).thenReturn(null);
-            when(photoService.convertPhotosToBase64UrlsByType(intervention, "after")).thenReturn(null);
+            when(photoService.loadPhotoBundle(any())).thenReturn(
+                    new InterventionPhotoService.PhotoBundle(null, null, null, null, null));
 
-            InterventionDto dto = mapper.convertToDto(intervention);
+            InterventionResponse response = mapper.convertToResponse(intervention);
 
-            assertThat(dto.scheduledDate).isNull();
+            assertThat(response.scheduledDate()).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("convertToListResponse - list view without photo loading (C6)")
+    class ConvertToListResponse {
+
+        @Test
+        @DisplayName("returns null photos and photo IDs")
+        void whenConvertToListResponse_thenPhotosAreNull() {
+            Intervention intervention = createIntervention();
+            intervention.setNotes("Some notes");
+
+            InterventionResponse response = mapper.convertToListResponse(intervention, java.util.Map.of());
+
+            assertThat(response.id()).isEqualTo(1L);
+            assertThat(response.title()).isEqualTo("Test intervention");
+            assertThat(response.status()).isEqualTo("PENDING");
+            assertThat(response.notes()).isEqualTo("Some notes");
+            // Photos must be null - not loaded
+            assertThat(response.photos()).isNull();
+            assertThat(response.beforePhotosUrls()).isNull();
+            assertThat(response.afterPhotosUrls()).isNull();
+            assertThat(response.beforePhotoIds()).isNull();
+            assertThat(response.afterPhotoIds()).isNull();
+            // photoService should NOT have been called
+            verify(photoService, never()).loadPhotoBundle(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("apply - unknown assignedToType (H3)")
+    class ApplyUnknownAssignedToType {
+
+        @Test
+        @DisplayName("throws IllegalArgumentException for invalid assignedToType")
+        void whenUnknownAssignedToType_thenThrows() {
+            UpdateInterventionRequest request = new UpdateInterventionRequest(
+                    null, null, null, null, null, null, null, "robot", 1L);
+
+            Intervention intervention = createIntervention();
+
+            assertThatThrownBy(() -> mapper.applyUpdate(request, intervention))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("assignedToType")
+                    .hasMessageContaining("robot");
         }
     }
 }

@@ -7,6 +7,8 @@ import com.clenzy.repository.ProviderExpenseRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
 import com.clenzy.repository.UserRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -381,7 +383,7 @@ public class TagResolverService {
                 ? intervention.getActualDurationMinutes() + " min" : "");
         tags.put("cout_estime", formatMoney(intervention.getEstimatedCost()));
         tags.put("cout_reel", formatMoney(intervention.getActualCost()));
-        tags.put("notes", safeStr(intervention.getNotes()));
+        tags.put("notes", parseStepNotes(intervention.getNotes()));
         tags.put("notes_technicien", safeStr(intervention.getTechnicianNotes()));
         tags.put("instructions", safeStr(intervention.getSpecialInstructions()));
         tags.put("progression", intervention.getProgressPercentage() != null
@@ -619,6 +621,39 @@ public class TagResolverService {
 
     private String safeStr(String value) {
         return value != null ? value : "";
+    }
+
+    /**
+     * Parse le JSON des notes d'etapes et retourne un texte lisible.
+     * Format attendu : {"rooms":{"general":"texte"}, "inspection":"texte", "after_photos":"texte"}
+     * Retourne une concatenation des valeurs textuelles, sans les cles JSON.
+     */
+    private String parseStepNotes(String notesJson) {
+        if (notesJson == null || notesJson.isBlank()) return "";
+        // Not JSON — return as-is (plain text notes)
+        if (!notesJson.trim().startsWith("{")) return notesJson;
+        try {
+            final ObjectMapper mapper = new ObjectMapper();
+            final JsonNode root = mapper.readTree(notesJson);
+            final List<String> parts = new ArrayList<>();
+            root.fields().forEachRemaining(entry -> {
+                final JsonNode value = entry.getValue();
+                if (value.isTextual() && !value.asText().isBlank()) {
+                    parts.add(value.asText().trim());
+                } else if (value.isObject()) {
+                    // e.g. "rooms": {"general": "texte", "0": "note piece 1"}
+                    value.fields().forEachRemaining(sub -> {
+                        if (sub.getValue().isTextual() && !sub.getValue().asText().isBlank()) {
+                            parts.add(sub.getValue().asText().trim());
+                        }
+                    });
+                }
+            });
+            return String.join("\n", parts);
+        } catch (Exception e) {
+            log.debug("Could not parse step notes JSON, using raw value: {}", e.getMessage());
+            return notesJson;
+        }
     }
 
     private String formatDate(LocalDateTime dateTime) {

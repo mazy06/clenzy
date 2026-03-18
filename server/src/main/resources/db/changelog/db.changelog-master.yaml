@@ -763,3 +763,36 @@ databaseChangeLog:
       sqlFile:
         path: changes/0087__add_sepa_debtor_fields_to_organizations.sql
         relativeToChangelogFile: true
+
+  # --- 0088 : Seed default message templates for all organizations ---
+  - changeSet:
+      id: "0088-seed-default-message-templates"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0088__seed_default_message_templates.sql
+        relativeToChangelogFile: true
+
+  # --- 0089 : Add version column for optimistic locking on interventions ---
+  - changeSet:
+      id: "0089-intervention-optimistic-locking"
+      author: clenzy-team
+      validCheckSum: "ANY"
+      sqlFile:
+        path: changes/0089__intervention_optimistic_locking.sql
+        relativeToChangelogFile: true
+
+  # --- 0090 : Backfill NULL version values on interventions ---
+  - changeSet:
+      id: "0090-backfill-intervention-version"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0090__backfill_intervention_version.sql
+        relativeToChangelogFile: true
+
+  # --- 0091 : Create user_onboarding table for adaptive onboarding ---
+  - changeSet:
+      id: "0091-create-user-onboarding"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0091__create_user_onboarding.sql
+        relativeToChangelogFile: true
