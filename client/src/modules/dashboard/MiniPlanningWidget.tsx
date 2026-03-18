@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Box,
   Typography,
@@ -11,6 +12,7 @@ import {
 import { ArrowForward, CalendarMonth, Add } from '@mui/icons-material';
 import type { NavigateFunction } from 'react-router-dom';
 import { useDashboardPlanning } from '../../hooks/useDashboardPlanning';
+import apiClient from '../../services/apiClient';
 import {
   RESERVATION_STATUS_COLORS,
   INTERVENTION_TYPE_COLORS,
@@ -24,6 +26,8 @@ type TranslationFn = (key: string, options?: Record<string, unknown>) => string;
 interface MiniPlanningWidgetProps {
   navigate: NavigateFunction;
   t: TranslationFn;
+  /** When true, shows a simple intervention list instead of property grid */
+  isOperational?: boolean;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -162,11 +166,39 @@ const isSameCalendarDay = (a: Date, b: Date): boolean =>
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navigate, t }) => {
+const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navigate, t, isOperational = false }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
   const { properties, reservations, filteredInterventions, loading } = useDashboardPlanning();
+
+  // For operational roles: fetch interventions directly (not property-based)
+  interface MyIntervention { id: number; title?: string; type: string; status: string; propertyName?: string; scheduledDate?: string; }
+  const { data: myInterventions = [], isLoading: myIntLoading } = useQuery<MyIntervention[]>({
+    queryKey: ['my-interventions-planning'],
+    queryFn: async () => {
+      const res = await apiClient.get<{ content: MyIntervention[] }>('/interventions', { params: { size: 50 } });
+      return Array.isArray(res) ? res : (res?.content ?? []);
+    },
+    enabled: isOperational,
+    staleTime: 60_000,
+  });
+
+  // Interventions for operational roles (all statuses, sorted by date)
+  const operationalInterventions = useMemo(() => {
+    if (!isOperational) return [];
+    return myInterventions
+      .filter((i: { scheduledDate?: string }) => !!i.scheduledDate)
+      .sort((a: { scheduledDate?: string }, b: { scheduledDate?: string }) =>
+        new Date(a.scheduledDate!).getTime() - new Date(b.scheduledDate!).getTime()
+      )
+      .map((i: { id: number; title?: string; type: string; propertyName?: string; scheduledDate?: string }) => ({
+        id: String(i.id),
+        type: i.type,
+        propertyName: i.propertyName || i.title || i.type,
+        startDate: i.scheduledDate || '',
+      }));
+  }, [isOperational, myInterventions]);
 
   const next7Days = useMemo(() => getNextDays(DAYS_COUNT), []);
   const windowStart = useMemo(() => {
@@ -261,7 +293,7 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
           </Button>
         </Box>
 
-        {loading ? (
+        {(isOperational ? myIntLoading : loading) ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
             {Array.from({ length: 3 }).map((_, i) => (
               <Box key={i} sx={{ display: 'flex', gap: 0.5 }}>
@@ -272,6 +304,57 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
               </Box>
             ))}
           </Box>
+        ) : isOperational ? (
+          /* ── Operational view: simple list of upcoming interventions ── */
+          operationalInterventions.length === 0 ? (
+            <Box sx={{ py: 3, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+                {t('dashboard.miniPlanning.noInterventions')}
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+              {operationalInterventions.slice(0, 7).map((inter) => {
+                const color = INTERVENTION_TYPE_COLORS[inter.type as PlanningInterventionType] ?? '#9B7FC4';
+                const date = inter.startDate ? new Date(inter.startDate) : null;
+                const isToday = date ? isSameCalendarDay(date, new Date()) : false;
+                return (
+                  <Box
+                    key={inter.id}
+                    onClick={() => navigate(`/interventions/${inter.id}`)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      px: 1.25,
+                      py: 0.75,
+                      borderRadius: '8px',
+                      border: '1px solid',
+                      borderColor: isToday ? 'primary.main' : 'divider',
+                      bgcolor: isToday ? (isDark ? 'rgba(107,138,154,0.08)' : 'rgba(107,138,154,0.04)') : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        transform: 'translateY(-1px)',
+                        boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.15)' : '0 2px 8px rgba(107,138,154,0.10)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: color, flexShrink: 0 }} />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography noWrap sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.primary' }}>
+                        {inter.propertyName || inter.type}
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary', fontWeight: 500, flexShrink: 0 }}>
+                      {date ? date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : '-'}
+                    </Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+          )
         ) : visibleProperties.length === 0 ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 3 }}>
             <Typography

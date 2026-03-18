@@ -30,6 +30,8 @@ export interface ServiceRequest {
   estimatedCost?: number;
   dueDate: string;
   createdAt: string;
+  propertyLatitude?: number;
+  propertyLongitude?: number;
 }
 
 export interface AssignTeam {
@@ -53,7 +55,7 @@ export interface ServiceRequestApiResponse {
   status?: string;
   priority?: string;
   propertyId: number;
-  property?: { name?: string; address?: string; city?: string };
+  property?: { name?: string; address?: string; city?: string; latitude?: number; longitude?: number };
   userId?: number;
   requestorId?: number;
   user?: { firstName: string; lastName: string };

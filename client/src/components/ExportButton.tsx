@@ -102,8 +102,15 @@ export default function ExportButton({
               onClick={handleExportCSV}
               disabled={isDisabled}
               size="small"
-              color="primary"
-              sx={{ '& .MuiSvgIcon-root': { fontSize: 16 } }}
+              sx={{
+                p: 0.5,
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+                color: 'text.secondary',
+                '&:hover': { bgcolor: 'rgba(107,138,154,0.08)', borderColor: 'primary.main', color: 'primary.main' },
+                '& .MuiSvgIcon-root': { fontSize: 18 },
+              }}
             >
               <DownloadIcon />
             </IconButton>

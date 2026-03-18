@@ -163,7 +163,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     user,
   } = useInterventionsList();
 
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('map');
   const [listPage, setListPage] = useState(0);
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
   const theme = useTheme();
@@ -316,45 +316,45 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     })),
   ];
 
+  const iconButtonSx = {
+    p: 0.5,
+    borderRadius: 1,
+    border: '1px solid',
+    borderColor: 'divider',
+    color: 'text.secondary',
+    '&:hover': { bgcolor: 'rgba(107,138,154,0.08)', borderColor: 'primary.main', color: 'primary.main' },
+    '& .MuiSvgIcon-root': { fontSize: 18 },
+  } as const;
+
   const actionButtons = (
-    <Box sx={{ display: 'flex', gap: 1 }}>
+    <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
       <ExportButton
         data={filteredInterventions}
         columns={exportColumns}
         fileName="interventions"
+        variant="icon"
       />
-      <Button
-        variant="outlined"
-        startIcon={<Refresh />}
-        onClick={loadInterventions}
-        disabled={loading}
-        size="small"
-        sx={{ textTransform: 'none' }}
-        title={t('common.refresh')}
-      >
-        {t('common.refresh')}
-      </Button>
-      {isHost() && (
-        <Button
-          variant="outlined"
+      <Tooltip title={t('common.refresh')}>
+        <IconButton
+          onClick={loadInterventions}
+          disabled={loading}
           size="small"
-          onClick={() => navigate('/interventions/pending-payment')}
-          title={t('interventions.pendingPayment.title')}
+          sx={iconButtonSx}
         >
-          {t('interventions.pendingPayment.title')}
-        </Button>
-      )}
+          <Refresh />
+        </IconButton>
+      </Tooltip>
       {/* Seuls les ADMIN et MANAGER peuvent créer des interventions manuellement */}
       {canCreateInterventions && (isAdmin() || isManager()) && (
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/interventions/new')}
-          title={t('interventions.create')}
-        >
-          {t('interventions.create')}
-        </Button>
+        <Tooltip title={t('interventions.create')}>
+          <IconButton
+            size="small"
+            onClick={() => navigate('/interventions/new')}
+            sx={{ ...iconButtonSx, color: 'primary.main', borderColor: 'primary.main', bgcolor: 'rgba(107,138,154,0.06)' }}
+          >
+            <AddIcon />
+          </IconButton>
+        </Tooltip>
       )}
     </Box>
   );
@@ -449,7 +449,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
             </Card>
           ) : viewMode === 'map' ? (
             /* ─── Vue carte (sticky) + liste viewport (scrollable) ─── */
-            <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 140px)', minHeight: 500 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
               {/* Carte fixe en haut */}
               <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 0, overflow: 'hidden', flexShrink: 0 }}>
                 {mapMarkers.length > 0 ? (

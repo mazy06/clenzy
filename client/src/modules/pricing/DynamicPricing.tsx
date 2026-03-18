@@ -12,12 +12,9 @@ import {
   Typography,
   Button,
   Tooltip,
-  Paper,
-  alpha,
 } from '@mui/material';
 import {
   CloudUpload as PushIcon,
-  FilterList as FilterIcon,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -70,9 +67,10 @@ interface DynamicPricingProps {
   embedded?: boolean;
   actionsContainer?: HTMLElement | null;
   filtersContainer?: HTMLElement | null;
+  tabInlineContainer?: HTMLElement | null;
 }
 
-const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actionsContainer }) => {
+const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actionsContainer, tabInlineContainer }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const isPricingAiEnabled = useIsAiFeatureEnabled('PRICING');
@@ -198,6 +196,68 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
     [editingPlan, updateRatePlan, createRatePlan],
   );
 
+  const filterSelectors = (
+    <>
+      {isPlatformStaff && (
+        <FormControl size="small" sx={{ minWidth: 180 }}>
+          <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.selectOwner')}</InputLabel>
+          <Select
+            value={selectedOwnerId ?? ''}
+            label={t('dynamicPricing.selectOwner')}
+            onChange={(e) => {
+              const val = e.target.value;
+              handleOwnerChange(val === '' ? null : Number(val));
+            }}
+            sx={{ fontSize: '0.8125rem', '& .MuiSelect-select': { py: 0.75 } }}
+          >
+            <MenuItem value="">
+              <em>{t('dynamicPricing.allOwners')}</em>
+            </MenuItem>
+            {propertiesLoading && (
+              <MenuItem disabled>
+                <CircularProgress size={14} sx={{ mr: 1 }} /> {t('common.loading')}
+              </MenuItem>
+            )}
+            {owners.map((o) => (
+              <MenuItem key={o.id} value={o.id}>
+                {o.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      )}
+      <FormControl size="small" sx={{ minWidth: 200 }}>
+        <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.calendar.selectProperty')}</InputLabel>
+        <Select
+          value={selectedPropertyId ?? ''}
+          label={t('dynamicPricing.calendar.selectProperty')}
+          onChange={(e) => {
+            const val = e.target.value;
+            handlePropertyChange(val === '' ? null : Number(val));
+          }}
+          disabled={isPlatformStaff && selectedOwnerId === null}
+          sx={{ fontSize: '0.8125rem', '& .MuiSelect-select': { py: 0.75 } }}
+        >
+          {propertiesLoading && (
+            <MenuItem disabled>
+              <CircularProgress size={14} sx={{ mr: 1 }} /> {t('common.loading')}
+            </MenuItem>
+          )}
+          {filteredProperties.map((p) => (
+            <MenuItem key={p.id} value={p.id}>
+              {p.name}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      {isPlatformStaff && selectedOwnerId !== null && (
+        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', whiteSpace: 'nowrap' }}>
+          {filteredProperties.length} {t('dynamicPricing.propertiesCount')}
+        </Typography>
+      )}
+    </>
+  );
+
   const actionButtons = selectedPropertyId ? (
     <Tooltip title={pushResult || t('channels.pushPricing.tooltip')}>
       <Button
@@ -230,86 +290,13 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
         />
       )}
 
-      {/* ── Filter bar — Owner + Property selectors ── */}
-      <Paper
-        variant="outlined"
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          px: 2,
-          py: 1.25,
-          mb: 1.5,
-          borderRadius: 1.5,
-          borderColor: 'divider',
-          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
-        }}
-      >
-        <FilterIcon sx={{ fontSize: 18, color: 'text.secondary', flexShrink: 0 }} />
-
-        {/* Owner selector — platform staff only */}
-        {isPlatformStaff && (
-          <FormControl size="small" sx={{ minWidth: 220, maxWidth: 280 }}>
-            <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.selectOwner')}</InputLabel>
-            <Select
-              value={selectedOwnerId ?? ''}
-              label={t('dynamicPricing.selectOwner')}
-              onChange={(e) => {
-                const val = e.target.value;
-                handleOwnerChange(val === '' ? null : Number(val));
-              }}
-              sx={{ fontSize: '0.8125rem', '& .MuiSelect-select': { py: 0.75 } }}
-            >
-              <MenuItem value="">
-                <em>{t('dynamicPricing.allOwners')}</em>
-              </MenuItem>
-              {propertiesLoading && (
-                <MenuItem disabled>
-                  <CircularProgress size={14} sx={{ mr: 1 }} /> {t('common.loading')}
-                </MenuItem>
-              )}
-              {owners.map((o) => (
-                <MenuItem key={o.id} value={o.id}>
-                  {o.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        )}
-
-        {/* Property selector */}
-        <FormControl size="small" sx={{ minWidth: 240, maxWidth: 320 }}>
-          <InputLabel sx={{ fontSize: '0.8125rem' }}>{t('dynamicPricing.calendar.selectProperty')}</InputLabel>
-          <Select
-            value={selectedPropertyId ?? ''}
-            label={t('dynamicPricing.calendar.selectProperty')}
-            onChange={(e) => {
-              const val = e.target.value;
-              handlePropertyChange(val === '' ? null : Number(val));
-            }}
-            disabled={isPlatformStaff && selectedOwnerId === null}
-            sx={{ fontSize: '0.8125rem', '& .MuiSelect-select': { py: 0.75 } }}
-          >
-            {propertiesLoading && (
-              <MenuItem disabled>
-                <CircularProgress size={14} sx={{ mr: 1 }} /> {t('common.loading')}
-              </MenuItem>
-            )}
-            {filteredProperties.map((p) => (
-              <MenuItem key={p.id} value={p.id}>
-                {p.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {/* Property count indicator */}
-        {isPlatformStaff && selectedOwnerId !== null && (
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem', whiteSpace: 'nowrap' }}>
-            {filteredProperties.length} {t('dynamicPricing.propertiesCount')}
-          </Typography>
-        )}
-      </Paper>
+      {/* ── Filter selectors — portaled into tab bar when embedded ── */}
+      {embedded && tabInlineContainer && createPortal(filterSelectors, tabInlineContainer)}
+      {!embedded && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+          {filterSelectors}
+        </Box>
+      )}
 
       {/* Tabs */}
       <Tabs
