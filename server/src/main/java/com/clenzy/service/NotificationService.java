@@ -147,6 +147,15 @@ public class NotificationService {
      * @return le DTO cree, ou null si la notification est desactivee
      */
     public NotificationDto send(String userId, NotificationKey key, String title, String message, String actionUrl) {
+        return send(userId, key, title, message, actionUrl, tenantContext.getOrganizationId());
+    }
+
+    /**
+     * Surcharge pour contexte async (Kafka) ou le TenantContext n'est pas disponible.
+     * L'organizationId est passe explicitement.
+     */
+    public NotificationDto send(String userId, NotificationKey key, String title, String message,
+                                 String actionUrl, Long organizationId) {
         if (userId == null || key == null) {
             log.warn("Tentative de notification avec userId ou key null");
             return null;
@@ -162,7 +171,7 @@ public class NotificationService {
             Notification notification = new Notification(userId, title, message, key.getDefaultType(), key.getCategory());
             notification.setNotificationKey(key);
             notification.setActionUrl(actionUrl);
-            notification.setOrganizationId(tenantContext.getOrganizationId());
+            notification.setOrganizationId(organizationId);
             notification = notificationRepository.save(notification);
             log.info("Notification {} creee (ID: {}) pour l'utilisateur {}", key, notification.getId(), userId);
             return NotificationDto.fromEntity(notification);
@@ -187,6 +196,27 @@ public class NotificationService {
             for (User user : adminsManagers) {
                 if (user.getKeycloakId() != null) {
                     send(user.getKeycloakId(), key, title, message, actionUrl);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Erreur lors de la notification des admins/managers pour {}: {}", key, e.getMessage());
+        }
+    }
+
+    /**
+     * Surcharge pour contexte async (Kafka) ou le TenantContext n'est pas disponible.
+     * L'organizationId est passe explicitement.
+     */
+    public void notifyAdminsAndManagers(NotificationKey key, String title, String message,
+                                         String actionUrl, Long organizationId) {
+        try {
+            List<User> adminsManagers = userRepository.findByRoleIn(
+                    Arrays.asList(UserRole.SUPER_ADMIN, UserRole.SUPER_MANAGER),
+                    organizationId
+            );
+            for (User user : adminsManagers) {
+                if (user.getKeycloakId() != null) {
+                    send(user.getKeycloakId(), key, title, message, actionUrl, organizationId);
                 }
             }
         } catch (Exception e) {

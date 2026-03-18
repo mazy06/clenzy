@@ -70,7 +70,6 @@ export interface PropertyDetails {
   maxGuests: number;
   contactPhone: string;
   contactEmail: string;
-  rating?: number;
   lastCleaning?: string;
   nextCleaning?: string;
   ownerId?: string;

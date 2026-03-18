@@ -1,3 +1,13 @@
+## Database Migration Rules
+
+- **Liquibase** est utilisé pour les migrations de base de données (PAS Flyway).
+- Ne JAMAIS créer de fichiers `V{n}__*.sql` dans `db/migration/` — c'est l'ancien format Flyway.
+- Les changesets sont dans `server/src/main/resources/db/changelog/changes/NNNN__description.sql`
+- Le master changelog est `server/src/main/resources/db/changelog/db.changelog-master.yaml`
+- Convention de nommage : `NNNN__description_avec_underscores.sql` (numéro 4 chiffres, double underscore)
+- Chaque changeset dans le YAML utilise : `id: "NNNN-description-avec-tirets"`, `author: clenzy-team`
+- Pour les blocs PL/pgSQL (`DO $$`), ajouter `splitStatements: false` et `stripComments: false`
+
 ## Docker Rules
 
 - Ne JAMAIS relancer, redémarrer ou stopper les containers Docker. Si un redémarrage est nécessaire (migration, changement de config, etc.), indiquer clairement à l'utilisateur quel(s) container(s) relancer (ou si tout doit être relancé).

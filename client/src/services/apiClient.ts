@@ -1,5 +1,6 @@
 import { API_CONFIG } from '../config/api';
-import { getAccessToken } from './storageService';
+import keycloak, { getAccessToken } from '../keycloak';
+import { saveTokens } from './storageService';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -31,10 +32,77 @@ export interface RequestOptions {
   skipAuth?: boolean;
 }
 
-// ─── Token Access ────────────────────────────────────────────────────────────
+// ─── Token Refresh Mutex ────────────────────────────────────────────────────
+// Prevents multiple concurrent refresh attempts when several 401s arrive
+// at the same time. All callers wait on the same promise.
 
-function getAuthToken(): string | null {
-  return getAccessToken();
+let refreshPromise: Promise<boolean> | null = null;
+
+async function refreshTokenOnce(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      if (!keycloak.authenticated || !keycloak.refreshToken) return false;
+      const refreshed = await keycloak.updateToken(30);
+      if (refreshed && keycloak.token) {
+        // Persist to localStorage for backward compat (storageService consumers)
+        saveTokens({
+          accessToken: keycloak.token,
+          refreshToken: keycloak.refreshToken,
+          idToken: keycloak.idToken,
+        });
+        // Sync to HttpOnly cookie for secure storage
+        await syncTokenCookie(keycloak.token);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+// ─── HttpOnly Cookie Sync ───────────────────────────────────────────────────
+
+/**
+ * Syncs the JWT to a server-side HttpOnly cookie.
+ * Called after login and after each token refresh.
+ * The server sets Set-Cookie: clenzy_auth=<token>; HttpOnly; Secure; SameSite=Strict.
+ */
+export async function syncTokenCookie(token: string): Promise<void> {
+  try {
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/auth/session`;
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Accept the Set-Cookie from server
+    });
+  } catch {
+    // Silent — cookie sync is best-effort during migration
+  }
+}
+
+/**
+ * Clears the HttpOnly cookie on logout.
+ */
+export async function clearTokenCookie(): Promise<void> {
+  try {
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/auth/session`;
+    await fetch(url, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+  } catch {
+    // Silent
+  }
 }
 
 // ─── Query String Builder ────────────────────────────────────────────────────
@@ -98,9 +166,11 @@ async function request<T>(
     ...options.headers,
   };
 
-  // Add auth token unless explicitly skipped
+  // Add auth token unless explicitly skipped.
+  // During migration: send both the Authorization header AND credentials: 'include' (cookie).
+  // The backend accepts either. Once migration is complete, the header can be removed.
   if (!options.skipAuth) {
-    const token = getAuthToken();
+    const token = getAccessToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -115,6 +185,7 @@ async function request<T>(
     method,
     headers,
     signal: options.signal,
+    credentials: 'include', // Send HttpOnly cookie on every request
   };
 
   if (body) {
@@ -122,6 +193,30 @@ async function request<T>(
   }
 
   const response = await fetch(url, config);
+
+  // 401 Interceptor: refresh token and retry once
+  if (response.status === 401 && !options.skipAuth) {
+    const refreshed = await refreshTokenOnce();
+    if (refreshed) {
+      // Rebuild headers with fresh token
+      const freshToken = getAccessToken();
+      if (freshToken) {
+        headers['Authorization'] = `Bearer ${freshToken}`;
+      }
+      const retryConfig: RequestInit = {
+        method,
+        headers,
+        signal: options.signal,
+        credentials: 'include',
+      };
+      if (body) {
+        retryConfig.body = body instanceof FormData ? body : JSON.stringify(body);
+      }
+      const retryResponse = await fetch(url, retryConfig);
+      return handleResponse<T>(retryResponse);
+    }
+  }
+
   return handleResponse<T>(response);
 }
 

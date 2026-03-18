@@ -8,6 +8,7 @@ export const documentKeys = {
   templates: () => [...documentKeys.all, 'templates'] as const,
   template: (id: number) => [...documentKeys.templates(), id] as const,
   generations: (page: number, size: number) => [...documentKeys.all, 'generations', { page, size }] as const,
+  generationsByReference: (refType: string, refId: number) => [...documentKeys.all, 'by-reference', refType, refId] as const,
   documentTypes: () => [...documentKeys.all, 'types'] as const,
   tagCategories: () => [...documentKeys.all, 'tagCategories'] as const,
   complianceStats: () => [...documentKeys.all, 'complianceStats'] as const,
@@ -100,6 +101,14 @@ export function useGenerateDocument() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: documentKeys.all });
     },
+  });
+}
+
+export function useGenerationsByReference(referenceType: string, referenceId: number) {
+  return useQuery({
+    queryKey: documentKeys.generationsByReference(referenceType, referenceId),
+    queryFn: () => documentsApi.getGenerationsByReference(referenceType, referenceId),
+    enabled: !!referenceId,
   });
 }
 

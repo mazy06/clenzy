@@ -5,6 +5,7 @@ import com.clenzy.exception.*;
 import com.clenzy.model.DocumentGeneration;
 import com.clenzy.model.DocumentType;
 import com.clenzy.model.TagCategory;
+import com.clenzy.repository.InterventionRepository;
 import com.clenzy.service.DocumentComplianceService;
 import com.clenzy.service.DocumentGeneratorService;
 import com.clenzy.service.DocumentStorageService;
@@ -37,6 +38,7 @@ class DocumentControllerTest {
     @Mock private DocumentGeneratorService generatorService;
     @Mock private DocumentStorageService documentStorageService;
     @Mock private DocumentComplianceService complianceService;
+    @Mock private InterventionRepository interventionRepository;
 
     private DocumentController controller;
 
@@ -52,7 +54,7 @@ class DocumentControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new DocumentController(generatorService, documentStorageService, complianceService);
+        controller = new DocumentController(generatorService, documentStorageService, complianceService, interventionRepository);
     }
 
     @Nested
@@ -127,6 +129,7 @@ class DocumentControllerTest {
 
         @Test
         void whenDownloadGeneration_thenReturnsResource() {
+            Jwt jwt = createJwt();
             DocumentGeneration gen = new DocumentGeneration();
             gen.setFilePath("/path/to/file.pdf");
             gen.setFileName("document.pdf");
@@ -135,19 +138,20 @@ class DocumentControllerTest {
             Resource resource = new ByteArrayResource(new byte[]{1, 2, 3});
             when(documentStorageService.load("/path/to/file.pdf")).thenReturn(resource);
 
-            ResponseEntity<Resource> response = controller.downloadGeneration(1L);
+            ResponseEntity<Resource> response = controller.downloadGeneration(jwt, 1L);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getHeaders().getFirst("Content-Type")).isEqualTo("application/pdf");
         }
 
         @Test
         void whenDownloadGenerationWithNoFile_thenThrowsNotFound() {
+            Jwt jwt = createJwt();
             DocumentGeneration gen = new DocumentGeneration();
             gen.setFilePath(null);
             when(generatorService.getGeneration(1L)).thenReturn(gen);
 
             try {
-                controller.downloadGeneration(1L);
+                controller.downloadGeneration(jwt, 1L);
             } catch (DocumentNotFoundException e) {
                 assertThat(e.getMessage()).contains("Fichier non disponible");
             }
@@ -240,6 +244,13 @@ class DocumentControllerTest {
             ResponseEntity<Map<String, Object>> response =
                     controller.handleStorage(new DocumentStorageException("storage error"));
             assertThat(response.getStatusCode().value()).isEqualTo(500);
+        }
+
+        @Test
+        void whenAccessDeniedException_then403() {
+            ResponseEntity<Map<String, Object>> response =
+                    controller.handleAccessDenied(new org.springframework.security.access.AccessDeniedException("access denied"));
+            assertThat(response.getStatusCode().value()).isEqualTo(403);
         }
 
         @Test

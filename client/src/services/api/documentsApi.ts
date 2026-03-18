@@ -1,7 +1,7 @@
 import apiClient from '../apiClient';
 import { PaginatedResponse } from '../apiClient';
 import { API_CONFIG } from '../../config/api';
-import { getAccessToken } from '../storageService';
+import { getAccessToken } from '../../keycloak';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -169,6 +169,7 @@ export const documentsApi = {
     const token = getAccessToken();
     const response = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
     });
     if (!response.ok) {
       throw new Error(`Erreur ${response.status} lors du telechargement`);
@@ -182,6 +183,22 @@ export const documentsApi = {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(blobUrl);
+  },
+
+  /** Ouvrir un document genere dans un nouvel onglet (PDF viewer) */
+  async viewGeneration(generationId: number) {
+    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/documents/generations/${generationId}/download`;
+    const token = getAccessToken();
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error(`Erreur ${response.status} lors de l'ouverture`);
+    }
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    window.open(blobUrl, '_blank');
   },
 
   /** Generations par reference (ex: RESERVATION + reservationId) */

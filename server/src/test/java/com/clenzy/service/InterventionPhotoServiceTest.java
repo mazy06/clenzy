@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -96,19 +97,15 @@ class InterventionPhotoServiceTest {
         }
 
         @Test
-        void whenNullContentType_thenDefaultsToJpeg() throws Exception {
+        void whenNullContentType_thenSkipsPhoto() throws Exception {
             Intervention intervention = buildIntervention(1L);
             MultipartFile file = mock(MultipartFile.class);
             when(file.isEmpty()).thenReturn(false);
-            when(file.getBytes()).thenReturn(new byte[]{1});
             when(file.getContentType()).thenReturn(null);
-            when(file.getOriginalFilename()).thenReturn("photo");
 
             service.savePhotos(intervention, List.of(file), "before");
 
-            ArgumentCaptor<InterventionPhoto> captor = ArgumentCaptor.forClass(InterventionPhoto.class);
-            verify(interventionPhotoRepository).save(captor.capture());
-            assertThat(captor.getValue().getContentType()).isEqualTo("image/jpeg");
+            verify(interventionPhotoRepository, never()).save(any());
         }
 
         @Test
@@ -190,6 +187,155 @@ class InterventionPhotoServiceTest {
             String result = service.convertPhotosToBase64UrlsByType(intervention, "before");
 
             assertThat(result).isEqualTo("before-legacy");
+        }
+    }
+
+    // ===== GET PHOTO IDS BY TYPE =====
+
+    @Nested
+    class GetPhotoIdsByType {
+
+        @Test
+        void whenPhotosExist_thenReturnsJsonArray() {
+            Intervention intervention = buildIntervention(1L);
+
+            InterventionPhoto photo1 = new InterventionPhoto();
+            photo1.setId(10L);
+            InterventionPhoto photo2 = new InterventionPhoto();
+            photo2.setId(20L);
+
+            when(interventionPhotoRepository.findByInterventionIdAndPhotoTypeOrderByCreatedAtAsc(
+                    1L, "BEFORE", ORG_ID))
+                    .thenReturn(List.of(photo1, photo2));
+
+            String result = service.getPhotoIdsByType(intervention, "before");
+
+            assertThat(result).isEqualTo("[10,20]");
+        }
+
+        @Test
+        void whenNoPhotos_thenReturnsNull() {
+            Intervention intervention = buildIntervention(1L);
+
+            when(interventionPhotoRepository.findByInterventionIdAndPhotoTypeOrderByCreatedAtAsc(
+                    1L, "AFTER", ORG_ID))
+                    .thenReturn(List.of());
+
+            String result = service.getPhotoIdsByType(intervention, "after");
+
+            assertThat(result).isNull();
+        }
+    }
+
+    // ===== LOAD PHOTO BUNDLE =====
+
+    @Nested
+    class LoadPhotoBundle {
+
+        @Test
+        void whenNoPhotosInDb_thenFallsBackToLegacyFields() {
+            Intervention intervention = buildIntervention(1L);
+            intervention.setPhotos("[\"legacy-all\"]");
+            intervention.setBeforePhotosUrls("[\"legacy-before\"]");
+            intervention.setAfterPhotosUrls("[\"legacy-after\"]");
+
+            when(interventionPhotoRepository.findAllByInterventionId(1L, ORG_ID))
+                    .thenReturn(List.of());
+
+            InterventionPhotoService.PhotoBundle bundle = service.loadPhotoBundle(intervention);
+
+            assertThat(bundle.allPhotosJson()).isEqualTo("[\"legacy-all\"]");
+            assertThat(bundle.beforeUrls()).isEqualTo("[\"legacy-before\"]");
+            assertThat(bundle.afterUrls()).isEqualTo("[\"legacy-after\"]");
+            assertThat(bundle.beforeIds()).isNull();
+            assertThat(bundle.afterIds()).isNull();
+        }
+
+        @Test
+        void whenPhotosExistInDb_thenIgnoresLegacyFields() {
+            Intervention intervention = buildIntervention(1L);
+            intervention.setPhotos("[\"legacy-all\"]");
+            intervention.setBeforePhotosUrls("[\"legacy-before\"]");
+            intervention.setAfterPhotosUrls("[\"legacy-after\"]");
+
+            InterventionPhoto beforePhoto = new InterventionPhoto();
+            beforePhoto.setId(10L);
+            beforePhoto.setPhotoData(new byte[]{1, 2});
+            beforePhoto.setContentType("image/png");
+            beforePhoto.setPhotoType("BEFORE");
+            beforePhoto.setCreatedAt(java.time.LocalDateTime.of(2025, 1, 1, 10, 0));
+
+            when(interventionPhotoRepository.findAllByInterventionId(1L, ORG_ID))
+                    .thenReturn(List.of(beforePhoto));
+
+            InterventionPhotoService.PhotoBundle bundle = service.loadPhotoBundle(intervention);
+
+            assertThat(bundle.allPhotosJson()).contains("data:image/png;base64,");
+            assertThat(bundle.beforeUrls()).contains("data:image/png;base64,");
+            assertThat(bundle.afterUrls()).isEqualTo("[\"legacy-after\"]");
+            assertThat(bundle.beforeIds()).isEqualTo("[10]");
+            assertThat(bundle.afterIds()).isNull();
+        }
+
+        @Test
+        void whenBothTypesExistInDb_thenReturnsBothConverted() {
+            Intervention intervention = buildIntervention(1L);
+
+            InterventionPhoto beforePhoto = new InterventionPhoto();
+            beforePhoto.setId(10L);
+            beforePhoto.setPhotoData(new byte[]{1});
+            beforePhoto.setContentType("image/jpeg");
+            beforePhoto.setPhotoType("BEFORE");
+            beforePhoto.setCreatedAt(java.time.LocalDateTime.of(2025, 1, 1, 10, 0));
+
+            InterventionPhoto afterPhoto = new InterventionPhoto();
+            afterPhoto.setId(20L);
+            afterPhoto.setPhotoData(new byte[]{2});
+            afterPhoto.setContentType("image/png");
+            afterPhoto.setPhotoType("AFTER");
+            afterPhoto.setCreatedAt(java.time.LocalDateTime.of(2025, 1, 1, 11, 0));
+
+            when(interventionPhotoRepository.findAllByInterventionId(1L, ORG_ID))
+                    .thenReturn(List.of(beforePhoto, afterPhoto));
+
+            InterventionPhotoService.PhotoBundle bundle = service.loadPhotoBundle(intervention);
+
+            assertThat(bundle.allPhotosJson()).contains("data:image/jpeg;base64,");
+            assertThat(bundle.allPhotosJson()).contains("data:image/png;base64,");
+            assertThat(bundle.beforeUrls()).contains("data:image/jpeg;base64,");
+            assertThat(bundle.afterUrls()).contains("data:image/png;base64,");
+            assertThat(bundle.beforeIds()).isEqualTo("[10]");
+            assertThat(bundle.afterIds()).isEqualTo("[20]");
+        }
+    }
+
+    // ===== DELETE PHOTO =====
+
+    @Nested
+    class DeletePhoto {
+
+        @Test
+        void whenPhotoExists_thenDeletesSuccessfully() {
+            InterventionPhoto photo = new InterventionPhoto();
+            photo.setId(10L);
+            photo.setPhotoType("BEFORE");
+
+            when(interventionPhotoRepository.findByIdAndInterventionId(10L, 1L, ORG_ID))
+                    .thenReturn(Optional.of(photo));
+
+            service.deletePhoto(10L, 1L);
+
+            verify(interventionPhotoRepository).delete(photo);
+        }
+
+        @Test
+        void whenPhotoNotFound_thenThrowsException() {
+            when(interventionPhotoRepository.findByIdAndInterventionId(99L, 1L, ORG_ID))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.deletePhoto(99L, 1L))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("Photo introuvable");
         }
     }
 }

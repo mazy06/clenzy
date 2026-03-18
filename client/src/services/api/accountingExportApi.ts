@@ -1,5 +1,5 @@
 import { API_CONFIG } from '../../config/api';
-import { getAccessToken } from '../storageService';
+import { getAccessToken } from '../../keycloak';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -9,6 +9,7 @@ async function downloadFile(endpoint: string, filename: string): Promise<void> {
 
   const response = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -41,6 +42,7 @@ async function downloadFilePost(endpoint: string, body: unknown, filename: strin
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(body),
+    credentials: 'include',
   });
 
   if (!response.ok) {

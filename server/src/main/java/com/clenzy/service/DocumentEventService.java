@@ -45,6 +45,7 @@ public class DocumentEventService {
             Object referenceIdObj = event.get("referenceId");
             String referenceTypeStr = castToString(event.get("referenceType"));
             String emailTo = castToString(event.get("emailTo"));
+            Object organizationIdObj = event.get("organizationId");
 
             if (documentTypeStr == null || referenceIdObj == null) {
                 log.warn("Invalid document generation event: missing documentType or referenceId. Event: {}", event);
@@ -56,12 +57,19 @@ public class DocumentEventService {
                     ? ((Number) referenceIdObj).longValue()
                     : Long.parseLong(referenceIdObj.toString());
 
+            Long organizationId = null;
+            if (organizationIdObj instanceof Number n) {
+                organizationId = n.longValue();
+            } else if (organizationIdObj != null) {
+                organizationId = Long.parseLong(organizationIdObj.toString());
+            }
+
             ReferenceType referenceType = parseReferenceType(referenceTypeStr);
 
-            log.info("Processing document generation event: type={}, ref={}#{}, emailTo={}",
-                    documentType, referenceType, referenceId, emailTo);
+            log.info("Processing document generation event: type={}, ref={}#{}, emailTo={}, orgId={}",
+                    documentType, referenceType, referenceId, emailTo, organizationId);
 
-            generatorService.generateFromEvent(documentType, referenceId, referenceType, emailTo);
+            generatorService.generateFromEvent(documentType, referenceId, referenceType, emailTo, organizationId);
 
         } catch (ClassCastException e) {
             log.error("Invalid field type in document generation event: {}", event, e);

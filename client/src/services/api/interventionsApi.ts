@@ -1,4 +1,5 @@
 import apiClient from '../apiClient';
+import type { InterventionDetailsData } from '../../modules/interventions/interventionUtils';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,8 @@ export interface Intervention {
   photosUrl?: string;
   beforePhotosUrls?: string;
   afterPhotosUrls?: string;
+  beforePhotoIds?: string;
+  afterPhotoIds?: string;
   completedSteps?: string;
   validatedRooms?: string;
   paymentStatus?: string;
@@ -236,7 +239,7 @@ export const interventionsApi = {
   },
 
   getAll(params?: InterventionListParams) {
-    if (localStorage.getItem(ANALYTICS_MOCK_KEY) === 'true') {
+    if (import.meta.env.DEV && localStorage.getItem(ANALYTICS_MOCK_KEY) === 'true') {
       let data = generateMockInterventions();
       if (params?.propertyId) {
         data = data.filter((i) => i.propertyId === params.propertyId);
@@ -247,7 +250,7 @@ export const interventionsApi = {
   },
 
   getById(id: number) {
-    return apiClient.get<Intervention>(`/interventions/${id}`);
+    return apiClient.get<InterventionDetailsData>(`/interventions/${id}`);
   },
 
   create(data: InterventionFormData) {
@@ -263,33 +266,37 @@ export const interventionsApi = {
   },
 
   start(id: number) {
-    return apiClient.put<Intervention>(`/interventions/${id}/start`);
+    return apiClient.put<InterventionDetailsData>(`/interventions/${id}/start`);
   },
 
   updateProgress(id: number, progressPercentage: number) {
-    return apiClient.put<Intervention>(`/interventions/${id}/progress`, undefined, {
+    return apiClient.put<InterventionDetailsData>(`/interventions/${id}/progress`, undefined, {
       params: { progressPercentage },
     });
   },
 
+  complete(id: number) {
+    return apiClient.put<InterventionDetailsData>(`/interventions/${id}/complete`);
+  },
+
   reopen(id: number) {
-    return apiClient.put<Intervention>(`/interventions/${id}/reopen`);
+    return apiClient.put<InterventionDetailsData>(`/interventions/${id}/reopen`);
   },
 
   updateCompletedSteps(id: number, completedSteps: string) {
-    return apiClient.put<Intervention>(`/interventions/${id}/completed-steps`, undefined, {
+    return apiClient.put<InterventionDetailsData>(`/interventions/${id}/completed-steps`, undefined, {
       params: { completedSteps },
     });
   },
 
   updateNotes(id: number, notes: string) {
-    return apiClient.put<Intervention>(`/interventions/${id}/notes`, undefined, {
+    return apiClient.put<InterventionDetailsData>(`/interventions/${id}/notes`, undefined, {
       params: { notes },
     });
   },
 
   updateValidatedRooms(id: number, validatedRooms: string) {
-    return apiClient.put<Intervention>(`/interventions/${id}/validated-rooms`, undefined, {
+    return apiClient.put<InterventionDetailsData>(`/interventions/${id}/validated-rooms`, undefined, {
       params: { validatedRooms },
     });
   },
@@ -298,7 +305,11 @@ export const interventionsApi = {
     const formData = new FormData();
     photos.forEach((photo) => formData.append('photos', photo));
     formData.append('photoType', photoType);
-    return apiClient.upload<Intervention>(`/interventions/${id}/photos`, formData);
+    return apiClient.upload<InterventionDetailsData>(`/interventions/${id}/photos`, formData);
+  },
+
+  deletePhoto(id: number, photoId: number) {
+    return apiClient.delete<InterventionDetailsData>(`/interventions/${id}/photos/${photoId}`);
   },
 
   assign(id: number, userId?: number, teamId?: number) {

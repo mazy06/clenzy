@@ -1,18 +1,13 @@
 package com.clenzy.controller;
 
-import com.clenzy.dto.InterventionDto;
+import com.clenzy.dto.CreateInterventionRequest;
+import com.clenzy.dto.InterventionResponse;
 import com.clenzy.dto.InterventionValidationRequest;
-import com.clenzy.model.Intervention;
-import com.clenzy.model.InterventionStatus;
-import com.clenzy.model.Property;
-import com.clenzy.model.User;
-import com.clenzy.model.UserRole;
-import com.clenzy.repository.InterventionRepository;
-import com.clenzy.repository.ReservationRepository;
-import com.clenzy.repository.TeamRepository;
-import com.clenzy.repository.UserRepository;
+import com.clenzy.dto.UpdateInterventionRequest;
+import com.clenzy.service.InterventionLifecycleService;
+import com.clenzy.service.InterventionPlanningService;
+import com.clenzy.service.InterventionProgressService;
 import com.clenzy.service.InterventionService;
-import com.clenzy.tenant.TenantContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -28,10 +23,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,11 +37,9 @@ import static org.mockito.Mockito.when;
 class InterventionControllerTest {
 
     @Mock private InterventionService interventionService;
-    @Mock private InterventionRepository interventionRepository;
-    @Mock private ReservationRepository reservationRepository;
-    @Mock private UserRepository userRepository;
-    @Mock private TeamRepository teamRepository;
-    @Mock private TenantContext tenantContext;
+    @Mock private InterventionPlanningService planningService;
+    @Mock private InterventionLifecycleService lifecycleService;
+    @Mock private InterventionProgressService progressService;
 
     private InterventionController controller;
 
@@ -60,10 +52,13 @@ class InterventionControllerTest {
                 .build();
     }
 
+    private InterventionResponse buildResponse(Long id) {
+        return InterventionResponse.builder().id(id).build();
+    }
+
     @BeforeEach
     void setUp() {
-        controller = new InterventionController(interventionService, interventionRepository,
-                reservationRepository, userRepository, teamRepository, tenantContext);
+        controller = new InterventionController(interventionService, planningService, lifecycleService, progressService);
     }
 
     @Nested
@@ -71,17 +66,17 @@ class InterventionControllerTest {
     class Create {
         @Test
         void whenCreate_thenReturns201() {
-            InterventionDto dto = new InterventionDto();
-            InterventionDto created = new InterventionDto();
-            created.id = 1L;
+            CreateInterventionRequest request = new CreateInterventionRequest(
+                    "Test title", null, "CLEANING", "HIGH", 1L, 1L, "2026-03-01T10:00:00", null, null, null);
+            InterventionResponse created = buildResponse(1L);
 
             Jwt jwt = createJwt();
-            when(interventionService.create(any(InterventionDto.class), eq(jwt))).thenReturn(created);
+            when(interventionService.create(any(CreateInterventionRequest.class), eq(jwt))).thenReturn(created);
 
-            ResponseEntity<InterventionDto> response = controller.create(dto, jwt);
+            ResponseEntity<InterventionResponse> response = controller.create(request, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(201);
-            assertThat(response.getBody().id).isEqualTo(1L);
+            assertThat(response.getBody().id()).isEqualTo(1L);
         }
     }
 
@@ -90,15 +85,15 @@ class InterventionControllerTest {
     class Update {
         @Test
         void whenUpdate_thenDelegates() {
-            InterventionDto dto = new InterventionDto();
-            InterventionDto updated = new InterventionDto();
-            updated.id = 1L;
+            UpdateInterventionRequest request = new UpdateInterventionRequest(
+                    null, null, null, null, null, null, null, null, null);
+            InterventionResponse updated = buildResponse(1L);
             Jwt jwt = createJwt();
 
-            when(interventionService.update(eq(1L), any(InterventionDto.class), eq(jwt))).thenReturn(updated);
+            when(interventionService.update(eq(1L), any(UpdateInterventionRequest.class), eq(jwt))).thenReturn(updated);
 
-            InterventionDto result = controller.update(1L, dto, jwt);
-            assertThat(result.id).isEqualTo(1L);
+            InterventionResponse result = controller.update(1L, request, jwt);
+            assertThat(result.id()).isEqualTo(1L);
         }
     }
 
@@ -107,14 +102,13 @@ class InterventionControllerTest {
     class Get {
         @Test
         void whenGet_thenDelegates() {
-            InterventionDto dto = new InterventionDto();
-            dto.id = 1L;
+            InterventionResponse response = buildResponse(1L);
             Jwt jwt = createJwt();
 
-            when(interventionService.getById(1L, jwt)).thenReturn(dto);
+            when(interventionService.getById(1L, jwt)).thenReturn(response);
 
-            InterventionDto result = controller.get(1L, jwt);
-            assertThat(result.id).isEqualTo(1L);
+            InterventionResponse result = controller.get(1L, jwt);
+            assertThat(result.id()).isEqualTo(1L);
         }
 
         @Test
@@ -135,12 +129,12 @@ class InterventionControllerTest {
         void whenList_thenDelegates() {
             Jwt jwt = createJwt();
             var pageable = PageRequest.of(0, 10);
-            Page<InterventionDto> page = new PageImpl<>(List.of(new InterventionDto()));
+            Page<InterventionResponse> page = new PageImpl<>(List.of(buildResponse(1L)));
 
             when(interventionService.listWithRoleBasedAccess(pageable, null, null, null, null, null, null, jwt))
                     .thenReturn(page);
 
-            Page<InterventionDto> result = controller.list(pageable, null, null, null, null, null, null, jwt);
+            Page<InterventionResponse> result = controller.list(pageable, null, null, null, null, null, null, jwt);
             assertThat(result.getContent()).hasSize(1);
         }
     }
@@ -160,14 +154,13 @@ class InterventionControllerTest {
     @DisplayName("updateStatus")
     class UpdateStatus {
         @Test
-        void whenUpdateStatus_thenDelegates() {
+        void whenUpdateStatus_thenDelegatesToLifecycleService() {
             Jwt jwt = createJwt();
-            InterventionDto updated = new InterventionDto();
-            updated.id = 1L;
-            when(interventionService.updateStatus(1L, "IN_PROGRESS", jwt)).thenReturn(updated);
+            InterventionResponse updated = buildResponse(1L);
+            when(lifecycleService.updateStatus(1L, "IN_PROGRESS", jwt)).thenReturn(updated);
 
-            InterventionDto result = controller.updateStatus(1L, "IN_PROGRESS", jwt);
-            assertThat(result.id).isEqualTo(1L);
+            InterventionResponse result = controller.updateStatus(1L, "IN_PROGRESS", jwt);
+            assertThat(result.id()).isEqualTo(1L);
         }
     }
 
@@ -177,23 +170,21 @@ class InterventionControllerTest {
         @Test
         void whenAssignUser_thenDelegates() {
             Jwt jwt = createJwt();
-            InterventionDto updated = new InterventionDto();
-            updated.id = 1L;
+            InterventionResponse updated = buildResponse(1L);
             when(interventionService.assign(1L, 5L, null, jwt)).thenReturn(updated);
 
-            InterventionDto result = controller.assign(1L, 5L, null, jwt);
-            assertThat(result.id).isEqualTo(1L);
+            InterventionResponse result = controller.assign(1L, 5L, null, jwt);
+            assertThat(result.id()).isEqualTo(1L);
         }
 
         @Test
         void whenAssignTeam_thenDelegates() {
             Jwt jwt = createJwt();
-            InterventionDto updated = new InterventionDto();
-            updated.id = 1L;
+            InterventionResponse updated = buildResponse(1L);
             when(interventionService.assign(1L, null, 3L, jwt)).thenReturn(updated);
 
-            InterventionDto result = controller.assign(1L, null, 3L, jwt);
-            assertThat(result.id).isEqualTo(1L);
+            InterventionResponse result = controller.assign(1L, null, 3L, jwt);
+            assertThat(result.id()).isEqualTo(1L);
         }
     }
 
@@ -201,19 +192,18 @@ class InterventionControllerTest {
     @DisplayName("validate")
     class Validate {
         @Test
-        void whenValidate_thenDelegates() {
+        void whenValidate_thenDelegatesToLifecycleService() {
             Jwt jwt = createJwt();
-            InterventionDto updated = new InterventionDto();
-            updated.id = 1L;
+            InterventionResponse updated = buildResponse(1L);
 
             InterventionValidationRequest request = new InterventionValidationRequest();
             request.setEstimatedCost(BigDecimal.valueOf(150));
 
-            when(interventionService.validateIntervention(eq(1L), eq(BigDecimal.valueOf(150)), eq(jwt)))
+            when(lifecycleService.validateIntervention(eq(1L), eq(BigDecimal.valueOf(150)), eq(jwt)))
                     .thenReturn(updated);
 
-            InterventionDto result = controller.validate(1L, request, jwt);
-            assertThat(result.id).isEqualTo(1L);
+            InterventionResponse result = controller.validate(1L, request, jwt);
+            assertThat(result.id()).isEqualTo(1L);
         }
     }
 
@@ -221,12 +211,12 @@ class InterventionControllerTest {
     @DisplayName("startIntervention")
     class Start {
         @Test
-        void whenStart_thenDelegates() {
+        void whenStart_thenDelegatesToLifecycleService() {
             Jwt jwt = createJwt();
-            InterventionDto updated = new InterventionDto();
-            when(interventionService.startIntervention(1L, jwt)).thenReturn(updated);
+            InterventionResponse updated = buildResponse(1L);
+            when(lifecycleService.startIntervention(1L, jwt)).thenReturn(updated);
 
-            InterventionDto result = controller.startIntervention(1L, jwt);
+            InterventionResponse result = controller.startIntervention(1L, jwt);
             assertThat(result).isNotNull();
         }
     }
@@ -235,12 +225,12 @@ class InterventionControllerTest {
     @DisplayName("reopenIntervention")
     class Reopen {
         @Test
-        void whenReopen_thenDelegates() {
+        void whenReopen_thenDelegatesToLifecycleService() {
             Jwt jwt = createJwt();
-            InterventionDto updated = new InterventionDto();
-            when(interventionService.reopenIntervention(1L, jwt)).thenReturn(updated);
+            InterventionResponse updated = buildResponse(1L);
+            when(lifecycleService.reopenIntervention(1L, jwt)).thenReturn(updated);
 
-            InterventionDto result = controller.reopenIntervention(1L, jwt);
+            InterventionResponse result = controller.reopenIntervention(1L, jwt);
             assertThat(result).isNotNull();
         }
     }
@@ -249,12 +239,12 @@ class InterventionControllerTest {
     @DisplayName("updateProgress")
     class Progress {
         @Test
-        void whenUpdateProgress_thenDelegates() {
+        void whenUpdateProgress_thenDelegatesToProgressService() {
             Jwt jwt = createJwt();
-            InterventionDto updated = new InterventionDto();
-            when(interventionService.updateProgress(1L, 75, jwt)).thenReturn(updated);
+            InterventionResponse updated = buildResponse(1L);
+            when(progressService.updateProgress(1L, 75, jwt)).thenReturn(updated);
 
-            InterventionDto result = controller.updateProgress(1L, 75, jwt);
+            InterventionResponse result = controller.updateProgress(1L, 75, jwt);
             assertThat(result).isNotNull();
         }
     }
@@ -263,31 +253,13 @@ class InterventionControllerTest {
     @DisplayName("updateNotes")
     class Notes {
         @Test
-        void whenUpdateNotes_thenDelegates() {
+        void whenUpdateNotes_thenDelegatesToProgressService() {
             Jwt jwt = createJwt();
-            InterventionDto updated = new InterventionDto();
-            when(interventionService.updateNotes(1L, "notes", jwt)).thenReturn(updated);
+            InterventionResponse updated = buildResponse(1L);
+            when(progressService.updateNotes(1L, "notes", jwt)).thenReturn(updated);
 
-            InterventionDto result = controller.updateNotes(1L, "notes", jwt);
+            InterventionResponse result = controller.updateNotes(1L, "notes", jwt);
             assertThat(result).isNotNull();
-        }
-    }
-
-    @Nested
-    @DisplayName("testAuth")
-    class TestAuth {
-        @Test
-        void whenAuthenticated_thenReturnsSubject() {
-            Jwt jwt = createJwt();
-            ResponseEntity<String> response = controller.testAuth(jwt);
-            assertThat(response.getStatusCode().value()).isEqualTo(200);
-            assertThat(response.getBody()).contains("user-123");
-        }
-
-        @Test
-        void whenNotAuthenticated_thenReturns401() {
-            ResponseEntity<String> response = controller.testAuth(null);
-            assertThat(response.getStatusCode().value()).isEqualTo(401);
         }
     }
 
@@ -295,30 +267,15 @@ class InterventionControllerTest {
     @DisplayName("planning")
     class Planning {
         @Test
-        void whenAdminWithProperties_thenReturnsMapping() {
+        void whenPlanningCalled_thenDelegatesToService() {
             Jwt jwt = createJwt();
-            User user = new User();
-            user.setId(1L);
-            user.setRole(UserRole.SUPER_ADMIN);
-            when(userRepository.findByKeycloakId("user-123")).thenReturn(Optional.of(user));
-            when(tenantContext.getRequiredOrganizationId()).thenReturn(1L);
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("id", 10L);
+            entry.put("status", "in_progress");
+            entry.put("propertyName", "Apt A");
 
-            Intervention intervention = new Intervention();
-            intervention.setId(10L);
-            intervention.setType("CLEANING");
-            intervention.setStatus(InterventionStatus.IN_PROGRESS);
-            intervention.setPriority("HIGH");
-            intervention.setTitle("Clean room");
-            intervention.setScheduledDate(LocalDateTime.of(2026, 3, 1, 10, 0));
-            intervention.setEstimatedDurationHours(2);
-
-            Property property = new Property();
-            property.setId(1L);
-            property.setName("Apt A");
-            intervention.setProperty(property);
-
-            when(interventionRepository.findByPropertyIdsAndDateRange(eq(List.of(1L)), any(), any(), eq(1L)))
-                    .thenReturn(List.of(intervention));
+            when(planningService.getPlanningInterventions(eq(jwt), eq(List.of(1L)), isNull(), isNull(), isNull()))
+                    .thenReturn(List.of(entry));
 
             ResponseEntity<List<Map<String, Object>>> response = controller.getPlanningInterventions(
                     jwt, List.of(1L), null, null, null);

@@ -50,12 +50,6 @@ export function useInterventionDetails(id: string | undefined) {
 
   // ---- Return the same flat API ----
   return {
-    // Auth-derived values
-    user: state.user,
-    isTechnician: state.isTechnician,
-    isHousekeeper: state.isHousekeeper,
-    isSupervisor: state.isSupervisor,
-
     // State
     intervention: state.intervention,
     loading: state.loading,
@@ -73,6 +67,9 @@ export function useInterventionDetails(id: string | undefined) {
     photosDialogOpen: photos.photosDialogOpen,
     selectedPhotos: photos.selectedPhotos,
     uploadingPhotos: photos.uploadingPhotos,
+    deletingPhotoId: photos.deletingPhotoId,
+    beforePhotoIds: photos.beforePhotoIds,
+    afterPhotoIds: photos.afterPhotoIds,
     photoType: photos.photoType,
     propertyDetails: state.propertyDetails,
     completedSteps: photos.completedSteps,
@@ -96,9 +93,7 @@ export function useInterventionDetails(id: string | undefined) {
     setPhotoType: photos.setPhotoType,
     setError: state.setError,
     setCompletedSteps: photos.setCompletedSteps,
-    setAllRoomsValidated: progress.setAllRoomsValidated,
     setInspectionComplete: photos.setInspectionComplete,
-    saveCompletedSteps: photos.saveCompletedSteps,
 
     // Handler functions
     handleStartIntervention: state.handleStartIntervention,
@@ -108,17 +103,14 @@ export function useInterventionDetails(id: string | undefined) {
     handleOpenNotesDialog: notes.handleOpenNotesDialog,
     handleUpdateNotes: notes.handleUpdateNotes,
     handlePhotoUpload: photos.handlePhotoUpload,
-    handlePhotoSelect: photos.handlePhotoSelect,
-    handleInspectionComplete: photos.handleInspectionComplete,
+    handleDeletePhoto: photos.handleDeletePhoto,
     handleRoomValidation: progress.handleRoomValidation,
-    handleAfterPhotosComplete: photos.handleAfterPhotosComplete,
     handleUpdateProgressValue: progress.handleUpdateProgressValue,
 
     // Computed values
     canStartOrUpdateIntervention: state.canStartOrUpdateIntervention,
     canStartIntervention: state.canStartIntervention,
     canUpdateProgress: state.canUpdateProgress,
-    canModifyIntervention: state.canModifyIntervention,
     areAllStepsCompleted: progress.areAllStepsCompleted,
     calculateProgress: progress.calculateProgress,
     getTotalRooms: progress.getTotalRooms,

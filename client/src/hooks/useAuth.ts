@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useContext, useRef } from 'react';
-import keycloak from '../keycloak';
+import keycloak, { syncAuthCookie } from '../keycloak';
 import { API_CONFIG } from '../config/api';
+import { clearTokenCookie } from '../services/apiClient';
 import { CustomPermissionsContext } from './useCustomPermissions';
 import PermissionSyncService from '../services/PermissionSyncService';
 import RedisCacheService from '../services/RedisCacheService';
-import { getItem, clearTokens, STORAGE_KEYS } from '../services/storageService';
+import { getItem, clearTokens, saveTokens, STORAGE_KEYS } from '../services/storageService';
 
 export interface UserRole {
   name: string;
@@ -112,6 +113,9 @@ export const useAuth = () => {
           setUser(user);
           setLoading(false);
 
+          // Sync JWT to HttpOnly cookie (secure against XSS)
+          syncAuthCookie().catch(() => { /* best-effort */ });
+
           // Initialiser le service de synchronisation des permissions
           permissionSyncService.initialize(user);
 
@@ -126,7 +130,15 @@ export const useAuth = () => {
           try {
             if (keycloak.refreshToken) {
               const refreshed = await keycloak.updateToken(30);
-              if (refreshed) {
+              if (refreshed && keycloak.token) {
+                // Persist refreshed tokens to localStorage so other consumers
+                // (beforeunload handlers, apiClient) read the fresh token
+                saveTokens({
+                  accessToken: keycloak.token,
+                  refreshToken: keycloak.refreshToken,
+                  idToken: keycloak.idToken,
+                });
+                syncAuthCookie().catch(() => { /* best-effort */ });
                 await loadUserFromKeycloak();
                 return;
               }
@@ -309,7 +321,6 @@ export const useAuth = () => {
     const storedToken = getItem(STORAGE_KEYS.ACCESS_TOKEN);
     const storedRefreshToken = getItem(STORAGE_KEYS.REFRESH_TOKEN);
     const storedIdToken = getItem(STORAGE_KEYS.ID_TOKEN);
-    const storedExpiresIn = getItem(STORAGE_KEYS.EXPIRES_IN);
 
     if (storedToken && storedRefreshToken) {
       try {
@@ -357,6 +368,9 @@ export const useAuth = () => {
     keycloak.refreshToken = undefined;
     keycloak.authenticated = false;
     keycloak.tokenParsed = undefined;
+
+    // Supprimer le cookie HttpOnly server-side
+    clearTokenCookie().catch(() => { /* silent */ });
 
     // Nettoyer le localStorage
     clearTokens();

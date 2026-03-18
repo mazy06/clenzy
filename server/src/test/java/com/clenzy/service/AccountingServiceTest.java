@@ -69,7 +69,7 @@ class AccountingServiceTest {
             .thenReturn(Optional.empty());
         when(reservationRepository.findByOwnerIdAndDateRange(OWNER_ID, from, to, ORG_ID))
             .thenReturn(List.of(r1, r2));
-        // No ManagementContract → uses default 20% commission rate
+        // No ManagementContract → no commission (0%)
         when(managementContractService.getActiveContract(anyLong(), eq(ORG_ID)))
             .thenReturn(Optional.empty());
         // No provider expenses
@@ -84,10 +84,10 @@ class AccountingServiceTest {
         OwnerPayout result = service.generatePayout(OWNER_ID, ORG_ID, from, to);
 
         assertEquals(0, new BigDecimal("800.00").compareTo(result.getGrossRevenue()));
-        // 20% of 800 = 160
-        assertEquals(0, new BigDecimal("160.00").compareTo(result.getCommissionAmount()));
-        // 800 - 160 = 640
-        assertEquals(0, new BigDecimal("640.00").compareTo(result.getNetAmount()));
+        // No contract → 0% commission
+        assertEquals(0, new BigDecimal("0.00").compareTo(result.getCommissionAmount()));
+        // 800 - 0 = 800
+        assertEquals(0, new BigDecimal("800.00").compareTo(result.getNetAmount()));
         assertEquals(PayoutStatus.PENDING, result.getStatus());
     }
 

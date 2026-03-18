@@ -1,5 +1,5 @@
 import { API_CONFIG } from '../../config/api';
-import { getAccessToken } from '../storageService';
+import { getAccessToken } from '../../keycloak';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -44,6 +44,7 @@ async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T>
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     },
+    credentials: 'include',
   });
 
   if (!response.ok) {

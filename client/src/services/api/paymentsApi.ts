@@ -1,6 +1,6 @@
 import apiClient from '../apiClient';
 import { buildApiUrl } from '../../config/api';
-import { getAccessToken } from '../storageService';
+import { getAccessToken } from '../../keycloak';
 
 // ─── Existing Types ─────────────────────────────────────────────────────────
 
@@ -190,6 +190,7 @@ export const paymentsApi = {
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
+          credentials: 'include',
         }
       );
       if (!response.ok) throw new Error('Invoice download failed');
