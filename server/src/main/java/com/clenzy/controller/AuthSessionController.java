@@ -38,6 +38,9 @@ public class AuthSessionController {
     @Value("${spring.profiles.active:prod}")
     private String activeProfile;
 
+    @Value("${clenzy.auth.cookie.max-age:3600}")
+    private int cookieMaxAge;
+
     /**
      * Stocke le JWT dans un cookie HttpOnly.
      * Le token est deja valide par Spring Security (Bearer header requis).
@@ -84,7 +87,7 @@ public class AuthSessionController {
         // Max-age = 1h (aligne sur le TTL du JWT Keycloak).
         // Le SPA appelle POST /api/auth/session a chaque refresh de token
         // pour mettre a jour le cookie avant expiration.
-        cookie.setMaxAge(3600);
+        cookie.setMaxAge(cookieMaxAge);
         cookie.setAttribute("SameSite", "Strict");
         response.addCookie(cookie);
     }
