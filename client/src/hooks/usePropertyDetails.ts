@@ -54,6 +54,18 @@ export interface PropertyDetailsData {
   // Geolocalisation
   latitude?: number;
   longitude?: number;
+  // Instructions voyageur
+  checkInInstructions?: {
+    accessCode: string | null;
+    wifiName: string | null;
+    wifiPassword: string | null;
+    parkingInfo: string | null;
+    arrivalInstructions: string | null;
+    departureInstructions: string | null;
+    houseRules: string | null;
+    emergencyContact: string | null;
+    additionalNotes: string | null;
+  };
 }
 
 export interface PropertyIntervention {
@@ -123,6 +135,17 @@ function convertProperty(raw: Property): PropertyDetailsData {
     updatedAt: raw.updatedAt,
     latitude: raw.latitude,
     longitude: raw.longitude,
+    checkInInstructions: raw.checkInInstructions ? {
+      accessCode: raw.checkInInstructions.accessCode,
+      wifiName: raw.checkInInstructions.wifiName,
+      wifiPassword: raw.checkInInstructions.wifiPassword,
+      parkingInfo: raw.checkInInstructions.parkingInfo,
+      arrivalInstructions: raw.checkInInstructions.arrivalInstructions,
+      departureInstructions: raw.checkInInstructions.departureInstructions,
+      houseRules: raw.checkInInstructions.houseRules,
+      emergencyContact: raw.checkInInstructions.emergencyContact,
+      additionalNotes: raw.checkInInstructions.additionalNotes,
+    } : undefined,
   };
 }
 

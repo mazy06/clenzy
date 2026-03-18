@@ -38,6 +38,7 @@ class PropertyServiceTest {
     @Mock private ManagerPropertyRepository managerPropertyRepository;
     @Mock private PortfolioClientRepository portfolioClientRepository;
     @Mock private PortfolioRepository portfolioRepository;
+    @Mock private CheckInInstructionsRepository checkInInstructionsRepository;
     @Mock private NotificationService notificationService;
 
     private TenantContext tenantContext;
@@ -53,6 +54,7 @@ class PropertyServiceTest {
         propertyService = new PropertyService(
                 propertyRepository, userRepository, managerPropertyRepository,
                 portfolioClientRepository, portfolioRepository,
+                checkInInstructionsRepository,
                 notificationService, tenantContext);
     }
 
