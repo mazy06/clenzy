@@ -3,10 +3,12 @@ package com.clenzy.scheduler;
 import com.clenzy.model.MessageTemplate;
 import com.clenzy.model.MessageTemplateType;
 import com.clenzy.model.MessagingAutomationConfig;
+import com.clenzy.model.NotificationKey;
 import com.clenzy.model.Reservation;
 import com.clenzy.repository.MessageTemplateRepository;
 import com.clenzy.repository.MessagingAutomationConfigRepository;
 import com.clenzy.repository.ReservationRepository;
+import com.clenzy.service.NotificationService;
 import com.clenzy.service.messaging.GuestMessagingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +16,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Tache planifiee pour l'envoi automatique des instructions
@@ -32,17 +36,20 @@ public class GuestMessagingScheduler {
     private final ReservationRepository reservationRepository;
     private final MessageTemplateRepository templateRepository;
     private final GuestMessagingService messagingService;
+    private final NotificationService notificationService;
 
     public GuestMessagingScheduler(
             MessagingAutomationConfigRepository configRepository,
             ReservationRepository reservationRepository,
             MessageTemplateRepository templateRepository,
-            GuestMessagingService messagingService
+            GuestMessagingService messagingService,
+            NotificationService notificationService
     ) {
         this.configRepository = configRepository;
         this.reservationRepository = reservationRepository;
         this.templateRepository = templateRepository;
         this.messagingService = messagingService;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -58,12 +65,13 @@ public class GuestMessagingScheduler {
 
         int totalSent = 0;
         int totalErrors = 0;
+        Set<Long> notifiedReservations = new HashSet<>();
 
         for (MessagingAutomationConfig config : configs) {
             Long orgId = config.getOrganizationId();
             try {
-                totalSent += processCheckIn(config, orgId);
-                totalSent += processCheckOut(config, orgId);
+                totalSent += processCheckIn(config, orgId, notifiedReservations);
+                totalSent += processCheckOut(config, orgId, notifiedReservations);
             } catch (Exception e) {
                 totalErrors++;
                 log.error("Erreur messaging auto pour org={}: {}", orgId, e.getMessage(), e);
@@ -75,7 +83,7 @@ public class GuestMessagingScheduler {
         }
     }
 
-    private int processCheckIn(MessagingAutomationConfig config, Long orgId) {
+    private int processCheckIn(MessagingAutomationConfig config, Long orgId, Set<Long> notifiedReservations) {
         if (!config.isAutoSendCheckIn() || config.getCheckInTemplateId() == null) return 0;
 
         MessageTemplate template = templateRepository
@@ -100,6 +108,17 @@ public class GuestMessagingScheduler {
             if (!hasValidRecipient(reservation)) {
                 log.warn("Check-in auto ignore pour reservation={} : pas de guest ou email manquant",
                     reservation.getId());
+                if (notifiedReservations.add(reservation.getId())) {
+                    notificationService.notifyAdminsAndManagersByOrgId(
+                        orgId,
+                        NotificationKey.GUEST_NO_EMAIL_FOR_CHECKIN,
+                        "Email manquant pour le voyageur",
+                        "La réservation #" + reservation.getId()
+                            + " (" + reservation.getProperty().getName() + ")"
+                            + " n'a pas d'email voyageur configuré. Le message automatique ne peut pas être envoyé.",
+                        "/reservations/" + reservation.getId()
+                    );
+                }
                 continue;
             }
             try {
@@ -112,7 +131,7 @@ public class GuestMessagingScheduler {
         return sent;
     }
 
-    private int processCheckOut(MessagingAutomationConfig config, Long orgId) {
+    private int processCheckOut(MessagingAutomationConfig config, Long orgId, Set<Long> notifiedReservations) {
         if (!config.isAutoSendCheckOut() || config.getCheckOutTemplateId() == null) return 0;
 
         MessageTemplate template = templateRepository
@@ -135,6 +154,17 @@ public class GuestMessagingScheduler {
             if (!hasValidRecipient(reservation)) {
                 log.warn("Check-out auto ignore pour reservation={} : pas de guest ou email manquant",
                     reservation.getId());
+                if (notifiedReservations.add(reservation.getId())) {
+                    notificationService.notifyAdminsAndManagersByOrgId(
+                        orgId,
+                        NotificationKey.GUEST_NO_EMAIL_FOR_CHECKIN,
+                        "Email manquant pour le voyageur",
+                        "La réservation #" + reservation.getId()
+                            + " (" + reservation.getProperty().getName() + ")"
+                            + " n'a pas d'email voyageur configuré. Le message automatique ne peut pas être envoyé.",
+                        "/reservations/" + reservation.getId()
+                    );
+                }
                 continue;
             }
             try {
