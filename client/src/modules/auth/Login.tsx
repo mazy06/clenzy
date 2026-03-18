@@ -21,7 +21,7 @@ import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient, { ApiError } from '../../services/apiClient';
 import { saveTokens, setSessionCookie } from '../../services/storageService';
 import lightTheme from '../../theme/theme';
-import PuzzleCaptcha from '../../components/PuzzleCaptcha';
+import TurnstileCaptcha from '../../components/TurnstileCaptcha';
 
 export default function Login() {
   const [searchParams] = useSearchParams();
@@ -92,7 +92,7 @@ export default function Login() {
         if (details?.captchaRequired === true || details?.error === 'captcha_required') {
           setCaptchaRequired(true);
           setCaptchaToken(null);
-          setError('Vérification requise. Complétez le puzzle ci-dessous.');
+          setError('Vérification requise pour continuer.');
           setLoading(false);
           return;
         }
@@ -114,7 +114,7 @@ export default function Login() {
             if (details?.captchaRequired === true) {
               setCaptchaRequired(true);
               setCaptchaToken(null);
-              setError('Mot de passe incorrect. Complétez le puzzle pour réessayer.');
+              setError('Mot de passe incorrect. Vérification requise pour réessayer.');
             } else {
               setError('Email ou mot de passe incorrect.');
             }
@@ -126,7 +126,7 @@ export default function Login() {
             if (details?.error === 'captcha_invalid') {
               setCaptchaRequired(true);
               setCaptchaToken(null);
-              setError('Vérification du puzzle échouée. Réessayez.');
+              setError('Vérification échouée. Réessayez.');
             } else {
               setError('Votre compte est désactivé. Contactez le support.');
             }
@@ -250,10 +250,10 @@ export default function Login() {
               </Alert>
             )}
 
-            {/* CAPTCHA puzzle slider */}
+            {/* Cloudflare Turnstile CAPTCHA */}
             {captchaRequired && (
               <Box sx={{ mt: 1 }}>
-                <PuzzleCaptcha
+                <TurnstileCaptcha
                   onVerified={handleCaptchaVerified}
                   onError={(msg) => setError(msg)}
                 />
