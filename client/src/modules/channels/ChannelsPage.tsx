@@ -317,8 +317,8 @@ const ChannelsPage: React.FC = () => {
   const { isConnected: isOtaConnected, getStatus: getOtaStatus, isLoading: otaConnectionsLoading } = useChannelConnections();
   const disconnectChannelMutation = useDisconnectChannel();
 
-  // View mode: list (default) or grid
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  // View mode: grid (default) or list
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
   // Link dialog
   const [linkingPropertyId, setLinkingPropertyId] = useState<number | null>(null);

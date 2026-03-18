@@ -176,7 +176,7 @@ function computeFinancialCharts(interventions: ApiIntervention[]): FinancialRepo
       return getMonthLabel(d) === month;
     });
     const expenses = monthInterventions.reduce(
-      (sum, i) => sum + (i.actualCost || i.estimatedCost || 0),
+      (sum, i) => sum + (i.actualCost ?? 0),
       0
     );
     const revenue = expenses * 1.3;
@@ -197,7 +197,7 @@ function computeFinancialCharts(interventions: ApiIntervention[]): FinancialRepo
   });
   const costBreakdown = Object.entries(typeGroups).map(([type, items], idx) => ({
     name: type,
-    value: Math.round(items.reduce((sum, i) => sum + (i.actualCost || i.estimatedCost || 0), 0)),
+    value: Math.round(items.reduce((sum, i) => sum + (i.actualCost ?? 0), 0)),
     color: CHART_COLORS[idx % CHART_COLORS.length],
   }));
 
@@ -457,7 +457,7 @@ export function useDashboardOverview({
         const d = new Date(i.scheduledDate || i.createdAt || '');
         return getMonthLabel(d) === month;
       });
-      const expenses = monthInts.reduce((sum, i) => sum + (i.actualCost || i.estimatedCost || 0), 0);
+      const expenses = monthInts.reduce((sum, i) => sum + (i.actualCost ?? 0), 0);
       return { revenue: Math.round(expenses * 1.3) };
     });
     const currentRevenue = monthlyFinancialsForRevenue[monthlyFinancialsForRevenue.length - 1]?.revenue || 0;
@@ -478,6 +478,39 @@ export function useDashboardOverview({
         today: todayInterventions,
         total: interventions.length,
         growth: calculateGrowth(todayInterventions, previousTodayInterventions),
+        upcoming: interventions.filter((i) => {
+          if (!i.scheduledDate) return false;
+          const sd = new Date(i.scheduledDate);
+          sd.setHours(0, 0, 0, 0);
+          const in7Days = new Date(today);
+          in7Days.setDate(in7Days.getDate() + 7);
+          return sd >= today && sd <= in7Days && i.status !== 'COMPLETED';
+        }).length,
+        completed: interventions.filter((i) => i.status === 'COMPLETED').length,
+        overdue: interventions.filter((i) => {
+          if (!i.scheduledDate || i.status === 'COMPLETED') return false;
+          const sd = new Date(i.scheduledDate);
+          sd.setHours(0, 0, 0, 0);
+          return sd < today;
+        }).length,
+        completionRate: interventions.length > 0
+          ? Math.round((interventions.filter((i) => i.status === 'COMPLETED').length / interventions.length) * 100)
+          : 0,
+        totalRevenue: interventions
+          .filter((i) => i.status === 'COMPLETED' && i.actualCost != null && i.actualCost > 0)
+          .reduce((sum, i) => sum + (i.actualCost ?? 0), 0),
+        monthlyRevenue: (() => {
+          const now = new Date();
+          const currentMonth = now.getMonth();
+          const currentYear = now.getFullYear();
+          return interventions
+            .filter((i) => {
+              if (i.status !== 'COMPLETED') return false;
+              const d = new Date(i.scheduledDate || i.createdAt || '');
+              return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+            })
+            .reduce((sum, i) => sum + (i.actualCost ?? 0), 0);
+        })(),
       },
       revenue: {
         current: currentRevenue,

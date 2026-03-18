@@ -64,6 +64,7 @@ const ContactPage: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const isAdminOrManager = user?.roles?.some((r) => ['SUPER_ADMIN', 'SUPER_MANAGER'].includes(r)) ?? false;
+  const canAccessOta = user?.roles?.some((r) => ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'].includes(r)) ?? false;
 
   // Compteur de formulaires NEW via React Query
   const { data: formsStats } = useFormsStats(isAdminOrManager);
@@ -120,12 +121,14 @@ const ContactPage: React.FC = () => {
                 aria-controls="contact-tabpanel-2"
               />
             )}
-            <Tab
-              icon={<ChannelsIcon />}
-              label={t('contact.channelMessages')}
-              id={`contact-tab-${isAdminOrManager ? 3 : 2}`}
-              aria-controls={`contact-tabpanel-${isAdminOrManager ? 3 : 2}`}
-            />
+            {canAccessOta && (
+              <Tab
+                icon={<ChannelsIcon />}
+                label={t('contact.channelMessages')}
+                id={`contact-tab-${isAdminOrManager ? 3 : 2}`}
+                aria-controls={`contact-tabpanel-${isAdminOrManager ? 3 : 2}`}
+              />
+            )}
           </Tabs>
           <Button
             variant="contained"
@@ -152,9 +155,11 @@ const ContactPage: React.FC = () => {
             </TabPanel>
           )}
 
-          <TabPanel value={tabValue} index={isAdminOrManager ? 3 : 2}>
-            <ChannelInboxTab />
-          </TabPanel>
+          {canAccessOta && (
+            <TabPanel value={tabValue} index={isAdminOrManager ? 3 : 2}>
+              <ChannelInboxTab />
+            </TabPanel>
+          )}
         </Box>
       </Paper>
 

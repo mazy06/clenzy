@@ -32,13 +32,18 @@ const WorkOrdersPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Permission checks
-  // HOST a service-requests:view mais pas interventions:view → il peut quand même voir les interventions (lecture seule)
-  const canViewServiceRequests = user?.permissions?.includes('service-requests:view') ?? false;
+  // Operational roles (HOUSEKEEPER, TECHNICIAN, etc.) can view service requests assigned to them
+  const isOperational = user?.roles?.some((r: string) =>
+    ['TECHNICIAN', 'HOUSEKEEPER', 'LAUNDRY', 'EXTERIOR_TECH', 'SUPERVISOR'].includes(r)
+  ) ?? false;
+  const canViewServiceRequests = (user?.permissions?.includes('service-requests:view') || isOperational) ?? false;
   const canViewInterventions = (user?.permissions?.includes('interventions:view') || canViewServiceRequests) ?? false;
   const showBothTabs = canViewServiceRequests && canViewInterventions;
 
   const maxTab = showBothTabs ? TAB_INTERVENTIONS : 0;
-  const initialTab = parseInt(searchParams.get('tab') || '0', 10);
+  // Operational roles default to Interventions tab
+  const defaultTab = isOperational ? TAB_INTERVENTIONS : TAB_SERVICE_REQUESTS;
+  const initialTab = parseInt(searchParams.get('tab') || String(defaultTab), 10);
   const [activeTab, setActiveTab] = useState(
     isNaN(initialTab) ? 0 : Math.min(initialTab, maxTab)
   );

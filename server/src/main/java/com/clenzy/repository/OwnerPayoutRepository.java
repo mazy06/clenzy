@@ -41,6 +41,12 @@ public interface OwnerPayoutRepository extends JpaRepository<OwnerPayout, Long> 
     @Query("SELECT COALESCE(SUM(p.netAmount), 0) FROM OwnerPayout p WHERE p.status = 'PENDING' AND p.organizationId = :orgId")
     BigDecimal sumPendingAmountByOrgId(@Param("orgId") Long orgId);
 
+    @Query("SELECT COUNT(p) FROM OwnerPayout p WHERE p.status = 'PENDING' AND p.ownerId = :ownerId")
+    long countPendingByOwnerId(@Param("ownerId") Long ownerId);
+
+    @Query("SELECT COALESCE(SUM(p.netAmount), 0) FROM OwnerPayout p WHERE p.status = 'PENDING' AND p.ownerId = :ownerId")
+    BigDecimal sumPendingAmountByOwnerId(@Param("ownerId") Long ownerId);
+
     @Query("SELECT DISTINCT p.organizationId FROM OwnerPayout p WHERE p.status = 'PENDING'")
     List<Long> findOrganizationIdsWithPendingPayouts();
 

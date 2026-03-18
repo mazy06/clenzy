@@ -27,11 +27,6 @@ public class AccountingService {
 
     private static final Logger log = LoggerFactory.getLogger(AccountingService.class);
 
-    /**
-     * Fallback commission rate used only when no ManagementContract exists.
-     * SUPER_ADMIN should configure this via ManagementContract or SplitConfiguration.
-     */
-    private static final BigDecimal DEFAULT_COMMISSION_RATE = new BigDecimal("0.2000");
 
     private final OwnerPayoutRepository payoutRepository;
     private final ChannelCommissionRepository commissionRepository;
@@ -246,9 +241,8 @@ public class AccountingService {
             }
         }
 
-        // Fallback to default
-        log.debug("No ManagementContract found for owner {}, using default commission rate {}",
-            ownerId, DEFAULT_COMMISSION_RATE);
-        return DEFAULT_COMMISSION_RATE;
+        // Pas de contrat = pas de commission
+        log.debug("No ManagementContract found for owner {}, commission rate = 0", ownerId);
+        return BigDecimal.ZERO;
     }
 }
