@@ -142,6 +142,35 @@ public class GuestController {
         return ResponseEntity.ok(toDto(guest));
     }
 
+    // ── PATCH : mettre a jour l'email d'un voyageur ─────────────────────────
+
+    @PatchMapping("/{guestId}/email")
+    @Operation(summary = "Mettre a jour l'email d'un voyageur",
+            description = "Permet de corriger l'email manquant ou errone d'un voyageur.")
+    public ResponseEntity<GuestDto> updateEmail(
+            @PathVariable Long guestId,
+            @RequestBody Map<String, String> body) {
+
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Guest guest = guestRepository.findById(guestId)
+            .filter(g -> g.getOrganizationId().equals(orgId))
+            .orElse(null);
+
+        if (guest == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        guest.setEmail(email.trim());
+        guestRepository.save(guest);
+
+        return ResponseEntity.ok(toDto(guest));
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private GuestDto toDto(Guest g) {

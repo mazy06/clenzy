@@ -292,7 +292,8 @@
       "revenueOverview": "نظرة عامة على الإيرادات",
       "total": "الإجمالي",
       "commandCenterTitle": "مركز القيادة",
-      "commandCenterSubtitle": "التخطيط والإجراءات والتوصيات"
+      "commandCenterSubtitle": "التخطيط والإجراءات والتوصيات",
+      "loading": "جاري تحميل لوحة المعلومات..."
     },
     "contractCta": {
       "title": "فعّل العمولات التراجعية",

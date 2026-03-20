@@ -109,6 +109,9 @@ import OwnerPortalPage from './owner-portal/OwnerPortalPage';
 // Automation Rules
 import AutomationRulesPage from './automation/AutomationRulesPage';
 
+// Shop
+import ShopPage from './shop/ShopPage';
+
 // Management Contracts
 import ManagementContractsPage from './contracts/ManagementContractsPage';
 
@@ -451,6 +454,12 @@ const AuthenticatedApp: React.FC = () => {
               <AutomationRulesPage />
             </ErrorBoundary>
           </ProtectedRoute>
+        } />
+
+        <Route path="/shop" element={
+          <ErrorBoundary>
+            <ShopPage />
+          </ErrorBoundary>
         } />
 
         {/* Redirection intelligente vers la première page accessible selon les permissions */}

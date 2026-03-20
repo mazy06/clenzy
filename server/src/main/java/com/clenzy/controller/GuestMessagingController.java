@@ -89,6 +89,53 @@ public class GuestMessagingController {
         return ResponseEntity.ok(GuestMessageLogDto.fromEntity(logEntry));
     }
 
+    // ── Renvoi d'un message echoue ──
+
+    @PostMapping("/resend/{logId}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER') or @organizationSecurityService.isOrgAdmin()")
+    public ResponseEntity<GuestMessageLogDto> resendMessage(@PathVariable Long logId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        GuestMessageLog logEntry = messageLogRepository.findById(logId)
+            .filter(l -> l.getOrganizationId().equals(orgId))
+            .orElse(null);
+
+        if (logEntry == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        GuestMessageLog newLog = messagingService.sendMessage(
+            logEntry.getReservationId(), logEntry.getTemplateId(), orgId);
+        return ResponseEntity.ok(GuestMessageLogDto.fromEntity(newLog));
+    }
+
+    // ── Apercu du contenu d'un message ──
+
+    @GetMapping("/preview/{logId}")
+    public ResponseEntity<Map<String, String>> previewMessage(@PathVariable Long logId) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        GuestMessageLog logEntry = messageLogRepository.findById(logId)
+            .filter(l -> l.getOrganizationId().equals(orgId))
+            .orElse(null);
+
+        if (logEntry == null || logEntry.getTemplateId() == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        try {
+            var interpolated = messagingService.previewMessage(
+                logEntry.getReservationId(), logEntry.getTemplateId(), orgId);
+            return ResponseEntity.ok(Map.of(
+                "subject", interpolated.subject(),
+                "htmlBody", interpolated.htmlBody()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of(
+                "subject", logEntry.getSubject() != null ? logEntry.getSubject() : "",
+                "htmlBody", "<p>Apercu indisponible : " + e.getMessage() + "</p>"
+            ));
+        }
+    }
+
     // ── Historique ──
 
     @GetMapping("/history")

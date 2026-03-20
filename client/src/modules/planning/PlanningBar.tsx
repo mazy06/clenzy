@@ -1,7 +1,7 @@
 import React from 'react';
-import { Box, Typography, useTheme } from '@mui/material';
+import { Box, Tooltip, Typography, useTheme } from '@mui/material';
 import { useDraggable } from '@dnd-kit/core';
-import { AutoAwesome, Handyman, Lock as LockIcon, Close } from '@mui/icons-material';
+import { AutoAwesome, Handyman, Lock as LockIcon, Close, WarningAmber } from '@mui/icons-material';
 import type { BarLayout, PlanningEvent, ZoomLevel, DragBarData } from './types';
 import { BAR_BORDER_RADIUS } from './constants';
 import { hexToRgba } from './utils/colorUtils';
@@ -158,7 +158,7 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         borderRadius: `${isCompactBar ? 3 : BAR_BORDER_RADIUS}px`,
         cursor: isResizing ? 'col-resize' : isDragDisabled ? 'pointer' : 'grab',
         touchAction: 'none',
-        overflow: 'hidden',
+        overflow: 'visible',
         display: 'flex',
         alignItems: 'center',
         justifyContent: showLabel ? 'flex-start' : 'center',
@@ -283,6 +283,31 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         >
           <Close sx={{ fontSize: 11, color: '#fff' }} />
         </Box>
+      )}
+
+      {/* Warning badge: guest has no email → automatic emails will fail */}
+      {isReservation && event.reservation && !event.reservation.guestEmail && event.status !== 'cancelled' && (
+        <Tooltip title="Email voyageur manquant — les messages automatiques ne seront pas envoyés" arrow>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -6,
+              right: -6,
+              width: 16,
+              height: 16,
+              borderRadius: '50%',
+              backgroundColor: '#ED6C02',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 12,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+              border: `1.5px solid ${isDark ? '#1e1e1e' : '#fff'}`,
+            }}
+          >
+            <WarningAmber sx={{ fontSize: 10, color: '#fff' }} />
+          </Box>
+        </Tooltip>
       )}
 
       {/* Resize handle (right edge) — hidden during move drag, respects role permissions */}

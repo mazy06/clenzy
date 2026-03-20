@@ -58,10 +58,12 @@ public class InterventionPhotoService {
 
                     InterventionPhoto interventionPhoto = new InterventionPhoto();
                     interventionPhoto.setIntervention(intervention);
-                    interventionPhoto.setPhotoData(photoData);
+                    interventionPhoto.setData(photoData);
+                    interventionPhoto.setOrganizationId(tenantContext.getRequiredOrganizationId());
+                    interventionPhoto.setFileSize(photo.getSize());
                     interventionPhoto.setContentType(contentType);
-                    interventionPhoto.setFileName(photo.getOriginalFilename());
-                    interventionPhoto.setPhotoType(photoTypeUpper);
+                    interventionPhoto.setOriginalFilename(photo.getOriginalFilename());
+                    interventionPhoto.setPhase(InterventionPhoto.PhotoPhase.valueOf(photoTypeUpper));
 
                     interventionPhotoRepository.save(interventionPhoto);
                 } catch (IOException e) {
@@ -93,9 +95,9 @@ public class InterventionPhotoService {
      * Falls back to the legacy before/after URL fields if no rows exist.
      */
     public String convertPhotosToBase64UrlsByType(Intervention intervention, String photoType) {
-        String photoTypeUpper = "before".equals(photoType) ? "BEFORE" : "AFTER";
-        List<InterventionPhoto> photos = interventionPhotoRepository.findByInterventionIdAndPhotoTypeOrderByCreatedAtAsc(
-                intervention.getId(), photoTypeUpper, tenantContext.getRequiredOrganizationId());
+        InterventionPhoto.PhotoPhase phase = "before".equals(photoType) ? InterventionPhoto.PhotoPhase.BEFORE : InterventionPhoto.PhotoPhase.AFTER;
+        List<InterventionPhoto> photos = interventionPhotoRepository.findByInterventionIdAndPhaseOrderByCreatedAtAsc(
+                intervention.getId(), phase, tenantContext.getRequiredOrganizationId());
 
         if (photos.isEmpty()) {
             return "before".equals(photoType)
@@ -111,9 +113,9 @@ public class InterventionPhotoService {
      * of {@link #convertPhotosToBase64UrlsByType}.
      */
     public String getPhotoIdsByType(Intervention intervention, String photoType) {
-        String photoTypeUpper = "before".equals(photoType) ? "BEFORE" : "AFTER";
-        List<InterventionPhoto> photos = interventionPhotoRepository.findByInterventionIdAndPhotoTypeOrderByCreatedAtAsc(
-                intervention.getId(), photoTypeUpper, tenantContext.getRequiredOrganizationId());
+        InterventionPhoto.PhotoPhase phase = "before".equals(photoType) ? InterventionPhoto.PhotoPhase.BEFORE : InterventionPhoto.PhotoPhase.AFTER;
+        List<InterventionPhoto> photos = interventionPhotoRepository.findByInterventionIdAndPhaseOrderByCreatedAtAsc(
+                intervention.getId(), phase, tenantContext.getRequiredOrganizationId());
 
         if (photos.isEmpty()) {
             return null;
@@ -133,7 +135,7 @@ public class InterventionPhotoService {
                 .orElseThrow(() -> new RuntimeException("Photo introuvable ou accès refusé"));
 
         interventionPhotoRepository.delete(photo);
-        log.debug("Photo deleted: id={}, interventionId={}, type={}", photoId, interventionId, photo.getPhotoType());
+        log.debug("Photo deleted: id={}, interventionId={}, type={}", photoId, interventionId, photo.getPhase() != null ? photo.getPhase().name() : "BEFORE");
     }
 
     public long getPhotoCount(Intervention intervention) {
@@ -162,8 +164,8 @@ public class InterventionPhotoService {
         List<InterventionPhoto> beforePhotos = new ArrayList<>();
         List<InterventionPhoto> afterPhotos = new ArrayList<>();
         for (InterventionPhoto photo : allPhotos) {
-            if ("BEFORE".equals(photo.getPhotoType())) beforePhotos.add(photo);
-            else if ("AFTER".equals(photo.getPhotoType())) afterPhotos.add(photo);
+            if (photo.getPhase() == InterventionPhoto.PhotoPhase.BEFORE) beforePhotos.add(photo);
+            else if (photo.getPhase() == InterventionPhoto.PhotoPhase.AFTER) afterPhotos.add(photo);
         }
 
         // Sort by createdAt to match the previous behavior
@@ -193,7 +195,7 @@ public class InterventionPhotoService {
     private String toBase64JsonArray(List<InterventionPhoto> photos) {
         List<String> base64Urls = new ArrayList<>();
         for (InterventionPhoto photo : photos) {
-            byte[] photoData = photo.getPhotoData();
+            byte[] photoData = photo.getData();
             if (photoData == null) {
                 log.warn("Skipping photo with null data: id={}", photo.getId());
                 continue;

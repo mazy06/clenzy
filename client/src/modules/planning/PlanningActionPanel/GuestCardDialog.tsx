@@ -71,17 +71,25 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
   const [saved, setSaved] = useState<string | null>(null);
   const editRef = useRef<HTMLInputElement>(null);
 
+  // Optimistic local overrides (displayed immediately after save, before query refetch)
+  const [localOverrides, setLocalOverrides] = useState<{ guestName?: string; guestEmail?: string; guestPhone?: string }>({});
+
+  // Displayed values = local override > prop
+  const displayName = localOverrides.guestName ?? reservation.guestName;
+  const displayEmail = localOverrides.guestEmail ?? reservation.guestEmail;
+  const displayPhone = localOverrides.guestPhone ?? reservation.guestPhone;
+
   const startEdit = useCallback((field: 'name' | 'email' | 'phone') => {
     if (!onUpdateGuestInfo) return;
     const current =
-      field === 'name' ? reservation.guestName :
-      field === 'email' ? (reservation.guestEmail || '') :
-      (reservation.guestPhone || '');
+      field === 'name' ? (displayName || '') :
+      field === 'email' ? (displayEmail || '') :
+      (displayPhone || '');
     setEditingField(field);
     setEditValue(current);
     setSaved(null);
     setTimeout(() => editRef.current?.focus(), 0);
-  }, [onUpdateGuestInfo, reservation]);
+  }, [onUpdateGuestInfo, displayName, displayEmail, displayPhone]);
 
   const commitEdit = useCallback(async () => {
     if (!editingField || !onUpdateGuestInfo) return;
@@ -95,9 +103,9 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
 
     // Check if value actually changed
     const original =
-      editingField === 'name' ? reservation.guestName :
-      editingField === 'email' ? (reservation.guestEmail || '') :
-      (reservation.guestPhone || '');
+      editingField === 'name' ? (displayName || '') :
+      editingField === 'email' ? (displayEmail || '') :
+      (displayPhone || '');
 
     if (trimmed === original) {
       setEditingField(null);
@@ -113,11 +121,13 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
     const result = await onUpdateGuestInfo(reservation.id, updates);
     setSaving(false);
     if (result.success) {
+      // Optimistic update — display new value immediately
+      setLocalOverrides((prev) => ({ ...prev, ...updates }));
       setSaved(editingField);
       setTimeout(() => setSaved(null), 2000);
     }
     setEditingField(null);
-  }, [editingField, editValue, onUpdateGuestInfo, reservation]);
+  }, [editingField, editValue, onUpdateGuestInfo, reservation, displayName, displayEmail, displayPhone]);
 
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -213,7 +223,7 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                   }}
                 >
                   <Typography sx={{ fontSize: '1rem', fontWeight: 700 }}>
-                    {reservation.guestName}
+                    {displayName}
                   </Typography>
                   {onUpdateGuestInfo && (
                     <Edit className="edit-hint" sx={{ fontSize: 14, color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }} />
@@ -233,7 +243,6 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       onKeyDown={handleEditKeyDown}
-                      onBlur={commitEdit}
                       disabled={saving}
                       size="small"
                       fullWidth
@@ -241,7 +250,11 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                       placeholder="email@exemple.com"
                       sx={{ '& input': { fontSize: '0.75rem' } }}
                     />
-                    {saving && <CircularProgress size={12} />}
+                    {saving ? <CircularProgress size={12} /> : (
+                      <IconButton size="small" onClick={commitEdit} sx={{ p: 0.25 }}>
+                        <Check sx={{ fontSize: 14, color: 'success.main' }} />
+                      </IconButton>
+                    )}
                   </Box>
                 ) : (
                   <Box
@@ -262,8 +275,8 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     }}
                   >
                     <Email sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
-                    <Typography sx={{ fontSize: '0.75rem', color: reservation.guestEmail ? 'text.secondary' : 'text.disabled', fontStyle: reservation.guestEmail ? 'normal' : 'italic' }}>
-                      {reservation.guestEmail || 'Ajouter un email'}
+                    <Typography sx={{ fontSize: '0.75rem', color: displayEmail ? 'text.secondary' : 'text.disabled', fontStyle: displayEmail ? 'normal' : 'italic' }}>
+                      {displayEmail || 'Ajouter un email'}
                     </Typography>
                     {onUpdateGuestInfo && (
                       <Edit className="edit-hint" sx={{ fontSize: 12, color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }} />
@@ -310,8 +323,8 @@ const GuestCardDialog: React.FC<GuestCardDialogProps> = ({ open, onClose, reserv
                     }}
                   >
                     <Phone sx={{ fontSize: '0.8rem', color: 'text.secondary' }} />
-                    <Typography sx={{ fontSize: '0.75rem', color: reservation.guestPhone ? 'text.secondary' : 'text.disabled', fontStyle: reservation.guestPhone ? 'normal' : 'italic' }}>
-                      {reservation.guestPhone || 'Ajouter un telephone'}
+                    <Typography sx={{ fontSize: '0.75rem', color: displayPhone ? 'text.secondary' : 'text.disabled', fontStyle: displayPhone ? 'normal' : 'italic' }}>
+                      {displayPhone || 'Ajouter un telephone'}
                     </Typography>
                     {onUpdateGuestInfo && (
                       <Edit className="edit-hint" sx={{ fontSize: 12, color: 'text.disabled', opacity: 0, transition: 'opacity 0.15s' }} />

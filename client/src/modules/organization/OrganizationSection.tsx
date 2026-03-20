@@ -223,36 +223,35 @@ export default function OrganizationSection({ organizationId, organizationName }
           </Paper>
         </Grid>
 
-        {/* ─── Colonne droite : Facturation ──────────────────────────── */}
+        {/* ─── Colonne droite : Facturation + Invitations ─────────── */}
         <Grid item xs={12} md={5}>
-          {effectiveOrgId ? (
-            <BillingSummaryCard
-              organizationId={effectiveOrgId}
-              refreshTrigger={refreshTrigger}
-            />
-          ) : (
-            <Paper sx={{ p: 2, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                Selectionnez une organisation pour voir la facturation.
-              </Typography>
-            </Paper>
-          )}
-        </Grid>
-
-        {/* ─── Ligne pleine largeur : Invitations ──────────────────── */}
-        {effectiveOrgId && (
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 500 }}>
-                Invitations envoyees
-              </Typography>
-              <InvitationsList
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {effectiveOrgId ? (
+              <BillingSummaryCard
                 organizationId={effectiveOrgId}
                 refreshTrigger={refreshTrigger}
               />
-            </Paper>
-          </Grid>
-        )}
+            ) : (
+              <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Selectionnez une organisation pour voir la facturation.
+                </Typography>
+              </Paper>
+            )}
+
+            {effectiveOrgId && (
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontWeight: 500 }}>
+                  Invitations envoyees
+                </Typography>
+                <InvitationsList
+                  organizationId={effectiveOrgId}
+                  refreshTrigger={refreshTrigger}
+                />
+              </Paper>
+            )}
+          </Box>
+        </Grid>
       </Grid>
 
       {effectiveOrgId && (

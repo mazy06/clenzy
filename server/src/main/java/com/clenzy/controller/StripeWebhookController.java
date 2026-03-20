@@ -3,6 +3,7 @@ package com.clenzy.controller;
 import com.clenzy.service.InscriptionService;
 import com.clenzy.service.MobilePaymentService;
 import com.clenzy.service.PaymentOrchestrationService;
+import com.clenzy.service.ShopService;
 import com.clenzy.service.StripeConnectService;
 import com.clenzy.service.StripeService;
 import com.clenzy.service.SubscriptionService;
@@ -41,6 +42,7 @@ public class StripeWebhookController {
     private final MobilePaymentService mobilePaymentService;
     private final PaymentOrchestrationService orchestrationService;
     private final StripeConnectService stripeConnectService;
+    private final ShopService shopService;
 
     @Value("${stripe.webhook-secret}")
     private String webhookSecret;
@@ -53,13 +55,15 @@ public class StripeWebhookController {
                                    SubscriptionService subscriptionService,
                                    MobilePaymentService mobilePaymentService,
                                    PaymentOrchestrationService orchestrationService,
-                                   StripeConnectService stripeConnectService) {
+                                   StripeConnectService stripeConnectService,
+                                   ShopService shopService) {
         this.stripeService = stripeService;
         this.inscriptionService = inscriptionService;
         this.subscriptionService = subscriptionService;
         this.mobilePaymentService = mobilePaymentService;
         this.orchestrationService = orchestrationService;
         this.stripeConnectService = stripeConnectService;
+        this.shopService = shopService;
     }
 
     /**
@@ -211,7 +215,17 @@ public class StripeWebhookController {
 
         logger.info("Type determine pour session {}: type={}", sessionId, type);
 
-        if ("inscription".equals(type)) {
+        if ("hardware_purchase".equals(type)) {
+            // Paiement d'achat de materiel IoT (shop)
+            logger.info("Paiement hardware reussi pour session: {}", sessionId);
+            try {
+                shopService.completeOrder(sessionId);
+            } catch (Exception e) {
+                logger.error("Erreur lors de la completion de la commande hardware pour session: {}", sessionId, e);
+            }
+            updatePaymentTransaction(session, true);
+            return;
+        } else if ("inscription".equals(type)) {
             // Paiement d'inscription (subscription) : confirmer le paiement + envoyer email de confirmation
             String customerId = session.getCustomer();
             String subscriptionId = session.getSubscription();
@@ -297,7 +311,10 @@ public class StripeWebhookController {
         String sessionId = session.getId();
         String type = session.getMetadata() != null ? session.getMetadata().get("type") : null;
 
-        if ("inscription".equals(type)) {
+        if ("hardware_purchase".equals(type)) {
+            logger.info("Paiement hardware asynchrone reussi pour session: {}", sessionId);
+            shopService.completeOrder(sessionId);
+        } else if ("inscription".equals(type)) {
             String customerId = session.getCustomer();
             String subscriptionId = session.getSubscription();
             try {

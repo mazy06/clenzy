@@ -10,11 +10,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -33,11 +36,14 @@ public class AuditLogService {
 
     private final AuditLogRepository auditLogRepository;
     private final TenantContext tenantContext;
+    private final AuditLogService self;
 
     public AuditLogService(AuditLogRepository auditLogRepository,
-                           TenantContext tenantContext) {
+                           TenantContext tenantContext,
+                           @Lazy AuditLogService self) {
         this.auditLogRepository = auditLogRepository;
         this.tenantContext = tenantContext;
+        this.self = self;
     }
 
     // ─── Methodes principales de logging ──────────────────────────────────────
@@ -74,7 +80,7 @@ public class AuditLogService {
         entry.setSource(AuditSource.WEB);
         enrichWithRequestInfo(entry);
         entry.setOrganizationId(tenantContext.getOrganizationId());
-        saveAsync(entry);
+        self.saveAsync(entry);
     }
 
     /**
@@ -87,7 +93,7 @@ public class AuditLogService {
         entry.setSource(AuditSource.WEB);
         enrichWithRequestInfo(entry);
         entry.setOrganizationId(tenantContext.getOrganizationId());
-        saveAsync(entry);
+        self.saveAsync(entry);
     }
 
     /**
@@ -101,7 +107,7 @@ public class AuditLogService {
         entry.setSource(AuditSource.WEB);
         enrichWithRequestInfo(entry);
         entry.setOrganizationId(tenantContext.getOrganizationId());
-        saveAsync(entry);
+        self.saveAsync(entry);
     }
 
     /**
@@ -148,7 +154,7 @@ public class AuditLogService {
         enrichWithRequestInfo(entry);
         entry.setOrganizationId(tenantContext.getOrganizationId());
 
-        saveAsync(entry);
+        self.saveAsync(entry);
     }
 
     /**
@@ -169,7 +175,7 @@ public class AuditLogService {
         enrichWithRequestInfo(entry);
         entry.setOrganizationId(organizationId);
 
-        saveAsync(entry);
+        self.saveAsync(entry);
     }
 
     // ─── Consultation des logs ────────────────────────────────────────────────
@@ -236,7 +242,8 @@ public class AuditLogService {
     }
 
     @Async
-    protected void saveAsync(AuditLog entry) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void saveAsync(AuditLog entry) {
         try {
             auditLogRepository.save(entry);
             log.debug("Audit log: {} {} {} by {}",
