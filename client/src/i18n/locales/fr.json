@@ -52,6 +52,7 @@
     "syncDiagnostics": "Sync & Diagnostics",
     "kpiReadiness": "KPI Readiness",
     "database": "Base de données",
+    "shop": "Boutique",
     "documents": "Documents & Communications",
     "myProfile": "Mon profil",
     "logout": "Déconnexion",
@@ -303,7 +304,8 @@
       "revenueOverview": "Aperçu des revenus",
       "total": "total",
       "commandCenterTitle": "Centre de commande",
-      "commandCenterSubtitle": "Planification, actions et recommandations"
+      "commandCenterSubtitle": "Planification, actions et recommandations",
+      "loading": "Chargement du tableau de bord..."
     },
     "contractCta": {
       "title": "Activez les rétro-commissions",
@@ -808,7 +810,18 @@
       "overview": "Vue d'ensemble",
       "interventions": "Interventions",
       "maintenance": "Maintenance",
-      "cleaning": "Nettoyage"
+      "cleaning": "Nettoyage",
+      "photos": "Photos"
+    },
+    "photos": {
+      "title": "Photos de la propriété",
+      "upload": "Ajouter des photos",
+      "empty": "Aucune photo pour cette propriété",
+      "emptyDesc": "Ajoutez des photos pour présenter votre logement aux voyageurs",
+      "dragDrop": "Glissez-déposez vos images ici ou cliquez pour sélectionner",
+      "channelSync": "Les photos seront synchronisées avec les channel managers une fois connectés.",
+      "deleteConfirm": "Supprimer cette photo ?",
+      "maxSize": "Taille maximale : 10 Mo par image"
     },
     "noInterventions": "Aucune intervention programmée pour cette propriété.",
     "statusAndMaintenance": "Statut et entretien",
@@ -909,7 +922,7 @@
       }
     },
     "cleaningEstimate": "Estimation ménage",
-    "cleaningEstimateTooltip": "Estimation indicative du coût de l'intervention ménage. Le tarif définitif est soumis à l'acceptation du prestataire.",
+    "cleaningEstimateTooltip": "Calculé en temps réel à partir de la configuration tarifaire du ménage (surface, chambres, salles de bain, étages, prestations). Ce montant peut différer du coût figé sur les interventions.",
     "cleaningDurationTooltip": "Durée estimée de l'intervention ménage basée sur les caractéristiques du logement. La durée réelle peut varier.",
     "defaultTimesTooltip": "Horaires par défaut — Départ : {{checkOut}} / Arrivée : {{checkIn}}",
     "activeFeatures": "Options actives",
@@ -2598,6 +2611,8 @@
       "syncOff": "Synchronisation désactivée",
       "lastSync": "Dernière sync"
     },
+    "connected": "Connecté",
+    "notConnected": "Non connecté",
     "ota": {
       "comingSoon": "Bientôt disponible",
       "connected": "Connecté",
@@ -3504,6 +3519,41 @@
         "label": "Créer une équipe",
         "description": "Constituez votre première équipe de techniciens ou housekeepers pour gérer les interventions."
       }
+    }
+  },
+  "shop": {
+    "title": "Boutique Hardware",
+    "subtitle": "Équipez vos propriétés avec nos capteurs IoT compatibles Clenzy",
+    "allProducts": "Tous les produits",
+    "kits": "Kits",
+    "noiseMonitoring": "Monitoring sonore",
+    "locks": "Serrures",
+    "environment": "Environnement",
+    "addToCart": "Ajouter au panier",
+    "removeFromCart": "Retirer",
+    "cart": "Panier",
+    "cartEmpty": "Votre panier est vide",
+    "cartEmptyDesc": "Parcourez notre catalogue et ajoutez des produits",
+    "checkout": "Passer commande",
+    "subtotal": "Sous-total",
+    "total": "Total",
+    "shipping": "Livraison offerte en France métropolitaine",
+    "shippingIntl": "Contactez-nous pour les livraisons internationales",
+    "noSubscription": "Sans abonnement mensuel",
+    "nativeIntegration": "Intégration Clenzy native",
+    "kitContents": "Contenu du kit",
+    "savings": "Économie",
+    "perUnit": "par unité",
+    "infoBanner": "Tous nos produits sont compatibles Tuya et s'intègrent nativement dans votre PMS Clenzy. Sans abonnement mensuel.",
+    "badges": {
+      "new": "Nouveau",
+      "bestseller": "Populaire",
+      "promo": "Promo"
+    },
+    "protocols": {
+      "wifi": "WiFi",
+      "zigbee": "Zigbee",
+      "both": "WiFi + Zigbee"
     }
   }
 }

@@ -796,3 +796,44 @@ databaseChangeLog:
       sqlFile:
         path: changes/0091__create_user_onboarding.sql
         relativeToChangelogFile: true
+
+  # --- 0092 : Create incidents table for P1 tracking ---
+  - changeSet:
+      id: "0092-create-incidents"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0092__create_incidents.sql
+        relativeToChangelogFile: true
+
+  # --- 0093 : Create property photos table (BYTEA storage) ---
+  - changeSet:
+      id: "0093-create-property-photos"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0093__create_property_photos.sql
+        relativeToChangelogFile: true
+
+  # --- 0094 : Migrate intervention_photos table to new schema ---
+  - changeSet:
+      id: "0094-create-intervention-photos"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0094__create_intervention_photos.sql
+        relativeToChangelogFile: true
+        splitStatements: true
+
+  # --- 0095 : Create hardware_orders table for IoT shop ---
+  - changeSet:
+      id: "0095-create-hardware-orders"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0095__create_hardware_orders.sql
+        relativeToChangelogFile: true
+
+  # --- 0096 : Backfill missing organization_members from users ---
+  - changeSet:
+      id: "0096-backfill-organization-members"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0096__backfill_organization_members.sql
+        relativeToChangelogFile: true

@@ -57,4 +57,9 @@ export const guestsApi = {
   async list(params?: GuestListParams): Promise<GuestListDto[]> {
     return apiClient.get<GuestListDto[]>('/guests/list', { params: params as Record<string, string | undefined> });
   },
+
+  /** Mettre a jour l'email d'un voyageur. */
+  async updateEmail(guestId: number, email: string): Promise<GuestDto> {
+    return apiClient.patch<GuestDto>(`/guests/${guestId}/email`, { email });
+  },
 };

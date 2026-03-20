@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Box, Grid, useTheme } from '@mui/material';
+import { Box, CircularProgress, Grid, Typography, useTheme } from '@mui/material';
 import {
   Percent,
   Euro,
@@ -196,6 +196,28 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   const showSidebar = isAdmin || isManager || isHost;
   // AI usage widget — respect admin toggle + only management & host
   const showAiWidget = hasAnyAiEnabled && (isAdmin || isManager || isHost);
+
+  // ─── Global loading spinner ────────────────────────────────────────────
+  if (isKpiLoading) {
+    return (
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: 400,
+          gap: 2,
+        }}
+      >
+        <CircularProgress size={48} thickness={4} sx={{ color: 'primary.main' }} />
+        <Typography variant="body2" color="text.secondary">
+          {t('dashboard.overview.loading')}
+        </Typography>
+      </Box>
+    );
+  }
 
   // ─── Full dashboard (always rendered, even for new users) ──────────────
   return (

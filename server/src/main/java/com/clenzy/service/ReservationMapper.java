@@ -81,6 +81,15 @@ public class ReservationMapper {
         if (dto.guestName() != null && !dto.guestName().isBlank()) {
             entity.setGuestName(dto.guestName());
         }
+        // Propager guestEmail / guestPhone vers l'entite Guest
+        if (dto.guestEmail() != null && !dto.guestEmail().isBlank() && entity.getGuest() != null) {
+            entity.getGuest().setEmail(dto.guestEmail().trim());
+            guestRepository.save(entity.getGuest());
+        }
+        if (dto.guestPhone() != null && !dto.guestPhone().isBlank() && entity.getGuest() != null) {
+            entity.getGuest().setPhone(dto.guestPhone().trim());
+            guestRepository.save(entity.getGuest());
+        }
         if (dto.guestCount() != null) entity.setGuestCount(dto.guestCount());
         if (dto.checkIn() != null) entity.setCheckIn(LocalDate.parse(dto.checkIn()));
         if (dto.checkOut() != null) entity.setCheckOut(LocalDate.parse(dto.checkOut()));

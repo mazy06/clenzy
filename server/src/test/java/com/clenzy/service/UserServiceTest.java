@@ -9,6 +9,7 @@ import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.UserStatus;
 import com.clenzy.model.Organization;
+import com.clenzy.repository.OrganizationMemberRepository;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
@@ -42,6 +43,8 @@ class UserServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private OrganizationRepository organizationRepository;
+    @Mock private OrganizationMemberRepository memberRepository;
+    @Mock private OrganizationService organizationService;
     @Mock private PermissionService permissionService;
     @Mock private NewUserService newUserService;
     @Mock private NotificationService notificationService;
@@ -57,7 +60,8 @@ class UserServiceTest {
         tenantContext.setOrganizationId(ORG_ID);
 
         userService = new UserService(
-                userRepository, organizationRepository, permissionService,
+                userRepository, organizationRepository, memberRepository,
+                organizationService, permissionService,
                 newUserService, notificationService, tenantContext);
     }
 

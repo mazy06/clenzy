@@ -383,7 +383,22 @@ export function useReservationUpdate(
           );
         } else {
           await reservationsApi.update(reservationId, updates);
-          queryClient.invalidateQueries({ queryKey: planningKeys.all });
+          // Optimistic cache update for immediate UI feedback (badge, displayed values)
+          queryClient.setQueriesData(
+            { queryKey: [...planningKeys.all, 'reservations'] },
+            (old: unknown) => {
+              if (!Array.isArray(old)) return old;
+              return old.map((r: any) => {
+                if (r.id !== reservationId) return r;
+                return {
+                  ...r,
+                  ...(updates.guestName !== undefined && { guestName: updates.guestName }),
+                  ...(updates.guestEmail !== undefined && { guestEmail: updates.guestEmail }),
+                  ...(updates.guestPhone !== undefined && { guestPhone: updates.guestPhone }),
+                };
+              });
+            },
+          );
         }
 
         return { success: true, error: null };

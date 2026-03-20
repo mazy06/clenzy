@@ -53,6 +53,7 @@
     "syncDiagnostics": "Sync & Diagnostics",
     "kpiReadiness": "KPI Readiness",
     "database": "Database",
+    "shop": "Shop",
     "documents": "Documents & Communications",
     "myProfile": "My Profile",
     "logout": "Logout",
@@ -293,7 +294,8 @@
       "revenueOverview": "Revenue Overview",
       "total": "total",
       "commandCenterTitle": "Command Center",
-      "commandCenterSubtitle": "Planning, actions and recommendations"
+      "commandCenterSubtitle": "Planning, actions and recommendations",
+      "loading": "Loading dashboard..."
     },
     "contractCta": {
       "title": "Enable commission sharing",
@@ -787,7 +789,18 @@
       "overview": "Overview",
       "interventions": "Interventions",
       "maintenance": "Maintenance",
-      "cleaning": "Cleaning"
+      "cleaning": "Cleaning",
+      "photos": "Photos"
+    },
+    "photos": {
+      "title": "Property photos",
+      "upload": "Add photos",
+      "empty": "No photos for this property",
+      "emptyDesc": "Add photos to showcase your property to travelers",
+      "dragDrop": "Drag and drop images here or click to select",
+      "channelSync": "Photos will be synced with channel managers once connected.",
+      "deleteConfirm": "Delete this photo?",
+      "maxSize": "Maximum size: 10 MB per image"
     },
     "noInterventions": "No intervention scheduled for this property.",
     "statusAndMaintenance": "Status and maintenance",
@@ -888,7 +901,7 @@
       }
     },
     "cleaningEstimate": "Cleaning estimate",
-    "cleaningEstimateTooltip": "Indicative estimate for the cleaning intervention cost. Final pricing is subject to the service provider's acceptance.",
+    "cleaningEstimateTooltip": "Calculated in real-time from the cleaning pricing configuration (surface, bedrooms, bathrooms, floors, add-ons). This amount may differ from the fixed cost on interventions.",
     "cleaningDurationTooltip": "Estimated cleaning intervention duration based on property characteristics. Actual duration may vary.",
     "defaultTimesTooltip": "Default schedule — Check-out: {{checkOut}} / Check-in: {{checkIn}}",
     "activeFeatures": "Active options",
@@ -2577,6 +2590,8 @@
       "syncOff": "Sync disabled",
       "lastSync": "Last sync"
     },
+    "connected": "Connected",
+    "notConnected": "Not connected",
     "reviews": {
       "title": "Reviews & Ratings",
       "subtitle": "View and reply to your guest reviews",
@@ -3377,6 +3392,41 @@
         "PAID": "Paid",
         "CANCELLED": "Cancelled"
       }
+    }
+  },
+  "shop": {
+    "title": "Hardware Shop",
+    "subtitle": "Equip your properties with Clenzy-compatible IoT sensors",
+    "allProducts": "All products",
+    "kits": "Kits",
+    "noiseMonitoring": "Noise monitoring",
+    "locks": "Smart locks",
+    "environment": "Environment",
+    "addToCart": "Add to cart",
+    "removeFromCart": "Remove",
+    "cart": "Cart",
+    "cartEmpty": "Your cart is empty",
+    "cartEmptyDesc": "Browse our catalog and add products",
+    "checkout": "Place order",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "shipping": "Free shipping in metropolitan France",
+    "shippingIntl": "Contact us for international shipping",
+    "noSubscription": "No monthly subscription",
+    "nativeIntegration": "Native Clenzy integration",
+    "kitContents": "Kit contents",
+    "savings": "Savings",
+    "perUnit": "per unit",
+    "infoBanner": "All our products are Tuya-compatible and integrate natively with your Clenzy PMS. No monthly subscription.",
+    "badges": {
+      "new": "New",
+      "bestseller": "Popular",
+      "promo": "Sale"
+    },
+    "protocols": {
+      "wifi": "WiFi",
+      "zigbee": "Zigbee",
+      "both": "WiFi + Zigbee"
     }
   }
 }

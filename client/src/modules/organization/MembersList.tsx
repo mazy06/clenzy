@@ -8,6 +8,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Chip,
   IconButton,
   Tooltip,
@@ -21,6 +22,7 @@ import {
 } from '@mui/icons-material';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 import { getOrgRoleLabel, getOrgRoleColor } from '../../utils/orgRoleLabels';
+import { useAuth } from '../../hooks/useAuth';
 import ChangeRoleDialog from './ChangeRoleDialog';
 import RemoveMemberDialog from './RemoveMemberDialog';
 
@@ -30,10 +32,17 @@ interface Props {
   onMemberChanged?: () => void;
 }
 
+const ROWS_PER_PAGE = 5;
+
 export default function MembersList({ organizationId, refreshTrigger, onMemberChanged }: Props) {
+  const { hasAnyRole, user } = useAuth();
   const [members, setMembers] = useState<OrganizationMemberDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+
+  // L'utilisateur peut gerer les membres s'il est staff plateforme ou ADMIN/OWNER de l'org
+  const isPlatformStaff = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
 
   // Dialogs
   const [changeRoleMember, setChangeRoleMember] = useState<OrganizationMemberDto | null>(null);
@@ -62,6 +71,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
   };
 
   useEffect(() => {
+    setPage(0);
     loadMembers();
   }, [organizationId, refreshTrigger]);
 
@@ -109,6 +119,13 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
     );
   }
 
+  // Verifier si l'utilisateur connecte est ADMIN ou OWNER de cette org
+  const currentUserMember = members.find((m) => m.userId === user?.databaseId);
+  const isOrgAdmin = currentUserMember?.roleInOrg === 'ADMIN' || currentUserMember?.roleInOrg === 'OWNER';
+  const canManage = isPlatformStaff || isOrgAdmin;
+
+  const paginatedMembers = members.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
+
   return (
     <>
       <TableContainer>
@@ -118,11 +135,11 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
               <TableCell>Membre</TableCell>
               <TableCell>Role</TableCell>
               <TableCell>Depuis</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              {canManage && <TableCell align="right">Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
-            {members.map((member) => {
+            {paginatedMembers.map((member) => {
               const isOwner = member.roleInOrg === 'OWNER';
 
               return (
@@ -170,36 +187,50 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                     </Typography>
                   </TableCell>
 
-                  {/* Actions */}
-                  <TableCell align="right">
-                    {!isOwner && (
-                      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                        <Tooltip title="Changer le role">
-                          <IconButton
-                            size="small"
-                            onClick={() => setChangeRoleMember(member)}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Retirer de l'organisation">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => setRemoveMember(member)}
-                          >
-                            <PersonRemoveIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    )}
-                  </TableCell>
+                  {/* Actions — visible uniquement pour staff plateforme ou admin org */}
+                  {canManage && (
+                    <TableCell align="right">
+                      {!isOwner && (
+                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                          <Tooltip title="Changer le role">
+                            <IconButton
+                              size="small"
+                              onClick={() => setChangeRoleMember(member)}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Retirer de l'organisation">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => setRemoveMember(member)}
+                            >
+                              <PersonRemoveIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      )}
+                    </TableCell>
+                  )}
                 </TableRow>
               );
             })}
           </TableBody>
         </Table>
       </TableContainer>
+
+      {members.length > ROWS_PER_PAGE && (
+        <TablePagination
+          component="div"
+          count={members.length}
+          page={page}
+          onPageChange={(_e, newPage) => setPage(newPage)}
+          rowsPerPage={ROWS_PER_PAGE}
+          rowsPerPageOptions={[]}
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
+        />
+      )}
 
       {/* Dialogs */}
       <ChangeRoleDialog

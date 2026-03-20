@@ -33,8 +33,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Non-root user for security
 RUN groupadd -r clenzy && useradd -r -g clenzy -s /bin/false clenzy
 
+ARG KPI_TEST_COVERAGE_PCT=0
 ENV JAVA_OPTS=""
 ENV SPRING_PROFILES_ACTIVE=prod
+ENV KPI_TEST_COVERAGE_PCT=${KPI_TEST_COVERAGE_PCT}
 
 COPY --from=build /workspace/target/clenzy-platform-1.0.0.jar /app/app.jar
 

@@ -31,6 +31,7 @@ public class ApiMetricsConfig {
     public Timer apiRequestTimer(MeterRegistry meterRegistry) {
         return Timer.builder("clenzy.api.request.duration")
                 .description("Duree de traitement des requetes API")
+                .publishPercentiles(0.5, 0.95, 0.99)
                 .register(meterRegistry);
     }
 
