@@ -57,6 +57,14 @@ export interface BulkRateOverrideData {
   source?: string;
 }
 
+export interface CalendarBlockedDay {
+  propertyId: number;
+  date: string;
+  status: 'BLOCKED' | 'MAINTENANCE';
+  source: string;
+  notes: string | null;
+}
+
 // ─── API ────────────────────────────────────────────────────────────────────
 
 export const calendarPricingApi = {
@@ -105,5 +113,22 @@ export const calendarPricingApi = {
   // Push pricing to Airbnb
   async pushPricing(propertyId: number): Promise<{ daysResolved: number; status: string }> {
     return apiClient.post(`/calendar/${propertyId}/push-pricing`, {});
+  },
+
+  // Blocked days for planning (batch multi-property)
+  async getBlockedDays(propertyIds: number[], from: string, to: string): Promise<CalendarBlockedDay[]> {
+    return apiClient.get<CalendarBlockedDay[]>('/calendar/blocked', {
+      params: { propertyIds: propertyIds.join(','), from, to },
+    });
+  },
+
+  // Block dates on a property
+  async blockDates(propertyId: number, from: string, to: string, notes?: string): Promise<void> {
+    return apiClient.post(`/calendar/${propertyId}/block`, { from, to, notes, source: 'MANUAL' });
+  },
+
+  // Unblock dates on a property
+  async unblockDates(propertyId: number, from: string, to: string): Promise<void> {
+    return apiClient.delete(`/calendar/${propertyId}/block`, { params: { from, to } });
   },
 };

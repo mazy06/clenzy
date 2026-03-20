@@ -53,6 +53,7 @@ public class ICalImportService {
     private final NotificationService notificationService;
     private final PricingConfigService pricingConfigService;
     private final PriceEngine priceEngine;
+    private final CalendarEngine calendarEngine;
     private final TenantContext tenantContext;
     private final HttpClient httpClient;
 
@@ -65,6 +66,7 @@ public class ICalImportService {
                              NotificationService notificationService,
                              PricingConfigService pricingConfigService,
                              PriceEngine priceEngine,
+                             CalendarEngine calendarEngine,
                              TenantContext tenantContext) {
         this.icalFeedRepository = icalFeedRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -75,6 +77,7 @@ public class ICalImportService {
         this.notificationService = notificationService;
         this.pricingConfigService = pricingConfigService;
         this.priceEngine = priceEngine;
+        this.calendarEngine = calendarEngine;
         this.tenantContext = tenantContext;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(15))
@@ -110,11 +113,15 @@ public class ICalImportService {
 
         List<ICalEventPreview> events = fetchAndParseICalFeed(url);
 
+        long blockedCount = events.stream().filter(e -> "blocked".equals(e.getType())).count();
+        List<ICalEventPreview> reservationEvents = events.stream()
+                .filter(e -> !"blocked".equals(e.getType())).collect(Collectors.toList());
+
         PreviewResponse response = new PreviewResponse();
         response.setEvents(events);
         response.setPropertyName(property.getName());
-        response.setTotalReservations(events.size());
-        response.setTotalBlocked(0);
+        response.setTotalReservations(reservationEvents.size());
+        response.setTotalBlocked((int) blockedCount);
 
         return response;
     }
@@ -152,9 +159,31 @@ public class ICalImportService {
                             + "\". Un calendrier iCal correspond a un seul logement.");
         }
 
-        // Parser le feed — toutes les entrees sont traitees comme des reservations
+        // Parser le feed
         List<ICalEventPreview> events = fetchAndParseICalFeed(request.getUrl());
-        List<ICalEventPreview> reservations = events;
+
+        // Separer les blocs des reservations
+        List<ICalEventPreview> blockedEvents = events.stream()
+                .filter(e -> "blocked".equals(e.getType()))
+                .collect(Collectors.toList());
+        List<ICalEventPreview> reservations = events.stream()
+                .filter(e -> !"blocked".equals(e.getType()))
+                .collect(Collectors.toList());
+
+        // Traiter les blocs : les stocker comme CalendarDay(BLOCKED)
+        int blocksImported = 0;
+        for (ICalEventPreview block : blockedEvents) {
+            try {
+                LocalDate blockFrom = block.getDtStart();
+                LocalDate blockTo = block.getDtEnd() != null ? block.getDtEnd() : blockFrom.plusDays(1);
+                calendarEngine.block(property.getId(), blockFrom, blockTo, orgId,
+                        "ICAL", block.getSummary(), keycloakId);
+                blocksImported++;
+            } catch (Exception e) {
+                log.warn("Erreur import bloc iCal [{} -> {}]: {}",
+                        block.getDtStart(), block.getDtEnd(), e.getMessage());
+            }
+        }
 
         // Dedoublonnage : on ne skip QUE si la Reservation existe deja en base.
         // Les interventions orphelines (sans reservation) ne bloquent PAS le re-import.

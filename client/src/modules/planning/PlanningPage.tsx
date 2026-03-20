@@ -5,6 +5,7 @@ import PlanningToolbar from './PlanningToolbar';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningActionPanel from './PlanningActionPanel';
 import PlanningQuickCreateDialog from './PlanningQuickCreateDialog';
+import BlockPeriodDialog from './BlockPeriodDialog';
 import PlanningPaginationBar from './PlanningPaginationBar';
 import ICalImportModal from '../dashboard/ICalImportModal';
 import { usePlanningNavigation } from './hooks/usePlanningNavigation';
@@ -27,6 +28,9 @@ const PlanningPage: React.FC = () => {
 
   // iCal import modal
   const [icalModalOpen, setIcalModalOpen] = useState(false);
+
+  // Block period dialog
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
 
   // Navigation (dates, zoom, density)
   const nav = usePlanningNavigation();
@@ -332,6 +336,7 @@ const PlanningPage: React.FC = () => {
           onSearchChange={setSearchQuery}
           onClearFilters={clearFilters}
           onImportICal={() => setIcalModalOpen(true)}
+          onBlockPeriod={() => setBlockDialogOpen(true)}
         />
       </Box>
 
@@ -453,6 +458,16 @@ const PlanningPage: React.FC = () => {
       <ICalImportModal
         open={icalModalOpen}
         onClose={() => setIcalModalOpen(false)}
+      />
+
+      {/* Block Period Dialog */}
+      <BlockPeriodDialog
+        open={blockDialogOpen}
+        onClose={() => setBlockDialogOpen(false)}
+        propertyId={null}
+        startDate={null}
+        endDate={null}
+        properties={properties}
       />
     </Box>
   );

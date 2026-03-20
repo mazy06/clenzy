@@ -108,6 +108,20 @@ public interface CalendarDayRepository extends JpaRepository<CalendarDay, Long> 
             @Param("to") LocalDate to,
             @Param("orgId") Long orgId);
 
+    /**
+     * Recupere les jours BLOCKED ou MAINTENANCE pour plusieurs proprietes dans une plage [from, to).
+     * Utilise par le planning pour afficher les periodes bloquees.
+     */
+    @Query("SELECT cd FROM CalendarDay cd WHERE cd.property.id IN :propertyIds " +
+           "AND cd.date >= :from AND cd.date < :to " +
+           "AND cd.status IN (com.clenzy.model.CalendarDayStatus.BLOCKED, com.clenzy.model.CalendarDayStatus.MAINTENANCE) " +
+           "AND cd.organizationId = :orgId ORDER BY cd.property.id, cd.date")
+    List<CalendarDay> findBlockedOrMaintenanceForProperties(
+            @Param("propertyIds") List<Long> propertyIds,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId);
+
     // ── Admin queries (cross-org, SUPER_ADMIN only) ─────────────────────────
 
     /**

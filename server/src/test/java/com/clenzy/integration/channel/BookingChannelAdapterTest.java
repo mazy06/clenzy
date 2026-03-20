@@ -7,6 +7,7 @@ import com.clenzy.integration.booking.service.BookingApiClient;
 import com.clenzy.integration.channel.model.ChannelMapping;
 import com.clenzy.integration.channel.repository.ChannelMappingRepository;
 import com.clenzy.repository.BookingRestrictionRepository;
+import com.clenzy.repository.CalendarDayRepository;
 import com.clenzy.service.PriceEngine;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +33,7 @@ class BookingChannelAdapterTest {
     @Mock private ChannelMappingRepository channelMappingRepository;
     @Mock private PriceEngine priceEngine;
     @Mock private BookingRestrictionRepository bookingRestrictionRepository;
+    @Mock private CalendarDayRepository calendarDayRepository;
 
     private BookingChannelAdapter adapter;
 
@@ -39,7 +41,7 @@ class BookingChannelAdapterTest {
     void setUp() {
         adapter = new BookingChannelAdapter(bookingConfig, bookingApiClient,
                 bookingConnectionRepository, channelMappingRepository, priceEngine,
-                bookingRestrictionRepository);
+                bookingRestrictionRepository, calendarDayRepository);
     }
 
     @Test
