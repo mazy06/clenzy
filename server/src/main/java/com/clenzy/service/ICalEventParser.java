@@ -130,10 +130,15 @@ public final class ICalEventParser {
         String summaryText = summary != null ? summary.getValue() : "";
         preview.setSummary(summaryText);
 
-        // Filtrer les blocages de calendrier (ex: "Airbnb (Not available)", "Blocked")
+        // Detecter les blocages de calendrier (ex: "Airbnb (Not available)", "Blocked")
         if (isBlockedEvent(summaryText)) {
-            log.debug("Evenement iCal ignore (blocage calendrier): {}", summaryText);
-            return null;
+            log.debug("Evenement iCal detecte comme blocage calendrier: {}", summaryText);
+            preview.setType("blocked");
+            // Parser les dates meme pour les blocs
+            parseDtStart(vevent, preview);
+            parseDtEnd(vevent, preview);
+            if (preview.getDtStart() == null) return null;
+            return preview;
         }
 
         // All iCal entries are treated as reservations

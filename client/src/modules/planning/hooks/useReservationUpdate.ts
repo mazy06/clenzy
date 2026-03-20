@@ -382,8 +382,8 @@ export function useReservationUpdate(
             },
           );
         } else {
-          await reservationsApi.update(reservationId, updates);
-          // Optimistic cache update for immediate UI feedback (badge, displayed values)
+          const serverRes = await reservationsApi.update(reservationId, updates);
+          // Update cache with server response (authoritative) merged with local updates
           queryClient.setQueriesData(
             { queryKey: [...planningKeys.all, 'reservations'] },
             (old: unknown) => {
@@ -392,6 +392,11 @@ export function useReservationUpdate(
                 if (r.id !== reservationId) return r;
                 return {
                   ...r,
+                  // Use server response for all fields (it includes the persisted guest email)
+                  ...(serverRes.guestName !== undefined && { guestName: serverRes.guestName }),
+                  ...(serverRes.guestEmail !== undefined && { guestEmail: serverRes.guestEmail }),
+                  ...(serverRes.guestPhone !== undefined && { guestPhone: serverRes.guestPhone }),
+                  // Also apply local updates as fallback in case server doesn't return them
                   ...(updates.guestName !== undefined && { guestName: updates.guestName }),
                   ...(updates.guestEmail !== undefined && { guestEmail: updates.guestEmail }),
                   ...(updates.guestPhone !== undefined && { guestPhone: updates.guestPhone }),

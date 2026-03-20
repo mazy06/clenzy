@@ -30,6 +30,7 @@ import {
   FilterListOff,
   CalendarToday as CalendarTodayIcon,
   TuneOutlined,
+  Lock,
 } from '@mui/icons-material';
 import type { ZoomLevel, DensityMode, PlanningFilters } from './types';
 import type { ReservationStatus } from '../../services/api';
@@ -56,6 +57,7 @@ interface PlanningToolbarProps {
   onSearchChange: (query: string) => void;
   onClearFilters: () => void;
   onImportICal?: () => void;
+  onBlockPeriod?: () => void;
 }
 
 const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
@@ -122,6 +124,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   onSearchChange,
   onClearFilters,
   onImportICal,
+  onBlockPeriod,
 }) => {
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('lg'));
@@ -307,6 +310,32 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                   '&:hover': {
                     backgroundColor: 'rgba(107, 138, 154, 0.08)',
                     borderColor: 'primary.dark',
+                  },
+                }}
+              />
+            </Tooltip>
+          )}
+
+          {/* Block period */}
+          {onBlockPeriod && (
+            <Tooltip title="Bloquer une periode (indisponible)" arrow>
+              <Chip
+                icon={<Lock sx={{ fontSize: 13 }} />}
+                label="Bloquer"
+                size="small"
+                variant="outlined"
+                onClick={onBlockPeriod}
+                sx={{
+                  fontSize: '0.625rem',
+                  fontWeight: 600,
+                  height: 28,
+                  cursor: 'pointer',
+                  borderColor: 'text.secondary',
+                  color: 'text.secondary',
+                  '& .MuiChip-icon': { fontSize: 13, color: 'text.secondary' },
+                  '&:hover': {
+                    backgroundColor: 'rgba(97, 97, 97, 0.08)',
+                    borderColor: 'text.primary',
                   },
                 }}
               />
@@ -525,6 +554,33 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                       '&:hover': {
                         backgroundColor: 'rgba(107, 138, 154, 0.08)',
                         borderColor: 'primary.dark',
+                      },
+                    }}
+                  />
+                )}
+
+                {/* Block period */}
+                {onBlockPeriod && (
+                  <Chip
+                    icon={<Lock sx={{ fontSize: 13 }} />}
+                    label="Bloquer"
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      setMenuAnchor(null);
+                      onBlockPeriod();
+                    }}
+                    sx={{
+                      fontSize: '0.625rem',
+                      fontWeight: 600,
+                      height: 28,
+                      cursor: 'pointer',
+                      borderColor: 'text.secondary',
+                      color: 'text.secondary',
+                      '& .MuiChip-icon': { fontSize: 13, color: 'text.secondary' },
+                      '&:hover': {
+                        backgroundColor: 'rgba(97, 97, 97, 0.08)',
+                        borderColor: 'text.primary',
                       },
                     }}
                   />

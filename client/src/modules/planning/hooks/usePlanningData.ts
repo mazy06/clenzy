@@ -2,10 +2,12 @@ import { useMemo } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { useAuth } from '../../../hooks/useAuth';
 import { propertiesApi, managersApi, reservationsApi, serviceRequestsApi } from '../../../services/api';
+import { calendarPricingApi } from '../../../services/api/calendarPricingApi';
+import type { CalendarBlockedDay } from '../../../services/api/calendarPricingApi';
 import type { Property, Reservation, ReservationStatus, PlanningIntervention, PlanningServiceRequest } from '../../../services/api';
 import type { PlanningEvent, PlanningProperty } from '../types';
 import { getOverlappingChunks, toDateStr } from '../utils/dateUtils';
-import { getReservationColor, getInterventionColor } from '../utils/colorUtils';
+import { getReservationColor, getInterventionColor, getEventTypeColor } from '../utils/colorUtils';
 import { DATA_CHUNK_SIZE_DAYS } from '../constants';
 
 // ─── Query keys ──────────────────────────────────────────────────────────────
@@ -20,6 +22,8 @@ export const planningKeys = {
     [...planningKeys.all, 'interventions', { propertyIds, from, to }] as const,
   awaitingPayment: (propertyIds: number[], from: string, to: string) =>
     [...planningKeys.all, 'awaitingPayment', { propertyIds, from, to }] as const,
+  blockedDays: (propertyIds: number[], from: string, to: string) =>
+    [...planningKeys.all, 'blockedDays', { propertyIds, from, to }] as const,
 };
 
 // ─── Fetch helpers ───────────────────────────────────────────────────────────
@@ -223,6 +227,82 @@ function serviceRequestToEvent(sr: PlanningServiceRequest): PlanningEvent {
   };
 }
 
+// ─── Blocked days → PlanningEvent (group consecutive days into ranges) ───────
+
+interface BlockedRange {
+  propertyId: number;
+  startDate: string;
+  endDate: string;
+  status: 'BLOCKED' | 'MAINTENANCE';
+  source: string;
+  notes: string | null;
+}
+
+function groupBlockedDays(days: CalendarBlockedDay[]): BlockedRange[] {
+  if (days.length === 0) return [];
+
+  // Sort by propertyId, then date
+  const sorted = [...days].sort((a, b) =>
+    a.propertyId !== b.propertyId
+      ? a.propertyId - b.propertyId
+      : a.date.localeCompare(b.date),
+  );
+
+  const ranges: BlockedRange[] = [];
+  let current: BlockedRange | null = null;
+
+  for (const day of sorted) {
+    if (
+      current &&
+      current.propertyId === day.propertyId &&
+      current.status === day.status &&
+      isNextDay(current.endDate, day.date)
+    ) {
+      // Extend current range
+      current.endDate = day.date;
+    } else {
+      // Start new range
+      if (current) ranges.push(current);
+      current = {
+        propertyId: day.propertyId,
+        startDate: day.date,
+        endDate: day.date,
+        status: day.status,
+        source: day.source,
+        notes: day.notes,
+      };
+    }
+  }
+  if (current) ranges.push(current);
+  return ranges;
+}
+
+function isNextDay(dateA: string, dateB: string): boolean {
+  const a = new Date(dateA);
+  a.setDate(a.getDate() + 1);
+  return a.toISOString().slice(0, 10) === dateB;
+}
+
+function blockedRangeToEvent(range: BlockedRange, index: number): PlanningEvent {
+  const eventType = range.status === 'MAINTENANCE' ? 'maintenance' : 'blocked';
+  // endDate +1 day because the range is inclusive but planning events use exclusive end
+  const endDate = new Date(range.endDate);
+  endDate.setDate(endDate.getDate() + 1);
+  const endDateStr = endDate.toISOString().slice(0, 10);
+
+  return {
+    id: `block-${range.propertyId}-${range.startDate}-${index}`,
+    type: eventType === 'blocked' ? 'blocked' : 'maintenance',
+    propertyId: range.propertyId,
+    startDate: range.startDate,
+    endDate: endDateStr,
+    label: range.notes || (range.status === 'MAINTENANCE' ? 'Maintenance' : 'Bloqué'),
+    sublabel: range.source !== 'MANUAL' ? range.source : undefined,
+    status: range.status.toLowerCase(),
+    color: getEventTypeColor(eventType),
+  };
+}
+
 // ─── Dedup helper ────────────────────────────────────────────────────────────
 
 function dedup<T extends { id: number }>(arrays: T[][]): T[] {
@@ -316,6 +396,17 @@ export function usePlanningData(
     })),
   });
 
+  // Query 5: Blocked/Maintenance days — one query per chunk
+  const blockedQueries = useQueries({
+    queries: chunks.map((chunk) => ({
+      queryKey: planningKeys.blockedDays(propertyIds, chunk.from, chunk.to),
+      queryFn: () => calendarPricingApi.getBlockedDays(propertyIds, chunk.from, chunk.to),
+      enabled: propertyIds.length > 0,
+      staleTime: 30_000,
+      gcTime: 5 * 60 * 1000,
+    })),
+  });
+
   // Merge + dedup all chunk results
   const reservations = useMemo(() => {
     const allChunkData = reservationQueries
@@ -337,6 +428,25 @@ export function usePlanningData(
       .filter((d): d is PlanningServiceRequest[] => !!d);
     return dedup(allChunkData);
   }, [awaitingPaymentQueries]);
+
+  const blockedDays = useMemo(() => {
+    const allChunkData = blockedQueries
+      .map((q) => q.data)
+      .filter((d): d is CalendarBlockedDay[] => !!d);
+    // Flatten and deduplicate by propertyId+date
+    const seen = new Set<string>();
+    const result: CalendarBlockedDay[] = [];
+    for (const arr of allChunkData) {
+      for (const item of arr) {
+        const key = `${item.propertyId}-${item.date}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          result.push(item);
+        }
+      }
+    }
+    return result;
+  }, [blockedQueries]);
 
   // Build a property defaults lookup for check-in/check-out time fallback
   const propertyDefaultsMap = useMemo(() => {
@@ -368,8 +478,10 @@ export function usePlanningData(
     });
     const intEvents = visibleInterventions.map(interventionToEvent);
     const srEvents = awaitingPaymentSRs.map(serviceRequestToEvent);
-    return [...resEvents, ...intEvents, ...srEvents];
-  }, [reservations, interventions, awaitingPaymentSRs, propertyDefaultsMap]);
+    const blockedRanges = groupBlockedDays(blockedDays);
+    const blockEvents = blockedRanges.map((r, i) => blockedRangeToEvent(r, i));
+    return [...resEvents, ...intEvents, ...srEvents, ...blockEvents];
+  }, [reservations, interventions, awaitingPaymentSRs, blockedDays, propertyDefaultsMap]);
 
   // Loading: only on initial load (all chunks loading). After initial, chunks load in background.
   const reservationsInitialLoading = propertyIds.length > 0 &&
