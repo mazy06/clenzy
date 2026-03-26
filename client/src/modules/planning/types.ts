@@ -35,6 +35,8 @@ export interface PlanningEvent {
   reservation?: Reservation;
   intervention?: PlanningIntervention;
   isAwaitingPayment?: boolean;
+  needsPaymentBadge?: boolean;
+  paymentBadgeStatus?: 'PENDING' | 'PROCESSING' | 'FAILED';
   serviceRequest?: PlanningServiceRequest;
 }
 
