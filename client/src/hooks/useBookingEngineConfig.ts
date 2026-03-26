@@ -7,6 +7,7 @@ import type { BookingEngineConfigUpdate, DesignTokens } from '../services/api/bo
 export const bookingEngineKeys = {
   all: ['booking-engine'] as const,
   configs: ['booking-engine', 'configs'] as const,
+  allConfigs: ['booking-engine', 'configs', 'all'] as const,
   configById: (id: number) => ['booking-engine', 'configs', id] as const,
   status: ['booking-engine-status'] as const,
 };
@@ -18,6 +19,17 @@ export function useBookingEngineConfigs() {
   return useQuery({
     queryKey: bookingEngineKeys.configs,
     queryFn: () => bookingEngineApi.listConfigs(),
+    staleTime: 60_000,
+    retry: 1,
+    retryDelay: 1_000,
+  });
+}
+
+/** List all templates across all orgs (platform staff only). */
+export function useAllBookingEngineConfigs() {
+  return useQuery({
+    queryKey: bookingEngineKeys.allConfigs,
+    queryFn: () => bookingEngineApi.listAllConfigs(),
     staleTime: 60_000,
     retry: 1,
     retryDelay: 1_000,

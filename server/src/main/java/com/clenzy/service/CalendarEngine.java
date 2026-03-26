@@ -140,7 +140,7 @@ public class CalendarEngine {
 
             // 8. Publier l'event dans l'outbox (meme transaction)
             outboxPublisher.publishCalendarEvent("CALENDAR_BOOKED", propertyId, orgId,
-                    buildPayload("BOOKED", propertyId, checkIn, checkOut, source, reservationId));
+                    buildPayload("BOOKED", propertyId, orgId, checkIn, checkOut, source, reservationId));
 
             log.info("CalendarEngine.book: {} jours reserves pour propriete {} [{}, {})",
                     days.size(), propertyId, checkIn, checkOut);
@@ -186,7 +186,7 @@ public class CalendarEngine {
                     "CANCEL", reservationId, actorId, null);
 
             outboxPublisher.publishCalendarEvent("CALENDAR_CANCELLED", propertyId, orgId,
-                    buildPayload("CANCELLED", propertyId, reservation.getCheckIn(), reservation.getCheckOut(), "CANCEL", reservationId));
+                    buildPayload("CANCELLED", propertyId, orgId, reservation.getCheckIn(), reservation.getCheckOut(), "CANCEL", reservationId));
 
             log.info("CalendarEngine.cancel: {} jour(s) libere(s) pour reservation {} (propriete {})",
                     released, reservationId, propertyId);
@@ -248,7 +248,7 @@ public class CalendarEngine {
                     source, null, actorId, notes != null ? "{\"notes\":\"" + notes.replace("\"", "\\\"") + "\"}" : null);
 
             outboxPublisher.publishCalendarEvent("CALENDAR_BLOCKED", propertyId, orgId,
-                    buildPayload("BLOCKED", propertyId, from, to, source, null));
+                    buildPayload("BLOCKED", propertyId, orgId, from, to, source, null));
 
             log.info("CalendarEngine.block: {} jour(s) bloque(s) pour propriete {} [{}, {})",
                     days.size(), propertyId, from, to);
@@ -298,7 +298,7 @@ public class CalendarEngine {
                     "MANUAL", null, actorId, null);
 
             outboxPublisher.publishCalendarEvent("CALENDAR_UNBLOCKED", propertyId, orgId,
-                    buildPayload("UNBLOCKED", propertyId, from, to, "MANUAL", null));
+                    buildPayload("UNBLOCKED", propertyId, orgId, from, to, "MANUAL", null));
 
             log.info("CalendarEngine.unblock: {} jour(s) debloque(s) pour propriete {} [{}, {})",
                     blockedDays.size(), propertyId, from, to);
@@ -351,7 +351,7 @@ public class CalendarEngine {
                     "MANUAL", null, actorId, payload);
 
             outboxPublisher.publishCalendarEvent("CALENDAR_PRICE_UPDATED", propertyId, orgId,
-                    buildPayload("PRICE_UPDATED", propertyId, from, to, "MANUAL", null));
+                    buildPayload("PRICE_UPDATED", propertyId, orgId, from, to, "MANUAL", null));
 
             log.info("CalendarEngine.updatePrice: prix mis a jour sur {} jour(s) pour propriete {} [{}, {})",
                     days.size(), propertyId, from, to);
@@ -443,11 +443,12 @@ public class CalendarEngine {
     /**
      * Construit le payload JSON pour un event outbox calendrier.
      */
-    private String buildPayload(String action, Long propertyId, LocalDate from, LocalDate to,
+    private String buildPayload(String action, Long propertyId, Long orgId, LocalDate from, LocalDate to,
                                  String source, Long reservationId) {
         StringBuilder sb = new StringBuilder("{");
         sb.append("\"action\":\"").append(action).append("\"");
         sb.append(",\"propertyId\":").append(propertyId);
+        if (orgId != null) sb.append(",\"orgId\":").append(orgId);
         sb.append(",\"from\":\"").append(from).append("\"");
         sb.append(",\"to\":\"").append(to).append("\"");
         if (source != null) sb.append(",\"source\":\"").append(source).append("\"");

@@ -130,15 +130,12 @@ public final class ICalEventParser {
         String summaryText = summary != null ? summary.getValue() : "";
         preview.setSummary(summaryText);
 
-        // Detecter les blocages de calendrier (ex: "Airbnb (Not available)", "Blocked")
+        // Ignorer les blocages de calendrier (ex: "Airbnb (Not available)", "Blocked")
+        // Ces evenements ne sont PAS des reservations et ne doivent pas etre importes.
+        // Les disponibilites sont gerees directement dans Clenzy.
         if (isBlockedEvent(summaryText)) {
-            log.debug("Evenement iCal detecte comme blocage calendrier: {}", summaryText);
-            preview.setType("blocked");
-            // Parser les dates meme pour les blocs
-            parseDtStart(vevent, preview);
-            parseDtEnd(vevent, preview);
-            if (preview.getDtStart() == null) return null;
-            return preview;
+            log.debug("Evenement iCal ignore (blocage calendrier): {}", summaryText);
+            return null;
         }
 
         // All iCal entries are treated as reservations

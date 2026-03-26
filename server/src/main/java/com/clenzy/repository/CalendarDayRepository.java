@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 
 public interface CalendarDayRepository extends JpaRepository<CalendarDay, Long> {
 
@@ -31,6 +32,19 @@ public interface CalendarDayRepository extends JpaRepository<CalendarDay, Long> 
            "ORDER BY cd.date")
     List<CalendarDay> findByPropertyAndDateRange(
             @Param("propertyId") Long propertyId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("orgId") Long orgId);
+
+    /**
+     * Batch : recupere les jours de PLUSIEURS proprietes dans une plage de dates.
+     * Evite le N+1 quand on charge le calendrier pour toutes les proprietes.
+     */
+    @Query("SELECT cd FROM CalendarDay cd WHERE cd.property.id IN :propertyIds " +
+           "AND cd.date >= :from AND cd.date <= :to AND cd.organizationId = :orgId " +
+           "ORDER BY cd.property.id, cd.date")
+    List<CalendarDay> findByPropertiesAndDateRange(
+            @Param("propertyIds") Set<Long> propertyIds,
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("orgId") Long orgId);

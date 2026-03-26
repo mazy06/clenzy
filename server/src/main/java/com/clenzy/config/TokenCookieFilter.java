@@ -30,6 +30,14 @@ public class TokenCookieFilter extends OncePerRequestFilter {
                                      HttpServletResponse response,
                                      FilterChain filterChain) throws ServletException, IOException {
 
+        // Ne pas injecter le cookie sur les endpoints d'auth (login, register, etc.)
+        // Un JWT expiré dans le cookie provoquerait un 401 avant que le permitAll() ne soit évalué.
+        String path = request.getRequestURI();
+        if (path.startsWith("/api/auth/") || path.startsWith("/api/booking-engine/auth/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         // Si le header Authorization est deja present, ne pas le surcharger
         if (request.getHeader("Authorization") != null) {
             filterChain.doFilter(request, response);

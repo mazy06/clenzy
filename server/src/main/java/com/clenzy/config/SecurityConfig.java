@@ -167,6 +167,7 @@ public class SecurityConfig {
                     "/api/airbnb/callback",
                     "/api/minut/callback",
                     "/api/public/**",
+                    "/api/booking-engine/auth/**",
                     "/ws/**"
                 ).permitAll()
                 .anyRequest().authenticated()

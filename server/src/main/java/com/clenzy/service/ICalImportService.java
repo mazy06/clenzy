@@ -54,6 +54,7 @@ public class ICalImportService {
     private final PricingConfigService pricingConfigService;
     private final PriceEngine priceEngine;
     private final CalendarEngine calendarEngine;
+    private final GuestService guestService;
     private final TenantContext tenantContext;
     private final HttpClient httpClient;
 
@@ -67,6 +68,7 @@ public class ICalImportService {
                              PricingConfigService pricingConfigService,
                              PriceEngine priceEngine,
                              CalendarEngine calendarEngine,
+                             GuestService guestService,
                              TenantContext tenantContext) {
         this.icalFeedRepository = icalFeedRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -78,6 +80,7 @@ public class ICalImportService {
         this.pricingConfigService = pricingConfigService;
         this.priceEngine = priceEngine;
         this.calendarEngine = calendarEngine;
+        this.guestService = guestService;
         this.tenantContext = tenantContext;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(15))
@@ -162,27 +165,13 @@ public class ICalImportService {
         // Parser le feed
         List<ICalEventPreview> events = fetchAndParseICalFeed(request.getUrl());
 
-        // Separer les blocs des reservations
-        List<ICalEventPreview> blockedEvents = events.stream()
-                .filter(e -> "blocked".equals(e.getType()))
-                .collect(Collectors.toList());
+        // Filtrer : ne garder que les vraies reservations (ignorer les blocs "Not available", "Blocked", etc.)
         List<ICalEventPreview> reservations = events.stream()
                 .filter(e -> !"blocked".equals(e.getType()))
                 .collect(Collectors.toList());
-
-        // Traiter les blocs : les stocker comme CalendarDay(BLOCKED)
-        int blocksImported = 0;
-        for (ICalEventPreview block : blockedEvents) {
-            try {
-                LocalDate blockFrom = block.getDtStart();
-                LocalDate blockTo = block.getDtEnd() != null ? block.getDtEnd() : blockFrom.plusDays(1);
-                calendarEngine.block(property.getId(), blockFrom, blockTo, orgId,
-                        "ICAL", block.getSummary(), keycloakId);
-                blocksImported++;
-            } catch (Exception e) {
-                log.warn("Erreur import bloc iCal [{} -> {}]: {}",
-                        block.getDtStart(), block.getDtEnd(), e.getMessage());
-            }
+        int blocksIgnored = events.size() - reservations.size();
+        if (blocksIgnored > 0) {
+            log.info("iCal import: {} bloc(s) ignore(s) (Not available / Blocked)", blocksIgnored);
         }
 
         // Dedoublonnage : on ne skip QUE si la Reservation existe deja en base.
@@ -269,6 +258,19 @@ public class ICalImportService {
 
                     reservation = reservationRepository2.save(reservation);
                     reservationId = reservation.getId();
+
+                    // Creer/lier le Guest des l'import pour que guestEmail soit persistable via PUT
+                    if (reservation.getGuest() == null && guestName != null && !guestName.isBlank()) {
+                        try {
+                            Guest guest = guestService.findOrCreateFromName(guestName, sourceKey, orgId);
+                            if (guest != null) {
+                                reservation.setGuest(guest);
+                                reservationRepository2.save(reservation);
+                            }
+                        } catch (Exception e) {
+                            log.warn("Impossible de creer le Guest pour reservation #{}: {}", reservationId, e.getMessage());
+                        }
+                    }
 
                     // Auto-masquer les reservations annulees qui chevauchent la nouvelle
                     List<Reservation> cancelledOverlapping = reservationRepository2.findCancelledOverlapping(

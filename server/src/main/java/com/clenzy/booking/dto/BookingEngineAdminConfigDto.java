@@ -43,10 +43,20 @@ public record BookingEngineAdminConfigDto(
     // AI Design Analysis
     String designTokens,
     String sourceWebsiteUrl,
-    LocalDateTime aiAnalysisAt
+    LocalDateTime aiAnalysisAt,
+    // Widget Integration Position
+    String widgetPosition,
+    String inlineTargetId,
+    String inlinePlacement,
+    // Cross-org (populated only for platform staff /configs/all endpoint)
+    String organizationName
 ) {
 
     public static BookingEngineAdminConfigDto from(BookingEngineConfig config) {
+        return from(config, null);
+    }
+
+    public static BookingEngineAdminConfigDto from(BookingEngineConfig config, String organizationName) {
         return new BookingEngineAdminConfigDto(
             config.getId(),
             config.getOrganizationId(),
@@ -74,7 +84,11 @@ public record BookingEngineAdminConfigDto(
             config.getComponentConfig(),
             config.getDesignTokens(),
             config.getSourceWebsiteUrl(),
-            config.getAiAnalysisAt()
+            config.getAiAnalysisAt(),
+            config.getWidgetPosition(),
+            config.getInlineTargetId(),
+            config.getInlinePlacement(),
+            organizationName
         );
     }
 
@@ -105,5 +119,8 @@ public record BookingEngineAdminConfigDto(
         config.setComponentConfig(componentConfig);
         config.setDesignTokens(designTokens);
         config.setSourceWebsiteUrl(sourceWebsiteUrl);
+        config.setWidgetPosition(widgetPosition);
+        config.setInlineTargetId(inlineTargetId);
+        config.setInlinePlacement(inlinePlacement);
     }
 }

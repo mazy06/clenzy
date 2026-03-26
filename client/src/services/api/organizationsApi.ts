@@ -19,7 +19,7 @@ export interface CreateOrganizationData {
 
 export interface UpdateOrganizationData {
   name: string;
-  type: string;
+  type?: string;
 }
 
 export interface BillingSummaryDto {

@@ -837,3 +837,59 @@ databaseChangeLog:
       sqlFile:
         path: changes/0096__backfill_organization_members.sql
         relativeToChangelogFile: true
+
+  # --- 0097 : Create user_preferences table (migrate from localStorage) ---
+  - changeSet:
+      id: "0097-create-user-preferences"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0097__create_user_preferences.sql
+        relativeToChangelogFile: true
+
+  # --- 0098 : Create property inventory and laundry tables ---
+  - changeSet:
+      id: "0098-create-property-inventory-tables"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0098__create_property_inventory_tables.sql
+        relativeToChangelogFile: true
+
+  # --- 0099 : Add GUEST_NO_EMAIL_FOR_CHECKIN to notification_key check constraint ---
+  - changeSet:
+      id: "0099-add-guest-no-email-notification-key"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0099__add_guest_no_email_notification_key.sql
+        relativeToChangelogFile: true
+
+  # --- 0100 : Create booking guest profiles table ---
+  - changeSet:
+      id: "0100-create-booking-guest-profiles"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0100__create_booking_guest_profiles.sql
+        relativeToChangelogFile: true
+
+  # --- 0101 : Add widget position fields to booking engine configs ---
+  - changeSet:
+      id: "0101-add-booking-engine-widget-position"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0101__add_booking_engine_widget_position.sql
+        relativeToChangelogFile: true
+
+  # --- 0102 : Create booking service categories and items tables ---
+  - changeSet:
+      id: "0102-create-booking-service-options"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0102__create_booking_service_options.sql
+        relativeToChangelogFile: true
+
+  # --- 0103 : Create reservation service items table ---
+  - changeSet:
+      id: "0103-create-reservation-service-items"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0103__create_reservation_service_items.sql
+        relativeToChangelogFile: true

@@ -129,6 +129,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             @Param("propertyId") Long propertyId,
             @Param("orgId") Long orgId);
 
+    /**
+     * Toutes les reservations liees a un guest.
+     * Utilise par GuestService.recalculateAllStats pour recalculer les compteurs.
+     */
+    List<Reservation> findByGuestId(Long guestId);
+
     // ─── Booking Engine (public) ────────────────────────────────────────────────
 
     /**
