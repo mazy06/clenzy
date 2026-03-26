@@ -51,6 +51,7 @@ function mapToPlanning(list: Property[]): PlanningProperty[] {
     defaultCheckOutTime: p.defaultCheckOutTime,
     cleaningFrequency: p.cleaningFrequency,
     cleaningBasePrice: p.cleaningBasePrice,
+    currency: (p as unknown as { defaultCurrency?: string }).defaultCurrency || 'EUR',
   }));
 }
 

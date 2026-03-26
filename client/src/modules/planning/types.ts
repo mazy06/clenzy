@@ -114,6 +114,7 @@ export interface PlanningProperty {
   defaultCheckOutTime?: string;
   cleaningFrequency?: string;
   cleaningBasePrice?: number;
+  currency?: string;
 }
 
 // ─── Month separator (for date headers) ──────────────────────────────────────

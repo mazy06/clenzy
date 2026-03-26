@@ -88,6 +88,7 @@ import MonitoringPage from './admin/MonitoringPage';
 import SyncAdminPage from './admin/SyncAdminPage';
 import KpiReadinessPage from './admin/KpiReadinessPage';
 import DatabaseAdminPage from './admin/DatabaseAdminPage';
+import ExchangeRateHistoryPage from './admin/ExchangeRateHistoryPage';
 
 // Channels & Integrations
 import ChannelsPage from './channels/ChannelsPage';
@@ -383,6 +384,14 @@ const AuthenticatedApp: React.FC = () => {
           <ProtectedRoute requiredPermission="users:manage">
             <ErrorBoundary>
               <DatabaseAdminPage />
+            </ErrorBoundary>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/exchange-rates" element={
+          <ProtectedRoute requiredPermission="users:manage">
+            <ErrorBoundary>
+              <ExchangeRateHistoryPage />
             </ErrorBoundary>
           </ProtectedRoute>
         } />

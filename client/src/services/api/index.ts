@@ -301,6 +301,14 @@ export type { ProspectDto, ImportResult } from './prospectsApi';
 export { workflowSettingsApi } from './workflowSettingsApi';
 export type { WorkflowSettingsData } from './workflowSettingsApi';
 
+export { exchangeRateApi } from './exchangeRateApi';
+export type {
+  RateMatrix,
+  ExchangeRateHistoryItem,
+  ExchangeRateHistoryPage,
+  ExchangeRateHistoryParams,
+} from './exchangeRateApi';
+
 export { aiApi } from './aiApi';
 export type {
   AiUsageStats,

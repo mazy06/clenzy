@@ -26,7 +26,7 @@ import type { GuestListDto } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import PageHeader from '../../components/PageHeader';
 import { SPACING } from '../../theme/spacing';
-import { formatCurrency } from '../../utils/currencyUtils';
+import { useCurrency } from '../../hooks/useCurrency';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -77,6 +77,7 @@ interface GuestsListPageProps {
 const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => {
   const { user } = useAuth();
   const isSuperAdmin = user?.platformRole === 'SUPER_ADMIN' || user?.platformRole === 'SUPER_MANAGER';
+  const { convertAndFormat } = useCurrency();
 
   // ── Filters ─────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
@@ -272,7 +273,7 @@ const GuestsListPage: React.FC<GuestsListPageProps> = ({ embedded = false }) => 
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
-                          {guest.totalSpent ? formatCurrency(guest.totalSpent, 'EUR') : '-'}
+                          {guest.totalSpent ? convertAndFormat(guest.totalSpent, 'EUR') : '-'}
                         </Typography>
                       </TableCell>
                       <TableCell>

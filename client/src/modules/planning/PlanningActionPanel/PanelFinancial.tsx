@@ -51,6 +51,7 @@ import {
 } from '@mui/icons-material';
 import type { PlanningEvent } from '../types';
 import type { PlanningIntervention } from '../../../services/api';
+import { useCurrency } from '../../../hooks/useCurrency';
 
 // ── Types for local financial state ────────────────────────────────────────
 interface LocalPayment {
@@ -257,6 +258,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
 }) => {
   const reservation = event.reservation;
   const intervention = event.intervention;
+  const { convertAndFormat } = useCurrency();
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -978,7 +980,7 @@ const PanelFinancial: React.FC<PanelFinancialProps> = ({
                         </Typography>
                       )}
                       <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, minWidth: 50, textAlign: 'right' }}>
-                        {cost > 0 ? `${cost.toFixed(0)} €` : '—'}
+                        {cost > 0 ? convertAndFormat(cost, 'EUR') : '—'}
                       </Typography>
                       <StatusChip
                         status={intv.paymentStatus || intv.status}

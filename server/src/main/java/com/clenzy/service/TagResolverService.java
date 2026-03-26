@@ -695,7 +695,19 @@ public class TagResolverService {
     }
 
     private String formatMoney(BigDecimal amount) {
+        return formatMoney(amount, "EUR");
+    }
+
+    private String formatMoney(BigDecimal amount, String currency) {
         if (amount == null) return "0,00 €";
-        return MONEY_FORMAT.format(amount);
+        String symbol = switch (currency != null ? currency.toUpperCase() : "EUR") {
+            case "MAD" -> "MAD";
+            case "SAR" -> "SAR";
+            case "USD" -> "$";
+            case "GBP" -> "£";
+            default -> "€";
+        };
+        String formatted = String.format("%,.2f", amount).replace(",", " ").replace(".", ",");
+        return formatted + " " + symbol;
     }
 }
