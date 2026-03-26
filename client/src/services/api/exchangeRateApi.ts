@@ -17,14 +17,6 @@ export interface ExchangeRateHistoryItem {
   source: string;
 }
 
-export interface ExchangeRateHistoryPage {
-  content: ExchangeRateHistoryItem[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
-  size: number;
-}
-
 export interface ExchangeRateHistoryParams {
   baseCurrency?: string;
   targetCurrency?: string;
@@ -44,10 +36,10 @@ export const exchangeRateApi = {
     apiClient.get(`${BASE}/matrix`),
 
   /** Historique des taux (admin). */
-  getHistory: (params: ExchangeRateHistoryParams): Promise<ExchangeRateHistoryPage> =>
+  getHistory: (params: ExchangeRateHistoryParams): Promise<ExchangeRateHistoryItem[]> =>
     apiClient.get(`${BASE}/history`, { params: params as Record<string, string | number> }),
 
-  /** Force la mise a jour des taux depuis la BCE. */
+  /** Force la mise a jour des taux. */
   refresh: (): Promise<void> =>
     apiClient.post(`${BASE}/refresh`),
 };

@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -51,4 +52,11 @@ public interface ExchangeRateRepository extends JpaRepository<ExchangeRate, Long
      * Tous les taux sur une periode (toutes paires).
      */
     Page<ExchangeRate> findByRateDateBetween(LocalDate from, LocalDate to, Pageable pageable);
+
+    /**
+     * Liste des taux pour une paire sur une periode (sans pagination, pour calcul croise).
+     */
+    List<ExchangeRate> findAllByBaseCurrencyAndTargetCurrencyAndRateDateBetween(
+        String baseCurrency, String targetCurrency, LocalDate from, LocalDate to
+    );
 }

@@ -28,7 +28,11 @@ import { useCurrency } from '../../hooks/useCurrency';
 
 const CURRENCY_PAIRS = [
   { base: 'EUR', target: 'MAD', label: 'EUR → MAD' },
+  { base: 'MAD', target: 'EUR', label: 'MAD → EUR' },
   { base: 'EUR', target: 'SAR', label: 'EUR → SAR' },
+  { base: 'SAR', target: 'EUR', label: 'SAR → EUR' },
+  { base: 'MAD', target: 'SAR', label: 'MAD → SAR' },
+  { base: 'SAR', target: 'MAD', label: 'SAR → MAD' },
 ];
 
 function formatDate(iso: string): string {
@@ -106,12 +110,15 @@ export default function ExchangeRateHistoryPage() {
     setPage(0);
   }, []);
 
+  // data is now a flat array
+  const rows = data ?? [];
+
   // Compute min/max/avg for the visible data
-  const stats = data?.content?.length
+  const stats = rows.length
     ? {
-        min: Math.min(...data.content.map((r) => r.rate)),
-        max: Math.max(...data.content.map((r) => r.rate)),
-        avg: data.content.reduce((s, r) => s + r.rate, 0) / data.content.length,
+        min: Math.min(...rows.map((r) => r.rate)),
+        max: Math.max(...rows.map((r) => r.rate)),
+        avg: rows.reduce((s, r) => s + r.rate, 0) / rows.length,
       }
     : null;
 
@@ -137,7 +144,14 @@ export default function ExchangeRateHistoryPage() {
       {matrix && (
         <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
           {CURRENCY_PAIRS.map((p) => {
-            const rate = matrix.rates[p.target];
+            let rate: number | null = null;
+            if (p.base === 'EUR' && matrix.rates[p.target]) {
+              rate = matrix.rates[p.target];
+            } else if (p.target === 'EUR' && matrix.rates[p.base]) {
+              rate = 1 / matrix.rates[p.base];
+            } else if (matrix.rates[p.base] && matrix.rates[p.target]) {
+              rate = matrix.rates[p.target] / matrix.rates[p.base];
+            }
             return rate ? (
               <Paper key={p.label} sx={{ p: 2, flex: '1 1 200px', minWidth: 200 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
@@ -256,7 +270,7 @@ export default function ExchangeRateHistoryPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {data?.content?.length === 0 && (
+                {rows.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                       <Typography color="text.secondary">
@@ -265,7 +279,7 @@ export default function ExchangeRateHistoryPage() {
                     </TableCell>
                   </TableRow>
                 )}
-                {data?.content?.map((rate) => (
+                {rows.map((rate) => (
                   <TableRow key={rate.id} hover>
                     <TableCell>{formatDate(rate.rateDate)}</TableCell>
                     <TableCell>
@@ -286,7 +300,7 @@ export default function ExchangeRateHistoryPage() {
             </Table>
             <TablePagination
               component="div"
-              count={data?.totalElements ?? 0}
+              count={rows.length}
               page={page}
               onPageChange={handlePageChange}
               rowsPerPage={rowsPerPage}
