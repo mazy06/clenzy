@@ -97,7 +97,7 @@ export const paymentsApi = {
             description: i.title || `Intervention #${i.id}`,
             propertyName: i.propertyName || 'N/A',
             amount: i.estimatedCost || 0,
-            currency: 'EUR',
+            currency: i.currency || i.propertyCurrency || 'EUR',
             status: i.status === 'COMPLETED' ? 'PAID' as const :
                     i.status === 'AWAITING_PAYMENT' ? 'PENDING' as const :
                     i.status === 'CANCELLED' ? 'REFUNDED' as const : 'PAID' as const,

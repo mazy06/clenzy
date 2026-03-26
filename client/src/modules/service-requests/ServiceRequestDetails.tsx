@@ -58,6 +58,7 @@ import { useServiceRequestDetails } from '../../hooks/useServiceRequestDetails';
 import type { ServiceRequestDetailsData } from '../../hooks/useServiceRequestDetails';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
 import { formatDateTime, formatDuration } from '../../utils/formatUtils';
 import DescriptionNotesDisplay from '../../components/DescriptionNotesDisplay';
 import type { ConsigneVariant } from '../../components/DescriptionNotesDisplay';
@@ -252,6 +253,7 @@ const ServiceRequestDetails: React.FC = () => {
   const navigate = useNavigate();
   const { hasPermissionAsync } = useAuth();
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
 
   const { serviceRequest, isLoading, isError, error } = useServiceRequestDetails(id);
 
@@ -415,7 +417,7 @@ const ServiceRequestDetails: React.FC = () => {
               <Box sx={METRIC_CARD_SX}>
                 <Euro sx={METRIC_ICON_SX} />
                 <Typography sx={METRIC_VALUE_SX}>
-                  {sr.estimatedCost.toFixed(2)} €
+                  {convertAndFormat(sr.estimatedCost, 'EUR')}
                 </Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.details.estimatedCost')}</Typography>
               </Box>
@@ -426,7 +428,7 @@ const ServiceRequestDetails: React.FC = () => {
               <Box sx={{ ...METRIC_CARD_SX, borderColor: 'success.main', bgcolor: 'success.50' }}>
                 <AttachMoney sx={{ ...METRIC_ICON_SX, color: 'success.main' }} />
                 <Typography sx={{ ...METRIC_VALUE_SX, color: 'success.main' }}>
-                  {sr.actualCost.toFixed(2)} €
+                  {convertAndFormat(sr.actualCost, 'EUR')}
                 </Typography>
                 <Typography sx={METRIC_LABEL_SX}>{t('serviceRequests.details.actualCost')}</Typography>
               </Box>

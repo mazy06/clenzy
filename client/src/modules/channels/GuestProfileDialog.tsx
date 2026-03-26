@@ -23,6 +23,7 @@ import {
   Note as NoteIcon,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import type { GuestProfile } from '../../services/api/airbnbApi';
 import { RESERVATION_STATUS_COLORS } from '../../services/api/reservationsApi';
@@ -39,6 +40,7 @@ interface GuestProfileDialogProps {
 
 const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, onClose }) => {
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
   const [guest, setGuest] = useState<GuestProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -227,7 +229,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                           </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>{r.totalPrice}€</Typography>
+                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>{convertAndFormat(r.totalPrice, 'EUR')}</Typography>
                           <Chip
                             label={r.status}
                             size="small"

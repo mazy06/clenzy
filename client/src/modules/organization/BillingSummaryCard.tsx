@@ -12,6 +12,7 @@ import {
 } from '@mui/icons-material';
 import { organizationsApi, BillingSummaryDto } from '../../services/api/organizationsApi';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
 
 interface Props {
   organizationId: number;
@@ -24,12 +25,13 @@ const BILLING_PERIOD_LABELS: Record<string, string> = {
   BIENNIAL: 'Bisannuel',
 };
 
-function formatCents(cents: number): string {
-  return (cents / 100).toFixed(2).replace('.', ',') + ' €';
-}
-
 export default function BillingSummaryCard({ organizationId, refreshTrigger = 0 }: Props) {
   const { t } = useTranslation();
+  const { currencySymbol } = useCurrency();
+
+  const formatCents = (cents: number): string => {
+    return (cents / 100).toFixed(2).replace('.', ',') + ` ${currencySymbol}`;
+  };
   const [summary, setSummary] = useState<BillingSummaryDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

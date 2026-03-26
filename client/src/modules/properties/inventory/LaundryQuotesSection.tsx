@@ -8,6 +8,7 @@ import {
   Receipt, Add, CheckCircle, ExpandMore, ExpandLess,
 } from '@mui/icons-material';
 import type { LaundryQuote, GenerateLaundryQuoteRequest } from '../../../services/api/propertyInventoryApi';
+import { useCurrency } from '../../../hooks/useCurrency';
 
 const STATUS_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
   DRAFT: { label: 'Brouillon', color: 'warning' },
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit, onGenerate, onConfirm }: Props) {
+  const { convertAndFormat } = useCurrency();
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [generating, setGenerating] = useState(false);
 
@@ -117,7 +119,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                         <Chip label={statusConf.label} color={statusConf.color} size="small" variant="outlined" />
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 600 }}>
-                        {Number(quote.totalHt).toFixed(2)} {quote.currency === 'EUR' ? '\u20AC' : quote.currency}
+                        {convertAndFormat(Number(quote.totalHt), quote.currency ?? 'EUR')}
                       </TableCell>
                       {canEdit && (
                         <TableCell align="right" onClick={(e) => e.stopPropagation()}>

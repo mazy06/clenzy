@@ -5,12 +5,13 @@ import type { BarLayout, PlanningEvent, PlanningProperty, DensityMode, ZoomLevel
 import { ROW_CONFIG, PRICE_LINE_HEIGHT, BAR_BORDER_RADIUS } from './constants';
 import { isWeekend, isToday, toDateStr, getHourOffsetPx } from './utils/dateUtils';
 import type { PricingMap } from './hooks/usePlanningPricing';
+import { useCurrency } from '../../hooks/useCurrency';
 
 // ─── Price formatter ────────────────────────────────────────────────────────
 
-function formatPrice(price: number): string {
-  if (Number.isInteger(price)) return `${price}\u20AC`;
-  return `${price.toFixed(1)}\u20AC`;
+function formatPrice(price: number, symbol: string): string {
+  if (Number.isInteger(price)) return `${price}${symbol}`;
+  return `${price.toFixed(1)}${symbol}`;
 }
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
   allEvents,
 }) => {
   const theme = useTheme();
+  const { convertAndFormat } = useCurrency();
   const config = ROW_CONFIG[density];
   const isDark = theme.palette.mode === 'dark';
   const priceLineHeight = PRICE_LINE_HEIGHT[density];
@@ -559,7 +561,7 @@ const PlanningRow: React.FC<PlanningRowProps> = React.memo(({
                       textOverflow: 'ellipsis',
                     }}
                   >
-                    {price != null ? formatPrice(price) : '\u2014'}
+                    {price != null ? convertAndFormat(price, property.currency ?? 'EUR') : '\u2014'}
                   </Typography>
                 )}
               </Box>

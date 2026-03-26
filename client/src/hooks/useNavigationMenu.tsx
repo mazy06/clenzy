@@ -22,6 +22,7 @@ import {
   Handshake,
   ChatBubbleOutline,
   Storage,
+  CurrencyExchange,
   CalendarViewWeek,
   PersonSearch,
   Contacts,
@@ -224,6 +225,14 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     group: 'admin',
   },
   {
+    icon: <CurrencyExchange />,
+    path: '/admin/exchange-rates',
+    roles: ['SUPER_ADMIN'],
+    permission: 'users:manage',
+    translationKey: 'navigation.exchangeRates',
+    group: 'admin',
+  },
+  {
     icon: <Storage />,
     path: '/admin/database',
     roles: ['SUPER_ADMIN'],
@@ -292,6 +301,10 @@ export const useNavigationMenu = (): UseNavigationMenuReturn => {
       }
 
       if (item.path === '/admin/kpi') {
+        return isAdmin();
+      }
+
+      if (item.path === '/admin/exchange-rates') {
         return isAdmin();
       }
 

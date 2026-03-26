@@ -68,7 +68,7 @@ import { accountingExportApi } from '../../services/api/accountingExportApi';
 import ExportPreviewDialog from './ExportPreviewDialog';
 import FiscalReportSection from '../reports/FiscalReportSection';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { formatCurrency } from '../../utils/currencyUtils';
+import { useCurrency } from '../../hooks/useCurrency';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -89,8 +89,6 @@ const HEAD_CELL_SX = { fontSize: '0.75rem', fontWeight: 700, py: 1, color: 'text
 const TAB_SX = { textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600, minHeight: 40 } as const;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-const fmtCurrency = (n: number, currency = 'EUR') => formatCurrency(n, currency);
 
 const fmtDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('fr-FR') : '—';
@@ -148,6 +146,8 @@ const AccountingPage: React.FC = () => {
 
 export const PayoutsTab: React.FC = () => {
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
+  const fmtCurrency = (n: number, currency = 'EUR') => convertAndFormat(n, currency);
 
   // Filters
   const [filterOwnerId, setFilterOwnerId] = useState<number | ''>('');
@@ -841,6 +841,8 @@ const CATEGORY_OPTIONS: ExpenseCategory[] = ['CLEANING', 'MAINTENANCE', 'LAUNDRY
 
 export const ExpensesTab: React.FC = () => {
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
+  const fmtCurrency = (n: number, currency = 'EUR') => convertAndFormat(n, currency);
   const queryClient = useQueryClient();
 
   // Filters

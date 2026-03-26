@@ -19,7 +19,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useTranslation } from '../../hooks/useTranslation';
-import { getCurrencySymbol } from '../../utils/currencyUtils';
+import { useCurrency } from '../../hooks/useCurrency';
 import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPricingApi';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
@@ -63,6 +63,7 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
   deleteLoading,
 }) => {
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const handleDelete = async () => {
@@ -152,7 +153,7 @@ const RatePlanManager: React.FC<RatePlanManagerProps> = ({
 
             {/* Price */}
             <Typography variant="body2" fontWeight={700} sx={{ minWidth: 60, textAlign: 'right', fontSize: '0.8125rem' }}>
-              {plan.nightlyPrice}{getCurrencySymbol(plan.currency || 'EUR')}
+              {convertAndFormat(plan.nightlyPrice, plan.currency || 'EUR')}
             </Typography>
 
             {/* Active toggle */}

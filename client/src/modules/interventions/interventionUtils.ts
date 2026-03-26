@@ -70,10 +70,10 @@ export interface StepNotes {
 }
 
 // Local utility functions (not duplicated in shared utils)
-export const formatCurrency = (amount: number) => {
+export const formatCurrency = (amount: number, currency: string = 'EUR') => {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
-    currency: 'EUR'
+    currency,
   }).format(amount);
 };
 

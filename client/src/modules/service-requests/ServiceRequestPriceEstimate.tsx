@@ -9,6 +9,7 @@ import {
   Star,
 } from '@mui/icons-material';
 import type { ForfaitConfig } from '../../services/api/pricingConfigApi';
+import { useCurrency } from '../../hooks/useCurrency';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -213,6 +214,7 @@ const RECOMMENDED_BADGE_SX = {
 
 const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = React.memo(
   ({ property, forfaitConfigs, selectedForfaitKey }) => {
+    const { convertAndFormat } = useCurrency();
     // Use provided configs or fall back to defaults
     const forfaits = useMemo(
       () => forfaitConfigs ?? [],
@@ -337,7 +339,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                     whiteSpace: 'nowrap',
                     lineHeight: 1.2,
                   }}>
-                    {min === max ? `${min}€` : `${min}€ – ${max}€`}
+                    {min === max ? convertAndFormat(min, 'EUR') : `${convertAndFormat(min, 'EUR')} – ${convertAndFormat(max, 'EUR')}`}
                   </Typography>
                   <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled', lineHeight: 1 }}>
                     par intervention
@@ -368,7 +370,7 @@ const ServiceRequestPriceEstimate: React.FC<ServiceRequestPriceEstimateProps> = 
                     whiteSpace: 'nowrap',
                     lineHeight: 1.2,
                   }}>
-                    --€
+                    —
                   </Typography>
                   <Typography sx={{ fontSize: '0.5625rem', color: 'text.disabled', lineHeight: 1 }}>
                     par intervention
