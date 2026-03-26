@@ -119,9 +119,14 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
       if (amount == null) return '—';
       const from = fromCurrency ?? 'EUR';
 
-      // Same currency or no rates → format directly
-      if (from === currency || !rates) {
+      // Same currency → format directly
+      if (from === currency) {
         return formatCurrency(amount, currency);
+      }
+
+      // No rates available → show in original currency (don't mislead with wrong symbol)
+      if (!rates) {
+        return formatCurrency(amount, from);
       }
 
       const converted = convert(amount, from);
