@@ -158,7 +158,7 @@ public class EmailService {
         sb.append("<div style='background: #f0fdf4; border-left: 4px solid #22c55e; padding: 15px 20px;'>");
         sb.append("<strong style='color: #15803d;'>🎯 Forfait recommandé :</strong> ");
         sb.append("<span style='font-size: 18px; font-weight: bold; color: #15803d;'>").append(formatPackageName(recommendedPackage)).append("</span>");
-        sb.append(" <span style='color: #666;'>(à partir de ").append(recommendedRate).append("€ par intervention)</span>");
+        sb.append(" <span style='color: #666;'>(à partir de ").append(recommendedRate).append(" € par intervention)</span>");
         sb.append("</div>");
 
         // Section: Coordonnées
