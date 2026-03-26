@@ -249,6 +249,8 @@ function serviceRequestToEvent(sr: PlanningServiceRequest): PlanningEvent {
     status: 'awaiting_payment',
     color: getInterventionColor(eventType),
     isAwaitingPayment: true,
+    needsPaymentBadge: true,
+    paymentBadgeStatus: 'PENDING',
     serviceRequest: sr,
   };
 }
