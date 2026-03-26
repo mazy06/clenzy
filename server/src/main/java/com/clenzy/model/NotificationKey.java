@@ -168,9 +168,12 @@ public enum NotificationKey {
     PAYOUT_EXECUTED(NotificationType.SUCCESS, NotificationCategory.PAYMENT, true),
     PAYOUT_FAILED(NotificationType.ERROR, NotificationCategory.PAYMENT, true),
     PAYOUT_CONFIG_SUBMITTED(NotificationType.INFO, NotificationCategory.PAYMENT, true),
-    PAYOUT_CONFIG_VERIFIED(NotificationType.SUCCESS, NotificationCategory.PAYMENT, true);
+    PAYOUT_CONFIG_VERIFIED(NotificationType.SUCCESS, NotificationCategory.PAYMENT, true),
 
-    // Total: 98 + 7 = 105
+    // ─── RESERVATION (3 cles) ──────────────────────────────────────────────
+    RESERVATION_CREATED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
+    RESERVATION_UPDATED(NotificationType.INFO, NotificationCategory.RESERVATION, true),
+    RESERVATION_CANCELLED(NotificationType.WARNING, NotificationCategory.RESERVATION, true);
 
     private final NotificationType defaultType;
     private final NotificationCategory category;

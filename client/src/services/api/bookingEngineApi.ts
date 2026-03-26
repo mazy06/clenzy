@@ -84,10 +84,105 @@ export interface BookingEngineConfig {
   designTokens: string | null;
   sourceWebsiteUrl: string | null;
   aiAnalysisAt: string | null;
+  // Widget Integration Position
+  widgetPosition: string | null;
+  inlineTargetId: string | null;
+  inlinePlacement: string | null;
+  // Cross-org (populated only for platform staff /configs/all endpoint)
+  organizationName?: string | null;
 }
 
 /** Update payload — excludes id, orgId, apiKey, enabled (managed via dedicated endpoints). */
 export type BookingEngineConfigUpdate = Omit<BookingEngineConfig, 'id' | 'organizationId' | 'apiKey' | 'enabled'>;
+
+// ─── Calendar Availability Types ──────────────────────────────────────────────
+
+export interface AvailabilityDay {
+  date: string;
+  available: boolean;
+  minPrice: number | null;
+  availableCount: number;
+  availableTypes: string[];
+}
+
+export interface PropertyTypeInfo {
+  type: string;
+  label: string;
+  count: number;
+  minPrice: number | null;
+  minCleaningFee: number | null;
+}
+
+export interface CalendarAvailabilityResponse {
+  days: AvailabilityDay[];
+  propertyTypes: PropertyTypeInfo[];
+}
+
+// ─── Review Types ─────────────────────────────────────────────────────────────
+
+export interface ReviewStats {
+  averageRating: number;
+  totalCount: number;
+  distribution: Record<number, number>;
+}
+
+// ─── Guest Auth Types ─────────────────────────────────────────────────────────
+
+export interface GuestRegisterData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  organizationId: number;
+}
+
+export interface GuestLoginData {
+  email: string;
+  password: string;
+  organizationId: number;
+}
+
+export interface GuestProfile {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  organizationId: number;
+  emailVerified: boolean;
+}
+
+export interface GuestAuthResult {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  profile: GuestProfile;
+}
+
+// ─── Public Property Detail ──────────────────────────────────────────────────
+
+export interface PublicPropertyDetail {
+  id: number;
+  name: string;
+  description: string | null;
+  type: string | null;
+  city: string | null;
+  country: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  bedroomCount: number | null;
+  bathroomCount: number | null;
+  maxGuests: number | null;
+  squareMeters: number | null;
+  nightlyPrice: number | null;
+  minimumNights: number | null;
+  currency: string | null;
+  photos: { id: number; url: string; caption: string | null }[];
+  amenities: string[] | null;
+  checkInTime: string | null;
+  checkOutTime: string | null;
+}
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
@@ -99,6 +194,9 @@ export const bookingEngineApi = {
 
   /** List all templates for the current org. */
   listConfigs: () => apiClient.get<BookingEngineConfig[]>('/booking-engine/configs'),
+
+  /** List all templates across all orgs (platform staff only). Includes organizationName. */
+  listAllConfigs: () => apiClient.get<BookingEngineConfig[]>('/booking-engine/configs/all'),
 
   /** Get a single template by ID. */
   getConfigById: (id: number) => apiClient.get<BookingEngineConfig>(`/booking-engine/configs/${id}`),
@@ -122,6 +220,89 @@ export const bookingEngineApi = {
   /** Regenerate API key — old key is immediately invalidated. */
   regenerateApiKey: (id: number) =>
     apiClient.post<BookingEngineConfig>(`/booking-engine/configs/${id}/regenerate-key`),
+
+  // ─── Calendar Availability ──────────────────────────────────────────
+
+  /** Calendrier de disponibilite agrege avec prix min par jour. */
+  getCalendarAvailability: (params: {
+    from: string;
+    to: string;
+    types?: string[];
+    guests?: number;
+  }) =>
+    apiClient.get<CalendarAvailabilityResponse>('/booking-engine/calendar/availability', {
+      params: {
+        from: params.from,
+        to: params.to,
+        ...(params.types?.length ? { types: params.types.join(',') } : {}),
+        ...(params.guests ? { guests: params.guests } : {}),
+      },
+    }),
+
+  // ─── Guest Auth ──────────────────────────────────────────────────────
+
+  guestRegister: (data: GuestRegisterData) =>
+    apiClient.post<GuestAuthResult>('/booking-engine/auth/register', data),
+
+  guestLogin: (data: GuestLoginData) =>
+    apiClient.post<GuestAuthResult>('/booking-engine/auth/login', data),
+
+  guestRefreshToken: (data: { refreshToken: string; organizationId: number; keycloakId: string }) =>
+    apiClient.post<GuestAuthResult>('/booking-engine/auth/refresh', data),
+
+  guestForgotPassword: (data: { email: string; organizationId: number }) =>
+    apiClient.post('/booking-engine/auth/forgot-password', data),
+
+  // ─── Public Availability Check (with server-side tourist tax) ──────
+
+  /** Check availability + get full pricing breakdown (including tourist tax) from the server. */
+  checkPropertyAvailability: (slug: string, data: {
+    propertyId: number;
+    checkIn: string;
+    checkOut: string;
+    guests: number;
+  }) =>
+    apiClient.post<{
+      available: boolean;
+      propertyId: number;
+      propertyName: string | null;
+      nights: number;
+      subtotal: number;
+      cleaningFee: number;
+      touristTax: number;
+      total: number;
+      currency: string | null;
+      violations: string[];
+    }>(`/public/booking/${slug}/availability`, data),
+
+  // ─── Checkout (Stripe) ─────────────────────────────────────────────
+
+  createCheckoutSession: (data: {
+    propertyId: number;
+    amount: number;
+    checkIn: string;
+    checkOut: string;
+    guests: number;
+    customerEmail?: string;
+    customerName?: string;
+  }) =>
+    apiClient.post<{ clientSecret: string; sessionId: string }>('/booking-engine/checkout/create-session', data),
+
+  getCheckoutSessionStatus: (sessionId: string) =>
+    apiClient.get<{ status: string; paymentStatus: string }>(`/booking-engine/checkout/session-status/${sessionId}`),
+
+  // ─── Reviews ──────────────────────────────────────────────────────────
+
+  getReviewStats: (propertyId?: number) =>
+    apiClient.get<ReviewStats>('/booking-engine/reviews/stats', {
+      params: propertyId ? { propertyId } : {},
+    }),
+
+  // ─── Public Property Detail ──────────────────────────────────────────
+
+  /** Fetch full property detail for the booking engine (public). */
+  getPropertyDetail: (slug: string, propertyId: number) =>
+    apiClient.get<PublicPropertyDetail>(`/booking/${slug}/properties/${propertyId}`),
 
   // ─── Legacy (backward compat) ────────────────────────────────────────
 

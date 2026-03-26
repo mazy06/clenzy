@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { propertyDetailsKeys } from '../../hooks/usePropertyDetails';
 import {
   Box,
   Paper,
@@ -49,6 +51,7 @@ interface CheckInInstructionsFormProps {
 
 const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ propertyId }) => {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [instructions, setInstructions] = useState<CheckInInstructions | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -104,6 +107,8 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
       const updated = await airbnbApi.updateCheckInInstructions(propertyId, form);
       setInstructions(updated);
       setSuccess(true);
+      // Invalider le cache property pour que la vue d'ensemble affiche les instructions à jour
+      queryClient.invalidateQueries({ queryKey: propertyDetailsKeys.detail(String(propertyId)) });
     } catch {
       setError(t('channels.checkIn.errorSaving'));
     } finally {

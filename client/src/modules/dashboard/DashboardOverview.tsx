@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Box, Grid, useTheme } from '@mui/material';
+import { Box, CircularProgress, Grid, Typography, useTheme } from '@mui/material';
 import {
   Percent,
   Euro,
@@ -22,6 +22,7 @@ import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import { GridSection, AnalyticsWidgetCard } from './analytics';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
 import OnboardingChecklist from './OnboardingChecklist';
+import { useOnboarding } from '../../hooks/useOnboarding';
 import ContractCTABanner from './ContractCTABanner';
 import ChannelHealthWidget from './ChannelHealthWidget';
 import ContextualTipsWidget from './ContextualTipsWidget';
@@ -128,6 +129,11 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   const { data: pendingPayoutsData, isLoading: pendingPayoutsLoading } = usePendingPayouts();
   const { data: myPayoutData } = useMyPendingPayout();
 
+  // ─── Onboarding state ──────────────────────────────────────────────────
+  const { isAllCompleted: onboardingComplete, isDismissed: onboardingDismissed, totalCount: onboardingTotal, isLoading: onboardingLoading } = useOnboarding();
+  // Show blur only when there ARE steps, they're not all completed, not dismissed, and done loading
+  const showOnboardingOverlay = !onboardingLoading && onboardingTotal > 0 && !onboardingComplete && !onboardingDismissed;
+
   // ─── Onboarding: wire hasPricing & hasChannels to real data ───────────
   const hasProperties = (stats?.properties.total ?? 0) > 0;
   const hasPropertyDetails = (stats?.properties.active ?? 0) > 0;
@@ -197,6 +203,28 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   // AI usage widget — respect admin toggle + only management & host
   const showAiWidget = hasAnyAiEnabled && (isAdmin || isManager || isHost);
 
+  // ─── Global loading spinner ────────────────────────────────────────────
+  if (isKpiLoading) {
+    return (
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: 400,
+          gap: 2,
+        }}
+      >
+        <CircularProgress size={48} thickness={4} sx={{ color: 'primary.main' }} />
+        <Typography variant="body2" color="text.secondary">
+          {t('dashboard.overview.loading')}
+        </Typography>
+      </Box>
+    );
+  }
+
   // ─── Full dashboard (always rendered, even for new users) ──────────────
   return (
     <Box sx={{ pt: 1.5, pb: 2, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
@@ -209,6 +237,64 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
 
           {/* Onboarding checklist */}
           <OnboardingChecklist />
+
+          {/* ── Sections below onboarding: blurred when onboarding is active ── */}
+          <Box
+            sx={{
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              ...(showOnboardingOverlay && {
+                pointerEvents: 'none',
+                userSelect: 'none',
+              }),
+            }}
+          >
+            {/* Blur overlay */}
+            {showOnboardingOverlay && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  zIndex: 2,
+                  backdropFilter: 'blur(3px)',
+                  bgcolor: (theme) =>
+                    theme.palette.mode === 'dark'
+                      ? 'rgba(18, 18, 18, 0.5)'
+                      : 'rgba(255, 255, 255, 0.5)',
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'center',
+                  pt: 4,
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    color: 'text.secondary',
+                    textAlign: 'center',
+                    px: 3,
+                    py: 1.5,
+                    borderRadius: 2,
+                    bgcolor: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(30, 30, 30, 0.9)'
+                        : 'rgba(255, 255, 255, 0.9)',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                  }}
+                >
+                  Completez la configuration initiale pour acceder au tableau de bord complet
+                </Typography>
+              </Box>
+            )}
 
           {/* Services Status (noise, locks, keys) — management & host only */}
           {showServices && onNavigateTab && (
@@ -399,6 +485,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
               </Box>
             </GridSection>
           </DashboardErrorBoundary>
+          </Box>
         </Box>
 
         {/* ── RIGHT COLUMN: sidebar widgets ─────────────────────────── */}

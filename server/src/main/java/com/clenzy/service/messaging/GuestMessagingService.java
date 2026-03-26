@@ -61,6 +61,30 @@ public class GuestMessagingService {
     }
 
     /**
+     * Genere un apercu du message (sujet + corps HTML) sans l'envoyer.
+     * Utilise pour afficher le contenu d'un message dans l'historique.
+     */
+    @Transactional(readOnly = true)
+    public TemplateInterpolationService.InterpolatedMessage previewMessage(
+            Long reservationId, Long templateId, Long orgId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+            .orElseThrow(() -> new IllegalArgumentException("Reservation introuvable: " + reservationId));
+
+        MessageTemplate template = templateRepository.findByIdAndOrganizationId(templateId, orgId)
+            .orElseThrow(() -> new IllegalArgumentException("Template introuvable: " + templateId));
+
+        Property property = reservation.getProperty();
+        Guest guest = reservation.getGuest();
+
+        CheckInInstructions instructions = instructionsRepository
+            .findByPropertyIdAndOrganizationId(property.getId(), orgId)
+            .orElse(null);
+
+        return interpolationService.interpolate(
+            template, reservation, guest, property, instructions);
+    }
+
+    /**
      * Envoi manuel d'un message pour une reservation avec un template donne.
      */
     @Transactional

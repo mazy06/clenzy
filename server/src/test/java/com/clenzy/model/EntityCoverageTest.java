@@ -3,6 +3,7 @@ package com.clenzy.model;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -1008,7 +1009,7 @@ class EntityCoverageTest {
     @DisplayName("NotificationCategory")
     class NotificationCategoryTest {
         @Test void allValues() {
-            assertThat(NotificationCategory.values()).hasSize(11);
+            assertThat(NotificationCategory.values()).hasSize(12);
         }
         @Test void getValueJsonMapping() {
             assertThat(NotificationCategory.INTERVENTION.getValue()).isEqualTo("intervention");
@@ -1213,16 +1214,19 @@ class EntityCoverageTest {
             PropertyPhoto pp = new PropertyPhoto();
             assertThat(pp.getId()).isNull();
         }
-        @Test void parameterizedConstructor() {
+        @Test void propertyAndStorageKey() {
             Property prop = new Property();
-            PropertyPhoto pp = new PropertyPhoto("https://img.com/prop.jpg", prop);
-            assertThat(pp.getUrl()).isEqualTo("https://img.com/prop.jpg");
+            PropertyPhoto pp = new PropertyPhoto();
+            pp.setProperty(prop);
+            pp.setStorageKey("photos/prop1/photo.jpg");
+            pp.setContentType("image/jpeg");
             assertThat(pp.getProperty()).isEqualTo(prop);
+            assertThat(pp.getStorageKey()).isEqualTo("photos/prop1/photo.jpg");
         }
         @Test void setters() {
             PropertyPhoto pp = new PropertyPhoto();
             pp.setId(1L);
-            pp.setUrl("https://img.com/1.jpg");
+            pp.setStorageKey("photos/1.jpg");
             pp.setCaption("Front view");
             pp.setCreatedAt(LocalDateTime.now());
             assertThat(pp.getId()).isEqualTo(1L);
@@ -1687,25 +1691,104 @@ class EntityCoverageTest {
             InterventionPhoto ip = new InterventionPhoto();
             assertThat(ip.getId()).isNull();
         }
-        @Test void parameterizedConstructor() {
+        @Test void fieldsViaSetters() {
             Intervention intervention = new Intervention();
             byte[] data = new byte[]{1, 2, 3};
-            InterventionPhoto ip = new InterventionPhoto(intervention, data, "image/jpeg");
+            InterventionPhoto ip = new InterventionPhoto();
+            ip.setIntervention(intervention);
+            ip.setData(data);
+            ip.setContentType("image/jpeg");
             assertThat(ip.getIntervention()).isEqualTo(intervention);
-            assertThat(ip.getPhotoData()).isEqualTo(data);
+            assertThat(ip.getData()).isEqualTo(data);
             assertThat(ip.getContentType()).isEqualTo("image/jpeg");
         }
         @Test void setters() {
             InterventionPhoto ip = new InterventionPhoto();
-            ip.setId(1L);
-            ip.setFileName("photo.jpg");
+            ReflectionTestUtils.setField(ip, "id", 1L);
+            ip.setOriginalFilename("photo.jpg");
             ip.setCaption("After repair");
-            ip.setPhotoType("AFTER");
-            ip.setCreatedAt(LocalDateTime.now());
+            ip.setPhase(InterventionPhoto.PhotoPhase.AFTER);
+            ReflectionTestUtils.setField(ip, "createdAt", LocalDateTime.now());
             assertThat(ip.getId()).isEqualTo(1L);
-            assertThat(ip.getFileName()).isEqualTo("photo.jpg");
+            assertThat(ip.getOriginalFilename()).isEqualTo("photo.jpg");
             assertThat(ip.getCaption()).isEqualTo("After repair");
-            assertThat(ip.getPhotoType()).isEqualTo("AFTER");
+            assertThat(ip.getPhase()).isEqualTo(InterventionPhoto.PhotoPhase.AFTER);
+        }
+    }
+
+    // ─── HardwareOrder ─────────────────────────────────────────────────────────
+    @Nested
+    @DisplayName("HardwareOrder entity")
+    class HardwareOrderEntityTest {
+        @Test void defaultValues() {
+            HardwareOrder order = new HardwareOrder();
+            assertThat(order.getId()).isNull();
+            assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
+            assertThat(order.getCurrency()).isEqualTo("eur");
+        }
+        @Test void gettersAndSetters() {
+            HardwareOrder order = new HardwareOrder();
+            order.setId(1L);
+            order.setOrganizationId(10L);
+            order.setUserId("kc-123");
+            order.setStripeSessionId("cs_test_123");
+            order.setStripePaymentIntentId("pi_test_123");
+            order.setStatus(OrderStatus.PAID);
+            order.setTotalAmount(7900);
+            order.setCurrency("eur");
+            order.setItemsJson("[{\"sku\":\"KIT-ESSENTIAL\"}]");
+            order.setShippingName("Jean Dupont");
+            order.setShippingAddress("10 rue de la Paix");
+            order.setShippingCity("Paris");
+            order.setShippingPostalCode("75001");
+            order.setShippingCountry("FR");
+            order.setCreatedAt(LocalDateTime.now());
+            order.setUpdatedAt(LocalDateTime.now());
+
+            assertThat(order.getId()).isEqualTo(1L);
+            assertThat(order.getOrganizationId()).isEqualTo(10L);
+            assertThat(order.getUserId()).isEqualTo("kc-123");
+            assertThat(order.getStripeSessionId()).isEqualTo("cs_test_123");
+            assertThat(order.getStripePaymentIntentId()).isEqualTo("pi_test_123");
+            assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
+            assertThat(order.getTotalAmount()).isEqualTo(7900);
+            assertThat(order.getCurrency()).isEqualTo("eur");
+            assertThat(order.getItemsJson()).contains("KIT-ESSENTIAL");
+            assertThat(order.getShippingName()).isEqualTo("Jean Dupont");
+            assertThat(order.getShippingAddress()).isEqualTo("10 rue de la Paix");
+            assertThat(order.getShippingCity()).isEqualTo("Paris");
+            assertThat(order.getShippingPostalCode()).isEqualTo("75001");
+            assertThat(order.getShippingCountry()).isEqualTo("FR");
+            assertThat(order.getCreatedAt()).isNotNull();
+            assertThat(order.getUpdatedAt()).isNotNull();
+        }
+    }
+
+    // ─── HardwareCatalog ───────────────────────────────────────────────────────
+    @Nested
+    @DisplayName("HardwareCatalog")
+    class HardwareCatalogTest {
+        @Test void findBySku_validSku() {
+            assertThat(HardwareCatalog.findBySku("CLENZY-NM-01")).isPresent();
+            assertThat(HardwareCatalog.findBySku("CLENZY-NM-01").get().priceInCents()).isEqualTo(4900);
+        }
+        @Test void findBySku_unknownSku() {
+            assertThat(HardwareCatalog.findBySku("UNKNOWN")).isEmpty();
+        }
+        @Test void getAll_returnsAllProducts() {
+            assertThat(HardwareCatalog.getAll()).hasSize(9);
+        }
+    }
+
+    // ─── OrderStatus ───────────────────────────────────────────────────────────
+    @Nested
+    @DisplayName("OrderStatus enum")
+    class OrderStatusTest {
+        @Test void allValues() {
+            assertThat(OrderStatus.values()).containsExactly(
+                OrderStatus.PENDING, OrderStatus.PAID, OrderStatus.SHIPPED,
+                OrderStatus.DELIVERED, OrderStatus.CANCELLED
+            );
         }
     }
 }

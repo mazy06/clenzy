@@ -159,6 +159,36 @@ public class CalendarController {
     }
 
     // ----------------------------------------------------------------
+    // GET : jours bloques pour le planning (batch multi-proprietes)
+    // ----------------------------------------------------------------
+
+    @GetMapping("/blocked")
+    @Operation(summary = "Jours bloques pour le planning",
+            description = "Retourne les jours BLOCKED et MAINTENANCE pour plusieurs proprietes sur une plage de dates.")
+    public ResponseEntity<List<Map<String, Object>>> getBlockedDays(
+            @RequestParam List<Long> propertyIds,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+
+        Long orgId = tenantContext.getRequiredOrganizationId();
+
+        List<CalendarDay> days = calendarDayRepository.findBlockedOrMaintenanceForProperties(
+                propertyIds, from, to, orgId);
+
+        List<Map<String, Object>> result = days.stream().map(day -> {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("propertyId", day.getProperty().getId());
+            map.put("date", day.getDate().toString());
+            map.put("status", day.getStatus().name());
+            map.put("source", day.getSource());
+            map.put("notes", day.getNotes());
+            return map;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(result);
+    }
+
+    // ----------------------------------------------------------------
     // PUT : mettre a jour les prix
     // ----------------------------------------------------------------
 

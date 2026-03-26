@@ -27,6 +27,23 @@ async function downloadFile(endpoint: string, filename: string): Promise<void> {
   setTimeout(() => window.URL.revokeObjectURL(blobUrl), 200);
 }
 
+async function previewFile(endpoint: string): Promise<string> {
+  const url = `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}${endpoint}`;
+  const token = getAccessToken();
+
+  const response = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Erreur ${response.status} lors du chargement`);
+  }
+
+  const blob = await response.blob();
+  return blob.text();
+}
+
 function buildDateParams(from: string, to: string): string {
   return `?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
 }
@@ -99,5 +116,27 @@ export const accountingExportApi = {
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const filename = `SEPA_${today}.xml`;
     return downloadFilePost('/accounting/export/sepa-xml', payoutIds, filename);
+  },
+
+  // ─── Preview (retourne le contenu texte sans téléchargement) ─────────────
+
+  async previewFec(from: string, to: string): Promise<string> {
+    return previewFile(`/accounting/export/fec${buildDateParams(from, to)}`);
+  },
+
+  async previewReservationsCsv(from: string, to: string): Promise<string> {
+    return previewFile(`/accounting/export/reservations-csv${buildDateParams(from, to)}`);
+  },
+
+  async previewPayoutsCsv(from: string, to: string): Promise<string> {
+    return previewFile(`/accounting/export/payouts-csv${buildDateParams(from, to)}`);
+  },
+
+  async previewExpensesCsv(from: string, to: string): Promise<string> {
+    return previewFile(`/accounting/export/expenses-csv${buildDateParams(from, to)}`);
+  },
+
+  async previewInvoicesCsv(from: string, to: string): Promise<string> {
+    return previewFile(`/accounting/export/invoices-csv${buildDateParams(from, to)}`);
   },
 };

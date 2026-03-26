@@ -127,7 +127,7 @@ class DtoCoverageTest {
         }
         @Test void guestMessageLogDto() {
             GuestMessageLogDto dto = new GuestMessageLogDto(1L, 2L, 3L, "Jean Dupont", 4L,
-                    "Check-in Template", "EMAIL", "guest@test.com", "Subject", "SENT", null, "2026-01-01T10:00");
+                    "Check-in Template", "EMAIL", "guest@test.com", "Subject", "SENT", null, "2026-01-01T10:00", "2026-01-01T09:00");
             assertThat(dto.recipient()).isEqualTo("guest@test.com");
             assertThat(dto.guestName()).isEqualTo("Jean Dupont");
         }

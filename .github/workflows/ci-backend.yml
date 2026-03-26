@@ -39,6 +39,8 @@ jobs:
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
+    outputs:
+      coverage_pct: ${{ steps.coverage.outputs.pct }}
 
     services:
       postgres:
@@ -95,7 +97,15 @@ jobs:
           SPRING_REDIS_PORT: 6379
           # Testcontainers : desactiver Ryuk (nettoyage) en CI (containers supprimes par le runner)
           TESTCONTAINERS_RYUK_DISABLED: true
-        run: mvn clean verify -B -q
+        run: mvn clean verify jacoco:report -B -q
+
+      - name: Extract test coverage percentage
+        id: coverage
+        working-directory: server
+        run: |
+          COVERAGE=$(awk -F',' 'NR>1{im+=$4; ic+=$5}END{total=im+ic; if(total>0) printf "%.1f", (ic/total)*100; else print "0"}' target/site/jacoco/jacoco.csv)
+          echo "pct=$COVERAGE" >> "$GITHUB_OUTPUT"
+          echo "Test coverage: ${COVERAGE}%"
 
       - name: Upload test results
         if: always()
@@ -228,6 +238,8 @@ jobs:
           no-cache: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            KPI_TEST_COVERAGE_PCT=${{ needs.build-and-test.outputs.coverage_pct }}
 
   deploy:
     name: Trigger deploy via clenzy-infra

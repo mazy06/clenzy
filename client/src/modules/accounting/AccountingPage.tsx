@@ -65,6 +65,7 @@ import type {
 import { documentsApi } from '../../services/api/documentsApi';
 import { usersApi } from '../../services/api/usersApi';
 import { accountingExportApi } from '../../services/api/accountingExportApi';
+import ExportPreviewDialog from './ExportPreviewDialog';
 import FiscalReportSection from '../reports/FiscalReportSection';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatCurrency } from '../../utils/currencyUtils';
@@ -1462,7 +1463,9 @@ interface ExportCardDef {
   titleKey: string;
   descKey: string;
   icon: React.ReactNode;
+  format: 'csv' | 'txt' | 'xml';
   download: (from: string, to: string) => Promise<void>;
+  preview: (from: string, to: string) => Promise<string>;
 }
 
 const EXPORT_CARDS: ExportCardDef[] = [
@@ -1471,35 +1474,45 @@ const EXPORT_CARDS: ExportCardDef[] = [
     titleKey: 'accounting.exports.fec',
     descKey: 'accounting.exports.fecDesc',
     icon: <AccountIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
+    format: 'txt',
     download: (from, to) => accountingExportApi.downloadFec(from, to),
+    preview: (from, to) => accountingExportApi.previewFec(from, to),
   },
   {
     key: 'reservations',
     titleKey: 'accounting.exports.reservationsCsv',
     descKey: 'accounting.exports.reservationsCsvDesc',
     icon: <ListAltIcon sx={{ fontSize: 32, color: 'success.main' }} />,
+    format: 'csv',
     download: (from, to) => accountingExportApi.downloadReservationsCsv(from, to),
+    preview: (from, to) => accountingExportApi.previewReservationsCsv(from, to),
   },
   {
     key: 'payouts',
     titleKey: 'accounting.exports.payoutsCsv',
     descKey: 'accounting.exports.payoutsCsvDesc',
     icon: <AttachMoneyIcon sx={{ fontSize: 32, color: 'info.main' }} />,
+    format: 'csv',
     download: (from, to) => accountingExportApi.downloadPayoutsCsv(from, to),
+    preview: (from, to) => accountingExportApi.previewPayoutsCsv(from, to),
   },
   {
     key: 'expenses',
     titleKey: 'accounting.exports.expensesCsv',
     descKey: 'accounting.exports.expensesCsvDesc',
     icon: <BuildIcon sx={{ fontSize: 32, color: 'warning.main' }} />,
+    format: 'csv',
     download: (from, to) => accountingExportApi.downloadExpensesCsv(from, to),
+    preview: (from, to) => accountingExportApi.previewExpensesCsv(from, to),
   },
   {
     key: 'invoices',
     titleKey: 'accounting.exports.invoicesCsv',
     descKey: 'accounting.exports.invoicesCsvDesc',
     icon: <ArticleIcon sx={{ fontSize: 32, color: 'secondary.main' }} />,
+    format: 'csv',
     download: (from, to) => accountingExportApi.downloadInvoicesCsv(from, to),
+    preview: (from, to) => accountingExportApi.previewInvoicesCsv(from, to),
   },
 ];
 
@@ -1515,6 +1528,32 @@ export const ExportsTab: React.FC = () => {
   const [to, setTo] = useState(defaultTo);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Preview state
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewFormat, setPreviewFormat] = useState<'csv' | 'txt' | 'xml'>('csv');
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  const handlePreview = useCallback(async (card: ExportCardDef) => {
+    if (!from || !to) return;
+    setPreviewTitle(t(card.titleKey));
+    setPreviewFormat(card.format);
+    setPreviewContent(null);
+    setPreviewError(null);
+    setPreviewLoading(true);
+    setPreviewOpen(true);
+    try {
+      const content = await card.preview(from, to);
+      setPreviewContent(content);
+    } catch {
+      setPreviewError(t('accounting.exports.error', 'Erreur lors du chargement'));
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [from, to, t]);
 
   const handleDownload = useCallback(async (card: ExportCardDef) => {
     if (!from || !to) return;
@@ -1598,23 +1637,45 @@ export const ExportsTab: React.FC = () => {
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 2, flex: 1 }}>
                   {t(card.descKey)}
                 </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={loadingKey === card.key ? <CircularProgress size={16} /> : <DownloadIcon />}
-                  disabled={!from || !to || loadingKey !== null}
-                  onClick={() => handleDownload(card)}
-                  sx={{ textTransform: 'none', fontSize: '0.8125rem' }}
-                >
-                  {loadingKey === card.key
-                    ? t('accounting.exports.downloading', 'Telechargement...')
-                    : t('accounting.exports.download', 'Telecharger')}
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<VisibilityIcon />}
+                    disabled={!from || !to || loadingKey !== null}
+                    onClick={() => handlePreview(card)}
+                    sx={{ textTransform: 'none', fontSize: '0.8125rem', flex: 1 }}
+                  >
+                    {t('common.view')}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={loadingKey === card.key ? <CircularProgress size={16} /> : <DownloadIcon />}
+                    disabled={!from || !to || loadingKey !== null}
+                    onClick={() => handleDownload(card)}
+                    sx={{ textTransform: 'none', fontSize: '0.8125rem', flex: 1 }}
+                  >
+                    {loadingKey === card.key
+                      ? t('accounting.exports.downloading', 'Telechargement...')
+                      : t('accounting.exports.download', 'Telecharger')}
+                  </Button>
+                </Box>
               </CardContent>
             </Card>
           </Grid>
         ))}
       </Grid>
+
+      <ExportPreviewDialog
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={previewTitle}
+        loading={previewLoading}
+        content={previewContent}
+        format={previewFormat}
+        error={previewError}
+      />
     </Box>
   );
 };

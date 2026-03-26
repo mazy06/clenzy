@@ -14,7 +14,10 @@ import com.clenzy.model.BookingRestriction;
 import com.clenzy.model.ChannelCancellationPolicy;
 import com.clenzy.model.ChannelContentMapping;
 import com.clenzy.model.ChannelFee;
+import com.clenzy.model.CalendarDay;
+import com.clenzy.model.CalendarDayStatus;
 import com.clenzy.repository.BookingRestrictionRepository;
+import com.clenzy.repository.CalendarDayRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -46,19 +49,22 @@ public class BookingChannelAdapter implements ChannelConnector {
     private final ChannelMappingRepository channelMappingRepository;
     private final PriceEngine priceEngine;
     private final BookingRestrictionRepository bookingRestrictionRepository;
+    private final CalendarDayRepository calendarDayRepository;
 
     public BookingChannelAdapter(BookingConfig bookingConfig,
                                  BookingApiClient bookingApiClient,
                                  BookingConnectionRepository bookingConnectionRepository,
                                  ChannelMappingRepository channelMappingRepository,
                                  PriceEngine priceEngine,
-                                 BookingRestrictionRepository bookingRestrictionRepository) {
+                                 BookingRestrictionRepository bookingRestrictionRepository,
+                                 CalendarDayRepository calendarDayRepository) {
         this.bookingConfig = bookingConfig;
         this.bookingApiClient = bookingApiClient;
         this.bookingConnectionRepository = bookingConnectionRepository;
         this.channelMappingRepository = channelMappingRepository;
         this.priceEngine = priceEngine;
         this.bookingRestrictionRepository = bookingRestrictionRepository;
+        this.calendarDayRepository = calendarDayRepository;
     }
 
     @Override
@@ -122,6 +128,13 @@ public class BookingChannelAdapter implements ChannelConnector {
                     .findApplicable(propertyId, from, to, orgId);
             String hotelId = resolveHotelId(mapping);
 
+            // Charger les statuts calendrier pour determiner la disponibilite reelle
+            List<CalendarDay> calendarDays = calendarDayRepository.findByPropertyAndDateRange(propertyId, from, to, orgId);
+            Map<LocalDate, CalendarDayStatus> statusMap = new HashMap<>();
+            for (CalendarDay day : calendarDays) {
+                statusMap.put(day.getDate(), day.getStatus());
+            }
+
             List<BookingCalendarEventDto> events = prices.entrySet().stream()
                     .map(e -> {
                         BookingRestriction restriction = findApplicableRestriction(restrictions, e.getKey());
@@ -129,9 +142,11 @@ public class BookingChannelAdapter implements ChannelConnector {
                         int maxStay = restriction != null && restriction.getMaxStay() != null ? restriction.getMaxStay() : 365;
                         boolean cta = restriction != null && Boolean.TRUE.equals(restriction.getClosedToArrival());
                         boolean ctd = restriction != null && Boolean.TRUE.equals(restriction.getClosedToDeparture());
+                        CalendarDayStatus status = statusMap.getOrDefault(e.getKey(), CalendarDayStatus.AVAILABLE);
+                        boolean available = status == CalendarDayStatus.AVAILABLE;
                         return new BookingCalendarEventDto(
                                 hotelId, roomId, e.getKey(),
-                                true,
+                                available,
                                 e.getValue() != null ? e.getValue() : BigDecimal.ZERO,
                                 "EUR", minStay, maxStay, cta, ctd
                         );

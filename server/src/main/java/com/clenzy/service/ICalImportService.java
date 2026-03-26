@@ -53,6 +53,8 @@ public class ICalImportService {
     private final NotificationService notificationService;
     private final PricingConfigService pricingConfigService;
     private final PriceEngine priceEngine;
+    private final CalendarEngine calendarEngine;
+    private final GuestService guestService;
     private final TenantContext tenantContext;
     private final HttpClient httpClient;
 
@@ -65,6 +67,8 @@ public class ICalImportService {
                              NotificationService notificationService,
                              PricingConfigService pricingConfigService,
                              PriceEngine priceEngine,
+                             CalendarEngine calendarEngine,
+                             GuestService guestService,
                              TenantContext tenantContext) {
         this.icalFeedRepository = icalFeedRepository;
         this.serviceRequestRepository = serviceRequestRepository;
@@ -75,6 +79,8 @@ public class ICalImportService {
         this.notificationService = notificationService;
         this.pricingConfigService = pricingConfigService;
         this.priceEngine = priceEngine;
+        this.calendarEngine = calendarEngine;
+        this.guestService = guestService;
         this.tenantContext = tenantContext;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(15))
@@ -110,11 +116,15 @@ public class ICalImportService {
 
         List<ICalEventPreview> events = fetchAndParseICalFeed(url);
 
+        long blockedCount = events.stream().filter(e -> "blocked".equals(e.getType())).count();
+        List<ICalEventPreview> reservationEvents = events.stream()
+                .filter(e -> !"blocked".equals(e.getType())).collect(Collectors.toList());
+
         PreviewResponse response = new PreviewResponse();
         response.setEvents(events);
         response.setPropertyName(property.getName());
-        response.setTotalReservations(events.size());
-        response.setTotalBlocked(0);
+        response.setTotalReservations(reservationEvents.size());
+        response.setTotalBlocked((int) blockedCount);
 
         return response;
     }
@@ -152,9 +162,17 @@ public class ICalImportService {
                             + "\". Un calendrier iCal correspond a un seul logement.");
         }
 
-        // Parser le feed — toutes les entrees sont traitees comme des reservations
+        // Parser le feed
         List<ICalEventPreview> events = fetchAndParseICalFeed(request.getUrl());
-        List<ICalEventPreview> reservations = events;
+
+        // Filtrer : ne garder que les vraies reservations (ignorer les blocs "Not available", "Blocked", etc.)
+        List<ICalEventPreview> reservations = events.stream()
+                .filter(e -> !"blocked".equals(e.getType()))
+                .collect(Collectors.toList());
+        int blocksIgnored = events.size() - reservations.size();
+        if (blocksIgnored > 0) {
+            log.info("iCal import: {} bloc(s) ignore(s) (Not available / Blocked)", blocksIgnored);
+        }
 
         // Dedoublonnage : on ne skip QUE si la Reservation existe deja en base.
         // Les interventions orphelines (sans reservation) ne bloquent PAS le re-import.
@@ -240,6 +258,19 @@ public class ICalImportService {
 
                     reservation = reservationRepository2.save(reservation);
                     reservationId = reservation.getId();
+
+                    // Creer/lier le Guest des l'import pour que guestEmail soit persistable via PUT
+                    if (reservation.getGuest() == null && guestName != null && !guestName.isBlank()) {
+                        try {
+                            Guest guest = guestService.findOrCreateFromName(guestName, sourceKey, orgId);
+                            if (guest != null) {
+                                reservation.setGuest(guest);
+                                reservationRepository2.save(reservation);
+                            }
+                        } catch (Exception e) {
+                            log.warn("Impossible de creer le Guest pour reservation #{}: {}", reservationId, e.getMessage());
+                        }
+                    }
 
                     // Auto-masquer les reservations annulees qui chevauchent la nouvelle
                     List<Reservation> cancelledOverlapping = reservationRepository2.findCancelledOverlapping(

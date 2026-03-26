@@ -6,12 +6,14 @@ import com.clenzy.dto.KeycloakUserDto;
 import com.clenzy.dto.UserProfileDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.exception.KeycloakOperationException;
+import com.clenzy.model.OrgMemberRole;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.UserStatus;
 import com.clenzy.model.NotificationKey;
 import com.clenzy.tenant.TenantContext;
 import java.util.UUID;
+import com.clenzy.repository.OrganizationMemberRepository;
 import com.clenzy.repository.OrganizationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.util.StringUtils;
@@ -33,14 +35,21 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
+    private final OrganizationMemberRepository memberRepository;
+    private final OrganizationService organizationService;
     private final PermissionService permissionService;
     private final NewUserService newUserService;
     private final NotificationService notificationService;
     private final TenantContext tenantContext;
 
-    public UserService(UserRepository userRepository, OrganizationRepository organizationRepository, PermissionService permissionService, NewUserService newUserService, NotificationService notificationService, TenantContext tenantContext) {
+    public UserService(UserRepository userRepository, OrganizationRepository organizationRepository,
+                       OrganizationMemberRepository memberRepository, OrganizationService organizationService,
+                       PermissionService permissionService, NewUserService newUserService,
+                       NotificationService notificationService, TenantContext tenantContext) {
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
+        this.memberRepository = memberRepository;
+        this.organizationService = organizationService;
         this.permissionService = permissionService;
         this.newUserService = newUserService;
         this.notificationService = notificationService;
@@ -66,8 +75,15 @@ public class UserService {
             // Compléter les champs métier additionnels non gérés par NewUserService
             if (dto.phoneNumber != null) user.setPhoneNumber(dto.phoneNumber);
             if (dto.status != null) user.setStatus(dto.status);
-            user.setOrganizationId(tenantContext.getOrganizationId());
+            Long orgId = tenantContext.getOrganizationId();
+            user.setOrganizationId(orgId);
             user = userRepository.save(user);
+
+            // Creer le membership si l'utilisateur est rattache a une organisation
+            if (orgId != null && !memberRepository.existsByOrganizationIdAndUserId(orgId, user.getId())) {
+                OrgMemberRole memberRole = mapUserRoleToOrgRole(dto.role);
+                organizationService.addMember(orgId, user.getId(), memberRole);
+            }
 
             log.debug("Utilisateur cree dans Keycloak et base metier: {} (Keycloak ID: {})", user.getEmail(), userProfile.getId());
 
@@ -99,7 +115,14 @@ public class UserService {
         if (dto.status != null) user.setStatus(dto.status);
         if (dto.profilePictureUrl != null) user.setProfilePictureUrl(dto.profilePictureUrl);
         if (dto.deferredPayment != null) user.setDeferredPayment(dto.deferredPayment);
-        if (dto.organizationId != null) user.setOrganizationId(dto.organizationId);
+        if (dto.organizationId != null && !dto.organizationId.equals(user.getOrganizationId())) {
+            user.setOrganizationId(dto.organizationId);
+            // Creer le membership dans la nouvelle organisation
+            if (!memberRepository.existsByOrganizationIdAndUserId(dto.organizationId, user.getId())) {
+                OrgMemberRole memberRole = mapUserRoleToOrgRole(user.getRole());
+                organizationService.addMember(dto.organizationId, user.getId(), memberRole);
+            }
+        }
 
         // Sauvegarder d'abord dans la base métier
         user = userRepository.save(user);
@@ -213,6 +236,14 @@ public class UserService {
             user = userRepository.save(user);
             userRepository.flush(); // Force le flush pour detecter les erreurs de contrainte
             log.debug("Auto-provisioning: utilisateur cree en base - ID={}, email={}, role={}, orgId={}, keycloakId={}", user.getId(), email, role.name(), orgId, keycloakId);
+
+            // Creer le membership si l'utilisateur est rattache a une organisation
+            if (orgId != null && !memberRepository.existsByOrganizationIdAndUserId(orgId, user.getId())) {
+                OrgMemberRole memberRole = mapUserRoleToOrgRole(role);
+                organizationService.addMember(orgId, user.getId(), memberRole);
+                log.debug("Auto-provisioning: membership cree pour userId={}, orgId={}, role={}", user.getId(), orgId, memberRole);
+            }
+
             return user;
         } catch (Exception e) {
             log.error("Erreur auto-provisioning: {}", e.getMessage(), e);
@@ -252,6 +283,22 @@ public class UserService {
     }
     
 
+
+    /**
+     * Mappe un UserRole plateforme vers un OrgMemberRole.
+     */
+    private OrgMemberRole mapUserRoleToOrgRole(UserRole userRole) {
+        if (userRole == null) return OrgMemberRole.MEMBER;
+        return switch (userRole) {
+            case SUPER_ADMIN, SUPER_MANAGER -> OrgMemberRole.ADMIN;
+            case HOST -> OrgMemberRole.OWNER;
+            case SUPERVISOR -> OrgMemberRole.SUPERVISOR;
+            case HOUSEKEEPER -> OrgMemberRole.HOUSEKEEPER;
+            case TECHNICIAN -> OrgMemberRole.TECHNICIAN;
+            case LAUNDRY -> OrgMemberRole.LAUNDRY;
+            case EXTERIOR_TECH -> OrgMemberRole.EXTERIOR_TECH;
+        };
+    }
 
     private UserDto toDto(User user) {
         UserDto dto = new UserDto();

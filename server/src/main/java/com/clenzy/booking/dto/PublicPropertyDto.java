@@ -21,9 +21,11 @@ public record PublicPropertyDto(
     Integer maxGuests,
     Integer squareMeters,
     BigDecimal priceFrom,
+    BigDecimal cleaningFee,
     Integer minimumNights,
     String currency,
     String mainPhotoUrl,
+    List<String> photoUrls,
     List<String> amenities,
     String checkInTime,
     String checkOutTime
@@ -52,6 +54,11 @@ public record PublicPropertyDto(
             }
         }
 
+        // All photo URLs
+        List<String> allPhotoUrls = p.getPhotos() != null
+            ? p.getPhotos().stream().map(PropertyPhoto::getUrl).toList()
+            : List.of();
+
         return new PublicPropertyDto(
             p.getId(),
             p.getName(),
@@ -63,9 +70,11 @@ public record PublicPropertyDto(
             p.getMaxGuests(),
             p.getSquareMeters(),
             p.getNightlyPrice(),
+            p.getCleaningBasePrice(),
             p.getMinimumNights(),
             p.getDefaultCurrency(),
             mainPhoto,
+            allPhotoUrls,
             amenityList,
             p.getDefaultCheckInTime(),
             p.getDefaultCheckOutTime()

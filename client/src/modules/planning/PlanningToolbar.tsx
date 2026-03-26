@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -10,6 +10,7 @@ import {
   InputAdornment,
   Tooltip,
   Menu,
+  Popover,
   Divider,
   Badge,
   useMediaQuery,
@@ -28,8 +29,11 @@ import {
   ViewComfy,
   Search,
   FilterListOff,
+  FilterList as FilterListIcon,
+  Close as CloseIcon,
   CalendarToday as CalendarTodayIcon,
   TuneOutlined,
+  Lock,
 } from '@mui/icons-material';
 import type { ZoomLevel, DensityMode, PlanningFilters } from './types';
 import type { ReservationStatus } from '../../services/api';
@@ -56,6 +60,7 @@ interface PlanningToolbarProps {
   onSearchChange: (query: string) => void;
   onClearFilters: () => void;
   onImportICal?: () => void;
+  onBlockPeriod?: () => void;
 }
 
 const STATUS_OPTIONS: { value: ReservationStatus; label: string }[] = [
@@ -122,13 +127,24 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
   onSearchChange,
   onClearFilters,
   onImportICal,
+  onBlockPeriod,
 }) => {
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down('lg'));
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const menuOpen = Boolean(menuAnchor);
+  const [filterAnchor, setFilterAnchor] = useState<HTMLElement | null>(null);
+  const filterOpen = Boolean(filterAnchor);
 
   const hasBadge = hasActiveFilters || filters.searchQuery.length > 0;
+
+  // Count active filters for badge
+  const activeFilterCount = useMemo(() => {
+    let count = filters.statuses.length;
+    if (!filters.showInterventions) count++;  // hidden = active filter
+    if (filters.showPrices) count++;           // shown = active filter (off by default)
+    return count;
+  }, [filters.statuses, filters.showInterventions, filters.showPrices]);
 
   return (
     <Box
@@ -213,10 +229,10 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
         ))}
       </ToggleButtonGroup>
 
-      <Box sx={{ flex: 1 }} />
+      <Box sx={{ flex: 1, minWidth: 8 }} />
 
       {/* ══════════════════════════════════════════════════════════════════════
-          DESKTOP: all filter elements inline
+          DESKTOP: search + filter popover + action chips
           ══════════════════════════════════════════════════════════════════════ */}
       {!isCompact && (
         <>
@@ -238,7 +254,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
               '& .MuiOutlinedInput-root': {
                 height: 28,
                 fontSize: '0.6875rem',
-                borderRadius: '14px',
+                borderRadius: 1,
               },
               '& .MuiOutlinedInput-input': {
                 py: 0.25,
@@ -246,48 +262,184 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             }}
           />
 
-          {/* Status filter chips */}
-          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-            <StatusChips filters={filters} onStatusFilter={onStatusFilter} />
-          </Box>
-
-          {/* Interventions toggle */}
-          <Chip
-            icon={filters.showInterventions ? <Visibility sx={{ fontSize: 13 }} /> : <VisibilityOff sx={{ fontSize: 13 }} />}
-            label="Interventions"
+          {/* Filter button with badge */}
+          <IconButton
             size="small"
-            variant={filters.showInterventions ? 'filled' : 'outlined'}
-            color={filters.showInterventions ? 'primary' : 'default'}
-            onClick={() => onShowInterventionsChange(!filters.showInterventions)}
+            onClick={(e) => setFilterAnchor(e.currentTarget)}
             sx={{
-              fontSize: '0.625rem',
-              fontWeight: 600,
+              width: 28,
               height: 28,
-              cursor: 'pointer',
-              '& .MuiChip-icon': { fontSize: 13 },
-              ...(!filters.showInterventions && { borderColor: 'divider', color: 'text.secondary' }),
+              p: 0.5,
+              borderRadius: 1,
+              color: filterOpen || activeFilterCount > 0 ? 'primary.main' : 'text.secondary',
+              bgcolor: filterOpen || activeFilterCount > 0 ? 'rgba(107,138,154,0.08)' : 'transparent',
+              border: '1px solid',
+              borderColor: filterOpen || activeFilterCount > 0 ? 'primary.main' : 'divider',
             }}
-          />
+          >
+            <Badge
+              badgeContent={activeFilterCount}
+              color="primary"
+              sx={{
+                '& .MuiBadge-badge': {
+                  fontSize: '0.5625rem',
+                  height: 14,
+                  minWidth: 14,
+                },
+              }}
+            >
+              <FilterListIcon sx={{ fontSize: 16 }} />
+            </Badge>
+          </IconButton>
 
-          {/* Prices toggle */}
-          <Chip
-            icon={<AttachMoney sx={{ fontSize: 13 }} />}
-            label="Tarifs"
-            size="small"
-            variant={filters.showPrices ? 'filled' : 'outlined'}
-            color={filters.showPrices ? 'primary' : 'default'}
-            onClick={() => onShowPricesChange(!filters.showPrices)}
-            sx={{
-              fontSize: '0.625rem',
-              fontWeight: 600,
-              height: 28,
-              cursor: 'pointer',
-              '& .MuiChip-icon': { fontSize: 13 },
-              ...(!filters.showPrices && { borderColor: 'divider', color: 'text.secondary' }),
+          {/* Filter popover */}
+          <Popover
+            open={filterOpen}
+            anchorEl={filterAnchor}
+            onClose={() => setFilterAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            slotProps={{
+              paper: {
+                sx: {
+                  mt: 1,
+                  p: 2,
+                  minWidth: 300,
+                  maxWidth: 360,
+                  borderRadius: 2,
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+                },
+              },
             }}
-          />
+          >
+            {/* Header */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>
+                Filtres
+              </Typography>
+              <IconButton size="small" onClick={() => setFilterAnchor(null)} sx={{ p: 0.25 }}>
+                <CloseIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Box>
 
-          {/* Import iCal */}
+            {/* Status filters */}
+            <Box sx={{ mb: 2 }}>
+              <Typography
+                variant="overline"
+                sx={{
+                  fontSize: '0.5625rem',
+                  fontWeight: 700,
+                  color: 'text.secondary',
+                  letterSpacing: '0.08em',
+                  mb: 0.75,
+                  display: 'block',
+                }}
+              >
+                Statuts
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                <StatusChips filters={filters} onStatusFilter={onStatusFilter} />
+              </Box>
+            </Box>
+
+            <Divider sx={{ mb: 2 }} />
+
+            {/* Display toggles */}
+            <Box sx={{ mb: 1 }}>
+              <Typography
+                variant="overline"
+                sx={{
+                  fontSize: '0.5625rem',
+                  fontWeight: 700,
+                  color: 'text.secondary',
+                  letterSpacing: '0.08em',
+                  mb: 0.75,
+                  display: 'block',
+                }}
+              >
+                Affichage
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                {/* Interventions toggle */}
+                <Chip
+                  icon={filters.showInterventions ? <Visibility sx={{ fontSize: 13 }} /> : <VisibilityOff sx={{ fontSize: 13 }} />}
+                  label="Interventions"
+                  size="small"
+                  variant={filters.showInterventions ? 'filled' : 'outlined'}
+                  color={filters.showInterventions ? 'primary' : 'default'}
+                  onClick={() => onShowInterventionsChange(!filters.showInterventions)}
+                  sx={{
+                    fontSize: '0.625rem',
+                    fontWeight: 600,
+                    height: 28,
+                    cursor: 'pointer',
+                    '& .MuiChip-icon': { fontSize: 13 },
+                    ...(!filters.showInterventions && { borderColor: 'divider', color: 'text.secondary' }),
+                  }}
+                />
+
+                {/* Prices toggle */}
+                <Chip
+                  icon={<AttachMoney sx={{ fontSize: 13 }} />}
+                  label="Tarifs"
+                  size="small"
+                  variant={filters.showPrices ? 'filled' : 'outlined'}
+                  color={filters.showPrices ? 'primary' : 'default'}
+                  onClick={() => onShowPricesChange(!filters.showPrices)}
+                  sx={{
+                    fontSize: '0.625rem',
+                    fontWeight: 600,
+                    height: 28,
+                    cursor: 'pointer',
+                    '& .MuiChip-icon': { fontSize: 13 },
+                    ...(!filters.showPrices && { borderColor: 'divider', color: 'text.secondary' }),
+                  }}
+                />
+
+                {/* Density toggle */}
+                <Chip
+                  icon={density === 'normal' ? <ViewCompact sx={{ fontSize: 13 }} /> : <ViewComfy sx={{ fontSize: 13 }} />}
+                  label={density === 'normal' ? 'Compact' : 'Normal'}
+                  size="small"
+                  variant="outlined"
+                  onClick={() => onDensityChange(density === 'normal' ? 'compact' : 'normal')}
+                  sx={{
+                    fontSize: '0.625rem',
+                    fontWeight: 600,
+                    height: 28,
+                    cursor: 'pointer',
+                    borderColor: 'divider',
+                    color: 'text.secondary',
+                    '& .MuiChip-icon': { fontSize: 13 },
+                  }}
+                />
+              </Box>
+            </Box>
+
+            {/* Clear all filters */}
+            {(hasActiveFilters || activeFilterCount > 0) && (
+              <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'error.main',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    '&:hover': { textDecoration: 'underline' },
+                  }}
+                  onClick={() => {
+                    onClearFilters();
+                    setFilterAnchor(null);
+                  }}
+                >
+                  Effacer tous les filtres
+                </Typography>
+              </Box>
+            )}
+          </Popover>
+
+          {/* Import iCal — action, stays in toolbar */}
           {onImportICal && (
             <Tooltip title="Importer les réservations via un lien iCal (.ics)" arrow>
               <Chip
@@ -300,6 +452,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                   fontSize: '0.625rem',
                   fontWeight: 600,
                   height: 28,
+                  borderRadius: 1,
                   cursor: 'pointer',
                   borderColor: 'primary.main',
                   color: 'primary.main',
@@ -313,25 +466,32 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
             </Tooltip>
           )}
 
-          {/* Clear filters */}
-          {hasActiveFilters && (
-            <Tooltip title="Effacer les filtres">
-              <IconButton size="small" onClick={onClearFilters} sx={{ width: 28, height: 28 }}>
-                <FilterListOff sx={{ fontSize: 16 }} />
-              </IconButton>
+          {/* Block period — action, stays in toolbar */}
+          {onBlockPeriod && (
+            <Tooltip title="Bloquer une periode (indisponible)" arrow>
+              <Chip
+                icon={<Lock sx={{ fontSize: 13 }} />}
+                label="Bloquer"
+                size="small"
+                variant="outlined"
+                onClick={onBlockPeriod}
+                sx={{
+                  fontSize: '0.625rem',
+                  fontWeight: 600,
+                  height: 28,
+                  borderRadius: 1,
+                  cursor: 'pointer',
+                  borderColor: 'text.secondary',
+                  color: 'text.secondary',
+                  '& .MuiChip-icon': { fontSize: 13, color: 'text.secondary' },
+                  '&:hover': {
+                    backgroundColor: 'rgba(97, 97, 97, 0.08)',
+                    borderColor: 'text.primary',
+                  },
+                }}
+              />
             </Tooltip>
           )}
-
-          {/* Density toggle */}
-          <Tooltip title={density === 'normal' ? 'Mode compact' : 'Mode normal'}>
-            <IconButton
-              size="small"
-              onClick={() => onDensityChange(density === 'normal' ? 'compact' : 'normal')}
-              sx={{ width: 28, height: 28 }}
-            >
-              {density === 'normal' ? <ViewCompact sx={{ fontSize: 16 }} /> : <ViewComfy sx={{ fontSize: 16 }} />}
-            </IconButton>
-          </Tooltip>
         </>
       )}
 
@@ -530,6 +690,33 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
                   />
                 )}
 
+                {/* Block period */}
+                {onBlockPeriod && (
+                  <Chip
+                    icon={<Lock sx={{ fontSize: 13 }} />}
+                    label="Bloquer"
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      setMenuAnchor(null);
+                      onBlockPeriod();
+                    }}
+                    sx={{
+                      fontSize: '0.625rem',
+                      fontWeight: 600,
+                      height: 28,
+                      cursor: 'pointer',
+                      borderColor: 'text.secondary',
+                      color: 'text.secondary',
+                      '& .MuiChip-icon': { fontSize: 13, color: 'text.secondary' },
+                      '&:hover': {
+                        backgroundColor: 'rgba(97, 97, 97, 0.08)',
+                        borderColor: 'text.primary',
+                      },
+                    }}
+                  />
+                )}
+
                 {/* Clear filters */}
                 {hasActiveFilters && (
                   <Chip
@@ -565,7 +752,7 @@ const PlanningToolbar: React.FC<PlanningToolbarProps> = React.memo(({
         <IconButton
           size="small"
           onClick={onToggleFullscreen}
-          sx={{ width: 28, height: 28 }}
+          sx={{ width: 28, height: 28, flexShrink: 0 }}
         >
           {isFullscreen ? <FullscreenExit sx={{ fontSize: 18 }} /> : <Fullscreen sx={{ fontSize: 18 }} />}
         </IconButton>

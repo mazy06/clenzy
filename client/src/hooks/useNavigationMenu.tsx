@@ -26,6 +26,7 @@ import {
   PersonSearch,
   Contacts,
   Language,
+  StorefrontOutlined,
 } from '@mui/icons-material';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -172,6 +173,13 @@ const MENU_CONFIG_BASE: Omit<MenuItem, 'id' | 'text'>[] = [
     roles: ['SUPER_ADMIN', 'SUPER_MANAGER'],
     permission: 'settings:view',
     translationKey: 'navigation.bookingEngine',
+    group: 'management',
+  },
+  {
+    icon: <StorefrontOutlined />,
+    path: '/shop',
+    roles: ['SUPER_ADMIN', 'SUPER_MANAGER', 'HOST'],
+    translationKey: 'navigation.shop',
     group: 'management',
   },
   // Messagerie fusionnee dans Documents — supprime de la sidebar

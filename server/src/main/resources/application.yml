@@ -199,4 +199,6 @@ springdoc:
   packages-to-scan: com.clenzy.controller
   paths-to-match: /api/**
 
-
+# ─── KPI SLA Dashboard ────────────────────────────────────────────────────
+kpi:
+  test-coverage-pct: ${KPI_TEST_COVERAGE_PCT:55.4}

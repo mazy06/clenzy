@@ -6,7 +6,8 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "cwd": "client",
-      "port": 3000
+      "port": 3002,
+      "autoPort": true
     },
     {
       "name": "backend",

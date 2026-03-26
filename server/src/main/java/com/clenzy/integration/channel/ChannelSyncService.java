@@ -8,6 +8,7 @@ import com.clenzy.integration.channel.model.ChannelSyncLog;
 import com.clenzy.integration.channel.repository.ChannelMappingRepository;
 import com.clenzy.integration.channel.repository.ChannelSyncLogRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -72,9 +73,23 @@ public class ChannelSyncService {
             Map<String, Object> event;
             if (payload instanceof Map) {
                 event = (Map<String, Object>) payload;
+            } else if (payload instanceof ConsumerRecord<?, ?> record) {
+                // Le listener recoit parfois le ConsumerRecord entier au lieu du value
+                Object value = record.value();
+                if (value instanceof Map) {
+                    event = (Map<String, Object>) value;
+                } else if (value instanceof String s) {
+                    event = objectMapper.readValue(s, Map.class);
+                } else {
+                    log.warn("ChannelSyncService: type de value inattendu dans ConsumerRecord: {}",
+                            value != null ? value.getClass().getName() : "null");
+                    return;
+                }
+            } else if (payload instanceof String s) {
+                event = objectMapper.readValue(s, Map.class);
             } else {
-                // Fallback pour les anciens messages double-serialises (String JSON)
-                event = objectMapper.readValue(payload.toString(), Map.class);
+                log.warn("ChannelSyncService: type de payload inattendu: {}", payload.getClass().getName());
+                return;
             }
 
             Long propertyId = extractLong(event, "propertyId");

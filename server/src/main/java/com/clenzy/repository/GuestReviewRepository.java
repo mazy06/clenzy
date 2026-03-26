@@ -48,4 +48,28 @@ public interface GuestReviewRepository extends JpaRepository<GuestReview, Long> 
 
     @Query("SELECT r FROM GuestReview r WHERE r.id = :id AND r.organizationId = :orgId")
     Optional<GuestReview> findByIdAndOrgId(@Param("id") Long id, @Param("orgId") Long orgId);
+
+    // ─── Public reviews (Booking Engine) ────────────────────────────────────────
+
+    @Query("SELECT r FROM GuestReview r WHERE r.propertyId = :propertyId AND r.organizationId = :orgId " +
+           "AND r.isPublic = true ORDER BY r.reviewDate DESC")
+    Page<GuestReview> findPublicByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId, Pageable pageable);
+
+    @Query("SELECT r FROM GuestReview r WHERE r.organizationId = :orgId " +
+           "AND r.isPublic = true ORDER BY r.reviewDate DESC")
+    Page<GuestReview> findPublicByOrgId(@Param("orgId") Long orgId, Pageable pageable);
+
+    @Query("SELECT AVG(r.rating) FROM GuestReview r WHERE r.propertyId = :propertyId " +
+           "AND r.organizationId = :orgId AND r.isPublic = true")
+    Double averagePublicRatingByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
+
+    @Query("SELECT COUNT(r) FROM GuestReview r WHERE r.propertyId = :propertyId " +
+           "AND r.organizationId = :orgId AND r.isPublic = true")
+    long countPublicByPropertyId(@Param("propertyId") Long propertyId, @Param("orgId") Long orgId);
+
+    @Query("SELECT AVG(r.rating) FROM GuestReview r WHERE r.organizationId = :orgId AND r.isPublic = true")
+    Double averagePublicRatingByOrgId(@Param("orgId") Long orgId);
+
+    @Query("SELECT COUNT(r) FROM GuestReview r WHERE r.organizationId = :orgId AND r.isPublic = true")
+    long countPublicByOrgId(@Param("orgId") Long orgId);
 }

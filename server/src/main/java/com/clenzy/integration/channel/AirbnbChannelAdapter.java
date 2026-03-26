@@ -11,7 +11,10 @@ import com.clenzy.model.ChannelCancellationPolicy;
 import com.clenzy.model.ChannelContentMapping;
 import com.clenzy.model.ChannelFee;
 import com.clenzy.model.ChannelPromotion;
+import com.clenzy.model.CalendarDay;
+import com.clenzy.model.CalendarDayStatus;
 import com.clenzy.repository.BookingRestrictionRepository;
+import com.clenzy.repository.CalendarDayRepository;
 import com.clenzy.service.PriceEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +51,7 @@ public class AirbnbChannelAdapter implements ChannelConnector {
     private final PriceEngine priceEngine;
     private final RestTemplate restTemplate;
     private final BookingRestrictionRepository bookingRestrictionRepository;
+    private final CalendarDayRepository calendarDayRepository;
 
     public AirbnbChannelAdapter(AirbnbOAuthService airbnbOAuthService,
                                 AirbnbConnectionRepository airbnbConnectionRepository,
@@ -55,7 +59,8 @@ public class AirbnbChannelAdapter implements ChannelConnector {
                                 ChannelMappingRepository channelMappingRepository,
                                 PriceEngine priceEngine,
                                 RestTemplate restTemplate,
-                                BookingRestrictionRepository bookingRestrictionRepository) {
+                                BookingRestrictionRepository bookingRestrictionRepository,
+                                CalendarDayRepository calendarDayRepository) {
         this.airbnbOAuthService = airbnbOAuthService;
         this.airbnbConnectionRepository = airbnbConnectionRepository;
         this.tokenEncryptionService = tokenEncryptionService;
@@ -63,6 +68,7 @@ public class AirbnbChannelAdapter implements ChannelConnector {
         this.priceEngine = priceEngine;
         this.restTemplate = restTemplate;
         this.bookingRestrictionRepository = bookingRestrictionRepository;
+        this.calendarDayRepository = calendarDayRepository;
     }
 
     @Override
@@ -125,13 +131,22 @@ public class AirbnbChannelAdapter implements ChannelConnector {
             List<BookingRestriction> restrictions = bookingRestrictionRepository
                     .findApplicable(propertyId, from, to, orgId);
 
+            // Charger les statuts calendrier pour determiner la disponibilite reelle
+            List<CalendarDay> calendarDays = calendarDayRepository.findByPropertyAndDateRange(propertyId, from, to, orgId);
+            Map<LocalDate, CalendarDayStatus> statusMap = new HashMap<>();
+            for (CalendarDay day : calendarDays) {
+                statusMap.put(day.getDate(), day.getStatus());
+            }
+
             int pushed = 0;
             for (Map.Entry<LocalDate, BigDecimal> entry : prices.entrySet()) {
                 if (entry.getValue() == null) continue;
                 try {
                     BookingRestriction restriction = findApplicableRestriction(restrictions, entry.getKey());
+                    CalendarDayStatus status = statusMap.getOrDefault(entry.getKey(), CalendarDayStatus.AVAILABLE);
+                    boolean available = status == CalendarDayStatus.AVAILABLE;
                     pushSingleDayToAirbnb(listingId, entry.getKey(), entry.getValue(),
-                            restriction, accessToken);
+                            restriction, accessToken, available);
                     pushed++;
                 } catch (Exception e) {
                     log.warn("Failed to push price for listing {} date {}: {}",
@@ -512,11 +527,11 @@ public class AirbnbChannelAdapter implements ChannelConnector {
 
     private void pushSingleDayToAirbnb(String listingId, LocalDate date,
                                          BigDecimal price, BookingRestriction restriction,
-                                         String accessToken) {
+                                         String accessToken, boolean available) {
         HttpHeaders headers = buildAirbnbHeaders(accessToken);
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("daily_price", price.intValue());
-        payload.put("available", true);
+        payload.put("available", available);
         if (restriction != null) {
             if (restriction.getMinStay() != null) payload.put("min_nights", restriction.getMinStay());
             if (restriction.getMaxStay() != null) payload.put("max_nights", restriction.getMaxStay());

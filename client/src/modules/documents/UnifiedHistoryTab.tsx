@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import {
   Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Paper,
   Table,
   TableBody,
@@ -9,12 +14,14 @@ import {
   TableHead,
   TableRow,
   TablePagination,
+  TextField,
   Typography,
   Chip,
   IconButton,
   Tooltip,
   CircularProgress,
   Alert,
+  useTheme,
 } from '@mui/material';
 import {
   Download,
@@ -24,9 +31,13 @@ import {
   Email as EmailIcon,
   Description as DocIcon,
   History,
+  Visibility,
+  Edit as EditIcon,
+  Replay,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
 import { guestMessagingApi, type GuestMessageLog } from '../../services/api/guestMessagingApi';
+import { guestsApi } from '../../services/api/guestsApi';
 import { documentsApi, type DocumentGeneration } from '../../services/api/documentsApi';
 import { useGenerations, useVerifyDocumentIntegrity } from './hooks/useDocuments';
 import GenerateDialog from './GenerateDialog';
@@ -46,6 +57,8 @@ interface UnifiedRow {
   status: string;
   statusHex: string;
   errorMessage?: string;
+  // Message-specific
+  messageLog?: GuestMessageLog;
   // Document-specific
   documentGeneration?: DocumentGeneration;
   legalNumber?: string;
@@ -92,6 +105,8 @@ export interface UnifiedHistoryTabRef {
 
 const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
   const { t } = useTranslation();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const [filter, setFilter] = useState<HistoryFilter>('all');
   const [generateOpen, setGenerateOpen] = useState(false);
   const [verifyResult, setVerifyResult] = useState<string | null>(null);
@@ -100,6 +115,15 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
   // Message logs (non-paginated)
   const [messageLogs, setMessageLogs] = useState<GuestMessageLog[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
+
+  // Message detail / edit email dialog
+  const [detailLog, setDetailLog] = useState<GuestMessageLog | null>(null);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [editEmailLog, setEditEmailLog] = useState<GuestMessageLog | null>(null);
+  const [editEmailValue, setEditEmailValue] = useState('');
+  const [editEmailLoading, setEditEmailLoading] = useState(false);
+  const [resendingId, setResendingId] = useState<number | null>(null);
 
   // Document generations (paginated)
   const [docPage, setDocPage] = useState(0);
@@ -155,6 +179,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           status: statusConfig.label,
           statusHex: statusConfig.hex,
           errorMessage: log.errorMessage || undefined,
+          messageLog: log,
         });
       }
     }
@@ -206,6 +231,51 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
       setActionError('Erreur lors de la verification');
     }
   };
+
+  const handleResend = async (log: GuestMessageLog) => {
+    try {
+      setResendingId(log.id);
+      await guestMessagingApi.resendMessage(log.id);
+      setActionError(null);
+      loadMessages();
+    } catch {
+      setActionError('Erreur lors du renvoi du message');
+    } finally {
+      setResendingId(null);
+    }
+  };
+
+  const handleUpdateEmailAndResend = async () => {
+    if (!editEmailLog || !editEmailValue.trim() || !editEmailLog.guestId) return;
+    try {
+      setEditEmailLoading(true);
+      await guestsApi.updateEmail(editEmailLog.guestId, editEmailValue.trim());
+      await guestMessagingApi.resendMessage(editEmailLog.id);
+      setEditEmailLog(null);
+      setEditEmailValue('');
+      loadMessages();
+    } catch {
+      setActionError("Erreur lors de la mise a jour de l'email");
+    } finally {
+      setEditEmailLoading(false);
+    }
+  };
+
+  // Charger l'apercu du contenu email quand le dialog de detail s'ouvre
+  useEffect(() => {
+    if (!detailLog || detailLog.channel !== 'EMAIL' || !detailLog.templateId) {
+      setPreviewHtml(null);
+      return;
+    }
+    let cancelled = false;
+    setPreviewLoading(true);
+    setPreviewHtml(null);
+    guestMessagingApi.previewMessage(detailLog.id)
+      .then((res) => { if (!cancelled) setPreviewHtml(res.htmlBody); })
+      .catch(() => { if (!cancelled) setPreviewHtml(null); })
+      .finally(() => { if (!cancelled) setPreviewLoading(false); });
+    return () => { cancelled = true; };
+  }, [detailLog]);
 
   const formatDate = (dateStr: string): string => {
     if (!dateStr) return '—';
@@ -340,6 +410,45 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                     </TableCell>
                     <TableCell align="right">
                       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                        {/* ── Message actions ── */}
+                        {row.kind === 'message' && row.messageLog && (
+                          <>
+                            <Tooltip title="Voir les details">
+                              <IconButton size="small" color="info" onClick={() => setDetailLog(row.messageLog!)}>
+                                <Visibility fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            {row.messageLog.status === 'FAILED' && row.messageLog.guestId && (
+                              <Tooltip title="Modifier l'email et renvoyer">
+                                <IconButton
+                                  size="small"
+                                  color="warning"
+                                  onClick={() => {
+                                    setEditEmailLog(row.messageLog!);
+                                    setEditEmailValue(row.messageLog!.recipient === 'N/A' ? '' : row.messageLog!.recipient);
+                                  }}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            {row.messageLog.status === 'FAILED' && row.messageLog.templateId && (
+                              <Tooltip title="Renvoyer le message">
+                                <IconButton
+                                  size="small"
+                                  color="success"
+                                  disabled={resendingId === row.messageLog.id}
+                                  onClick={() => handleResend(row.messageLog!)}
+                                >
+                                  {resendingId === row.messageLog.id
+                                    ? <CircularProgress size={16} />
+                                    : <Replay fontSize="small" />}
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </>
+                        )}
+                        {/* ── Document actions ── */}
                         {row.kind === 'document' && row.documentGeneration && (
                           <>
                             {['COMPLETED', 'SENT', 'LOCKED'].includes(row.documentGeneration.status) && (
@@ -386,6 +495,128 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
           )}
         </>
       )}
+
+      {/* ── Detail dialog ── */}
+      <Dialog open={!!detailLog} onClose={() => setDetailLog(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Details du message</DialogTitle>
+        <DialogContent>
+          {detailLog && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 1 }}>
+              <Typography variant="body2"><strong>Template :</strong> {detailLog.templateName || '—'}</Typography>
+              <Typography variant="body2"><strong>Sujet :</strong> {detailLog.subject || '—'}</Typography>
+              <Typography variant="body2"><strong>Destinataire :</strong> {detailLog.recipient}</Typography>
+              <Typography variant="body2"><strong>Voyageur :</strong> {detailLog.guestName || '—'}</Typography>
+              <Typography variant="body2"><strong>Canal :</strong> {detailLog.channel}</Typography>
+              <Typography variant="body2"><strong>Statut :</strong> {detailLog.status}</Typography>
+              {detailLog.errorMessage && (
+                <Alert severity="error" sx={{ mt: 1 }}>{detailLog.errorMessage}</Alert>
+              )}
+              <Typography variant="body2"><strong>Reservation :</strong> #{detailLog.reservationId}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Cree le {formatDate(detailLog.createdAt)}
+                {detailLog.sentAt && ` — Envoye le ${formatDate(detailLog.sentAt)}`}
+              </Typography>
+
+              {/* Apercu du contenu email */}
+              {detailLog.channel === 'EMAIL' && detailLog.templateId && (
+                <>
+                  <Typography variant="subtitle2" sx={{ mt: 1 }}>Contenu de l&apos;email</Typography>
+                  {previewLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : previewHtml ? (
+                    <Box
+                      sx={{
+                        mt: 0.5,
+                        borderRadius: 1,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <iframe
+                        sandbox=""
+                        srcDoc={`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.6;color:${isDark ? '#e0e0e0' : '#333'};background:${isDark ? '#1e1e1e' : '#fff'};padding:16px;margin:0;white-space:pre-line;word-wrap:break-word;}a{color:${isDark ? '#90caf9' : '#1976d2'};}</style></head><body>${previewHtml}</body></html>`}
+                        title="Apercu email"
+                        style={{
+                          width: '100%',
+                          height: 300,
+                          border: 'none',
+                        }}
+                      />
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>
+                      Apercu indisponible
+                    </Typography>
+                  )}
+                </>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {detailLog?.status === 'FAILED' && detailLog.guestId && (
+            <Button
+              color="warning"
+              onClick={() => {
+                setEditEmailLog(detailLog);
+                setEditEmailValue(detailLog.recipient === 'N/A' ? '' : detailLog.recipient);
+                setDetailLog(null);
+              }}
+            >
+              Modifier l&apos;email
+            </Button>
+          )}
+          {detailLog?.status === 'FAILED' && detailLog.templateId && (
+            <Button
+              color="success"
+              disabled={resendingId === detailLog.id}
+              onClick={() => {
+                handleResend(detailLog);
+                setDetailLog(null);
+              }}
+            >
+              Renvoyer
+            </Button>
+          )}
+          <Button onClick={() => setDetailLog(null)}>Fermer</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Edit email dialog ── */}
+      <Dialog open={!!editEmailLog} onClose={() => setEditEmailLog(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Modifier l&apos;email du voyageur</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Saisissez l&apos;email du voyageur pour {editEmailLog?.guestName || 'ce voyageur'}.
+            Le message sera automatiquement renvoye apres la mise a jour.
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            type="email"
+            label="Email"
+            value={editEmailValue}
+            onChange={(e) => setEditEmailValue(e.target.value)}
+            placeholder="voyageur@example.com"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditEmailLog(null)} disabled={editEmailLoading}>
+            Annuler
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            disabled={!editEmailValue.trim() || editEmailLoading}
+            onClick={handleUpdateEmailAndResend}
+          >
+            {editEmailLoading ? <CircularProgress size={20} /> : 'Enregistrer et renvoyer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <GenerateDialog open={generateOpen} onClose={() => setGenerateOpen(false)} onSuccess={() => setGenerateOpen(false)} />
     </Box>

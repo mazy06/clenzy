@@ -13,6 +13,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.test.util.ReflectionTestUtils;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
@@ -64,9 +66,9 @@ class InterventionPhotoServiceTest {
             verify(interventionPhotoRepository).save(captor.capture());
             InterventionPhoto saved = captor.getValue();
 
-            assertThat(saved.getPhotoType()).isEqualTo("BEFORE");
+            assertThat(saved.getPhase()).isEqualTo(InterventionPhoto.PhotoPhase.BEFORE);
             assertThat(saved.getContentType()).isEqualTo("image/png");
-            assertThat(saved.getPhotoData()).hasSize(3);
+            assertThat(saved.getData()).hasSize(3);
         }
 
         @Test
@@ -82,7 +84,7 @@ class InterventionPhotoServiceTest {
 
             ArgumentCaptor<InterventionPhoto> captor = ArgumentCaptor.forClass(InterventionPhoto.class);
             verify(interventionPhotoRepository).save(captor.capture());
-            assertThat(captor.getValue().getPhotoType()).isEqualTo("AFTER");
+            assertThat(captor.getValue().getPhase()).isEqualTo(InterventionPhoto.PhotoPhase.AFTER);
         }
 
         @Test
@@ -130,7 +132,7 @@ class InterventionPhotoServiceTest {
         void whenPhotosExist_thenReturnsJsonArray() {
             Intervention intervention = buildIntervention(1L);
             InterventionPhoto photo = new InterventionPhoto();
-            photo.setPhotoData(new byte[]{1, 2, 3});
+            photo.setData(new byte[]{1, 2, 3});
             photo.setContentType("image/png");
 
             when(interventionPhotoRepository.findAllByInterventionId(1L, ORG_ID))
@@ -165,10 +167,10 @@ class InterventionPhotoServiceTest {
         void whenBeforePhotosExist_thenReturnsBase64() {
             Intervention intervention = buildIntervention(1L);
             InterventionPhoto photo = new InterventionPhoto();
-            photo.setPhotoData(new byte[]{10, 20});
+            photo.setData(new byte[]{10, 20});
             photo.setContentType("image/jpeg");
 
-            when(interventionPhotoRepository.findByInterventionIdAndPhotoTypeOrderByCreatedAtAsc(1L, "BEFORE", ORG_ID))
+            when(interventionPhotoRepository.findByInterventionIdAndPhaseOrderByCreatedAtAsc(1L, InterventionPhoto.PhotoPhase.BEFORE, ORG_ID))
                     .thenReturn(List.of(photo));
 
             String result = service.convertPhotosToBase64UrlsByType(intervention, "before");
@@ -181,7 +183,7 @@ class InterventionPhotoServiceTest {
             Intervention intervention = buildIntervention(1L);
             intervention.setBeforePhotosUrls("before-legacy");
 
-            when(interventionPhotoRepository.findByInterventionIdAndPhotoTypeOrderByCreatedAtAsc(1L, "BEFORE", ORG_ID))
+            when(interventionPhotoRepository.findByInterventionIdAndPhaseOrderByCreatedAtAsc(1L, InterventionPhoto.PhotoPhase.BEFORE, ORG_ID))
                     .thenReturn(List.of());
 
             String result = service.convertPhotosToBase64UrlsByType(intervention, "before");
@@ -200,12 +202,12 @@ class InterventionPhotoServiceTest {
             Intervention intervention = buildIntervention(1L);
 
             InterventionPhoto photo1 = new InterventionPhoto();
-            photo1.setId(10L);
+            ReflectionTestUtils.setField(photo1, "id", 10L);
             InterventionPhoto photo2 = new InterventionPhoto();
-            photo2.setId(20L);
+            ReflectionTestUtils.setField(photo2, "id", 20L);
 
-            when(interventionPhotoRepository.findByInterventionIdAndPhotoTypeOrderByCreatedAtAsc(
-                    1L, "BEFORE", ORG_ID))
+            when(interventionPhotoRepository.findByInterventionIdAndPhaseOrderByCreatedAtAsc(
+                    1L, InterventionPhoto.PhotoPhase.BEFORE, ORG_ID))
                     .thenReturn(List.of(photo1, photo2));
 
             String result = service.getPhotoIdsByType(intervention, "before");
@@ -217,8 +219,8 @@ class InterventionPhotoServiceTest {
         void whenNoPhotos_thenReturnsNull() {
             Intervention intervention = buildIntervention(1L);
 
-            when(interventionPhotoRepository.findByInterventionIdAndPhotoTypeOrderByCreatedAtAsc(
-                    1L, "AFTER", ORG_ID))
+            when(interventionPhotoRepository.findByInterventionIdAndPhaseOrderByCreatedAtAsc(
+                    1L, InterventionPhoto.PhotoPhase.AFTER, ORG_ID))
                     .thenReturn(List.of());
 
             String result = service.getPhotoIdsByType(intervention, "after");
@@ -259,11 +261,11 @@ class InterventionPhotoServiceTest {
             intervention.setAfterPhotosUrls("[\"legacy-after\"]");
 
             InterventionPhoto beforePhoto = new InterventionPhoto();
-            beforePhoto.setId(10L);
-            beforePhoto.setPhotoData(new byte[]{1, 2});
+            ReflectionTestUtils.setField(beforePhoto, "id", 10L);
+            beforePhoto.setData(new byte[]{1, 2});
             beforePhoto.setContentType("image/png");
-            beforePhoto.setPhotoType("BEFORE");
-            beforePhoto.setCreatedAt(java.time.LocalDateTime.of(2025, 1, 1, 10, 0));
+            beforePhoto.setPhase(InterventionPhoto.PhotoPhase.BEFORE);
+            ReflectionTestUtils.setField(beforePhoto, "createdAt", java.time.LocalDateTime.of(2025, 1, 1, 10, 0));
 
             when(interventionPhotoRepository.findAllByInterventionId(1L, ORG_ID))
                     .thenReturn(List.of(beforePhoto));
@@ -282,18 +284,18 @@ class InterventionPhotoServiceTest {
             Intervention intervention = buildIntervention(1L);
 
             InterventionPhoto beforePhoto = new InterventionPhoto();
-            beforePhoto.setId(10L);
-            beforePhoto.setPhotoData(new byte[]{1});
+            ReflectionTestUtils.setField(beforePhoto, "id", 10L);
+            beforePhoto.setData(new byte[]{1});
             beforePhoto.setContentType("image/jpeg");
-            beforePhoto.setPhotoType("BEFORE");
-            beforePhoto.setCreatedAt(java.time.LocalDateTime.of(2025, 1, 1, 10, 0));
+            beforePhoto.setPhase(InterventionPhoto.PhotoPhase.BEFORE);
+            ReflectionTestUtils.setField(beforePhoto, "createdAt", java.time.LocalDateTime.of(2025, 1, 1, 10, 0));
 
             InterventionPhoto afterPhoto = new InterventionPhoto();
-            afterPhoto.setId(20L);
-            afterPhoto.setPhotoData(new byte[]{2});
+            ReflectionTestUtils.setField(afterPhoto, "id", 20L);
+            afterPhoto.setData(new byte[]{2});
             afterPhoto.setContentType("image/png");
-            afterPhoto.setPhotoType("AFTER");
-            afterPhoto.setCreatedAt(java.time.LocalDateTime.of(2025, 1, 1, 11, 0));
+            afterPhoto.setPhase(InterventionPhoto.PhotoPhase.AFTER);
+            ReflectionTestUtils.setField(afterPhoto, "createdAt", java.time.LocalDateTime.of(2025, 1, 1, 11, 0));
 
             when(interventionPhotoRepository.findAllByInterventionId(1L, ORG_ID))
                     .thenReturn(List.of(beforePhoto, afterPhoto));
@@ -317,8 +319,8 @@ class InterventionPhotoServiceTest {
         @Test
         void whenPhotoExists_thenDeletesSuccessfully() {
             InterventionPhoto photo = new InterventionPhoto();
-            photo.setId(10L);
-            photo.setPhotoType("BEFORE");
+            ReflectionTestUtils.setField(photo, "id", 10L);
+            photo.setPhase(InterventionPhoto.PhotoPhase.BEFORE);
 
             when(interventionPhotoRepository.findByIdAndInterventionId(10L, 1L, ORG_ID))
                     .thenReturn(Optional.of(photo));

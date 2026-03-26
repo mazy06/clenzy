@@ -2,7 +2,9 @@ package com.clenzy.service;
 
 import com.clenzy.model.Guest;
 import com.clenzy.model.GuestChannel;
+import com.clenzy.model.Reservation;
 import com.clenzy.repository.GuestRepository;
+import com.clenzy.repository.ReservationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -30,9 +32,12 @@ public class GuestService {
     private static final Logger log = LoggerFactory.getLogger(GuestService.class);
 
     private final GuestRepository guestRepository;
+    private final ReservationRepository reservationRepository;
 
-    public GuestService(GuestRepository guestRepository) {
+    public GuestService(GuestRepository guestRepository,
+                        ReservationRepository reservationRepository) {
         this.guestRepository = guestRepository;
+        this.reservationRepository = reservationRepository;
     }
 
     /**
@@ -136,6 +141,45 @@ public class GuestService {
             log.debug("Guest {} : total_stays={}, total_spent={}", guestId,
                     guest.getTotalStays(), guest.getTotalSpent());
         });
+    }
+
+    /**
+     * Recalcule totalStays et totalSpent pour tous les guests a partir des reservations confirmees.
+     * Utile pour corriger les compteurs apres une migration ou un import.
+     *
+     * @return le nombre de guests mis a jour
+     */
+    @Transactional
+    public int recalculateAllStats() {
+        List<Guest> allGuests = guestRepository.findAll();
+        int updated = 0;
+
+        for (Guest guest : allGuests) {
+            List<Reservation> reservations = reservationRepository.findByGuestId(guest.getId());
+
+            long confirmedStays = reservations.stream()
+                    .filter(r -> "confirmed".equals(r.getStatus()))
+                    .count();
+
+            BigDecimal totalSpent = reservations.stream()
+                    .filter(r -> "confirmed".equals(r.getStatus()))
+                    .map(Reservation::getTotalPrice)
+                    .filter(p -> p != null)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            if (guest.getTotalStays() != (int) confirmedStays
+                    || guest.getTotalSpent().compareTo(totalSpent) != 0) {
+                guest.setTotalStays((int) confirmedStays);
+                guest.setTotalSpent(totalSpent);
+                guestRepository.save(guest);
+                updated++;
+                log.info("Guest {} recalculated: stays={}, spent={}",
+                        guest.getId(), confirmedStays, totalSpent);
+            }
+        }
+
+        log.info("Recalculated stats for {} guests ({} updated)", allGuests.size(), updated);
+        return updated;
     }
 
     // ================================================================

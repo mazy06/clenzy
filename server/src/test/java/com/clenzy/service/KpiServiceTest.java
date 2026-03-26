@@ -61,6 +61,7 @@ class KpiServiceTest {
     @Mock private ChannelSyncLogRepository syncLogRepository;
     @Mock private NotificationService notificationService;
     @Mock private ObjectMapper objectMapper;
+    @Mock private IncidentService incidentService;
 
     private SimpleMeterRegistry registry;
     private KpiService kpiService;
@@ -69,6 +70,7 @@ class KpiServiceTest {
     void setUp() {
         registry = new SimpleMeterRegistry();
         lenient().when(syncMetrics.getRegistry()).thenReturn(registry);
+        lenient().when(incidentService.getAverageP1ResolutionMinutes(anyInt())).thenReturn(0.0);
 
         kpiService = new KpiService(
                 syncMetrics,
@@ -78,10 +80,10 @@ class KpiServiceTest {
                 connectionRepository,
                 syncLogRepository,
                 notificationService,
-                objectMapper
+                objectMapper,
+                incidentService
         );
 
-        ReflectionTestUtils.setField(kpiService, "p1ResolutionMinutes", 0.0);
         ReflectionTestUtils.setField(kpiService, "testCoveragePct", 0.0);
     }
 
@@ -517,7 +519,7 @@ class KpiServiceTest {
         @Test
         void whenZeroMinutes_thenNAandOk() {
             stubAllKpisOk();
-            // p1ResolutionMinutes is already 0 from setUp
+            // incidentService returns 0.0 by default from setUp
 
             KpiSnapshotDto snapshot = kpiService.computeCurrentSnapshot();
             KpiItemDto p1 = findKpi(snapshot.kpis(), "P1_RESOLUTION");
@@ -530,7 +532,7 @@ class KpiServiceTest {
         @Test
         void whenUnder60Min_thenOk() {
             stubAllKpisOk();
-            ReflectionTestUtils.setField(kpiService, "p1ResolutionMinutes", 45.0);
+            when(incidentService.getAverageP1ResolutionMinutes(30)).thenReturn(45.0);
 
             KpiSnapshotDto snapshot = kpiService.computeCurrentSnapshot();
             KpiItemDto p1 = findKpi(snapshot.kpis(), "P1_RESOLUTION");
@@ -542,7 +544,7 @@ class KpiServiceTest {
         @Test
         void whenBetween60And120_thenWarning() {
             stubAllKpisOk();
-            ReflectionTestUtils.setField(kpiService, "p1ResolutionMinutes", 90.0);
+            when(incidentService.getAverageP1ResolutionMinutes(30)).thenReturn(90.0);
 
             KpiSnapshotDto snapshot = kpiService.computeCurrentSnapshot();
             KpiItemDto p1 = findKpi(snapshot.kpis(), "P1_RESOLUTION");
@@ -553,7 +555,7 @@ class KpiServiceTest {
         @Test
         void whenAbove120_thenCritical() {
             stubAllKpisOk();
-            ReflectionTestUtils.setField(kpiService, "p1ResolutionMinutes", 150.0);
+            when(incidentService.getAverageP1ResolutionMinutes(30)).thenReturn(150.0);
 
             KpiSnapshotDto snapshot = kpiService.computeCurrentSnapshot();
             KpiItemDto p1 = findKpi(snapshot.kpis(), "P1_RESOLUTION");
@@ -749,7 +751,7 @@ class KpiServiceTest {
             stubAllKpisOk();
 
             // P1 resolution WARNING (weight 5): 90 min, between 60 and 120
-            ReflectionTestUtils.setField(kpiService, "p1ResolutionMinutes", 90.0);
+            when(incidentService.getAverageP1ResolutionMinutes(30)).thenReturn(90.0);
             // Test coverage WARNING (weight 4): 85%, between 80 and 90
             ReflectionTestUtils.setField(kpiService, "testCoveragePct", 85.0);
 

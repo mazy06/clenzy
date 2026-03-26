@@ -40,7 +40,16 @@ class AuditLogServiceTest {
     void setUp() {
         tenantContext = new TenantContext();
         tenantContext.setOrganizationId(ORG_ID);
-        service = new AuditLogService(auditLogRepository, tenantContext);
+        var instance = new AuditLogService(auditLogRepository, tenantContext, null);
+        // Use reflection to set 'self' to the instance itself (no Spring proxy in unit tests)
+        try {
+            var selfField = AuditLogService.class.getDeclaredField("self");
+            selfField.setAccessible(true);
+            selfField.set(instance, instance);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        service = instance;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

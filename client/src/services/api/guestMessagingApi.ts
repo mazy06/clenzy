@@ -25,7 +25,9 @@ export interface CreateMessageTemplateData {
 export interface GuestMessageLog {
   id: number;
   reservationId: number;
+  guestId: number | null;
   guestName: string | null;
+  templateId: number | null;
   templateName: string | null;
   channel: string;
   recipient: string;
@@ -99,4 +101,12 @@ export const guestMessagingApi = {
 
   getReservationHistory: (reservationId: number): Promise<GuestMessageLog[]> =>
     apiClient.get(`${MESSAGING_BASE}/history/reservation/${reservationId}`),
+
+  // ── Preview ──
+  previewMessage: (logId: number): Promise<{ subject: string; htmlBody: string }> =>
+    apiClient.get(`${MESSAGING_BASE}/preview/${logId}`),
+
+  // ── Resend ──
+  resendMessage: (logId: number): Promise<GuestMessageLog> =>
+    apiClient.post(`${MESSAGING_BASE}/resend/${logId}`),
 };

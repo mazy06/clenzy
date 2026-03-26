@@ -14,7 +14,8 @@ public record GuestMessageLogDto(
     String subject,
     String status,
     String errorMessage,
-    String sentAt
+    String sentAt,
+    String createdAt
 ) {
     public static GuestMessageLogDto fromEntity(GuestMessageLog e) {
         return new GuestMessageLogDto(
@@ -29,7 +30,8 @@ public record GuestMessageLogDto(
             e.getSubject(),
             e.getStatus().getValue(),
             e.getErrorMessage(),
-            e.getSentAt() != null ? e.getSentAt().toString() : null
+            e.getSentAt() != null ? e.getSentAt().toString() : null,
+            e.getCreatedAt() != null ? e.getCreatedAt().toString() : null
         );
     }
 }
