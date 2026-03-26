@@ -120,7 +120,7 @@ public class ExchangeRateController {
      * Retourne l'historique des taux de change (admin seulement).
      */
     @GetMapping("/history")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<Page<ExchangeRateDto>> getHistory(
             @RequestParam(required = false) String baseCurrency,
             @RequestParam(required = false) String targetCurrency,
@@ -155,7 +155,7 @@ public class ExchangeRateController {
      * Force la mise a jour des taux de change depuis la BCE.
      */
     @PostMapping("/refresh")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<Map<String, String>> refresh() {
         exchangeRateProvider.refreshRates();
         return ResponseEntity.ok(Map.of("status", "refreshed"));
