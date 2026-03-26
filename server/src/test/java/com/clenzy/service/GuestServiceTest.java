@@ -29,13 +29,14 @@ import static org.mockito.Mockito.when;
 class GuestServiceTest {
 
     @Mock private GuestRepository guestRepository;
+    @Mock private com.clenzy.repository.ReservationRepository reservationRepository;
 
     private GuestService guestService;
     private static final Long ORG_ID = 1L;
 
     @BeforeEach
     void setUp() {
-        guestService = new GuestService(guestRepository);
+        guestService = new GuestService(guestRepository, reservationRepository);
     }
 
     private Guest buildGuest(Long id, String firstName, String lastName) {

@@ -13,7 +13,8 @@ public enum NotificationCategory {
     GUEST_MESSAGING("guest_messaging"),
     NOISE_ALERT("noise_alert"),
     CONVERSATION("conversation"),
-    REVIEW("review");
+    REVIEW("review"),
+    RESERVATION("reservation");
 
     private final String value;
 

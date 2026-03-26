@@ -9,8 +9,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.clenzy.model.Organization;
+import com.clenzy.repository.OrganizationRepository;
+
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Service d'administration du Booking Engine (multi-template).
@@ -24,11 +30,14 @@ public class BookingEngineAdminService {
     private static final Logger logger = LoggerFactory.getLogger(BookingEngineAdminService.class);
 
     private final BookingEngineConfigRepository configRepository;
+    private final OrganizationRepository organizationRepository;
     private final TenantContext tenantContext;
 
     public BookingEngineAdminService(BookingEngineConfigRepository configRepository,
+                                      OrganizationRepository organizationRepository,
                                       TenantContext tenantContext) {
         this.configRepository = configRepository;
+        this.organizationRepository = organizationRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -65,6 +74,22 @@ public class BookingEngineAdminService {
             configs = List.of(defaultConfig);
         }
         return configs.stream().map(BookingEngineAdminConfigDto::from).toList();
+    }
+
+    /**
+     * Liste tous les templates cross-org (platform staff uniquement).
+     * Inclut le nom de l'organisation pour chaque config.
+     */
+    public List<BookingEngineAdminConfigDto> listAllConfigs() {
+        List<BookingEngineConfig> configs = configRepository.findAll();
+        // Build orgId → orgName map
+        Map<Long, String> orgNames = organizationRepository.findAllById(
+            configs.stream().map(BookingEngineConfig::getOrganizationId).distinct().toList()
+        ).stream().collect(Collectors.toMap(Organization::getId, Organization::getName));
+
+        return configs.stream()
+            .map(c -> BookingEngineAdminConfigDto.from(c, orgNames.getOrDefault(c.getOrganizationId(), "Org #" + c.getOrganizationId())))
+            .toList();
     }
 
     /**

@@ -2,21 +2,31 @@ package com.clenzy.booking.controller;
 
 import com.clenzy.booking.dto.*;
 import com.clenzy.booking.model.BookingEngineConfig;
+import com.clenzy.booking.service.BookingServiceOptionsService;
 import com.clenzy.booking.service.PublicBookingService;
 import com.clenzy.booking.service.PublicBookingService.OrgContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * API publique du Booking Engine.
  * Base path : /api/public/booking/{slug}
+ * Chemin autorisé dans SecurityConfigProd.java permitAll().
  *
  * Securite :
  * - Pas de JWT — authentifie par API Key (header X-Booking-Key) via BookingApiKeyFilter
@@ -30,14 +40,21 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/public/booking/{slug}")
+// Acces public : gere par SecurityConfigProd.java (.requestMatchers("/api/public/**").permitAll())
 public class PublicBookingController {
 
     private static final Logger log = LoggerFactory.getLogger(PublicBookingController.class);
 
     private final PublicBookingService bookingService;
+    private final BookingServiceOptionsService serviceOptionsService;
+    private final com.clenzy.service.PropertyPhotoService photoService;
 
-    public PublicBookingController(PublicBookingService bookingService) {
+    public PublicBookingController(PublicBookingService bookingService,
+                                    BookingServiceOptionsService serviceOptionsService,
+                                    com.clenzy.service.PropertyPhotoService photoService) {
         this.bookingService = bookingService;
+        this.serviceOptionsService = serviceOptionsService;
+        this.photoService = photoService;
     }
 
     // ─── Read-only endpoints ─────────────────────────────────────────────────────
@@ -153,6 +170,81 @@ public class PublicBookingController {
         log.debug("Booking Engine — requete invalide : {}", e.getMessage());
         return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
     }
+
+    // ─── Photos endpoint ───────────────────────────────────────────────────────
+
+    /**
+     * GET /{slug}/properties/{propertyId}/photos/{photoId}/data
+     * Sert le binaire d'une photo sans authentification (pour le SDK).
+     * Cache 1h publique.
+     */
+    @GetMapping("/properties/{propertyId}/photos/{photoId}/data")
+    public ResponseEntity<byte[]> getPublicPhotoData(
+            @PathVariable String slug,
+            @PathVariable Long propertyId,
+            @PathVariable Long photoId,
+            HttpServletRequest request) {
+        // Valider que la propriete appartient a l'org du booking engine
+        resolveContext(slug, request);
+        try {
+            final byte[] data = photoService.getPhotoData(propertyId, photoId);
+            final String contentType = photoService.getPhotoContentType(propertyId, photoId);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic())
+                    .body(data);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // ─── Reviews endpoints ──────────────────────────────────────────────────────
+
+    /**
+     * GET /{slug}/reviews?propertyId={id}&page=0&size=5
+     * Avis publics pagines pour une propriete ou toute l'organisation.
+     */
+    @GetMapping("/reviews")
+    public ResponseEntity<Page<PublicReviewDto>> getReviews(
+            @PathVariable String slug,
+            @RequestParam(required = false) Long propertyId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            HttpServletRequest request) {
+        OrgContext ctx = resolveContext(slug, request);
+        Page<PublicReviewDto> reviews = bookingService.getPublicReviews(ctx, propertyId, PageRequest.of(page, Math.min(size, 20)));
+        return ResponseEntity.ok(reviews);
+    }
+
+    /**
+     * GET /{slug}/reviews/stats?propertyId={id}
+     * Statistiques agregees (note moyenne, total, distribution).
+     */
+    @GetMapping("/reviews/stats")
+    public ResponseEntity<ReviewStatsDto> getReviewStats(
+            @PathVariable String slug,
+            @RequestParam(required = false) Long propertyId,
+            HttpServletRequest request) {
+        OrgContext ctx = resolveContext(slug, request);
+        ReviewStatsDto stats = bookingService.getReviewStats(ctx, propertyId);
+        return ResponseEntity.ok(stats);
+    }
+
+    // ─── Service options ─────────────────────────────────────────────────────────
+
+    /**
+     * GET /{slug}/service-options
+     * Liste les categories et items de services optionnels actifs.
+     */
+    @GetMapping("/service-options")
+    public ResponseEntity<List<BookingServiceCategoryDto>> getServiceOptions(
+            @PathVariable String slug,
+            HttpServletRequest request) {
+        OrgContext ctx = resolveContext(slug, request);
+        return ResponseEntity.ok(serviceOptionsService.listActiveCategories(ctx.orgId()));
+    }
+
+    // ─── Exception handlers ──────────────────────────────────────────────────────
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException e) {

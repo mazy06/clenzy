@@ -57,6 +57,7 @@ class ReservationControllerUpdateTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private UserRepository userRepository;
     @Mock private GuestRepository guestRepository;
+    @Mock private com.clenzy.service.GuestService guestService;
     @Mock private StripeService stripeService;
     @Mock private EmailService emailService;
     @Mock private com.clenzy.service.messaging.GuestMessagingService guestMessagingService;
@@ -70,7 +71,7 @@ class ReservationControllerUpdateTest {
         controller = new ReservationController(
                 reservationService, reservationMapper, reservationRepository,
                 interventionRepository, propertyRepository, userRepository,
-                guestRepository, stripeService, emailService,
+                guestRepository, guestService, stripeService, emailService,
                 guestMessagingService, messageTemplateRepository, tenantContext);
     }
 

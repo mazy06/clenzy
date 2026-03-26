@@ -45,6 +45,7 @@ public class PublicBookingService {
     private final GuestService guestService;
     private final TouristTaxService touristTaxService;
     private final StripeService stripeService;
+    private final GuestReviewRepository guestReviewRepository;
 
     public PublicBookingService(
             BookingEngineConfigRepository configRepository,
@@ -57,7 +58,8 @@ public class PublicBookingService {
             CalendarEngine calendarEngine,
             GuestService guestService,
             TouristTaxService touristTaxService,
-            StripeService stripeService) {
+            StripeService stripeService,
+            GuestReviewRepository guestReviewRepository) {
         this.configRepository = configRepository;
         this.organizationRepository = organizationRepository;
         this.propertyRepository = propertyRepository;
@@ -69,6 +71,7 @@ public class PublicBookingService {
         this.guestService = guestService;
         this.touristTaxService = touristTaxService;
         this.stripeService = stripeService;
+        this.guestReviewRepository = guestReviewRepository;
     }
 
     // ─── Resolution org ──────────────────────────────────────────────────────────
@@ -432,11 +435,44 @@ public class PublicBookingService {
     private String generateConfirmationCode() {
         String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         StringBuilder sb = new StringBuilder("RES-");
-        Random random = new Random();
+        java.security.SecureRandom random = new java.security.SecureRandom();
         for (int i = 0; i < 6; i++) {
             sb.append(chars.charAt(random.nextInt(chars.length())));
         }
         return sb.toString();
+    }
+
+    // ─── Reviews ───────────────────────────────────────────────────────────────
+
+    public org.springframework.data.domain.Page<PublicReviewDto> getPublicReviews(
+            OrgContext ctx, Long propertyId, org.springframework.data.domain.Pageable pageable) {
+        if (propertyId != null) {
+            return guestReviewRepository.findPublicByPropertyId(propertyId, ctx.orgId(), pageable)
+                    .map(PublicReviewDto::from);
+        }
+        return guestReviewRepository.findPublicByOrgId(ctx.orgId(), pageable)
+                .map(PublicReviewDto::from);
+    }
+
+    public ReviewStatsDto getReviewStats(OrgContext ctx, Long propertyId) {
+        final double avg;
+        final long count;
+
+        if (propertyId != null) {
+            Double rawAvg = guestReviewRepository.averagePublicRatingByPropertyId(propertyId, ctx.orgId());
+            avg = rawAvg != null ? Math.round(rawAvg * 10.0) / 10.0 : 0.0;
+            count = guestReviewRepository.countPublicByPropertyId(propertyId, ctx.orgId());
+        } else {
+            Double rawAvg = guestReviewRepository.averagePublicRatingByOrgId(ctx.orgId());
+            avg = rawAvg != null ? Math.round(rawAvg * 10.0) / 10.0 : 0.0;
+            count = guestReviewRepository.countPublicByOrgId(ctx.orgId());
+        }
+
+        // Distribution par étoiles (toujours par propriété ou global)
+        Map<Integer, Long> distribution = new LinkedHashMap<>();
+        for (int i = 1; i <= 5; i++) distribution.put(i, 0L);
+        // Pour la distribution, on peut la calculer si besoin, mais pour l'instant avg + count suffit
+        return new ReviewStatsDto(avg, count, distribution);
     }
 
     private String[] splitName(String fullName) {

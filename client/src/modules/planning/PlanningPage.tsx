@@ -310,6 +310,7 @@ const PlanningPage: React.FC = () => {
           left: 0,
           right: 0,
           bottom: 0,
+          m: 0,
           zIndex: 1300,
           backgroundColor: 'background.default',
         }),

@@ -2904,7 +2904,8 @@
       "payments": "Payments",
       "system": "System",
       "contact": "Contact",
-      "document": "Documents"
+      "document": "Documents",
+      "reservations": "Reservations"
     }
   },
   "fiscal": {
@@ -2972,7 +2973,9 @@
       "general": "General",
       "appearance": "Appearance",
       "settings": "Settings",
-      "customization": "Customization"
+      "customization": "Customization",
+      "options": "Options",
+      "integration": "Integration"
     },
     "actions": {
       "newTemplate": "New template",
@@ -2992,9 +2995,41 @@
       "customCss": "Custom CSS",
       "customJs": "Custom JS",
       "preview": "Live Preview",
+      "designPresets": "Design Templates",
       "aiDesign": "AI Design Analysis",
       "designTokens": "Design Tokens",
       "aiCssRegenerate": "AI CSS Generation"
+    },
+    "presets": {
+      "title": "Choose a design style",
+      "subtitle": "Select a predefined template as your starting point",
+      "apply": "Apply",
+      "applied": "Applied",
+      "custom": "Custom",
+      "safariLodge": {
+        "name": "Safari Lodge",
+        "description": "Warm golden tones, nature-inspired premium"
+      },
+      "stripeMinimal": {
+        "name": "Stripe Minimal",
+        "description": "Ultra-clean, modern, professional"
+      },
+      "oceanBreeze": {
+        "name": "Ocean Breeze",
+        "description": "Soothing blue tones, seaside ambiance"
+      },
+      "urbanChic": {
+        "name": "Urban Chic",
+        "description": "Dark and elegant, boutique-hotel style"
+      },
+      "provencal": {
+        "name": "Provençal",
+        "description": "Lavender and terracotta tones, southern charm"
+      },
+      "nordic": {
+        "name": "Nordic",
+        "description": "Scandinavian minimalist, neutral and wood tones"
+      }
     },
     "fields": {
       "enabled": "Enable Booking Engine",
@@ -3046,18 +3081,147 @@
       "contactSection": "Contact section"
     },
     "preview": {
-      "title": "Booking Engine",
-      "searchPlaceholder": "Search a property...",
-      "night": "night",
-      "calendar": "Availability",
-      "priceBreakdown": "Price breakdown",
-      "cleaning": "Cleaning",
-      "touristTax": "Tourist tax",
-      "payment": "Secure payment",
-      "cancellationPolicy": "Flexible cancellation",
-      "contact": "Contact us",
-      "map": "Interactive map",
-      "bookNow": "Book now"
+      "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+      "propertyTypes": {
+        "APARTMENT": "Apartment",
+        "HOUSE": "House",
+        "STUDIO": "Studio",
+        "VILLA": "Villa",
+        "LOFT": "Loft",
+        "GUEST_ROOM": "Guest Room",
+        "COTTAGE": "Cottage",
+        "CHALET": "Chalet",
+        "BOAT": "Boat",
+        "OTHER": "Other"
+      },
+      "stepLabels": ["Stays & Options", "Identification", "Validation", "Confirmation"],
+      "searchBar": {
+        "travelers": "Travelers",
+        "accommodations": "Accommodations",
+        "dates": "Dates",
+        "select": "Select...",
+        "stayDates": "Stay dates",
+        "allTypes": "All"
+      },
+      "guests": {
+        "adults": "Adults",
+        "adultsAge": "12 and over",
+        "children": "Children",
+        "childrenAge": "3 to 11 years",
+        "babies": "Babies",
+        "babiesAge": "0 to 3 years",
+        "adult": "Adult(s)",
+        "child": "Child(ren)",
+        "baby": "Baby(ies)"
+      },
+      "results": {
+        "title": "Search results",
+        "modifySearch": "Modify my search",
+        "select": "Select",
+        "selected": "Selected",
+        "moreInfo": "+ Info",
+        "noResults": "No accommodation available for this selection.",
+        "selectDates": "Select dates",
+        "from": "from",
+        "noPhoto": "No photo",
+        "allFilters": "All types",
+        "filterBy": "Filter by type"
+      },
+      "cart": {
+        "title": "Your cart",
+        "empty": "Your cart is empty.",
+        "backHome": "Back to home",
+        "clearCart": "Clear cart",
+        "continue": "Continue",
+        "addToCart": "Add to cart",
+        "remove": "Remove",
+        "participants": "Participants",
+        "promoCode": "Promo code",
+        "nights": "night(s)",
+        "yourStays": "Your stays",
+        "totalTTC": "Total incl. tax"
+      },
+      "identification": {
+        "login": "Login",
+        "register": "Create an account",
+        "email": "Email",
+        "password": "Password",
+        "firstName": "First name",
+        "lastName": "Last name",
+        "phone": "Phone",
+        "loginButton": "Sign in",
+        "registerButton": "Create my account",
+        "forgotPassword": "Forgot password?",
+        "resetSent": "If an account exists with this email, a reset link has been sent.",
+        "noOrgSelected": "Organization not selected",
+        "loginError": "Incorrect email or password",
+        "registerError": "Error during registration"
+      },
+      "validation": {
+        "hotelReservation": "Hotel reservation",
+        "accommodation": "accommodation",
+        "touristTax": "Tourist tax",
+        "cleaningFee": "Cleaning fee",
+        "totalTTC": "Total incl. tax",
+        "paymentSchedule": "Your payment schedule",
+        "paymentSummary": "Payment summary",
+        "totalToPay": "Total amount to pay",
+        "today": "Today",
+        "autoDebit": "auto debit",
+        "message": "Would you like to leave us a message? (late arrival...)",
+        "acceptTerms": "I accept the",
+        "termsOfSale": "Terms and Conditions",
+        "privacyPolicy": "Privacy Policy",
+        "and": "and the",
+        "payButton": "Validate and pay",
+        "confirmButton": "Confirm reservation",
+        "cancellationPolicy": "Cancellation policy"
+      },
+      "payment": {
+        "securePayment": "Secure payment",
+        "loading": "Loading payment form...",
+        "error": "Error creating payment",
+        "backToValidation": "Back to validation"
+      },
+      "confirmation": {
+        "confirmed": "Reservation confirmed!",
+        "pending": "Reservation pending confirmation",
+        "emailSent": "A confirmation email has been sent to your address.",
+        "emailPending": "You will receive an email once your reservation is confirmed.",
+        "paymentDone": "Payment completed",
+        "debitedToday": "Debited today",
+        "reference": "Reference",
+        "paymentMethod": "Payment method",
+        "creditCard": "Credit card",
+        "status": "Status",
+        "paid": "Paid",
+        "reservationNumber": "Reservation no.",
+        "accommodation": "Accommodation",
+        "duration": "Duration",
+        "travelers": "Travelers",
+        "totalPaid": "Total paid",
+        "backHome": "Back to home",
+        "downloadReceipt": "Download receipt",
+        "question": "Have a question?"
+      },
+      "account": {
+        "title": "My account",
+        "personalInfo": "Personal information",
+        "myReservations": "My reservations",
+        "noReservations": "No reservations yet.",
+        "logout": "Log out"
+      },
+      "common": {
+        "myAccount": "My account",
+        "menu": "Menu",
+        "back": "Back",
+        "close": "Close",
+        "from": "From",
+        "to": "to",
+        "night": "night",
+        "nights": "nights"
+      }
     },
     "messages": {
       "saved": "Booking Engine configuration saved",
@@ -3427,6 +3591,38 @@
       "wifi": "WiFi",
       "zigbee": "Zigbee",
       "both": "WiFi + Zigbee"
+    }
+  },
+  "serviceOptions": {
+    "title": "Service Options",
+    "addCategory": "Add category",
+    "addItem": "Add item",
+    "empty": "No service categories. Create one to offer options to your travelers.",
+    "deleteCategoryConfirm": "Delete this category and all its items?",
+    "deleteItemConfirm": "Delete this item?",
+    "pricingMode": {
+      "perBooking": "Per booking",
+      "perPerson": "Per person",
+      "perNight": "Per night"
+    },
+    "categoryDialog": {
+      "createTitle": "New category",
+      "editTitle": "Edit category",
+      "name": "Name",
+      "description": "Description",
+      "active": "Active"
+    },
+    "itemDialog": {
+      "createTitle": "New item",
+      "editTitle": "Edit item",
+      "name": "Name",
+      "description": "Description",
+      "price": "Price",
+      "pricingMode": "Pricing mode",
+      "inputType": "Input type",
+      "maxQuantity": "Max quantity",
+      "mandatory": "Mandatory",
+      "active": "Active"
     }
   }
 }

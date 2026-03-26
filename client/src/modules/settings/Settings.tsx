@@ -54,6 +54,9 @@ import storageService, { STORAGE_KEYS } from '../../services/storageService';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useQueryClient } from '@tanstack/react-query';
+import { useOnboarding } from '../../hooks/useOnboarding';
+import { useUserPreferences } from '../../hooks/useUserPreferences';
+import { organizationsApi } from '../../services/api/organizationsApi';
 import { reservationsApi } from '../../services/api/reservationsApi';
 import { propertiesApi } from '../../services/api/propertiesApi';
 import { planningKeys } from '../../hooks/useDashboardPlanning';
@@ -109,6 +112,9 @@ export default function Settings() {
   const { user, hasPermissionAsync, hasAnyRole } = useAuth();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { completeStep, steps } = useOnboarding();
+  const isConfigureOrgDone = steps.find((s) => s.key === 'configure_org')?.completed ?? false;
+  const { preferences, updatePreferences, isSaving: isSavingPrefs } = useUserPreferences();
   const { settings: workflowSettings, updateSettings: updateWorkflowSettings } = useWorkflowSettings();
   const { mode: themeMode, setMode: setThemeMode, isDark } = useThemeMode();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -145,11 +151,6 @@ export default function Settings() {
       push: false,
       sms: false,
     },
-    security: {
-      twoFactorAuth: false,
-      sessionTimeout: 30,
-      passwordExpiry: 90,
-    },
     business: {
       companyName: 'Clenzy',
       timezone: 'Europe/Paris',
@@ -163,27 +164,56 @@ export default function Settings() {
     },
   });
 
+  // Sync display settings from localStorage (pure UI preferences — stay in localStorage)
   useEffect(() => {
     const saved = storageService.getJSON<typeof settings>(STORAGE_KEYS.SETTINGS);
     if (saved) {
-      // Garder la valeur brute du mode ('auto', 'dark', 'light') — ne PAS resoudre
-      setSettings({
-        ...saved,
-        display: {
-          ...saved.display,
-          theme: themeMode,
-        },
-      });
-    } else {
       setSettings(prev => ({
         ...prev,
         display: {
-          ...prev.display,
+          ...(saved.display ?? prev.display),
           theme: themeMode,
         },
       }));
+    } else {
+      setSettings(prev => ({
+        ...prev,
+        display: { ...prev.display, theme: themeMode },
+      }));
     }
   }, [themeMode]);
+
+  // Sync business & notification settings from BDD (source of truth)
+  useEffect(() => {
+    setSettings(prev => ({
+      ...prev,
+      notifications: {
+        email: preferences.notifyEmail,
+        push: preferences.notifyPush,
+        sms: preferences.notifySms,
+      },
+      business: {
+        ...prev.business,
+        timezone: preferences.timezone,
+        currency: preferences.currency,
+        language: preferences.language,
+      },
+    }));
+  }, [preferences]);
+
+  // Sync companyName from Organization entity
+  useEffect(() => {
+    const orgId = user?.organizationId;
+    if (!orgId) return;
+    organizationsApi.getById(orgId).then((org) => {
+      if (org?.name) {
+        setSettings(prev => ({
+          ...prev,
+          business: { ...prev.business, companyName: org.name },
+        }));
+      }
+    }).catch(() => { /* ignore */ });
+  }, [user?.organizationId]);
 
   const [planningMock, setPlanningMock] = useState(
     () => localStorage.getItem(STORAGE_KEYS.PLANNING_MOCK) === 'true'
@@ -268,26 +298,62 @@ export default function Settings() {
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
-      storageService.setJSON(STORAGE_KEYS.SETTINGS, settings);
+      // 1. Display settings → localStorage (pure UI, per-device)
+      storageService.setJSON(STORAGE_KEYS.SETTINGS, { display: settings.display });
+
+      // 2. Business & notification preferences → BDD (source of truth)
+      await updatePreferences({
+        timezone: settings.business.timezone,
+        currency: settings.business.currency,
+        language: settings.business.language,
+        notifyEmail: settings.notifications.email,
+        notifyPush: settings.notifications.push,
+        notifySms: settings.notifications.sms,
+      });
+
+      // 3. Company name → Organization entity
+      const orgId = user?.organizationId;
+      if (orgId) {
+        try {
+          await organizationsApi.update(orgId, { name: settings.business.companyName });
+        } catch { /* non-blocking */ }
+      }
+
+      // 4. Invalidate onboarding auto-checks
+      queryClient.invalidateQueries({ queryKey: ['onboarding', 'me'] });
+
       setSnackbarMessage('Paramètres sauvegardés avec succès');
       setSnackbarOpen(true);
+      if (!isConfigureOrgDone) {
+        completeStep('configure_org');
+      }
     } catch {
       setSnackbarMessage('Erreur lors de la sauvegarde des paramètres');
       setSnackbarOpen(true);
     }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     const defaultSettings = {
       notifications: { email: true, push: false, sms: false },
-      security: { twoFactorAuth: false, sessionTimeout: 30, passwordExpiry: 90 },
-      business: { companyName: 'Clenzy', timezone: 'Europe/Paris', currency: 'EUR', language: 'fr' },
-      display: { theme: 'light', compactMode: false, showAvatars: true },
+      business: { companyName: '', timezone: 'Europe/Paris', currency: 'EUR', language: 'fr' },
+      display: { theme: 'light' as const, compactMode: false, showAvatars: true },
     };
     setSettings(defaultSettings);
-    storageService.setJSON(STORAGE_KEYS.SETTINGS, defaultSettings);
+    storageService.setJSON(STORAGE_KEYS.SETTINGS, { display: defaultSettings.display });
+    // Reset BDD preferences too
+    try {
+      await updatePreferences({
+        timezone: 'Europe/Paris',
+        currency: 'EUR',
+        language: 'fr',
+        notifyEmail: true,
+        notifyPush: false,
+        notifySms: false,
+      });
+    } catch { /* ignore */ }
     setSnackbarMessage('Paramètres réinitialisés');
     setSnackbarOpen(true);
   };
@@ -447,64 +513,6 @@ export default function Settings() {
       {/* ─── Onglet Général ─────────────────────────────────────────────── */}
       <TabPanel value={tabValue} index={0}>
         <Grid container spacing={2}>
-          {/* Sécurité */}
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2, height: '100%' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                <Security sx={{ color: '#A6C0CE', fontSize: 20 }} />
-                <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
-                  Sécurité
-                </Typography>
-              </Box>
-
-              <List>
-                <ListItem>
-                  <ListItemIcon>
-                    <Security />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Authentification à deux facteurs"
-                    secondary="Ajouter une couche de sécurité supplémentaire"
-                  />
-                  <ListItemSecondaryAction>
-                    <Switch
-                      edge="end"
-                      checked={settings.security.twoFactorAuth}
-                      onChange={(e) => handleSettingChange('security', 'twoFactorAuth', e.target.checked)}
-                    />
-                  </ListItemSecondaryAction>
-                </ListItem>
-
-                <ListItem>
-                  <ListItemText
-                    primary="Délai d'expiration de session (minutes)"
-                    secondary="Temps avant déconnexion automatique"
-                  />
-                  <TextField
-                    type="number"
-                    value={settings.security.sessionTimeout}
-                    onChange={(e) => handleSettingChange('security', 'sessionTimeout', parseInt(e.target.value))}
-                    sx={{ width: 80 }}
-                    size="small"
-                  />
-                </ListItem>
-
-                <ListItem>
-                  <ListItemText
-                    primary="Expiration du mot de passe (jours)"
-                    secondary="Durée de validité du mot de passe"
-                  />
-                  <TextField
-                    type="number"
-                    value={settings.security.passwordExpiry}
-                    onChange={(e) => handleSettingChange('security', 'passwordExpiry', parseInt(e.target.value))}
-                    sx={{ width: 80 }}
-                    size="small"
-                  />
-                </ListItem>
-              </List>
-            </Paper>
-          </Grid>
 
           {/* Mon compte */}
           <Grid item xs={12} md={6}>

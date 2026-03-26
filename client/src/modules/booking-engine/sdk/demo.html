@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clenzy Booking Widget — Demo</title>
+  <style>
+    /* Host page styles — these should NOT leak into the widget */
+    * { box-sizing: border-box; }
+    body {
+      font-family: Georgia, serif; /* deliberately different from widget */
+      margin: 0;
+      padding: 40px 20px;
+      background: #F0EEE6;
+      color: #333;
+    }
+    h1 { font-size: 2rem; text-align: center; margin-bottom: 8px; }
+    p.subtitle { text-align: center; color: #666; margin-bottom: 40px; }
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .demo-card {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+    }
+    .demo-card h2 { font-size: 1.1rem; margin-bottom: 4px; }
+    .demo-card p { font-size: 0.85rem; color: #888; margin-bottom: 20px; }
+    button { font-family: inherit; }
+    input { border-radius: 50px !important; } /* should NOT affect widget */
+  </style>
+</head>
+<body>
+
+  <h1>Clenzy Booking Engine SDK</h1>
+  <p class="subtitle">Embeddable widget with Shadow DOM isolation &mdash; Demo page</p>
+
+  <div class="demo-grid">
+
+    <!-- Default theme -->
+    <div class="demo-card">
+      <h2>Default Theme (Stripe)</h2>
+      <p>Default colors, Inter font, 8px radius</p>
+      <div id="widget-default"></div>
+    </div>
+
+    <!-- Custom warm theme -->
+    <div class="demo-card">
+      <h2>Custom Theme (Warm Gold)</h2>
+      <p>Safari lodge style with Poppins font</p>
+      <div id="widget-custom"></div>
+    </div>
+
+  </div>
+
+  <!--
+    In production, load via:
+    <script src="https://sdk.clenzy.fr/booking/v1/clenzy-booking.min.js"></script>
+
+    For dev, this page should be loaded via Vite dev server which
+    will resolve the TypeScript imports.
+  -->
+  <script type="module">
+    import ClenzyBooking from './index.ts';
+
+    // Widget 1: Default Stripe theme
+    ClenzyBooking.init({
+      container: '#widget-default',
+      apiKey: 'demo_key_123',
+      baseUrl: 'http://localhost:8084',
+      language: 'en',
+      currency: 'EUR',
+      onDateChange: (dates) => console.log('Dates changed:', dates),
+      onPriceChange: (price) => console.log('Price updated:', price),
+      onBook: (res) => console.log('Booking confirmed:', res),
+      onError: (err) => console.error('Booking error:', err),
+    });
+
+    // Widget 2: Custom warm theme
+    ClenzyBooking.init({
+      container: '#widget-custom',
+      apiKey: 'demo_key_123',
+      baseUrl: 'http://localhost:8084',
+      language: 'fr',
+      currency: 'EUR',
+      theme: {
+        primaryColor: '#B2974A',
+        textColor: '#49554C',
+        textSecondaryColor: '#8EA093',
+        surfaceColor: '#F2F1EB',
+        borderColor: '#E5E2D9',
+        fontFamily: "'Poppins', sans-serif",
+        borderRadius: '4px',
+      },
+      onDateChange: (dates) => console.log('[FR] Dates changed:', dates),
+    });
+  </script>
+
+</body>
+</html>

@@ -122,6 +122,17 @@ public class BookingEngineConfig {
     @Column(name = "ai_analysis_at")
     private LocalDateTime aiAnalysisAt;
 
+    // ─── Widget Integration Position ──────────────────────────────────
+
+    @Column(name = "widget_position", length = 10)
+    private String widgetPosition = "bottom";
+
+    @Column(name = "inline_target_id", length = 50)
+    private String inlineTargetId;
+
+    @Column(name = "inline_placement", length = 10)
+    private String inlinePlacement = "after";
+
     // ─── Timestamps ─────────────────────────────────────────────────────
 
     @CreationTimestamp
@@ -217,6 +228,15 @@ public class BookingEngineConfig {
 
     public LocalDateTime getAiAnalysisAt() { return aiAnalysisAt; }
     public void setAiAnalysisAt(LocalDateTime aiAnalysisAt) { this.aiAnalysisAt = aiAnalysisAt; }
+
+    public String getWidgetPosition() { return widgetPosition; }
+    public void setWidgetPosition(String widgetPosition) { this.widgetPosition = widgetPosition; }
+
+    public String getInlineTargetId() { return inlineTargetId; }
+    public void setInlineTargetId(String inlineTargetId) { this.inlineTargetId = inlineTargetId; }
+
+    public String getInlinePlacement() { return inlinePlacement; }
+    public void setInlinePlacement(String inlinePlacement) { this.inlinePlacement = inlinePlacement; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

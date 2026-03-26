@@ -184,6 +184,15 @@ public class GuestController {
         );
     }
 
+    // ── POST /recalculate-stats : recalcul des compteurs totalStays/totalSpent ──
+
+    @PostMapping("/recalculate-stats")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public Map<String, Object> recalculateStats() {
+        int updated = guestService.recalculateAllStats();
+        return Map.of("updated", updated, "status", "ok");
+    }
+
     private GuestListDto toListDto(Guest g, String organizationName) {
         return new GuestListDto(
                 g.getId(),

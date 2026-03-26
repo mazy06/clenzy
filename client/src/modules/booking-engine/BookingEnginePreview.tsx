@@ -1,14 +1,22 @@
-import React, { useMemo } from 'react';
-import { Box, Typography, Paper, Button, Chip } from '@mui/material';
-import {
-  Search, CalendarMonth, CreditCard, Star, Map, Phone,
-} from '@mui/icons-material';
-import { useTranslation } from '../../hooks/useTranslation';
+import React, { useMemo, useState } from 'react';
+import { Box } from '@mui/material';
+import { useGuestAuth } from '../../hooks/useGuestAuth';
 import type { ComponentVisibility } from './ComponentVisibilityConfig';
 import { DEFAULT_COMPONENT_VISIBILITY } from './ComponentVisibilityConfig';
 import type { DesignTokens } from '../../services/api/bookingEngineApi';
+import type { BookingServiceCategory, SelectedServiceOption } from '../../services/api/bookingServiceOptionsApi';
+import { createBookingI18n } from './sdk/i18n';
+import { useBookingNavigation } from './hooks/useBookingNavigation';
+import { DEFAULTS } from './types/bookingEngine';
+import type { PreviewProperty, PreviewPropertyType, PreviewAvailabilityDay } from './types/bookingEngine';
+import BookingSearchBar from './components/BookingSearchBar';
+import BookingResultsPage from './components/BookingResultsPage';
+import BookingCartPage from './components/BookingCartPage';
+import BookingAuthPage from './components/BookingAuthPage';
+import { BookingValidationPage, BookingConfirmationPage } from './components/BookingPaymentPage';
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+// Re-export types for backward compatibility
+export type { PreviewProperty, PreviewPropertyType, PreviewAvailabilityDay };
 
 interface BookingEnginePreviewProps {
   primaryColor: string;
@@ -18,328 +26,224 @@ interface BookingEnginePreviewProps {
   customCss: string | null;
   componentConfig: ComponentVisibility;
   designTokens?: DesignTokens;
+  properties?: PreviewProperty[];
+  availabilityDays?: Map<string, PreviewAvailabilityDay>;
+  propertyTypes?: PreviewPropertyType[];
+  availabilityLoading?: boolean;
+  onMonthChange?: (year: number, month: number) => void;
+  onTypesChange?: (types: string[]) => void;
+  onGuestsChange?: (adults: number, children: number) => void;
+  organizationId?: number | null;
+  defaultCurrency?: string;
+  minAdvanceDays?: number;
+  maxAdvanceDays?: number;
+  termsUrl?: string | null;
+  privacyUrl?: string | null;
+  cancellationPolicy?: string | null;
+  collectPaymentOnBooking?: boolean;
+  autoConfirm?: boolean;
+  showCleaningFee?: boolean;
+  showTouristTax?: boolean;
+  defaultLanguage?: string;
+  reviewStats?: Map<number, { avg: number; count: number }>;
+  panelDirection?: 'up' | 'down';
+  onPageChange?: (page: string) => void;
+  serviceCategories?: BookingServiceCategory[];
 }
 
-// ─── Component ──────────────────────────────────────────────────────────────
+const BookingEnginePreview: React.FC<BookingEnginePreviewProps> = (props) => {
+  const {
+    primaryColor, accentColor, fontFamily, logoUrl, customCss, componentConfig,
+    designTokens, properties, availabilityDays, propertyTypes, availabilityLoading,
+    onMonthChange, onTypesChange, onGuestsChange, organizationId,
+    defaultCurrency = 'EUR',
+    minAdvanceDays = 0, maxAdvanceDays = 365,
+    termsUrl, privacyUrl, cancellationPolicy,
+    collectPaymentOnBooking = true, autoConfirm = true,
+    showCleaningFee = true, showTouristTax = true,
+    defaultLanguage = 'fr', reviewStats,
+    panelDirection = 'up',
+    onPageChange,
+    serviceCategories = [],
+  } = props;
 
-const BookingEnginePreview: React.FC<BookingEnginePreviewProps> = React.memo(
-  ({ primaryColor, accentColor, fontFamily, logoUrl, customCss, componentConfig, designTokens }) => {
-    const { t } = useTranslation();
-    const vis = componentConfig || DEFAULT_COMPONENT_VISIBILITY;
-    const font = fontFamily || designTokens?.bodyFontFamily || 'inherit';
-    const accent = accentColor || primaryColor;
+  const i18n = useMemo(() => createBookingI18n(defaultLanguage as 'fr' | 'en' | 'ar'), [defaultLanguage]);
+  const isRTL = defaultLanguage === 'ar';
 
-    // Build CSS custom properties from design tokens
-    const tokenCssVars = useMemo(() => {
-      if (!designTokens) return {};
-      const vars: Record<string, string> = {};
-      if (designTokens.primaryColor) vars['--bw-primary'] = designTokens.primaryColor;
-      if (designTokens.secondaryColor) vars['--bw-secondary'] = designTokens.secondaryColor;
-      if (designTokens.accentColor) vars['--bw-accent'] = designTokens.accentColor;
-      if (designTokens.backgroundColor) vars['--bw-bg'] = designTokens.backgroundColor;
-      if (designTokens.surfaceColor) vars['--bw-surface'] = designTokens.surfaceColor;
-      if (designTokens.textColor) vars['--bw-text'] = designTokens.textColor;
-      if (designTokens.textSecondaryColor) vars['--bw-text-secondary'] = designTokens.textSecondaryColor;
-      if (designTokens.borderRadius) vars['--bw-radius'] = designTokens.borderRadius;
-      if (designTokens.cardBorderRadius) vars['--bw-card-radius'] = designTokens.cardBorderRadius;
-      if (designTokens.buttonBorderRadius) vars['--bw-btn-radius'] = designTokens.buttonBorderRadius;
-      if (designTokens.spacing) vars['--bw-spacing'] = designTokens.spacing;
-      if (designTokens.boxShadow) vars['--bw-shadow'] = designTokens.boxShadow;
-      if (designTokens.cardShadow) vars['--bw-card-shadow'] = designTokens.cardShadow;
-      if (designTokens.borderColor) vars['--bw-border'] = designTokens.borderColor;
-      if (designTokens.headingFontFamily) vars['--bw-heading-font'] = designTokens.headingFontFamily;
-      if (designTokens.bodyFontFamily) vars['--bw-body-font'] = designTokens.bodyFontFamily;
-      if (designTokens.baseFontSize) vars['--bw-font-size'] = designTokens.baseFontSize;
-      return vars;
-    }, [designTokens]);
+  // ─── Design tokens ──────────────────────────────────────────────────
+  const tk = useMemo(() => ({
+    primary: designTokens?.primaryColor || primaryColor || DEFAULTS.primary,
+    accent: designTokens?.accentColor || accentColor || designTokens?.primaryColor || primaryColor || DEFAULTS.primary,
+    secondary: designTokens?.secondaryColor || DEFAULTS.secondary,
+    text: designTokens?.textColor || DEFAULTS.text,
+    textLabel: designTokens?.textSecondaryColor || DEFAULTS.textLabel,
+    textPlaceholder: DEFAULTS.textPlaceholder,
+    surface: designTokens?.surfaceColor || DEFAULTS.surface,
+    surfaceMuted: designTokens?.backgroundColor || DEFAULTS.surfaceMuted,
+    border: designTokens?.borderColor || DEFAULTS.border,
+    font: fontFamily || designTokens?.bodyFontFamily || DEFAULTS.font,
+    headingFont: designTokens?.headingFontFamily || DEFAULTS.font,
+    radius: designTokens?.borderRadius || DEFAULTS.radius,
+    radiusSm: designTokens?.buttonBorderRadius || DEFAULTS.radiusSm,
+    cardRadius: designTokens?.cardBorderRadius || DEFAULTS.cardRadius,
+    shadow: designTokens?.boxShadow || '0 0 40px rgba(0,0,0,0.16)',
+    cardShadow: designTokens?.cardShadow || '0 2px 12px rgba(0,0,0,0.08)',
+    btnTransform: (designTokens?.buttonTextTransform || 'uppercase') as React.CSSProperties['textTransform'],
+    btnStyle: designTokens?.buttonStyle || 'filled',
+  }), [designTokens, primaryColor, accentColor, fontFamily]);
 
-    // Derived styles from tokens
-    const bgColor = designTokens?.backgroundColor || '#fafafa';
-    const surfaceColor = designTokens?.surfaceColor || '#fff';
-    const borderColor = designTokens?.borderColor || undefined;
-    const cardRadius = designTokens?.cardBorderRadius || undefined;
-    const cardShadow = designTokens?.cardShadow || undefined;
-    const btnRadius = designTokens?.buttonBorderRadius || undefined;
-    const textTransform = designTokens?.buttonTextTransform as React.CSSProperties['textTransform'] || 'none';
+  // Compute min bookable date from minAdvanceDays
+  const minBookableDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + minAdvanceDays);
+    return d.toISOString().slice(0, 10);
+  }, [minAdvanceDays]);
 
-    return (
-      <Box sx={{ position: 'relative' }}>
-        {/* Inject custom CSS */}
-        {customCss && <style>{customCss}</style>}
+  const btnSx = useMemo(() => {
+    if (tk.btnStyle === 'outlined') {
+      return {
+        border: `1.5px solid ${tk.border}`, color: tk.text, bgcolor: 'transparent',
+        '&:hover': { borderColor: tk.primary, color: tk.primary },
+      };
+    }
+    return {
+      bgcolor: tk.primary, color: tk.surface,
+      '&:hover': { bgcolor: tk.primary, filter: 'brightness(1.08)' },
+    };
+  }, [tk]);
 
-        <Paper
-          className="booking-widget"
-          variant="outlined"
-          sx={{
-            p: 2.5,
-            borderRadius: cardRadius || 2,
-            fontFamily: font,
-            maxHeight: 420,
-            overflow: 'auto',
-            bgcolor: bgColor,
-            ...(Object.keys(tokenCssVars).length > 0 ? { style: tokenCssVars } : {}),
-          }}
-          style={Object.keys(tokenCssVars).length > 0 ? tokenCssVars : undefined}
-        >
-          {/* Header with logo */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-            {logoUrl ? (
-              <Box
-                component="img"
-                src={logoUrl}
-                alt="Logo"
-                sx={{ height: 32, maxWidth: 120, objectFit: 'contain' }}
-                onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-            ) : (
-              <Box
-                sx={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 1,
-                  bgcolor: primaryColor,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>B</Typography>
-              </Box>
-            )}
-            <Typography sx={{ fontWeight: 700, fontSize: '1rem', fontFamily: font }}>
-              {t('bookingEngine.preview.title')}
-            </Typography>
-          </Box>
+  // ─── Navigation hook ────────────────────────────────────────────────
+  const nav = useBookingNavigation({
+    propertyTypes, properties,
+    onMonthChange, onTypesChange, onGuestsChange, onPageChange,
+  });
 
-          {/* Search bar */}
-          {vis.searchBar && (
-            <Box
-              sx={{
-                display: 'flex',
-                gap: 1,
-                p: 1.5,
-                mb: 1.5,
-                borderRadius: 1.5,
-                bgcolor: '#fff',
-                border: '1px solid',
-                borderColor: 'grey.200',
-              }}
-            >
-              <Search sx={{ color: 'text.secondary', fontSize: 18 }} />
-              <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
-                {t('bookingEngine.preview.searchPlaceholder')}
-              </Typography>
-            </Box>
-          )}
+  const guestAuth = useGuestAuth(organizationId ?? null);
 
-          {/* Property list (mock cards) */}
-          {vis.propertyList && (
-            <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
-              {['Studio Montmartre', 'Appart. Marais'].map((name) => (
-                <Box
-                  key={name}
-                  sx={{
-                    flex: 1,
-                    p: 1.5,
-                    borderRadius: 1.5,
-                    bgcolor: '#fff',
-                    border: '1px solid',
-                    borderColor: 'grey.200',
-                  }}
-                >
-                  {vis.propertyGallery && (
-                    <Box
-                      sx={{
-                        height: 48,
-                        borderRadius: cardRadius || 1,
-                        bgcolor: 'grey.100',
-                        mb: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Typography sx={{ fontSize: '0.625rem', color: 'text.disabled' }}>📷</Typography>
-                    </Box>
-                  )}
-                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, fontFamily: font }}>
-                    {name}
-                  </Typography>
-                  <Typography className="price" sx={{ fontSize: '0.6875rem', color: primaryColor, fontWeight: 600 }}>
-                    90€ / {t('bookingEngine.preview.night')}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          )}
+  // ─── Service options state ────────────────────────────────────────
+  const [selectedOptions, setSelectedOptions] = useState<SelectedServiceOption[]>([]);
 
-          {/* Availability calendar */}
-          {vis.availabilityCalendar && (
-            <Box
-              sx={{
-                p: 1.5,
-                mb: 1.5,
-                borderRadius: 1.5,
-                bgcolor: '#fff',
-                border: '1px solid',
-                borderColor: 'grey.200',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                <CalendarMonth sx={{ fontSize: 14, color: primaryColor }} />
-                <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600 }}>
-                  {t('bookingEngine.preview.calendar')}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 0.5 }}>
-                {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => (
-                  <Box
-                    key={i}
-                    sx={{
-                      flex: 1,
-                      textAlign: 'center',
-                      py: 0.5,
-                      borderRadius: 0.5,
-                      bgcolor: i >= 2 && i <= 4 ? `${primaryColor}20` : 'transparent',
-                      fontSize: '0.625rem',
-                      fontWeight: 600,
-                      color: i >= 2 && i <= 4 ? primaryColor : 'text.secondary',
-                    }}
-                  >
-                    {d}
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          )}
+  // ─── Page router ──────────────────────────────────────────────────
+  const renderPage = () => {
+    switch (nav.page) {
+      case 'search':
+        return (
+          <BookingSearchBar
+            tk={tk} i18n={i18n} btnSx={btnSx} isCompact={nav.isCompact}
+            activePanel={nav.activePanel} togglePanel={nav.togglePanel} panelDirection={panelDirection}
+            adults={nav.adults} setAdults={nav.setAdults} children={nav.children} setChildren={nav.setChildren}
+            selectedTypes={nav.selectedTypes} setSelectedTypes={nav.setSelectedTypes} propertyTypes={propertyTypes}
+            checkIn={nav.checkIn} checkOut={nav.checkOut} calMonth={nav.calMonth} setCalMonth={nav.setCalMonth}
+            hoverDate={nav.hoverDate} setHoverDate={nav.setHoverDate} handleDayClick={nav.handleDayClick}
+            availabilityDays={availabilityDays} availabilityLoading={availabilityLoading}
+            defaultCurrency={defaultCurrency} defaultLanguage={defaultLanguage}
+            handleSearch={nav.handleSearch}
+            logoUrl={logoUrl} minBookableDate={minBookableDate}
+          />
+        );
+      case 'results':
+        return (
+          <BookingResultsPage
+            tk={tk} i18n={i18n} btnSx={btnSx}
+            filteredProperties={nav.filteredProperties} cart={nav.cart} setCart={nav.setCart} setPage={nav.setPage}
+            checkIn={nav.checkIn} checkOut={nav.checkOut} nights={nav.nights}
+            adults={nav.adults} children={nav.children}
+            defaultCurrency={defaultCurrency} showCleaningFee={showCleaningFee} reviewStats={reviewStats}
+          />
+        );
+      case 'cart':
+        return (
+          <BookingCartPage
+            tk={tk} i18n={i18n} btnSx={btnSx}
+            cart={nav.cart} setCart={nav.setCart} setPage={nav.setPage}
+            adults={nav.adults} setAdults={nav.setAdults} children={nav.children} setChildren={nav.setChildren}
+            nights={nav.nights} checkIn={nav.checkIn} checkOut={nav.checkOut}
+            defaultCurrency={defaultCurrency} showCleaningFee={showCleaningFee} showTouristTax={showTouristTax}
+            isAuthenticated={guestAuth.isAuthenticated}
+            serviceCategories={serviceCategories}
+            selectedOptions={selectedOptions}
+            onOptionChange={setSelectedOptions}
+          />
+        );
+      case 'identification':
+        return (
+          <BookingAuthPage
+            tk={tk} i18n={i18n} btnSx={btnSx}
+            authTab={nav.authTab} setAuthTab={nav.setAuthTab} setPage={nav.setPage}
+            onAuthenticate={async (data) => {
+              const success = nav.authTab === 'login'
+                ? await guestAuth.login({ email: data.email, password: data.password })
+                : await guestAuth.register({
+                    email: data.email, password: data.password,
+                    firstName: data.firstName || '', lastName: data.lastName || '',
+                    phone: data.phone || '',
+                  });
+              if (success) nav.setPage('validation');
+            }}
+            isLoading={guestAuth.isLoading}
+            error={guestAuth.error}
+          />
+        );
+      case 'validation':
+        return (
+          <BookingValidationPage
+            tk={tk} i18n={i18n} btnSx={btnSx}
+            cart={nav.cart} nights={nav.nights} setPage={nav.setPage}
+            adults={nav.adults} children={nav.children}
+            checkIn={nav.checkIn} checkOut={nav.checkOut}
+            defaultCurrency={defaultCurrency} showCleaningFee={showCleaningFee} showTouristTax={showTouristTax}
+            cancellationPolicy={cancellationPolicy} termsUrl={termsUrl} privacyUrl={privacyUrl}
+            onCreateCheckoutSession={async () => {
+              // Call backend to create Stripe Checkout session
+              try {
+                const { bookingEngineApi } = await import('../../services/api/bookingEngineApi');
+                const firstItem = nav.cart[0];
+                if (!firstItem) return null;
+                const subtotal = nav.cart.reduce((s, item) => s + (item.property.nightlyPrice || 0) * item.nights, 0);
+                const cleaningFee = showCleaningFee ? nav.cart.reduce((s, item) => s + (item.property.cleaningFee || 0), 0) : 0;
+                // Tourist tax sera calculee cote serveur lors de la creation de la session
+                const totalAmount = subtotal + cleaningFee;
+                const response = await bookingEngineApi.createCheckoutSession({
+                  propertyId: firstItem.property.id,
+                  amount: totalAmount,
+                  checkIn: nav.checkIn || '',
+                  checkOut: nav.checkOut || '',
+                  guests: nav.adults + nav.children,
+                  customerEmail: guestAuth.session?.profile?.email,
+                });
+                return response.clientSecret;
+              } catch {
+                return null;
+              }
+            }}
+          />
+        );
+      case 'confirmation':
+        return (
+          <BookingConfirmationPage
+            tk={tk} i18n={i18n} btnSx={btnSx}
+            cart={nav.cart} nights={nav.nights} adults={nav.adults}
+            checkIn={nav.checkIn} checkOut={nav.checkOut}
+            defaultCurrency={defaultCurrency} showCleaningFee={showCleaningFee} showTouristTax={showTouristTax}
+            autoConfirm={autoConfirm} resetBooking={nav.resetBooking} setPage={nav.setPage}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
-          {/* Price breakdown */}
-          {vis.priceBreakdown && (
-            <Box
-              sx={{
-                p: 1.5,
-                mb: 1.5,
-                borderRadius: 1.5,
-                bgcolor: '#fff',
-                border: '1px solid',
-                borderColor: 'grey.200',
-              }}
-            >
-              <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, mb: 0.5 }}>
-                {t('bookingEngine.preview.priceBreakdown')}
-              </Typography>
-              {[
-                { label: '3 × 90€', value: '270€' },
-                { label: t('bookingEngine.preview.cleaning'), value: '45€' },
-                { label: t('bookingEngine.preview.touristTax'), value: '3.30€' },
-              ].map((row) => (
-                <Box key={row.label} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-                  <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>{row.label}</Typography>
-                  <Typography sx={{ fontSize: '0.625rem', fontWeight: 600 }}>{row.value}</Typography>
-                </Box>
-              ))}
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  pt: 0.5,
-                  mt: 0.5,
-                  borderTop: '1px solid',
-                  borderColor: 'grey.200',
-                }}
-              >
-                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>Total</Typography>
-                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: primaryColor }}>318.30€</Typography>
-              </Box>
-            </Box>
-          )}
-
-          {/* Reviews */}
-          {vis.reviewsSection && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-              <Star sx={{ fontSize: 14, color: '#FFC107' }} />
-              <Typography sx={{ fontSize: '0.625rem', fontWeight: 600 }}>4.8</Typography>
-              <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>(127 avis)</Typography>
-            </Box>
-          )}
-
-          {/* Map */}
-          {vis.mapSection && (
-            <Box
-              sx={{
-                p: 1,
-                mb: 1.5,
-                borderRadius: 1,
-                bgcolor: 'grey.100',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-              }}
-            >
-              <Map sx={{ fontSize: 14, color: 'text.secondary' }} />
-              <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
-                {t('bookingEngine.preview.map')}
-              </Typography>
-            </Box>
-          )}
-
-          {/* Payment */}
-          {vis.paymentSection && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-              <CreditCard sx={{ fontSize: 14, color: accent }} />
-              <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
-                {t('bookingEngine.preview.payment')}
-              </Typography>
-            </Box>
-          )}
-
-          {/* Cancellation policy */}
-          {vis.cancellationPolicy && (
-            <Chip
-              label={t('bookingEngine.preview.cancellationPolicy')}
-              size="small"
-              sx={{ fontSize: '0.625rem', height: 20, mb: 1 }}
-            />
-          )}
-
-          {/* Contact */}
-          {vis.contactSection && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5 }}>
-              <Phone sx={{ fontSize: 14, color: 'text.secondary' }} />
-              <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
-                {t('bookingEngine.preview.contact')}
-              </Typography>
-            </Box>
-          )}
-
-          {/* Book button */}
-          {vis.guestForm && (
-            <Button
-              fullWidth
-              variant="contained"
-              size="small"
-              sx={{
-                bgcolor: designTokens?.primaryColor || primaryColor,
-                textTransform,
-                fontWeight: 600,
-                fontSize: '0.8125rem',
-                fontFamily: font,
-                borderRadius: btnRadius || 1.5,
-                boxShadow: cardShadow || undefined,
-                '&:hover': { bgcolor: designTokens?.primaryColor || primaryColor, filter: 'brightness(0.9)' },
-              }}
-            >
-              {t('bookingEngine.preview.bookNow')}
-            </Button>
-          )}
-        </Paper>
-      </Box>
-    );
-  }
-);
-
-BookingEnginePreview.displayName = 'BookingEnginePreview';
+  return (
+    <Box ref={nav.containerRef} sx={{
+      fontFamily: tk.font, color: tk.text, bgcolor: nav.page === 'search' ? 'transparent' : tk.surface,
+      display: 'flex', flexDirection: 'column', minHeight: 80,
+      direction: isRTL ? 'rtl' : 'ltr', position: 'relative',
+      ...(nav.page !== 'search' ? { flex: 1 } : {}),
+    }}>
+      {customCss && <style>{customCss}</style>}
+      {renderPage()}
+    </Box>
+  );
+};
 
 export default BookingEnginePreview;

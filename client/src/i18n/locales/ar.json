@@ -2898,7 +2898,8 @@
       "payments": "المدفوعات",
       "system": "النظام",
       "contact": "جهات الاتصال",
-      "document": "المستندات"
+      "document": "المستندات",
+      "reservations": "الحجوزات"
     }
   },
   "fiscal": {
@@ -2966,7 +2967,9 @@
       "general": "عام",
       "appearance": "المظهر",
       "settings": "الإعدادات",
-      "customization": "التخصيص"
+      "customization": "التخصيص",
+      "options": "الخيارات",
+      "integration": "التكامل"
     },
     "actions": {
       "newTemplate": "قالب جديد",
@@ -3040,18 +3043,147 @@
       "contactSection": "قسم التواصل"
     },
     "preview": {
-      "title": "محرك الحجز",
-      "searchPlaceholder": "البحث عن عقار...",
-      "night": "ليلة",
-      "calendar": "التوفر",
-      "priceBreakdown": "تفاصيل السعر",
-      "cleaning": "التنظيف",
-      "touristTax": "الضريبة السياحية",
-      "payment": "دفع آمن",
-      "cancellationPolicy": "إلغاء مرن",
-      "contact": "اتصل بنا",
-      "map": "خريطة تفاعلية",
-      "bookNow": "احجز الآن"
+      "weekdays": ["الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"],
+      "months": ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"],
+      "propertyTypes": {
+        "APARTMENT": "شقة",
+        "HOUSE": "منزل",
+        "STUDIO": "استوديو",
+        "VILLA": "فيلا",
+        "LOFT": "لوفت",
+        "GUEST_ROOM": "غرفة ضيوف",
+        "COTTAGE": "كوخ",
+        "CHALET": "شاليه",
+        "BOAT": "قارب",
+        "OTHER": "أخرى"
+      },
+      "stepLabels": ["الإقامات والخيارات", "التعريف", "التحقق", "التأكيد"],
+      "searchBar": {
+        "travelers": "المسافرون",
+        "accommodations": "أماكن الإقامة",
+        "dates": "التواريخ",
+        "select": "اختر...",
+        "stayDates": "تواريخ الإقامة",
+        "allTypes": "الكل"
+      },
+      "guests": {
+        "adults": "بالغون",
+        "adultsAge": "12 سنة وأكثر",
+        "children": "أطفال",
+        "childrenAge": "3 إلى 11 سنة",
+        "babies": "رضع",
+        "babiesAge": "0 إلى 3 سنوات",
+        "adult": "بالغ(ون)",
+        "child": "طفل (أطفال)",
+        "baby": "رضيع (رضع)"
+      },
+      "results": {
+        "title": "نتائج البحث",
+        "modifySearch": "تعديل البحث",
+        "select": "اختيار",
+        "selected": "محدد",
+        "moreInfo": "+ معلومات",
+        "noResults": "لا يوجد إقامة متاحة لهذا الاختيار.",
+        "selectDates": "اختر التواريخ",
+        "from": "من",
+        "noPhoto": "لا توجد صورة",
+        "allFilters": "جميع الأنواع",
+        "filterBy": "تصفية حسب النوع"
+      },
+      "cart": {
+        "title": "سلتك",
+        "empty": "سلتك فارغة.",
+        "backHome": "العودة إلى الرئيسية",
+        "clearCart": "إفراغ السلة",
+        "continue": "متابعة",
+        "addToCart": "إضافة إلى السلة",
+        "remove": "حذف",
+        "participants": "المشاركون",
+        "promoCode": "رمز ترويجي",
+        "nights": "ليلة (ليالي)",
+        "yourStays": "إقاماتك",
+        "totalTTC": "الإجمالي شامل الضريبة"
+      },
+      "identification": {
+        "login": "تسجيل الدخول",
+        "register": "إنشاء حساب",
+        "email": "البريد الإلكتروني",
+        "password": "كلمة المرور",
+        "firstName": "الاسم الأول",
+        "lastName": "اسم العائلة",
+        "phone": "الهاتف",
+        "loginButton": "تسجيل الدخول",
+        "registerButton": "إنشاء حسابي",
+        "forgotPassword": "نسيت كلمة المرور؟",
+        "resetSent": "إذا كان هناك حساب بهذا البريد الإلكتروني، فقد تم إرسال رابط إعادة التعيين.",
+        "noOrgSelected": "لم يتم اختيار المنظمة",
+        "loginError": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+        "registerError": "خطأ أثناء التسجيل"
+      },
+      "validation": {
+        "hotelReservation": "حجز فندقي",
+        "accommodation": "إقامة",
+        "touristTax": "ضريبة سياحية",
+        "cleaningFee": "رسوم التنظيف",
+        "totalTTC": "الإجمالي شامل الضريبة",
+        "paymentSchedule": "جدول الدفع الخاص بك",
+        "paymentSummary": "ملخص الدفع",
+        "totalToPay": "المبلغ الإجمالي المستحق",
+        "today": "اليوم",
+        "autoDebit": "خصم تلقائي",
+        "message": "هل ترغب في ترك رسالة لنا؟ (وصول متأخر...)",
+        "acceptTerms": "أوافق على",
+        "termsOfSale": "الشروط والأحكام العامة للبيع",
+        "privacyPolicy": "سياسة الخصوصية",
+        "and": "و",
+        "payButton": "التحقق والدفع",
+        "confirmButton": "تأكيد الحجز",
+        "cancellationPolicy": "سياسة الإلغاء"
+      },
+      "payment": {
+        "securePayment": "دفع آمن",
+        "loading": "جاري تحميل نموذج الدفع...",
+        "error": "خطأ في إنشاء الدفع",
+        "backToValidation": "العودة إلى التحقق"
+      },
+      "confirmation": {
+        "confirmed": "تم تأكيد الحجز!",
+        "pending": "الحجز في انتظار التأكيد",
+        "emailSent": "تم إرسال بريد إلكتروني للتأكيد إلى عنوانك.",
+        "emailPending": "ستتلقى بريدًا إلكترونيًا بمجرد تأكيد حجزك.",
+        "paymentDone": "تم الدفع",
+        "debitedToday": "تم الخصم اليوم",
+        "reference": "المرجع",
+        "paymentMethod": "طريقة الدفع",
+        "creditCard": "بطاقة ائتمان",
+        "status": "الحالة",
+        "paid": "مدفوع",
+        "reservationNumber": "رقم الحجز",
+        "accommodation": "الإقامة",
+        "duration": "المدة",
+        "travelers": "المسافرون",
+        "totalPaid": "إجمالي المدفوع",
+        "backHome": "العودة إلى الرئيسية",
+        "downloadReceipt": "تحميل الإيصال",
+        "question": "لديك سؤال؟"
+      },
+      "account": {
+        "title": "حسابي",
+        "personalInfo": "المعلومات الشخصية",
+        "myReservations": "حجوزاتي",
+        "noReservations": "لا توجد حجوزات حتى الآن.",
+        "logout": "تسجيل الخروج"
+      },
+      "common": {
+        "myAccount": "حسابي",
+        "menu": "القائمة",
+        "back": "رجوع",
+        "close": "إغلاق",
+        "from": "من",
+        "to": "إلى",
+        "night": "ليلة",
+        "nights": "ليالي"
+      }
     },
     "messages": {
       "saved": "تم حفظ تكوين محرك الحجز",
@@ -3386,6 +3518,38 @@
         "PAID": "مدفوعة",
         "CANCELLED": "ملغاة"
       }
+    }
+  },
+  "serviceOptions": {
+    "title": "خيارات الخدمة",
+    "addCategory": "إضافة فئة",
+    "addItem": "إضافة عنصر",
+    "empty": "لا توجد فئات خدمة. أنشئ واحدة لتقديم خيارات لمسافريك.",
+    "deleteCategoryConfirm": "حذف هذه الفئة وجميع عناصرها؟",
+    "deleteItemConfirm": "حذف هذا العنصر؟",
+    "pricingMode": {
+      "perBooking": "لكل حجز",
+      "perPerson": "لكل شخص",
+      "perNight": "لكل ليلة"
+    },
+    "categoryDialog": {
+      "createTitle": "فئة جديدة",
+      "editTitle": "تعديل الفئة",
+      "name": "الاسم",
+      "description": "الوصف",
+      "active": "نشط"
+    },
+    "itemDialog": {
+      "createTitle": "عنصر جديد",
+      "editTitle": "تعديل العنصر",
+      "name": "الاسم",
+      "description": "الوصف",
+      "price": "السعر",
+      "pricingMode": "وضع التسعير",
+      "inputType": "نوع الإدخال",
+      "maxQuantity": "الكمية القصوى",
+      "mandatory": "إلزامي",
+      "active": "نشط"
     }
   }
 }

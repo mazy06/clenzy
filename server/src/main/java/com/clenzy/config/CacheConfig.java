@@ -95,6 +95,11 @@ public class CacheConfig {
                 .entryTtl(Duration.ofHours(24))
                 .prefixCacheNameWith("clenzy:ai-design:"));
 
+        // Cache site snapshots for preview (10 minutes)
+        cacheConfigurations.put("site-snapshots", defaultConfig
+                .entryTtl(Duration.ofMinutes(10))
+                .prefixCacheNameWith("clenzy:site-snapshots:"));
+
         RedisCacheManager redisCacheManager = RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigurations)

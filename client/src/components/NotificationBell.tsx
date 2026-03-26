@@ -23,6 +23,7 @@ import {
   Groups,
   Email,
   Circle,
+  EventNote,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../hooks/useTranslation';
@@ -39,6 +40,7 @@ const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
   team: <Groups sx={{ fontSize: 18, color: '#0288d1' }} />,
   contact: <Email sx={{ fontSize: 18, color: '#e91e63' }} />,
   document: <Description sx={{ fontSize: 18, color: '#f57c00' }} />,
+  reservation: <EventNote sx={{ fontSize: 18, color: '#0288d1' }} />,
 };
 
 function timeAgo(dateStr: string): string {

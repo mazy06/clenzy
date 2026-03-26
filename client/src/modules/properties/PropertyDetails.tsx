@@ -53,6 +53,7 @@ import {
   Phone,
   OpenInNew,
   PhotoLibrary,
+  Inventory2,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -64,6 +65,7 @@ import { formatDate } from '../../utils/formatUtils';
 import DescriptionNotesDisplay from '../../components/DescriptionNotesDisplay';
 import CheckInInstructionsForm from '../channels/CheckInInstructionsForm';
 import PropertyPhotosTab from './PropertyPhotosTab';
+import PropertyInventoryTab from './PropertyInventoryTab';
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogoSmall from '../../assets/logo/booking-logo-small.svg';
 import hotelsComLogo from '../../assets/logo/hotels-com-logo-small.svg';
@@ -453,6 +455,12 @@ const PropertyDetails: React.FC = () => {
             iconPosition="start"
             label={t('properties.tabs.photos')}
             {...a11yProps(4)}
+          />
+          <Tab
+            icon={<Inventory2 sx={{ fontSize: 16 }} />}
+            iconPosition="start"
+            label="Inventaire"
+            {...a11yProps(5)}
           />
         </Tabs>
       </Paper>
@@ -1040,6 +1048,18 @@ const PropertyDetails: React.FC = () => {
           sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
         >
           <PropertyPhotosTab propertyId={Number(id)} />
+        </Box>
+      )}
+
+      {/* ─── Tab 5: Inventaire ───────────────────────────────────────────── */}
+      {tabValue === 5 && (
+        <Box
+          role="tabpanel"
+          id="property-tabpanel-5"
+          aria-labelledby="property-tab-5"
+          sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
+        >
+          <PropertyInventoryTab propertyId={Number(id)} canEdit={canEdit} />
         </Box>
       )}
     </Box>

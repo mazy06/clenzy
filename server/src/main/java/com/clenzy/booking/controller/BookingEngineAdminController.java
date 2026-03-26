@@ -18,7 +18,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/booking-engine")
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+@PreAuthorize("hasAnyRole('HOST','SUPER_ADMIN','SUPER_MANAGER')")
 public class BookingEngineAdminController {
 
     private final BookingEngineAdminService adminService;
@@ -69,6 +69,17 @@ public class BookingEngineAdminController {
     @GetMapping("/configs")
     public ResponseEntity<List<BookingEngineAdminConfigDto>> listConfigs() {
         return ResponseEntity.ok(adminService.listConfigs());
+    }
+
+    /**
+     * GET /api/booking-engine/configs/all
+     * Lists all templates across all organizations (platform staff only).
+     * Includes organizationName for each config.
+     */
+    @GetMapping("/configs/all")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    public ResponseEntity<List<BookingEngineAdminConfigDto>> listAllConfigs() {
+        return ResponseEntity.ok(adminService.listAllConfigs());
     }
 
     /**
