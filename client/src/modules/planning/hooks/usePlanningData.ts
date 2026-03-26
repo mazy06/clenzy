@@ -492,7 +492,13 @@ export function usePlanningData(
     const resEvents = reservations.map((r) =>
       reservationToEvent(r, propertyDefaultsMap.get(r.propertyId)),
     );
-    const visibleInterventions = interventions.filter((i) => !!i.assigneeName);
+    const visibleInterventions = interventions.filter((i) => {
+      // Show if assigned OR if has unpaid cost (so payment badge is visible)
+      if (i.assigneeName) return true;
+      const cost = i.actualCost || i.estimatedCost || 0;
+      const isPaid = i.paymentStatus === 'PAID' || i.paymentStatus === 'REFUNDED' || i.paymentStatus === 'NOT_REQUIRED';
+      return cost > 0 && !isPaid;
+    });
     const intEvents = visibleInterventions.map(interventionToEvent);
     const srEvents = awaitingPaymentSRs.map(serviceRequestToEvent);
     const blockedRanges = groupBlockedDays(blockedDays);
