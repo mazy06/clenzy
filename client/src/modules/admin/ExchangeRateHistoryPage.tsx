@@ -123,7 +123,7 @@ export default function ExchangeRateHistoryPage() {
     : null;
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ p: 3 }}>
       <PageHeader
         title="Historique des taux de change"
         subtitle="Taux de change BCE mis a jour quotidiennement"
