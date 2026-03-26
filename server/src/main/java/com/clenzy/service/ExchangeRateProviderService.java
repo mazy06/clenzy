@@ -20,7 +20,7 @@ import java.util.Optional;
  * Service de fourniture des taux de change.
  *
  * Responsabilites :
- * - Recuperer les taux de change depuis la BCE (European Central Bank)
+ * - Recuperer les taux de change depuis open.er-api.com
  * - Persister les taux journaliers en base
  * - Fournir le taux le plus recent pour une paire de devises
  * - Job planifie quotidien pour mise a jour automatique
@@ -32,12 +32,8 @@ import java.util.Optional;
 public class ExchangeRateProviderService {
 
     private static final Logger log = LoggerFactory.getLogger(ExchangeRateProviderService.class);
-    private static final String ECB_API = "https://api.frankfurter.app";
-    /** open.er-api.com : API gratuite supportant MAD, SAR et toutes les devises */
     private static final String OPEN_ER_API = "https://open.er-api.com/v6/latest/EUR";
-    private static final String[] ECB_CURRENCIES = {"USD", "GBP"};
-    private static final String[] EXTRA_CURRENCIES = {"MAD", "SAR"};
-    private static final String[] TARGET_CURRENCIES = {"MAD", "SAR", "USD", "GBP"};
+    private static final String[] TARGET_CURRENCIES = {"MAD", "SAR"};
 
     private final ExchangeRateRepository exchangeRateRepository;
     private final RestTemplate restTemplate;
@@ -55,25 +51,21 @@ public class ExchangeRateProviderService {
     @PostConstruct
     public void initRatesOnStartup() {
         LocalDate today = LocalDate.now();
-        boolean hasMad = exchangeRateRepository.findLatestRate("EUR", "MAD", today).isPresent();
-        boolean hasSar = exchangeRateRepository.findLatestRate("EUR", "SAR", today).isPresent();
+        boolean allPresent = true;
 
-        if (!hasMad || !hasSar) {
-            log.info("Missing exchange rates for MAD/SAR — fetching on startup...");
-            try {
-                fetchFromOpenEr(today);
-            } catch (Exception e) {
-                log.warn("Failed to fetch rates on startup: {}", e.getMessage());
+        for (String cur : TARGET_CURRENCIES) {
+            if (exchangeRateRepository.findLatestRate("EUR", cur, today).isEmpty()) {
+                allPresent = false;
+                break;
             }
         }
 
-        boolean hasUsd = exchangeRateRepository.findLatestRate("EUR", "USD", today).isPresent();
-        if (!hasUsd) {
-            log.info("Missing exchange rates for USD/GBP — fetching on startup...");
+        if (!allPresent) {
+            log.info("Missing exchange rates for MAD/SAR — fetching on startup...");
             try {
-                fetchFromEcb(today);
+                fetchRates(today);
             } catch (Exception e) {
-                log.warn("Failed to fetch ECB rates on startup: {}", e.getMessage());
+                log.warn("Failed to fetch rates on startup: {}", e.getMessage());
             }
         }
     }
@@ -88,7 +80,6 @@ public class ExchangeRateProviderService {
             return BigDecimal.ONE;
         }
 
-        // Chercher dans la base
         Optional<ExchangeRate> rateOpt = exchangeRateRepository.findLatestRate(
             baseCurrency.toUpperCase(), targetCurrency.toUpperCase(), date);
 
@@ -114,47 +105,17 @@ public class ExchangeRateProviderService {
     }
 
     /**
-     * Recupere et persiste les taux de change depuis la BCE.
-     * Execute quotidiennement a 07:00 UTC (apres publication BCE a ~16:00 CET J-1).
+     * Recupere et persiste les taux de change depuis open.er-api.com.
+     * Execute quotidiennement a 07:00 UTC.
      */
     @Scheduled(cron = "0 0 7 * * *")
     @Transactional
     public void fetchDailyRates() {
         log.info("Fetching daily exchange rates...");
-        LocalDate today = LocalDate.now();
-
-        // 1. ECB (Frankfurter) pour USD, GBP
-        fetchFromEcb(today);
-
-        // 2. Open Exchange Rates pour MAD, SAR (non supportes par la BCE)
-        fetchFromOpenEr(today);
+        fetchRates(LocalDate.now());
     }
 
-    private void fetchFromEcb(LocalDate today) {
-        try {
-            String url = ECB_API + "/latest?from=EUR&to=" + String.join(",", ECB_CURRENCIES);
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-
-            if (response == null || !response.containsKey("rates")) {
-                log.warn("Empty response from ECB API");
-                return;
-            }
-
-            @SuppressWarnings("unchecked")
-            Map<String, Number> rates = (Map<String, Number>) response.get("rates");
-            String dateStr = (String) response.get("date");
-            LocalDate rateDate = dateStr != null ? LocalDate.parse(dateStr) : today;
-
-            saveRates(rates, rateDate, "ECB");
-            log.info("ECB rates updated for {}", rateDate);
-        } catch (Exception e) {
-            log.error("Failed to fetch ECB rates: {}", e.getMessage(), e);
-        }
-    }
-
-    private void fetchFromOpenEr(LocalDate today) {
+    private void fetchRates(LocalDate today) {
         try {
             @SuppressWarnings("unchecked")
             Map<String, Object> response = restTemplate.getForObject(OPEN_ER_API, Map.class);
@@ -167,34 +128,23 @@ public class ExchangeRateProviderService {
             @SuppressWarnings("unchecked")
             Map<String, Number> allRates = (Map<String, Number>) response.get("rates");
 
-            // Extraire uniquement MAD et SAR
-            Map<String, Number> filtered = new java.util.HashMap<>();
-            for (String cur : EXTRA_CURRENCIES) {
+            for (String cur : TARGET_CURRENCIES) {
                 if (allRates.containsKey(cur)) {
-                    filtered.put(cur, allRates.get(cur));
+                    BigDecimal rate = new BigDecimal(allRates.get(cur).toString());
+
+                    if (exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                            "EUR", cur, today).isEmpty()) {
+                        ExchangeRate exchangeRate = new ExchangeRate("EUR", cur, rate, today);
+                        exchangeRate.setSource("OPEN_ER");
+                        exchangeRateRepository.save(exchangeRate);
+                        log.info("Saved exchange rate: EUR/{} = {} ({})", cur, rate, today);
+                    }
                 }
             }
 
-            saveRates(filtered, today, "OPEN_ER");
-            log.info("Open ER rates updated for {} (MAD, SAR)", today);
+            log.info("Exchange rates updated for {} (MAD, SAR)", today);
         } catch (Exception e) {
-            log.error("Failed to fetch Open ER rates: {}", e.getMessage(), e);
-        }
-    }
-
-    private void saveRates(Map<String, Number> rates, LocalDate rateDate, String source) {
-        for (Map.Entry<String, Number> entry : rates.entrySet()) {
-            String targetCurrency = entry.getKey();
-            BigDecimal rate = new BigDecimal(entry.getValue().toString());
-
-            if (exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
-                    "EUR", targetCurrency, rateDate).isEmpty()) {
-                ExchangeRate exchangeRate = new ExchangeRate("EUR", targetCurrency, rate, rateDate);
-                exchangeRate.setSource(source);
-                exchangeRateRepository.save(exchangeRate);
-                log.info("Saved exchange rate: EUR/{} = {} ({}, source={})",
-                    targetCurrency, rate, rateDate, source);
-            }
+            log.error("Failed to fetch exchange rates: {}", e.getMessage(), e);
         }
     }
 
