@@ -1,3 +1,5 @@
+@primer.md
+
 ## Database Migration Rules
 
 - **Liquibase** est utilisé pour les migrations de base de données (PAS Flyway).

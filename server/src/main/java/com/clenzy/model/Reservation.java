@@ -7,6 +7,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Entite representant une reservation (sejour d'un voyageur).
@@ -130,6 +132,12 @@ public class Reservation {
     @Column(name = "hidden_from_planning", nullable = false)
     private Boolean hiddenFromPlanning = false;
 
+    @Column(name = "service_options_total", precision = 10, scale = 2)
+    private BigDecimal serviceOptionsTotal = BigDecimal.ZERO;
+
+    @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ReservationServiceItem> serviceItems = new ArrayList<>();
+
     // Constructeurs
     public Reservation() {}
 
@@ -242,6 +250,12 @@ public class Reservation {
 
     public Boolean getHiddenFromPlanning() { return hiddenFromPlanning; }
     public void setHiddenFromPlanning(Boolean hiddenFromPlanning) { this.hiddenFromPlanning = hiddenFromPlanning; }
+
+    public BigDecimal getServiceOptionsTotal() { return serviceOptionsTotal; }
+    public void setServiceOptionsTotal(BigDecimal serviceOptionsTotal) { this.serviceOptionsTotal = serviceOptionsTotal; }
+
+    public List<ReservationServiceItem> getServiceItems() { return serviceItems; }
+    public void setServiceItems(List<ReservationServiceItem> serviceItems) { this.serviceItems = serviceItems; }
 
     @Override
     public String toString() {

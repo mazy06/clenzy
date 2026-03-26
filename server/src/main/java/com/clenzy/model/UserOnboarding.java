@@ -67,6 +67,11 @@ public class UserOnboarding {
         this.completedAt = Instant.now();
     }
 
+    public void markUncompleted() {
+        this.completed = false;
+        this.completedAt = null;
+    }
+
     public Instant getCompletedAt() { return completedAt; }
 
     public boolean isDismissed() { return dismissed; }

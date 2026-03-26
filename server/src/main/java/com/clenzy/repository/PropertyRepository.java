@@ -49,6 +49,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
      */
     @Query("SELECT COUNT(p) FROM Property p WHERE p.owner.keycloakId = :ownerKeycloakId AND p.organizationId = :orgId")
     long countByOwnerKeycloakId(@Param("ownerKeycloakId") String ownerKeycloakId, @Param("orgId") Long orgId);
+
+    long countByOrganizationId(Long organizationId);
     
     /**
      * Requête pour les IDs seulement (pour les vérifications d'existence)

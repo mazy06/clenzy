@@ -26,6 +26,11 @@ import {
   Assignment,
   Group,
   Build,
+  Notifications,
+  Extension,
+  Payment,
+  ChatBubbleOutline,
+  AccountBalanceWallet,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -90,6 +95,48 @@ const STEP_VISUALS: Record<string, StepVisual> = {
     gradient: 'linear-gradient(135deg, #D4A574 0%, #E8C49A 100%)',
     accentColor: '#D4A574',
     actionIcon: <Tune sx={{ fontSize: 14 }} />,
+  },
+  setup_fiscal: {
+    icon: <Receipt sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #D4A574 0%, #E8C49A 100%)',
+    accentColor: '#D4A574',
+    actionIcon: <Receipt sx={{ fontSize: 14 }} />,
+  },
+  setup_notifications: {
+    icon: <Notifications sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #5C7AEA 0%, #7B95F0 100%)',
+    accentColor: '#5C7AEA',
+    actionIcon: <Notifications sx={{ fontSize: 14 }} />,
+  },
+  setup_general: {
+    icon: <Tune sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
+    accentColor: '#6B8A9A',
+    actionIcon: <Tune sx={{ fontSize: 14 }} />,
+  },
+  setup_integrations: {
+    icon: <Extension sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #9B59B6 0%, #B07CC6 100%)',
+    accentColor: '#9B59B6',
+    actionIcon: <Extension sx={{ fontSize: 14 }} />,
+  },
+  setup_payment: {
+    icon: <Payment sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #E67E22 0%, #F0A050 100%)',
+    accentColor: '#E67E22',
+    actionIcon: <Payment sx={{ fontSize: 14 }} />,
+  },
+  setup_messaging: {
+    icon: <ChatBubbleOutline sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #3498DB 0%, #5DADE2 100%)',
+    accentColor: '#3498DB',
+    actionIcon: <ChatBubbleOutline sx={{ fontSize: 14 }} />,
+  },
+  setup_payouts: {
+    icon: <AccountBalanceWallet sx={{ fontSize: 16 }} />,
+    gradient: 'linear-gradient(135deg, #27AE60 0%, #52C47A 100%)',
+    accentColor: '#27AE60',
+    actionIcon: <AccountBalanceWallet sx={{ fontSize: 14 }} />,
   },
   complete_profile: {
     icon: <Person sx={{ fontSize: 16 }} />,
@@ -206,12 +253,27 @@ const OnboardingChecklist: React.FC = React.memo(() => {
           borderRadius: '10px',
           borderLeft: '3px solid',
           borderLeftColor: 'primary.main',
-          boxShadow: isDark
-            ? '0 1px 6px rgba(0,0,0,0.3)'
-            : '0 1px 6px rgba(107,138,154,0.10)',
           px: 2,
           py: 1.25,
           height: '100%',
+          '@keyframes shadowPulse': {
+            '0%': {
+              boxShadow: isDark
+                ? '0 1px 6px rgba(0,0,0,0.3)'
+                : '0 1px 6px rgba(107,138,154,0.10)',
+            },
+            '50%': {
+              boxShadow: isDark
+                ? '0 4px 20px rgba(107,138,154,0.35), 0 0 0 1px rgba(107,138,154,0.15)'
+                : '0 6px 28px rgba(107,138,154,0.30), 0 0 0 1.5px rgba(107,138,154,0.20)',
+            },
+            '100%': {
+              boxShadow: isDark
+                ? '0 1px 6px rgba(0,0,0,0.3)'
+                : '0 1px 6px rgba(107,138,154,0.10)',
+            },
+          },
+          animation: 'shadowPulse 3s ease-in-out infinite',
         }}
       >
         {/* ── Header row: title + progress + bar + dismiss ────────── */}
@@ -371,6 +433,8 @@ const OnboardingChecklist: React.FC = React.memo(() => {
             onAction={handleCtaAction}
             isDark={isDark}
             accentColor={activeVisual.accentColor}
+            skippable={activeStep.skippable}
+            onSkip={() => completeStep(activeStep.key)}
           />
         )}
       </Box>
@@ -400,6 +464,8 @@ interface CtaSectionProps {
   onAction: () => void;
   isDark: boolean;
   accentColor?: string;
+  skippable?: boolean;
+  onSkip?: () => void;
 }
 
 const CtaSection: React.FC<CtaSectionProps> = ({
@@ -412,6 +478,8 @@ const CtaSection: React.FC<CtaSectionProps> = ({
   onAction,
   isDark,
   accentColor = '#6B8A9A',
+  skippable,
+  onSkip,
 }) => (
   <Box
     sx={{
@@ -447,32 +515,54 @@ const CtaSection: React.FC<CtaSectionProps> = ({
         {description}
       </Typography>
     </Box>
-    <Button
-      variant="contained"
-      size="small"
-      startIcon={actionIcon}
-      onClick={onAction}
-      sx={{
-        background: gradient,
-        color: '#fff',
-        fontWeight: 600,
-        fontSize: '0.75rem',
-        textTransform: 'none',
-        borderRadius: '8px',
-        px: 2,
-        py: 0.5,
-        whiteSpace: 'nowrap',
-        flexShrink: 0,
-        boxShadow: isDark
-          ? '0 2px 8px rgba(0,0,0,0.3)'
-          : `0 2px 8px ${accentColor}40`,
-        '&:hover': {
-          filter: 'brightness(0.9)',
-          boxShadow: `0 4px 12px ${accentColor}55`,
-        },
-      }}
-    >
-      {actionLabel}
-    </Button>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+      {skippable && onSkip && (
+        <Button
+          variant="text"
+          size="small"
+          onClick={onSkip}
+          sx={{
+            fontWeight: 600,
+            fontSize: '0.75rem',
+            textTransform: 'none',
+            color: 'text.secondary',
+            whiteSpace: 'nowrap',
+            '&:hover': {
+              color: 'text.primary',
+              bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+            },
+          }}
+        >
+          Passer
+        </Button>
+      )}
+      <Button
+        variant="contained"
+        size="small"
+        startIcon={actionIcon}
+        onClick={onAction}
+        sx={{
+          background: gradient,
+          color: '#fff',
+          fontWeight: 600,
+          fontSize: '0.75rem',
+          textTransform: 'none',
+          borderRadius: '8px',
+          px: 2,
+          py: 0.5,
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+          boxShadow: isDark
+            ? '0 2px 8px rgba(0,0,0,0.3)'
+            : `0 2px 8px ${accentColor}40`,
+          '&:hover': {
+            filter: 'brightness(0.9)',
+            boxShadow: `0 4px 12px ${accentColor}55`,
+          },
+        }}
+      >
+        {actionLabel}
+      </Button>
+    </Box>
   </Box>
 );

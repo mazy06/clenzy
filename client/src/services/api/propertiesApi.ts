@@ -48,6 +48,21 @@ export interface Property {
   arrondissement?: string;
   createdAt?: string;
   updatedAt?: string;
+  // Instructions voyageur (check-in instructions)
+  checkInInstructions?: {
+    id: number;
+    propertyId: number;
+    accessCode: string | null;
+    wifiName: string | null;
+    wifiPassword: string | null;
+    parkingInfo: string | null;
+    arrivalInstructions: string | null;
+    departureInstructions: string | null;
+    houseRules: string | null;
+    emergencyContact: string | null;
+    additionalNotes: string | null;
+    updatedAt: string | null;
+  };
 }
 
 export interface PropertyFormData {

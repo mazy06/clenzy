@@ -9,6 +9,7 @@ import com.clenzy.repository.CheckInInstructionsRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.tenant.TenantContext;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -57,6 +58,7 @@ public class CheckInInstructionsController {
     }
 
     @PutMapping
+    @CacheEvict(value = "properties", allEntries = true)
     public ResponseEntity<CheckInInstructionsDto> update(
             @PathVariable Long propertyId,
             @RequestBody UpdateCheckInInstructionsDto dto,

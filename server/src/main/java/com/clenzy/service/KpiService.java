@@ -129,8 +129,7 @@ public class KpiService {
     private final NotificationService notificationService;
     private final ObjectMapper objectMapper;
 
-    @Value("${kpi.p1-resolution-minutes:0}")
-    private double p1ResolutionMinutes;
+    private final IncidentService incidentService;
 
     @Value("${kpi.test-coverage-pct:0}")
     private double testCoveragePct;
@@ -142,7 +141,8 @@ public class KpiService {
                       ChannelConnectionRepository connectionRepository,
                       ChannelSyncLogRepository syncLogRepository,
                       NotificationService notificationService,
-                      ObjectMapper objectMapper) {
+                      ObjectMapper objectMapper,
+                      IncidentService incidentService) {
         this.syncMetrics = syncMetrics;
         this.kpiSnapshotRepository = kpiSnapshotRepository;
         this.reconciliationRunRepository = reconciliationRunRepository;
@@ -151,6 +151,7 @@ public class KpiService {
         this.syncLogRepository = syncLogRepository;
         this.notificationService = notificationService;
         this.objectMapper = objectMapper;
+        this.incidentService = incidentService;
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
@@ -317,6 +318,7 @@ public class KpiService {
     private KpiItemDto computeCalendarLatency(MeterRegistry registry) {
         Timer timer = registry.find("pms.sync.latency").timer();
         double p95Ms = timer != null ? timer.percentile(0.95, TimeUnit.MILLISECONDS) : 0;
+        if (Double.isNaN(p95Ms) || Double.isInfinite(p95Ms)) p95Ms = 0;
 
         String status = p95Ms < CAL_LATENCY_OK ? "OK"
                 : p95Ms < CAL_LATENCY_WARN ? "WARNING" : "CRITICAL";
@@ -395,6 +397,7 @@ public class KpiService {
     private KpiItemDto computeApiLatency(MeterRegistry registry) {
         Timer timer = registry.find("clenzy.api.request.duration").timer();
         double p95Ms = timer != null ? timer.percentile(0.95, TimeUnit.MILLISECONDS) : 0;
+        if (Double.isNaN(p95Ms) || Double.isInfinite(p95Ms)) p95Ms = 0;
 
         String status = p95Ms < API_LAT_OK ? "OK"
                 : p95Ms < API_LAT_WARN ? "WARNING" : "CRITICAL";
@@ -420,13 +423,13 @@ public class KpiService {
     }
 
     private KpiItemDto computeP1Resolution() {
-        double minutes = p1ResolutionMinutes;
+        double minutes = incidentService.getAverageP1ResolutionMinutes(30);
         boolean isNA = minutes <= 0;
 
         String status;
         String value;
         if (isNA) {
-            status = "OK"; // N/A defaults to OK
+            status = "OK"; // No resolved P1 incidents = good
             value = "N/A";
         } else {
             status = minutes < P1_OK ? "OK" : minutes < P1_WARN ? "WARNING" : "CRITICAL";
@@ -441,10 +444,9 @@ public class KpiService {
     private KpiItemDto computeKafkaLag(MeterRegistry registry) {
         // Try to read Kafka consumer lag metric
         Gauge lagGauge = registry.find("kafka.consumer.fetch-manager-records-lag-max").gauge();
-        long lag = lagGauge != null ? (long) lagGauge.value() : 0;
-
-        // If no Kafka consumer running, default to 0 (OK)
-        if (lag < 0) lag = 0;
+        double lagRaw = lagGauge != null ? lagGauge.value() : 0;
+        if (Double.isNaN(lagRaw) || Double.isInfinite(lagRaw) || lagRaw < 0) lagRaw = 0;
+        long lag = (long) lagRaw;
 
         String status = lag < KAFKA_LAG_OK ? "OK"
                 : lag < KAFKA_LAG_WARN ? "WARNING" : "CRITICAL";

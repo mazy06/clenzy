@@ -138,6 +138,12 @@
         <!-- AWS SDK -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>${aws.sdk.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
             <artifactId>lambda</artifactId>
             <version>${aws.sdk.version}</version>
         </dependency>
@@ -331,6 +337,13 @@
             <version>1.17.2</version>
         </dependency>
 
+        <!-- Playwright — Headless browser for SPA snapshot rendering -->
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>1.51.0</version>
+        </dependency>
+
         <!-- Test Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -401,6 +414,21 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                    <!-- Playwright JARs must be unpacked from fat JAR for driver extraction -->
+                    <requiresUnpack>
+                        <dependency>
+                            <groupId>com.microsoft.playwright</groupId>
+                            <artifactId>playwright</artifactId>
+                        </dependency>
+                        <dependency>
+                            <groupId>com.microsoft.playwright</groupId>
+                            <artifactId>driver</artifactId>
+                        </dependency>
+                        <dependency>
+                            <groupId>com.microsoft.playwright</groupId>
+                            <artifactId>driver-bundle</artifactId>
+                        </dependency>
+                    </requiresUnpack>
                 </configuration>
             </plugin>
             

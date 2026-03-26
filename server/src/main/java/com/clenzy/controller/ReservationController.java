@@ -10,6 +10,7 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.EmailService;
+import com.clenzy.service.GuestService;
 import com.clenzy.service.ReservationMapper;
 import com.clenzy.service.ReservationService;
 import com.clenzy.service.StripeService;
@@ -58,6 +59,7 @@ public class ReservationController {
     private final GuestRepository guestRepository;
     private final StripeService stripeService;
     private final EmailService emailService;
+    private final GuestService guestService;
     private final GuestMessagingService guestMessagingService;
     private final MessageTemplateRepository messageTemplateRepository;
     private final TenantContext tenantContext;
@@ -69,6 +71,7 @@ public class ReservationController {
                                  PropertyRepository propertyRepository,
                                  UserRepository userRepository,
                                  GuestRepository guestRepository,
+                                 GuestService guestService,
                                  StripeService stripeService,
                                  EmailService emailService,
                                  GuestMessagingService guestMessagingService,
@@ -81,6 +84,7 @@ public class ReservationController {
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.guestRepository = guestRepository;
+        this.guestService = guestService;
         this.stripeService = stripeService;
         this.emailService = emailService;
         this.guestMessagingService = guestMessagingService;
@@ -193,6 +197,20 @@ public class ReservationController {
 
         validatePropertyAccess(existing.getProperty().getId(), jwt.getSubject());
 
+        // Si la reservation n'a pas de Guest (cas iCal import), le creer/lier avant d'appliquer
+        // les modifications, sinon guestEmail/guestPhone ne seront jamais persistes
+        if (existing.getGuest() == null && existing.getGuestName() != null
+                && !existing.getGuestName().isBlank()) {
+            Long orgId = tenantContext.getRequiredOrganizationId();
+            Guest guest = guestService.findOrCreateFromName(
+                    existing.getGuestName(), existing.getSource(), orgId);
+            if (guest != null) {
+                existing.setGuest(guest);
+                log.info("Guest cree/lie pour reservation #{} (import iCal sans Guest): guestId={}",
+                        existing.getId(), guest.getId());
+            }
+        }
+
         // Sauvegarder l'ancien checkout pour detecter un changement
         LocalDate oldCheckOut = existing.getCheckOut();
 
@@ -218,6 +236,10 @@ public class ReservationController {
         }
 
         Reservation saved = reservationRepository.save(existing);
+
+        // Notification de mise a jour
+        reservationService.notifyReservationUpdated(saved);
+
         // Re-load with all relations for DTO conversion
         Reservation result = reservationRepository.findByIdFetchAll(saved.getId())
                 .orElse(saved);

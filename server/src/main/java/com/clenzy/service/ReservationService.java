@@ -31,6 +31,7 @@ public class ReservationService {
     private final GuestService guestService;
     private final SyncMetrics syncMetrics;
     private final ServiceRequestRepository serviceRequestRepository;
+    private final NotificationService notificationService;
 
     public ReservationService(ReservationRepository reservationRepository,
                               UserRepository userRepository,
@@ -38,7 +39,8 @@ public class ReservationService {
                               CalendarEngine calendarEngine,
                               GuestService guestService,
                               SyncMetrics syncMetrics,
-                              ServiceRequestRepository serviceRequestRepository) {
+                              ServiceRequestRepository serviceRequestRepository,
+                              NotificationService notificationService) {
         this.reservationRepository = reservationRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
@@ -46,6 +48,7 @@ public class ReservationService {
         this.guestService = guestService;
         this.syncMetrics = syncMetrics;
         this.serviceRequestRepository = serviceRequestRepository;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -141,6 +144,16 @@ public class ReservationService {
                         saved.getId(),
                         orgId
                 );
+
+                // Mettre a jour les stats du guest (totalStays, totalSpent)
+                if (saved.getGuest() != null) {
+                    guestService.recordStay(saved.getGuest().getId(), saved.getTotalPrice());
+                }
+            }
+
+            // Notification pour nouvelle reservation
+            if (isNewConfirmed) {
+                notifyReservationCreated(saved);
             }
 
             return saved;
@@ -175,7 +188,11 @@ public class ReservationService {
 
         // Mettre a jour le statut
         reservation.setStatus("cancelled");
-        return reservationRepository.save(reservation);
+        Reservation cancelled = reservationRepository.save(reservation);
+
+        notifyReservationCancelled(cancelled);
+
+        return cancelled;
     }
 
     /**
@@ -246,6 +263,77 @@ public class ReservationService {
             return Integer.parseInt(checkOutTime.split(":")[0]);
         } catch (Exception e) {
             return 11;
+        }
+    }
+
+    // ── Notification helpers ─────────────────────────────────────────────
+
+    private void notifyReservationCreated(Reservation reservation) {
+        try {
+            String actionUrl = "/planning";
+            String propertyName = reservation.getProperty() != null ? reservation.getProperty().getName() : "";
+            String guestName = reservation.getGuestName() != null ? reservation.getGuestName() : "Inconnu";
+            String dates = reservation.getCheckIn() + " → " + reservation.getCheckOut();
+
+            String title = "Nouvelle reservation";
+            String message = "Reservation de " + guestName + " sur " + propertyName + " (" + dates + ").";
+
+            // Notifier le proprietaire
+            if (reservation.getProperty() != null && reservation.getProperty().getOwner() != null) {
+                notificationService.notify(
+                        reservation.getProperty().getOwner().getKeycloakId(),
+                        NotificationKey.RESERVATION_CREATED, title, message, actionUrl);
+            }
+
+            // Notifier admins/managers
+            notificationService.notifyAdminsAndManagers(
+                    NotificationKey.RESERVATION_CREATED, title, message, actionUrl);
+        } catch (Exception e) {
+            log.warn("Notification error reservationCreated: {}", e.getMessage());
+        }
+    }
+
+    public void notifyReservationUpdated(Reservation reservation) {
+        try {
+            String actionUrl = "/planning";
+            String propertyName = reservation.getProperty() != null ? reservation.getProperty().getName() : "";
+            String guestName = reservation.getGuestName() != null ? reservation.getGuestName() : "Inconnu";
+
+            String title = "Reservation modifiee";
+            String message = "La reservation de " + guestName + " sur " + propertyName + " a ete modifiee.";
+
+            if (reservation.getProperty() != null && reservation.getProperty().getOwner() != null) {
+                notificationService.notify(
+                        reservation.getProperty().getOwner().getKeycloakId(),
+                        NotificationKey.RESERVATION_UPDATED, title, message, actionUrl);
+            }
+
+            notificationService.notifyAdminsAndManagers(
+                    NotificationKey.RESERVATION_UPDATED, title, message, actionUrl);
+        } catch (Exception e) {
+            log.warn("Notification error reservationUpdated: {}", e.getMessage());
+        }
+    }
+
+    private void notifyReservationCancelled(Reservation reservation) {
+        try {
+            String actionUrl = "/planning";
+            String propertyName = reservation.getProperty() != null ? reservation.getProperty().getName() : "";
+            String guestName = reservation.getGuestName() != null ? reservation.getGuestName() : "Inconnu";
+
+            String title = "Reservation annulee";
+            String message = "La reservation de " + guestName + " sur " + propertyName + " a ete annulee.";
+
+            if (reservation.getProperty() != null && reservation.getProperty().getOwner() != null) {
+                notificationService.notify(
+                        reservation.getProperty().getOwner().getKeycloakId(),
+                        NotificationKey.RESERVATION_CANCELLED, title, message, actionUrl);
+            }
+
+            notificationService.notifyAdminsAndManagers(
+                    NotificationKey.RESERVATION_CANCELLED, title, message, actionUrl);
+        } catch (Exception e) {
+            log.warn("Notification error reservationCancelled: {}", e.getMessage());
         }
     }
 }

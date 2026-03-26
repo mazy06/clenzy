@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -41,6 +42,7 @@ interface NoiseProductDetailProps {
 
 const NoiseProductDetail: React.FC<NoiseProductDetailProps> = ({ type, onSubscribe, onBack }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const isMinut = type === 'minut';
 
@@ -86,7 +88,7 @@ const NoiseProductDetail: React.FC<NoiseProductDetailProps> = ({ type, onSubscri
           t('tarification.monitoring.clenzy.feature4'),
         ],
         externalLabel: t('dashboard.noise.clenzy.orderExternal') || 'Commander sur la boutique',
-        externalUrl: '#',
+        externalUrl: '/shop',
         configLabel: t('dashboard.noise.clenzy.configureDevice') || 'Configurer mon capteur',
         bgGradient: 'linear-gradient(135deg, #4A9B8E22 0%, #4A9B8E08 100%)',
         accentColor: '#4A9B8E',
@@ -229,16 +231,12 @@ const NoiseProductDetail: React.FC<NoiseProductDetailProps> = ({ type, onSubscri
 
           {/* Actions */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, alignItems: 'center' }}>
-            <Link
-              href={config.externalUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              underline="none"
-            >
+            {config.externalUrl.startsWith('/') ? (
               <Button
                 variant="outlined"
                 size="small"
                 endIcon={<OpenInNew sx={{ fontSize: 14 }} />}
+                onClick={() => navigate(config.externalUrl)}
                 sx={{
                   textTransform: 'none',
                   fontSize: '0.8125rem',
@@ -250,7 +248,30 @@ const NoiseProductDetail: React.FC<NoiseProductDetailProps> = ({ type, onSubscri
               >
                 {config.externalLabel}
               </Button>
-            </Link>
+            ) : (
+              <Link
+                href={config.externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                underline="none"
+              >
+                <Button
+                  variant="outlined"
+                  size="small"
+                  endIcon={<OpenInNew sx={{ fontSize: 14 }} />}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.8125rem',
+                    fontWeight: 600,
+                    borderWidth: 1.5,
+                    px: 2.5,
+                    py: 0.75,
+                  }}
+                >
+                  {config.externalLabel}
+                </Button>
+              </Link>
+            )}
 
             <Button
               variant="contained"

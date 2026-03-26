@@ -14,6 +14,7 @@ import { getCountryDefaults } from '../../utils/countryDefaults';
 import { STORAGE_KEYS, getItem } from '../../services/storageService';
 import type { FiscalProfileUpdate, FiscalRegime } from '../../services/api/fiscalProfileApi';
 import { AddressAutocomplete } from '../../components/AddressAutocomplete';
+import { useOnboarding } from '../../hooks/useOnboarding';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -41,6 +42,8 @@ const FiscalProfileSection: React.FC = () => {
   const { t } = useTranslation();
   const { data: profile, isLoading, error, refetch } = useFiscalProfile();
   const updateMutation = useUpdateFiscalProfile();
+  const { completeStep, steps } = useOnboarding();
+  const isConfigureOrgDone = steps.find((s) => s.key === 'configure_org')?.completed ?? false;
 
   // Track whether this is a first-time setup (no profile existed before)
   const isFirstSetup = !!(profile && !profile.taxIdNumber && !profile.legalEntityName);
@@ -107,6 +110,9 @@ const FiscalProfileSection: React.FC = () => {
     try {
       await updateMutation.mutateAsync(form);
       setSnackbar({ open: true, message: t('fiscal.profile.saved'), severity: 'success' });
+      if (!isConfigureOrgDone) {
+        completeStep('configure_org');
+      }
     } catch {
       setSnackbar({ open: true, message: t('fiscal.profile.error'), severity: 'error' });
     }

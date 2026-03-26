@@ -19,6 +19,7 @@ import {
   DeleteOutline,
   Circle,
   NotificationsNone,
+  EventNote,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -30,7 +31,7 @@ import DataFetchWrapper from '../../components/DataFetchWrapper';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-type TabFilter = 'all' | 'unread' | 'intervention' | 'service_request' | 'payment' | 'system' | 'contact' | 'document';
+type TabFilter = 'all' | 'unread' | 'intervention' | 'service_request' | 'payment' | 'reservation' | 'system' | 'contact' | 'document';
 
 const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
   intervention: <Build sx={{ fontSize: 18, color: 'primary.main' }} />,
@@ -40,6 +41,7 @@ const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
   team: <Groups sx={{ fontSize: 18, color: 'info.main' }} />,
   contact: <Email sx={{ fontSize: 18, color: 'error.main' }} />,
   document: <Description sx={{ fontSize: 18, color: 'warning.dark' }} />,
+  reservation: <EventNote sx={{ fontSize: 18, color: 'info.main' }} />,
 };
 
 function timeAgo(dateStr: string): string {
@@ -132,13 +134,14 @@ export default function NotificationsPage() {
     { value: 'intervention', label: t('notifications.tabs.interventions') || 'Interventions' },
     { value: 'service_request', label: t('notifications.tabs.requests') || 'Demandes' },
     { value: 'payment', label: t('notifications.tabs.payments') || 'Paiements' },
+    { value: 'reservation', label: t('notifications.tabs.reservations') || 'Reservations' },
     { value: 'system', label: t('notifications.tabs.system') || 'Systeme' },
     { value: 'contact', label: t('notifications.tabs.contact') || 'Contact' },
     { value: 'document', label: t('notifications.tabs.document') || 'Documents' },
   ];
 
   return (
-    <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 1, sm: 2 } }}>
+    <Box>
       <PageHeader
         title={t('notifications.title') || 'Notifications'}
         subtitle={
@@ -164,6 +167,7 @@ export default function NotificationsPage() {
         }
       />
 
+      <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 1, sm: 2 } }}>
       {/* Filter Tabs */}
       <Tabs
         value={activeTab}
@@ -311,6 +315,7 @@ export default function NotificationsPage() {
           ))}
         </Box>
       </DataFetchWrapper>
+      </Box>
     </Box>
   );
 }

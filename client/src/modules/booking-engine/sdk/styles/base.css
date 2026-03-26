@@ -1,0 +1,165 @@
+/* ─── Base Typography & Layout ─────────────────────────────────────────────── */
+
+:host {
+  display: block;
+  font-family: var(--cb-font-family);
+  font-size: var(--cb-font-size-base);
+  font-weight: var(--cb-font-weight-normal);
+  line-height: var(--cb-line-height);
+  color: var(--cb-color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* RTL support */
+:host([dir="rtl"]) .cb-widget {
+  direction: rtl;
+  text-align: right;
+}
+
+.cb-widget {
+  background: var(--cb-color-bg);
+  border: 1px solid var(--cb-color-border);
+  border-radius: var(--cb-radius-lg);
+  box-shadow: var(--cb-shadow-md);
+  padding: var(--cb-space-6);
+  max-width: 420px;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ─── Sections ────────────────────────────────────────────────────────────── */
+
+.cb-section {
+  margin-bottom: var(--cb-space-5);
+}
+
+.cb-section:last-child {
+  margin-bottom: 0;
+}
+
+.cb-section-label {
+  font-size: var(--cb-font-size-sm);
+  font-weight: var(--cb-font-weight-medium);
+  color: var(--cb-color-text-secondary);
+  letter-spacing: 0.02em;
+  margin-bottom: var(--cb-space-2);
+}
+
+/* ─── Divider ─────────────────────────────────────────────────────────────── */
+
+.cb-divider {
+  height: 1px;
+  background: var(--cb-color-border);
+  margin: var(--cb-space-5) 0;
+}
+
+/* ─── Typography helpers ──────────────────────────────────────────────────── */
+
+.cb-text-sm { font-size: var(--cb-font-size-sm); }
+.cb-text-xs { font-size: var(--cb-font-size-xs); }
+.cb-text-md { font-size: var(--cb-font-size-md); }
+.cb-text-lg { font-size: var(--cb-font-size-lg); }
+.cb-text-xl { font-size: var(--cb-font-size-xl); }
+.cb-text-muted { color: var(--cb-color-text-muted); }
+.cb-text-secondary { color: var(--cb-color-text-secondary); }
+.cb-text-medium { font-weight: var(--cb-font-weight-medium); }
+.cb-text-semibold { font-weight: var(--cb-font-weight-semibold); }
+.cb-text-center { text-align: center; }
+
+/* ─── Flex helpers ────────────────────────────────────────────────────────── */
+
+.cb-row {
+  display: flex;
+  align-items: center;
+}
+
+.cb-row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cb-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.cb-gap-1 { gap: var(--cb-space-1); }
+.cb-gap-2 { gap: var(--cb-space-2); }
+.cb-gap-3 { gap: var(--cb-space-3); }
+.cb-gap-4 { gap: var(--cb-space-4); }
+
+/* ─── Animations ──────────────────────────────────────────────────────────── */
+
+@keyframes cb-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cb-slide-down {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 600px; }
+}
+
+@keyframes cb-slide-up {
+  from { opacity: 1; max-height: 600px; }
+  to { opacity: 0; max-height: 0; }
+}
+
+@keyframes cb-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes cb-scale-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes cb-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@keyframes cb-check-draw {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+
+.cb-animate-fade-in {
+  animation: cb-fade-in 200ms ease forwards;
+}
+
+.cb-animate-pop {
+  animation: cb-scale-pop 150ms ease;
+}
+
+.cb-animate-shake {
+  animation: cb-shake 300ms ease;
+}
+
+/* ─── Reduced motion ──────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .cb-widget {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    max-width: 100%;
+    padding: var(--cb-space-4);
+  }
+}
