@@ -124,8 +124,8 @@ export function CurrencyProvider({ children }: CurrencyProviderProps) {
         return formatCurrency(amount, currency);
       }
 
-      // No rates available → show in original currency (don't mislead with wrong symbol)
-      if (!rates) {
+      // No rates available, or target rate missing → show in original currency
+      if (!rates || !(currency in rates)) {
         return formatCurrency(amount, from);
       }
 
