@@ -141,11 +141,16 @@ function computeEffectiveStatus(r: Reservation): ReservationStatus {
   return 'pending';
 }
 
+const PAYMENT_BADGE_STATUSES = new Set(['PENDING', 'PROCESSING', 'FAILED']);
+
 function reservationToEvent(
   r: Reservation,
   propertyDefaults?: { defaultCheckInTime?: string; defaultCheckOutTime?: string },
 ): PlanningEvent {
   const effectiveStatus = computeEffectiveStatus(r);
+  const needsBadge = effectiveStatus !== 'cancelled'
+    && r.paymentStatus != null
+    && PAYMENT_BADGE_STATUSES.has(r.paymentStatus);
   return {
     id: `res-${r.id}`,
     type: 'reservation',
@@ -159,6 +164,8 @@ function reservationToEvent(
     status: effectiveStatus,
     color: getReservationColor(effectiveStatus),
     reservation: r,
+    needsPaymentBadge: needsBadge,
+    paymentBadgeStatus: needsBadge ? r.paymentStatus as 'PENDING' | 'PROCESSING' | 'FAILED' : undefined,
   };
 }
 
@@ -180,6 +187,11 @@ function interventionToEvent(i: PlanningIntervention): PlanningEvent {
     endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   }
 
+  const cost = i.actualCost || i.estimatedCost || 0;
+  const needsBadge = cost > 0
+    && i.paymentStatus != null
+    && PAYMENT_BADGE_STATUSES.has(i.paymentStatus);
+
   return {
     id: `int-${i.id}`,
     type: i.type === 'cleaning' ? 'cleaning' : 'maintenance',
@@ -193,6 +205,8 @@ function interventionToEvent(i: PlanningIntervention): PlanningEvent {
     status: i.status,
     color: getInterventionColor(i.type),
     intervention: i,
+    needsPaymentBadge: needsBadge,
+    paymentBadgeStatus: needsBadge ? i.paymentStatus as 'PENDING' | 'PROCESSING' | 'FAILED' : undefined,
   };
 }
 
@@ -462,21 +476,12 @@ export function usePlanningData(
   }, [properties]);
 
   // Merge into PlanningEvent[]
-  // Interventions only appear on the Gantt when BOTH conditions are met:
-  //   1. Assigned to a contractor/team (assigneeName is set)
-  //   2. Payment settled (paymentStatus = PAID) — or no cost associated
+  // Interventions appear when assigned. Unpaid ones show a payment badge.
   const events = useMemo(() => {
     const resEvents = reservations.map((r) =>
       reservationToEvent(r, propertyDefaultsMap.get(r.propertyId)),
     );
-    const visibleInterventions = interventions.filter((i) => {
-      // Must be assigned to a contractor/team
-      if (!i.assigneeName) return false;
-      // If the intervention has a cost, it must be paid
-      const cost = i.actualCost || i.estimatedCost || 0;
-      if (cost > 0 && i.paymentStatus !== 'PAID') return false;
-      return true;
-    });
+    const visibleInterventions = interventions.filter((i) => !!i.assigneeName);
     const intEvents = visibleInterventions.map(interventionToEvent);
     const srEvents = awaitingPaymentSRs.map(serviceRequestToEvent);
     const blockedRanges = groupBlockedDays(blockedDays);
