@@ -148,9 +148,18 @@ function reservationToEvent(
   propertyDefaults?: { defaultCheckInTime?: string; defaultCheckOutTime?: string },
 ): PlanningEvent {
   const effectiveStatus = computeEffectiveStatus(r);
-  const needsBadge = effectiveStatus !== 'cancelled'
-    && r.paymentStatus != null
-    && PAYMENT_BADGE_STATUSES.has(r.paymentStatus);
+  // Show payment badge when:
+  // 1. paymentStatus is explicitly PENDING/PROCESSING/FAILED, OR
+  // 2. paymentStatus is null/undefined and totalPrice > 0 (not yet paid, no explicit status)
+  // Never show on cancelled/checked_out reservations or when PAID/REFUNDED/NOT_REQUIRED
+  const isTerminal = effectiveStatus === 'cancelled' || effectiveStatus === 'checked_out';
+  const isPaid = r.paymentStatus === 'PAID' || r.paymentStatus === 'REFUNDED' || r.paymentStatus === 'NOT_REQUIRED';
+  const hasUnpaidAmount = (r.totalPrice ?? 0) > 0;
+  const needsBadge = !isTerminal && !isPaid && hasUnpaidAmount;
+  const badgeStatus: 'PENDING' | 'PROCESSING' | 'FAILED' | undefined = needsBadge
+    ? (PAYMENT_BADGE_STATUSES.has(r.paymentStatus ?? '') ? r.paymentStatus as 'PENDING' | 'PROCESSING' | 'FAILED' : 'PENDING')
+    : undefined;
+
   return {
     id: `res-${r.id}`,
     type: 'reservation',
@@ -165,7 +174,7 @@ function reservationToEvent(
     color: getReservationColor(effectiveStatus),
     reservation: r,
     needsPaymentBadge: needsBadge,
-    paymentBadgeStatus: needsBadge ? r.paymentStatus as 'PENDING' | 'PROCESSING' | 'FAILED' : undefined,
+    paymentBadgeStatus: badgeStatus,
   };
 }
 
@@ -188,9 +197,11 @@ function interventionToEvent(i: PlanningIntervention): PlanningEvent {
   }
 
   const cost = i.actualCost || i.estimatedCost || 0;
-  const needsBadge = cost > 0
-    && i.paymentStatus != null
-    && PAYMENT_BADGE_STATUSES.has(i.paymentStatus);
+  const intIsPaid = i.paymentStatus === 'PAID' || i.paymentStatus === 'REFUNDED' || i.paymentStatus === 'NOT_REQUIRED';
+  const intNeedsBadge = cost > 0 && !intIsPaid;
+  const intBadgeStatus: 'PENDING' | 'PROCESSING' | 'FAILED' | undefined = intNeedsBadge
+    ? (PAYMENT_BADGE_STATUSES.has(i.paymentStatus ?? '') ? i.paymentStatus as 'PENDING' | 'PROCESSING' | 'FAILED' : 'PENDING')
+    : undefined;
 
   return {
     id: `int-${i.id}`,
@@ -205,8 +216,8 @@ function interventionToEvent(i: PlanningIntervention): PlanningEvent {
     status: i.status,
     color: getInterventionColor(i.type),
     intervention: i,
-    needsPaymentBadge: needsBadge,
-    paymentBadgeStatus: needsBadge ? i.paymentStatus as 'PENDING' | 'PROCESSING' | 'FAILED' : undefined,
+    needsPaymentBadge: intNeedsBadge,
+    paymentBadgeStatus: intBadgeStatus,
   };
 }
 
