@@ -33,7 +33,7 @@ import java.util.Map;
 @PreAuthorize("isAuthenticated()")
 public class ExchangeRateController {
 
-    private static final String[] SUPPORTED_CURRENCIES = {"MAD", "SAR", "USD", "GBP"};
+    private static final String[] SUPPORTED_CURRENCIES = {"MAD", "SAR"};
 
     private final CurrencyConverterService currencyConverter;
     private final ExchangeRateProviderService exchangeRateProvider;

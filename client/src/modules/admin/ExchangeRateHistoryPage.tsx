@@ -29,8 +29,6 @@ import { useCurrency } from '../../hooks/useCurrency';
 const CURRENCY_PAIRS = [
   { base: 'EUR', target: 'MAD', label: 'EUR → MAD' },
   { base: 'EUR', target: 'SAR', label: 'EUR → SAR' },
-  { base: 'EUR', target: 'USD', label: 'EUR → USD' },
-  { base: 'EUR', target: 'GBP', label: 'EUR → GBP' },
 ];
 
 function formatDate(iso: string): string {
