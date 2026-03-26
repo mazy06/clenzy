@@ -305,7 +305,6 @@ export { exchangeRateApi } from './exchangeRateApi';
 export type {
   RateMatrix,
   ExchangeRateHistoryItem,
-  ExchangeRateHistoryPage,
   ExchangeRateHistoryParams,
 } from './exchangeRateApi';
 

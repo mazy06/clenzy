@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -118,10 +119,13 @@ public class ExchangeRateController {
 
     /**
      * Retourne l'historique des taux de change (admin seulement).
+     *
+     * Gere les paires directes (EUR→MAD), inverses (MAD→EUR)
+     * et croisees (MAD→SAR) a partir des taux EUR stockes en base.
      */
     @GetMapping("/history")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public ResponseEntity<Page<ExchangeRateDto>> getHistory(
+    public ResponseEntity<List<ExchangeRateDto>> getHistory(
             @RequestParam(required = false) String baseCurrency,
             @RequestParam(required = false) String targetCurrency,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
@@ -132,23 +136,67 @@ public class ExchangeRateController {
         LocalDate fromDate = from != null ? from : LocalDate.now().minusMonths(3);
         LocalDate toDate = to != null ? to : LocalDate.now();
         int cappedSize = Math.min(size, 200);
+        String base = baseCurrency != null ? baseCurrency.toUpperCase() : null;
+        String target = targetCurrency != null ? targetCurrency.toUpperCase() : null;
 
-        Page<ExchangeRate> rates;
-        PageRequest pageRequest = PageRequest.of(page, cappedSize, Sort.by(Sort.Direction.DESC, "rateDate"));
-
-        if (baseCurrency != null && targetCurrency != null) {
-            rates = exchangeRateRepository.findHistory(
-                baseCurrency.toUpperCase(), targetCurrency.toUpperCase(),
-                fromDate, toDate, pageRequest);
-        } else {
-            rates = exchangeRateRepository.findByRateDateBetween(fromDate, toDate, pageRequest);
+        // Cas sans filtre : toutes les paires directes
+        if (base == null || target == null) {
+            PageRequest pageRequest = PageRequest.of(page, cappedSize, Sort.by(Sort.Direction.DESC, "rateDate"));
+            Page<ExchangeRate> rates = exchangeRateRepository.findByRateDateBetween(fromDate, toDate, pageRequest);
+            List<ExchangeRateDto> dtos = rates.map(r -> new ExchangeRateDto(
+                r.getId(), r.getBaseCurrency(), r.getTargetCurrency(),
+                r.getRate(), r.getRateDate(), r.getSource())).getContent();
+            return ResponseEntity.ok(dtos);
         }
 
-        Page<ExchangeRateDto> dtos = rates.map(r -> new ExchangeRateDto(
-            r.getId(), r.getBaseCurrency(), r.getTargetCurrency(),
-            r.getRate(), r.getRateDate(), r.getSource()));
+        // Paire directe stockee en DB (ex: EUR→MAD)
+        if ("EUR".equals(base)) {
+            PageRequest pageRequest = PageRequest.of(page, cappedSize, Sort.by(Sort.Direction.DESC, "rateDate"));
+            Page<ExchangeRate> rates = exchangeRateRepository.findHistory(base, target, fromDate, toDate, pageRequest);
+            List<ExchangeRateDto> dtos = rates.map(r -> new ExchangeRateDto(
+                r.getId(), r.getBaseCurrency(), r.getTargetCurrency(),
+                r.getRate(), r.getRateDate(), r.getSource())).getContent();
+            return ResponseEntity.ok(dtos);
+        }
 
-        return ResponseEntity.ok(dtos);
+        // Paire inverse (ex: MAD→EUR) : 1 / EUR→MAD
+        if ("EUR".equals(target)) {
+            PageRequest pageRequest = PageRequest.of(page, cappedSize, Sort.by(Sort.Direction.DESC, "rateDate"));
+            Page<ExchangeRate> rates = exchangeRateRepository.findHistory("EUR", base, fromDate, toDate, pageRequest);
+            List<ExchangeRateDto> dtos = rates.stream().map(r -> {
+                BigDecimal inverse = BigDecimal.ONE.divide(r.getRate(), 6, java.math.RoundingMode.HALF_UP);
+                return new ExchangeRateDto(r.getId(), base, "EUR", inverse, r.getRateDate(), r.getSource() + " (calc)");
+            }).toList();
+            return ResponseEntity.ok(dtos);
+        }
+
+        // Paire croisee (ex: MAD→SAR) : EUR→SAR / EUR→MAD par date
+        List<ExchangeRate> baseRates = exchangeRateRepository.findAllByBaseCurrencyAndTargetCurrencyAndRateDateBetween(
+            "EUR", base, fromDate, toDate);
+        List<ExchangeRate> targetRates = exchangeRateRepository.findAllByBaseCurrencyAndTargetCurrencyAndRateDateBetween(
+            "EUR", target, fromDate, toDate);
+
+        // Index par date
+        Map<LocalDate, BigDecimal> baseByDate = new java.util.HashMap<>();
+        for (ExchangeRate r : baseRates) {
+            baseByDate.put(r.getRateDate(), r.getRate());
+        }
+
+        List<ExchangeRateDto> crossDtos = new java.util.ArrayList<>();
+        for (ExchangeRate r : targetRates) {
+            BigDecimal baseRate = baseByDate.get(r.getRateDate());
+            if (baseRate != null && baseRate.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal crossRate = r.getRate().divide(baseRate, 6, java.math.RoundingMode.HALF_UP);
+                crossDtos.add(new ExchangeRateDto(r.getId(), base, target, crossRate, r.getRateDate(), r.getSource() + " (calc)"));
+            }
+        }
+
+        // Tri par date decroissante + pagination manuelle
+        crossDtos.sort((a, b) -> b.rateDate().compareTo(a.rateDate()));
+        int fromIndex = Math.min(page * cappedSize, crossDtos.size());
+        int toIndex = Math.min(fromIndex + cappedSize, crossDtos.size());
+
+        return ResponseEntity.ok(crossDtos.subList(fromIndex, toIndex));
     }
 
     /**
