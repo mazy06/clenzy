@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import jakarta.annotation.PostConstruct;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Map;
@@ -44,6 +46,36 @@ public class ExchangeRateProviderService {
                                         RestTemplate restTemplate) {
         this.exchangeRateRepository = exchangeRateRepository;
         this.restTemplate = restTemplate;
+    }
+
+    /**
+     * Charge les taux manquants au demarrage de l'application.
+     * Verifie si les taux du jour existent, sinon les recupere.
+     */
+    @PostConstruct
+    public void initRatesOnStartup() {
+        LocalDate today = LocalDate.now();
+        boolean hasMad = exchangeRateRepository.findLatestRate("EUR", "MAD", today).isPresent();
+        boolean hasSar = exchangeRateRepository.findLatestRate("EUR", "SAR", today).isPresent();
+
+        if (!hasMad || !hasSar) {
+            log.info("Missing exchange rates for MAD/SAR — fetching on startup...");
+            try {
+                fetchFromOpenEr(today);
+            } catch (Exception e) {
+                log.warn("Failed to fetch rates on startup: {}", e.getMessage());
+            }
+        }
+
+        boolean hasUsd = exchangeRateRepository.findLatestRate("EUR", "USD", today).isPresent();
+        if (!hasUsd) {
+            log.info("Missing exchange rates for USD/GBP — fetching on startup...");
+            try {
+                fetchFromEcb(today);
+            } catch (Exception e) {
+                log.warn("Failed to fetch ECB rates on startup: {}", e.getMessage());
+            }
+        }
     }
 
     /**
