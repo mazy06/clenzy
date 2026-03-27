@@ -64,6 +64,12 @@ export default function AcceptInvitationPage() {
     const storedToken = sessionStorage.getItem('pending_invitation_token');
     if (storedToken && isAuthenticated && state === 'info') {
       sessionStorage.removeItem('pending_invitation_token');
+      // Ne pas auto-accepter si l'email ne correspond pas
+      const currentEmail = keycloak.tokenParsed?.email;
+      const invitedEmail = invitation?.invitedEmail;
+      if (currentEmail && invitedEmail && currentEmail.toLowerCase() !== invitedEmail.toLowerCase()) {
+        return; // L'utilisateur verra le warning d'email mismatch
+      }
       handleAccept();
     }
   }, [isAuthenticated, state]);
@@ -234,28 +240,48 @@ export default function AcceptInvitationPage() {
               </Box>
 
               {isAuthenticated ? (
-                <Button
-                  variant="contained"
-                  size="large"
-                  fullWidth
-                  startIcon={<PersonAdd />}
-                  onClick={handleAccept}
-                  sx={{ py: 1.5, fontWeight: 600, borderRadius: 2 }}
-                >
-                  Accepter l'invitation
-                </Button>
+                (() => {
+                  const currentEmail = keycloak.tokenParsed?.email;
+                  const emailMismatch = currentEmail && invitation.invitedEmail
+                    && currentEmail.toLowerCase() !== invitation.invitedEmail.toLowerCase();
+
+                  return emailMismatch ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                      <Alert severity="warning" sx={{ textAlign: 'left' }}>
+                        Vous etes connecte avec <strong>{currentEmail}</strong> mais cette
+                        invitation est destinee a <strong>{invitation.invitedEmail}</strong>.
+                        Deconnectez-vous pour creer un compte avec le bon email.
+                      </Alert>
+                      <Button
+                        variant="contained"
+                        size="large"
+                        fullWidth
+                        onClick={() => {
+                          sessionStorage.setItem('pending_invitation_token', token!);
+                          keycloak.logout({
+                            redirectUri: `${window.location.origin}/accept-invitation?token=${encodeURIComponent(token!)}`,
+                          });
+                        }}
+                        sx={{ py: 1.5, fontWeight: 600, borderRadius: 2 }}
+                      >
+                        Se deconnecter et creer un compte
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      size="large"
+                      fullWidth
+                      startIcon={<PersonAdd />}
+                      onClick={handleAccept}
+                      sx={{ py: 1.5, fontWeight: 600, borderRadius: 2 }}
+                    >
+                      Accepter l'invitation
+                    </Button>
+                  );
+                })()
               ) : (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    fullWidth
-                    startIcon={<LoginIcon />}
-                    onClick={handleLoginAndAccept}
-                    sx={{ py: 1.5, fontWeight: 600, borderRadius: 2 }}
-                  >
-                    Se connecter et accepter
-                  </Button>
                   <Button
                     variant="outlined"
                     size="large"
@@ -265,6 +291,16 @@ export default function AcceptInvitationPage() {
                     sx={{ py: 1.5, fontWeight: 600, borderRadius: 2 }}
                   >
                     Creer un compte et accepter
+                  </Button>
+                  <Button
+                    variant="text"
+                    size="small"
+                    fullWidth
+                    startIcon={<LoginIcon />}
+                    onClick={handleLoginAndAccept}
+                    sx={{ fontWeight: 500 }}
+                  >
+                    J'ai deja un compte
                   </Button>
                 </Box>
               )}
