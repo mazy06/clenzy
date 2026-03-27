@@ -202,7 +202,24 @@ public class OrganizationInvitationService {
 
         // 2. Resoudre l'utilisateur depuis le JWT
         String keycloakId = jwt.getSubject();
+        String jwtEmail = jwt.getClaimAsString("email");
         User user = userRepository.findByKeycloakId(keycloakId).orElse(null);
+
+        // Verifier que l'email du compte connecte correspond a l'email invite
+        // Sauf si l'utilisateur est un admin (qui peut accepter pour quelqu'un d'autre)
+        if (user != null && jwtEmail != null
+                && !jwtEmail.equalsIgnoreCase(invitation.getInvitedEmail())) {
+            // L'utilisateur est connecte avec un compte different de l'email invite
+            // Verifier s'il n'est pas deja membre — sinon, rejeter
+            boolean isSuperAdmin = jwt.getClaimAsStringList("realm_access") != null
+                    || (user.getRole() != null && user.getRole().name().startsWith("SUPER"));
+            if (!isSuperAdmin) {
+                throw new IllegalStateException(
+                        "Vous etes connecte avec " + jwtEmail
+                        + " mais l'invitation est destinee a " + invitation.getInvitedEmail()
+                        + ". Veuillez vous connecter avec le bon compte.");
+            }
+        }
 
         if (user == null) {
             // Auto-provisioner si necessaire
