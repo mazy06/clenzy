@@ -287,7 +287,7 @@ public class UserService {
         }
         
         // Supprimer les memberships d'organisation (FK constraint)
-        organizationMemberRepository.deleteByUserId(id);
+        memberRepository.deleteByUserId(id);
 
         // Supprimer de la base métier
         userRepository.deleteById(id);
