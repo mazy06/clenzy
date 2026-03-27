@@ -43,6 +43,7 @@ export interface UserFormData {
   status?: string;
   deferredPayment?: boolean;
   organizationId?: number;
+  orgRole?: string;
 }
 
 export interface LockoutStatus {

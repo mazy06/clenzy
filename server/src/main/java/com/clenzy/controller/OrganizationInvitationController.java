@@ -3,7 +3,9 @@ package com.clenzy.controller;
 import com.clenzy.dto.AcceptInvitationRequest;
 import com.clenzy.dto.InvitationDto;
 import com.clenzy.dto.SendInvitationRequest;
+import com.clenzy.model.OrgMemberRole;
 import com.clenzy.service.OrganizationInvitationService;
+import com.clenzy.service.OrganizationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -39,9 +41,12 @@ public class OrganizationInvitationController {
     private static final Logger log = LoggerFactory.getLogger(OrganizationInvitationController.class);
 
     private final OrganizationInvitationService invitationService;
+    private final OrganizationService organizationService;
 
-    public OrganizationInvitationController(OrganizationInvitationService invitationService) {
+    public OrganizationInvitationController(OrganizationInvitationService invitationService,
+                                             OrganizationService organizationService) {
         this.invitationService = invitationService;
+        this.organizationService = organizationService;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -90,6 +95,21 @@ public class OrganizationInvitationController {
             @AuthenticationPrincipal Jwt jwt) {
         InvitationDto result = invitationService.resendInvitation(orgId, invitationId, jwt);
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/api/organizations/{orgId}/members")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    @Operation(summary = "Ajouter directement un utilisateur existant comme membre")
+    public ResponseEntity<?> addExistingMember(
+            @PathVariable Long orgId,
+            @RequestBody Map<String, Object> body) {
+        Long userId = ((Number) body.get("userId")).longValue();
+        String roleStr = (String) body.getOrDefault("role", "MEMBER");
+        OrgMemberRole role = OrgMemberRole.valueOf(roleStr);
+
+        organizationService.addMember(orgId, userId, role);
+        log.info("Membre existant ajoute directement: orgId={}, userId={}, role={}", orgId, userId, role);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Membre ajoute avec succes"));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

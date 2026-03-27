@@ -46,6 +46,13 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     List<User> findByOrganizationId(Long organizationId);
 
+    @Query("SELECT u FROM User u WHERE u.keycloakId IS NOT NULL AND u.status = 'ACTIVE' " +
+           "AND (LOWER(u.firstName) LIKE LOWER(CONCAT('%', :q, '%')) " +
+           "OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :q, '%')) " +
+           "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :q, '%'))) " +
+           "ORDER BY u.firstName, u.lastName")
+    List<User> searchByNameOrEmail(@Param("q") String query);
+
     long countByStatus(UserStatus status);
 
     long countByCreatedAtAfter(LocalDateTime date);

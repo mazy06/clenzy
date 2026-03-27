@@ -23,6 +23,8 @@ public class CreateUserDto {
     private String password;
 
     private String role;
+    private Long organizationId;
+    private String orgRole;
 
     // Constructeurs
     public CreateUserDto() {}
@@ -50,6 +52,12 @@ public class CreateUserDto {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long organizationId) { this.organizationId = organizationId; }
+
+    public String getOrgRole() { return orgRole; }
+    public void setOrgRole(String orgRole) { this.orgRole = orgRole; }
 
     @Override
     public String toString() {

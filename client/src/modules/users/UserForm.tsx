@@ -30,12 +30,14 @@ import {
   Build,
   CleaningServices,
   Home,
+  Business,
+  Group,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../../hooks/useAuth';
-import { usersApi, type UserFormData as ApiUserFormData } from '../../services/api';
+import { usersApi, type UserFormData as ApiUserFormData, organizationsApi, type OrganizationDto } from '../../services/api';
 import { UserStatus, USER_STATUS_OPTIONS } from '../../types/statusEnums';
 import { userSchema } from '../../schemas';
 import PageHeader from '../../components/PageHeader';
@@ -50,6 +52,8 @@ export interface UserFormData {
   confirmPassword: string;
   role: string;
   status: string;
+  organizationId?: string;
+  orgRole?: string;
 }
 
 const userRoles = [
@@ -61,6 +65,17 @@ const userRoles = [
   { value: 'LAUNDRY', label: 'Blanchisserie', icon: <CleaningServices />, color: 'default' },
   { value: 'EXTERIOR_TECH', label: 'Tech. Extérieur', icon: <Build />, color: 'primary' },
   { value: 'HOST', label: 'Propriétaire', icon: <Home />, color: 'success' },
+];
+
+const orgMemberRoles = [
+  { value: 'OWNER', label: 'Propriétaire' },
+  { value: 'ADMIN', label: 'Administrateur' },
+  { value: 'MANAGER', label: 'Manager' },
+  { value: 'SUPERVISOR', label: 'Superviseur' },
+  { value: 'HOUSEKEEPER', label: 'Agent de ménage' },
+  { value: 'TECHNICIAN', label: 'Technicien' },
+  { value: 'HOST', label: 'Hôte' },
+  { value: 'MEMBER', label: 'Membre' },
 ];
 
 // Utilisation des enums partagés pour les statuts utilisateur
@@ -86,6 +101,20 @@ const UserForm: React.FC = () => {
     checkPermissions();
   }, [hasPermissionAsync]);
 
+  const [organizations, setOrganizations] = useState<OrganizationDto[]>([]);
+
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const orgs = await organizationsApi.listAll();
+        setOrganizations(orgs);
+      } catch {
+        // Silently fail — org selector will just be empty
+      }
+    };
+    fetchOrganizations();
+  }, []);
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -107,12 +136,15 @@ const UserForm: React.FC = () => {
       confirmPassword: '',
       role: 'HOUSEKEEPER',
       status: 'ACTIVE',
+      organizationId: '',
+      orgRole: '',
     },
   });
 
   const watchedRole = watch('role');
   const watchedPassword = watch('password');
   const watchedConfirmPassword = watch('confirmPassword');
+  const watchedOrganizationId = watch('organizationId');
 
   // Vérifier les permissions - accès uniquement aux utilisateurs avec la permission users:manage
   if (!canManageUsers) {
@@ -146,6 +178,8 @@ const UserForm: React.FC = () => {
         password: data.password,
         role: data.role,
         status: data.status,
+        organizationId: data.organizationId && data.organizationId !== '' ? Number(data.organizationId) : undefined,
+        orgRole: data.orgRole || undefined,
       };
 
       await usersApi.create(backendData);
@@ -418,6 +452,85 @@ const UserForm: React.FC = () => {
                 </Typography>
               </Box>
             )}
+
+            {/* Organisation */}
+            <Typography variant="subtitle1" sx={{ mb: 1.5, color: 'primary.main', fontWeight: 600 }}>
+              Organisation
+            </Typography>
+
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Organisation</InputLabel>
+                  <Controller
+                    name="organizationId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        label="Organisation"
+                      >
+                        <MenuItem value="">
+                          <Typography variant="body2" color="text.secondary">Aucune</Typography>
+                        </MenuItem>
+                        {organizations.map((org) => (
+                          <MenuItem key={org.id} value={org.id}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Business sx={{ fontSize: 18, color: 'text.secondary' }} />
+                              <Typography variant="body2">{org.name}</Typography>
+                            </Box>
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                  />
+                  <FormHelperText sx={{ fontSize: '0.7rem' }}>
+                    Optionnel — rattacher l'utilisateur à une organisation
+                  </FormHelperText>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <FormControl
+                  fullWidth
+                  size="small"
+                  required={!!watchedOrganizationId && watchedOrganizationId !== ''}
+                  error={!!errors.orgRole}
+                  disabled={!watchedOrganizationId || watchedOrganizationId === ''}
+                >
+                  <InputLabel>
+                    Rôle dans l'organisation {watchedOrganizationId && watchedOrganizationId !== '' ? '*' : ''}
+                  </InputLabel>
+                  <Controller
+                    name="orgRole"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        label={`Rôle dans l'organisation ${watchedOrganizationId && watchedOrganizationId !== '' ? '*' : ''}`}
+                      >
+                        <MenuItem value="">
+                          <Typography variant="body2" color="text.secondary">Aucun</Typography>
+                        </MenuItem>
+                        {orgMemberRoles.map((role) => (
+                          <MenuItem key={role.value} value={role.value}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Group sx={{ fontSize: 18, color: 'text.secondary' }} />
+                              <Typography variant="body2">{role.label}</Typography>
+                            </Box>
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                  />
+                  <FormHelperText sx={{ fontSize: '0.7rem' }}>
+                    {errors.orgRole?.message || (watchedOrganizationId && watchedOrganizationId !== ''
+                      ? "Requis — rôle de l'utilisateur dans l'organisation"
+                      : "Sélectionnez d'abord une organisation")}
+                  </FormHelperText>
+                </FormControl>
+              </Grid>
+            </Grid>
           </form>
         </CardContent>
       </Card>
