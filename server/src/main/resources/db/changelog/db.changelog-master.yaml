@@ -893,3 +893,19 @@ databaseChangeLog:
       sqlFile:
         path: changes/0103__create_reservation_service_items.sql
         relativeToChangelogFile: true
+
+  # --- 0104 : Add ADMIN to audit_log source check constraint ---
+  - changeSet:
+      id: "0104-add-admin-to-audit-log-source-check"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0104__add_admin_to_audit_log_source_check.sql
+        relativeToChangelogFile: true
+
+  # --- 0105 : Fix organization_members role_in_org check constraint ---
+  - changeSet:
+      id: "0105-fix-organization-members-role-check"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0105__fix_organization_members_role_check.sql
+        relativeToChangelogFile: true
