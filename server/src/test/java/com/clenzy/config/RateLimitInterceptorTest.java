@@ -253,7 +253,7 @@ class RateLimitInterceptorTest {
         @Test
         void whenLimitExceededAndNullTtl_thenDefaultsRetryTo60() throws Exception {
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.increment(anyString())).thenReturn(11L);
+            when(valueOperations.increment(anyString())).thenReturn(31L);
             when(redisTemplate.getExpire(anyString())).thenReturn(null);
 
             MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/auth/login");
