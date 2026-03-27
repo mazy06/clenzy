@@ -45,6 +45,24 @@ public class UserController {
         this.deviceTokenService = deviceTokenService;
     }
 
+    /**
+     * Mise a jour partielle du profil de l'utilisateur connecte (telephone, etc.)
+     */
+    @PatchMapping("/me/profile")
+    @Operation(summary = "Mettre a jour son propre profil (telephone, etc.)")
+    public ResponseEntity<?> updateMyProfile(@RequestBody Map<String, String> body,
+                                              @AuthenticationPrincipal Jwt jwt) {
+        String keycloakId = jwt.getSubject();
+        User user = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
+
+        if (body.containsKey("phoneNumber")) {
+            user.setPhoneNumber(body.get("phoneNumber"));
+        }
+        userRepository.save(user);
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     @Operation(summary = "Créer un utilisateur")
