@@ -65,14 +65,14 @@ class RateLimitInterceptorTest {
             boolean result = interceptor.preHandle(request, response, new Object());
 
             assertThat(result).isTrue();
-            assertThat(response.getHeader("X-RateLimit-Limit")).isEqualTo("10");
-            assertThat(response.getHeader("X-RateLimit-Remaining")).isEqualTo("9");
+            assertThat(response.getHeader("X-RateLimit-Limit")).isEqualTo("30");
+            assertThat(response.getHeader("X-RateLimit-Remaining")).isEqualTo("29");
         }
 
         @Test
         void whenAuthLimitExceeded_thenBlocked429() throws Exception {
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.increment("ratelimit:auth:10.0.0.1")).thenReturn(11L);
+            when(valueOperations.increment("ratelimit:auth:10.0.0.1")).thenReturn(31L);
             when(redisTemplate.getExpire("ratelimit:auth:10.0.0.1")).thenReturn(45L);
 
             MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/auth/login");
