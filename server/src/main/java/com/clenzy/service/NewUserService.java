@@ -6,6 +6,7 @@ import com.clenzy.dto.UpdateUserDto;
 import com.clenzy.dto.UserProfileDto;
 import com.clenzy.exception.UserNotFoundException;
 import com.clenzy.exception.KeycloakOperationException;
+import com.clenzy.model.OrgMemberRole;
 import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.UserStatus;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -23,11 +25,14 @@ public class NewUserService {
 
     private final KeycloakService keycloakService;
     private final UserRepository userRepository;
+    private final OrganizationService organizationService;
 
     public NewUserService(KeycloakService keycloakService,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          OrganizationService organizationService) {
         this.keycloakService = keycloakService;
         this.userRepository = userRepository;
+        this.organizationService = organizationService;
     }
 
     /**
@@ -76,6 +81,23 @@ public class NewUserService {
     }
 
     /**
+     * Rechercher des utilisateurs par nom ou email (pour autocomplete).
+     * Retourne une liste compacte sans donnees sensibles.
+     */
+    public List<Map<String, Object>> searchUsers(String query) {
+        return userRepository.searchByNameOrEmail(query).stream()
+                .limit(20)
+                .map(u -> Map.<String, Object>of(
+                        "id", u.getId(),
+                        "firstName", u.getFirstName() != null ? u.getFirstName() : "",
+                        "lastName", u.getLastName() != null ? u.getLastName() : "",
+                        "email", u.getEmail() != null ? u.getEmail() : "",
+                        "organizationId", u.getOrganizationId() != null ? u.getOrganizationId() : 0L
+                ))
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Créer un nouvel utilisateur
      */
     @Transactional
@@ -97,7 +119,14 @@ public class NewUserService {
             // Sauvegarder l'utilisateur métier
             businessUser = userRepository.save(businessUser);
 
-            // 3. Retourner le profil complet
+            // 3. Ajouter a l'organisation si specifie
+            if (createUserDto.getOrganizationId() != null) {
+                String orgRoleStr = createUserDto.getOrgRole() != null ? createUserDto.getOrgRole() : "MEMBER";
+                OrgMemberRole orgRole = OrgMemberRole.valueOf(orgRoleStr);
+                organizationService.addMember(createUserDto.getOrganizationId(), businessUser.getId(), orgRole);
+            }
+
+            // 4. Retourner le profil complet
             return getUserProfile(externalId);
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors de la création de l'utilisateur: " + e.getMessage());

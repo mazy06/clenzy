@@ -45,6 +45,18 @@ public class NewUserController {
     }
 
     /**
+     * Rechercher des utilisateurs par nom ou email (pour autocomplete)
+     */
+    @GetMapping("/search")
+    public ResponseEntity<List<Map<String, Object>>> searchUsers(@RequestParam String q) {
+        if (q == null || q.trim().length() < 2) {
+            return ResponseEntity.ok(List.of());
+        }
+        List<Map<String, Object>> results = newUserService.searchUsers(q.trim());
+        return ResponseEntity.ok(results);
+    }
+
+    /**
      * Récupérer le profil d'un utilisateur par son ID
      */
     @GetMapping("/{userId}")

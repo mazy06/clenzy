@@ -22,6 +22,7 @@ import static org.mockito.Mockito.*;
 class OrganizationInvitationControllerTest {
 
     @Mock private OrganizationInvitationService invitationService;
+    @Mock private com.clenzy.service.OrganizationService organizationService;
 
     private OrganizationInvitationController controller;
 
@@ -29,7 +30,7 @@ class OrganizationInvitationControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new OrganizationInvitationController(invitationService);
+        controller = new OrganizationInvitationController(invitationService, organizationService);
         jwt = Jwt.withTokenValue("token")
                 .header("alg", "RS256")
                 .claim("sub", "user-123")

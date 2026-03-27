@@ -9,9 +9,17 @@ export const userSchema = z.object({
   confirmPassword: z.string().min(1, 'Confirmation requise'),
   role: z.string().min(1, 'Le rôle est requis'),
   status: z.string().min(1, 'Le statut est requis'),
+  organizationId: z.string().optional().default(''),
+  orgRole: z.string().optional().default(''),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Les mots de passe ne correspondent pas',
   path: ['confirmPassword'],
+}).refine((data) => {
+  if (data.organizationId && data.organizationId !== '' && !data.orgRole) return false;
+  return true;
+}, {
+  message: "Le rôle dans l'organisation est requis quand une organisation est sélectionnée",
+  path: ['orgRole'],
 });
 
 // Schema for edit mode (password optional)

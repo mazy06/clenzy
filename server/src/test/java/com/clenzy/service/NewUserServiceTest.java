@@ -9,6 +9,7 @@ import com.clenzy.model.User;
 import com.clenzy.model.UserRole;
 import com.clenzy.model.UserStatus;
 import com.clenzy.repository.UserRepository;
+import com.clenzy.service.OrganizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -30,12 +31,13 @@ class NewUserServiceTest {
 
     @Mock private KeycloakService keycloakService;
     @Mock private UserRepository userRepository;
+    @Mock private OrganizationService organizationService;
 
     private NewUserService service;
 
     @BeforeEach
     void setUp() {
-        service = new NewUserService(keycloakService, userRepository);
+        service = new NewUserService(keycloakService, userRepository, organizationService);
     }
 
     private KeycloakUserDto buildKeycloakUser(String id, String email, String firstName, String lastName) {
