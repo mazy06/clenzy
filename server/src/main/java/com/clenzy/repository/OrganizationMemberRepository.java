@@ -28,6 +28,8 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
 
     void deleteByOrganizationIdAndUserId(Long organizationId, Long userId);
 
+    void deleteByUserId(Long userId);
+
     Optional<OrganizationMember> findByIdAndOrganizationId(Long id, Long organizationId);
 
     @Query("SELECT om FROM OrganizationMember om JOIN FETCH om.user WHERE om.organization.id = :orgId")
