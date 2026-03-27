@@ -286,6 +286,9 @@ public class UserService {
             }
         }
         
+        // Supprimer les memberships d'organisation (FK constraint)
+        memberRepository.deleteByUserId(id);
+
         // Supprimer de la base métier
         userRepository.deleteById(id);
         log.debug("Utilisateur supprime de la base metier: {}", user.getEmail());
