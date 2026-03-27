@@ -38,7 +38,8 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     private static final Logger log = LoggerFactory.getLogger(RateLimitInterceptor.class);
 
-    private static final int AUTH_RATE_LIMIT = 10;   // par IP sur /api/auth/**
+    private static final int AUTH_RATE_LIMIT = 30;   // par IP sur /api/auth/** (hors session)
+    private static final int SESSION_RATE_LIMIT = 120; // /api/auth/session — appele a chaque navigation
     private static final int API_RATE_LIMIT = 300;
     private static final long WINDOW_MS = 60_000;
     private static final String REDIS_PREFIX = "ratelimit:";
@@ -65,7 +66,11 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         String key;
         int limit;
 
-        if (path.startsWith("/api/auth/")) {
+        if (path.equals("/api/auth/session") || path.equals("/api/permissions/sync")) {
+            // Session check et permission sync sont appeles frequemment par le frontend
+            key = "session:" + getClientIp(request);
+            limit = SESSION_RATE_LIMIT;
+        } else if (path.startsWith("/api/auth/")) {
             key = "auth:" + getClientIp(request);
             limit = AUTH_RATE_LIMIT;
         } else {
