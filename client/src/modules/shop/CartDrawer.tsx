@@ -15,6 +15,7 @@ import {
   ShoppingCartOutlined,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
 import { SHOP_PRODUCTS } from './shopProducts';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -39,9 +40,9 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   onCheckout,
 }) => {
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
 
-  const formatPrice = (cents: number) =>
-    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100);
+  const formatPrice = (cents: number) => convertAndFormat(cents / 100, 'EUR');
 
   const cartItems = Array.from(cart.entries())
     .map(([id, qty]) => {

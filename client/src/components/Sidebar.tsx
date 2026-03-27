@@ -67,7 +67,7 @@ export default function Sidebar({
   const location = useLocation();
   const { user, clearUser } = useAuth();
   const { t, changeLanguage, currentLanguage } = useTranslation();
-  const { currency, setCurrency } = useCurrency();
+  const { currency, setCurrency, rateDate, ratesLoading } = useCurrency();
   const theme = useTheme();
   const isRtl = theme.direction === 'rtl';
   const isXl = useMediaQuery(theme.breakpoints.up('xl'));
@@ -523,6 +523,19 @@ export default function Sidebar({
               </Box>
             </MuiMenuItem>
           ))}
+          {rateDate && currency !== 'EUR' && (
+            <Typography
+              sx={{
+                fontSize: '0.6875rem',
+                color: 'text.disabled',
+                px: 2,
+                py: 0.5,
+                fontStyle: 'italic',
+              }}
+            >
+              {ratesLoading ? 'Chargement...' : `Taux au ${rateDate}`}
+            </Typography>
+          )}
         </Menu>
 
         {/* ── Collapse toggle (desktop only) ─────────────────────────── */}

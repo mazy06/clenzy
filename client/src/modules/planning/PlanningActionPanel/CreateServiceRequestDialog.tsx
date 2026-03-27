@@ -58,6 +58,7 @@ import type { ServiceRequestFormValues } from '../../../schemas';
 import { INTERVENTION_TYPE_OPTIONS } from '../../../types/interventionTypes';
 import { getPropertyTypeLabel } from '../../../utils/statusUtils';
 import { computeEstimatedDuration, formatDuration, computeRangeFromForfait } from '../../service-requests/ServiceRequestPriceEstimate';
+import { useCurrency } from '../../../hooks/useCurrency';
 
 // Sub-components from full form
 import ServiceRequestFormInfo from '../../service-requests/ServiceRequestFormInfo';
@@ -154,6 +155,7 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
   const navigate = useNavigate();
   const { user, isAdmin, isManager, isHost } = useAuth();
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
 
   // ── Stepper state ───────────────────────────────────────────────────────
   const [activeStep, setActiveStep] = useState(0);
@@ -823,8 +825,8 @@ const CreateServiceRequestDialog: React.FC<CreateServiceRequestDialogProps> = ({
                         {priceRange ? (
                           <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, color: 'primary.main', lineHeight: 1.3 }}>
                             {priceRange.min === priceRange.max
-                              ? `${priceRange.min}€`
-                              : `${priceRange.min}€ – ${priceRange.max}€`}
+                              ? convertAndFormat(priceRange.min, 'EUR')
+                              : `${convertAndFormat(priceRange.min, 'EUR')} – ${convertAndFormat(priceRange.max, 'EUR')}`}
                           </Typography>
                         ) : (
                           <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: 'text.disabled', lineHeight: 1.3 }}>

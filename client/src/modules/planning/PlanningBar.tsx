@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Tooltip, Typography, useTheme } from '@mui/material';
 import { useDraggable } from '@dnd-kit/core';
-import { AutoAwesome, Handyman, Lock as LockIcon, Close, WarningAmber } from '@mui/icons-material';
+import { AutoAwesome, Handyman, Lock as LockIcon, Close, WarningAmber, CreditCardOff } from '@mui/icons-material';
 import type { BarLayout, PlanningEvent, ZoomLevel, DragBarData } from './types';
 import { BAR_BORDER_RADIUS } from './constants';
 import { hexToRgba } from './utils/colorUtils';
@@ -309,6 +309,39 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           </Box>
         </Tooltip>
       )}
+
+      {/* Payment badge: reservation or intervention has unpaid payment */}
+      {event.needsPaymentBadge && (() => {
+        const hasWarningBadge = isReservation && event.reservation && !event.reservation.guestEmail && event.status !== 'cancelled';
+        const tooltipText = event.paymentBadgeStatus === 'FAILED'
+          ? 'Paiement echoue'
+          : event.paymentBadgeStatus === 'PROCESSING'
+            ? 'Paiement en cours de traitement'
+            : 'Paiement en attente';
+        return (
+          <Tooltip title={tooltipText} arrow>
+            <Box
+              sx={{
+                position: 'absolute',
+                top: -6,
+                right: hasWarningBadge ? 12 : -6,
+                width: 16,
+                height: 16,
+                borderRadius: '50%',
+                backgroundColor: event.paymentBadgeStatus === 'FAILED' ? '#C62828' : '#E53935',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 12,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                border: `1.5px solid ${isDark ? '#1e1e1e' : '#fff'}`,
+              }}
+            >
+              <CreditCardOff sx={{ fontSize: 10, color: '#fff' }} />
+            </Box>
+          </Tooltip>
+        );
+      })()}
 
       {/* Resize handle (right edge) — hidden during move drag, respects role permissions */}
       {!isDragDisabled && !isDragging && (

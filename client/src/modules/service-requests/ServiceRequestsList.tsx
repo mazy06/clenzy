@@ -62,6 +62,7 @@ import {
   SuccessDialog,
 } from './ServiceRequestsDialogs';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
+import { useCurrency } from '../../hooks/useCurrency';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 
@@ -90,9 +91,9 @@ function formatDateShort(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function formatPrice(price: number | undefined): string {
+function formatPrice(price: number | undefined, symbol: string): string {
   if (price === undefined || price === null) return '—';
-  return `${price}€`;
+  return `${price}${symbol}`;
 }
 
 interface ServiceRequestsListProps {
@@ -196,6 +197,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
   const [page, setPage] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('map');
   const theme = useTheme();
+  const { convertAndFormat } = useCurrency();
   const ITEMS_PER_PAGE = 6;
 
   // ─── Map state ──────────────────────────────────────────────
@@ -660,7 +662,7 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.82rem' }}>
-                        {formatPrice(request.estimatedCost)}
+                        {request.estimatedCost != null ? convertAndFormat(request.estimatedCost, 'EUR') : '—'}
                       </Typography>
                       {request.estimatedDuration > 0 && (
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.68rem' }}>

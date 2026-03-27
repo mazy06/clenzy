@@ -15,6 +15,7 @@ import {
   CheckCircle,
 } from '@mui/icons-material';
 import type { UsePanelPaymentReturn } from './usePanelPayment';
+import { useCurrency } from '../../../hooks/useCurrency';
 
 interface PanelPaymentCartProps {
   payment: UsePanelPaymentReturn;
@@ -33,6 +34,7 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
     paymentSuccess,
     initiatePayment,
   } = payment;
+  const { currencySymbol } = useCurrency();
 
   if (cartItems.length === 0) {
     return (
@@ -96,7 +98,7 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
               </Typography>
             </Box>
             <Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>
-              {item.cost.toFixed(0)} €
+              {item.cost.toFixed(0)} {currencySymbol}
             </Typography>
           </Box>
         ))}
@@ -108,7 +110,7 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
         <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>Total sélectionné</Typography>
         <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'primary.main' }}>
-          {selectedTotal.toFixed(2)} €
+          {selectedTotal.toFixed(2)} {currencySymbol}
         </Typography>
       </Box>
 
@@ -132,7 +134,7 @@ const PanelPaymentCart: React.FC<PanelPaymentCartProps> = ({ payment }) => {
         disabled={paying || selectedIds.length === 0}
         sx={{ textTransform: 'none', fontSize: '0.75rem' }}
       >
-        {paying ? 'Paiement en cours...' : `Payer ${selectedTotal.toFixed(2)} €`}
+        {paying ? 'Paiement en cours...' : `Payer ${selectedTotal.toFixed(2)} ${currencySymbol}`}
       </Button>
     </Box>
   );

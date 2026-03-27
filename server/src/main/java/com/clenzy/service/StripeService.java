@@ -105,6 +105,9 @@ public class StripeService {
         // Convertir le montant en centimes (Stripe utilise les centimes)
         long amountInCents = amount.multiply(BigDecimal.valueOf(100)).longValue();
         
+        // Resoudre la devise : intervention → reservation → property → config
+        String resolvedCurrency = resolveInterventionCurrency(intervention);
+
         // Créer les paramètres de la session
         SessionCreateParams params = SessionCreateParams.builder()
             .setMode(SessionCreateParams.Mode.PAYMENT)
@@ -115,12 +118,12 @@ public class StripeService {
                     .setQuantity(1L)
                     .setPriceData(
                         SessionCreateParams.LineItem.PriceData.builder()
-                            .setCurrency(currency.toLowerCase())
+                            .setCurrency(resolvedCurrency.toLowerCase())
                             .setUnitAmount(amountInCents)
                             .setProductData(
                                 SessionCreateParams.LineItem.PriceData.ProductData.builder()
                                     .setName("Intervention: " + intervention.getTitle())
-                                    .setDescription(intervention.getDescription() != null ? 
+                                    .setDescription(intervention.getDescription() != null ?
                                         intervention.getDescription() : "Paiement pour l'intervention")
                                     .build()
                             )
@@ -131,7 +134,7 @@ public class StripeService {
             .setCustomerEmail(customerEmail)
             .putMetadata("intervention_id", interventionId.toString())
             .build();
-        
+
         // Créer la session
         Session session = Session.create(params);
         
@@ -157,6 +160,8 @@ public class StripeService {
 
         long amountInCents = amount.multiply(BigDecimal.valueOf(100)).longValue();
 
+        String resolvedCurrencyEmbed = resolveInterventionCurrency(intervention);
+
         SessionCreateParams params = SessionCreateParams.builder()
             .setMode(SessionCreateParams.Mode.PAYMENT)
             .setUiMode(SessionCreateParams.UiMode.EMBEDDED)
@@ -169,7 +174,7 @@ public class StripeService {
                     .setQuantity(1L)
                     .setPriceData(
                         SessionCreateParams.LineItem.PriceData.builder()
-                            .setCurrency(currency.toLowerCase())
+                            .setCurrency(resolvedCurrencyEmbed.toLowerCase())
                             .setUnitAmount(amountInCents)
                             .setProductData(
                                 SessionCreateParams.LineItem.PriceData.ProductData.builder()
@@ -205,6 +210,12 @@ public class StripeService {
                                                      String propertyName) throws StripeException {
         Stripe.apiKey = stripeSecretKey;
 
+        // Resoudre la devise depuis la reservation
+        String resCurrency = reservationRepository.findById(reservationId)
+            .map(Reservation::getCurrency)
+            .filter(c -> c != null && !c.isBlank())
+            .orElse(currency);
+
         long amountInCents = amount.multiply(BigDecimal.valueOf(100)).longValue();
 
         SessionCreateParams params = SessionCreateParams.builder()
@@ -216,7 +227,7 @@ public class StripeService {
                     .setQuantity(1L)
                     .setPriceData(
                         SessionCreateParams.LineItem.PriceData.builder()
-                            .setCurrency(currency.toLowerCase())
+                            .setCurrency(resCurrency.toLowerCase())
                             .setUnitAmount(amountInCents)
                             .setProductData(
                                 SessionCreateParams.LineItem.PriceData.ProductData.builder()
@@ -240,6 +251,19 @@ public class StripeService {
     // ════════════════════════════════════════════════════════════════════════
     // Wallet creation on payment confirmation
     // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Resout la devise pour une intervention : property → config fallback.
+     */
+    private String resolveInterventionCurrency(Intervention intervention) {
+        // 1. Depuis la propriete
+        if (intervention.getProperty() != null && intervention.getProperty().getDefaultCurrency() != null
+                && !intervention.getProperty().getDefaultCurrency().isBlank()) {
+            return intervention.getProperty().getDefaultCurrency();
+        }
+        // 2. Fallback config
+        return currency;
+    }
 
     /**
      * Ensures wallets exist for the organization and records the payment in the ledger.
