@@ -18,6 +18,7 @@ import {
 } from '@mui/icons-material';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
+import { useCurrency } from '../hooks/useCurrency';
 import { paymentsApi } from '../services/api/paymentsApi';
 import { serviceRequestsApi } from '../services/api/serviceRequestsApi';
 
@@ -144,8 +145,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
     };
   }, [clientSecret, handleComplete]);
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(val);
+  const { convertAndFormat } = useCurrency();
 
   return (
     <Dialog
@@ -197,7 +197,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
                 maxWidth: 360,
               }}
             >
-              Le paiement de {formatCurrency(amount)} pour{' '}
+              Le paiement de {convertAndFormat(amount, 'EUR')} pour{' '}
               <strong>{interventionTitle || 'l\'intervention'}</strong> a ete traite avec succes.
             </Typography>
             <Button
@@ -256,7 +256,7 @@ const PaymentCheckoutModal: React.FC<PaymentCheckoutModalProps> = ({
                   color: theme.palette.primary.main,
                 }}
               >
-                {formatCurrency(amount)}
+                {convertAndFormat(amount, 'EUR')}
               </Typography>
               <IconButton
                 size="small"

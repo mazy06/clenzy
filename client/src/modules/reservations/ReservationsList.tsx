@@ -38,7 +38,7 @@ import GuestProfileDialog from '../channels/GuestProfileDialog';
 import PageHeader from '../../components/PageHeader';
 import { FilterSearchBar } from '../../components/FilterSearchBar';
 
-import { formatCurrency } from '../../utils/currencyUtils';
+import { useCurrency } from '../../hooks/useCurrency';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 
 // ─── Style Constants ────────────────────────────────────────────────────────
@@ -73,17 +73,18 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function formatPrice(price: number | undefined, currency = 'EUR'): string {
-  if (price === undefined || price === null) return '-';
-  return formatCurrency(price, currency);
-}
-
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const ReservationsList: React.FC = () => {
   const { t } = useTranslation();
   const { notify } = useNotification();
   const theme = useTheme();
+  const { convertAndFormat } = useCurrency();
+
+  const formatPrice = (price: number | undefined, currency = 'EUR'): string => {
+    if (price === undefined || price === null) return '-';
+    return convertAndFormat(price, currency);
+  };
 
   const {
     reservations,

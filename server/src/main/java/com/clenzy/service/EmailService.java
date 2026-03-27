@@ -158,7 +158,7 @@ public class EmailService {
         sb.append("<div style='background: #f0fdf4; border-left: 4px solid #22c55e; padding: 15px 20px;'>");
         sb.append("<strong style='color: #15803d;'>🎯 Forfait recommandé :</strong> ");
         sb.append("<span style='font-size: 18px; font-weight: bold; color: #15803d;'>").append(formatPackageName(recommendedPackage)).append("</span>");
-        sb.append(" <span style='color: #666;'>(à partir de ").append(recommendedRate).append("€ par intervention)</span>");
+        sb.append(" <span style='color: #666;'>(à partir de ").append(recommendedRate).append(" € par intervention)</span>");
         sb.append("</div>");
 
         // Section: Coordonnées
@@ -613,6 +613,76 @@ public class EmailService {
             case "MEMBER" -> "Membre";
             default -> role;
         };
+    }
+
+    /**
+     * Envoie un email de bienvenue au nouvel utilisateur avec ses identifiants de connexion.
+     */
+    public void sendWelcomeEmail(String toEmail, String firstName, String lastName,
+                                  String roleName, String loginUrl) {
+        try {
+            JavaMailSender ms = requireMailSender();
+            MimeMessage message = ms.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromAddress);
+            helper.setTo(toEmail);
+            helper.setSubject(sanitizeHeaderValue("Bienvenue sur Clenzy — Votre compte a ete cree"));
+            helper.setText(buildWelcomeHtml(firstName, lastName, toEmail, roleName, loginUrl), true);
+            ms.send(message);
+            log.info("Email de bienvenue envoye a {}", toEmail);
+        } catch (Exception e) {
+            log.error("Erreur d'envoi email de bienvenue a {}: {}", toEmail, e.getMessage(), e);
+            // Ne pas propager — la creation de l'utilisateur ne doit pas echouer si l'email echoue
+        }
+    }
+
+    private String buildWelcomeHtml(String firstName, String lastName, String email,
+                                     String roleName, String loginUrl) {
+        String safeName = StringUtils.escapeHtml(firstName);
+        String safeFullName = StringUtils.escapeHtml(firstName + " " + lastName);
+        String safeEmail = StringUtils.escapeHtml(email);
+        String safeRole = StringUtils.escapeHtml(roleName != null ? formatRoleName(roleName) : "Utilisateur");
+        String safeUrl = StringUtils.escapeHtml(loginUrl);
+
+        return "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>"
+                + "<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;'>"
+                // Header
+                + "<div style='background:linear-gradient(135deg,#A6C0CE 0%,#6B8A9A 100%);padding:30px;border-radius:10px 10px 0 0;text-align:center;'>"
+                + "<h1 style='color:white;margin:0;font-size:24px;'>Bienvenue sur Clenzy !</h1>"
+                + "<p style='color:rgba(255,255,255,0.9);margin:8px 0 0;font-size:14px;'>Votre compte a ete cree avec succes</p>"
+                + "</div>"
+                // Body
+                + "<div style='background:#ffffff;padding:30px;border:1px solid #e2e8f0;'>"
+                + "<p style='font-size:16px;color:#334155;'>Bonjour " + safeName + ",</p>"
+                + "<p style='font-size:15px;color:#475569;'>Votre compte Clenzy a ete cree. "
+                + "Voici vos informations de connexion :</p>"
+                // Info box
+                + "<div style='background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:20px;margin:20px 0;'>"
+                + "<table style='width:100%;border-collapse:collapse;'>"
+                + "<tr><td style='padding:6px 0;font-weight:bold;color:#475569;width:35%;'>Nom</td>"
+                + "<td style='padding:6px 0;color:#1e293b;'>" + safeFullName + "</td></tr>"
+                + "<tr><td style='padding:6px 0;font-weight:bold;color:#475569;'>Email</td>"
+                + "<td style='padding:6px 0;color:#1e293b;'>" + safeEmail + "</td></tr>"
+                + "<tr><td style='padding:6px 0;font-weight:bold;color:#475569;'>Role</td>"
+                + "<td style='padding:6px 0;color:#1e293b;'>" + safeRole + "</td></tr>"
+                + "</table>"
+                + "</div>"
+                + "<p style='font-size:14px;color:#64748b;'>Votre mot de passe vous a ete communique par votre administrateur. "
+                + "Vous pouvez le modifier a tout moment depuis votre profil.</p>"
+                // CTA Button
+                + "<div style='text-align:center;margin:30px 0;'>"
+                + "<a href='" + safeUrl + "' style='display:inline-block;padding:14px 32px;"
+                + "background:linear-gradient(135deg,#A6C0CE 0%,#6B8A9A 100%);color:white;"
+                + "text-decoration:none;border-radius:8px;font-size:16px;font-weight:bold;'>"
+                + "Se connecter a Clenzy</a>"
+                + "</div>"
+                + "</div>"
+                // Footer
+                + "<div style='background:#f8fafc;padding:20px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;text-align:center;'>"
+                + "<p style='margin:0;color:#94a3b8;font-size:12px;'>Cet email a ete envoye automatiquement. Si vous n'etes pas a l'origine de cette demande, contactez votre administrateur.</p>"
+                + "</div>"
+                + "</div></body></html>";
     }
 
     /**

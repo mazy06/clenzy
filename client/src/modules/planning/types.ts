@@ -35,6 +35,8 @@ export interface PlanningEvent {
   reservation?: Reservation;
   intervention?: PlanningIntervention;
   isAwaitingPayment?: boolean;
+  needsPaymentBadge?: boolean;
+  paymentBadgeStatus?: 'PENDING' | 'PROCESSING' | 'FAILED';
   serviceRequest?: PlanningServiceRequest;
 }
 
@@ -114,6 +116,7 @@ export interface PlanningProperty {
   defaultCheckOutTime?: string;
   cleaningFrequency?: string;
   cleaningBasePrice?: number;
+  currency?: string;
 }
 
 // ─── Month separator (for date headers) ──────────────────────────────────────

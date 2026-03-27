@@ -51,6 +51,7 @@ function mapToPlanning(list: Property[]): PlanningProperty[] {
     defaultCheckOutTime: p.defaultCheckOutTime,
     cleaningFrequency: p.cleaningFrequency,
     cleaningBasePrice: p.cleaningBasePrice,
+    currency: (p as unknown as { defaultCurrency?: string }).defaultCurrency || 'EUR',
   }));
 }
 
@@ -140,11 +141,25 @@ function computeEffectiveStatus(r: Reservation): ReservationStatus {
   return 'pending';
 }
 
+const PAYMENT_BADGE_STATUSES = new Set(['PENDING', 'PROCESSING', 'FAILED']);
+
 function reservationToEvent(
   r: Reservation,
   propertyDefaults?: { defaultCheckInTime?: string; defaultCheckOutTime?: string },
 ): PlanningEvent {
   const effectiveStatus = computeEffectiveStatus(r);
+  // Show payment badge when:
+  // 1. paymentStatus is explicitly PENDING/PROCESSING/FAILED, OR
+  // 2. paymentStatus is null/undefined and totalPrice > 0 (not yet paid, no explicit status)
+  // Never show on cancelled/checked_out reservations or when PAID/REFUNDED/NOT_REQUIRED
+  const isTerminal = effectiveStatus === 'cancelled' || effectiveStatus === 'checked_out';
+  const isPaid = r.paymentStatus === 'PAID' || r.paymentStatus === 'REFUNDED' || r.paymentStatus === 'NOT_REQUIRED';
+  const hasUnpaidAmount = (r.totalPrice ?? 0) > 0;
+  const needsBadge = !isTerminal && !isPaid && hasUnpaidAmount;
+  const badgeStatus: 'PENDING' | 'PROCESSING' | 'FAILED' | undefined = needsBadge
+    ? (PAYMENT_BADGE_STATUSES.has(r.paymentStatus ?? '') ? r.paymentStatus as 'PENDING' | 'PROCESSING' | 'FAILED' : 'PENDING')
+    : undefined;
+
   return {
     id: `res-${r.id}`,
     type: 'reservation',
@@ -158,6 +173,8 @@ function reservationToEvent(
     status: effectiveStatus,
     color: getReservationColor(effectiveStatus),
     reservation: r,
+    needsPaymentBadge: needsBadge,
+    paymentBadgeStatus: badgeStatus,
   };
 }
 
@@ -179,6 +196,13 @@ function interventionToEvent(i: PlanningIntervention): PlanningEvent {
     endTime = `${String(endH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   }
 
+  const cost = i.actualCost || i.estimatedCost || 0;
+  const intIsPaid = i.paymentStatus === 'PAID' || i.paymentStatus === 'REFUNDED' || i.paymentStatus === 'NOT_REQUIRED';
+  const intNeedsBadge = cost > 0 && !intIsPaid;
+  const intBadgeStatus: 'PENDING' | 'PROCESSING' | 'FAILED' | undefined = intNeedsBadge
+    ? (PAYMENT_BADGE_STATUSES.has(i.paymentStatus ?? '') ? i.paymentStatus as 'PENDING' | 'PROCESSING' | 'FAILED' : 'PENDING')
+    : undefined;
+
   return {
     id: `int-${i.id}`,
     type: i.type === 'cleaning' ? 'cleaning' : 'maintenance',
@@ -192,6 +216,8 @@ function interventionToEvent(i: PlanningIntervention): PlanningEvent {
     status: i.status,
     color: getInterventionColor(i.type),
     intervention: i,
+    needsPaymentBadge: intNeedsBadge,
+    paymentBadgeStatus: intBadgeStatus,
   };
 }
 
@@ -223,6 +249,8 @@ function serviceRequestToEvent(sr: PlanningServiceRequest): PlanningEvent {
     status: 'awaiting_payment',
     color: getInterventionColor(eventType),
     isAwaitingPayment: true,
+    needsPaymentBadge: true,
+    paymentBadgeStatus: 'PENDING',
     serviceRequest: sr,
   };
 }
@@ -461,20 +489,17 @@ export function usePlanningData(
   }, [properties]);
 
   // Merge into PlanningEvent[]
-  // Interventions only appear on the Gantt when BOTH conditions are met:
-  //   1. Assigned to a contractor/team (assigneeName is set)
-  //   2. Payment settled (paymentStatus = PAID) — or no cost associated
+  // Interventions appear when assigned. Unpaid ones show a payment badge.
   const events = useMemo(() => {
     const resEvents = reservations.map((r) =>
       reservationToEvent(r, propertyDefaultsMap.get(r.propertyId)),
     );
     const visibleInterventions = interventions.filter((i) => {
-      // Must be assigned to a contractor/team
-      if (!i.assigneeName) return false;
-      // If the intervention has a cost, it must be paid
+      // Show if assigned OR if has unpaid cost (so payment badge is visible)
+      if (i.assigneeName) return true;
       const cost = i.actualCost || i.estimatedCost || 0;
-      if (cost > 0 && i.paymentStatus !== 'PAID') return false;
-      return true;
+      const isPaid = i.paymentStatus === 'PAID' || i.paymentStatus === 'REFUNDED' || i.paymentStatus === 'NOT_REQUIRED';
+      return cost > 0 && !isPaid;
     });
     const intEvents = visibleInterventions.map(interventionToEvent);
     const srEvents = awaitingPaymentSRs.map(serviceRequestToEvent);

@@ -17,10 +17,10 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
+import java.util.Currency;
+import java.util.Map;
 
 /**
  * Service de generation de PDF de factures.
@@ -38,13 +38,9 @@ public class InvoicePdfService {
 
     private static final Logger log = LoggerFactory.getLogger(InvoicePdfService.class);
     private static final DateTimeFormatter DATE_FR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final NumberFormat MONEY_FR;
-
-    static {
-        MONEY_FR = NumberFormat.getCurrencyInstance(Locale.FRANCE);
-        MONEY_FR.setMinimumFractionDigits(2);
-        MONEY_FR.setMaximumFractionDigits(2);
-    }
+    private static final Map<String, String> CURRENCY_SYMBOLS = Map.of(
+        "EUR", "€", "MAD", "MAD", "SAR", "SAR", "USD", "$", "GBP", "£"
+    );
 
     private final String gotenbergUrl;
     private final RestTemplate restTemplate;
@@ -191,17 +187,19 @@ public class InvoicePdfService {
         sb.append("<th>Total HT</th><th>Total TTC</th>");
         sb.append("</tr></thead><tbody>");
 
+        String cur = invoice.getCurrency() != null ? invoice.getCurrency() : "EUR";
+
         if (invoice.getLines() != null) {
             for (InvoiceLine line : invoice.getLines()) {
                 sb.append("<tr>");
                 sb.append("<td class=\"center\">").append(line.getLineNumber()).append("</td>");
                 sb.append("<td>").append(esc(line.getDescription())).append("</td>");
                 sb.append("<td class=\"right\">").append(formatQty(line.getQuantity())).append("</td>");
-                sb.append("<td class=\"right\">").append(formatMoney(line.getUnitPriceHt())).append("</td>");
+                sb.append("<td class=\"right\">").append(formatMoney(line.getUnitPriceHt(), cur)).append("</td>");
                 sb.append("<td class=\"right\">").append(formatPercent(line.getTaxRate())).append("</td>");
-                sb.append("<td class=\"right\">").append(formatMoney(line.getTaxAmount())).append("</td>");
-                sb.append("<td class=\"right\">").append(formatMoney(line.getTotalHt())).append("</td>");
-                sb.append("<td class=\"right\">").append(formatMoney(line.getTotalTtc())).append("</td>");
+                sb.append("<td class=\"right\">").append(formatMoney(line.getTaxAmount(), cur)).append("</td>");
+                sb.append("<td class=\"right\">").append(formatMoney(line.getTotalHt(), cur)).append("</td>");
+                sb.append("<td class=\"right\">").append(formatMoney(line.getTotalTtc(), cur)).append("</td>");
                 sb.append("</tr>");
             }
         }
@@ -210,9 +208,9 @@ public class InvoicePdfService {
         // Totaux
         sb.append("<div class=\"totals\">");
         sb.append("<table class=\"totals-table\">");
-        sb.append("<tr><td>Total HT</td><td>").append(formatMoney(invoice.getTotalHt())).append("</td></tr>");
-        sb.append("<tr><td>Total TVA</td><td>").append(formatMoney(invoice.getTotalTax())).append("</td></tr>");
-        sb.append("<tr class=\"grand-total\"><td>Total TTC</td><td>").append(formatMoney(invoice.getTotalTtc())).append("</td></tr>");
+        sb.append("<tr><td>Total HT</td><td>").append(formatMoney(invoice.getTotalHt(), cur)).append("</td></tr>");
+        sb.append("<tr><td>Total TVA</td><td>").append(formatMoney(invoice.getTotalTax(), cur)).append("</td></tr>");
+        sb.append("<tr class=\"grand-total\"><td>Total TTC</td><td>").append(formatMoney(invoice.getTotalTtc(), cur)).append("</td></tr>");
         sb.append("</table></div>");
 
         // Mentions legales
@@ -230,9 +228,21 @@ public class InvoicePdfService {
         return date != null ? date.format(DATE_FR) : "";
     }
 
-    private String formatMoney(BigDecimal amount) {
-        if (amount == null) return "0,00";
-        return String.format("%,.2f", amount).replace(",", " ").replace(".", ",");
+    private String formatMoney(BigDecimal amount, String currencyCode) {
+        if (amount == null) return "0,00 " + getCurrencySymbol(currencyCode);
+        String formatted = String.format("%,.2f", amount).replace(",", " ").replace(".", ",");
+        return formatted + " " + getCurrencySymbol(currencyCode);
+    }
+
+    private String getCurrencySymbol(String currencyCode) {
+        if (currencyCode == null) return "€";
+        String symbol = CURRENCY_SYMBOLS.get(currencyCode.toUpperCase());
+        if (symbol != null) return symbol;
+        try {
+            return Currency.getInstance(currencyCode.toUpperCase()).getSymbol();
+        } catch (IllegalArgumentException e) {
+            return currencyCode;
+        }
     }
 
     private String formatPercent(BigDecimal rate) {

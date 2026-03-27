@@ -27,6 +27,7 @@ import {
 import { accountingApi, type OwnerPayout } from '../../services/api/accountingApi';
 import { propertiesApi, type Property } from '../../services/api/propertiesApi';
 import { STORAGE_KEYS, getItem, setItem } from '../../services/storageService';
+import { useCurrency } from '../../hooks/useCurrency';
 
 // ─── Couleurs Clenzy (brand) ───────────────────────────────────────────────
 const C = {
@@ -107,9 +108,6 @@ function computeSummary(
 
 // ─── Formatting helpers ────────────────────────────────────────────────────
 
-const fmtCurrency = (v: number) =>
-  v.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-
 const fmtPercent = (v: number) => `${Math.round(v * 100)}%`;
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -120,6 +118,8 @@ const ContractCTABanner: React.FC = React.memo(() => {
   const { user } = useAuth();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const { convertAndFormat } = useCurrency();
+  const fmtCurrency = (v: number) => convertAndFormat(v, 'EUR');
 
   const [dismissed, setDismissed] = useState(
     () => getItem(STORAGE_KEYS.CONTRACT_CTA_DISMISSED) === 'true',

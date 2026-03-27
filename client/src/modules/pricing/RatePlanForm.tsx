@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
 import MiniDateRangePicker from '../../components/MiniDateRangePicker';
 import type { RatePlan, CreateRatePlanData } from '../../services/api/calendarPricingApi';
 
@@ -53,6 +54,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
 }) => {
   const { t, isFrench } = useTranslation();
 
+  const { currency: activeCurrency, currencySymbol } = useCurrency();
   const [name, setName] = useState('');
   const [type, setType] = useState<string>('BASE');
   const [nightlyPrice, setNightlyPrice] = useState<string>('');
@@ -101,6 +103,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
       name,
       type,
       nightlyPrice: parseFloat(nightlyPrice),
+      currency: activeCurrency,
       priority: parseInt(priority, 10),
       startDate: startDate || undefined,
       endDate: endDate || undefined,
@@ -148,7 +151,7 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
           </Select>
         </FormControl>
 
-        {/* Price + Priority row */}
+        {/* Price + Currency + Priority row */}
         <Box sx={{ display: 'flex', gap: 1 }}>
           <TextField
             label={t('dynamicPricing.ratePlan.nightlyPrice')}
@@ -158,6 +161,20 @@ const RatePlanForm: React.FC<RatePlanFormProps> = ({
             fullWidth
             size="small"
             inputProps={{ min: 0, step: 1 }}
+          />
+          <TextField
+            label={t('common.currency') || 'Devise'}
+            value={activeCurrency}
+            disabled
+            size="small"
+            sx={{ width: 90 }}
+            InputProps={{
+              startAdornment: (
+                <Typography variant="body2" sx={{ mr: 0.5, fontWeight: 600, color: 'text.secondary' }}>
+                  {currencySymbol}
+                </Typography>
+              ),
+            }}
           />
           <TextField
             label={t('dynamicPricing.ratePlan.priority')}

@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import jakarta.annotation.PostConstruct;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Map;
@@ -18,7 +20,7 @@ import java.util.Optional;
  * Service de fourniture des taux de change.
  *
  * Responsabilites :
- * - Recuperer les taux de change depuis la BCE (European Central Bank)
+ * - Recuperer les taux de change depuis open.er-api.com
  * - Persister les taux journaliers en base
  * - Fournir le taux le plus recent pour une paire de devises
  * - Job planifie quotidien pour mise a jour automatique
@@ -30,8 +32,8 @@ import java.util.Optional;
 public class ExchangeRateProviderService {
 
     private static final Logger log = LoggerFactory.getLogger(ExchangeRateProviderService.class);
-    private static final String ECB_API = "https://api.frankfurter.app";
-    private static final String[] TARGET_CURRENCIES = {"MAD", "SAR", "USD", "GBP"};
+    private static final String OPEN_ER_API = "https://open.er-api.com/v6/latest/EUR";
+    private static final String[] TARGET_CURRENCIES = {"MAD", "SAR"};
 
     private final ExchangeRateRepository exchangeRateRepository;
     private final RestTemplate restTemplate;
@@ -40,6 +42,32 @@ public class ExchangeRateProviderService {
                                         RestTemplate restTemplate) {
         this.exchangeRateRepository = exchangeRateRepository;
         this.restTemplate = restTemplate;
+    }
+
+    /**
+     * Charge les taux manquants au demarrage de l'application.
+     * Verifie si les taux du jour existent, sinon les recupere.
+     */
+    @PostConstruct
+    public void initRatesOnStartup() {
+        LocalDate today = LocalDate.now();
+        boolean allPresent = true;
+
+        for (String cur : TARGET_CURRENCIES) {
+            if (exchangeRateRepository.findLatestRate("EUR", cur, today).isEmpty()) {
+                allPresent = false;
+                break;
+            }
+        }
+
+        if (!allPresent) {
+            log.info("Missing exchange rates for MAD/SAR — fetching on startup...");
+            try {
+                fetchRates(today);
+            } catch (Exception e) {
+                log.warn("Failed to fetch rates on startup: {}", e.getMessage());
+            }
+        }
     }
 
     /**
@@ -52,7 +80,6 @@ public class ExchangeRateProviderService {
             return BigDecimal.ONE;
         }
 
-        // Chercher dans la base
         Optional<ExchangeRate> rateOpt = exchangeRateRepository.findLatestRate(
             baseCurrency.toUpperCase(), targetCurrency.toUpperCase(), date);
 
@@ -78,46 +105,44 @@ public class ExchangeRateProviderService {
     }
 
     /**
-     * Recupere et persiste les taux de change depuis la BCE.
-     * Execute quotidiennement a 07:00 UTC (apres publication BCE a ~16:00 CET J-1).
+     * Recupere et persiste les taux de change depuis open.er-api.com.
+     * Execute quotidiennement a 07:00 UTC.
      */
     @Scheduled(cron = "0 0 7 * * *")
     @Transactional
     public void fetchDailyRates() {
-        log.info("Fetching daily exchange rates from ECB...");
-        LocalDate today = LocalDate.now();
+        log.info("Fetching daily exchange rates...");
+        fetchRates(LocalDate.now());
+    }
 
+    private void fetchRates(LocalDate today) {
         try {
-            String url = ECB_API + "/latest?from=EUR&to=" + String.join(",", TARGET_CURRENCIES);
-
             @SuppressWarnings("unchecked")
-            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            Map<String, Object> response = restTemplate.getForObject(OPEN_ER_API, Map.class);
 
             if (response == null || !response.containsKey("rates")) {
-                log.warn("Empty response from ECB API");
+                log.warn("Empty response from Open Exchange Rates API");
                 return;
             }
 
             @SuppressWarnings("unchecked")
-            Map<String, Number> rates = (Map<String, Number>) response.get("rates");
-            String dateStr = (String) response.get("date");
-            LocalDate rateDate = dateStr != null ? LocalDate.parse(dateStr) : today;
+            Map<String, Number> allRates = (Map<String, Number>) response.get("rates");
 
-            for (Map.Entry<String, Number> entry : rates.entrySet()) {
-                String targetCurrency = entry.getKey();
-                BigDecimal rate = new BigDecimal(entry.getValue().toString());
+            for (String cur : TARGET_CURRENCIES) {
+                if (allRates.containsKey(cur)) {
+                    BigDecimal rate = new BigDecimal(allRates.get(cur).toString());
 
-                // Upsert : ignorer si deja present pour cette date
-                if (exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
-                        "EUR", targetCurrency, rateDate).isEmpty()) {
-                    ExchangeRate exchangeRate = new ExchangeRate("EUR", targetCurrency, rate, rateDate);
-                    exchangeRate.setSource("ECB");
-                    exchangeRateRepository.save(exchangeRate);
-                    log.info("Saved exchange rate: EUR/{} = {} ({})", targetCurrency, rate, rateDate);
+                    if (exchangeRateRepository.findByBaseCurrencyAndTargetCurrencyAndRateDate(
+                            "EUR", cur, today).isEmpty()) {
+                        ExchangeRate exchangeRate = new ExchangeRate("EUR", cur, rate, today);
+                        exchangeRate.setSource("OPEN_ER");
+                        exchangeRateRepository.save(exchangeRate);
+                        log.info("Saved exchange rate: EUR/{} = {} ({})", cur, rate, today);
+                    }
                 }
             }
 
-            log.info("Exchange rates updated successfully for {}", rateDate);
+            log.info("Exchange rates updated for {} (MAD, SAR)", today);
         } catch (Exception e) {
             log.error("Failed to fetch exchange rates: {}", e.getMessage(), e);
         }

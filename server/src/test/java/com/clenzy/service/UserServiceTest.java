@@ -48,6 +48,7 @@ class UserServiceTest {
     @Mock private PermissionService permissionService;
     @Mock private NewUserService newUserService;
     @Mock private NotificationService notificationService;
+    @Mock private EmailService emailService;
 
     private TenantContext tenantContext;
     private UserService userService;
@@ -62,7 +63,7 @@ class UserServiceTest {
         userService = new UserService(
                 userRepository, organizationRepository, memberRepository,
                 organizationService, permissionService,
-                newUserService, notificationService, tenantContext);
+                newUserService, notificationService, emailService, tenantContext);
     }
 
     private User buildUser(Long id, String email, UserRole role) {

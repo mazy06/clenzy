@@ -50,6 +50,7 @@ import PageHeader from '../../components/PageHeader';
 import { FilterSearchBar } from '../../components/FilterSearchBar';
 import DataFetchWrapper from '../../components/DataFetchWrapper';
 import PaymentCheckoutModal from '../../components/PaymentCheckoutModal';
+import { useCurrency } from '../../hooks/useCurrency';
 
 interface PaymentHistoryPageProps {
   embedded?: boolean;
@@ -291,12 +292,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-    }).format(amount);
-  };
+  const { convertAndFormat } = useCurrency();
 
   const formatDate = (dateStr: string) => {
     try {
@@ -397,19 +393,19 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     ? [
         {
           label: t('payments.history.totalPaid'),
-          value: formatCurrency(summary.totalPaid),
+          value: convertAndFormat(summary.totalPaid, 'EUR'),
           color: C.success,
           icon: <CheckCircleIcon sx={{ fontSize: 20, color: C.success }} />,
         },
         {
           label: t('payments.history.totalPending'),
-          value: formatCurrency(summary.totalPending),
+          value: convertAndFormat(summary.totalPending, 'EUR'),
           color: C.warning,
           icon: <HourglassEmptyIcon sx={{ fontSize: 20, color: C.warning }} />,
         },
         {
           label: t('payments.history.totalRefunded'),
-          value: formatCurrency(summary.totalRefunded),
+          value: convertAndFormat(summary.totalRefunded, 'EUR'),
           color: C.info,
           icon: <MoneyOffIcon sx={{ fontSize: 20, color: C.info }} />,
         },
@@ -423,13 +419,13 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
     : [
         {
           label: t('payments.history.totalPaid'),
-          value: formatCurrency(summary.totalPaid),
+          value: convertAndFormat(summary.totalPaid, 'EUR'),
           color: C.success,
           icon: <CheckCircleIcon sx={{ fontSize: 20, color: C.success }} />,
         },
         {
           label: t('payments.history.totalDue'),
-          value: formatCurrency(totalDue),
+          value: convertAndFormat(totalDue, 'EUR'),
           color: totalDue > 0 ? C.error : C.warning,
           icon: <WarningIcon sx={{ fontSize: 20, color: totalDue > 0 ? C.error : C.warning }} />,
         },
@@ -644,7 +640,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.875rem', color: statusColor(payment.status) }}>
-                      {formatCurrency(payment.amount)}
+                      {convertAndFormat(payment.amount, payment.currency ?? 'EUR')}
                     </Typography>
                   </TableCell>
                   <TableCell>{getStatusChip(payment.status)}</TableCell>
@@ -802,7 +798,7 @@ const PaymentHistoryPage: React.FC<PaymentHistoryPageProps> = ({ embedded = fals
         <DialogContent>
           {refundTarget && (
             <Typography variant="body2" sx={{ mb: 1 }}>
-              Voulez-vous rembourser <strong>{formatCurrency(refundTarget.amount)}</strong> pour
+              Voulez-vous rembourser <strong>{convertAndFormat(refundTarget.amount, refundTarget.currency ?? 'EUR')}</strong> pour
               <strong> {refundTarget.description}</strong> ?
             </Typography>
           )}

@@ -247,8 +247,22 @@ public class PdfTemplateHelper {
      * Formate un montant en devise
      */
     public static String formatCurrency(java.math.BigDecimal amount) {
-        if (amount == null) return "€0,00";
-        return "€" + amount.setScale(2, java.math.RoundingMode.HALF_UP).toString().replace(".", ",");
+        return formatCurrency(amount, "EUR");
+    }
+
+    /**
+     * Formate un montant avec la devise specifiee.
+     */
+    public static String formatCurrency(java.math.BigDecimal amount, String currency) {
+        String symbol = switch (currency != null ? currency.toUpperCase() : "EUR") {
+            case "MAD" -> "MAD";
+            case "SAR" -> "SAR";
+            case "USD" -> "$";
+            case "GBP" -> "£";
+            default -> "€";
+        };
+        if (amount == null) return symbol + "0,00";
+        return symbol + amount.setScale(2, java.math.RoundingMode.HALF_UP).toString().replace(".", ",");
     }
     
     /**

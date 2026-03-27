@@ -40,12 +40,17 @@ public class UserService {
     private final PermissionService permissionService;
     private final NewUserService newUserService;
     private final NotificationService notificationService;
+    private final EmailService emailService;
     private final TenantContext tenantContext;
+
+    @org.springframework.beans.factory.annotation.Value("${clenzy.app.url:https://app.clenzy.fr}")
+    private String appUrl;
 
     public UserService(UserRepository userRepository, OrganizationRepository organizationRepository,
                        OrganizationMemberRepository memberRepository, OrganizationService organizationService,
                        PermissionService permissionService, NewUserService newUserService,
-                       NotificationService notificationService, TenantContext tenantContext) {
+                       NotificationService notificationService, EmailService emailService,
+                       TenantContext tenantContext) {
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
         this.memberRepository = memberRepository;
@@ -53,6 +58,7 @@ public class UserService {
         this.permissionService = permissionService;
         this.newUserService = newUserService;
         this.notificationService = notificationService;
+        this.emailService = emailService;
         this.tenantContext = tenantContext;
     }
 
@@ -87,6 +93,20 @@ public class UserService {
 
             log.debug("Utilisateur cree dans Keycloak et base metier: {} (Keycloak ID: {})", user.getEmail(), userProfile.getId());
 
+            // Envoyer l'email de bienvenue au nouvel utilisateur
+            try {
+                emailService.sendWelcomeEmail(
+                    user.getEmail(),
+                    user.getFirstName(),
+                    user.getLastName(),
+                    user.getRole() != null ? user.getRole().name() : null,
+                    appUrl
+                );
+            } catch (Exception emailEx) {
+                log.warn("Erreur envoi email de bienvenue a {}: {}", user.getEmail(), emailEx.getMessage());
+            }
+
+            // Notifier les admins/managers de la creation
             try {
                 notificationService.notifyAdminsAndManagers(
                     NotificationKey.USER_CREATED,

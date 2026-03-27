@@ -26,6 +26,7 @@ import {
   Wifi,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useCurrency } from '../../hooks/useCurrency';
 import type { ShopProduct } from './shopProducts';
 import { SHOP_PRODUCTS } from './shopProducts';
 
@@ -69,14 +70,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onRemoveFromCart,
 }) => {
   const { t } = useTranslation();
+  const { convertAndFormat } = useCurrency();
   const [kitExpanded, setKitExpanded] = useState(false);
 
   const isKit = product.category === 'kit';
   const icon = ICON_MAP[product.icon];
   const badgeStyle = product.badge ? BADGE_COLORS[product.badge] : null;
 
-  const formatPrice = (cents: number) =>
-    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100);
+  const formatPrice = (cents: number) => convertAndFormat(cents / 100, 'EUR');
 
   const kitProducts = isKit
     ? (product.kitProductIds ?? []).reduce<ShopProduct[]>((acc, id) => {
