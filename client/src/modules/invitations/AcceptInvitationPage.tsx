@@ -10,6 +10,7 @@ import {
   Chip,
   ThemeProvider,
   CssBaseline,
+  TextField,
 } from '@mui/material';
 import {
   Business,
@@ -17,13 +18,15 @@ import {
   CheckCircle,
   ErrorOutline,
   Login as LoginIcon,
+  Phone,
 } from '@mui/icons-material';
 import keycloak from '../../keycloak';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
+import apiClient from '../../services/apiClient';
 import lightTheme from '../../theme/theme';
 import clenzyLogo from '../../assets/Clenzy_logo.png';
 
-type PageState = 'loading' | 'info' | 'accepting' | 'accepted' | 'error';
+type PageState = 'loading' | 'info' | 'accepting' | 'complete_profile' | 'accepted' | 'error';
 
 export default function AcceptInvitationPage() {
   const [searchParams] = useSearchParams();
@@ -33,6 +36,8 @@ export default function AcceptInvitationPage() {
   const [state, setState] = useState<PageState>('loading');
   const [invitation, setInvitation] = useState<InvitationDto | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const isAuthenticated = keycloak.authenticated && keycloak.token;
 
@@ -82,11 +87,7 @@ export default function AcceptInvitationPage() {
 
     try {
       await invitationsApi.accept(token);
-      setState('accepted');
-      // Rediriger vers le planning apres 2s
-      setTimeout(() => {
-        navigate('/planning', { replace: true });
-      }, 2000);
+      setState('complete_profile');
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
       setError(apiErr.message || 'Erreur lors de l\'acceptation de l\'invitation.');
@@ -110,6 +111,26 @@ export default function AcceptInvitationPage() {
     keycloak.register({
       redirectUri: `${window.location.origin}/accept-invitation?token=${encodeURIComponent(token)}`,
     });
+  };
+
+  const handleCompleteProfile = async () => {
+    setSavingProfile(true);
+    try {
+      // Mettre a jour le telephone via l'API /me
+      await apiClient.patch('/users/me/profile', { phoneNumber: phoneNumber.trim() || undefined });
+      setState('accepted');
+      setTimeout(() => {
+        navigate('/planning', { replace: true });
+      }, 2000);
+    } catch {
+      // Meme si la mise a jour echoue, on redirige
+      setState('accepted');
+      setTimeout(() => {
+        navigate('/planning', { replace: true });
+      }, 2000);
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   // ─── Role label ───────────────────────────────────────────────────────────
@@ -314,6 +335,67 @@ export default function AcceptInvitationPage() {
               <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
                 Acceptation en cours...
               </Typography>
+            </Box>
+          )}
+
+          {/* Complete Profile */}
+          {state === 'complete_profile' && (
+            <Box sx={{ py: 2, textAlign: 'left' }}>
+              <Box sx={{ textAlign: 'center', mb: 3 }}>
+                <CheckCircle sx={{ fontSize: 48, color: 'success.main', mb: 1 }} />
+                <Typography variant="h6" fontWeight={700}>
+                  Completez votre profil
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Vous avez rejoint <strong>{invitation?.organizationName}</strong>.
+                  Verifiez vos informations avant de continuer.
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <TextField
+                  label="Prenom"
+                  value={keycloak.tokenParsed?.given_name || ''}
+                  disabled
+                  fullWidth
+                  size="small"
+                />
+                <TextField
+                  label="Nom"
+                  value={keycloak.tokenParsed?.family_name || ''}
+                  disabled
+                  fullWidth
+                  size="small"
+                />
+                <TextField
+                  label="Email"
+                  value={keycloak.tokenParsed?.email || invitation?.invitedEmail || ''}
+                  disabled
+                  fullWidth
+                  size="small"
+                />
+                <TextField
+                  label="Telephone"
+                  placeholder="Ex: +33 6 12 34 56 78"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  fullWidth
+                  size="small"
+                  helperText="Optionnel — utile pour les notifications SMS"
+                />
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1.5, mt: 3 }}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  onClick={handleCompleteProfile}
+                  disabled={savingProfile}
+                  sx={{ py: 1.2, fontWeight: 600, borderRadius: 2 }}
+                >
+                  {savingProfile ? <CircularProgress size={20} /> : 'Continuer'}
+                </Button>
+              </Box>
             </Box>
           )}
 
