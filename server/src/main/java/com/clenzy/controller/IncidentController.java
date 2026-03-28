@@ -1,10 +1,12 @@
 package com.clenzy.controller;
 
 import com.clenzy.dto.IncidentDto;
+import com.clenzy.dto.RetestResultDto;
 import com.clenzy.model.Incident;
 import com.clenzy.model.Incident.IncidentStatus;
 import com.clenzy.repository.IncidentRepository;
 import com.clenzy.service.IncidentService;
+import com.clenzy.service.ServiceHealthChecker;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -31,11 +33,14 @@ public class IncidentController {
 
     private final IncidentService incidentService;
     private final IncidentRepository incidentRepository;
+    private final ServiceHealthChecker serviceHealthChecker;
 
     public IncidentController(IncidentService incidentService,
-                              IncidentRepository incidentRepository) {
+                              IncidentRepository incidentRepository,
+                              ServiceHealthChecker serviceHealthChecker) {
         this.incidentService = incidentService;
         this.incidentRepository = incidentRepository;
+        this.serviceHealthChecker = serviceHealthChecker;
     }
 
     @GetMapping
@@ -105,6 +110,41 @@ public class IncidentController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", "Erreur lors de la recuperation de l'incident: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/retest")
+    @Operation(summary = "Retester le service associe a un incident et auto-resoudre si UP")
+    public ResponseEntity<?> retestIncident(@PathVariable Long id) {
+        try {
+            var optIncident = incidentRepository.findById(id);
+            if (optIncident.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Incident incident = optIncident.get();
+            if (incident.getStatus() != IncidentStatus.OPEN) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Seuls les incidents ouverts peuvent etre retestes"));
+            }
+
+            ServiceHealthChecker.HealthResult result = serviceHealthChecker.check(incident.getServiceName());
+
+            boolean resolved = false;
+            if (result.isUp()) {
+                incidentService.resolveIncidentById(id);
+                resolved = true;
+            }
+
+            return ResponseEntity.ok(new RetestResultDto(
+                    result.service(),
+                    result.status(),
+                    result.message(),
+                    resolved
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "Erreur lors du retest: " + e.getMessage()));
         }
     }
 }
