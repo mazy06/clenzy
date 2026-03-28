@@ -17,6 +17,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Tooltip as MuiTooltip,
 } from '@mui/material';
 import {
   Refresh,
@@ -52,6 +53,21 @@ const STATUS_BG_COLORS: Record<KpiStatus, string> = {
   OK: '#e8f5e9',
   WARNING: '#fff3e0',
   CRITICAL: '#ffebee',
+};
+
+const KPI_TOOLTIPS: Record<string, string> = {
+  UPTIME: 'Disponibilite du serveur backend. Mesure le pourcentage de temps ou le service repond correctement aux health checks.',
+  CALENDAR_LATENCY_P95: 'Temps de propagation des modifications de calendrier vers les channels (Airbnb, iCal). Le P95 represente le temps maximum pour 95% des synchronisations.',
+  SYNC_ERROR_RATE: 'Pourcentage de synchronisations de calendrier echouees par rapport au total. Un taux eleve indique des problemes de connexion avec les channels.',
+  INVENTORY_COHERENCE: 'Coherence entre les disponibilites affichees sur les channels et le calendrier interne Clenzy. 100% = parfaitement synchronise.',
+  DOUBLE_BOOKINGS: 'Nombre de doubles reservations detectees sur la periode. Un double booking signifie que deux reservations se chevauchent sur le meme logement.',
+  API_LATENCY_P95: 'Temps de reponse du backend API. Le P95 represente le temps maximum pour 95% des requetes. Inclut tous les endpoints REST.',
+  SYNC_AVAILABILITY: 'Disponibilite du service de synchronisation des calendriers. Mesure si le systeme de sync iCal/Airbnb est operationnel.',
+  P1_RESOLUTION: 'Temps moyen de resolution des incidents priorite P1 (pannes critiques : SMTP, Kafka, base de donnees). Cliquez pour voir le detail des incidents recents.',
+  KAFKA_LAG: 'Retard des consommateurs Kafka. Un lag eleve signifie que les messages (notifications, sync, emails) s\'accumulent sans etre traites.',
+  OUTBOX_DRAIN: 'Temps pour vider la table outbox. L\'outbox stocke les evenements a envoyer vers Kafka. Un drain lent ralentit les notifications et syncs.',
+  RECON_DIVERGENCE: 'Ecart entre les donnees internes et celles des channels apres reconciliation. 0% = aucune divergence detectee.',
+  TEST_COVERAGE: 'Pourcentage de couverture des tests automatises sur le code backend. Mesure la proportion de code couverte par au moins un test.',
 };
 
 // ─── Score Gauge ─────────────────────────────────────────────────────────────
@@ -128,9 +144,10 @@ interface KpiCardProps {
   kpi: KpiItem;
   onClick?: () => void;
   badgeCount?: number;
+  tooltipContent?: string;
 }
 
-const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount }) => {
+const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipContent }) => {
   const chipColor = kpi.status === 'OK' ? 'success'
     : kpi.status === 'WARNING' ? 'warning' : 'error';
 
@@ -179,7 +196,7 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount }) => {
     </CardContent>
   );
 
-  return (
+  const card = (
     <Card
       variant="outlined"
       sx={{
@@ -201,6 +218,25 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount }) => {
       )}
     </Card>
   );
+
+  if (tooltipContent) {
+    return (
+      <MuiTooltip
+        title={tooltipContent}
+        arrow
+        placement="top"
+        slotProps={{
+          tooltip: {
+            sx: { maxWidth: 360, fontSize: '0.75rem', p: 1.5 },
+          },
+        }}
+      >
+        <Box sx={{ height: '100%' }}>{card}</Box>
+      </MuiTooltip>
+    );
+  }
+
+  return card;
 };
 
 // ─── Custom Tooltip ──────────────────────────────────────────────────────────
@@ -414,6 +450,7 @@ const KpiReadinessPage: React.FC = () => {
                   kpi={kpi}
                   onClick={kpi.id === 'P1_RESOLUTION' ? handleOpenIncidentDialog : undefined}
                   badgeCount={kpi.id === 'P1_RESOLUTION' ? openIncidentCount : undefined}
+                  tooltipContent={KPI_TOOLTIPS[kpi.id]}
                 />
               </Grid>
             ))}
