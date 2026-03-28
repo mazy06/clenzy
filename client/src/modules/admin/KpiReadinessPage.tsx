@@ -533,6 +533,7 @@ const KpiReadinessPage: React.FC = () => {
         onClose={() => setIncidentDialogOpen(false)}
         incidents={incidents}
         loading={incidentsLoading}
+        onRefresh={handleOpenIncidentDialog}
       />
     </Box>
   );

@@ -27,6 +27,13 @@ export interface IncidentListParams {
   size?: number;
 }
 
+export interface RetestResult {
+  service: string;
+  status: 'UP' | 'DOWN';
+  message: string;
+  resolved: boolean;
+}
+
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 const BASE = '/admin/incidents';
@@ -52,5 +59,10 @@ export const incidentApi = {
   getOpenCount: async (): Promise<number> => {
     const res: { count: number } = await apiClient.get(`${BASE}/open/count`);
     return res.count ?? 0;
+  },
+
+  /** Retester le service associe a un incident */
+  retestIncident: async (id: number): Promise<RetestResult> => {
+    return apiClient.post<RetestResult>(`${BASE}/${id}/retest`);
   },
 };
