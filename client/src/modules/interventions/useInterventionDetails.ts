@@ -110,6 +110,7 @@ export function useInterventionDetails(id: string | undefined) {
     // Computed values
     canStartOrUpdateIntervention: state.canStartOrUpdateIntervention,
     canStartIntervention: state.canStartIntervention,
+    isBeforeScheduledDate: state.isBeforeScheduledDate,
     canUpdateProgress: state.canUpdateProgress,
     areAllStepsCompleted: progress.areAllStepsCompleted,
     calculateProgress: progress.calculateProgress,

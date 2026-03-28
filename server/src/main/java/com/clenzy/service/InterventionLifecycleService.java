@@ -70,6 +70,13 @@ public class InterventionLifecycleService {
         }
         currentStatus.assertCanTransitionTo(InterventionStatus.IN_PROGRESS);
 
+        // Empecher le demarrage avant la date planifiee
+        if (intervention.getScheduledDate() != null
+                && LocalDateTime.now().isBefore(intervention.getScheduledDate())) {
+            throw new IllegalStateException(
+                    "Impossible de demarrer avant la date planifiee (" + intervention.getScheduledDate() + ")");
+        }
+
         intervention.setStatus(InterventionStatus.IN_PROGRESS);
         intervention.setStartTime(LocalDateTime.now());
 

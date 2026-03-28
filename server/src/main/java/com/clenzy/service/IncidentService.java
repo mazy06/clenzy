@@ -104,6 +104,36 @@ public class IncidentService {
     }
 
     /**
+     * Resout un incident specifique par son ID.
+     * Utilisee lors du retest manuel d'un incident.
+     */
+    public void resolveIncidentById(Long incidentId) {
+        Optional<Incident> opt = incidentRepository.findById(incidentId);
+        if (opt.isEmpty()) {
+            return;
+        }
+
+        Incident incident = opt.get();
+        if (incident.getStatus() != IncidentStatus.OPEN) {
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        incident.setStatus(IncidentStatus.RESOLVED);
+        incident.setResolvedAt(now);
+        incident.setAutoResolved(false);
+        incident.setUpdatedAt(now);
+
+        double fractionalMinutes = Duration.between(incident.getOpenedAt(), now).toMillis() / 60_000.0;
+        incident.setResolutionMinutes(
+                BigDecimal.valueOf(fractionalMinutes).setScale(2, RoundingMode.HALF_UP));
+
+        incidentRepository.save(incident);
+        log.info("[Incident] Resolu manuellement (retest): id={}, service={}",
+                incidentId, incident.getServiceName());
+    }
+
+    /**
      * Retourne tous les incidents actuellement ouverts.
      */
     @Transactional(readOnly = true)

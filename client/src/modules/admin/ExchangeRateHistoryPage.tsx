@@ -142,7 +142,16 @@ export default function ExchangeRateHistoryPage() {
 
       {/* Current rates summary */}
       {matrix && (
-        <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: 'repeat(2, 1fr)',
+            sm: 'repeat(3, 1fr)',
+            md: `repeat(${CURRENCY_PAIRS.length}, 1fr)`,
+          },
+          gap: 2,
+          mb: 3,
+        }}>
           {CURRENCY_PAIRS.map((p) => {
             let rate: number | null = null;
             if (p.base === 'EUR' && matrix.rates[p.target]) {
@@ -153,7 +162,7 @@ export default function ExchangeRateHistoryPage() {
               rate = matrix.rates[p.target] / matrix.rates[p.base];
             }
             return rate ? (
-              <Paper key={p.label} sx={{ p: 2, flex: '1 1 200px', minWidth: 200 }}>
+              <Paper key={p.label} sx={{ p: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                   <CurrencyExchange sx={{ fontSize: 18, color: 'primary.main' }} />
                   <Typography variant="subtitle2" color="text.secondary">

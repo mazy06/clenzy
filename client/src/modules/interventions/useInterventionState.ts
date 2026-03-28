@@ -247,10 +247,16 @@ export function useInterventionState(id: string | undefined) {
     return true;
   }, [intervention, user?.databaseId, isTechnician, isHousekeeper, isSupervisor]);
 
+  const isBeforeScheduledDate = useMemo(() => {
+    if (!intervention?.scheduledDate) return false;
+    return new Date() < new Date(intervention.scheduledDate);
+  }, [intervention?.scheduledDate]);
+
   const canStartIntervention = useMemo(() => {
     if (!intervention) return false;
+    if (isBeforeScheduledDate) return false;
     return canStartOrUpdateIntervention && intervention.status === 'PENDING';
-  }, [intervention, canStartOrUpdateIntervention]);
+  }, [intervention, canStartOrUpdateIntervention, isBeforeScheduledDate]);
 
   const canUpdateProgress = useMemo(() => {
     if (!intervention) return false;
@@ -360,6 +366,7 @@ export function useInterventionState(id: string | undefined) {
     // Computed helpers
     canStartOrUpdateIntervention,
     canStartIntervention,
+    isBeforeScheduledDate,
     canUpdateProgress,
     canModifyIntervention,
 

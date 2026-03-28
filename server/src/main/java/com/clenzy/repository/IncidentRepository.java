@@ -29,4 +29,13 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     long countResolvedP1Since(@Param("since") LocalDateTime since);
 
     List<Incident> findByStatusIn(List<Incident.IncidentStatus> statuses);
+
+    List<Incident> findByStatusOrderByOpenedAtDesc(Incident.IncidentStatus status);
+
+    List<Incident> findByOpenedAtAfterOrderByOpenedAtDesc(LocalDateTime since);
+
+    List<Incident> findByStatusAndOpenedAtAfterOrderByOpenedAtDesc(
+            Incident.IncidentStatus status, LocalDateTime since);
+
+    long countByStatus(Incident.IncidentStatus status);
 }

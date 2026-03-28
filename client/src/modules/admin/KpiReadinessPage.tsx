@@ -4,6 +4,7 @@ import {
   Paper,
   Grid,
   Card,
+  CardActionArea,
   CardContent,
   Typography,
   Chip,
@@ -16,6 +17,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Tooltip as MuiTooltip,
 } from '@mui/material';
 import {
   Refresh,
@@ -36,6 +38,8 @@ import {
 } from 'recharts';
 import PageHeader from '../../components/PageHeader';
 import { kpiApi, KpiSnapshot, KpiItem, KpiHistory, KpiStatus } from '../../services/api/kpiApi';
+import { incidentApi, IncidentDto } from '../../services/api/incidentApi';
+import IncidentDetailDialog from '../dashboard/IncidentDetailDialog';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -49,6 +53,21 @@ const STATUS_BG_COLORS: Record<KpiStatus, string> = {
   OK: '#e8f5e9',
   WARNING: '#fff3e0',
   CRITICAL: '#ffebee',
+};
+
+const KPI_TOOLTIPS: Record<string, string> = {
+  UPTIME: 'Disponibilite du serveur backend. Mesure le pourcentage de temps ou le service repond correctement aux health checks.',
+  CALENDAR_LATENCY_P95: 'Temps de propagation des modifications de calendrier vers les channels (Airbnb, iCal). Le P95 represente le temps maximum pour 95% des synchronisations.',
+  SYNC_ERROR_RATE: 'Pourcentage de synchronisations de calendrier echouees par rapport au total. Un taux eleve indique des problemes de connexion avec les channels.',
+  INVENTORY_COHERENCE: 'Coherence entre les disponibilites affichees sur les channels et le calendrier interne Clenzy. 100% = parfaitement synchronise.',
+  DOUBLE_BOOKINGS: 'Nombre de doubles reservations detectees sur la periode. Un double booking signifie que deux reservations se chevauchent sur le meme logement.',
+  API_LATENCY_P95: 'Temps de reponse du backend API. Le P95 represente le temps maximum pour 95% des requetes. Inclut tous les endpoints REST.',
+  SYNC_AVAILABILITY: 'Disponibilite du service de synchronisation des calendriers. Mesure si le systeme de sync iCal/Airbnb est operationnel.',
+  P1_RESOLUTION: 'Temps moyen de resolution des incidents priorite P1 (pannes critiques : SMTP, Kafka, base de donnees). Cliquez pour voir le detail des incidents recents.',
+  KAFKA_LAG: 'Retard des consommateurs Kafka. Un lag eleve signifie que les messages (notifications, sync, emails) s\'accumulent sans etre traites.',
+  OUTBOX_DRAIN: 'Temps pour vider la table outbox. L\'outbox stocke les evenements a envoyer vers Kafka. Un drain lent ralentit les notifications et syncs.',
+  RECON_DIVERGENCE: 'Ecart entre les donnees internes et celles des channels apres reconciliation. 0% = aucune divergence detectee.',
+  TEST_COVERAGE: 'Pourcentage de couverture des tests automatises sur le code backend. Mesure la proportion de code couverte par au moins un test.',
 };
 
 // ─── Score Gauge ─────────────────────────────────────────────────────────────
@@ -123,16 +142,61 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
 
 interface KpiCardProps {
   kpi: KpiItem;
+  onClick?: () => void;
+  badgeCount?: number;
+  tooltipContent?: string;
 }
 
-const KpiCard: React.FC<KpiCardProps> = ({ kpi }) => {
+const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipContent }) => {
   const chipColor = kpi.status === 'OK' ? 'success'
     : kpi.status === 'WARNING' ? 'warning' : 'error';
 
   const StatusIcon = kpi.status === 'OK' ? CheckCircle
     : kpi.status === 'WARNING' ? Warning : ErrorIcon;
 
-  return (
+  const cardContent = (
+    <CardContent sx={{ pb: '12px !important' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+        <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+          {kpi.name}
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          {badgeCount !== undefined && badgeCount > 0 && (
+            <Chip
+              label={`${badgeCount} ouvert${badgeCount > 1 ? 's' : ''}`}
+              size="small"
+              color="error"
+              sx={{ height: 20, fontSize: '0.65rem' }}
+            />
+          )}
+          {kpi.critical && (
+            <Chip label="Critical" size="small" color="error" variant="outlined" sx={{ height: 20, fontSize: '0.65rem' }} />
+          )}
+        </Box>
+      </Box>
+
+      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, color: STATUS_COLORS[kpi.status] }}>
+          {kpi.value}
+        </Typography>
+      </Box>
+
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="caption" color="text.secondary">
+          Target: {kpi.target}
+        </Typography>
+        <Chip
+          icon={<StatusIcon sx={{ fontSize: 14 }} />}
+          label={kpi.status}
+          color={chipColor}
+          size="small"
+          sx={{ height: 22, fontSize: '0.7rem' }}
+        />
+      </Box>
+    </CardContent>
+  );
+
+  const card = (
     <Card
       variant="outlined"
       sx={{
@@ -142,41 +206,37 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi }) => {
         backgroundColor: STATUS_BG_COLORS[kpi.status] + '40',
         transition: 'box-shadow 0.2s',
         '&:hover': { boxShadow: 3 },
+        ...(onClick && { cursor: 'pointer' }),
       }}
     >
-      <CardContent sx={{ pb: '12px !important' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-          <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-            {kpi.name}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            {kpi.critical && (
-              <Chip label="Critical" size="small" color="error" variant="outlined" sx={{ height: 20, fontSize: '0.65rem' }} />
-            )}
-          </Box>
-        </Box>
-
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: STATUS_COLORS[kpi.status] }}>
-            {kpi.value}
-          </Typography>
-        </Box>
-
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="caption" color="text.secondary">
-            Target: {kpi.target}
-          </Typography>
-          <Chip
-            icon={<StatusIcon sx={{ fontSize: 14 }} />}
-            label={kpi.status}
-            color={chipColor}
-            size="small"
-            sx={{ height: 22, fontSize: '0.7rem' }}
-          />
-        </Box>
-      </CardContent>
+      {onClick ? (
+        <CardActionArea onClick={onClick} sx={{ height: '100%' }}>
+          {cardContent}
+        </CardActionArea>
+      ) : (
+        cardContent
+      )}
     </Card>
   );
+
+  if (tooltipContent) {
+    return (
+      <MuiTooltip
+        title={tooltipContent}
+        arrow
+        placement="top"
+        slotProps={{
+          tooltip: {
+            sx: { maxWidth: 360, fontSize: '0.75rem', p: 1.5 },
+          },
+        }}
+      >
+        <Box sx={{ height: '100%' }}>{card}</Box>
+      </MuiTooltip>
+    );
+  }
+
+  return card;
 };
 
 // ─── Custom Tooltip ──────────────────────────────────────────────────────────
@@ -220,6 +280,12 @@ const KpiReadinessPage: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [historyHours, setHistoryHours] = useState(24);
 
+  // Incident detail dialog state
+  const [incidentDialogOpen, setIncidentDialogOpen] = useState(false);
+  const [incidents, setIncidents] = useState<IncidentDto[]>([]);
+  const [incidentsLoading, setIncidentsLoading] = useState(false);
+  const [openIncidentCount, setOpenIncidentCount] = useState(0);
+
   const fetchData = useCallback(async () => {
     try {
       setError(null);
@@ -261,6 +327,26 @@ const KpiReadinessPage: React.FC = () => {
       setRefreshing(false);
     }
   };
+
+  // Fetch open incident count on mount
+  useEffect(() => {
+    incidentApi.getOpenCount()
+      .then(setOpenIncidentCount)
+      .catch(() => setOpenIncidentCount(0));
+  }, []);
+
+  const handleOpenIncidentDialog = useCallback(async () => {
+    setIncidentDialogOpen(true);
+    setIncidentsLoading(true);
+    try {
+      const data = await incidentApi.getIncidents({ severity: 'P1', size: 50 });
+      setIncidents(data);
+    } catch {
+      setIncidents([]);
+    } finally {
+      setIncidentsLoading(false);
+    }
+  }, []);
 
   const formatTimestamp = (ts: string): string => {
     try {
@@ -360,7 +446,12 @@ const KpiReadinessPage: React.FC = () => {
           <Grid container spacing={2} sx={{ mt: 2 }}>
             {snapshot.kpis.map((kpi) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={kpi.id}>
-                <KpiCard kpi={kpi} />
+                <KpiCard
+                  kpi={kpi}
+                  onClick={kpi.id === 'P1_RESOLUTION' ? handleOpenIncidentDialog : undefined}
+                  badgeCount={kpi.id === 'P1_RESOLUTION' ? openIncidentCount : undefined}
+                  tooltipContent={KPI_TOOLTIPS[kpi.id]}
+                />
               </Grid>
             ))}
           </Grid>
@@ -435,6 +526,15 @@ const KpiReadinessPage: React.FC = () => {
           </Paper>
         </>
       ) : null}
+
+      {/* Incident Detail Dialog */}
+      <IncidentDetailDialog
+        open={incidentDialogOpen}
+        onClose={() => setIncidentDialogOpen(false)}
+        incidents={incidents}
+        loading={incidentsLoading}
+        onRefresh={handleOpenIncidentDialog}
+      />
     </Box>
   );
 };
