@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Box,
@@ -28,6 +28,7 @@ interface MiniPlanningWidgetProps {
   t: TranslationFn;
   /** When true, shows a simple intervention list instead of property grid */
   isOperational?: boolean;
+  onReady?: () => void;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -166,7 +167,7 @@ const isSameCalendarDay = (a: Date, b: Date): boolean =>
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navigate, t, isOperational = false }) => {
+const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navigate, t, isOperational = false, onReady }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
@@ -183,6 +184,16 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
     enabled: isOperational,
     staleTime: 60_000,
   });
+
+  // Signal readiness when data loaded
+  const isDataLoading = isOperational ? myIntLoading : loading;
+  const readyFired = useRef(false);
+  useEffect(() => {
+    if (!isDataLoading && !readyFired.current) {
+      readyFired.current = true;
+      onReady?.();
+    }
+  }, [isDataLoading, onReady]);
 
   // Interventions for operational roles (all statuses, sorted by date)
   const operationalInterventions = useMemo(() => {
