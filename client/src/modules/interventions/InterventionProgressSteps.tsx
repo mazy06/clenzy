@@ -83,6 +83,7 @@ interface InterventionProgressStepsProps {
   completing: boolean;
   canStartIntervention: boolean;
   canStartOrUpdateIntervention: boolean;
+  isBeforeScheduledDate: boolean;
 }
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
@@ -199,6 +200,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
   completing,
   canStartIntervention,
   canStartOrUpdateIntervention,
+  isBeforeScheduledDate,
 }) => {
   // Destructure grouped props for internal usage
   const { beforePhotos, afterPhotos, beforePhotoIds, afterPhotoIds, deletingPhotoId, handleDeletePhoto, setPhotoType, setPhotosDialogOpen } = photos;
@@ -692,6 +694,27 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
             {renderStepContent()}
           </Box>
         </>
+      )}
+
+      {/* ── Scheduled date warning ─────────────────────────────── */}
+      {isBeforeScheduledDate && intervention?.status === 'PENDING' && (
+        <Box sx={{
+          mt: 2, p: 2, borderRadius: 2,
+          bgcolor: 'rgba(237, 108, 2, 0.06)',
+          border: '1px solid', borderColor: 'rgba(237, 108, 2, 0.2)',
+          textAlign: 'center',
+        }}>
+          <Typography variant="body2" color="warning.main" fontWeight={600}>
+            Cette intervention est planifiee pour le{' '}
+            {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR', {
+              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+              hour: '2-digit', minute: '2-digit',
+            })}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+            Vous pourrez demarrer l'intervention a partir de cette date.
+          </Typography>
+        </Box>
       )}
 
       {/* ── Start CTA ────────────────────────────────────────────── */}
