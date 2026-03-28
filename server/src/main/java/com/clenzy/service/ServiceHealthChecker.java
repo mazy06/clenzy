@@ -98,11 +98,17 @@ public class ServiceHealthChecker {
             return new HealthResult("stripe", "DOWN", "Cle API Stripe non configuree");
         }
         try {
+            // Appel leger : liste 0 events (fonctionne avec restricted keys)
+            var params = com.stripe.model.EventCollection.class;
             var options = com.stripe.net.RequestOptions.builder()
                     .setApiKey(stripeSecretKey)
                     .build();
-            com.stripe.model.Balance.retrieve(options);
+            com.stripe.model.Event.list(
+                    java.util.Map.of("limit", 1), options);
             return new HealthResult("stripe", "UP", "API Stripe OK");
+        } catch (com.stripe.exception.AuthenticationException e) {
+            log.warn("[HealthCheck] Stripe auth failed: {}", e.getMessage());
+            return new HealthResult("stripe", "DOWN", "Cle Stripe invalide: " + e.getMessage());
         } catch (Exception e) {
             log.warn("[HealthCheck] Stripe check failed: {}", e.getMessage());
             return new HealthResult("stripe", "DOWN", "Stripe inaccessible: " + e.getMessage());
