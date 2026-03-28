@@ -157,7 +157,7 @@ export default function InterventionDetailsPage() {
     handleReopenIntervention, handleOpenNotesDialog, handleUpdateNotes,
     handlePhotoUpload, handleDeletePhoto, handleRoomValidation,
     handleUpdateProgressValue,
-    canStartOrUpdateIntervention, canStartIntervention, canUpdateProgress,
+    canStartOrUpdateIntervention, canStartIntervention, isBeforeScheduledDate, canUpdateProgress,
     areAllStepsCompleted, calculateProgress, getTotalRooms, getRoomNames, getStepNote,
     setCompletedSteps, setInspectionComplete,
     startSuccessMessage, setStartSuccessMessage,
@@ -379,6 +379,7 @@ export default function InterventionDetailsPage() {
               completing={completing}
               canStartIntervention={canStartIntervention}
               canStartOrUpdateIntervention={canStartOrUpdateIntervention}
+              isBeforeScheduledDate={isBeforeScheduledDate}
             />
 
           </CardContent>
