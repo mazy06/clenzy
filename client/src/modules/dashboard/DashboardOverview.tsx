@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { Box, CircularProgress, Grid, Typography, useTheme } from '@mui/material';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { Box, Grid, Typography, useTheme } from '@mui/material';
 import {
   Percent,
   Euro,
@@ -32,6 +32,8 @@ import ServicesStatusWidget from './ServicesStatusWidget';
 import AiUsageWidget from './AiUsageWidget';
 import { useAiFeatureToggles } from '../../hooks/useAi';
 import { usePendingPayouts, useMyPendingPayout } from '../../hooks/usePendingPayouts';
+import { useDashboardReady } from '../../hooks/useDashboardReady';
+import DashboardSkeleton from './DashboardSkeleton';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import { channelConnectionApi } from '../../services/api/channelConnectionApi';
 import { fiscalProfileApi } from '../../services/api/fiscalProfileApi';
@@ -203,31 +205,60 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
   // AI usage widget — respect admin toggle + only management & host
   const showAiWidget = hasAnyAiEnabled && (isAdmin || isManager || isHost);
 
-  // ─── Global loading spinner ────────────────────────────────────────────
-  if (isKpiLoading) {
-    return (
+  // ─── Coordinated readiness: wait for all visible widgets ─────────────
+  const readyKeys = useMemo(() => {
+    const keys = ['kpis', 'onboarding', 'planning'];
+    if (showServices) keys.push('services');
+    if (showSidebar) keys.push('contractCta', 'channelHealth');
+    return keys;
+  }, [showServices, showSidebar]);
+
+  const { isReady: widgetsReady, markReady } = useDashboardReady(readyKeys);
+
+  // Mark KPIs as ready when their data loads
+  const kpisReadyFired = useRef(false);
+  useEffect(() => {
+    if (!isKpiLoading && !kpisReadyFired.current) {
+      kpisReadyFired.current = true;
+      markReady('kpis');
+    }
+  }, [isKpiLoading, markReady]);
+
+  // Stable callbacks for child widgets
+  const onServicesReady = useCallback(() => markReady('services'), [markReady]);
+  const onContractCtaReady = useCallback(() => markReady('contractCta'), [markReady]);
+  const onChannelHealthReady = useCallback(() => markReady('channelHealth'), [markReady]);
+  const onOnboardingReady = useCallback(() => markReady('onboarding'), [markReady]);
+  const onPlanningReady = useCallback(() => markReady('planning'), [markReady]);
+
+  // ─── Render: skeleton overlays the dashboard until all widgets are ready ──
+  return (
+    <>
+      {/* Skeleton: visible until all widgets signal ready */}
+      {!widgetsReady && (
+        <DashboardSkeleton
+          showFinancialKpis={showFinancialKpis}
+          showSidebar={showSidebar}
+          showServices={showServices}
+        />
+      )}
+
+      {/* Dashboard: always mounted (so widgets can load), hidden until ready */}
       <Box
         sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: 400,
-          gap: 2,
+          pt: 1.5, pb: 2, flex: 1, minHeight: 0,
+          display: 'flex', flexDirection: 'column', overflow: 'auto',
+          // Hide visually but keep mounted so widgets can fetch data & signal onReady
+          ...(!widgetsReady && {
+            position: 'absolute',
+            left: -9999,
+            opacity: 0,
+            pointerEvents: 'none',
+            height: 0,
+            overflow: 'hidden',
+          }),
         }}
       >
-        <CircularProgress size={48} thickness={4} sx={{ color: 'primary.main' }} />
-        <Typography variant="body2" color="text.secondary">
-          {t('dashboard.overview.loading')}
-        </Typography>
-      </Box>
-    );
-  }
-
-  // ─── Full dashboard (always rendered, even for new users) ──────────────
-  return (
-    <Box sx={{ pt: 1.5, pb: 2, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
 
       {/* ═══ Two-column global layout ═══════════════════════════════════ */}
       <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', lg: 'row' }, alignItems: 'flex-start' }}>
@@ -236,7 +267,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
         <Box sx={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
 
           {/* Onboarding checklist */}
-          <OnboardingChecklist />
+          <OnboardingChecklist onReady={onOnboardingReady} />
 
           {/* ── Sections below onboarding: blurred when onboarding is active ── */}
           <Box
@@ -299,7 +330,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
           {/* Services Status (noise, locks, keys) — management & host only */}
           {showServices && onNavigateTab && (
             <DashboardErrorBoundary widgetName="ServicesStatus">
-              <ServicesStatusWidget onNavigateTab={onNavigateTab} />
+              <ServicesStatusWidget onNavigateTab={onNavigateTab} onReady={onServicesReady} />
             </DashboardErrorBoundary>
           )}
 
@@ -462,7 +493,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
             >
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <DashboardErrorBoundary widgetName="MiniPlanning">
-                  <MiniPlanningWidget navigate={navigate} t={t} isOperational={isOperational} />
+                  <MiniPlanningWidget navigate={navigate} t={t} isOperational={isOperational} onReady={onPlanningReady} />
                 </DashboardErrorBoundary>
 
                 <DashboardErrorBoundary widgetName="ActionCounters">
@@ -504,7 +535,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
           >
             {/* 1. Contract CTA */}
             <DashboardErrorBoundary widgetName="ContractCTA">
-              <ContractCTABanner />
+              <ContractCTABanner onReady={onContractCtaReady} />
             </DashboardErrorBoundary>
 
             {/* 2. Contextual Tips */}
@@ -514,12 +545,13 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
 
             {/* 3. Channel Health */}
             <DashboardErrorBoundary widgetName="ChannelHealth">
-              <ChannelHealthWidget />
+              <ChannelHealthWidget onReady={onChannelHealthReady} />
             </DashboardErrorBoundary>
           </Box>
         )}
       </Box>
     </Box>
+    </>
   );
 });
 

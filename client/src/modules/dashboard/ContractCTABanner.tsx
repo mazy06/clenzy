@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -112,7 +112,7 @@ const fmtPercent = (v: number) => `${Math.round(v * 100)}%`;
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const ContractCTABanner: React.FC = React.memo(() => {
+const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onReady }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -128,6 +128,7 @@ const ContractCTABanner: React.FC = React.memo(() => {
   const [payouts, setPayouts] = useState<OwnerPayout[]>([]);
   const [propertyMap, setPropertyMap] = useState<Map<number, string>>(new Map());
   const [loading, setLoading] = useState(true);
+  const readyFired = useRef(false);
 
   // Only show for SUPER_ADMIN / SUPER_MANAGER (concierge management roles)
   const isAdmin = user?.roles?.includes('SUPER_ADMIN') || false;
@@ -137,6 +138,7 @@ const ContractCTABanner: React.FC = React.memo(() => {
   useEffect(() => {
     if (!canManageContracts) {
       setLoading(false);
+      if (!readyFired.current) { readyFired.current = true; onReady?.(); }
       return;
     }
     let cancelled = false;
@@ -159,11 +161,14 @@ const ContractCTABanner: React.FC = React.memo(() => {
       } catch {
         if (!cancelled) setContracts([]);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          if (!readyFired.current) { readyFired.current = true; onReady?.(); }
+        }
       }
     })();
     return () => { cancelled = true; };
-  }, [canManageContracts]);
+  }, [canManageContracts, onReady]);
 
   const handleDismiss = useCallback(() => {
     setItem(STORAGE_KEYS.CONTRACT_CTA_DISMISSED, 'true');
@@ -175,16 +180,8 @@ const ContractCTABanner: React.FC = React.memo(() => {
     [contracts, payouts, propertyMap],
   );
 
-  // ── Loading skeleton ──────────────────────────────────────────────────────
-  if (loading && canManageContracts) {
-    return (
-      <Box sx={{ borderRadius: '12px', p: 2.5, bgcolor: 'background.paper' }}>
-        <Skeleton variant="rectangular" height={100} sx={{ borderRadius: '8px' }} />
-      </Box>
-    );
-  }
-
-  if (!canManageContracts) return null;
+  // Loading is handled by the parent DashboardSkeleton — no individual skeleton needed
+  if (loading || !canManageContracts) return null;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // MODE RÉSUMÉ — Contrats actifs avec données financières

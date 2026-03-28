@@ -45,7 +45,7 @@ public class ReceivedFormController {
             @RequestParam(required = false) String type) {
 
         if (jwt == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
+        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER", "ADMIN")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -73,7 +73,7 @@ public class ReceivedFormController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getForm(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         if (jwt == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
+        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER", "ADMIN")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -92,7 +92,7 @@ public class ReceivedFormController {
             @RequestParam String status) {
 
         if (jwt == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
+        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER", "ADMIN")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -121,7 +121,7 @@ public class ReceivedFormController {
     @GetMapping("/stats")
     public ResponseEntity<?> getStats(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER")) {
+        if (!hasAnyRole(jwt, "SUPER_ADMIN", "SUPER_MANAGER", "ADMIN")) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
