@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -57,7 +57,7 @@ interface ChannelItem {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const ChannelHealthWidget: React.FC = React.memo(() => {
+const ChannelHealthWidget: React.FC<{ onReady?: () => void }> = React.memo(({ onReady }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const theme = useTheme();
@@ -65,6 +65,7 @@ const ChannelHealthWidget: React.FC = React.memo(() => {
 
   const [channels, setChannels] = useState<ChannelItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const readyFired = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,29 +118,21 @@ const ChannelHealthWidget: React.FC = React.memo(() => {
           setChannels(items);
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          if (!readyFired.current) { readyFired.current = true; onReady?.(); }
+        }
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [onReady]);
 
   const connectedCount = channels.filter((c) => c.connected).length;
   const totalCount = channels.length;
   const errorCount = channels.filter((c) => c.hasError).length;
 
-  if (loading) {
-    return (
-      <Box sx={{
-        bgcolor: 'background.paper',
-        borderRadius: '12px',
-        p: 2,
-        boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(107,138,154,0.08)',
-      }}>
-        <Skeleton variant="text" width={120} height={20} sx={{ mb: 1 }} />
-        <Skeleton variant="rectangular" height={80} sx={{ borderRadius: '8px' }} />
-      </Box>
-    );
-  }
+  // Loading is handled by parent DashboardSkeleton
+  if (loading) return null;
 
   return (
     <Box

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -167,7 +167,7 @@ const DEFAULT_VISUAL: StepVisual = {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const OnboardingChecklist: React.FC = React.memo(() => {
+const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ onReady }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const theme = useTheme();
@@ -209,6 +209,15 @@ const OnboardingChecklist: React.FC = React.memo(() => {
       navigate(activeStep.navigationPath);
     }
   }, [activeStep, navigate]);
+
+  // Signal readiness when loading completes
+  const readyFired = useRef(false);
+  useEffect(() => {
+    if (!isLoading && !readyFired.current) {
+      readyFired.current = true;
+      onReady?.();
+    }
+  }, [isLoading, onReady]);
 
   // Don't render while loading
   if (isLoading || totalCount === 0) return null;

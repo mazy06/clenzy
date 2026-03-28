@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -46,11 +46,12 @@ interface ServiceStatus {
 
 interface ServicesStatusWidgetProps {
   onNavigateTab: (tabIndex: number) => void;
+  onReady?: () => void;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ onNavigateTab }) => {
+const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ onNavigateTab, onReady }) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -153,6 +154,13 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
   ];
 
   const isLoading = noise.loading || locks.loading || keys.loading || booking.loading;
+  const readyFired = useRef(false);
+  useEffect(() => {
+    if (!isLoading && !readyFired.current) {
+      readyFired.current = true;
+      onReady?.();
+    }
+  }, [isLoading, onReady]);
 
   const handleServiceClick = (svc: typeof services[number]) => {
     if ((svc as any).route) {
@@ -162,23 +170,8 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
     }
   };
 
-  if (isLoading) {
-    return (
-      <Box sx={{
-        bgcolor: 'background.paper',
-        borderRadius: '10px',
-        p: 1.5,
-        boxShadow: isDark ? '0 1px 6px rgba(0,0,0,0.3)' : '0 1px 6px rgba(107,138,154,0.08)',
-      }}>
-        <Skeleton variant="text" width={100} height={16} sx={{ mb: 1 }} />
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} variant="rectangular" height={56} sx={{ flex: 1, borderRadius: '8px' }} />
-          ))}
-        </Box>
-      </Box>
-    );
-  }
+  // Loading is handled by parent DashboardSkeleton
+  if (isLoading) return null;
 
   return (
     <Box
