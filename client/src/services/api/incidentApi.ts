@@ -31,12 +31,26 @@ export interface IncidentListParams {
 
 const BASE = '/admin/incidents';
 
+interface PaginatedResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
 export const incidentApi = {
   /** Liste des incidents avec filtres */
-  getIncidents: (params?: IncidentListParams): Promise<IncidentDto[]> =>
-    apiClient.get(BASE, { params: params as Record<string, string | number | boolean | null | undefined> }),
+  getIncidents: async (params?: IncidentListParams): Promise<IncidentDto[]> => {
+    const res: PaginatedResponse<IncidentDto> = await apiClient.get(BASE, {
+      params: params as Record<string, string | number | boolean | null | undefined>,
+    });
+    return res.content ?? [];
+  },
 
   /** Nombre d'incidents ouverts */
-  getOpenCount: (): Promise<number> =>
-    apiClient.get(`${BASE}/open/count`),
+  getOpenCount: async (): Promise<number> => {
+    const res: { count: number } = await apiClient.get(`${BASE}/open/count`);
+    return res.count ?? 0;
+  },
 };
