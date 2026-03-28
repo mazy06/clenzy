@@ -696,41 +696,38 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         </>
       )}
 
-      {/* ── Scheduled date warning ─────────────────────────────── */}
-      {isBeforeScheduledDate && intervention?.status === 'PENDING' && (
-        <Box sx={{
-          mt: 2, p: 2, borderRadius: 2,
-          bgcolor: 'rgba(237, 108, 2, 0.06)',
-          border: '1px solid', borderColor: 'rgba(237, 108, 2, 0.2)',
-          textAlign: 'center',
-        }}>
-          <Typography variant="body2" color="warning.main" fontWeight={600}>
-            Cette intervention est planifiee pour le{' '}
-            {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR', {
-              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-              hour: '2-digit', minute: '2-digit',
-            })}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-            Vous pourrez demarrer l'intervention a partir de cette date.
-          </Typography>
-        </Box>
-      )}
-
       {/* ── Start CTA ────────────────────────────────────────────── */}
-      {canStartIntervention && (
+      {(canStartIntervention || (isBeforeScheduledDate && intervention?.status === 'PENDING')) && (
         <Box sx={{
           mt: 2, p: 2.5, borderRadius: 2,
-          bgcolor: 'rgba(25, 118, 210, 0.04)',
-          border: '1px solid', borderColor: 'rgba(25, 118, 210, 0.15)',
+          bgcolor: isBeforeScheduledDate ? 'rgba(237, 108, 2, 0.04)' : 'rgba(25, 118, 210, 0.04)',
+          border: '1px solid', borderColor: isBeforeScheduledDate ? 'rgba(237, 108, 2, 0.15)' : 'rgba(25, 118, 210, 0.15)',
           textAlign: 'center',
         }}>
-          <RocketIcon sx={{ fontSize: 32, color: 'primary.main', mb: 1 }} />
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {t('interventions.progressSteps.startDescription')}
-          </Typography>
+          {isBeforeScheduledDate && intervention?.scheduledDate && (
+            <>
+              <Typography variant="body2" color="warning.main" fontWeight={600} sx={{ mb: 1 }}>
+                Planifiee pour le{' '}
+                {new Date(intervention.scheduledDate).toLocaleDateString('fr-FR', {
+                  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit',
+                })}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                Le demarrage sera possible a partir de cette date.
+              </Typography>
+            </>
+          )}
+          {!isBeforeScheduledDate && (
+            <>
+              <RocketIcon sx={{ fontSize: 32, color: 'primary.main', mb: 1 }} />
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                {t('interventions.progressSteps.startDescription')}
+              </Typography>
+            </>
+          )}
           <Button variant="contained" color="primary" startIcon={<PlayArrowIcon />}
-            onClick={handleStartIntervention} disabled={starting}
+            onClick={handleStartIntervention} disabled={starting || isBeforeScheduledDate}
             sx={{
               py: 1.25, px: 4, textTransform: 'none', fontWeight: 600,
               fontSize: '0.875rem', borderRadius: 2,
