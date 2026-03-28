@@ -4,6 +4,7 @@ import {
   Paper,
   Grid,
   Card,
+  CardActionArea,
   CardContent,
   Typography,
   Chip,
@@ -36,6 +37,8 @@ import {
 } from 'recharts';
 import PageHeader from '../../components/PageHeader';
 import { kpiApi, KpiSnapshot, KpiItem, KpiHistory, KpiStatus } from '../../services/api/kpiApi';
+import { incidentApi, IncidentDto } from '../../services/api/incidentApi';
+import IncidentDetailDialog from '../dashboard/IncidentDetailDialog';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -123,14 +126,58 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
 
 interface KpiCardProps {
   kpi: KpiItem;
+  onClick?: () => void;
+  badgeCount?: number;
 }
 
-const KpiCard: React.FC<KpiCardProps> = ({ kpi }) => {
+const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount }) => {
   const chipColor = kpi.status === 'OK' ? 'success'
     : kpi.status === 'WARNING' ? 'warning' : 'error';
 
   const StatusIcon = kpi.status === 'OK' ? CheckCircle
     : kpi.status === 'WARNING' ? Warning : ErrorIcon;
+
+  const cardContent = (
+    <CardContent sx={{ pb: '12px !important' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+        <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+          {kpi.name}
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          {badgeCount !== undefined && badgeCount > 0 && (
+            <Chip
+              label={`${badgeCount} ouvert${badgeCount > 1 ? 's' : ''}`}
+              size="small"
+              color="error"
+              sx={{ height: 20, fontSize: '0.65rem' }}
+            />
+          )}
+          {kpi.critical && (
+            <Chip label="Critical" size="small" color="error" variant="outlined" sx={{ height: 20, fontSize: '0.65rem' }} />
+          )}
+        </Box>
+      </Box>
+
+      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, color: STATUS_COLORS[kpi.status] }}>
+          {kpi.value}
+        </Typography>
+      </Box>
+
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="caption" color="text.secondary">
+          Target: {kpi.target}
+        </Typography>
+        <Chip
+          icon={<StatusIcon sx={{ fontSize: 14 }} />}
+          label={kpi.status}
+          color={chipColor}
+          size="small"
+          sx={{ height: 22, fontSize: '0.7rem' }}
+        />
+      </Box>
+    </CardContent>
+  );
 
   return (
     <Card
@@ -142,39 +189,16 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi }) => {
         backgroundColor: STATUS_BG_COLORS[kpi.status] + '40',
         transition: 'box-shadow 0.2s',
         '&:hover': { boxShadow: 3 },
+        ...(onClick && { cursor: 'pointer' }),
       }}
     >
-      <CardContent sx={{ pb: '12px !important' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-          <Typography variant="subtitle2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-            {kpi.name}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            {kpi.critical && (
-              <Chip label="Critical" size="small" color="error" variant="outlined" sx={{ height: 20, fontSize: '0.65rem' }} />
-            )}
-          </Box>
-        </Box>
-
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: STATUS_COLORS[kpi.status] }}>
-            {kpi.value}
-          </Typography>
-        </Box>
-
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="caption" color="text.secondary">
-            Target: {kpi.target}
-          </Typography>
-          <Chip
-            icon={<StatusIcon sx={{ fontSize: 14 }} />}
-            label={kpi.status}
-            color={chipColor}
-            size="small"
-            sx={{ height: 22, fontSize: '0.7rem' }}
-          />
-        </Box>
-      </CardContent>
+      {onClick ? (
+        <CardActionArea onClick={onClick} sx={{ height: '100%' }}>
+          {cardContent}
+        </CardActionArea>
+      ) : (
+        cardContent
+      )}
     </Card>
   );
 };
@@ -220,6 +244,12 @@ const KpiReadinessPage: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [historyHours, setHistoryHours] = useState(24);
 
+  // Incident detail dialog state
+  const [incidentDialogOpen, setIncidentDialogOpen] = useState(false);
+  const [incidents, setIncidents] = useState<IncidentDto[]>([]);
+  const [incidentsLoading, setIncidentsLoading] = useState(false);
+  const [openIncidentCount, setOpenIncidentCount] = useState(0);
+
   const fetchData = useCallback(async () => {
     try {
       setError(null);
@@ -261,6 +291,26 @@ const KpiReadinessPage: React.FC = () => {
       setRefreshing(false);
     }
   };
+
+  // Fetch open incident count on mount
+  useEffect(() => {
+    incidentApi.getOpenCount()
+      .then(setOpenIncidentCount)
+      .catch(() => setOpenIncidentCount(0));
+  }, []);
+
+  const handleOpenIncidentDialog = useCallback(async () => {
+    setIncidentDialogOpen(true);
+    setIncidentsLoading(true);
+    try {
+      const data = await incidentApi.getIncidents({ severity: 'P1', size: 50 });
+      setIncidents(data);
+    } catch {
+      setIncidents([]);
+    } finally {
+      setIncidentsLoading(false);
+    }
+  }, []);
 
   const formatTimestamp = (ts: string): string => {
     try {
@@ -360,7 +410,11 @@ const KpiReadinessPage: React.FC = () => {
           <Grid container spacing={2} sx={{ mt: 2 }}>
             {snapshot.kpis.map((kpi) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={kpi.id}>
-                <KpiCard kpi={kpi} />
+                <KpiCard
+                  kpi={kpi}
+                  onClick={kpi.id === 'P1_RESOLUTION' ? handleOpenIncidentDialog : undefined}
+                  badgeCount={kpi.id === 'P1_RESOLUTION' ? openIncidentCount : undefined}
+                />
               </Grid>
             ))}
           </Grid>
@@ -435,6 +489,14 @@ const KpiReadinessPage: React.FC = () => {
           </Paper>
         </>
       ) : null}
+
+      {/* Incident Detail Dialog */}
+      <IncidentDetailDialog
+        open={incidentDialogOpen}
+        onClose={() => setIncidentDialogOpen(false)}
+        incidents={incidents}
+        loading={incidentsLoading}
+      />
     </Box>
   );
 };

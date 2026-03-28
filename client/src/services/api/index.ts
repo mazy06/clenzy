@@ -148,6 +148,9 @@ export type { OrganizationDto, CreateOrganizationData, UpdateOrganizationData } 
 export { kpiApi } from './kpiApi';
 export type { KpiItem, KpiSnapshot, KpiHistoryPoint, KpiHistory, KpiStatus } from './kpiApi';
 
+export { incidentApi } from './incidentApi';
+export type { IncidentDto, IncidentSeverity, IncidentStatus, IncidentListParams } from './incidentApi';
+
 export { subscriptionApi } from './subscriptionApi';
 export type { UpgradeResponse } from './subscriptionApi';
 
