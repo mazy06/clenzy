@@ -20,3 +20,9 @@ export { regulatoryApi, type AlurCompliance, type AlurBookingCheck } from './reg
 export { aiPricingApi, type PricePrediction } from './aiPricingApi';
 export { conversationApi, type ConversationDto, type ConversationMessageDto, type ConversationChannel, type ConversationStatus, type MessageDirection, type PaginatedMessages, type UnreadCountResponse as ConversationUnreadCount } from './conversationApi';
 export { smartLockApi, type SmartLockDeviceDto, type CreateSmartLockDeviceDto, type SmartLockStatusDto, type SmartLockActionResult } from './smartLockApi';
+export { documentsApi, type DocumentTemplateDto, type DocumentGenerationDto, type DocumentListItem, type GenerateDocumentRequest, type DocumentType, type DocumentStatus } from './documentsApi';
+export { usersAdminApi, type UserDto, type CreateUserData, type UpdateUserData } from './usersAdminApi';
+export { billingApi, type PaymentDto, type PaymentSummaryDto, type InvoiceDto, type RefundRequest } from './billingApi';
+export { organizationsApi, type OrganizationDto, type OrganizationMember, type InviteMemberRequest } from './organizationsApi';
+export { type UpdatePropertyData, type UpdateInstructionsData, type PropertyPhotoMeta } from './propertiesApi';
+export { type ReservationUpdatePayload } from './reservationsApi';

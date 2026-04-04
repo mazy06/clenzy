@@ -18,4 +18,12 @@ config.resolver.nodeModulesPaths = [
 // Ensure shared/ TypeScript files are resolved
 config.resolver.disableHierarchicalLookup = false;
 
+// Prevent duplicate native modules from root node_modules
+// (e.g. react-native-webview hoisted as peer dep at root)
+config.resolver.blockList = [
+  new RegExp(
+    path.resolve(workspaceRoot, 'node_modules', 'react-native-webview') + '/.*'
+  ),
+];
+
 module.exports = config;

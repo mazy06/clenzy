@@ -222,6 +222,33 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
         }}
       />
 
+      {/* Active filter chips (inline) */}
+      {activeFilters.length > 0 && (
+        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', overflow: 'auto', '&::-webkit-scrollbar': { display: 'none' } }}>
+          {activeFilters.map((af) => (
+            <Chip
+              key={af.key}
+              label={`${af.label}: ${af.displayValue}`}
+              size="small"
+              onDelete={af.onClear}
+              deleteIcon={<CloseIcon sx={{ fontSize: '14px !important' }} />}
+              sx={{
+                height: 24,
+                fontSize: '0.6875rem',
+                fontWeight: 500,
+                bgcolor: 'rgba(107,138,154,0.08)',
+                color: 'text.primary',
+                flexShrink: 0,
+                '& .MuiChip-deleteIcon': {
+                  color: 'text.secondary',
+                  '&:hover': { color: 'error.main' },
+                },
+              }}
+            />
+          ))}
+        </Box>
+      )}
+
       {/* Counter + Filter button + View toggle */}
       <Box sx={{ ml: 'auto', flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 0.75 }}>
         <Typography variant="body2" sx={COUNTER_SX}>
@@ -348,37 +375,12 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
         </Popover>
       </Box>
 
-      {/* Active filter chips (shown inline) */}
-      {activeFilters.length > 0 && (
-        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', width: '100%', mt: 0.5 }}>
-          {activeFilters.map((af) => (
-            <Chip
-              key={af.key}
-              label={`${af.label}: ${af.displayValue}`}
-              size="small"
-              onDelete={af.onClear}
-              deleteIcon={<CloseIcon sx={{ fontSize: '14px !important' }} />}
-              sx={{
-                height: 24,
-                fontSize: '0.6875rem',
-                fontWeight: 500,
-                bgcolor: 'rgba(107,138,154,0.08)',
-                color: 'text.primary',
-                '& .MuiChip-deleteIcon': {
-                  color: 'text.secondary',
-                  '&:hover': { color: 'error.main' },
-                },
-              }}
-            />
-          ))}
-        </Box>
-      )}
     </>
   );
 
   if (bare) {
     return (
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', width: '100%' }}>
+      <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: 1, alignItems: 'center', width: '100%', overflow: 'hidden' }}>
         {content}
       </Box>
     );
@@ -386,7 +388,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
 
   return (
     <Paper sx={{ ...PAPER_SX, ...sx }}>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+      <Box sx={{ display: 'flex', flexWrap: 'nowrap', gap: 1, alignItems: 'center', overflow: 'hidden' }}>
         {content}
       </Box>
     </Paper>

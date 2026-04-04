@@ -197,6 +197,8 @@ turnstile:
 clenzy:
   ai:
     enabled: true
+    token-budget:
+      default-monthly-tokens: 500000
   mail:
     provider: ${MAIL_PROVIDER:generic}
     from: ${MAIL_FROM:info@clenzy.fr}

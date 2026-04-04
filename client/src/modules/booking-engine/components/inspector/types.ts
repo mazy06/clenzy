@@ -39,6 +39,7 @@ export interface PreviewInspectorProps {
   onCssChange?: (css: string) => void;
   onClose?: () => void;
   initialCss?: string;
+  initialSiteUrl?: string;
   initialWidgetPosition?: WidgetPositionConfig;
   onWidgetPositionChange?: (config: WidgetPositionConfig) => void;
 }

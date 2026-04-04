@@ -1,8 +1,8 @@
 import { create } from 'zustand';
-import { createMMKV } from 'react-native-mmkv';
+import { createStorage } from '@/lib/storage';
 import i18n from '@/i18n/config';
 
-const storage = createMMKV({ id: 'settings-store' });
+const storage = createStorage({ id: 'settings-store' });
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type AppLanguage = 'fr' | 'en';

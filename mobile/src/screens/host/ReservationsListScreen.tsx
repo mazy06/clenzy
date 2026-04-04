@@ -244,7 +244,11 @@ export function ReservationsListScreen() {
           />
         ) : (
           filtered.map((reservation) => (
-            <ReservationCard key={reservation.id} reservation={reservation} />
+            <ReservationCard
+              key={reservation.id}
+              reservation={reservation}
+              onPress={() => navigation.navigate('ReservationDetail' as any, { reservationId: reservation.id })}
+            />
           ))
         )}
       </ScrollView>

@@ -55,7 +55,8 @@ public class ReservationMapper {
             entity.getPaymentLinkEmail(),
             entity.getHiddenFromPlanning(),
             entity.getPaymentStatus() != null ? entity.getPaymentStatus().name() : null,
-            entity.getPaidAt() != null ? entity.getPaidAt().toString() : null
+            entity.getPaidAt() != null ? entity.getPaidAt().toString() : null,
+            entity.getIntervention() != null ? entity.getIntervention().getId() : null
         );
     }
 

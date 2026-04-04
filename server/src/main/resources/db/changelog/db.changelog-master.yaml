@@ -909,3 +909,11 @@ databaseChangeLog:
       sqlFile:
         path: changes/0105__fix_organization_members_role_check.sql
         relativeToChangelogFile: true
+
+  # --- 0106 : Create platform AI models tables ---
+  - changeSet:
+      id: "0106-create-platform-ai-models"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0106__create_platform_ai_config.sql
+        relativeToChangelogFile: true

@@ -66,7 +66,8 @@
             "newArchEnabled": true
           }
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "updates": {
       "url": "https://u.expo.dev/8e27c4c6-5b30-48f5-9949-eaee2c82851b"

@@ -33,7 +33,7 @@ import { authApi, notificationsApi } from '../services/api';
 import keycloak from '../keycloak';
 import { clearTokens } from '../services/storageService';
 import { SIDEBAR_WIDTH_EXPANDED, SIDEBAR_WIDTH_COLLAPSED } from '../hooks/useSidebarState';
-import { groupMenuItems, NAV_GROUP_LABELS } from '../hooks/useNavigationMenu';
+import { groupMenuItems, NAV_GROUP_TRANSLATION_KEYS } from '../hooks/useNavigationMenu';
 import type { MenuItem, NavGroup } from '../hooks/useNavigationMenu';
 import SidebarNavItem from './SidebarNavItem';
 import clenzyLogo from '../assets/Clenzy_logo.png';
@@ -224,7 +224,7 @@ export default function Sidebar({
                       userSelect: 'none',
                     }}
                   >
-                    {NAV_GROUP_LABELS[groupKey]}
+                    {t(NAV_GROUP_TRANSLATION_KEYS[groupKey])}
                   </Typography>
                 )
               )}
@@ -300,7 +300,7 @@ export default function Sidebar({
                   whiteSpace: 'nowrap',
                 }}
               >
-                {user?.firstName || user?.username || 'Utilisateur'}
+                {user?.firstName || user?.username || t('navigation.defaultUser')}
               </Typography>
               {user?.email && (
                 <Typography
@@ -350,7 +350,7 @@ export default function Sidebar({
           }}
         >
           {/* Language & Currency */}
-          <Tooltip title={t('navigation.languageAndCurrency') || 'Langue & Devise'} placement={collapsed ? 'right' : 'top'}>
+          <Tooltip title={t('navigation.languageAndCurrency')} placement={collapsed ? 'right' : 'top'}>
             <IconButton
               size="small"
               onClick={handleSettingsOpen}
@@ -364,7 +364,7 @@ export default function Sidebar({
           </Tooltip>
 
           {/* Notifications */}
-          <Tooltip title="Notifications" placement={collapsed ? 'right' : 'top'}>
+          <Tooltip title={t('notifications.title')} placement={collapsed ? 'right' : 'top'}>
             <IconButton
               size="small"
               onClick={() => handleNavigation('/notifications')}
@@ -396,7 +396,7 @@ export default function Sidebar({
           </Tooltip>
 
           {/* Logout */}
-          <Tooltip title={t('navigation.logout') || 'Deconnexion'} placement={collapsed ? 'right' : 'top'}>
+          <Tooltip title={t('navigation.logout')} placement={collapsed ? 'right' : 'top'}>
             <IconButton
               size="small"
               onClick={handleLogout}
@@ -449,7 +449,7 @@ export default function Sidebar({
               userSelect: 'none',
             }}
           >
-            {t('navigation.language') || 'Langue'}
+            {t('navigation.language')}
           </Typography>
           <MuiMenuItem
             onClick={() => handleLangChange('fr')}
@@ -457,7 +457,7 @@ export default function Sidebar({
             sx={{ fontSize: '0.8125rem', py: 0.75, minHeight: 0 }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-              <span>Français</span>
+              <span>{t('navigation.languages.fr')}</span>
               {currentLanguage === 'fr' && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
             </Box>
           </MuiMenuItem>
@@ -467,7 +467,7 @@ export default function Sidebar({
             sx={{ fontSize: '0.8125rem', py: 0.75, minHeight: 0 }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-              <span>English</span>
+              <span>{t('navigation.languages.en')}</span>
               {currentLanguage === 'en' && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
             </Box>
           </MuiMenuItem>
@@ -477,7 +477,7 @@ export default function Sidebar({
             sx={{ fontSize: '0.8125rem', py: 0.75, minHeight: 0 }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-              <span>العربية</span>
+              <span>{t('navigation.languages.ar')}</span>
               {currentLanguage === 'ar' && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
             </Box>
           </MuiMenuItem>
@@ -500,7 +500,7 @@ export default function Sidebar({
               userSelect: 'none',
             }}
           >
-            {t('navigation.currency') || 'Devise'}
+            {t('navigation.currency')}
           </Typography>
           {CURRENCY_OPTIONS.map((opt) => (
             <MuiMenuItem
@@ -533,7 +533,7 @@ export default function Sidebar({
                 fontStyle: 'italic',
               }}
             >
-              {ratesLoading ? 'Chargement...' : `Taux au ${rateDate}`}
+              {ratesLoading ? t('common.loading') : `${t('common.ratesAt')} ${rateDate}`}
             </Typography>
           )}
         </Menu>
@@ -550,7 +550,7 @@ export default function Sidebar({
             }}
           >
             <Tooltip
-              title={collapsed ? 'Ouvrir le menu' : 'Reduire le menu'}
+              title={collapsed ? t('common.expandMenu') : t('common.collapseMenu')}
               placement="right"
             >
               <IconButton

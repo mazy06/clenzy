@@ -11,9 +11,9 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { useTheme } from '@/theme';
-import { createMMKV } from 'react-native-mmkv';
+import { createStorage } from '@/lib/storage';
 
-const diagStorage = createMMKV({ id: 'diagnostic-drafts' });
+const diagStorage = createStorage({ id: 'diagnostic-drafts' });
 
 type RouteParams = {
   DiagnosticForm: { interventionId: number };

@@ -35,6 +35,7 @@ public class AiProperties {
     private boolean enabled = false;
     private OpenAi openai = new OpenAi();
     private Anthropic anthropic = new Anthropic();
+    private Bedrock bedrock = new Bedrock();
     private WebsiteFetch websiteFetch = new WebsiteFetch();
     private TokenBudget tokenBudget = new TokenBudget();
     private Features features = new Features();
@@ -61,6 +62,24 @@ public class AiProperties {
         private String model = "claude-sonnet-4-20250514";
         private String baseUrl = "https://api.anthropic.com/v1";
 
+        public String getApiKey() { return apiKey; }
+        public void setApiKey(String apiKey) { this.apiKey = apiKey; }
+        public String getModel() { return model; }
+        public void setModel(String model) { this.model = model; }
+        public String getBaseUrl() { return baseUrl; }
+        public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
+    }
+
+    // ─── Bedrock (provider gratuit par defaut) ─────────────────────────────
+
+    public static class Bedrock {
+        private boolean enabled = true;
+        private String apiKey = "";
+        private String model = "amazon.nova-lite-v1:0";
+        private String baseUrl = "https://bedrock-mantle.eu-west-1.api.aws/v1";
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
         public String getApiKey() { return apiKey; }
         public void setApiKey(String apiKey) { this.apiKey = apiKey; }
         public String getModel() { return model; }
@@ -121,6 +140,9 @@ public class AiProperties {
 
     public Anthropic getAnthropic() { return anthropic; }
     public void setAnthropic(Anthropic anthropic) { this.anthropic = anthropic; }
+
+    public Bedrock getBedrock() { return bedrock; }
+    public void setBedrock(Bedrock bedrock) { this.bedrock = bedrock; }
 
     public WebsiteFetch getWebsiteFetch() { return websiteFetch; }
     public void setWebsiteFetch(WebsiteFetch websiteFetch) { this.websiteFetch = websiteFetch; }

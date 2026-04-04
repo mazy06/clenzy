@@ -26,6 +26,7 @@ const PreviewInspector: React.FC<PreviewInspectorProps> = ({
   children,
   onCssChange,
   onClose,
+  initialSiteUrl,
   initialWidgetPosition,
   onWidgetPositionChange,
 }) => {
@@ -34,7 +35,7 @@ const PreviewInspector: React.FC<PreviewInspectorProps> = ({
   // ── Viewport state ──
   const [inspectMode, setInspectMode] = useState(false);
   const [viewport, setViewport] = useState<ViewportPreset>('full');
-  const [siteUrl, setSiteUrl] = useState('');
+  const [siteUrl, setSiteUrl] = useState(initialSiteUrl ?? '');
   const [snapshotHtml, setSnapshotHtml] = useState<string | null>(null);
   const [siteLoading, setSiteLoading] = useState(false);
   const [widgetPage, setWidgetPage] = useState<string>('search');

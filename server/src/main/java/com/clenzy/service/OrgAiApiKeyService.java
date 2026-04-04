@@ -10,6 +10,7 @@ import com.clenzy.dto.AiApiKeyTestResultDto;
 import com.clenzy.dto.OrgAiApiKeyStatusDto;
 import com.clenzy.model.OrgAiApiKey;
 import com.clenzy.repository.OrgAiApiKeyRepository;
+import com.clenzy.repository.PlatformAiFeatureModelRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -38,15 +39,18 @@ public class OrgAiApiKeyService {
 
     private final OrgAiApiKeyRepository repository;
     private final AiProperties aiProperties;
+    private final PlatformAiFeatureModelRepository platformAiFeatureModelRepository;
     private final OpenAiProvider openAiProvider;
     private final AnthropicProvider anthropicProvider;
 
     public OrgAiApiKeyService(OrgAiApiKeyRepository repository,
                                AiProperties aiProperties,
+                               PlatformAiFeatureModelRepository platformAiFeatureModelRepository,
                                OpenAiProvider openAiProvider,
                                AnthropicProvider anthropicProvider) {
         this.repository = repository;
         this.aiProperties = aiProperties;
+        this.platformAiFeatureModelRepository = platformAiFeatureModelRepository;
         this.openAiProvider = openAiProvider;
         this.anthropicProvider = anthropicProvider;
     }
@@ -249,12 +253,16 @@ public class OrgAiApiKeyService {
     }
 
     private boolean hasPlatformKey(String provider) {
+        // Check env var key for this specific provider
         String key = switch (provider) {
             case "openai" -> aiProperties.getOpenai().getApiKey();
             case "anthropic" -> aiProperties.getAnthropic().getApiKey();
             default -> null;
         };
-        return key != null && !key.isBlank();
+        if (key != null && !key.isBlank()) return true;
+
+        // Check if any feature model is configured in DB
+        return platformAiFeatureModelRepository.count() > 0;
     }
 
     private void validateProvider(String provider) {

@@ -27,7 +27,10 @@
     "type": "Type",
     "priority": "Priorité",
     "all": "Tous",
-    "refresh": "Actualiser"
+    "refresh": "Actualiser",
+    "expandMenu": "Ouvrir le menu",
+    "collapseMenu": "Réduire le menu",
+    "ratesAt": "Taux au"
   },
   "navigation": {
     "dashboard": "Tableau de bord",
@@ -86,7 +89,12 @@
     "contracts": "Contrats de gestion",
     "messaging": "Messagerie",
     "messageTemplates": "Templates",
-    "messageHistory": "Historique"
+    "messageHistory": "Historique",
+    "groups": {
+      "main": "Principal",
+      "management": "Gestion",
+      "admin": "Administration"
+    }
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -939,7 +947,21 @@
     "createFirst": "Créer votre première demande",
     "selectPropertyFirst": "Sélectionnez un logement pour compléter votre demande",
     "edit": "Modifier la demande de service",
-    "details": "Détails de la demande",
+    "details": {
+      "progression": "Progression",
+      "estimatedCost": "Coût estimé",
+      "actualCost": "Coût réel",
+      "viewProperty": "Voir la propriété",
+      "notesInstructions": "Notes et consignes",
+      "specialInstructions": "Instructions spéciales",
+      "accessNotes": "Notes d'accès",
+      "cleaningNotes": "Consignes de ménage",
+      "guestCheckout": "Départ voyageur",
+      "guestCheckin": "Arrivée voyageur",
+      "approvalDevis": "Approbation et devis",
+      "approvedBy": "Approuvé par",
+      "devisAcceptedBy": "Devis accepté par"
+    },
     "search": "Rechercher une demande...",
     "allTypes": "Tous les types",
     "allStatuses": "Tous les statuts",
@@ -1079,22 +1101,7 @@
     "invalidDate": "Date invalide",
     "notFound": "Demande de service non trouvée",
     "team": "Équipe",
-    "approvedDateShort": "Approuvé le",
-    "details": {
-      "progression": "Progression",
-      "estimatedCost": "Coût estimé",
-      "actualCost": "Coût réel",
-      "viewProperty": "Voir la propriété",
-      "notesInstructions": "Notes et consignes",
-      "specialInstructions": "Instructions spéciales",
-      "accessNotes": "Notes d'accès",
-      "cleaningNotes": "Consignes de ménage",
-      "guestCheckout": "Départ voyageur",
-      "guestCheckin": "Arrivée voyageur",
-      "approvalDevis": "Approbation et devis",
-      "approvedBy": "Approuvé par",
-      "devisAcceptedBy": "Devis accepté par"
-    }
+    "approvedDateShort": "Approuvé le"
   },
   "interventions": {
     "title": "Interventions",
@@ -1950,6 +1957,33 @@
       "ibanChangeHint": " — laissez vide pour conserver",
       "saveSuccess": "Configuration sauvegardee",
       "saveError": "Erreur lors de la sauvegarde"
+    },
+    "ai": {
+      "platform": {
+        "title": "Configuration plateforme",
+        "subtitle": "Configurez les modeles IA et assignez-les aux fonctionnalites de la plateforme.",
+        "test": "Tester",
+        "saveActivate": "Sauvegarder",
+        "delete": "Supprimer",
+        "active": "Actif",
+        "configured": "Configure",
+        "testSuccess": "Connexion reussie",
+        "testError": "Echec de la connexion",
+        "saved": "Modele sauvegarde",
+        "saveError": "Erreur lors de la sauvegarde",
+        "loadError": "Erreur lors du chargement de la configuration",
+        "deleted": "Configuration supprimee",
+        "apiKey": "Cle API",
+        "model": "Modele",
+        "baseUrl": "URL de base",
+        "models": "Modeles configures",
+        "addModel": "Ajouter un modele",
+        "editModel": "Modifier le modele",
+        "featureMapping": "Assignation par feature",
+        "noModel": "Aucun modele",
+        "name": "Nom",
+        "provider": "Provider"
+      }
     },
     "integrations": {
       "title": "Intégrations",
@@ -2915,7 +2949,7 @@
       "totalTtc": "Total TTC"
     },
     "columns": {
-      "number": "N\u00b0",
+      "number": "N°",
       "date": "Date",
       "buyer": "Client",
       "ht": "HT",
@@ -2954,6 +2988,92 @@
       "contact": "Contact",
       "document": "Documents",
       "reservations": "Réservations"
+    },
+    "new": "nouvelle(s)",
+    "timeAgo": {
+      "now": "À l'instant",
+      "minutes": "Il y a {{count}} min",
+      "hours": "Il y a {{count}}h",
+      "days": "Il y a {{count}}j"
+    },
+    "keys": {
+      "USER_CREATED": "Nouvel utilisateur",
+      "USER_UPDATED": "Utilisateur modifié",
+      "USER_DELETED": "Utilisateur supprimé",
+      "USER_ROLE_CHANGED": "Rôle modifié",
+      "USER_DEACTIVATED": "Utilisateur désactivé",
+      "INTERVENTION_CREATED": "Nouvelle intervention",
+      "INTERVENTION_UPDATED": "Intervention mise à jour",
+      "INTERVENTION_ASSIGNED_TO_USER": "Intervention assignée",
+      "INTERVENTION_ASSIGNED_TO_TEAM": "Intervention assignée à l'équipe",
+      "INTERVENTION_STARTED": "Intervention démarrée",
+      "INTERVENTION_COMPLETED": "Intervention terminée",
+      "INTERVENTION_REOPENED": "Intervention rouverte",
+      "INTERVENTION_STATUS_CHANGED": "Statut d'intervention modifié",
+      "INTERVENTION_VALIDATED": "Intervention validée",
+      "INTERVENTION_AWAITING_VALIDATION": "Intervention en attente de validation",
+      "INTERVENTION_AWAITING_PAYMENT": "Intervention en attente de paiement",
+      "INTERVENTION_CANCELLED": "Intervention annulée",
+      "INTERVENTION_DELETED": "Intervention supprimée",
+      "INTERVENTION_OVERDUE": "Intervention en retard",
+      "INTERVENTION_REMINDER": "Rappel d'intervention",
+      "INTERVENTION_PHOTOS_ADDED": "Photos ajoutées",
+      "INTERVENTION_NOTES_UPDATED": "Notes mises à jour",
+      "INTERVENTION_PROGRESS_UPDATED": "Progression mise à jour",
+      "SERVICE_REQUEST_CREATED": "Nouvelle demande de service",
+      "SERVICE_REQUEST_UPDATED": "Demande mise à jour",
+      "SERVICE_REQUEST_APPROVED": "Demande approuvée",
+      "SERVICE_REQUEST_REJECTED": "Demande rejetée",
+      "SERVICE_REQUEST_INTERVENTION_CREATED": "Intervention créée depuis demande",
+      "SERVICE_REQUEST_ASSIGNED": "Demande assignée",
+      "SERVICE_REQUEST_CANCELLED": "Demande annulée",
+      "SERVICE_REQUEST_URGENT": "Demande urgente",
+      "SERVICE_REQUEST_NO_TEAM_AVAILABLE": "Aucune équipe disponible",
+      "SERVICE_REQUEST_ESCALATION": "Demande escaladée",
+      "SERVICE_REQUEST_TEAM_ASSIGNED": "Équipe assignée à la demande",
+      "PAYMENT_SESSION_CREATED": "Session de paiement créée",
+      "PAYMENT_CONFIRMED": "Paiement confirmé",
+      "PAYMENT_FAILED": "Paiement échoué",
+      "PAYMENT_GROUPED_SESSION_CREATED": "Paiement groupé créé",
+      "PAYMENT_GROUPED_CONFIRMED": "Paiement groupé confirmé",
+      "PAYMENT_GROUPED_FAILED": "Paiement groupé échoué",
+      "PAYMENT_DEFERRED_REMINDER": "Rappel de paiement différé",
+      "PAYMENT_DEFERRED_OVERDUE": "Paiement différé en retard",
+      "PAYMENT_REFUND_INITIATED": "Remboursement initié",
+      "PAYMENT_REFUND_COMPLETED": "Remboursement effectué",
+      "GUEST_MESSAGE_SENT": "Message envoyé au voyageur",
+      "GUEST_MESSAGE_FAILED": "Échec d'envoi au voyageur",
+      "GUEST_NO_EMAIL_FOR_CHECKIN": "Email manquant pour le voyageur",
+      "GUEST_PRICING_PUSHED": "Tarif envoyé au voyageur",
+      "RESERVATION_CREATED": "Nouvelle réservation",
+      "RESERVATION_UPDATED": "Réservation mise à jour",
+      "RESERVATION_CANCELLED": "Réservation annulée",
+      "TEAM_CREATED": "Équipe créée",
+      "TEAM_UPDATED": "Équipe modifiée",
+      "TEAM_DELETED": "Équipe supprimée",
+      "TEAM_MEMBER_ADDED": "Membre ajouté à l'équipe",
+      "TEAM_MEMBER_REMOVED": "Membre retiré de l'équipe",
+      "TEAM_ASSIGNED_INTERVENTION": "Intervention assignée à l'équipe",
+      "DOCUMENT_GENERATED": "Document généré",
+      "DOCUMENT_GENERATION_FAILED": "Échec de génération de document",
+      "DOCUMENT_SENT_BY_EMAIL": "Document envoyé par email",
+      "PAYOUT_BATCH_GENERATED": "Lot de versement généré",
+      "PAYOUT_PENDING_APPROVAL": "Versement en attente d'approbation",
+      "PAYOUT_APPROVED": "Versement approuvé",
+      "PAYOUT_EXECUTED": "Versement exécuté",
+      "PAYOUT_FAILED": "Versement échoué",
+      "PROPERTY_CREATED": "Propriété créée",
+      "PROPERTY_UPDATED": "Propriété modifiée",
+      "PROPERTY_DELETED": "Propriété supprimée",
+      "PROPERTY_STATUS_CHANGED": "Statut de propriété modifié",
+      "ICAL_IMPORT_SUCCESS": "Import iCal réussi",
+      "ICAL_IMPORT_PARTIAL": "Import iCal partiel",
+      "ICAL_IMPORT_FAILED": "Échec d'import iCal",
+      "NOISE_ALERT_WARNING": "Alerte bruit",
+      "NOISE_ALERT_CRITICAL": "Alerte bruit critique",
+      "NOISE_ALERT_RESOLVED": "Alerte bruit résolue",
+      "CONTACT_MESSAGE_RECEIVED": "Message reçu",
+      "CONTACT_FORM_RECEIVED": "Formulaire de contact reçu"
     }
   },
   "fiscal": {
@@ -2962,8 +3082,8 @@
       "country": "Pays",
       "currency": "Devise par defaut",
       "regime": "Regime fiscal",
-      "taxId": "N\u00b0 SIRET / ID fiscal",
-      "vatNumber": "N\u00b0 de TVA intracommunautaire",
+      "taxId": "N° SIRET / ID fiscal",
+      "vatNumber": "N° de TVA intracommunautaire",
       "vatRegistered": "Assujetti a la TVA",
       "vatFrequency": "Frequence de declaration TVA",
       "legalName": "Raison sociale",
@@ -3088,6 +3208,7 @@
       "apply": "Appliquer",
       "applied": "Appliqué",
       "custom": "Personnalisé",
+      "aiGenerated": "Extrait par IA depuis le site",
       "safariLodge": {
         "name": "Safari Lodge",
         "description": "Tons chauds dorés, style nature et premium"
@@ -3163,8 +3284,29 @@
       "contactSection": "Section contact"
     },
     "preview": {
-      "weekdays": ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."],
-      "months": ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"],
+      "weekdays": [
+        "lun.",
+        "mar.",
+        "mer.",
+        "jeu.",
+        "ven.",
+        "sam.",
+        "dim."
+      ],
+      "months": [
+        "Janvier",
+        "Février",
+        "Mars",
+        "Avril",
+        "Mai",
+        "Juin",
+        "Juillet",
+        "Août",
+        "Septembre",
+        "Octobre",
+        "Novembre",
+        "Décembre"
+      ],
       "propertyTypes": {
         "APARTMENT": "Appartement",
         "HOUSE": "Maison",
@@ -3177,7 +3319,12 @@
         "BOAT": "Bateau",
         "OTHER": "Autre"
       },
-      "stepLabels": ["Séjours & Options", "Identification", "Validation", "Confirmation"],
+      "stepLabels": [
+        "Séjours & Options",
+        "Identification",
+        "Validation",
+        "Confirmation"
+      ],
       "searchBar": {
         "travelers": "Voyageurs",
         "accommodations": "Hébergements",
@@ -3320,6 +3467,11 @@
       "analyzing": "Analyse du site en cours... Extraction des couleurs, polices et styles via l'IA.",
       "analyzeSuccess": "Design analysé avec succès ! Les tokens ont été extraits.",
       "analyzeError": "Erreur lors de l'analyse du site web",
+      "aiNotConfiguredTitle": "Clé API IA non configurée",
+      "aiNotConfiguredMessage": "Aucune clé API {provider} n'est configurée. Rendez-vous dans les paramètres pour ajouter votre clé et activer l'analyse IA.",
+      "goToSettings": "Configurer",
+      "budgetExceededTitle": "Budget mensuel de tokens IA atteint",
+      "budgetExceededMessage": "Votre quota mensuel de tokens gratuits est epuise. Connectez votre propre cle API dans les parametres IA pour continuer a utiliser cette fonctionnalite sans limite.",
       "saveFirst": "Sauvegardez d'abord le template avant d'utiliser l'analyse IA",
       "tokensApplied": "Tokens de design appliqués et CSS généré",
       "additionalInstructions": "Instructions supplémentaires",
@@ -3413,7 +3565,9 @@
         "test": "Tester",
         "save": "Sauvegarder",
         "saveError": "Erreur lors de la sauvegarde. Vérifiez votre clé API.",
-        "loadError": "Impossible de charger la configuration IA. Veuillez réessayer."
+        "loadError": "Impossible de charger la configuration IA. Veuillez réessayer.",
+        "byokTitle": "Connecter votre propre cle",
+        "byokSubtitle": "Connectez votre compte OpenAI ou Anthropic pour utiliser l'IA sans limite de tokens et avec une meilleure qualite de reponse."
       },
       "features": {
         "title": "Solutions IA Clenzy",
@@ -3714,7 +3868,9 @@
         "label": "Créer une équipe",
         "description": "Constituez votre première équipe de techniciens ou housekeepers pour gérer les interventions."
       }
-    }
+    },
+    "skip": "Passer",
+    "completionMessage": "Complétez la configuration initiale pour accéder au tableau de bord complet"
   },
   "shop": {
     "title": "Boutique Hardware",

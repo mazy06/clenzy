@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { aiApi } from '../services/api/aiApi';
-import type { SaveAiApiKeyRequest } from '../services/api/aiApi';
+import type { SaveAiApiKeyRequest, SavePlatformModelRequest, TestPlatformModelRequest } from '../services/api/aiApi';
 
 // ─── Query Keys ─────────────────────────────────────────────────────────────
 
@@ -13,6 +13,7 @@ export const aiKeys = {
     [...aiKeys.all, 'insights', propertyId, from, to] as const,
   keyStatus: () => [...aiKeys.all, 'key-status'] as const,
   featureToggles: () => [...aiKeys.all, 'feature-toggles'] as const,
+  platformConfig: () => [...aiKeys.all, 'platform-config'] as const,
 };
 
 // ─── Usage Stats ────────────────────────────────────────────────────────────
@@ -155,6 +156,91 @@ export function useDeleteAiKey() {
     onSuccess: () => {
       // Invalidate ALL ai queries so widgets refetch after key deletion
       queryClient.invalidateQueries({ queryKey: aiKeys.all });
+    },
+  });
+}
+
+// ─── Platform Models (SUPER_ADMIN) ──────────────────────────────────────────
+
+export function usePlatformModels() {
+  return useQuery({
+    queryKey: aiKeys.platformConfig(),
+    queryFn: () => aiApi.getPlatformModels(),
+    staleTime: 30_000,
+  });
+}
+
+export function useTestPlatformModel() {
+  return useMutation({
+    mutationFn: (data: TestPlatformModelRequest) => aiApi.testPlatformModel(data),
+  });
+}
+
+export function useSavePlatformModel() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: SavePlatformModelRequest) => aiApi.savePlatformModel(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: aiKeys.platformConfig() });
+      queryClient.invalidateQueries({ queryKey: aiKeys.keyStatus() });
+    },
+  });
+}
+
+export function useDeletePlatformModel() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => aiApi.deletePlatformModel(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: aiKeys.platformConfig() });
+    },
+  });
+}
+
+export function useFeatureAssignments() {
+  return useQuery({
+    queryKey: [...aiKeys.platformConfig(), 'features'] as const,
+    queryFn: () => aiApi.getFeatureAssignments(),
+    staleTime: 30_000,
+  });
+}
+
+export function useAssignModelToFeature() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ feature, modelId }: { feature: string; modelId: number }) =>
+      aiApi.assignModelToFeature(feature, modelId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: aiKeys.platformConfig() });
+    },
+  });
+}
+
+export function useUnassignFeature() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (feature: string) => aiApi.unassignFeature(feature),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: aiKeys.platformConfig() });
+    },
+  });
+}
+
+export function useFeatureBudgets() {
+  return useQuery({
+    queryKey: [...aiKeys.platformConfig(), 'budgets'] as const,
+    queryFn: () => aiApi.getFeatureBudgets(),
+    staleTime: 30_000,
+  });
+}
+
+export function useSetFeatureBudget() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ feature, limit }: { feature: string; limit: number }) =>
+      aiApi.setFeatureBudget(feature, limit),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...aiKeys.platformConfig(), 'budgets'] });
     },
   });
 }

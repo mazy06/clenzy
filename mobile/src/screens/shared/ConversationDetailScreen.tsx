@@ -9,6 +9,9 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Modal,
+  TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -235,6 +238,8 @@ export function ConversationDetailScreen() {
 
   const [messageText, setMessageText] = useState('');
   const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   // Data hooks
@@ -325,6 +330,25 @@ export function ConversationDetailScreen() {
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Quick templates for the bottom sheet
+  const QUICK_TEMPLATES = useMemo(() => [
+    { id: 1, title: 'Instructions check-in', content: 'Bonjour, voici les instructions pour votre arrivee. Le check-in est possible a partir de 15h.', category: 'CHECK_IN' },
+    { id: 2, title: 'Instructions check-out', content: 'Merci pour votre sejour ! Pour le check-out, merci de liberer le logement avant 11h.', category: 'CHECK_OUT' },
+    { id: 3, title: 'Bienvenue', content: 'Bienvenue ! Nous sommes ravis de vous accueillir. N\'hesitez pas a nous contacter si besoin.', category: 'WELCOME' },
+    { id: 4, title: 'Rappel reservation', content: 'Bonjour, votre reservation approche. Avez-vous des questions avant votre arrivee ?', category: 'REMINDER' },
+    { id: 5, title: 'Remerciement', content: 'Merci pour votre sejour ! Nous esperons que tout s\'est bien passe. A bientot !', category: 'CUSTOM' },
+  ], []);
+
+  const handleInsertTemplate = useCallback((content: string) => {
+    setMessageText(content);
+    setShowTemplates(false);
+  }, []);
+
+  const handleScheduleSend = useCallback(() => {
+    setShowSchedule(false);
+    Alert.alert('Planifier l\'envoi', 'L\'envoi programme sera disponible prochainement.');
+  }, []);
 
   const channelCfg = CHANNEL_CONFIG[conversation?.channel ?? 'INTERNAL'] ?? CHANNEL_CONFIG.INTERNAL;
   const statusCfg = STATUS_CONFIG[conversation?.status ?? 'OPEN'] ?? STATUS_CONFIG.OPEN;
@@ -566,6 +590,40 @@ export function ConversationDetailScreen() {
             paddingVertical: theme.SPACING.sm,
             gap: theme.SPACING.sm,
           }}>
+            {/* Templates button */}
+            <Pressable
+              onPress={() => setShowTemplates(true)}
+              hitSlop={8}
+              style={({ pressed }) => ({
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: pressed ? `${theme.colors.info.main}20` : 'transparent',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 4,
+              })}
+            >
+              <Ionicons name="clipboard-outline" size={20} color={theme.colors.info.main} />
+            </Pressable>
+
+            {/* Schedule button */}
+            <Pressable
+              onPress={handleScheduleSend}
+              hitSlop={8}
+              style={({ pressed }) => ({
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: pressed ? `${theme.colors.warning.main}20` : 'transparent',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 4,
+              })}
+            >
+              <Ionicons name="time-outline" size={20} color={theme.colors.warning.main} />
+            </Pressable>
+
             {/* AI Suggest button */}
             <Pressable
               onPress={handleAiSuggest}
@@ -644,6 +702,87 @@ export function ConversationDetailScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Templates bottom sheet */}
+      <Modal visible={showTemplates} transparent animationType="slide">
+        <TouchableOpacity
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+          activeOpacity={1}
+          onPress={() => setShowTemplates(false)}
+        >
+          <View
+            style={{
+              backgroundColor: theme.colors.background.paper,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              maxHeight: '60%',
+              paddingTop: theme.SPACING.lg,
+              paddingBottom: theme.SPACING['2xl'],
+            }}
+          >
+            <View style={{
+              width: 40,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: theme.colors.border.main,
+              alignSelf: 'center',
+              marginBottom: theme.SPACING.md,
+            }} />
+            <Text style={{
+              ...theme.typography.h4,
+              color: theme.colors.text.primary,
+              paddingHorizontal: theme.SPACING.lg,
+              marginBottom: theme.SPACING.md,
+            }}>
+              Modeles de messages
+            </Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {QUICK_TEMPLATES.map((template) => (
+                <Pressable
+                  key={template.id}
+                  onPress={() => handleInsertTemplate(template.content)}
+                  style={({ pressed }) => ({
+                    paddingHorizontal: theme.SPACING.lg,
+                    paddingVertical: theme.SPACING.md,
+                    backgroundColor: pressed ? theme.colors.background.surface : 'transparent',
+                    borderBottomWidth: 0.5,
+                    borderBottomColor: theme.colors.border.light,
+                  })}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <Ionicons name="document-text-outline" size={16} color={theme.colors.primary.main} />
+                    <Text style={{ ...theme.typography.body2, fontWeight: '600', color: theme.colors.text.primary }}>
+                      {template.title}
+                    </Text>
+                  </View>
+                  <Text
+                    style={{ ...theme.typography.caption, color: theme.colors.text.secondary, paddingLeft: 24, lineHeight: 18 }}
+                    numberOfLines={2}
+                  >
+                    {template.content}
+                  </Text>
+                </Pressable>
+              ))}
+              <Pressable
+                onPress={() => {
+                  setShowTemplates(false);
+                  (navigation as any).navigate('MessageTemplates');
+                }}
+                style={({ pressed }) => ({
+                  paddingHorizontal: theme.SPACING.lg,
+                  paddingVertical: theme.SPACING.lg,
+                  backgroundColor: pressed ? theme.colors.background.surface : 'transparent',
+                  alignItems: 'center',
+                })}
+              >
+                <Text style={{ ...theme.typography.body2, color: theme.colors.primary.main, fontWeight: '600' }}>
+                  Voir tous les modeles
+                </Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
