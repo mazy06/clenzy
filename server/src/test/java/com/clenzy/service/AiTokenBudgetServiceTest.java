@@ -3,6 +3,7 @@ package com.clenzy.service;
 import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.AiResponse;
 import com.clenzy.dto.AiUsageStatsDto;
+import com.clenzy.exception.AiBudgetExceededException;
 import com.clenzy.model.AiFeature;
 import com.clenzy.model.AiTokenBudget;
 import com.clenzy.repository.AiTokenBudgetRepository;
@@ -122,11 +123,13 @@ class AiTokenBudgetServiceTest {
             when(usageRepository.sumTokensByOrgAndFeatureAndMonth(1L, AiFeature.SENTIMENT, "2026-03"))
                     .thenReturn(200_000L);
 
-            IllegalStateException ex = assertThrows(IllegalStateException.class,
+            AiBudgetExceededException ex = assertThrows(AiBudgetExceededException.class,
                     () -> service.requireBudget(1L, AiFeature.SENTIMENT));
 
-            assertTrue(ex.getMessage().contains("budget exceeded"));
-            assertTrue(ex.getMessage().contains("SENTIMENT"));
+            assertEquals("AI_BUDGET_EXCEEDED", ex.getErrorCode());
+            assertEquals("SENTIMENT", ex.getFeature());
+            assertEquals(200_000L, ex.getUsed());
+            assertEquals(100_000L, ex.getLimit());
         }
 
         @Test

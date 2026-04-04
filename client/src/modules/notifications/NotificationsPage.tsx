@@ -44,25 +44,26 @@ const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
   reservation: <EventNote sx={{ fontSize: 18, color: 'info.main' }} />,
 };
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string, lang = 'fr'): string {
   const now = Date.now();
   const date = new Date(dateStr).getTime();
   const diff = Math.max(0, now - date);
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "A l'instant";
-  if (minutes < 60) return `Il y a ${minutes} min`;
+  if (minutes < 1) return t('notifications.timeAgo.now');
+  if (minutes < 60) return t('notifications.timeAgo.minutes', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Il y a ${hours}h`;
+  if (hours < 24) return t('notifications.timeAgo.hours', { count: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `Il y a ${days}j`;
-  return new Date(dateStr).toLocaleDateString('fr-FR');
+  if (days < 7) return t('notifications.timeAgo.days', { count: days });
+  const locale = lang === 'ar' ? 'ar-SA' : lang === 'en' ? 'en-US' : 'fr-FR';
+  return new Date(dateStr).toLocaleDateString(locale);
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function NotificationsPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
 
   // Reset availability on mount so the page always tries to reach the backend
@@ -129,28 +130,28 @@ export default function NotificationsPage() {
   const unreadCount = (notifications ?? []).filter((n) => !n.read).length;
 
   const tabs: { value: TabFilter; label: string }[] = [
-    { value: 'all', label: t('notifications.tabs.all') || 'Toutes' },
-    { value: 'unread', label: t('notifications.tabs.unread') || 'Non lues' },
-    { value: 'intervention', label: t('notifications.tabs.interventions') || 'Interventions' },
-    { value: 'service_request', label: t('notifications.tabs.requests') || 'Demandes' },
-    { value: 'payment', label: t('notifications.tabs.payments') || 'Paiements' },
-    { value: 'reservation', label: t('notifications.tabs.reservations') || 'Reservations' },
-    { value: 'system', label: t('notifications.tabs.system') || 'Systeme' },
-    { value: 'contact', label: t('notifications.tabs.contact') || 'Contact' },
-    { value: 'document', label: t('notifications.tabs.document') || 'Documents' },
+    { value: 'all', label: t('notifications.tabs.all') },
+    { value: 'unread', label: t('notifications.tabs.unread') },
+    { value: 'intervention', label: t('notifications.tabs.interventions') },
+    { value: 'service_request', label: t('notifications.tabs.requests') },
+    { value: 'payment', label: t('notifications.tabs.payments') },
+    { value: 'reservation', label: t('notifications.tabs.reservations') },
+    { value: 'system', label: t('notifications.tabs.system') },
+    { value: 'contact', label: t('notifications.tabs.contact') },
+    { value: 'document', label: t('notifications.tabs.document') },
   ];
 
   return (
     <Box>
       <PageHeader
-        title={t('notifications.title') || 'Notifications'}
+        title={t('notifications.title')}
         subtitle={
           unreadCount > 0
-            ? `${unreadCount} ${t('notifications.unread') || 'non lue(s)'}`
-            : t('notifications.allRead') || 'Tout est lu'
+            ? `${unreadCount} ${t('notifications.unread')}`
+            : t('notifications.allRead')
         }
         backPath="/dashboard"
-        backLabel={t('common.back') || 'Retour'}
+        backLabel={t('common.back')}
         actions={
           unreadCount > 0 ? (
             <Button
@@ -159,9 +160,9 @@ export default function NotificationsPage() {
               startIcon={<DoneAll sx={{ fontSize: 18 }} />}
               onClick={handleMarkAllRead}
               sx={{ fontSize: '0.8125rem', py: 0.5 }}
-              title={t('notifications.markAllRead') || 'Marquer tout comme lu'}
+              title={t('notifications.markAllRead')}
             >
-              {t('notifications.markAllRead') || 'Marquer tout comme lu'}
+              {t('notifications.markAllRead')}
             </Button>
           ) : undefined
         }
@@ -195,12 +196,12 @@ export default function NotificationsPage() {
           <Box sx={{ textAlign: 'center', py: 6 }}>
             <NotificationsNone sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
             <Typography variant="h6" color="text.secondary" sx={{ fontSize: '1rem' }}>
-              {t('notifications.empty') || 'Aucune notification'}
+              {t('notifications.empty')}
             </Typography>
             <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
               {activeTab !== 'all'
-                ? t('notifications.emptyFilter') || 'Aucune notification dans cette categorie.'
-                : t('notifications.emptyAll') || "Vous n'avez aucune notification pour le moment."}
+                ? t('notifications.emptyFilter')
+                : t('notifications.emptyAll')}
             </Typography>
           </Box>
         }
@@ -263,7 +264,9 @@ export default function NotificationsPage() {
                       color: notification.read ? 'text.secondary' : 'text.primary',
                     }}
                   >
-                    {notification.title}
+                    {notification.notificationKey
+                      ? t(`notifications.keys.${notification.notificationKey}`, { defaultValue: notification.title })
+                      : notification.title}
                   </Typography>
                 </Box>
                 <Typography
@@ -291,11 +294,11 @@ export default function NotificationsPage() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {timeAgo(notification.createdAt)}
+                {timeAgo(notification.createdAt, t, currentLanguage)}
               </Typography>
 
               {/* Delete — visible on hover */}
-              <Tooltip title={t('common.delete') || 'Supprimer'}>
+              <Tooltip title={t('common.delete')}>
                 <IconButton
                   className="delete-btn"
                   size="small"

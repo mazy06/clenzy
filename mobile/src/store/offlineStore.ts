@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import { createMMKV } from 'react-native-mmkv';
+import { createStorage } from '@/lib/storage';
 
-const storage = createMMKV({ id: 'offline-store' });
+const storage = createStorage({ id: 'offline-store' });
 
 export interface OfflineAction {
   id: string;

@@ -18,10 +18,15 @@ import { ProfileScreen } from '@/screens/common/ProfileScreen';
 import { ProfileDetailScreen } from '@/screens/common/ProfileDetailScreen';
 import { SubscriptionScreen } from '@/screens/common/SubscriptionScreen';
 import { SubscriptionCheckoutScreen } from '@/screens/common/SubscriptionCheckoutScreen';
+import { DocumentsScreen } from '@/screens/host/DocumentsScreen';
+import { DocumentDetailScreen } from '@/screens/host/DocumentDetailScreen';
+import { DocumentGenerateScreen } from '@/screens/host/DocumentGenerateScreen';
+import { PdfViewerScreen } from '@/screens/shared/PdfViewerScreen';
 import { DeleteAccountScreen } from '@/screens/common/DeleteAccountScreen';
 import { ConversationScreen } from '@/screens/shared/ConversationScreen';
 import { ConversationDetailScreen } from '@/screens/shared/ConversationDetailScreen';
 import { CreateInterventionScreen } from '@/screens/manager/CreateInterventionScreen';
+import { MessageTemplatesScreen } from '@/screens/shared/MessageTemplatesScreen';
 
 export type InterventionsStackParamList = {
   InterventionList: undefined;
@@ -38,6 +43,7 @@ export type TeamsStackParamList = {
 export type MessagesStackParamList = {
   ConversationList: undefined;
   ConversationDetail: { conversationId: number };
+  MessageTemplates: undefined;
 };
 
 export type MoreStackParamList = {
@@ -47,6 +53,10 @@ export type MoreStackParamList = {
   SubscriptionCheckout: { forfait: string };
   ServiceRequests: undefined;
   Incidents: undefined;
+  Documents: undefined;
+  DocumentDetail: { documentId: number };
+  DocumentGenerate: undefined;
+  PdfViewer: { uri: string; title?: string };
   DeleteAccount: undefined;
 };
 
@@ -85,6 +95,7 @@ function MessagesStackNavigator() {
         )}
       </MessagesStack.Screen>
       <MessagesStack.Screen name="ConversationDetail" component={ConversationDetailScreen} />
+      <MessagesStack.Screen name="MessageTemplates" component={MessageTemplatesScreen} />
     </MessagesStack.Navigator>
   );
 }
@@ -99,6 +110,10 @@ function MoreStackNavigator() {
       <MoreStack.Screen name="SubscriptionCheckout" component={SubscriptionCheckoutScreen} />
       <MoreStack.Screen name="ServiceRequests" component={ServiceRequestListScreen} />
       <MoreStack.Screen name="Incidents" component={IncidentListScreen} />
+      <MoreStack.Screen name="Documents" component={DocumentsScreen} />
+      <MoreStack.Screen name="DocumentDetail" component={DocumentDetailScreen} />
+      <MoreStack.Screen name="DocumentGenerate" component={DocumentGenerateScreen} />
+      <MoreStack.Screen name="PdfViewer" component={PdfViewerScreen} />
       <MoreStack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
     </MoreStack.Navigator>
   );

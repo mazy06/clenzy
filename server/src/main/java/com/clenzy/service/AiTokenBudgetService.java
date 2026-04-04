@@ -3,6 +3,8 @@ package com.clenzy.service;
 import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.AiResponse;
 import com.clenzy.dto.AiUsageStatsDto;
+import com.clenzy.exception.AiBudgetExceededException;
+import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
 import com.clenzy.model.AiTokenBudget;
 import com.clenzy.model.AiTokenUsage;
@@ -60,11 +62,12 @@ public class AiTokenBudgetService {
     /**
      * Verifie que la feature est activee, sinon lance une exception.
      *
-     * @throws IllegalStateException si la feature est desactivee
+     * @throws AiNotConfiguredException si la feature est desactivee
      */
     public void requireFeatureEnabled(Long organizationId, AiFeature feature) {
         if (!isFeatureEnabled(organizationId, feature)) {
-            throw new IllegalStateException("AI feature " + feature + " is disabled for this organization");
+            throw new AiNotConfiguredException("AI_FEATURE_DISABLED", feature.name(),
+                    "La fonctionnalite IA " + feature + " est desactivee pour cette organisation.");
         }
     }
 
@@ -124,14 +127,14 @@ public class AiTokenBudgetService {
     /**
      * Verifie le budget et lance une exception si depasse.
      *
-     * @throws IllegalStateException si le budget est depasse
+     * @throws AiBudgetExceededException si le budget est depasse
      */
     public void requireBudget(Long organizationId, AiFeature feature) {
         if (!hasBudget(organizationId, feature)) {
-            throw new IllegalStateException(
-                    "AI token budget exceeded for feature " + feature +
-                    " (org=" + organizationId + ", month=" + getCurrentMonthYear() + ")"
-            );
+            String currentMonth = getCurrentMonthYear();
+            long limit = getMonthlyLimit(organizationId, feature);
+            long used = usageRepository.sumTokensByOrgAndFeatureAndMonth(organizationId, feature, currentMonth);
+            throw new AiBudgetExceededException(feature.name(), used, limit);
         }
     }
 

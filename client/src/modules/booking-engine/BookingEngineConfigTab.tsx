@@ -166,12 +166,35 @@ const BookingEngineConfigTab = forwardRef<BookingEngineConfigTabHandle, BookingE
   }, [config?.apiKey, t, showSnackbar]);
 
   // ─── AI Design handlers ────────────────────────────────────────────
-  const handleTokensExtracted = useCallback((tokens: DesignTokens, generatedCss: string) => {
+  const handleTokensExtracted = useCallback(async (tokens: DesignTokens, generatedCss: string) => {
     setDesignTokens(tokens);
     handleChange('designTokens', JSON.stringify(tokens));
     handleChange('customCss', generatedCss);
+    // Sync tokens with form-level fields
+    if (tokens.primaryColor) handleChange('primaryColor', tokens.primaryColor);
+    if (tokens.accentColor) handleChange('accentColor', tokens.accentColor);
+    if (tokens.bodyFontFamily) handleChange('fontFamily', tokens.bodyFontFamily);
+
+    // Auto-save after AI analysis so tokens persist across page refresh
+    if (config?.id) {
+      try {
+        const payload = {
+          ...form,
+          name: name.trim() || 'Default',
+          designTokens: JSON.stringify(tokens),
+          customCss: generatedCss,
+          primaryColor: tokens.primaryColor || form.primaryColor,
+          accentColor: tokens.accentColor || form.accentColor,
+          fontFamily: tokens.bodyFontFamily || form.fontFamily,
+        };
+        await updateMutation.mutateAsync({ id: config.id, data: payload });
+      } catch {
+        // Silent fail — user can still save manually
+      }
+    }
+
     showSnackbar(t('bookingEngine.ai.tokensApplied'), 'success');
-  }, [t, showSnackbar, setDesignTokens, handleChange]);
+  }, [t, showSnackbar, setDesignTokens, handleChange, config, form, name, updateMutation]);
 
   const handleDesignTokensChange = useCallback((tokens: DesignTokens) => {
     setDesignTokens(tokens);
@@ -245,11 +268,9 @@ const BookingEngineConfigTab = forwardRef<BookingEngineConfigTabHandle, BookingE
             form={form}
             designTokens={designTokens}
             isDesignAiEnabled={isDesignAiEnabled}
-            isRegeneratingCss={generateCssMutation.isPending}
             onFormChange={handleChange}
             onDesignTokensChange={handleDesignTokensChange}
             onTokensExtracted={handleTokensExtracted}
-            onRegenerateCss={handleRegenerateCss}
             onSnackbar={showSnackbar}
           />
         )}
@@ -295,6 +316,7 @@ const BookingEngineConfigTab = forwardRef<BookingEngineConfigTabHandle, BookingE
           onClose={() => setPreviewOpen(false)}
           onCssChange={(css) => handleChange('customCss', css || null)}
           initialCss={form.customCss || ''}
+          initialSiteUrl={form.sourceWebsiteUrl || ''}
           initialWidgetPosition={{
             widgetPosition: (form.widgetPosition as 'bottom' | 'top' | 'inline') || 'bottom',
             inlineTargetId: form.inlineTargetId || 'hebergements',

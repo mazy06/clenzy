@@ -1,6 +1,12 @@
 import { useState, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { useStripe } from '@stripe/stripe-react-native';
+// Stripe native module only available in dev client / standalone builds
+let useStripe: any;
+try {
+  useStripe = require('@stripe/stripe-react-native').useStripe;
+} catch {
+  useStripe = () => ({ initPaymentSheet: async () => ({ error: { message: 'Stripe not available in Expo Go' } }), presentPaymentSheet: async () => ({ error: { message: 'Stripe not available' } }) });
+}
 import { paymentsApi, PaymentSheetRequest } from '@/api/endpoints/paymentsApi';
 import { STRIPE_CONFIG } from '@/config/stripe';
 

@@ -153,4 +153,67 @@ export const aiApi = {
 
   deleteKey: (provider: string): Promise<{ message: string; provider: string }> =>
     apiClient.delete(`/ai/keys/${provider}`),
+
+  // ── Platform Models (SUPER_ADMIN) ──
+  getPlatformModels: (): Promise<PlatformAiModel[]> =>
+    apiClient.get('/admin/ai/platform-config/models'),
+
+  savePlatformModel: (data: SavePlatformModelRequest): Promise<PlatformAiModel> =>
+    apiClient.post('/admin/ai/platform-config/models', data),
+
+  updatePlatformModel: (id: number, data: SavePlatformModelRequest): Promise<PlatformAiModel> =>
+    apiClient.put(`/admin/ai/platform-config/models/${id}`, data),
+
+  deletePlatformModel: (id: number): Promise<{ message: string }> =>
+    apiClient.delete(`/admin/ai/platform-config/models/${id}`),
+
+  testPlatformModel: (data: TestPlatformModelRequest): Promise<{ success: boolean; provider: string; modelId: string }> =>
+    apiClient.post('/admin/ai/platform-config/models/test', data),
+
+  // ── Platform Feature Assignments (SUPER_ADMIN) ──
+  getFeatureAssignments: (): Promise<Record<string, PlatformAiModel>> =>
+    apiClient.get('/admin/ai/platform-config/features'),
+
+  assignModelToFeature: (feature: string, modelId: number): Promise<{ message: string }> =>
+    apiClient.put(`/admin/ai/platform-config/features/${feature}/model/${modelId}`),
+
+  // ── Platform Token Budgets (SUPER_ADMIN) ──
+  getFeatureBudgets: (): Promise<Record<string, number>> =>
+    apiClient.get('/admin/ai/platform-config/budgets'),
+
+  setFeatureBudget: (feature: string, limit: number): Promise<{ feature: string; limit: number }> =>
+    apiClient.put(`/admin/ai/platform-config/budgets/${feature}`, { limit }),
+
+  unassignFeature: (feature: string): Promise<{ message: string }> =>
+    apiClient.delete(`/admin/ai/platform-config/features/${feature}`),
 };
+
+// ─── Platform AI Model Types ────────────────────────────────────────────────
+
+export interface PlatformAiModel {
+  id: number;
+  name: string;
+  provider: string;
+  modelId: string;
+  maskedApiKey: string | null;
+  baseUrl: string | null;
+  assignedFeatures: string[];
+  lastValidatedAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface SavePlatformModelRequest {
+  id?: number | null;
+  name: string;
+  provider: string;
+  modelId: string;
+  apiKey: string;
+  baseUrl?: string;
+}
+
+export interface TestPlatformModelRequest {
+  provider: string;
+  modelId: string;
+  apiKey: string;
+  baseUrl?: string;
+}

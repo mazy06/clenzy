@@ -34,10 +34,11 @@ import {
 
 export type NavGroup = 'main' | 'management' | 'admin';
 
-export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
-  main: 'Principal',
-  management: 'Gestion',
-  admin: 'Administration',
+/** i18n keys for nav group section headers */
+export const NAV_GROUP_TRANSLATION_KEYS: Record<NavGroup, string> = {
+  main: 'navigation.groups.main',
+  management: 'navigation.groups.management',
+  admin: 'navigation.groups.admin',
 };
 
 export interface MenuItem {

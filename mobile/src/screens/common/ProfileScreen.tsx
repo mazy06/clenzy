@@ -187,6 +187,27 @@ export function ProfileScreen() {
             />
             <View style={{ height: 1, backgroundColor: theme.colors.border.light, marginHorizontal: theme.SPACING.md }} />
             <MenuRow
+              icon="wallet-outline"
+              label="Facturation"
+              onPress={() => navigation.navigate('BillingDashboard')}
+              theme={theme}
+            />
+            <View style={{ height: 1, backgroundColor: theme.colors.border.light, marginHorizontal: theme.SPACING.md }} />
+            <MenuRow
+              icon="document-text-outline"
+              label="Documents"
+              onPress={() => navigation.navigate('Documents')}
+              theme={theme}
+            />
+            <View style={{ height: 1, backgroundColor: theme.colors.border.light, marginHorizontal: theme.SPACING.md }} />
+            <MenuRow
+              icon="people-outline"
+              label="Utilisateurs"
+              onPress={() => navigation.navigate('UserList')}
+              theme={theme}
+            />
+            <View style={{ height: 1, backgroundColor: theme.colors.border.light, marginHorizontal: theme.SPACING.md }} />
+            <MenuRow
               icon="notifications-outline"
               label="Notifications"
               onPress={() => navigation.navigate('Notifications')}

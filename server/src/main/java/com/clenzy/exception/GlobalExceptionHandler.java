@@ -104,6 +104,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
     }
 
+    @ExceptionHandler(AiBudgetExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleAiBudgetExceeded(AiBudgetExceededException ex) {
+        logger.warn("AI budget exceeded: feature={} used={} limit={}", ex.getFeature(), ex.getUsed(), ex.getLimit());
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Budget IA depasse");
+        errorResponse.put("message", ex.getMessage());
+        errorResponse.put("errorCode", ex.getErrorCode());
+        errorResponse.put("feature", ex.getFeature());
+        errorResponse.put("used", ex.getUsed());
+        errorResponse.put("limit", ex.getLimit());
+        errorResponse.put("status", HttpStatus.TOO_MANY_REQUESTS.value());
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(errorResponse);
+    }
+
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<Map<String, Object>> handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
         logger.warn("Conflit de version (modification concurrente): {}", ex.getMessage());

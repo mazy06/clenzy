@@ -203,6 +203,14 @@ public class PermissionInitializer {
         anyCreated |= ensurePermission("pricing:manage", "Gerer les prix dynamiques", "pricing",
                 List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
 
+        // --- AI ---
+        anyCreated |= ensurePermission("ai:view", "Voir les parametres IA", "ai",
+                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
+        anyCreated |= ensurePermission("ai:edit", "Configurer sa propre cle IA (BYOK)", "ai",
+                List.of("SUPER_ADMIN", "SUPER_MANAGER", "HOST"));
+        anyCreated |= ensurePermission("ai:manage", "Gerer la configuration IA plateforme", "ai",
+                List.of("SUPER_ADMIN"));
+
         if (anyCreated) {
             log.info("Nouvelles permissions creees. Invalidation du cache...");
             permissionService.invalidateAllCache();

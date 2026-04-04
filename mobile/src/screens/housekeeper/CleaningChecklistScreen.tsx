@@ -13,10 +13,10 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { useTheme } from '@/theme';
-import { createMMKV } from 'react-native-mmkv';
+import { createStorage } from '@/lib/storage';
 import { useUnreadConversationCount } from '@/hooks/useConversations';
 
-const checklistStorage = createMMKV({ id: 'checklist-drafts' });
+const checklistStorage = createStorage({ id: 'checklist-drafts' });
 
 /* ─── Timer Hook ─── */
 

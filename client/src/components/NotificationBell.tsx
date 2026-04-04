@@ -43,18 +43,19 @@ const CATEGORY_ICONS: Record<Notification['category'], React.ReactNode> = {
   reservation: <EventNote sx={{ fontSize: 18, color: '#0288d1' }} />,
 };
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string, lang = 'fr'): string {
   const now = Date.now();
   const date = new Date(dateStr).getTime();
   const diff = Math.max(0, now - date);
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "A l'instant";
-  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 1) return t('notifications.timeAgo.now');
+  if (minutes < 60) return t('notifications.timeAgo.minutes', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
+  if (hours < 24) return t('notifications.timeAgo.hours', { count: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}j`;
-  return new Date(dateStr).toLocaleDateString('fr-FR');
+  if (days < 7) return t('notifications.timeAgo.days', { count: days });
+  const locale = lang === 'ar' ? 'ar-SA' : lang === 'en' ? 'en-US' : 'fr-FR';
+  return new Date(dateStr).toLocaleDateString(locale);
 }
 
 const POLL_INTERVAL = 30000; // 30 seconds
@@ -63,7 +64,7 @@ const POLL_INTERVAL = 30000; // 30 seconds
 
 export default function NotificationBell() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [recent, setRecent] = useState<Notification[]>([]);
@@ -203,7 +204,7 @@ export default function NotificationBell() {
           </Typography>
           {unreadCount > 0 && (
             <Typography variant="caption" color="primary" sx={{ fontSize: '0.75rem' }}>
-              {unreadCount} {t('notifications.new') || 'nouvelle(s)'}
+              {unreadCount} {t('notifications.new')}
             </Typography>
           )}
         </Box>
@@ -253,7 +254,9 @@ export default function NotificationBell() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {notification.title}
+                          {notification.notificationKey
+                            ? t(`notifications.keys.${notification.notificationKey}`, { defaultValue: notification.title })
+                            : notification.title}
                         </Typography>
                       </Box>
                     }
@@ -273,7 +276,7 @@ export default function NotificationBell() {
                           {notification.message}
                         </Typography>
                         <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.6875rem' }}>
-                          {timeAgo(notification.createdAt)}
+                          {timeAgo(notification.createdAt, t, currentLanguage)}
                         </Typography>
                       </Box>
                     }

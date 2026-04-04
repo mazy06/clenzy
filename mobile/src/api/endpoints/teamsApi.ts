@@ -17,9 +17,16 @@ export interface TeamMember {
   role: string;
 }
 
+interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+}
+
 export const teamsApi = {
-  getAll() {
-    return apiClient.get<Team[]>('/teams');
+  async getAll(): Promise<Team[]> {
+    const page = await apiClient.get<PageResponse<Team>>('/teams?size=1000');
+    return page.content ?? [];
   },
 
   getById(id: number) {

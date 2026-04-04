@@ -1140,6 +1140,22 @@ export function AnalyticsScreen() {
         <Text style={{ ...theme.typography.h2, color: theme.colors.text.primary, flex: 1 }}>
           Analytics
         </Text>
+        <Pressable
+          onPress={() => (navigation as any).navigate('AnalyticsExport')}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            width: 36,
+            height: 36,
+            borderRadius: theme.BORDER_RADIUS.md,
+            backgroundColor: theme.colors.background.paper,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.7 : 1,
+            ...theme.shadows.sm,
+          })}
+        >
+          <Ionicons name="share-outline" size={20} color={theme.colors.primary.main} />
+        </Pressable>
       </View>
 
       {/* Period selector */}
