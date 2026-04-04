@@ -27,6 +27,15 @@ export function useMissionsForDate(date: string) {
   });
 }
 
+/** Missions for a date range (used for weekly KPIs) */
+export function useMissionsForRange(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: [...KEYS.all, 'missions-range', startDate, endDate],
+    queryFn: () => interventionsApi.getAll({ startDate, endDate, size: 200 }),
+    staleTime: 60_000,
+  });
+}
+
 export function useIntervention(id: number) {
   return useQuery({
     queryKey: KEYS.detail(id),
@@ -74,6 +83,30 @@ export function useUploadPhotos() {
       interventionsApi.uploadPhotos(id, formData),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: KEYS.detail(variables.id) });
+    },
+  });
+}
+
+export function useUpdateInterventionCost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, estimatedCost, actualCost }: { id: number; estimatedCost?: number; actualCost?: number }) =>
+      interventionsApi.updateCost(id, estimatedCost, actualCost),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: KEYS.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: KEYS.all });
+    },
+  });
+}
+
+export function useUpdateInterventionStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) =>
+      interventionsApi.updateStatus(id, status),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: KEYS.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: KEYS.all });
     },
   });
 }

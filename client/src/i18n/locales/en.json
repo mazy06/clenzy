@@ -16,7 +16,6 @@
     "close": "Close",
     "processing": "Processing...",
     "back": "Back",
-    "processing": "Processing...",
     "next": "Next",
     "previous": "Previous",
     "submit": "Submit",
@@ -28,7 +27,10 @@
     "type": "Type",
     "priority": "Priority",
     "all": "All",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "expandMenu": "Expand menu",
+    "collapseMenu": "Collapse menu",
+    "ratesAt": "Rates as of"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -87,7 +89,12 @@
     "contracts": "Management Contracts",
     "messaging": "Messaging",
     "messageTemplates": "Templates",
-    "messageHistory": "History"
+    "messageHistory": "History",
+    "groups": {
+      "main": "Main",
+      "management": "Management",
+      "admin": "Administration"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -918,7 +925,21 @@
     "createFirst": "Create your first request",
     "selectPropertyFirst": "Select a property to complete your request",
     "edit": "Edit service request",
-    "details": "Request details",
+    "details": {
+      "progression": "Progression",
+      "estimatedCost": "Estimated cost",
+      "actualCost": "Actual cost",
+      "viewProperty": "View property",
+      "notesInstructions": "Notes & instructions",
+      "specialInstructions": "Special instructions",
+      "accessNotes": "Access notes",
+      "cleaningNotes": "Cleaning notes",
+      "guestCheckout": "Guest checkout",
+      "guestCheckin": "Guest check-in",
+      "approvalDevis": "Approval & estimate",
+      "approvedBy": "Approved by",
+      "devisAcceptedBy": "Estimate accepted by"
+    },
     "search": "Search for a request...",
     "allTypes": "All types",
     "allStatuses": "All statuses",
@@ -1058,22 +1079,7 @@
     "invalidDate": "Invalid date",
     "notFound": "Service request not found",
     "team": "Team",
-    "approvedDateShort": "Approved on",
-    "details": {
-      "progression": "Progression",
-      "estimatedCost": "Estimated cost",
-      "actualCost": "Actual cost",
-      "viewProperty": "View property",
-      "notesInstructions": "Notes & instructions",
-      "specialInstructions": "Special instructions",
-      "accessNotes": "Access notes",
-      "cleaningNotes": "Cleaning notes",
-      "guestCheckout": "Guest checkout",
-      "guestCheckin": "Guest check-in",
-      "approvalDevis": "Approval & estimate",
-      "approvedBy": "Approved by",
-      "devisAcceptedBy": "Estimate accepted by"
-    }
+    "approvedDateShort": "Approved on"
   },
   "interventions": {
     "title": "Interventions",
@@ -1930,6 +1936,33 @@
       "saveSuccess": "Configuration saved",
       "saveError": "Error saving configuration"
     },
+    "ai": {
+      "platform": {
+        "title": "Platform configuration",
+        "subtitle": "Configure AI models and assign them to platform features.",
+        "test": "Test",
+        "saveActivate": "Save",
+        "delete": "Delete",
+        "active": "Active",
+        "configured": "Configured",
+        "testSuccess": "Connection successful",
+        "testError": "Connection failed",
+        "saved": "Model saved",
+        "saveError": "Error saving configuration",
+        "loadError": "Error loading configuration",
+        "deleted": "Configuration deleted",
+        "apiKey": "API Key",
+        "model": "Model",
+        "baseUrl": "Base URL",
+        "models": "Configured models",
+        "addModel": "Add a model",
+        "editModel": "Edit model",
+        "featureMapping": "Feature assignment",
+        "noModel": "No model",
+        "name": "Name",
+        "provider": "Provider"
+      }
+    },
     "integrations": {
       "title": "Integrations",
       "comingSoon": "More integrations (PriceLabs, QuickBooks, etc.) will be available soon.",
@@ -2667,19 +2700,45 @@
       "comingSoon": "Coming soon",
       "connected": "Connected",
       "disconnected": "Not connected",
-      "booking": { "description": "Sync your Booking.com reservations, calendar and rates automatically." },
-      "expedia": { "description": "Sync your Expedia reservations, calendar and rates automatically." },
-      "hotels": { "description": "Sync your Hotels.com reservations, calendar and rates automatically." },
-      "agoda": { "description": "Sync your Agoda reservations, calendar and rates automatically." },
-      "tripcom": { "description": "Sync your Trip.com reservations, calendar and rates automatically." },
-      "vrbo": { "description": "Sync your Vrbo reservations, calendar and rates automatically." },
-      "abritel": { "description": "Sync your Abritel reservations, calendar and rates automatically." },
-      "hometogo": { "description": "Sync your HomeToGo reservations, calendar and rates automatically." },
-      "gathern": { "description": "Sync your Gathern.co reservations, calendar and rates automatically." },
-      "rentelly": { "description": "Sync your Rentelly reservations, calendar and rates automatically." },
-      "kease": { "description": "Sync your Kease.io reservations, calendar and rates automatically." },
-      "stay": { "description": "Sync your Stay.sa reservations, calendar and rates automatically." },
-      "mabeet": { "description": "Sync your Mabeet.sa reservations, calendar and rates automatically." }
+      "booking": {
+        "description": "Sync your Booking.com reservations, calendar and rates automatically."
+      },
+      "expedia": {
+        "description": "Sync your Expedia reservations, calendar and rates automatically."
+      },
+      "hotels": {
+        "description": "Sync your Hotels.com reservations, calendar and rates automatically."
+      },
+      "agoda": {
+        "description": "Sync your Agoda reservations, calendar and rates automatically."
+      },
+      "tripcom": {
+        "description": "Sync your Trip.com reservations, calendar and rates automatically."
+      },
+      "vrbo": {
+        "description": "Sync your Vrbo reservations, calendar and rates automatically."
+      },
+      "abritel": {
+        "description": "Sync your Abritel reservations, calendar and rates automatically."
+      },
+      "hometogo": {
+        "description": "Sync your HomeToGo reservations, calendar and rates automatically."
+      },
+      "gathern": {
+        "description": "Sync your Gathern.co reservations, calendar and rates automatically."
+      },
+      "rentelly": {
+        "description": "Sync your Rentelly reservations, calendar and rates automatically."
+      },
+      "kease": {
+        "description": "Sync your Kease.io reservations, calendar and rates automatically."
+      },
+      "stay": {
+        "description": "Sync your Stay.sa reservations, calendar and rates automatically."
+      },
+      "mabeet": {
+        "description": "Sync your Mabeet.sa reservations, calendar and rates automatically."
+      }
     },
     "connect": {
       "title": "Connect {{channel}}",
@@ -2907,6 +2966,92 @@
       "contact": "Contact",
       "document": "Documents",
       "reservations": "Reservations"
+    },
+    "new": "new",
+    "timeAgo": {
+      "now": "Just now",
+      "minutes": "{{count}} min ago",
+      "hours": "{{count}}h ago",
+      "days": "{{count}}d ago"
+    },
+    "keys": {
+      "USER_CREATED": "New user",
+      "USER_UPDATED": "User updated",
+      "USER_DELETED": "User deleted",
+      "USER_ROLE_CHANGED": "Role changed",
+      "USER_DEACTIVATED": "User deactivated",
+      "INTERVENTION_CREATED": "New intervention",
+      "INTERVENTION_UPDATED": "Intervention updated",
+      "INTERVENTION_ASSIGNED_TO_USER": "Intervention assigned",
+      "INTERVENTION_ASSIGNED_TO_TEAM": "Intervention assigned to team",
+      "INTERVENTION_STARTED": "Intervention started",
+      "INTERVENTION_COMPLETED": "Intervention completed",
+      "INTERVENTION_REOPENED": "Intervention reopened",
+      "INTERVENTION_STATUS_CHANGED": "Intervention status changed",
+      "INTERVENTION_VALIDATED": "Intervention validated",
+      "INTERVENTION_AWAITING_VALIDATION": "Awaiting validation",
+      "INTERVENTION_AWAITING_PAYMENT": "Awaiting payment",
+      "INTERVENTION_CANCELLED": "Intervention cancelled",
+      "INTERVENTION_DELETED": "Intervention deleted",
+      "INTERVENTION_OVERDUE": "Intervention overdue",
+      "INTERVENTION_REMINDER": "Intervention reminder",
+      "INTERVENTION_PHOTOS_ADDED": "Photos added",
+      "INTERVENTION_NOTES_UPDATED": "Notes updated",
+      "INTERVENTION_PROGRESS_UPDATED": "Progress updated",
+      "SERVICE_REQUEST_CREATED": "New service request",
+      "SERVICE_REQUEST_UPDATED": "Request updated",
+      "SERVICE_REQUEST_APPROVED": "Request approved",
+      "SERVICE_REQUEST_REJECTED": "Request rejected",
+      "SERVICE_REQUEST_INTERVENTION_CREATED": "Intervention created from request",
+      "SERVICE_REQUEST_ASSIGNED": "Request assigned",
+      "SERVICE_REQUEST_CANCELLED": "Request cancelled",
+      "SERVICE_REQUEST_URGENT": "Urgent request",
+      "SERVICE_REQUEST_NO_TEAM_AVAILABLE": "No team available",
+      "SERVICE_REQUEST_ESCALATION": "Request escalated",
+      "SERVICE_REQUEST_TEAM_ASSIGNED": "Team assigned to request",
+      "PAYMENT_SESSION_CREATED": "Payment session created",
+      "PAYMENT_CONFIRMED": "Payment confirmed",
+      "PAYMENT_FAILED": "Payment failed",
+      "PAYMENT_GROUPED_SESSION_CREATED": "Grouped payment created",
+      "PAYMENT_GROUPED_CONFIRMED": "Grouped payment confirmed",
+      "PAYMENT_GROUPED_FAILED": "Grouped payment failed",
+      "PAYMENT_DEFERRED_REMINDER": "Deferred payment reminder",
+      "PAYMENT_DEFERRED_OVERDUE": "Deferred payment overdue",
+      "PAYMENT_REFUND_INITIATED": "Refund initiated",
+      "PAYMENT_REFUND_COMPLETED": "Refund completed",
+      "GUEST_MESSAGE_SENT": "Guest message sent",
+      "GUEST_MESSAGE_FAILED": "Guest message failed",
+      "GUEST_NO_EMAIL_FOR_CHECKIN": "Guest email missing",
+      "GUEST_PRICING_PUSHED": "Pricing sent to guest",
+      "RESERVATION_CREATED": "New reservation",
+      "RESERVATION_UPDATED": "Reservation updated",
+      "RESERVATION_CANCELLED": "Reservation cancelled",
+      "TEAM_CREATED": "Team created",
+      "TEAM_UPDATED": "Team updated",
+      "TEAM_DELETED": "Team deleted",
+      "TEAM_MEMBER_ADDED": "Team member added",
+      "TEAM_MEMBER_REMOVED": "Team member removed",
+      "TEAM_ASSIGNED_INTERVENTION": "Intervention assigned to team",
+      "DOCUMENT_GENERATED": "Document generated",
+      "DOCUMENT_GENERATION_FAILED": "Document generation failed",
+      "DOCUMENT_SENT_BY_EMAIL": "Document sent by email",
+      "PAYOUT_BATCH_GENERATED": "Payout batch generated",
+      "PAYOUT_PENDING_APPROVAL": "Payout pending approval",
+      "PAYOUT_APPROVED": "Payout approved",
+      "PAYOUT_EXECUTED": "Payout executed",
+      "PAYOUT_FAILED": "Payout failed",
+      "PROPERTY_CREATED": "Property created",
+      "PROPERTY_UPDATED": "Property updated",
+      "PROPERTY_DELETED": "Property deleted",
+      "PROPERTY_STATUS_CHANGED": "Property status changed",
+      "ICAL_IMPORT_SUCCESS": "iCal import successful",
+      "ICAL_IMPORT_PARTIAL": "Partial iCal import",
+      "ICAL_IMPORT_FAILED": "iCal import failed",
+      "NOISE_ALERT_WARNING": "Noise alert",
+      "NOISE_ALERT_CRITICAL": "Critical noise alert",
+      "NOISE_ALERT_RESOLVED": "Noise alert resolved",
+      "CONTACT_MESSAGE_RECEIVED": "Message received",
+      "CONTACT_FORM_RECEIVED": "Contact form received"
     }
   },
   "fiscal": {
@@ -3007,6 +3152,7 @@
       "apply": "Apply",
       "applied": "Applied",
       "custom": "Custom",
+      "aiGenerated": "AI-extracted from website",
       "safariLodge": {
         "name": "Safari Lodge",
         "description": "Warm golden tones, nature-inspired premium"
@@ -3082,8 +3228,29 @@
       "contactSection": "Contact section"
     },
     "preview": {
-      "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-      "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+      "weekdays": [
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat",
+        "Sun"
+      ],
+      "months": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
       "propertyTypes": {
         "APARTMENT": "Apartment",
         "HOUSE": "House",
@@ -3096,7 +3263,12 @@
         "BOAT": "Boat",
         "OTHER": "Other"
       },
-      "stepLabels": ["Stays & Options", "Identification", "Validation", "Confirmation"],
+      "stepLabels": [
+        "Stays & Options",
+        "Identification",
+        "Validation",
+        "Confirmation"
+      ],
       "searchBar": {
         "travelers": "Travelers",
         "accommodations": "Accommodations",
@@ -3239,6 +3411,11 @@
       "analyzing": "Analyzing website... Extracting colors, fonts, and styles via AI.",
       "analyzeSuccess": "Design analyzed successfully! Tokens have been extracted.",
       "analyzeError": "Error analyzing the website",
+      "aiNotConfiguredTitle": "AI API key not configured",
+      "aiNotConfiguredMessage": "No {provider} API key is configured. Go to settings to add your key and enable AI analysis.",
+      "goToSettings": "Configure",
+      "budgetExceededTitle": "Monthly AI token budget reached",
+      "budgetExceededMessage": "Your monthly free token quota is exhausted. Connect your own API key in AI settings to continue using this feature without limits.",
       "saveFirst": "Save the template first before using AI analysis",
       "tokensApplied": "Design tokens applied and CSS generated",
       "additionalInstructions": "Additional instructions",
@@ -3332,7 +3509,9 @@
         "test": "Test",
         "save": "Save",
         "saveError": "Error saving. Check your API key.",
-        "loadError": "Unable to load AI configuration. Please try again."
+        "loadError": "Unable to load AI configuration. Please try again.",
+        "byokTitle": "Connect your own key",
+        "byokSubtitle": "Connect your OpenAI or Anthropic account to use AI without token limits and with better response quality."
       },
       "features": {
         "title": "Clenzy AI Solutions",
@@ -3415,7 +3594,7 @@
         "step1Title": "Generate",
         "step1Desc": "Select an owner and a period to calculate the payout.",
         "step2Title": "Review",
-        "step2Desc": "The system calculates: revenue \u2212 commission \u2212 expenses = net amount.",
+        "step2Desc": "The system calculates: revenue − commission − expenses = net amount.",
         "step3Title": "Approve & Pay",
         "step3Desc": "Approve the payout then mark it as paid after the bank transfer.",
         "dismiss": "Don't show again"
@@ -3625,5 +3804,83 @@
       "mandatory": "Mandatory",
       "active": "Active"
     }
+  },
+  "onboarding": {
+    "steps": {
+      "configureOrg": {
+        "label": "Configure organization",
+        "description": "Enter your organization details: name, address, logo and contact information."
+      },
+      "inviteMembers": {
+        "label": "Invite members",
+        "description": "Add your collaborators and assign roles for collaborative management."
+      },
+      "setupSettings": {
+        "label": "Configure platform",
+        "description": "Set up notification preferences, currencies and general settings."
+      },
+      "setupFiscal": {
+        "label": "Tax profile",
+        "description": "Enter your tax and legal information for compliant invoicing."
+      },
+      "setupNotifications": {
+        "label": "Notifications",
+        "description": "Configure your notification preferences: email, push and real-time alerts."
+      },
+      "setupGeneral": {
+        "label": "General settings",
+        "description": "Configure currency, language and general platform preferences."
+      },
+      "setupIntegrations": {
+        "label": "Integrations",
+        "description": "Connect external services: channels, IoT devices, payment providers."
+      },
+      "setupPayment": {
+        "label": "Payment",
+        "description": "Configure Stripe payment integration for online billing."
+      },
+      "setupMessaging": {
+        "label": "Messaging",
+        "description": "Set up automated messaging templates for guests."
+      },
+      "setupPayouts": {
+        "label": "My payouts",
+        "description": "Configure your bank details to receive your revenue payouts."
+      },
+      "createProperty": {
+        "label": "Create your first property",
+        "description": "Add your first rental property with its details and photos."
+      },
+      "configureDetails": {
+        "label": "Configure details",
+        "description": "Add rooms, amenities, check-in/check-out times."
+      },
+      "definePricing": {
+        "label": "Define pricing",
+        "description": "Create pricing plans to optimize your revenue."
+      },
+      "connectChannels": {
+        "label": "Connect channels",
+        "description": "Sync your Airbnb, Booking.com calendars via iCal."
+      },
+      "configureBilling": {
+        "label": "Configure billing",
+        "description": "Enter tax and legal info for compliant invoices."
+      },
+      "completeProfile": {
+        "label": "Complete your profile",
+        "description": "Fill in your personal information and preferences."
+      },
+      "viewInterventions": {
+        "label": "View your interventions",
+        "description": "Discover your assigned missions and start working."
+      },
+      "createTeam": {
+        "label": "Create a team",
+        "description": "Set up your first team and assign members."
+      }
+    },
+    "skip": "Skip",
+    "completionMessage": "Complete the initial setup to access the full dashboard"
   }
 }

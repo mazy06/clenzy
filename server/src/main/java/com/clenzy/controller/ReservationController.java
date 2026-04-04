@@ -1,5 +1,6 @@
 package com.clenzy.controller;
 
+import com.clenzy.dto.InterventionResponse;
 import com.clenzy.dto.ReservationDto;
 import com.clenzy.exception.NotFoundException;
 import com.clenzy.model.*;
@@ -11,6 +12,7 @@ import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.EmailService;
 import com.clenzy.service.GuestService;
+import com.clenzy.service.InterventionMapper;
 import com.clenzy.service.ReservationMapper;
 import com.clenzy.service.ReservationService;
 import com.clenzy.service.StripeService;
@@ -62,6 +64,7 @@ public class ReservationController {
     private final GuestService guestService;
     private final GuestMessagingService guestMessagingService;
     private final MessageTemplateRepository messageTemplateRepository;
+    private final InterventionMapper interventionMapper;
     private final TenantContext tenantContext;
 
     public ReservationController(ReservationService reservationService,
@@ -76,6 +79,7 @@ public class ReservationController {
                                  EmailService emailService,
                                  GuestMessagingService guestMessagingService,
                                  MessageTemplateRepository messageTemplateRepository,
+                                 InterventionMapper interventionMapper,
                                  TenantContext tenantContext) {
         this.reservationService = reservationService;
         this.reservationMapper = reservationMapper;
@@ -89,7 +93,21 @@ public class ReservationController {
         this.emailService = emailService;
         this.guestMessagingService = guestMessagingService;
         this.messageTemplateRepository = messageTemplateRepository;
+        this.interventionMapper = interventionMapper;
         this.tenantContext = tenantContext;
+    }
+
+    // ── GET : interventions liees a une reservation ─────────────────────────
+
+    @GetMapping("/{id}/interventions")
+    @Operation(summary = "Lister les interventions liees a une reservation")
+    public ResponseEntity<List<InterventionResponse>> getLinkedInterventions(@PathVariable Long id) {
+        Long orgId = tenantContext.getRequiredOrganizationId();
+        List<InterventionResponse> responses = interventionRepository.findByReservationId(id, orgId)
+                .stream()
+                .map(interventionMapper::convertToResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
 
     // ── GET : liste filtree ─────────────────────────────────────────────────

@@ -34,8 +34,10 @@ import {
   StarRate,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useAuth } from '../../hooks/useAuth';
 import { useAiKeyStatus, useTestAiKey, useSaveAiKey, useDeleteAiKey, useAiFeatureToggles, useSetAiFeatureToggle } from '../../hooks/useAi';
 import type { AiApiKeyStatus, SaveAiApiKeyRequest } from '../../services/api/aiApi';
+import PlatformAiConfigSection from './PlatformAiConfigSection';
 
 // ─── Provider Brand Config ──────────────────────────────────────────────────
 
@@ -526,6 +528,8 @@ function FeatureTogglesSection() {
   const { t } = useTranslation();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
+  const { hasAnyRole } = useAuth();
+  const canEdit = hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']);
   const { data: toggles, isLoading } = useAiFeatureToggles();
   const toggleMutation = useSetAiFeatureToggle();
 
@@ -654,7 +658,7 @@ function FeatureTogglesSection() {
                 <Switch
                   checked={enabled}
                   onChange={() => handleToggle(feat.feature, enabled)}
-                  disabled={isMutating}
+                  disabled={isMutating || !canEdit}
                   size="small"
                   sx={{
                     '& .MuiSwitch-switchBase.Mui-checked': {
@@ -678,6 +682,7 @@ function FeatureTogglesSection() {
 
 export default function AiSettingsSection() {
   const { t } = useTranslation();
+  const { hasAnyRole: mainHasAnyRole } = useAuth();
   const { data: statuses, isLoading, error } = useAiKeyStatus();
   const deleteMutation = useDeleteAiKey();
   const [dialogProvider, setDialogProvider] = useState<'openai' | 'anthropic' | null>(null);
@@ -722,8 +727,20 @@ export default function AiSettingsSection() {
         </Typography>
       </Box>
 
-      {/* ── Feature Toggles (Solutions IA Clenzy) ── */}
-      <FeatureTogglesSection />
+      {/* ── Platform Config + Feature Toggles (SUPER_ADMIN: combined section) ── */}
+      {/* ── For non-admins: standalone toggles (read-only) ── */}
+      <PlatformAiConfigSection />
+      {!mainHasAnyRole(['SUPER_ADMIN']) && <FeatureTogglesSection />}
+
+      {/* ── BYOK (Connecter sa propre clé) ── */}
+      <Box sx={{ mt: 1, mb: 2 }}>
+        <Typography variant="subtitle1" fontWeight={700}>
+          {t('bookingEngine.ai.settings.byokTitle')}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 640 }}>
+          {t('bookingEngine.ai.settings.byokSubtitle')}
+        </Typography>
+      </Box>
 
       <Grid container spacing={2.5}>
         <Grid item xs={12} md={6}>

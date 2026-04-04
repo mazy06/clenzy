@@ -5,8 +5,8 @@
 
 const ENV = {
   development: {
-    BASE_URL: 'http://192.168.1.70:8084',
-    KEYCLOAK_URL: 'http://192.168.1.70:8086',
+    BASE_URL: 'http://localhost:8084',
+    KEYCLOAK_URL: 'http://localhost:8086',
   },
   staging: {
     BASE_URL: 'https://api.staging.clenzy.fr',

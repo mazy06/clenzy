@@ -3,8 +3,6 @@ package com.clenzy.service;
 import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.AiProviderException;
 import com.clenzy.config.ai.AiRequest;
-import com.clenzy.config.ai.AiResponse;
-import com.clenzy.config.ai.AnthropicProvider;
 import com.clenzy.dto.AiPricingRecommendationDto;
 import com.clenzy.dto.PricePredictionDto;
 import com.clenzy.exception.AiNotConfiguredException;
@@ -15,8 +13,8 @@ import com.clenzy.model.Reservation;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.RateOverrideRepository;
 import com.clenzy.repository.ReservationRepository;
-import com.clenzy.service.AiKeyResolver.KeySource;
 import com.clenzy.service.AiKeyResolver.ResolvedKey;
+import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,29 +47,26 @@ public class AiPricingService {
     private final PropertyRepository propertyRepository;
     private final RateOverrideRepository rateOverrideRepository;
     private final AiProperties aiProperties;
-    private final AnthropicProvider anthropicProvider;
     private final AiAnonymizationService anonymizationService;
     private final AiTokenBudgetService tokenBudgetService;
-    private final AiKeyResolver aiKeyResolver;
+    private final AiProviderRouter aiProviderRouter;
     private final ObjectMapper objectMapper;
 
     public AiPricingService(ReservationRepository reservationRepository,
                              PropertyRepository propertyRepository,
                              RateOverrideRepository rateOverrideRepository,
                              AiProperties aiProperties,
-                             AnthropicProvider anthropicProvider,
                              AiAnonymizationService anonymizationService,
                              AiTokenBudgetService tokenBudgetService,
-                             AiKeyResolver aiKeyResolver,
+                             AiProviderRouter aiProviderRouter,
                              ObjectMapper objectMapper) {
         this.reservationRepository = reservationRepository;
         this.propertyRepository = propertyRepository;
         this.rateOverrideRepository = rateOverrideRepository;
         this.aiProperties = aiProperties;
-        this.anthropicProvider = anthropicProvider;
         this.anonymizationService = anonymizationService;
         this.tokenBudgetService = tokenBudgetService;
-        this.aiKeyResolver = aiKeyResolver;
+        this.aiProviderRouter = aiProviderRouter;
         this.objectMapper = objectMapper;
     }
 
@@ -193,7 +188,7 @@ public class AiPricingService {
         }
 
         tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.PRICING);
-        ResolvedKey key = aiKeyResolver.resolve(orgId, anthropicProvider.name());
+        ResolvedKey key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.PRICING);
         tokenBudgetService.requireBudget(orgId, AiFeature.PRICING, key.source());
 
         Property property = propertyRepository.findById(propertyId)
@@ -220,18 +215,15 @@ public class AiPricingService {
                 null, 0.3, 4096, false
         );
 
-        AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
-        AiResponse response = (key.source() == KeySource.ORGANIZATION)
-                ? anthropicProvider.chat(resolved, key.apiKey())
-                : anthropicProvider.chat(resolved);
+        RoutedResponse routed = aiProviderRouter.route(orgId, "anthropic", AiFeature.PRICING, request);
 
-        tokenBudgetService.recordUsage(orgId, AiFeature.PRICING, anthropicProvider.name(), response);
+        tokenBudgetService.recordUsage(orgId, AiFeature.PRICING, routed.providerName(), routed.response());
 
         try {
-            return objectMapper.readValue(response.content(), new TypeReference<>() {});
+            return objectMapper.readValue(routed.response().content(), new TypeReference<>() {});
         } catch (JsonProcessingException e) {
             log.error("Failed to parse AI pricing response: {}", e.getMessage());
-            throw new AiProviderException("anthropic", "Failed to parse pricing response", e);
+            throw new AiProviderException(routed.providerName(), "Failed to parse pricing response", e);
         }
     }
 }

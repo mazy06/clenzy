@@ -2,14 +2,12 @@ package com.clenzy.service;
 
 import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.AiProviderException;
+import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.config.ai.AiRequest;
-import com.clenzy.config.ai.AiResponse;
-import com.clenzy.config.ai.AnthropicProvider;
 import com.clenzy.dto.AiIntentDetectionDto;
 import com.clenzy.dto.AiSuggestedResponseDto;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
-import com.clenzy.service.AiKeyResolver.KeySource;
 import com.clenzy.service.AiKeyResolver.ResolvedKey;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,23 +26,20 @@ public class AiMessagingService {
     private static final Logger log = LoggerFactory.getLogger(AiMessagingService.class);
 
     private final AiProperties aiProperties;
-    private final AnthropicProvider anthropicProvider;
+    private final AiProviderRouter aiProviderRouter;
     private final AiAnonymizationService anonymizationService;
     private final AiTokenBudgetService tokenBudgetService;
-    private final AiKeyResolver aiKeyResolver;
     private final ObjectMapper objectMapper;
 
     public AiMessagingService(AiProperties aiProperties,
-                               AnthropicProvider anthropicProvider,
+                               AiProviderRouter aiProviderRouter,
                                AiAnonymizationService anonymizationService,
                                AiTokenBudgetService tokenBudgetService,
-                               AiKeyResolver aiKeyResolver,
                                ObjectMapper objectMapper) {
         this.aiProperties = aiProperties;
-        this.anthropicProvider = anthropicProvider;
+        this.aiProviderRouter = aiProviderRouter;
         this.anonymizationService = anonymizationService;
         this.tokenBudgetService = tokenBudgetService;
-        this.aiKeyResolver = aiKeyResolver;
         this.objectMapper = objectMapper;
     }
 
@@ -143,25 +138,22 @@ public class AiMessagingService {
         }
 
         tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.MESSAGING);
-        ResolvedKey key = aiKeyResolver.resolve(orgId, anthropicProvider.name());
+        ResolvedKey key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.MESSAGING);
         tokenBudgetService.requireBudget(orgId, AiFeature.MESSAGING, key.source());
 
         String anonymized = anonymizationService.anonymize(message);
         String userPrompt = AiMessagingPrompts.buildIntentPrompt(anonymized);
 
         AiRequest request = AiRequest.of(AiMessagingPrompts.INTENT_DETECTION_SYSTEM, userPrompt);
-        AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
-        AiResponse response = (key.source() == KeySource.ORGANIZATION)
-                ? anthropicProvider.chat(resolved, key.apiKey())
-                : anthropicProvider.chat(resolved);
+        RoutedResponse routed = aiProviderRouter.route(orgId, "anthropic", AiFeature.MESSAGING, request);
 
-        tokenBudgetService.recordUsage(orgId, AiFeature.MESSAGING, anthropicProvider.name(), response);
+        tokenBudgetService.recordUsage(orgId, AiFeature.MESSAGING, routed.providerName(), routed.response());
 
         try {
-            return objectMapper.readValue(response.content(), AiIntentDetectionDto.class);
+            return objectMapper.readValue(routed.response().content(), AiIntentDetectionDto.class);
         } catch (JsonProcessingException e) {
             log.error("Failed to parse AI intent detection response: {}", e.getMessage());
-            throw new AiProviderException("anthropic", "Failed to parse intent detection", e);
+            throw new AiProviderException(routed.providerName(), "Failed to parse intent detection", e);
         }
     }
 
@@ -175,25 +167,22 @@ public class AiMessagingService {
         }
 
         tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.MESSAGING);
-        ResolvedKey key = aiKeyResolver.resolve(orgId, anthropicProvider.name());
+        ResolvedKey key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.MESSAGING);
         tokenBudgetService.requireBudget(orgId, AiFeature.MESSAGING, key.source());
 
         String anonymized = anonymizationService.anonymize(message);
         String userPrompt = AiMessagingPrompts.buildResponsePrompt(anonymized, context, language);
 
         AiRequest request = AiRequest.of(AiMessagingPrompts.SUGGESTED_RESPONSE_SYSTEM, userPrompt);
-        AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
-        AiResponse response = (key.source() == KeySource.ORGANIZATION)
-                ? anthropicProvider.chat(resolved, key.apiKey())
-                : anthropicProvider.chat(resolved);
+        RoutedResponse routed = aiProviderRouter.route(orgId, "anthropic", AiFeature.MESSAGING, request);
 
-        tokenBudgetService.recordUsage(orgId, AiFeature.MESSAGING, anthropicProvider.name(), response);
+        tokenBudgetService.recordUsage(orgId, AiFeature.MESSAGING, routed.providerName(), routed.response());
 
         try {
-            return objectMapper.readValue(response.content(), AiSuggestedResponseDto.class);
+            return objectMapper.readValue(routed.response().content(), AiSuggestedResponseDto.class);
         } catch (JsonProcessingException e) {
             log.error("Failed to parse AI suggested response: {}", e.getMessage());
-            throw new AiProviderException("anthropic", "Failed to parse suggested response", e);
+            throw new AiProviderException(routed.providerName(), "Failed to parse suggested response", e);
         }
     }
 }

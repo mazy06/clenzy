@@ -444,6 +444,7 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
             accentColor={activeVisual.accentColor}
             skippable={activeStep.skippable}
             onSkip={() => completeStep(activeStep.key)}
+            skipLabel={t('onboarding.skip')}
           />
         )}
       </Box>
@@ -475,6 +476,7 @@ interface CtaSectionProps {
   accentColor?: string;
   skippable?: boolean;
   onSkip?: () => void;
+  skipLabel?: string;
 }
 
 const CtaSection: React.FC<CtaSectionProps> = ({
@@ -489,6 +491,7 @@ const CtaSection: React.FC<CtaSectionProps> = ({
   accentColor = '#6B8A9A',
   skippable,
   onSkip,
+  skipLabel,
 }) => (
   <Box
     sx={{
@@ -542,7 +545,7 @@ const CtaSection: React.FC<CtaSectionProps> = ({
             },
           }}
         >
-          Passer
+          {skipLabel || 'Skip'}
         </Button>
       )}
       <Button

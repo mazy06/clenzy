@@ -56,6 +56,21 @@ export interface Property {
   managerFirstName?: string;
   managerLastName?: string;
   managerEmail?: string;
+  // Booking config
+  minimumNights?: number;
+  defaultCurrency?: string;
+  bookingEngineVisible?: boolean;
+  // Check-in instructions
+  checkInInstructions?: {
+    accessCode?: string;
+    wifiName?: string;
+    wifiPassword?: string;
+    parkingInfo?: string;
+    arrivalInstructions?: string;
+    departureInstructions?: string;
+    houseRules?: string;
+    emergencyContact?: string;
+  };
   // Photos
   photos?: string[];
   // Timestamps
@@ -74,6 +89,32 @@ export interface PropertyChannels {
   airbnb: ChannelStatus;
 }
 
+export interface UpdatePropertyData {
+  name?: string;
+  type?: string;
+  description?: string;
+  address?: string;
+  postalCode?: string;
+  city?: string;
+  country?: string;
+  bedroomCount?: number;
+  bathroomCount?: number;
+  maxGuests?: number;
+  squareMeters?: number;
+}
+
+export interface UpdateInstructionsData {
+  wifiName?: string;
+  wifiPassword?: string;
+  accessCode?: string;
+  parkingInfo?: string;
+  checkInTime?: string;
+  checkOutTime?: string;
+  houseRules?: string;
+  emergencyContact?: string;
+  specialNotes?: string;
+}
+
 export const propertiesApi = {
   getAll(params?: Record<string, string>) {
     return apiClient.get<PaginatedResponse<Property>>('/properties', { params });
@@ -83,7 +124,47 @@ export const propertiesApi = {
     return apiClient.get<Property>(`/properties/${id}`);
   },
 
+  update(id: number, data: UpdatePropertyData) {
+    return apiClient.put<Property>(`/properties/${id}`, data);
+  },
+
   getChannels(propertyId: number) {
     return apiClient.get<PropertyChannels>(`/properties/${propertyId}/channels`);
   },
+
+  getPhotos(propertyId: number) {
+    return apiClient.get<PropertyPhotoMeta[]>(`/properties/${propertyId}/photos`);
+  },
+
+  getPhotoUrl(propertyId: number, photoId: number) {
+    return `/api/properties/${propertyId}/photos/${photoId}/data`;
+  },
+
+  uploadPhoto(propertyId: number, formData: FormData) {
+    return apiClient.upload<PropertyPhotoMeta>(`/properties/${propertyId}/photos`, formData);
+  },
+
+  deletePhoto(propertyId: number, photoId: number) {
+    return apiClient.delete(`/properties/${propertyId}/photos/${photoId}`);
+  },
+
+  updateInstructions(propertyId: number, data: UpdateInstructionsData) {
+    return apiClient.put<Property>(`/properties/${propertyId}/instructions`, data);
+  },
+
+  updateAmenities(propertyId: number, amenities: string[]) {
+    return apiClient.put<Property>(`/properties/${propertyId}/amenities`, { amenities });
+  },
 };
+
+export interface PropertyPhotoMeta {
+  id: number;
+  propertyId: number;
+  originalFilename: string;
+  contentType: string;
+  fileSize: number;
+  sortOrder: number;
+  caption?: string;
+  source?: string;
+  createdAt: string;
+}

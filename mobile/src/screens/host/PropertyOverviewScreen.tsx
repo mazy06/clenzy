@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, Text, ScrollView, Pressable, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -82,6 +83,90 @@ function AmenityTile({ def, color, theme }: {
         lineHeight: 16,
       }} numberOfLines={2}>
         {def.label}
+      </Text>
+    </View>
+  );
+}
+
+/* ─── Cleaning Notes (expandable) ─── */
+
+function CleaningNotesSection({ notes, theme }: { notes?: string; theme: ReturnType<typeof useTheme> }) {
+  const [expanded, setExpanded] = useState(false);
+  const placeholder = !notes;
+  const displayText = notes ?? 'Aucune note de menage';
+  const isLong = (notes?.split('\n').length ?? 0) > 3 || (notes?.length ?? 0) > 200;
+
+  return (
+    <Accordion
+      title="Notes de menage"
+      iconName="document-text-outline"
+      iconColor={theme.colors.info.main}
+      defaultOpen
+      style={{ marginBottom: theme.SPACING.sm }}
+    >
+      <Text
+        style={{
+          ...theme.typography.body2,
+          color: placeholder ? theme.colors.text.disabled : theme.colors.text.secondary,
+          fontStyle: placeholder ? 'italic' : 'normal',
+          lineHeight: 22,
+        }}
+        numberOfLines={!expanded && isLong ? 3 : undefined}
+      >
+        {displayText}
+      </Text>
+      {isLong && (
+        <Pressable onPress={() => setExpanded((v) => !v)} style={{ marginTop: theme.SPACING.sm }}>
+          <Text style={{ ...theme.typography.caption, color: theme.colors.primary.main, fontWeight: '600' }}>
+            {expanded ? 'Voir moins' : 'Voir plus'}
+          </Text>
+        </Pressable>
+      )}
+    </Accordion>
+  );
+}
+
+/* ─── Cleaning Config Info Item ─── */
+
+function ConfigItem({ icon, label, value, color, theme }: {
+  icon: IoniconsName; label: string; value: string; color: string; theme: ReturnType<typeof useTheme>;
+}) {
+  return (
+    <View style={{
+      flexDirection: 'row', alignItems: 'center',
+      paddingVertical: theme.SPACING.sm, paddingHorizontal: theme.SPACING.md,
+      backgroundColor: `${color}06`, borderRadius: theme.BORDER_RADIUS.md,
+    }}>
+      <View style={{
+        width: 32, height: 32, borderRadius: 16,
+        backgroundColor: `${color}10`, alignItems: 'center', justifyContent: 'center',
+        marginRight: theme.SPACING.md,
+      }}>
+        <Ionicons name={icon} size={16} color={color} />
+      </View>
+      <Text style={{ ...theme.typography.body2, color: theme.colors.text.secondary, flex: 1 }}>{label}</Text>
+      <Text style={{ ...theme.typography.body2, color: theme.colors.text.primary, fontWeight: '600' }}>{value}</Text>
+    </View>
+  );
+}
+
+/* ─── Service Chip (non-interactive) ─── */
+
+function ServiceChip({ label, active, theme }: {
+  label: string; active: boolean; theme: ReturnType<typeof useTheme>;
+}) {
+  const bg = active ? `${theme.colors.success.main}14` : `${theme.colors.text.disabled}0A`;
+  const fg = active ? theme.colors.success.main : theme.colors.text.disabled;
+  return (
+    <View style={{
+      paddingHorizontal: 12, paddingVertical: 6,
+      borderRadius: theme.BORDER_RADIUS.full,
+      backgroundColor: bg,
+      borderWidth: 1,
+      borderColor: active ? `${theme.colors.success.main}30` : theme.colors.border.main,
+    }}>
+      <Text style={{ ...theme.typography.caption, color: fg, fontWeight: active ? '600' : '400' }}>
+        {label}
       </Text>
     </View>
   );
@@ -194,12 +279,93 @@ export function PropertyOverviewScreen() {
           )}
         </Accordion>
 
+        {/* Configuration menage */}
+        {(() => {
+          const configItems: { icon: IoniconsName; label: string; value: string; color: string }[] = [];
+          if (property.numberOfFloors != null)
+            configItems.push({ icon: 'layers-outline', label: 'Nombre d\'etages', value: `${property.numberOfFloors}`, color: theme.colors.info.main });
+          if (property.cleaningDurationMinutes != null)
+            configItems.push({ icon: 'time-outline', label: 'Duree estimee', value: `${property.cleaningDurationMinutes} min`, color: theme.colors.primary.main });
+          if (property.cleaningBasePrice != null)
+            configItems.push({ icon: 'cash-outline', label: 'Prix de base', value: `${property.cleaningBasePrice}\u20AC`, color: theme.colors.secondary.main });
+
+          const booleanChips: { label: string; active: boolean }[] = [];
+          if (property.hasExterior != null)
+            booleanChips.push({ label: `Exterieur : ${property.hasExterior ? 'Oui' : 'Non'}`, active: property.hasExterior });
+          if (property.hasLaundry != null)
+            booleanChips.push({ label: `Buanderie : ${property.hasLaundry ? 'Oui' : 'Non'}`, active: property.hasLaundry });
+
+          if (configItems.length === 0 && booleanChips.length === 0) return null;
+
+          return (
+            <Accordion
+              title="Configuration menage"
+              iconName="settings-outline"
+              iconColor={theme.colors.secondary.main}
+              defaultOpen
+              style={{ marginBottom: theme.SPACING.sm }}
+            >
+              <View style={{ gap: theme.SPACING.sm }}>
+                {configItems.map((item) => (
+                  <ConfigItem key={item.label} icon={item.icon} label={item.label} value={item.value} color={item.color} theme={theme} />
+                ))}
+                {booleanChips.length > 0 && (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.SPACING.sm, marginTop: configItems.length > 0 ? theme.SPACING.xs : 0 }}>
+                    {booleanChips.map((chip) => (
+                      <ServiceChip key={chip.label} label={chip.label} active={chip.active} theme={theme} />
+                    ))}
+                  </View>
+                )}
+              </View>
+            </Accordion>
+          );
+        })()}
+
+        {/* Prestations a la carte */}
+        {(() => {
+          const services: { label: string; active: boolean }[] = [];
+          if (property.windowCount != null && property.windowCount > 0)
+            services.push({ label: `${property.windowCount} fenetre${property.windowCount > 1 ? 's' : ''}`, active: true });
+          if (property.frenchDoorCount != null && property.frenchDoorCount > 0)
+            services.push({ label: `${property.frenchDoorCount} porte-fenetre${property.frenchDoorCount > 1 ? 's' : ''}`, active: true });
+          if (property.slidingDoorCount != null && property.slidingDoorCount > 0)
+            services.push({ label: `${property.slidingDoorCount} baie${property.slidingDoorCount > 1 ? 's' : ''} vitree${property.slidingDoorCount > 1 ? 's' : ''}`, active: true });
+          if (property.hasIroning)
+            services.push({ label: 'Repassage', active: true });
+          if (property.hasDeepKitchen)
+            services.push({ label: 'Nettoyage cuisine', active: true });
+          if (property.hasDisinfection)
+            services.push({ label: 'Desinfection', active: true });
+
+          if (services.length === 0) return null;
+
+          return (
+            <Accordion
+              title="Prestations a la carte"
+              iconName="list-outline"
+              iconColor={theme.colors.warning.main}
+              badge={`${services.length}`}
+              defaultOpen
+              style={{ marginBottom: theme.SPACING.sm }}
+            >
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.SPACING.sm }}>
+                {services.map((s) => (
+                  <ServiceChip key={s.label} label={s.label} active={s.active} theme={theme} />
+                ))}
+              </View>
+            </Accordion>
+          );
+        })()}
+
+        {/* Notes de menage */}
+        <CleaningNotesSection notes={property.cleaningNotes} theme={theme} />
+
         {/* ═══════════════════════════════════════════════
             EQUIPEMENTS — Grid with icons, grouped by category
            ═══════════════════════════════════════════════ */}
 
         {/* Section header */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.SPACING.lg }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: theme.SPACING.md, marginBottom: theme.SPACING.lg }}>
           <View style={{
             width: 36, height: 36, borderRadius: theme.BORDER_RADIUS.md,
             backgroundColor: `${theme.colors.info.main}0C`,

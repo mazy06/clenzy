@@ -10,6 +10,7 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.UserRepository;
 import com.clenzy.service.EmailService;
+import com.clenzy.service.InterventionMapper;
 import com.clenzy.service.ReservationMapper;
 import com.clenzy.service.ReservationService;
 import com.clenzy.service.StripeService;
@@ -31,6 +32,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -64,7 +66,7 @@ class ReservationControllerTest {
     private ReservationDto sampleDto(String status) {
         return new ReservationDto(1L, 1L, "Apt A", "Jean", null, null, null, 2, "2026-03-01", "2026-03-04",
                 "14:00", "11:00", status, "direct", null, 150.0, "ABC123", "notes",
-                null, null, null, null, null, false, null, null);
+                null, null, null, null, null, false, null, null, null);
     }
 
     private Property createOwnedProperty(String ownerKeycloakId) {
@@ -82,7 +84,8 @@ class ReservationControllerTest {
     void setUp() {
         controller = new ReservationController(reservationService, reservationMapper,
                 reservationRepository, interventionRepository, propertyRepository, userRepository, guestRepository,
-                guestService, stripeService, emailService, guestMessagingService, messageTemplateRepository, tenantContext);
+                guestService, stripeService, emailService, guestMessagingService, messageTemplateRepository,
+                mock(InterventionMapper.class), tenantContext);
     }
 
     @Nested
@@ -171,7 +174,7 @@ class ReservationControllerTest {
 
             ReservationDto inputDto = new ReservationDto(null, 1L, null, "Guest", null, null, null, 2,
                     "2026-03-01", "2026-03-04", null, null, null, null, null, null, null, null,
-                    null, null, null, null, null, false, null, null);
+                    null, null, null, null, null, false, null, null, null);
             ResponseEntity<ReservationDto> response = controller.create(inputDto, jwt);
 
             assertThat(response.getStatusCode().value()).isEqualTo(200);

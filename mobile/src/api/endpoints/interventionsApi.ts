@@ -78,4 +78,12 @@ export const interventionsApi = {
   getPhotos(id: number) {
     return apiClient.get<{ beforePhotos: string[]; afterPhotos: string[] }>(`/interventions/${id}/photos`);
   },
+
+  updateCost(id: number, estimatedCost?: number, actualCost?: number) {
+    return apiClient.put<Intervention>(`/interventions/${id}/cost`, { estimatedCost, actualCost });
+  },
+
+  updateStatus(id: number, status: string) {
+    return apiClient.put<Intervention>(`/interventions/${id}/status`, { status });
+  },
 };

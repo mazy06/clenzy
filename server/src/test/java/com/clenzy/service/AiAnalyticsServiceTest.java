@@ -4,10 +4,11 @@ import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.AiProviderException;
 import com.clenzy.config.ai.AiRequest;
 import com.clenzy.config.ai.AiResponse;
-import com.clenzy.config.ai.AnthropicProvider;
+import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.dto.AiInsightDto;
 import com.clenzy.dto.OccupancyForecastDto;
 import com.clenzy.dto.RevenueAnalyticsDto;
+import com.clenzy.exception.AiBudgetExceededException;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
 import com.clenzy.service.AiKeyResolver.KeySource;
@@ -42,10 +43,9 @@ class AiAnalyticsServiceTest {
     @Mock private ReservationRepository reservationRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private AiProperties aiProperties;
-    @Mock private AnthropicProvider anthropicProvider;
+    @Mock private AiProviderRouter aiProviderRouter;
     @Mock private AiAnonymizationService anonymizationService;
     @Mock private AiTokenBudgetService tokenBudgetService;
-    @Mock private AiKeyResolver aiKeyResolver;
     @Spy  private ObjectMapper objectMapper = new ObjectMapper();
     @InjectMocks private AiAnalyticsService service;
 
@@ -359,21 +359,20 @@ class AiAnalyticsServiceTest {
         @Test
         void validResponse_parsesCorrectly() {
             enableAnalyticsAi();
-            when(aiKeyResolver.resolve(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
             setupPropertyAndReservations();
             when(anonymizationService.anonymize(any())).thenAnswer(inv -> inv.getArgument(0));
-            when(anthropicProvider.chat(any(AiRequest.class))).thenReturn(
-                new AiResponse(
-                    """
-                    [
-                      {"type":"TREND","severity":"MEDIUM","title":"Low weekday occupancy","description":"Weekday occupancy drops below 40%.","recommendation":"Consider dynamic weekday pricing."},
-                      {"type":"RECOMMENDATION","severity":"HIGH","title":"Increase weekend rates","description":"Weekend demand exceeds supply.","recommendation":"Raise weekend rates by 15%."}
-                    ]
-                    """,
-                    100, 150, 250, "claude-3-haiku", "end_turn"
-                )
+            AiResponse aiResponse = new AiResponse(
+                """
+                [
+                  {"type":"TREND","severity":"MEDIUM","title":"Low weekday occupancy","description":"Weekday occupancy drops below 40%.","recommendation":"Consider dynamic weekday pricing."},
+                  {"type":"RECOMMENDATION","severity":"HIGH","title":"Increase weekend rates","description":"Weekend demand exceeds supply.","recommendation":"Raise weekend rates by 15%."}
+                ]
+                """,
+                100, 150, 250, "claude-3-haiku", "end_turn"
             );
-            when(anthropicProvider.name()).thenReturn("anthropic");
+            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), any(AiRequest.class)))
+                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             List<AiInsightDto> insights = service.getAiInsights(
                 PROPERTY_ID, ORG_ID, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 10));
@@ -387,12 +386,11 @@ class AiAnalyticsServiceTest {
         @Test
         void budgetExceeded_throws() {
             enableAnalyticsAi();
-            when(anthropicProvider.name()).thenReturn("anthropic");
-            when(aiKeyResolver.resolve(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
-            doThrow(new IllegalStateException("Token budget exceeded"))
+            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            doThrow(new AiBudgetExceededException("ANALYTICS", 100_000, 100_000))
                 .when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.ANALYTICS, KeySource.PLATFORM);
 
-            assertThrows(IllegalStateException.class,
+            assertThrows(AiBudgetExceededException.class,
                 () -> service.getAiInsights(PROPERTY_ID, ORG_ID,
                     LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 31)));
         }
@@ -400,7 +398,7 @@ class AiAnalyticsServiceTest {
         @Test
         void recordsUsage() {
             enableAnalyticsAi();
-            when(aiKeyResolver.resolve(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
             setupPropertyAndReservations();
             when(anonymizationService.anonymize(any())).thenAnswer(inv -> inv.getArgument(0));
             AiResponse response = new AiResponse(
@@ -409,8 +407,8 @@ class AiAnalyticsServiceTest {
                 """,
                 50, 80, 130, "claude-3-haiku", "end_turn"
             );
-            when(anthropicProvider.chat(any(AiRequest.class))).thenReturn(response);
-            when(anthropicProvider.name()).thenReturn("anthropic");
+            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), any(AiRequest.class)))
+                .thenReturn(new RoutedResponse(response, "anthropic", KeySource.PLATFORM));
 
             service.getAiInsights(PROPERTY_ID, ORG_ID,
                 LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 10));
@@ -421,13 +419,12 @@ class AiAnalyticsServiceTest {
         @Test
         void invalidJson_throwsProviderException() {
             enableAnalyticsAi();
-            when(aiKeyResolver.resolve(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
             setupPropertyAndReservations();
             when(anonymizationService.anonymize(any())).thenAnswer(inv -> inv.getArgument(0));
-            when(anthropicProvider.chat(any(AiRequest.class))).thenReturn(
-                new AiResponse("not valid json", 20, 10, 30, "claude-3-haiku", "end_turn")
-            );
-            when(anthropicProvider.name()).thenReturn("anthropic");
+            AiResponse aiResponse = new AiResponse("not valid json", 20, 10, 30, "claude-3-haiku", "end_turn");
+            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), any(AiRequest.class)))
+                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             assertThrows(AiProviderException.class,
                 () -> service.getAiInsights(PROPERTY_ID, ORG_ID,

@@ -2,7 +2,17 @@ import React, { useCallback, useEffect } from 'react';
 import { StatusBar, View, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StripeProvider } from '@stripe/stripe-react-native';
+import Constants from 'expo-constants';
+
+// Stripe native module only works with dev client / standalone builds, not Expo Go
+let StripeProvider: React.ComponentType<any> | null = null;
+try {
+  if (Constants.appOwnership !== 'expo') {
+    StripeProvider = require('@stripe/stripe-react-native').StripeProvider;
+  }
+} catch {
+  // Module not available (Expo Go) — skip Stripe provider
+}
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -102,6 +112,20 @@ function AppContent() {
   );
 }
 
+function MaybeStripeProvider({ children }: { children: React.ReactNode }) {
+  if (StripeProvider) {
+    return (
+      <StripeProvider
+        publishableKey={STRIPE_CONFIG.publishableKey}
+        merchantIdentifier={STRIPE_CONFIG.merchantIdentifier}
+      >
+        {children}
+      </StripeProvider>
+    );
+  }
+  return <>{children}</>;
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -122,17 +146,14 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <SafeAreaProvider>
         <ErrorBoundary>
-          <StripeProvider
-            publishableKey={STRIPE_CONFIG.publishableKey}
-            merchantIdentifier={STRIPE_CONFIG.merchantIdentifier}
-          >
+          <MaybeStripeProvider>
             <PersistQueryClientProvider
               client={queryClient}
               persistOptions={{ persister: queryPersister }}
             >
               <AppContent />
             </PersistQueryClientProvider>
-          </StripeProvider>
+          </MaybeStripeProvider>
         </ErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>

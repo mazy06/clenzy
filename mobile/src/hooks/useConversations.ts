@@ -19,7 +19,11 @@ const KEYS = {
 export function useConversations(status?: ConversationStatus) {
   return useQuery<ConversationDto[]>({
     queryKey: KEYS.list(status),
-    queryFn: () => conversationApi.getConversations(status),
+    queryFn: async () => {
+      const res = await conversationApi.getConversations(status);
+      // Backend returns Page<T> — extract the array
+      return Array.isArray(res) ? res : (res as any).content ?? [];
+    },
     staleTime: 30_000,
   });
 }
@@ -28,7 +32,11 @@ export function useConversations(status?: ConversationStatus) {
 export function useMyConversations() {
   return useQuery<ConversationDto[]>({
     queryKey: KEYS.mine(),
-    queryFn: () => conversationApi.getMyConversations(),
+    queryFn: async () => {
+      const res = await conversationApi.getMyConversations();
+      // Backend returns Page<T> — extract the array
+      return Array.isArray(res) ? res : (res as any).content ?? [];
+    },
     staleTime: 30_000,
   });
 }

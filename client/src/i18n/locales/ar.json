@@ -27,7 +27,10 @@
     "type": "النوع",
     "priority": "الأولوية",
     "all": "الكل",
-    "refresh": "تحديث"
+    "refresh": "تحديث",
+    "expandMenu": "فتح القائمة",
+    "collapseMenu": "طي القائمة",
+    "ratesAt": "الأسعار في"
   },
   "navigation": {
     "dashboard": "لوحة التحكم",
@@ -85,7 +88,13 @@
     "contracts": "عقود الإدارة",
     "messaging": "المراسلة",
     "messageTemplates": "القوالب",
-    "messageHistory": "السجل"
+    "messageHistory": "السجل",
+    "shop": "المتجر",
+    "groups": {
+      "main": "الرئيسية",
+      "management": "الإدارة",
+      "admin": "الإدارة العامة"
+    }
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -1925,6 +1934,33 @@
       "saveSuccess": "تم حفظ الإعدادات",
       "saveError": "خطأ في حفظ الإعدادات"
     },
+    "ai": {
+      "platform": {
+        "title": "تكوين المنصة",
+        "subtitle": "تكوين نماذج الذكاء الاصطناعي وتعيينها لميزات المنصة.",
+        "test": "اختبار",
+        "saveActivate": "حفظ",
+        "delete": "حذف",
+        "active": "نشط",
+        "configured": "مُهيأ",
+        "testSuccess": "الاتصال ناجح",
+        "testError": "فشل الاتصال",
+        "saved": "تم حفظ النموذج",
+        "saveError": "خطأ في حفظ التكوين",
+        "loadError": "خطأ في تحميل التكوين",
+        "deleted": "تم حذف التكوين",
+        "apiKey": "مفتاح API",
+        "model": "النموذج",
+        "baseUrl": "عنوان URL الأساسي",
+        "models": "النماذج المُهيأة",
+        "addModel": "إضافة نموذج",
+        "editModel": "تعديل النموذج",
+        "featureMapping": "تعيين حسب الميزة",
+        "noModel": "بدون نموذج",
+        "name": "الاسم",
+        "provider": "المزود"
+      }
+    },
     "integrations": {
       "title": "التكاملات",
       "comingSoon": "ستتوفر المزيد من التكاملات (PriceLabs، QuickBooks، إلخ) قريباً.",
@@ -2901,6 +2937,92 @@
       "contact": "جهات الاتصال",
       "document": "المستندات",
       "reservations": "الحجوزات"
+    },
+    "new": "جديدة",
+    "timeAgo": {
+      "now": "الآن",
+      "minutes": "منذ {{count}} د",
+      "hours": "منذ {{count}} س",
+      "days": "منذ {{count}} ي"
+    },
+    "keys": {
+      "USER_CREATED": "مستخدم جديد",
+      "USER_UPDATED": "تم تعديل المستخدم",
+      "USER_DELETED": "تم حذف المستخدم",
+      "USER_ROLE_CHANGED": "تم تغيير الدور",
+      "USER_DEACTIVATED": "تم تعطيل المستخدم",
+      "INTERVENTION_CREATED": "تدخل جديد",
+      "INTERVENTION_UPDATED": "تم تحديث التدخل",
+      "INTERVENTION_ASSIGNED_TO_USER": "تم تعيين التدخل",
+      "INTERVENTION_ASSIGNED_TO_TEAM": "تم تعيين التدخل للفريق",
+      "INTERVENTION_STARTED": "بدأ التدخل",
+      "INTERVENTION_COMPLETED": "تم إنهاء التدخل",
+      "INTERVENTION_REOPENED": "تم إعادة فتح التدخل",
+      "INTERVENTION_STATUS_CHANGED": "تم تغيير حالة التدخل",
+      "INTERVENTION_VALIDATED": "تم التحقق من التدخل",
+      "INTERVENTION_AWAITING_VALIDATION": "في انتظار التحقق",
+      "INTERVENTION_AWAITING_PAYMENT": "في انتظار الدفع",
+      "INTERVENTION_CANCELLED": "تم إلغاء التدخل",
+      "INTERVENTION_DELETED": "تم حذف التدخل",
+      "INTERVENTION_OVERDUE": "تدخل متأخر",
+      "INTERVENTION_REMINDER": "تذكير بالتدخل",
+      "INTERVENTION_PHOTOS_ADDED": "تم إضافة الصور",
+      "INTERVENTION_NOTES_UPDATED": "تم تحديث الملاحظات",
+      "INTERVENTION_PROGRESS_UPDATED": "تم تحديث التقدم",
+      "SERVICE_REQUEST_CREATED": "طلب خدمة جديد",
+      "SERVICE_REQUEST_UPDATED": "تم تحديث الطلب",
+      "SERVICE_REQUEST_APPROVED": "تم قبول الطلب",
+      "SERVICE_REQUEST_REJECTED": "تم رفض الطلب",
+      "SERVICE_REQUEST_INTERVENTION_CREATED": "تم إنشاء تدخل من الطلب",
+      "SERVICE_REQUEST_ASSIGNED": "تم تعيين الطلب",
+      "SERVICE_REQUEST_CANCELLED": "تم إلغاء الطلب",
+      "SERVICE_REQUEST_URGENT": "طلب عاجل",
+      "SERVICE_REQUEST_NO_TEAM_AVAILABLE": "لا يوجد فريق متاح",
+      "SERVICE_REQUEST_ESCALATION": "تم تصعيد الطلب",
+      "SERVICE_REQUEST_TEAM_ASSIGNED": "تم تعيين فريق للطلب",
+      "PAYMENT_SESSION_CREATED": "تم إنشاء جلسة الدفع",
+      "PAYMENT_CONFIRMED": "تم تأكيد الدفع",
+      "PAYMENT_FAILED": "فشل الدفع",
+      "PAYMENT_GROUPED_SESSION_CREATED": "تم إنشاء دفع مجمع",
+      "PAYMENT_GROUPED_CONFIRMED": "تم تأكيد الدفع المجمع",
+      "PAYMENT_GROUPED_FAILED": "فشل الدفع المجمع",
+      "PAYMENT_DEFERRED_REMINDER": "تذكير بالدفع المؤجل",
+      "PAYMENT_DEFERRED_OVERDUE": "دفع مؤجل متأخر",
+      "PAYMENT_REFUND_INITIATED": "تم بدء الاسترداد",
+      "PAYMENT_REFUND_COMPLETED": "تم الاسترداد",
+      "GUEST_MESSAGE_SENT": "تم إرسال رسالة للضيف",
+      "GUEST_MESSAGE_FAILED": "فشل إرسال رسالة للضيف",
+      "GUEST_NO_EMAIL_FOR_CHECKIN": "بريد الضيف مفقود",
+      "GUEST_PRICING_PUSHED": "تم إرسال التسعير للضيف",
+      "RESERVATION_CREATED": "حجز جديد",
+      "RESERVATION_UPDATED": "تم تحديث الحجز",
+      "RESERVATION_CANCELLED": "تم إلغاء الحجز",
+      "TEAM_CREATED": "تم إنشاء الفريق",
+      "TEAM_UPDATED": "تم تعديل الفريق",
+      "TEAM_DELETED": "تم حذف الفريق",
+      "TEAM_MEMBER_ADDED": "تم إضافة عضو للفريق",
+      "TEAM_MEMBER_REMOVED": "تم إزالة عضو من الفريق",
+      "TEAM_ASSIGNED_INTERVENTION": "تم تعيين تدخل للفريق",
+      "DOCUMENT_GENERATED": "تم إنشاء المستند",
+      "DOCUMENT_GENERATION_FAILED": "فشل إنشاء المستند",
+      "DOCUMENT_SENT_BY_EMAIL": "تم إرسال المستند بالبريد",
+      "PAYOUT_BATCH_GENERATED": "تم إنشاء دفعة التحويل",
+      "PAYOUT_PENDING_APPROVAL": "تحويل في انتظار الموافقة",
+      "PAYOUT_APPROVED": "تم الموافقة على التحويل",
+      "PAYOUT_EXECUTED": "تم تنفيذ التحويل",
+      "PAYOUT_FAILED": "فشل التحويل",
+      "PROPERTY_CREATED": "تم إنشاء العقار",
+      "PROPERTY_UPDATED": "تم تعديل العقار",
+      "PROPERTY_DELETED": "تم حذف العقار",
+      "PROPERTY_STATUS_CHANGED": "تم تغيير حالة العقار",
+      "ICAL_IMPORT_SUCCESS": "تم استيراد iCal بنجاح",
+      "ICAL_IMPORT_PARTIAL": "استيراد iCal جزئي",
+      "ICAL_IMPORT_FAILED": "فشل استيراد iCal",
+      "NOISE_ALERT_WARNING": "تنبيه ضوضاء",
+      "NOISE_ALERT_CRITICAL": "تنبيه ضوضاء حرج",
+      "NOISE_ALERT_RESOLVED": "تم حل تنبيه الضوضاء",
+      "CONTACT_MESSAGE_RECEIVED": "تم استلام رسالة",
+      "CONTACT_FORM_RECEIVED": "تم استلام نموذج اتصال"
     }
   },
   "fiscal": {
@@ -3044,8 +3166,29 @@
       "contactSection": "قسم التواصل"
     },
     "preview": {
-      "weekdays": ["الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"],
-      "months": ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"],
+      "weekdays": [
+        "الإثنين",
+        "الثلاثاء",
+        "الأربعاء",
+        "الخميس",
+        "الجمعة",
+        "السبت",
+        "الأحد"
+      ],
+      "months": [
+        "يناير",
+        "فبراير",
+        "مارس",
+        "أبريل",
+        "مايو",
+        "يونيو",
+        "يوليو",
+        "أغسطس",
+        "سبتمبر",
+        "أكتوبر",
+        "نوفمبر",
+        "ديسمبر"
+      ],
       "propertyTypes": {
         "APARTMENT": "شقة",
         "HOUSE": "منزل",
@@ -3058,7 +3201,12 @@
         "BOAT": "قارب",
         "OTHER": "أخرى"
       },
-      "stepLabels": ["الإقامات والخيارات", "التعريف", "التحقق", "التأكيد"],
+      "stepLabels": [
+        "الإقامات والخيارات",
+        "التعريف",
+        "التحقق",
+        "التأكيد"
+      ],
       "searchBar": {
         "travelers": "المسافرون",
         "accommodations": "أماكن الإقامة",
@@ -3201,6 +3349,11 @@
       "analyzing": "جاري تحليل الموقع... استخراج الألوان والخطوط والأنماط عبر الذكاء الاصطناعي.",
       "analyzeSuccess": "تم تحليل التصميم بنجاح! تم استخراج الرموز.",
       "analyzeError": "خطأ أثناء تحليل الموقع",
+      "aiNotConfiguredTitle": "مفتاح API للذكاء الاصطناعي غير مُهيأ",
+      "aiNotConfiguredMessage": "لم يتم تهيئة مفتاح API لـ {provider}. انتقل إلى الإعدادات لإضافة مفتاحك وتفعيل تحليل الذكاء الاصطناعي.",
+      "goToSettings": "إعداد",
+      "budgetExceededTitle": "تم بلوغ الحد الشهري لرموز الذكاء الاصطناعي",
+      "budgetExceededMessage": "تم استنفاد حصتك الشهرية المجانية من الرموز. قم بتوصيل مفتاح API الخاص بك في إعدادات الذكاء الاصطناعي لمواصلة استخدام هذه الميزة بدون حدود.",
       "saveFirst": "احفظ القالب أولاً قبل استخدام تحليل الذكاء الاصطناعي",
       "tokensApplied": "تم تطبيق رموز التصميم وتوليد CSS",
       "additionalInstructions": "تعليمات إضافية",
@@ -3294,7 +3447,9 @@
         "test": "اختبار",
         "save": "حفظ",
         "saveError": "خطأ أثناء الحفظ. تحقق من مفتاح API.",
-        "loadError": "تعذر تحميل تكوين الذكاء الاصطناعي. يرجى المحاولة مرة أخرى."
+        "loadError": "تعذر تحميل تكوين الذكاء الاصطناعي. يرجى المحاولة مرة أخرى.",
+        "byokTitle": "توصيل مفتاحك الخاص",
+        "byokSubtitle": "قم بتوصيل حساب OpenAI أو Anthropic الخاص بك لاستخدام الذكاء الاصطناعي بدون حدود رموز وبجودة استجابة أفضل."
       },
       "features": {
         "title": "حلول الذكاء الاصطناعي Clenzy",
@@ -3552,5 +3707,83 @@
       "mandatory": "إلزامي",
       "active": "نشط"
     }
+  },
+  "onboarding": {
+    "steps": {
+      "configureOrg": {
+        "label": "إعداد المؤسسة",
+        "description": "أدخل معلومات مؤسستك: الاسم، العنوان، الشعار ومعلومات الاتصال."
+      },
+      "inviteMembers": {
+        "label": "دعوة الأعضاء",
+        "description": "أضف زملاءك وعيّن لهم أدوار للإدارة التشاركية."
+      },
+      "setupSettings": {
+        "label": "إعداد المنصة",
+        "description": "اضبط تفضيلات الإشعارات والعملات والإعدادات العامة."
+      },
+      "setupFiscal": {
+        "label": "الملف الضريبي",
+        "description": "أدخل معلوماتك الضريبية والقانونية للفوترة المتوافقة."
+      },
+      "setupNotifications": {
+        "label": "الإشعارات",
+        "description": "اضبط تفضيلات الإشعارات: البريد والتنبيهات الفورية."
+      },
+      "setupGeneral": {
+        "label": "الإعدادات العامة",
+        "description": "اضبط العملة واللغة وتفضيلات المنصة العامة."
+      },
+      "setupIntegrations": {
+        "label": "التكاملات",
+        "description": "اربط الخدمات الخارجية: القنوات، أجهزة IoT، مزودي الدفع."
+      },
+      "setupPayment": {
+        "label": "الدفع",
+        "description": "اضبط تكامل الدفع عبر Stripe للفوترة الإلكترونية."
+      },
+      "setupMessaging": {
+        "label": "الرسائل",
+        "description": "اضبط قوالب الرسائل التلقائية للضيوف."
+      },
+      "setupPayouts": {
+        "label": "التحويلات",
+        "description": "اضبط بياناتك المصرفية لاستلام تحويلات إيراداتك."
+      },
+      "createProperty": {
+        "label": "إنشاء عقارك الأول",
+        "description": "أضف أول عقار إيجاري بتفاصيله وصوره."
+      },
+      "configureDetails": {
+        "label": "إعداد التفاصيل",
+        "description": "أضف الغرف والمرافق وأوقات تسجيل الوصول/المغادرة."
+      },
+      "definePricing": {
+        "label": "تحديد التسعير",
+        "description": "أنشئ خطط التسعير لتحسين إيراداتك."
+      },
+      "connectChannels": {
+        "label": "ربط القنوات",
+        "description": "زامن تقويمات Airbnb و Booking.com عبر iCal."
+      },
+      "configureBilling": {
+        "label": "إعداد الفوترة",
+        "description": "أدخل المعلومات الضريبية والقانونية للفواتير المتوافقة."
+      },
+      "completeProfile": {
+        "label": "أكمل ملفك الشخصي",
+        "description": "أدخل معلوماتك الشخصية وتفضيلاتك."
+      },
+      "viewInterventions": {
+        "label": "عرض التدخلات",
+        "description": "اكتشف المهام المخصصة لك وابدأ العمل."
+      },
+      "createTeam": {
+        "label": "إنشاء فريق",
+        "description": "أنشئ فريقك الأول وعيّن الأعضاء."
+      }
+    },
+    "skip": "تخطي",
+    "completionMessage": "أكمل الإعداد الأولي للوصول إلى لوحة التحكم الكاملة"
   }
 }

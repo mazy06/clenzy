@@ -32,5 +32,7 @@ public record ReservationDto(
     Boolean hiddenFromPlanning,
     // Payment status (read-only output)
     String paymentStatus,
-    String paidAt
+    String paidAt,
+    // Linked intervention (read-only output)
+    Long interventionId
 ) {}

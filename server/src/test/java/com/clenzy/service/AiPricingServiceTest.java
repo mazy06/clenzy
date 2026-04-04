@@ -2,10 +2,12 @@ package com.clenzy.service;
 
 import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.AiProviderException;
+import com.clenzy.config.ai.AiRequest;
 import com.clenzy.config.ai.AiResponse;
-import com.clenzy.config.ai.AnthropicProvider;
+import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.dto.AiPricingRecommendationDto;
 import com.clenzy.dto.PricePredictionDto;
+import com.clenzy.exception.AiBudgetExceededException;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
 import com.clenzy.model.Property;
@@ -43,10 +45,9 @@ class AiPricingServiceTest {
     @Mock private PropertyRepository propertyRepository;
     @Mock private RateOverrideRepository rateOverrideRepository;
     @Mock private AiProperties aiProperties;
-    @Mock private AnthropicProvider anthropicProvider;
+    @Mock private AiProviderRouter aiProviderRouter;
     @Mock private AiAnonymizationService anonymizationService;
     @Mock private AiTokenBudgetService tokenBudgetService;
-    @Mock private AiKeyResolver aiKeyResolver;
     @Spy  private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
     @InjectMocks private AiPricingService service;
 
@@ -190,7 +191,7 @@ class AiPricingServiceTest {
             when(aiProperties.getFeatures()).thenReturn(features);
 
             // Key resolver → platform key
-            when(aiKeyResolver.resolve(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
 
             // Budget OK
             doNothing().when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM);
@@ -218,8 +219,8 @@ class AiPricingServiceTest {
                 ]
                 """;
             AiResponse aiResponse = new AiResponse(aiJson, 200, 100, 300, "claude-sonnet-4-20250514", "end_turn");
-            when(anthropicProvider.chat(any())).thenReturn(aiResponse);
-            when(anthropicProvider.name()).thenReturn("anthropic");
+            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), any(AiRequest.class)))
+                    .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             List<AiPricingRecommendationDto> results = service.getAiPredictions(
                     PROPERTY_ID, ORG_ID, LocalDate.of(2026, 3, 15), LocalDate.of(2026, 3, 15));
@@ -239,7 +240,7 @@ class AiPricingServiceTest {
             AiProperties.Features features = new AiProperties.Features();
             features.setPricingAi(true);
             when(aiProperties.getFeatures()).thenReturn(features);
-            when(aiKeyResolver.resolve(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
             doNothing().when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM);
             when(propertyRepository.findById(PROPERTY_ID))
                     .thenReturn(Optional.of(createProperty(new BigDecimal("100"))));
@@ -249,9 +250,9 @@ class AiPricingServiceTest {
 
             String aiJson = "[{\"date\":\"2026-03-15\",\"suggestedPrice\":100.00,\"explanation\":\"ok\"," +
                     "\"confidence\":0.5,\"marketComparison\":\"avg\",\"factors\":[]}]";
-            when(anthropicProvider.chat(any())).thenReturn(
-                    new AiResponse(aiJson, 10, 5, 15, "claude-sonnet-4-20250514", "end_turn"));
-            when(anthropicProvider.name()).thenReturn("anthropic");
+            AiResponse aiResponse = new AiResponse(aiJson, 10, 5, 15, "claude-sonnet-4-20250514", "end_turn");
+            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), any(AiRequest.class)))
+                    .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             service.getAiPredictions(PROPERTY_ID, ORG_ID,
                     LocalDate.of(2026, 3, 15), LocalDate.of(2026, 3, 15));
@@ -264,12 +265,11 @@ class AiPricingServiceTest {
             AiProperties.Features features = new AiProperties.Features();
             features.setPricingAi(true);
             when(aiProperties.getFeatures()).thenReturn(features);
-            when(anthropicProvider.name()).thenReturn("anthropic");
-            when(aiKeyResolver.resolve(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
-            doThrow(new IllegalStateException("budget exceeded"))
+            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            doThrow(new AiBudgetExceededException("PRICING", 100_000, 100_000))
                     .when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM);
 
-            assertThrows(IllegalStateException.class,
+            assertThrows(AiBudgetExceededException.class,
                     () -> service.getAiPredictions(PROPERTY_ID, ORG_ID,
                             LocalDate.now(), LocalDate.now().plusDays(3)));
         }

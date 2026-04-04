@@ -143,6 +143,7 @@ export default function Settings() {
   // Vérifier les permissions pour les paramètres
   const [canViewSettings, setCanViewSettings] = useState(false);
   const [canEditSettings, setCanEditSettings] = useState(false);
+  const [canViewAi, setCanViewAi] = useState(false);
 
   // TOUS les useState DOIVENT être déclarés AVANT les vérifications conditionnelles
   const [settings, setSettings] = useState({
@@ -253,9 +254,11 @@ export default function Settings() {
     const checkPermissions = async () => {
       const viewPermission = await hasPermissionAsync('settings:view');
       const editPermission = await hasPermissionAsync('settings:edit');
+      const aiPermission = await hasPermissionAsync('ai:view');
 
       setCanViewSettings(viewPermission);
       setCanEditSettings(editPermission);
+      setCanViewAi(aiPermission);
     };
 
     checkPermissions();
@@ -459,7 +462,7 @@ export default function Settings() {
               {...a11yProps(3)}
             />
           )}
-          {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
+          {canViewAi && (
             <Tab
               icon={<AutoAwesome sx={{ fontSize: 18 }} />}
               iconPosition="start"
@@ -900,8 +903,8 @@ export default function Settings() {
         </TabPanel>
       )}
 
-      {/* ─── Onglet IA (ADMIN/MANAGER) ───────────────────────────── */}
-      {hasAnyRole(['SUPER_ADMIN', 'SUPER_MANAGER']) && (
+      {/* ─── Onglet IA (permission ai:view) ───────────────────────── */}
+      {canViewAi && (
         <TabPanel value={tabValue} index={3}>
           <AiSettingsSection />
         </TabPanel>

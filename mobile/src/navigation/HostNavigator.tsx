@@ -38,8 +38,30 @@ import { TeamManagementScreen } from '@/screens/host/TeamManagementScreen';
 import { ReviewsScreen } from '@/screens/host/ReviewsScreen';
 import { SmartLockScreen } from '@/screens/host/SmartLockScreen';
 import { RatePlanManagementScreen } from '@/screens/host/RatePlanManagementScreen';
+import { ReservationDetailScreen } from '@/screens/host/ReservationDetailScreen';
+import { ReservationEditScreen } from '@/screens/host/ReservationEditScreen';
 import { InternalChatScreen } from '@/screens/host/InternalChatScreen';
+import { PropertyEditScreen } from '@/screens/host/PropertyEditScreen';
+import { PropertyPhotosManageScreen } from '@/screens/host/PropertyPhotosManageScreen';
+import { PropertyAmenitiesEditScreen } from '@/screens/host/PropertyAmenitiesEditScreen';
+import { PropertyInstructionsEditScreen } from '@/screens/host/PropertyInstructionsEditScreen';
+import { DocumentsScreen } from '@/screens/host/DocumentsScreen';
+import { DocumentDetailScreen } from '@/screens/host/DocumentDetailScreen';
+import { DocumentGenerateScreen } from '@/screens/host/DocumentGenerateScreen';
+import { PdfViewerScreen } from '@/screens/shared/PdfViewerScreen';
+import { BillingDashboardScreen } from '@/screens/host/BillingDashboardScreen';
+import { PaymentDetailScreen } from '@/screens/host/PaymentDetailScreen';
+import { InvoiceListScreen } from '@/screens/host/InvoiceListScreen';
+import { InvoiceDetailScreen } from '@/screens/host/InvoiceDetailScreen';
+import { AnalyticsExportScreen } from '@/screens/host/AnalyticsExportScreen';
+import { MessageTemplatesScreen } from '@/screens/shared/MessageTemplatesScreen';
+import { UserListScreen } from '@/screens/admin/UserListScreen';
+import { UserDetailScreen } from '@/screens/admin/UserDetailScreen';
+import { UserEditScreen } from '@/screens/admin/UserEditScreen';
+import { InviteMemberScreen } from '@/screens/admin/InviteMemberScreen';
 import type { ContactMessage, ContactThreadSummary } from '@/api/endpoints/contactApi';
+import type { PaymentRecord } from '@/api/endpoints/paymentsApi';
+import type { Invoice } from '@/screens/host/InvoiceListScreen';
 
 export type DashboardStackParamList = {
   DashboardHome: undefined;
@@ -58,9 +80,12 @@ export type DashboardStackParamList = {
   Pricing: undefined;
   ServiceRequests: undefined;
   ReservationsList: undefined;
+  ReservationDetail: { reservationId: number };
+  ReservationEdit: { reservationId: number };
   InterventionsList: undefined;
   PaymentCheckout: { interventionId: number };
   Analytics: undefined;
+  AnalyticsExport: undefined;
   Reviews: undefined;
   SmartLocks: undefined;
   RatePlanManagement: { propertyId: number; propertyName: string };
@@ -74,6 +99,10 @@ export type PropertiesStackParamList = {
   PropertyChannels: { propertyId: number };
   PropertyInstructions: { propertyId: number };
   PropertyRatePlans: { propertyId: number; propertyName: string };
+  PropertyEdit: { propertyId: number };
+  PropertyPhotosManage: { propertyId: number };
+  PropertyAmenitiesEdit: { propertyId: number };
+  PropertyInstructionsEdit: { propertyId: number };
 };
 
 export type MessagingStackParamList = {
@@ -81,6 +110,13 @@ export type MessagingStackParamList = {
   MessageDetail: { message: ContactMessage; isSent: boolean };
   InternalChat: { thread: ContactThreadSummary };
   ConversationDetail: { conversationId: number };
+  MessageTemplates: undefined;
+};
+
+export type CalendarStackParamList = {
+  CalendarHome: undefined;
+  ReservationDetail: { reservationId: number };
+  ReservationEdit: { reservationId: number };
 };
 
 export type MoreStackParamList = {
@@ -90,9 +126,21 @@ export type MoreStackParamList = {
   SubscriptionCheckout: { forfait: string };
   Reports: undefined;
   PaymentHistory: undefined;
+  BillingDashboard: undefined;
+  PaymentDetail: { paymentId: number; payment: PaymentRecord };
+  InvoiceList: undefined;
+  InvoiceDetail: { invoiceId: number; invoice: Invoice };
+  Documents: undefined;
+  DocumentDetail: { documentId: number };
+  DocumentGenerate: undefined;
+  PdfViewer: { uri: string; title?: string };
   DeleteAccount: undefined;
   Settings: undefined;
   TeamManagement: undefined;
+  UserList: undefined;
+  UserDetail: { userId: number };
+  UserEdit: { userId: number };
+  InviteMember: undefined;
 };
 
 const DashboardStack = createNativeStackNavigator<DashboardStackParamList>();
@@ -107,9 +155,12 @@ function DashboardStackNavigator() {
       <DashboardStack.Screen name="Pricing" component={PricingScreen} />
       <DashboardStack.Screen name="ServiceRequests" component={ServiceRequestScreen} />
       <DashboardStack.Screen name="ReservationsList" component={ReservationsListScreen} />
+      <DashboardStack.Screen name="ReservationDetail" component={ReservationDetailScreen} />
+      <DashboardStack.Screen name="ReservationEdit" component={ReservationEditScreen} />
       <DashboardStack.Screen name="InterventionsList" component={InterventionsListScreen} />
       <DashboardStack.Screen name="PaymentCheckout" component={PaymentCheckoutScreen} />
       <DashboardStack.Screen name="Analytics" component={AnalyticsScreen} />
+      <DashboardStack.Screen name="AnalyticsExport" component={AnalyticsExportScreen} />
       <DashboardStack.Screen name="Reviews" component={ReviewsScreen} />
       <DashboardStack.Screen name="SmartLocks" component={SmartLockScreen} />
       <DashboardStack.Screen name="RatePlanManagement" component={RatePlanManagementScreen} />
@@ -128,7 +179,22 @@ function PropertiesStackNavigator() {
       <PropertiesStack.Screen name="PropertyChannels" component={PropertyChannelsScreen} />
       <PropertiesStack.Screen name="PropertyInstructions" component={PropertyInstructionsScreen} />
       <PropertiesStack.Screen name="PropertyRatePlans" component={RatePlanManagementScreen} />
+      <PropertiesStack.Screen name="PropertyEdit" component={PropertyEditScreen} />
+      <PropertiesStack.Screen name="PropertyPhotosManage" component={PropertyPhotosManageScreen} />
+      <PropertiesStack.Screen name="PropertyAmenitiesEdit" component={PropertyAmenitiesEditScreen} />
+      <PropertiesStack.Screen name="PropertyInstructionsEdit" component={PropertyInstructionsEditScreen} />
     </PropertiesStack.Navigator>
+  );
+}
+
+const CalendarStack = createNativeStackNavigator<CalendarStackParamList>();
+function CalendarStackNavigator() {
+  return (
+    <CalendarStack.Navigator screenOptions={{ headerShown: false }}>
+      <CalendarStack.Screen name="CalendarHome" component={ReservationCalendarScreen} />
+      <CalendarStack.Screen name="ReservationDetail" component={ReservationDetailScreen} />
+      <CalendarStack.Screen name="ReservationEdit" component={ReservationEditScreen} />
+    </CalendarStack.Navigator>
   );
 }
 
@@ -140,6 +206,7 @@ function MessagingStackNavigator() {
       <MessagingStack.Screen name="MessageDetail" component={MessageDetailScreen} />
       <MessagingStack.Screen name="InternalChat" component={InternalChatScreen} />
       <MessagingStack.Screen name="ConversationDetail" component={ConversationDetailScreen} />
+      <MessagingStack.Screen name="MessageTemplates" component={MessageTemplatesScreen} />
     </MessagingStack.Navigator>
   );
 }
@@ -154,9 +221,21 @@ function MoreStackNavigator() {
       <MoreStack.Screen name="SubscriptionCheckout" component={SubscriptionCheckoutScreen} />
       <MoreStack.Screen name="Reports" component={RevenueReportsScreen} />
       <MoreStack.Screen name="PaymentHistory" component={PaymentHistoryScreen} />
+      <MoreStack.Screen name="BillingDashboard" component={BillingDashboardScreen} />
+      <MoreStack.Screen name="PaymentDetail" component={PaymentDetailScreen} />
+      <MoreStack.Screen name="InvoiceList" component={InvoiceListScreen} />
+      <MoreStack.Screen name="InvoiceDetail" component={InvoiceDetailScreen} />
+      <MoreStack.Screen name="Documents" component={DocumentsScreen} />
+      <MoreStack.Screen name="DocumentDetail" component={DocumentDetailScreen} />
+      <MoreStack.Screen name="DocumentGenerate" component={DocumentGenerateScreen} />
+      <MoreStack.Screen name="PdfViewer" component={PdfViewerScreen} />
       <MoreStack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
       <MoreStack.Screen name="Settings" component={HostSettingsScreen} />
       <MoreStack.Screen name="TeamManagement" component={TeamManagementScreen} />
+      <MoreStack.Screen name="UserList" component={UserListScreen} />
+      <MoreStack.Screen name="UserDetail" component={UserDetailScreen} />
+      <MoreStack.Screen name="UserEdit" component={UserEditScreen} />
+      <MoreStack.Screen name="InviteMember" component={InviteMemberScreen} />
     </MoreStack.Navigator>
   );
 }
@@ -213,7 +292,7 @@ export function HostNavigator() {
       />
       <Tab.Screen
         name="Calendar"
-        component={ReservationCalendarScreen}
+        component={CalendarStackNavigator}
         options={{
           tabBarLabel: 'Calendrier',
           tabBarIcon: ({ color, size }) => (
