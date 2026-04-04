@@ -189,7 +189,7 @@ class SentimentAnalysisServiceTest {
         @Test
         void validResponse_parsesCorrectly() {
             enableSentimentAi();
-            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.SENTIMENT)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Great place!");
             AiResponse aiResponse = new AiResponse(
                 """
@@ -212,7 +212,7 @@ class SentimentAnalysisServiceTest {
         @Test
         void callsAnonymization() {
             enableSentimentAi();
-            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.SENTIMENT)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize("My email john@test.com review")).thenReturn("My email [EMAIL] review");
             AiResponse aiResponse = new AiResponse(
                 """
@@ -231,7 +231,7 @@ class SentimentAnalysisServiceTest {
         @Test
         void budgetExceeded_throws() {
             enableSentimentAi();
-            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.SENTIMENT)).thenReturn(PLATFORM_KEY);
             doThrow(new AiBudgetExceededException("SENTIMENT", 100_000, 100_000))
                 .when(tokenBudgetService).requireBudget(1L, AiFeature.SENTIMENT, KeySource.PLATFORM);
 
@@ -242,7 +242,7 @@ class SentimentAnalysisServiceTest {
         @Test
         void recordsUsage() {
             enableSentimentAi();
-            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.SENTIMENT)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Great");
             AiResponse response = new AiResponse(
                 """
@@ -261,7 +261,7 @@ class SentimentAnalysisServiceTest {
         @Test
         void invalidJson_throwsProviderException() {
             enableSentimentAi();
-            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.SENTIMENT)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Hello");
             AiResponse aiResponse = new AiResponse("invalid json", 10, 5, 15, "claude-3-haiku", "end_turn");
             when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))

@@ -233,7 +233,7 @@ class AiMessagingServiceTest {
         @Test
         void detectIntentAi_validResponse_parsesCorrectly() {
             enableMessagingAi();
-            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Hello");
             AiResponse aiResponse = new AiResponse(
                 """
@@ -256,7 +256,7 @@ class AiMessagingServiceTest {
         @Test
         void detectIntentAi_callsAnonymization() {
             enableMessagingAi();
-            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize("My email is john@test.com")).thenReturn("My email is [EMAIL]");
             AiResponse aiResponse = new AiResponse(
                 """
@@ -275,7 +275,7 @@ class AiMessagingServiceTest {
         @Test
         void detectIntentAi_budgetExceeded_throws() {
             enableMessagingAi();
-            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             doThrow(new AiBudgetExceededException("MESSAGING", 100_000, 100_000))
                 .when(tokenBudgetService).requireBudget(1L, AiFeature.MESSAGING, KeySource.PLATFORM);
 
@@ -286,7 +286,7 @@ class AiMessagingServiceTest {
         @Test
         void detectIntentAi_recordsUsage() {
             enableMessagingAi();
-            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Hello");
             AiResponse response = new AiResponse(
                 """
@@ -315,7 +315,7 @@ class AiMessagingServiceTest {
         @Test
         void suggestResponseAi_validResponse_parsesCorrectly() {
             enableMessagingAi();
-            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Bonjour");
             AiResponse aiResponse = new AiResponse(
                 """
@@ -337,7 +337,7 @@ class AiMessagingServiceTest {
         @Test
         void suggestResponseAi_invalidJson_throwsProviderException() {
             enableMessagingAi();
-            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Hello");
             AiResponse aiResponse = new AiResponse("not valid json {{{", 20, 10, 30, "claude-3-haiku", "end_turn");
             when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))
@@ -350,7 +350,7 @@ class AiMessagingServiceTest {
         @Test
         void suggestResponseAi_budgetExceeded_throws() {
             enableMessagingAi();
-            when(aiProviderRouter.resolveKey(2L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(2L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             doThrow(new AiBudgetExceededException("MESSAGING", 100_000, 100_000))
                 .when(tokenBudgetService).requireBudget(2L, AiFeature.MESSAGING, KeySource.PLATFORM);
 
