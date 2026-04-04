@@ -219,7 +219,7 @@ class AiPricingServiceTest {
                 ]
                 """;
             AiResponse aiResponse = new AiResponse(aiJson, 200, 100, 300, "claude-sonnet-4-20250514", "end_turn");
-            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), any(AiRequest.class)))
+            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.PRICING), any(AiRequest.class)))
                     .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             List<AiPricingRecommendationDto> results = service.getAiPredictions(
@@ -251,7 +251,7 @@ class AiPricingServiceTest {
             String aiJson = "[{\"date\":\"2026-03-15\",\"suggestedPrice\":100.00,\"explanation\":\"ok\"," +
                     "\"confidence\":0.5,\"marketComparison\":\"avg\",\"factors\":[]}]";
             AiResponse aiResponse = new AiResponse(aiJson, 10, 5, 15, "claude-sonnet-4-20250514", "end_turn");
-            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), any(AiRequest.class)))
+            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.PRICING), any(AiRequest.class)))
                     .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             service.getAiPredictions(PROPERTY_ID, ORG_ID,

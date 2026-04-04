@@ -371,7 +371,7 @@ class AiAnalyticsServiceTest {
                 """,
                 100, 150, 250, "claude-3-haiku", "end_turn"
             );
-            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), any(AiRequest.class)))
+            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.ANALYTICS), any(AiRequest.class)))
                 .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             List<AiInsightDto> insights = service.getAiInsights(
@@ -407,7 +407,7 @@ class AiAnalyticsServiceTest {
                 """,
                 50, 80, 130, "claude-3-haiku", "end_turn"
             );
-            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), any(AiRequest.class)))
+            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.ANALYTICS), any(AiRequest.class)))
                 .thenReturn(new RoutedResponse(response, "anthropic", KeySource.PLATFORM));
 
             service.getAiInsights(PROPERTY_ID, ORG_ID,
@@ -423,7 +423,7 @@ class AiAnalyticsServiceTest {
             setupPropertyAndReservations();
             when(anonymizationService.anonymize(any())).thenAnswer(inv -> inv.getArgument(0));
             AiResponse aiResponse = new AiResponse("not valid json", 20, 10, 30, "claude-3-haiku", "end_turn");
-            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), any(AiRequest.class)))
+            when(aiProviderRouter.route(eq(ORG_ID), eq("anthropic"), eq(AiFeature.ANALYTICS), any(AiRequest.class)))
                 .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             assertThrows(AiProviderException.class,

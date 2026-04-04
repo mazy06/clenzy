@@ -197,7 +197,7 @@ class SentimentAnalysisServiceTest {
                 """,
                 40, 80, 120, "claude-3-haiku", "end_turn"
             );
-            when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))
+            when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.SENTIMENT), any(AiRequest.class)))
                 .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             AiSentimentResultDto result = service.analyzeAi("Great place!", "en", 1L);
@@ -220,7 +220,7 @@ class SentimentAnalysisServiceTest {
                 """,
                 20, 30, 50, "claude-3-haiku", "end_turn"
             );
-            when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))
+            when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.SENTIMENT), any(AiRequest.class)))
                 .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             service.analyzeAi("My email john@test.com review", "en", 1L);
@@ -250,7 +250,7 @@ class SentimentAnalysisServiceTest {
                 """,
                 30, 50, 80, "claude-3-haiku", "end_turn"
             );
-            when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))
+            when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.SENTIMENT), any(AiRequest.class)))
                 .thenReturn(new RoutedResponse(response, "anthropic", KeySource.PLATFORM));
 
             service.analyzeAi("Great", "en", 1L);
@@ -264,7 +264,7 @@ class SentimentAnalysisServiceTest {
             when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.SENTIMENT)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Hello");
             AiResponse aiResponse = new AiResponse("invalid json", 10, 5, 15, "claude-3-haiku", "end_turn");
-            when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))
+            when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.SENTIMENT), any(AiRequest.class)))
                 .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             assertThrows(AiProviderException.class,
