@@ -359,7 +359,7 @@ class AiAnalyticsServiceTest {
         @Test
         void validResponse_parsesCorrectly() {
             enableAnalyticsAi();
-            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.ANALYTICS)).thenReturn(PLATFORM_KEY);
             setupPropertyAndReservations();
             when(anonymizationService.anonymize(any())).thenAnswer(inv -> inv.getArgument(0));
             AiResponse aiResponse = new AiResponse(
@@ -386,7 +386,7 @@ class AiAnalyticsServiceTest {
         @Test
         void budgetExceeded_throws() {
             enableAnalyticsAi();
-            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.ANALYTICS)).thenReturn(PLATFORM_KEY);
             doThrow(new AiBudgetExceededException("ANALYTICS", 100_000, 100_000))
                 .when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.ANALYTICS, KeySource.PLATFORM);
 
@@ -398,7 +398,7 @@ class AiAnalyticsServiceTest {
         @Test
         void recordsUsage() {
             enableAnalyticsAi();
-            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.ANALYTICS)).thenReturn(PLATFORM_KEY);
             setupPropertyAndReservations();
             when(anonymizationService.anonymize(any())).thenAnswer(inv -> inv.getArgument(0));
             AiResponse response = new AiResponse(
@@ -419,7 +419,7 @@ class AiAnalyticsServiceTest {
         @Test
         void invalidJson_throwsProviderException() {
             enableAnalyticsAi();
-            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.ANALYTICS)).thenReturn(PLATFORM_KEY);
             setupPropertyAndReservations();
             when(anonymizationService.anonymize(any())).thenAnswer(inv -> inv.getArgument(0));
             AiResponse aiResponse = new AiResponse("not valid json", 20, 10, 30, "claude-3-haiku", "end_turn");

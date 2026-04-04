@@ -191,7 +191,7 @@ class AiPricingServiceTest {
             when(aiProperties.getFeatures()).thenReturn(features);
 
             // Key resolver → platform key
-            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.PRICING)).thenReturn(PLATFORM_KEY);
 
             // Budget OK
             doNothing().when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM);
@@ -240,7 +240,7 @@ class AiPricingServiceTest {
             AiProperties.Features features = new AiProperties.Features();
             features.setPricingAi(true);
             when(aiProperties.getFeatures()).thenReturn(features);
-            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.PRICING)).thenReturn(PLATFORM_KEY);
             doNothing().when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM);
             when(propertyRepository.findById(PROPERTY_ID))
                     .thenReturn(Optional.of(createProperty(new BigDecimal("100"))));
@@ -265,7 +265,7 @@ class AiPricingServiceTest {
             AiProperties.Features features = new AiProperties.Features();
             features.setPricingAi(true);
             when(aiProperties.getFeatures()).thenReturn(features);
-            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(ORG_ID, "anthropic", AiFeature.PRICING)).thenReturn(PLATFORM_KEY);
             doThrow(new AiBudgetExceededException("PRICING", 100_000, 100_000))
                     .when(tokenBudgetService).requireBudget(ORG_ID, AiFeature.PRICING, KeySource.PLATFORM);
 
