@@ -312,4 +312,13 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
      */
     @Query("SELECT u.keycloakId FROM Intervention i JOIN i.assignedUser u WHERE i.id = :interventionId")
     String findAssignedUserKeycloakIdById(@Param("interventionId") Long interventionId);
+
+    /**
+     * Interventions liees a une reservation via la ServiceRequest.
+     * Une reservation peut avoir plusieurs interventions (menage, maintenance, check-in...).
+     */
+    @EntityGraph(attributePaths = {"property", "assignedUser", "requestor"})
+    @Query("SELECT i FROM Intervention i WHERE i.serviceRequest.reservationId = :reservationId " +
+           "AND i.organizationId = :orgId ORDER BY i.scheduledDate ASC")
+    List<Intervention> findByReservationId(@Param("reservationId") Long reservationId, @Param("orgId") Long orgId);
 }

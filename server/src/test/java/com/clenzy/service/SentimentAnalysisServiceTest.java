@@ -4,8 +4,9 @@ import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.AiProviderException;
 import com.clenzy.config.ai.AiRequest;
 import com.clenzy.config.ai.AiResponse;
-import com.clenzy.config.ai.AnthropicProvider;
+import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.dto.AiSentimentResultDto;
+import com.clenzy.exception.AiBudgetExceededException;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
 import com.clenzy.model.ReviewTag;
@@ -32,10 +33,9 @@ import static org.mockito.Mockito.*;
 class SentimentAnalysisServiceTest {
 
     @Mock private AiProperties aiProperties;
-    @Mock private AnthropicProvider anthropicProvider;
+    @Mock private AiProviderRouter aiProviderRouter;
     @Mock private AiAnonymizationService anonymizationService;
     @Mock private AiTokenBudgetService tokenBudgetService;
-    @Mock private AiKeyResolver aiKeyResolver;
     @Spy  private ObjectMapper objectMapper = new ObjectMapper();
     @InjectMocks private SentimentAnalysisService service;
 
@@ -189,17 +189,16 @@ class SentimentAnalysisServiceTest {
         @Test
         void validResponse_parsesCorrectly() {
             enableSentimentAi();
-            when(aiKeyResolver.resolve(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Great place!");
-            when(anthropicProvider.chat(any(AiRequest.class))).thenReturn(
-                new AiResponse(
-                    """
-                    {"score":0.85,"label":"POSITIVE","themes":["cleanliness","comfort"],"actionableInsights":["Maintain cleaning standards"],"suggestedResponse":"Thank you for your kind words!"}
-                    """,
-                    40, 80, 120, "claude-3-haiku", "end_turn"
-                )
+            AiResponse aiResponse = new AiResponse(
+                """
+                {"score":0.85,"label":"POSITIVE","themes":["cleanliness","comfort"],"actionableInsights":["Maintain cleaning standards"],"suggestedResponse":"Thank you for your kind words!"}
+                """,
+                40, 80, 120, "claude-3-haiku", "end_turn"
             );
-            when(anthropicProvider.name()).thenReturn("anthropic");
+            when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))
+                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             AiSentimentResultDto result = service.analyzeAi("Great place!", "en", 1L);
 
@@ -213,17 +212,16 @@ class SentimentAnalysisServiceTest {
         @Test
         void callsAnonymization() {
             enableSentimentAi();
-            when(aiKeyResolver.resolve(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize("My email john@test.com review")).thenReturn("My email [EMAIL] review");
-            when(anthropicProvider.chat(any(AiRequest.class))).thenReturn(
-                new AiResponse(
-                    """
-                    {"score":0.0,"label":"NEUTRAL","themes":[],"actionableInsights":[],"suggestedResponse":"Thank you."}
-                    """,
-                    20, 30, 50, "claude-3-haiku", "end_turn"
-                )
+            AiResponse aiResponse = new AiResponse(
+                """
+                {"score":0.0,"label":"NEUTRAL","themes":[],"actionableInsights":[],"suggestedResponse":"Thank you."}
+                """,
+                20, 30, 50, "claude-3-haiku", "end_turn"
             );
-            when(anthropicProvider.name()).thenReturn("anthropic");
+            when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))
+                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             service.analyzeAi("My email john@test.com review", "en", 1L);
 
@@ -233,19 +231,18 @@ class SentimentAnalysisServiceTest {
         @Test
         void budgetExceeded_throws() {
             enableSentimentAi();
-            when(anthropicProvider.name()).thenReturn("anthropic");
-            when(aiKeyResolver.resolve(1L, "anthropic")).thenReturn(PLATFORM_KEY);
-            doThrow(new IllegalStateException("Token budget exceeded"))
+            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            doThrow(new AiBudgetExceededException("SENTIMENT", 100_000, 100_000))
                 .when(tokenBudgetService).requireBudget(1L, AiFeature.SENTIMENT, KeySource.PLATFORM);
 
-            assertThrows(IllegalStateException.class,
+            assertThrows(AiBudgetExceededException.class,
                 () -> service.analyzeAi("Great place!", "en", 1L));
         }
 
         @Test
         void recordsUsage() {
             enableSentimentAi();
-            when(aiKeyResolver.resolve(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Great");
             AiResponse response = new AiResponse(
                 """
@@ -253,8 +250,8 @@ class SentimentAnalysisServiceTest {
                 """,
                 30, 50, 80, "claude-3-haiku", "end_turn"
             );
-            when(anthropicProvider.chat(any(AiRequest.class))).thenReturn(response);
-            when(anthropicProvider.name()).thenReturn("anthropic");
+            when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))
+                .thenReturn(new RoutedResponse(response, "anthropic", KeySource.PLATFORM));
 
             service.analyzeAi("Great", "en", 1L);
 
@@ -264,12 +261,11 @@ class SentimentAnalysisServiceTest {
         @Test
         void invalidJson_throwsProviderException() {
             enableSentimentAi();
-            when(aiKeyResolver.resolve(1L, "anthropic")).thenReturn(PLATFORM_KEY);
+            when(aiProviderRouter.resolveKey(1L, "anthropic")).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Hello");
-            when(anthropicProvider.chat(any(AiRequest.class))).thenReturn(
-                new AiResponse("invalid json", 10, 5, 15, "claude-3-haiku", "end_turn")
-            );
-            when(anthropicProvider.name()).thenReturn("anthropic");
+            AiResponse aiResponse = new AiResponse("invalid json", 10, 5, 15, "claude-3-haiku", "end_turn");
+            when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))
+                .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             assertThrows(AiProviderException.class,
                 () -> service.analyzeAi("Hello", "en", 1L));

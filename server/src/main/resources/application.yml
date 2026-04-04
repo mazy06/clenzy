@@ -168,6 +168,11 @@ clenzy:
       api-key: ${ANTHROPIC_API_KEY:}
       model: claude-sonnet-4-20250514
       base-url: https://api.anthropic.com/v1
+    bedrock:
+      enabled: true
+      api-key: ${BEDROCK_API_KEY:}
+      model: amazon.nova-lite-v1:0
+      base-url: ${BEDROCK_BASE_URL:https://bedrock-mantle.eu-west-1.api.aws/v1}
     website-fetch:
       timeout-seconds: 15
       max-content-length-kb: 512

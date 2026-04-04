@@ -7,15 +7,12 @@ import com.clenzy.booking.model.BookingEngineConfig;
 import com.clenzy.booking.repository.BookingEngineConfigRepository;
 import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.AiRequest;
-import com.clenzy.config.ai.AiResponse;
-import com.clenzy.config.ai.AnthropicProvider;
-import com.clenzy.config.ai.OpenAiProvider;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
 import com.clenzy.service.AiAnonymizationService;
-import com.clenzy.service.AiKeyResolver;
-import com.clenzy.service.AiKeyResolver.KeySource;
 import com.clenzy.service.AiKeyResolver.ResolvedKey;
+import com.clenzy.service.AiProviderRouter;
+import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.service.AiTokenBudgetService;
 import com.clenzy.tenant.TenantContext;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -46,9 +43,7 @@ public class AiDesignService {
     private final ObjectMapper objectMapper;
     private final TenantContext tenantContext;
     private final AiProperties aiProperties;
-    private final OpenAiProvider openAiProvider;
-    private final AnthropicProvider anthropicProvider;
-    private final AiKeyResolver aiKeyResolver;
+    private final AiProviderRouter aiProviderRouter;
     private final AiTokenBudgetService tokenBudgetService;
     private final AiAnonymizationService anonymizationService;
 
@@ -58,9 +53,7 @@ public class AiDesignService {
             ObjectMapper objectMapper,
             TenantContext tenantContext,
             AiProperties aiProperties,
-            OpenAiProvider openAiProvider,
-            AnthropicProvider anthropicProvider,
-            AiKeyResolver aiKeyResolver,
+            AiProviderRouter aiProviderRouter,
             AiTokenBudgetService tokenBudgetService,
             AiAnonymizationService anonymizationService
     ) {
@@ -69,9 +62,7 @@ public class AiDesignService {
         this.objectMapper = objectMapper;
         this.tenantContext = tenantContext;
         this.aiProperties = aiProperties;
-        this.openAiProvider = openAiProvider;
-        this.anthropicProvider = anthropicProvider;
-        this.aiKeyResolver = aiKeyResolver;
+        this.aiProviderRouter = aiProviderRouter;
         this.tokenBudgetService = tokenBudgetService;
         this.anonymizationService = anonymizationService;
     }
@@ -114,17 +105,15 @@ public class AiDesignService {
             return new AiDesignAnalysisResponseDto(cachedTokens, cachedCss, websiteUrl, true);
         }
 
-        // 3. Extract design tokens via OpenAI (BYOK-aware)
-        log.info("Extracting design tokens via OpenAI for config {}", configId);
-        ResolvedKey openaiKey = aiKeyResolver.resolve(orgId, openAiProvider.name());
-        tokenBudgetService.requireBudget(orgId, AiFeature.DESIGN, openaiKey.source());
-        DesignTokensDto tokens = extractTokensViaOpenAi(content.html(), content.css(), openaiKey, orgId);
+        // 3. Generate CSS directly from the website content
+        log.info("Generating CSS for config {}", configId);
+        ResolvedKey cssKey = aiProviderRouter.resolveKey(orgId, "openai", AiFeature.DESIGN);
+        tokenBudgetService.requireBudget(orgId, AiFeature.DESIGN, cssKey.source());
+        String generatedCss = generateCssFromWebsite(content.html(), content.css(), orgId);
 
-        // 4. Generate CSS via Claude (BYOK-aware)
-        log.info("Generating CSS via Claude for config {}", configId);
-        ResolvedKey anthropicKey = aiKeyResolver.resolve(orgId, anthropicProvider.name());
-        tokenBudgetService.requireBudget(orgId, AiFeature.DESIGN, anthropicKey.source());
-        String generatedCss = generateCssViaClaude(tokens, null, anthropicKey, orgId);
+        // 4. Extract design tokens from the generated CSS variables
+        DesignTokensDto tokens = extractTokensFromCss(generatedCss);
+        log.info("Extracted {} non-null tokens from generated CSS", countNonNull(tokens));
 
         // 5. Store results in DB
         config.setDesignTokens(serializeTokens(tokens));
@@ -151,50 +140,109 @@ public class AiDesignService {
         configRepository.findByIdAndOrganizationId(configId, orgId)
                 .orElseThrow(() -> new IllegalArgumentException("Config not found: " + configId));
 
-        ResolvedKey anthropicKey = aiKeyResolver.resolve(orgId, anthropicProvider.name());
-        tokenBudgetService.requireBudget(orgId, AiFeature.DESIGN, anthropicKey.source());
-        return generateCssViaClaude(request.designTokens(), request.additionalInstructions(), anthropicKey, orgId);
+        ResolvedKey cssKey = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.DESIGN);
+        tokenBudgetService.requireBudget(orgId, AiFeature.DESIGN, cssKey.source());
+        return generateCss(request.designTokens(), request.additionalInstructions(), orgId);
     }
 
-    // ─── OpenAI: Extract design tokens (delegated to OpenAiProvider) ────
+    // ─── Generate CSS from website (single LLM call) ────────────────────
 
-    private DesignTokensDto extractTokensViaOpenAi(String html, String css, ResolvedKey key, Long orgId) {
-        String userPrompt = AiDesignPrompts.buildOpenAiUserPrompt(html, css);
+    private String generateCssFromWebsite(String html, String css, Long orgId) {
+        String userPrompt = AiDesignPrompts.buildCssFromWebsitePrompt(html, css);
         String anonymizedPrompt = anonymizationService.anonymize(userPrompt);
+        AiRequest request = AiRequest.withMaxTokens(AiDesignPrompts.CSS_FROM_WEBSITE_SYSTEM_PROMPT, anonymizedPrompt, 4096);
 
-        AiRequest request = AiRequest.json(AiDesignPrompts.OPENAI_SYSTEM_PROMPT, anonymizedPrompt);
-        AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
-        AiResponse response = (key.source() == KeySource.ORGANIZATION)
-                ? openAiProvider.chat(resolved, key.apiKey())
-                : openAiProvider.chat(resolved);
+        RoutedResponse routed = aiProviderRouter.route(orgId, "openai", AiFeature.DESIGN, request);
+        tokenBudgetService.recordUsage(orgId, AiFeature.DESIGN, routed.providerName(), routed.response());
 
-        tokenBudgetService.recordUsage(orgId, AiFeature.DESIGN, openAiProvider.name(), response);
-
-        try {
-            return objectMapper.readValue(response.content(), DesignTokensDto.class);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to parse AI design tokens: {}", e.getMessage());
-            throw new RuntimeException("Failed to parse AI design tokens", e);
-        }
+        return extractCssFromResponse(routed.response().content());
     }
 
-    // ─── Anthropic Claude: Generate CSS (delegated to AnthropicProvider) ─
+    // ─── Generate CSS from tokens (regeneration) ───────────────────────
 
-    private String generateCssViaClaude(DesignTokensDto tokens, String additionalInstructions,
-                                        ResolvedKey key, Long orgId) {
+    private String generateCss(DesignTokensDto tokens, String additionalInstructions, Long orgId) {
         String tokensJson = serializeTokens(tokens);
         String userPrompt = AiDesignPrompts.buildClaudeUserPrompt(tokensJson, additionalInstructions);
         String anonymizedPrompt = anonymizationService.anonymize(userPrompt);
-
         AiRequest request = AiRequest.withMaxTokens(AiDesignPrompts.CLAUDE_SYSTEM_PROMPT, anonymizedPrompt, 4096);
-        AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
-        AiResponse response = (key.source() == KeySource.ORGANIZATION)
-                ? anthropicProvider.chat(resolved, key.apiKey())
-                : anthropicProvider.chat(resolved);
 
-        tokenBudgetService.recordUsage(orgId, AiFeature.DESIGN, anthropicProvider.name(), response);
+        RoutedResponse routed = aiProviderRouter.route(orgId, "anthropic", AiFeature.DESIGN, request);
+        tokenBudgetService.recordUsage(orgId, AiFeature.DESIGN, routed.providerName(), routed.response());
 
-        return response.content();
+        return extractCssFromResponse(routed.response().content());
+    }
+
+    // ─── Extract tokens from CSS variables ─────────────────────────────
+
+    /**
+     * Parse les variables CSS --bw-* du CSS genere pour construire les DesignTokens.
+     * C'est plus fiable que de demander au LLM de retourner du JSON.
+     */
+    private DesignTokensDto extractTokensFromCss(String css) {
+        return new DesignTokensDto(
+                extractCssVar(css, "--bw-primaryColor"),
+                extractCssVar(css, "--bw-secondaryColor"),
+                extractCssVar(css, "--bw-accentColor"),
+                extractCssVar(css, "--bw-backgroundColor"),
+                extractCssVar(css, "--bw-surfaceColor"),
+                extractCssVar(css, "--bw-textColor"),
+                extractCssVar(css, "--bw-textSecondaryColor"),
+                extractCssVar(css, "--bw-headingFontFamily"),
+                extractCssVar(css, "--bw-bodyFontFamily"),
+                extractCssVar(css, "--bw-baseFontSize"),
+                extractCssVar(css, "--bw-headingFontWeight"),
+                extractCssVar(css, "--bw-borderRadius"),
+                extractCssVar(css, "--bw-buttonBorderRadius"),
+                extractCssVar(css, "--bw-cardBorderRadius"),
+                extractCssVar(css, "--bw-spacing"),
+                extractCssVar(css, "--bw-boxShadow"),
+                extractCssVar(css, "--bw-cardShadow"),
+                extractCssVar(css, "--bw-buttonStyle"),
+                extractCssVar(css, "--bw-buttonTextTransform"),
+                extractCssVar(css, "--bw-borderColor"),
+                extractCssVar(css, "--bw-dividerColor")
+        );
+    }
+
+    /**
+     * Extrait la valeur d'une variable CSS (ex: "--bw-primaryColor: #007bff;" → "#007bff").
+     */
+    private String extractCssVar(String css, String varName) {
+        if (css == null) return null;
+        int idx = css.indexOf(varName + ":");
+        if (idx < 0) return null;
+        int start = idx + varName.length() + 1; // skip ":"
+        int end = css.indexOf(';', start);
+        if (end < 0) return null;
+        String value = css.substring(start, end).trim();
+        return value.isEmpty() || "null".equals(value) || "none".equals(value) ? null : value;
+    }
+
+    /**
+     * Extrait le CSS pur d'une reponse LLM (supprime les balises markdown).
+     */
+    private String extractCssFromResponse(String content) {
+        if (content == null) return "";
+        String trimmed = content.trim();
+        if (trimmed.startsWith("```")) {
+            int firstNewline = trimmed.indexOf('\n');
+            if (firstNewline > 0) trimmed = trimmed.substring(firstNewline + 1);
+            if (trimmed.endsWith("```")) trimmed = trimmed.substring(0, trimmed.lastIndexOf("```"));
+            trimmed = trimmed.trim();
+        }
+        return trimmed;
+    }
+
+    private int countNonNull(DesignTokensDto tokens) {
+        int count = 0;
+        if (tokens.primaryColor() != null) count++;
+        if (tokens.secondaryColor() != null) count++;
+        if (tokens.accentColor() != null) count++;
+        if (tokens.backgroundColor() != null) count++;
+        if (tokens.textColor() != null) count++;
+        if (tokens.bodyFontFamily() != null) count++;
+        if (tokens.borderRadius() != null) count++;
+        return count;
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────

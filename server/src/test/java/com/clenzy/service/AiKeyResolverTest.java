@@ -2,8 +2,12 @@ package com.clenzy.service;
 
 import com.clenzy.config.AiProperties;
 import com.clenzy.exception.AiNotConfiguredException;
+import com.clenzy.model.AiFeature;
 import com.clenzy.model.OrgAiApiKey;
+import com.clenzy.model.PlatformAiFeatureModel;
+import com.clenzy.model.PlatformAiModel;
 import com.clenzy.repository.OrgAiApiKeyRepository;
+import com.clenzy.repository.PlatformAiFeatureModelRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -18,6 +22,7 @@ class AiKeyResolverTest {
 
     private AiProperties aiProperties;
     private OrgAiApiKeyRepository orgAiApiKeyRepository;
+    private PlatformAiFeatureModelRepository platformAiFeatureModelRepository;
     private AiKeyResolver resolver;
 
     private static final Long ORG_ID = 1L;
@@ -36,7 +41,8 @@ class AiKeyResolverTest {
         aiProperties.setOpenai(openAi);
 
         orgAiApiKeyRepository = mock(OrgAiApiKeyRepository.class);
-        resolver = new AiKeyResolver(aiProperties, orgAiApiKeyRepository);
+        platformAiFeatureModelRepository = mock(PlatformAiFeatureModelRepository.class);
+        resolver = new AiKeyResolver(aiProperties, orgAiApiKeyRepository, platformAiFeatureModelRepository);
     }
 
     @Nested
@@ -102,7 +108,44 @@ class AiKeyResolverTest {
         }
 
         @Test
-        @DisplayName("throws AiNotConfiguredException when neither key available")
+        @DisplayName("falls back to platform DB feature model when no org key and no env var")
+        void whenNoPlatformEnvKey_fallsBackToPlatformFeatureModel() {
+            aiProperties.getAnthropic().setApiKey("");
+            PlatformAiModel model = new PlatformAiModel("Bedrock Nova", "bedrock",
+                    "amazon.nova-lite-v1:0", "bedrock-key-123",
+                    "https://bedrock-mantle.eu-west-1.api.aws/v1");
+            model.setId(1L);
+            PlatformAiFeatureModel featureModel = new PlatformAiFeatureModel("MESSAGING", model);
+            when(platformAiFeatureModelRepository.findByFeature("MESSAGING"))
+                    .thenReturn(Optional.of(featureModel));
+            when(orgAiApiKeyRepository.findByOrganizationIdAndProvider(ORG_ID, "anthropic"))
+                    .thenReturn(Optional.empty());
+
+            AiKeyResolver.ResolvedKey result = resolver.resolve(ORG_ID, "anthropic", AiFeature.MESSAGING);
+
+            assertEquals("bedrock-key-123", result.apiKey());
+            assertEquals("amazon.nova-lite-v1:0", result.modelOverride());
+            assertEquals(AiKeyResolver.KeySource.PLATFORM_DB, result.source());
+            assertEquals("bedrock", result.providerName());
+            assertEquals("https://bedrock-mantle.eu-west-1.api.aws/v1", result.baseUrl());
+        }
+
+        @Test
+        @DisplayName("falls back to env var when feature has no assigned model")
+        void whenFeatureNotAssigned_fallsBackToEnvVar() {
+            when(platformAiFeatureModelRepository.findByFeature("ANALYTICS"))
+                    .thenReturn(Optional.empty());
+            when(orgAiApiKeyRepository.findByOrganizationIdAndProvider(ORG_ID, "anthropic"))
+                    .thenReturn(Optional.empty());
+
+            AiKeyResolver.ResolvedKey result = resolver.resolve(ORG_ID, "anthropic", AiFeature.ANALYTICS);
+
+            assertEquals(PLATFORM_KEY, result.apiKey());
+            assertEquals(AiKeyResolver.KeySource.PLATFORM, result.source());
+        }
+
+        @Test
+        @DisplayName("throws AiNotConfiguredException when no key at all")
         void whenNeitherAvailable_throwsAiNotConfigured() {
             aiProperties.getAnthropic().setApiKey("");
             when(orgAiApiKeyRepository.findByOrganizationIdAndProvider(ORG_ID, "anthropic"))
@@ -130,10 +173,14 @@ class AiKeyResolverTest {
         }
 
         @Test
-        @DisplayName("throws for unknown provider")
+        @DisplayName("throws AiNotConfiguredException for unknown provider (no key found)")
         void throwsForUnknownProvider() {
-            assertThrows(IllegalArgumentException.class,
+            when(orgAiApiKeyRepository.findByOrganizationIdAndProvider(ORG_ID, "unknown"))
+                    .thenReturn(Optional.empty());
+
+            AiNotConfiguredException ex = assertThrows(AiNotConfiguredException.class,
                     () -> resolver.resolve(ORG_ID, "unknown"));
+            assertEquals("AI_NOT_CONFIGURED", ex.getErrorCode());
         }
 
         @Test

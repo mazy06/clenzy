@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, RefreshControl, useWindowDimensions, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useReservations } from '@/hooks/useReservations';
 import { useInterventions } from '@/hooks/useInterventions';
 import { ReservationCard } from '@/components/domain/ReservationCard';
@@ -81,8 +83,11 @@ const COMPACT_CELL_HEIGHT = 36;
 
 // ─── Screen ────────────────────────────────────────────────────────────────
 
+type CalendarStackNav = NativeStackNavigationProp<{ ReservationDetail: { reservationId: number } }>;
+
 export function ReservationCalendarScreen() {
   const theme = useTheme();
+  const navigation = useNavigation<CalendarStackNav>();
   const { height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -171,7 +176,9 @@ export function ReservationCalendarScreen() {
 
   const selectedReservations = useMemo(() => {
     if (!selectedDay || !showReservations) return [];
-    return reservationDays.get(selectedDay)?.reservations ?? [];
+    const all = reservationDays.get(selectedDay)?.reservations ?? [];
+    const seen = new Set<number>();
+    return all.filter((r) => { if (seen.has(r.id)) return false; seen.add(r.id); return true; });
   }, [selectedDay, reservationDays, showReservations]);
 
   const selectedInterventions = useMemo(() => {
@@ -473,7 +480,11 @@ export function ReservationCalendarScreen() {
               ) : (
                 <View style={{ marginBottom: theme.SPACING.lg }}>
                   {selectedReservations.map((res) => (
-                    <ReservationCard key={`res-${res.id}`} reservation={res} />
+                    <ReservationCard
+                      key={`res-${res.id}`}
+                      reservation={res}
+                      onPress={() => navigation.navigate('ReservationDetail', { reservationId: res.id })}
+                    />
                   ))}
                   {selectedInterventions.map((int) => (
                     <InterventionCard key={`int-${int.id}`} intervention={int} />

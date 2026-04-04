@@ -1,7 +1,7 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Box, Typography, Button, TextField, MenuItem, IconButton, alpha } from '@mui/material';
 import {
-  Palette, Css, Code, Delete,
+  Css, Code, Delete, UploadFile,
   BrushRounded, AutoFixHighRounded,
 } from '@mui/icons-material';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -18,11 +18,9 @@ interface StepAppearanceProps {
   form: BookingEngineConfigUpdate;
   designTokens: DesignTokens;
   isDesignAiEnabled: boolean;
-  isRegeneratingCss: boolean;
   onFormChange: (field: keyof BookingEngineConfigUpdate, value: unknown) => void;
   onDesignTokensChange: (tokens: DesignTokens) => void;
   onTokensExtracted: (tokens: DesignTokens, generatedCss: string) => void;
-  onRegenerateCss: () => void;
   onSnackbar: (message: string, severity: 'success' | 'error') => void;
 }
 
@@ -33,22 +31,54 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
   form,
   designTokens,
   isDesignAiEnabled,
-  isRegeneratingCss,
   onFormChange,
   onDesignTokensChange,
   onTokensExtracted,
-  onRegenerateCss,
   onSnackbar,
 }) => {
   const { t } = useTranslation();
 
-  const activePresetId = DESIGN_PRESETS.find(
-    (p) => form.primaryColor === p.primaryColor && form.fontFamily === p.fontFamily,
-  )?.id ?? 'custom';
+  // Auto-open editors when content exists
+  const [showCssEditor, setShowCssEditor] = useState(!!form.customCss);
+  const [showJsEditor, setShowJsEditor] = useState(!!form.customJs);
+
+  // AI analysis already done (from DB) or just completed in this session
+  const aiAlreadyDone = !!form.aiAnalysisAt;
+  const [aiJustCompleted, setAiJustCompleted] = useState(false);
+
+  // Show Templates section: always if AI disabled, or after analysis is done
+  const showTemplates = !isDesignAiEnabled || aiAlreadyDone || aiJustCompleted;
+
+  const handleAiComplete = useCallback(() => {
+    setAiJustCompleted(true);
+    setShowCssEditor(true); // auto-open CSS editor to show generated CSS
+  }, []);
+
+  // Build a dynamic preset from AI analysis if available
+  const aiDomainName = form.sourceWebsiteUrl
+    ? (() => { try { return new URL(form.sourceWebsiteUrl).hostname.replace('www.', ''); } catch { return null; } })()
+    : null;
+  const hasAiPreset = !!form.aiAnalysisAt && !!aiDomainName && !!designTokens.primaryColor;
+
+  const activePresetId = hasAiPreset
+    && form.primaryColor === designTokens.primaryColor
+    ? 'ai-generated'
+    : DESIGN_PRESETS.find(
+        (p) => form.primaryColor === p.primaryColor && form.fontFamily === p.fontFamily,
+      )?.id ?? 'custom';
 
   const selectedPreset = DESIGN_PRESETS.find((p) => p.id === activePresetId);
 
   const applyDesignPreset = useCallback((presetId: string) => {
+    if (presetId === 'ai-generated') {
+      // Re-apply AI-extracted tokens
+      if (designTokens.primaryColor) onFormChange('primaryColor', designTokens.primaryColor);
+      if (designTokens.bodyFontFamily) onFormChange('fontFamily', designTokens.bodyFontFamily);
+      if (designTokens.accentColor) onFormChange('accentColor', designTokens.accentColor);
+      onDesignTokensChange(designTokens);
+      onSnackbar(t('bookingEngine.presets.applied'), 'success');
+      return;
+    }
     const preset = DESIGN_PRESETS.find((p) => p.id === presetId);
     if (!preset) return;
     onFormChange('primaryColor', preset.primaryColor);
@@ -56,7 +86,7 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
     onFormChange('accentColor', preset.tokens.accentColor || null);
     onDesignTokensChange(preset.tokens);
     onSnackbar(t('bookingEngine.presets.applied'), 'success');
-  }, [onFormChange, onDesignTokensChange, onSnackbar, t]);
+  }, [onFormChange, onDesignTokensChange, onSnackbar, t, designTokens]);
 
   const handleFileImport = useCallback(
     (field: 'customCss' | 'customJs', file: File) => {
@@ -69,10 +99,25 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-      {/* Design Preset Selector */}
+      {/* ── Section 1 : Analyse IA ──────────────────────────────────── */}
+      {isDesignAiEnabled && (
+        <SectionPaper icon={<AutoFixHighRounded sx={{ fontSize: 20, color: '#7C4DFF' }} />} titleKey="bookingEngine.sections.aiDesign">
+          <AiDesignMatcher
+            configId={configId}
+            sourceWebsiteUrl={form.sourceWebsiteUrl ?? ''}
+            onSourceWebsiteUrlChange={(url) => onFormChange('sourceWebsiteUrl', url || null)}
+            onTokensExtracted={onTokensExtracted}
+            onAnalysisComplete={handleAiComplete}
+            onError={(msg) => onSnackbar(msg, 'error')}
+          />
+        </SectionPaper>
+      )}
+
+      {/* ── Section 2 : Templates + Tokens de design (fusionnes) ──── */}
+      {showTemplates && (
       <SectionPaper icon={<BrushRounded sx={{ fontSize: 20, color: '#E91E63' }} />} titleKey="bookingEngine.sections.designPresets">
+        {/* Preset selector row */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-          {/* Preset selector */}
           <TextField
             size="small"
             select
@@ -81,6 +126,24 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
             onChange={(e) => applyDesignPreset(e.target.value)}
             sx={{ minWidth: 240, flex: '0 0 auto' }}
           >
+            {/* AI-generated preset from website analysis */}
+            {hasAiPreset && aiDomainName && (
+              <MenuItem value="ai-generated">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
+                  <Box sx={{ display: 'flex', gap: 0.25, flexShrink: 0 }}>
+                    {[designTokens.primaryColor, designTokens.secondaryColor, designTokens.accentColor]
+                      .filter((c): c is string => c != null && c !== '')
+                      .map((color, i) => (
+                        <Box key={i} sx={{ width: 12, height: 12, borderRadius: '3px', bgcolor: color, border: '1px solid', borderColor: alpha(color, 0.3) }} />
+                      ))}
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.8125rem' }}>{aiDomainName}</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>{t('bookingEngine.presets.aiGenerated')}</Typography>
+                  </Box>
+                </Box>
+              </MenuItem>
+            )}
             {DESIGN_PRESETS.map((preset) => (
               <MenuItem key={preset.id} value={preset.id}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
@@ -118,95 +181,171 @@ const StepAppearance: React.FC<StepAppearanceProps> = ({
             </Box>
           )}
 
-          {/* Spacer */}
           <Box sx={{ flex: 1 }} />
 
-          {/* Import CSS */}
-          <FileImportButton
+          {/* Toggle CSS editor */}
+          <CodeToggleButton
             label="CSS"
-            accept=".css"
             hasValue={!!form.customCss}
             icon={<Css sx={{ fontSize: 14 }} />}
-            onImport={(file) => handleFileImport('customCss', file)}
-            onClear={() => onFormChange('customCss', null)}
+            isOpen={showCssEditor}
+            onToggle={() => setShowCssEditor((v) => !v)}
           />
 
-          {/* Import JS */}
-          <FileImportButton
+          {/* Toggle JS editor */}
+          <CodeToggleButton
             label="JS"
-            accept=".js"
             hasValue={!!form.customJs}
             icon={<Code sx={{ fontSize: 14 }} />}
-            onImport={(file) => handleFileImport('customJs', file)}
-            onClear={() => onFormChange('customJs', null)}
+            isOpen={showJsEditor}
+            onToggle={() => setShowJsEditor((v) => !v)}
           />
         </Box>
-      </SectionPaper>
 
-      {/* AI Design Matcher */}
-      {isDesignAiEnabled && (
-        <SectionPaper icon={<AutoFixHighRounded sx={{ fontSize: 20, color: '#7C4DFF' }} />} titleKey="bookingEngine.sections.aiDesign">
-          <AiDesignMatcher
-            configId={configId}
-            onTokensExtracted={onTokensExtracted}
-            onError={(msg) => onSnackbar(msg, 'error')}
+        {/* CSS Editor */}
+        {showCssEditor && (
+          <CodeEditorSection
+            label="CSS"
+            accept=".css"
+            value={form.customCss ?? ''}
+            onChange={(val) => onFormChange('customCss', val || null)}
+            onImport={(file) => handleFileImport('customCss', file)}
+            onClear={() => onFormChange('customCss', null)}
+            placeholder="/* Ajoutez votre CSS personnalise ici */\n\n.booking-widget {\n  /* ... */\n}"
+            t={t}
           />
-        </SectionPaper>
-      )}
+        )}
 
-      {/* Design Token Editor */}
-      {Object.keys(designTokens).length > 0 && (
-        <SectionPaper icon={<Palette sx={{ fontSize: 20, color: '#AB47BC' }} />} titleKey="bookingEngine.sections.designTokens">
+        {/* JS Editor */}
+        {showJsEditor && (
+          <CodeEditorSection
+            label="JS"
+            accept=".js"
+            value={form.customJs ?? ''}
+            onChange={(val) => onFormChange('customJs', val || null)}
+            onImport={(file) => handleFileImport('customJs', file)}
+            onClear={() => onFormChange('customJs', null)}
+            placeholder="// Ajoutez votre JavaScript personnalise ici\n\ndocument.addEventListener('DOMContentLoaded', () => {\n  // ...\n});"
+            t={t}
+          />
+        )}
+
+        {/* Design Tokens (integrated) */}
+        <Box sx={{ mt: 2 }}>
           <DesignTokenEditor
             tokens={designTokens}
             onChange={onDesignTokensChange}
-            onRegenerateCss={onRegenerateCss}
-            isRegenerating={isRegeneratingCss}
           />
-        </SectionPaper>
+        </Box>
+      </SectionPaper>
       )}
     </Box>
   );
 };
 
-// ─── File Import Button (internal helper) ───────────────────────────────────
+// ─── Code Toggle Button (header) ────────────────────────────────────────────
 
-interface FileImportButtonProps {
+interface CodeToggleButtonProps {
   label: string;
-  accept: string;
   hasValue: boolean;
   icon: React.ReactNode;
-  onImport: (file: File) => void;
-  onClear: () => void;
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
-const FileImportButton: React.FC<FileImportButtonProps> = ({ label, accept, hasValue, icon, onImport, onClear }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flex: '0 0 auto' }}>
-    <Button
-      variant="outlined"
-      size="small"
-      startIcon={icon}
-      component="label"
-      color={hasValue ? 'success' : 'inherit'}
-      sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 500, px: 1.5, minHeight: 32 }}
-    >
-      {hasValue ? `${label} ✓` : label}
-      <input
-        type="file"
-        accept={accept}
-        hidden
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) onImport(file);
-          e.target.value = '';
-        }}
-      />
-    </Button>
-    {hasValue && (
-      <IconButton size="small" onClick={onClear} sx={{ p: 0.25 }}>
-        <Delete sx={{ fontSize: 14, color: 'text.disabled' }} />
-      </IconButton>
-    )}
+const CodeToggleButton: React.FC<CodeToggleButtonProps> = ({ label, hasValue, icon, isOpen, onToggle }) => (
+  <Button
+    variant={isOpen ? 'contained' : 'outlined'}
+    size="small"
+    startIcon={icon}
+    onClick={onToggle}
+    color={hasValue ? 'success' : isOpen ? 'primary' : 'inherit'}
+    sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 500, px: 1.5, minHeight: 32, flex: '0 0 auto' }}
+  >
+    {label}
+  </Button>
+);
+
+// ─── Code Editor Section (expandable) ───────────────────────────────────────
+
+interface CodeEditorSectionProps {
+  label: string;
+  accept: string;
+  value: string;
+  onChange: (value: string) => void;
+  onImport: (file: File) => void;
+  onClear: () => void;
+  placeholder: string;
+  t: (key: string) => string;
+}
+
+const CodeEditorSection: React.FC<CodeEditorSectionProps> = ({
+  label, accept, value, onChange, onImport, onClear, placeholder,
+}) => (
+  <Box sx={{
+    mt: 1.5, p: 1.5,
+    border: '1px solid', borderColor: 'divider', borderRadius: 2,
+    bgcolor: 'background.default',
+  }}>
+    {/* Toolbar */}
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        {label} personnalise
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <Button
+          variant="text"
+          size="small"
+          startIcon={<UploadFile sx={{ fontSize: 14 }} />}
+          component="label"
+          sx={{ textTransform: 'none', fontSize: '0.7rem', minHeight: 26, px: 1 }}
+        >
+          Importer
+          <input
+            type="file"
+            accept={accept}
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onImport(file);
+              e.target.value = '';
+            }}
+          />
+        </Button>
+        {value && (
+          <IconButton size="small" onClick={onClear} sx={{ p: 0.25 }} title="Supprimer">
+            <Delete sx={{ fontSize: 14, color: 'text.disabled' }} />
+          </IconButton>
+        )}
+      </Box>
+    </Box>
+
+    {/* Code textarea */}
+    <Box
+      component="textarea"
+      value={value}
+      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onChange(e.target.value)}
+      placeholder={placeholder}
+      spellCheck={false}
+      sx={{
+        width: '100%',
+        minHeight: 160,
+        maxHeight: 400,
+        resize: 'vertical',
+        fontFamily: '"JetBrains Mono", "Fira Code", "Consolas", monospace',
+        fontSize: '0.75rem',
+        lineHeight: 1.6,
+        p: 1.5,
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 1,
+        bgcolor: 'background.paper',
+        color: 'text.primary',
+        outline: 'none',
+        '&:focus': { borderColor: 'primary.main' },
+        '&::placeholder': { color: 'text.disabled', opacity: 0.6 },
+      }}
+    />
   </Box>
 );
 

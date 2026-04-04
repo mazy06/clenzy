@@ -4,12 +4,10 @@ import {
   AccordionSummary,
   AccordionDetails,
   Box,
-  Button,
   Grid,
   MenuItem,
   TextField,
   Typography,
-  CircularProgress,
 } from '@mui/material';
 import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
 import PaletteRounded from '@mui/icons-material/PaletteRounded';
@@ -17,15 +15,12 @@ import TextFieldsRounded from '@mui/icons-material/TextFieldsRounded';
 import SpaceBarRounded from '@mui/icons-material/SpaceBarRounded';
 import FilterDramaRounded from '@mui/icons-material/FilterDramaRounded';
 import SmartButtonRounded from '@mui/icons-material/SmartButtonRounded';
-import AutoFixHighRounded from '@mui/icons-material/AutoFixHighRounded';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { DesignTokens } from '../../services/api/bookingEngineApi';
 
 interface DesignTokenEditorProps {
   tokens: DesignTokens;
   onChange: (tokens: DesignTokens) => void;
-  onRegenerateCss: () => void;
-  isRegenerating: boolean;
 }
 
 /**
@@ -35,8 +30,6 @@ interface DesignTokenEditorProps {
 export default function DesignTokenEditor({
   tokens,
   onChange,
-  onRegenerateCss,
-  isRegenerating,
 }: DesignTokenEditorProps) {
   const { t } = useTranslation();
 
@@ -226,17 +219,6 @@ export default function DesignTokenEditor({
         </AccordionDetails>
       </Accordion>
 
-      {/* ─── Regenerate CSS button ──────────────────────────────────── */}
-      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button
-          variant="outlined"
-          startIcon={isRegenerating ? <CircularProgress size={16} /> : <AutoFixHighRounded />}
-          onClick={onRegenerateCss}
-          disabled={isRegenerating}
-        >
-          {t('bookingEngine.designTokens.regenerateCss')}
-        </Button>
-      </Box>
     </Box>
   );
 }

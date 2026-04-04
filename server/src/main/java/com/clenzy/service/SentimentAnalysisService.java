@@ -2,15 +2,13 @@ package com.clenzy.service;
 
 import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.AiProviderException;
+import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.config.ai.AiRequest;
-import com.clenzy.config.ai.AiResponse;
-import com.clenzy.config.ai.AnthropicProvider;
 import com.clenzy.dto.AiSentimentResultDto;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
 import com.clenzy.model.ReviewTag;
 import com.clenzy.model.SentimentLabel;
-import com.clenzy.service.AiKeyResolver.KeySource;
 import com.clenzy.service.AiKeyResolver.ResolvedKey;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,23 +27,20 @@ public class SentimentAnalysisService {
     private static final Logger log = LoggerFactory.getLogger(SentimentAnalysisService.class);
 
     private final AiProperties aiProperties;
-    private final AnthropicProvider anthropicProvider;
+    private final AiProviderRouter aiProviderRouter;
     private final AiAnonymizationService anonymizationService;
     private final AiTokenBudgetService tokenBudgetService;
-    private final AiKeyResolver aiKeyResolver;
     private final ObjectMapper objectMapper;
 
     public SentimentAnalysisService(AiProperties aiProperties,
-                                     AnthropicProvider anthropicProvider,
+                                     AiProviderRouter aiProviderRouter,
                                      AiAnonymizationService anonymizationService,
                                      AiTokenBudgetService tokenBudgetService,
-                                     AiKeyResolver aiKeyResolver,
                                      ObjectMapper objectMapper) {
         this.aiProperties = aiProperties;
-        this.anthropicProvider = anthropicProvider;
+        this.aiProviderRouter = aiProviderRouter;
         this.anonymizationService = anonymizationService;
         this.tokenBudgetService = tokenBudgetService;
-        this.aiKeyResolver = aiKeyResolver;
         this.objectMapper = objectMapper;
     }
 
@@ -201,25 +196,22 @@ public class SentimentAnalysisService {
         }
 
         tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.SENTIMENT);
-        ResolvedKey key = aiKeyResolver.resolve(orgId, anthropicProvider.name());
+        ResolvedKey key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.SENTIMENT);
         tokenBudgetService.requireBudget(orgId, AiFeature.SENTIMENT, key.source());
 
         String anonymized = anonymizationService.anonymize(text);
         String userPrompt = AiSentimentPrompts.buildUserPrompt(anonymized, language);
 
         AiRequest request = AiRequest.of(AiSentimentPrompts.SYSTEM_PROMPT, userPrompt);
-        AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
-        AiResponse response = (key.source() == KeySource.ORGANIZATION)
-                ? anthropicProvider.chat(resolved, key.apiKey())
-                : anthropicProvider.chat(resolved);
+        RoutedResponse routed = aiProviderRouter.route(orgId, "anthropic", AiFeature.SENTIMENT, request);
 
-        tokenBudgetService.recordUsage(orgId, AiFeature.SENTIMENT, anthropicProvider.name(), response);
+        tokenBudgetService.recordUsage(orgId, AiFeature.SENTIMENT, routed.providerName(), routed.response());
 
         try {
-            return objectMapper.readValue(response.content(), AiSentimentResultDto.class);
+            return objectMapper.readValue(routed.response().content(), AiSentimentResultDto.class);
         } catch (JsonProcessingException e) {
             log.error("Failed to parse AI sentiment analysis: {}", e.getMessage());
-            throw new AiProviderException("anthropic", "Failed to parse sentiment analysis", e);
+            throw new AiProviderException(routed.providerName(), "Failed to parse sentiment analysis", e);
         }
     }
 }

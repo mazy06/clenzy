@@ -49,8 +49,18 @@ public class AnthropicProvider implements AiProvider {
 
     @Override
     public AiResponse chat(AiRequest request, String apiKey) {
+        return chat(request, apiKey, null);
+    }
+
+    /**
+     * Envoie une requete avec une cle et base URL dynamiques.
+     * Utilise pour le routing via PlatformAiModel.
+     */
+    public AiResponse chat(AiRequest request, String apiKey, String baseUrl) {
+        String effectiveBaseUrl = (baseUrl != null && !baseUrl.isBlank())
+                ? baseUrl : aiProperties.getAnthropic().getBaseUrl();
         RestClient client = RestClient.builder()
-                .baseUrl(aiProperties.getAnthropic().getBaseUrl())
+                .baseUrl(effectiveBaseUrl)
                 .defaultHeader("x-api-key", apiKey)
                 .defaultHeader("anthropic-version", ANTHROPIC_VERSION)
                 .defaultHeader("Content-Type", "application/json")

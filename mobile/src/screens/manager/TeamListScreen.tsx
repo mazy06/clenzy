@@ -19,7 +19,8 @@ type TeamsStackNav = NativeStackNavigationProp<{
 export function TeamListScreen() {
   const theme = useTheme();
   const navigation = useNavigation<TeamsStackNav>();
-  const { data: teams, isLoading, isRefetching, refetch } = useTeams();
+  const { data: rawTeams, isLoading, isRefetching, refetch } = useTeams();
+  const teams = Array.isArray(rawTeams) ? rawTeams : [];
 
   const handlePress = useCallback(
     (team: Team) => {

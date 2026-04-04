@@ -322,7 +322,7 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
                     boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
                   }}
                 >
-                  Completez la configuration initiale pour acceder au tableau de bord complet
+                  {t('onboarding.completionMessage')}
                 </Typography>
               </Box>
             )}
@@ -485,7 +485,20 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
             </GridSection>
           </DashboardErrorBoundary>
 
-          {/* Command Center: Planning + Action counters */}
+          {/* Action counters (above Command Center) */}
+          <DashboardErrorBoundary widgetName="ActionCounters">
+            <ActionCountersWidget
+              alerts={alerts}
+              stats={stats}
+              pendingPaymentsCount={pendingPaymentsCount}
+              pendingPayoutsCount={pendingPayoutsData?.pendingCount ?? 0}
+              loading={loading}
+              navigate={navigate}
+              t={t}
+            />
+          </DashboardErrorBoundary>
+
+          {/* Command Center: Planning */}
           <DashboardErrorBoundary widgetName="CommandCenter">
             <GridSection
               title={t('dashboard.overview.commandCenterTitle')}
@@ -494,18 +507,6 @@ const DashboardOverview: React.FC<DashboardOverviewProps> = React.memo(({ period
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <DashboardErrorBoundary widgetName="MiniPlanning">
                   <MiniPlanningWidget navigate={navigate} t={t} isOperational={isOperational} onReady={onPlanningReady} />
-                </DashboardErrorBoundary>
-
-                <DashboardErrorBoundary widgetName="ActionCounters">
-                  <ActionCountersWidget
-                    alerts={alerts}
-                    stats={stats}
-                    pendingPaymentsCount={pendingPaymentsCount}
-                    pendingPayoutsCount={pendingPayoutsData?.pendingCount ?? 0}
-                    loading={loading}
-                    navigate={navigate}
-                    t={t}
-                  />
                 </DashboardErrorBoundary>
 
                 {showAiWidget && (

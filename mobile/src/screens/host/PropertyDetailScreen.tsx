@@ -1,11 +1,14 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, Image, Pressable, RefreshControl, Platform, Linking, useWindowDimensions } from 'react-native';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { View, Text, ScrollView, Image, Pressable, RefreshControl, Platform, Linking, useWindowDimensions, FlatList, Modal, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useProperty } from '@/hooks/useProperties';
+import { propertiesApi, PropertyPhotoMeta } from '@/api/endpoints/propertiesApi';
+import { API_CONFIG } from '@/config/api';
+import { useAuthStore } from '@/store/authStore';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -327,6 +330,227 @@ function AlurBadge({ propertyId, theme }: { propertyId: number; theme: ReturnTyp
   );
 }
 
+/* ─── Full-screen photo viewer modal ─── */
+
+function PhotoViewerModal({
+  visible,
+  photos,
+  initialIndex,
+  onClose,
+  theme,
+  headers,
+}: {
+  visible: boolean;
+  photos: string[];
+  initialIndex: number;
+  onClose: () => void;
+  theme: ReturnType<typeof useTheme>;
+  headers?: Record<string, string>;
+}) {
+  const { width, height } = useWindowDimensions();
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const flatListRef = useRef<FlatList<string>>(null);
+
+  useEffect(() => {
+    if (visible) setCurrentIndex(initialIndex);
+  }, [visible, initialIndex]);
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
+    if (viewableItems.length > 0 && viewableItems[0].index != null) {
+      setCurrentIndex(viewableItems[0].index);
+    }
+  }, []);
+
+  const viewabilityConfig = useMemo(() => ({ viewAreaCoveragePercentThreshold: 50 }), []);
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+      <StatusBar barStyle="light-content" />
+      <View style={{ flex: 1, backgroundColor: '#000' }}>
+        {/* Close button */}
+        <Pressable
+          onPress={onClose}
+          style={{
+            position: 'absolute', top: 54, right: 16, zIndex: 100,
+            width: 44, height: 44, borderRadius: 22,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            alignItems: 'center', justifyContent: 'center',
+          }}
+          hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+        >
+          <Ionicons name="close" size={28} color="#fff" />
+        </Pressable>
+
+        {/* Photo counter */}
+        <View style={{
+          position: 'absolute', top: 60, left: 0, right: 0, zIndex: 10,
+          alignItems: 'center',
+        }}>
+          <View style={{
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            paddingHorizontal: 14, paddingVertical: 6,
+            borderRadius: theme.BORDER_RADIUS.full,
+          }}>
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>
+              {currentIndex + 1} / {photos.length}
+            </Text>
+          </View>
+        </View>
+
+        {/* Swipeable photos */}
+        <FlatList
+          ref={flatListRef}
+          data={photos}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          initialScrollIndex={initialIndex}
+          getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          keyExtractor={(_, index) => `viewer-${index}`}
+          renderItem={({ item }) => (
+            <View style={{ width, height, alignItems: 'center', justifyContent: 'center' }}>
+              <Image
+                source={{ uri: item, headers }}
+                style={{ width, height: height * 0.7 }}
+                resizeMode="contain"
+              />
+            </View>
+          )}
+        />
+      </View>
+    </Modal>
+  );
+}
+
+/* ─── Horizontal photo gallery ─── */
+
+function useAuthHeaders(): Record<string, string> {
+  const token = useAuthStore((s: { accessToken: string | null }) => s.accessToken);
+  return useMemo(() => (token ? { Authorization: `Bearer ${token}` } : {} as Record<string, string>), [token]);
+}
+
+function PhotoGallery({
+  photos,
+  screenWidth,
+  onPhotoPress,
+  theme,
+  headers,
+}: {
+  photos: string[];
+  screenWidth: number;
+  onPhotoPress: (index: number) => void;
+  theme: ReturnType<typeof useTheme>;
+  headers?: Record<string, string>;
+}) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const photoWidth = screenWidth * 0.85;
+  const photoHeight = 220;
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
+    if (viewableItems.length > 0 && viewableItems[0].index != null) {
+      setActiveIndex(viewableItems[0].index);
+    }
+  }, []);
+
+  const viewabilityConfig = useMemo(() => ({ viewAreaCoveragePercentThreshold: 50 }), []);
+
+  if (photos.length === 0) {
+    return (
+      <View style={{
+        width: '100%', height: 180,
+        backgroundColor: `${theme.colors.primary.main}08`,
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Ionicons name="camera-outline" size={48} color={theme.colors.primary.light} />
+        <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, marginTop: theme.SPACING.sm }}>
+          Aucune photo
+        </Text>
+      </View>
+    );
+  }
+
+  if (photos.length === 1) {
+    return (
+      <Pressable onPress={() => onPhotoPress(0)}>
+        <Image
+          source={{ uri: photos[0], headers }}
+          style={{ width: '100%', height: photoHeight, backgroundColor: theme.colors.background.surface }}
+        />
+        {/* Photo counter */}
+        <View style={{
+          position: 'absolute', bottom: 10, right: 10,
+          backgroundColor: 'rgba(0,0,0,0.55)',
+          paddingHorizontal: 10, paddingVertical: 4,
+          borderRadius: theme.BORDER_RADIUS.full,
+        }}>
+          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>1 / 1</Text>
+        </View>
+      </Pressable>
+    );
+  }
+
+  return (
+    <View>
+      <FlatList
+        data={photos}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={photoWidth + theme.SPACING.sm}
+        decelerationRate="fast"
+        contentContainerStyle={{ paddingHorizontal: (screenWidth - photoWidth) / 2 }}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        keyExtractor={(_, index) => `gallery-${index}`}
+        renderItem={({ item, index }) => (
+          <Pressable
+            onPress={() => onPhotoPress(index)}
+            style={{ marginRight: index < photos.length - 1 ? theme.SPACING.sm : 0 }}
+          >
+            <Image
+              source={{ uri: item, headers }}
+              style={{
+                width: photoWidth,
+                height: photoHeight,
+                borderRadius: theme.BORDER_RADIUS.lg,
+                backgroundColor: theme.colors.background.surface,
+              }}
+            />
+          </Pressable>
+        )}
+      />
+      {/* Pagination dots */}
+      <View style={{
+        flexDirection: 'row', justifyContent: 'center',
+        gap: 5, marginTop: theme.SPACING.sm,
+      }}>
+        {photos.length <= 10 ? photos.map((_, i) => (
+          <View
+            key={i}
+            style={{
+              width: i === activeIndex ? 18 : 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: i === activeIndex ? theme.colors.primary.main : `${theme.colors.text.disabled}40`,
+            }}
+          />
+        )) : (
+          <View style={{
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            paddingHorizontal: 10, paddingVertical: 3,
+            borderRadius: theme.BORDER_RADIUS.full,
+          }}>
+            <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>
+              {activeIndex + 1} / {photos.length}
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
 function DetailSkeleton({ theme }: { theme: ReturnType<typeof useTheme> }) {
   return (
     <View style={{ padding: theme.SPACING.lg, gap: theme.SPACING.md }}>
@@ -359,6 +583,16 @@ export function PropertyDetailScreen() {
   const { propertyId } = route.params;
 
   const { data: property, isLoading, isError, error, isRefetching, refetch } = useProperty(propertyId);
+  const authHeaders = useAuthHeaders();
+
+  // Photo viewer modal state
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
+  const openPhotoViewer = useCallback((index: number) => {
+    setViewerIndex(index);
+    setViewerVisible(true);
+  }, []);
 
   // Geocode address when lat/lng not available
   const [geocoded, setGeocoded] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -408,6 +642,22 @@ export function PropertyDetailScreen() {
     })();
     return () => { cancelled = true; };
   }, [property?.id, fullAddress, property?.city]);
+
+  // ─── Load photos from dedicated API ────────────────────────────────
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!property?.id) return;
+    let cancelled = false;
+    propertiesApi.getPhotos(property.id).then((metas) => {
+      if (cancelled) return;
+      const urls = metas
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((m) => `${API_CONFIG.BASE_URL}${API_CONFIG.BASE_PATH}/properties/${property.id}/photos/${m.id}/data`);
+      setPhotoUrls(urls);
+    }).catch(() => { /* ignore */ });
+    return () => { cancelled = true; };
+  }, [property?.id]);
 
   // Resolved coords: from property or geocoded
   const coords = (property?.latitude != null && property?.longitude != null)
@@ -475,20 +725,14 @@ export function PropertyDetailScreen() {
           <Ionicons name="chevron-back" size={20} color={theme.colors.text.primary} />
         </Pressable>
 
-        {/* Hero */}
-        {property.photos?.[0] ? (
-          <Image
-            source={{ uri: property.photos[0] }}
-            style={{ width: '100%', height: 220, backgroundColor: theme.colors.background.surface }}
-          />
-        ) : coords ? (
-          <OsmTileMap
-            latitude={coords.latitude}
-            longitude={coords.longitude}
-            width={mapWidth}
-            height={200}
-            onPress={openInMaps}
+        {/* Hero: Photos gallery or placeholder */}
+        {photoUrls.length > 0 ? (
+          <PhotoGallery
+            photos={photoUrls}
+            screenWidth={mapWidth}
+            onPhotoPress={openPhotoViewer}
             theme={theme}
+            headers={authHeaders}
           />
         ) : (
           <View style={{
@@ -496,7 +740,10 @@ export function PropertyDetailScreen() {
             backgroundColor: `${theme.colors.primary.main}08`,
             alignItems: 'center', justifyContent: 'center',
           }}>
-            <Ionicons name="home-outline" size={48} color={theme.colors.primary.light} />
+            <Ionicons name="camera-outline" size={48} color={theme.colors.primary.light} />
+            <Text style={{ ...theme.typography.caption, color: theme.colors.text.disabled, marginTop: theme.SPACING.sm }}>
+              Aucune photo
+            </Text>
           </View>
         )}
 
@@ -582,6 +829,24 @@ export function PropertyDetailScreen() {
             </View>
           </View>
 
+          {/* Map section */}
+          {coords && (
+            <Card variant="filled" style={{ marginTop: theme.SPACING.xl, padding: 0, overflow: 'hidden' }}>
+              <OsmTileMap
+                latitude={coords.latitude}
+                longitude={coords.longitude}
+                width={mapWidth - theme.SPACING.lg * 2}
+                height={160}
+                onPress={openInMaps}
+                theme={theme}
+              />
+              <Pressable onPress={openInMaps} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: theme.SPACING.sm }}>
+                <Ionicons name="navigate-outline" size={16} color={theme.colors.primary.main} />
+                <Text style={{ ...theme.typography.body2, color: theme.colors.primary.main, marginLeft: 6 }}>Ouvrir dans Maps</Text>
+              </Pressable>
+            </Card>
+          )}
+
           {/* Amenities / Equipements */}
           {property.amenities && property.amenities.filter((a: string) => AMENITY_MAP[a]).length > 0 && (
             <Card
@@ -624,6 +889,18 @@ export function PropertyDetailScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Full-screen photo viewer */}
+      {photoUrls.length > 0 && (
+        <PhotoViewerModal
+          visible={viewerVisible}
+          photos={photoUrls}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerVisible(false)}
+          theme={theme}
+          headers={authHeaders}
+        />
+      )}
     </SafeAreaView>
   );
 }

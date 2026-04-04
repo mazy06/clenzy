@@ -91,7 +91,7 @@ public class DocumentController {
 
     @GetMapping("/templates")
     @Operation(summary = "Lister tous les templates")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','ADMIN','HOST')")
     public ResponseEntity<List<DocumentTemplateDto>> listTemplates() {
         List<DocumentTemplateDto> templates = generatorService.listTemplates().stream()
                 .map(DocumentTemplateDto::fromEntity)
@@ -171,7 +171,7 @@ public class DocumentController {
 
     @PostMapping("/generate")
     @Operation(summary = "Generer un document manuellement")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','ADMIN','HOST')")
     public ResponseEntity<DocumentGenerationDto> generateDocument(
             @AuthenticationPrincipal Jwt jwt,
             @jakarta.validation.Valid @RequestBody GenerateDocumentRequest request
@@ -184,7 +184,7 @@ public class DocumentController {
 
     @GetMapping("/generations")
     @Operation(summary = "Historique des generations de documents")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','ADMIN','HOST')")
     public ResponseEntity<Page<DocumentGenerationDto>> listGenerations(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size

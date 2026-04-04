@@ -2,15 +2,13 @@ package com.clenzy.service;
 
 import com.clenzy.config.AiProperties;
 import com.clenzy.config.ai.AiProviderException;
+import com.clenzy.service.AiProviderRouter.RoutedResponse;
 import com.clenzy.config.ai.AiRequest;
-import com.clenzy.config.ai.AiResponse;
-import com.clenzy.config.ai.AnthropicProvider;
 import com.clenzy.dto.AiInsightDto;
 import com.clenzy.dto.OccupancyForecastDto;
 import com.clenzy.dto.RevenueAnalyticsDto;
 import com.clenzy.exception.AiNotConfiguredException;
 import com.clenzy.model.AiFeature;
-import com.clenzy.service.AiKeyResolver.KeySource;
 import com.clenzy.service.AiKeyResolver.ResolvedKey;
 import com.clenzy.model.Property;
 import com.clenzy.model.Reservation;
@@ -66,27 +64,24 @@ public class AiAnalyticsService {
     private final ReservationRepository reservationRepository;
     private final PropertyRepository propertyRepository;
     private final AiProperties aiProperties;
-    private final AnthropicProvider anthropicProvider;
+    private final AiProviderRouter aiProviderRouter;
     private final AiAnonymizationService anonymizationService;
     private final AiTokenBudgetService tokenBudgetService;
-    private final AiKeyResolver aiKeyResolver;
     private final ObjectMapper objectMapper;
 
     public AiAnalyticsService(ReservationRepository reservationRepository,
                                PropertyRepository propertyRepository,
                                AiProperties aiProperties,
-                               AnthropicProvider anthropicProvider,
+                               AiProviderRouter aiProviderRouter,
                                AiAnonymizationService anonymizationService,
                                AiTokenBudgetService tokenBudgetService,
-                               AiKeyResolver aiKeyResolver,
                                ObjectMapper objectMapper) {
         this.reservationRepository = reservationRepository;
         this.propertyRepository = propertyRepository;
         this.aiProperties = aiProperties;
-        this.anthropicProvider = anthropicProvider;
+        this.aiProviderRouter = aiProviderRouter;
         this.anonymizationService = anonymizationService;
         this.tokenBudgetService = tokenBudgetService;
-        this.aiKeyResolver = aiKeyResolver;
         this.objectMapper = objectMapper;
     }
 
@@ -346,7 +341,7 @@ public class AiAnalyticsService {
         }
 
         tokenBudgetService.requireFeatureEnabled(orgId, AiFeature.ANALYTICS);
-        ResolvedKey key = aiKeyResolver.resolve(orgId, anthropicProvider.name());
+        ResolvedKey key = aiProviderRouter.resolveKey(orgId, "anthropic", AiFeature.ANALYTICS);
         tokenBudgetService.requireBudget(orgId, AiFeature.ANALYTICS, key.source());
 
         // Build analytics data to send to AI
@@ -363,21 +358,18 @@ public class AiAnalyticsService {
         String anonymized = anonymizationService.anonymize(userPrompt);
 
         AiRequest request = AiRequest.of(AiAnalyticsPrompts.SYSTEM_PROMPT, anonymized);
-        AiRequest resolved = key.modelOverride() != null ? request.overrideModel(key.modelOverride()) : request;
-        AiResponse response = (key.source() == KeySource.ORGANIZATION)
-                ? anthropicProvider.chat(resolved, key.apiKey())
-                : anthropicProvider.chat(resolved);
+        RoutedResponse routed = aiProviderRouter.route(orgId, "anthropic", AiFeature.ANALYTICS, request);
 
-        tokenBudgetService.recordUsage(orgId, AiFeature.ANALYTICS, anthropicProvider.name(), response);
+        tokenBudgetService.recordUsage(orgId, AiFeature.ANALYTICS, routed.providerName(), routed.response());
 
         try {
             return objectMapper.readValue(
-                response.content(),
+                routed.response().content(),
                 objectMapper.getTypeFactory().constructCollectionType(List.class, AiInsightDto.class)
             );
         } catch (JsonProcessingException e) {
             log.error("Failed to parse AI analytics insights: {}", e.getMessage());
-            throw new AiProviderException("anthropic", "Failed to parse analytics insights", e);
+            throw new AiProviderException(routed.providerName(), "Failed to parse analytics insights", e);
         }
     }
 }

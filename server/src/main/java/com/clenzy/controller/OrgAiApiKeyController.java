@@ -24,7 +24,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/ai/keys")
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER','HOST')")
 public class OrgAiApiKeyController {
 
     private final OrgAiApiKeyService orgAiApiKeyService;

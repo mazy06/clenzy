@@ -51,12 +51,53 @@ public final class AiDesignPrompts {
         """;
 
     public static String buildOpenAiUserPrompt(String html, String css) {
-        // Truncate to avoid token limits
-        String truncatedHtml = truncate(html, 50_000);
-        String truncatedCss = truncate(css, 50_000);
+        // Truncate to stay within model context limits (~32K tokens for smaller models)
+        // 1 token ≈ 4 chars → 25K chars ≈ 6K tokens per section → ~12K tokens content + system prompt
+        String truncatedHtml = truncate(html, 25_000);
+        String truncatedCss = truncate(css, 25_000);
 
         return """
             Analyze the following website HTML and CSS. Extract the design tokens.
+
+            --- HTML ---
+            %s
+
+            --- CSS ---
+            %s
+            """.formatted(truncatedHtml, truncatedCss);
+    }
+
+    // ─── Combined: Analyze website + Generate CSS in one call ────────────
+
+    public static final String CSS_FROM_WEBSITE_SYSTEM_PROMPT = """
+        You are an expert CSS developer. Analyze the HTML and CSS of a website,
+        then generate CSS for an embeddable booking widget that matches the website's design.
+
+        STEP 1: Identify the website's colors, fonts, spacing, border-radius, shadows, button styles.
+        STEP 2: Generate CSS with these extracted values as CSS custom properties.
+
+        MANDATORY CSS VARIABLE NAMES (use exactly these, set to the values found on the website):
+          --bw-primaryColor, --bw-secondaryColor, --bw-accentColor,
+          --bw-backgroundColor, --bw-surfaceColor, --bw-textColor, --bw-textSecondaryColor,
+          --bw-headingFontFamily, --bw-bodyFontFamily, --bw-baseFontSize, --bw-headingFontWeight,
+          --bw-borderRadius, --bw-buttonBorderRadius, --bw-cardBorderRadius, --bw-spacing,
+          --bw-boxShadow, --bw-cardShadow, --bw-buttonStyle, --bw-buttonTextTransform,
+          --bw-borderColor, --bw-dividerColor
+
+        Rules:
+        - Start with `:root.booking-widget {` containing ALL --bw-* variables with real values from the website
+        - Scope ALL selectors under `.booking-widget`
+        - Include responsive styles (@media queries)
+        - Style: buttons, inputs, cards, headers, text, links, calendar
+        - Return ONLY raw CSS — no markdown, no code fences, no explanations
+        - If you cannot detect a value, use a sensible default (never use "null" as a CSS value)
+        """;
+
+    public static String buildCssFromWebsitePrompt(String html, String css) {
+        String truncatedHtml = truncate(html, 25_000);
+        String truncatedCss = truncate(css, 25_000);
+        return """
+            Analyze this website's HTML and CSS, then generate the booking widget CSS.
 
             --- HTML ---
             %s

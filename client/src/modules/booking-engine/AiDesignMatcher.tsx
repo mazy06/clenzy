@@ -11,13 +11,19 @@ import {
 } from '@mui/material';
 import AutoFixHighRounded from '@mui/icons-material/AutoFixHighRounded';
 import CheckCircleOutlineRounded from '@mui/icons-material/CheckCircleOutlineRounded';
+import SettingsRounded from '@mui/icons-material/SettingsRounded';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAnalyzeWebsiteDesign } from '../../hooks/useBookingEngineConfig';
 import type { DesignTokens } from '../../services/api/bookingEngineApi';
+import type { ApiError } from '../../services/apiClient';
 
 interface AiDesignMatcherProps {
   configId: number | null;
+  sourceWebsiteUrl: string;
+  onSourceWebsiteUrlChange: (url: string) => void;
   onTokensExtracted: (tokens: DesignTokens, generatedCss: string) => void;
+  onAnalysisComplete?: () => void;
   onError?: (message: string) => void;
 }
 
@@ -25,11 +31,15 @@ interface AiDesignMatcherProps {
  * Component that lets the user enter a website URL to analyze its design
  * and extract design tokens via AI. Shown in Step 2 (Appearance) of the wizard.
  */
-export default function AiDesignMatcher({ configId, onTokensExtracted, onError }: AiDesignMatcherProps) {
+export default function AiDesignMatcher({ configId, sourceWebsiteUrl, onSourceWebsiteUrlChange, onTokensExtracted, onAnalysisComplete, onError }: AiDesignMatcherProps) {
   const { t } = useTranslation();
-  const [url, setUrl] = useState('');
+  const navigate = useNavigate();
+  const url = sourceWebsiteUrl;
+  const setUrl = onSourceWebsiteUrlChange;
   const [success, setSuccess] = useState(false);
   const [extractedColors, setExtractedColors] = useState<string[]>([]);
+  const [aiNotConfigured, setAiNotConfigured] = useState<string | null>(null);
+  const [budgetExceeded, setBudgetExceeded] = useState(false);
 
   const analyzeMutation = useAnalyzeWebsiteDesign();
 
@@ -38,6 +48,8 @@ export default function AiDesignMatcher({ configId, onTokensExtracted, onError }
 
     setSuccess(false);
     setExtractedColors([]);
+    setAiNotConfigured(null);
+    setBudgetExceeded(false);
 
     analyzeMutation.mutate(
       { configId, websiteUrl: url.trim() },
@@ -57,9 +69,24 @@ export default function AiDesignMatcher({ configId, onTokensExtracted, onError }
           setExtractedColors(colors);
 
           onTokensExtracted(tokens, data.generatedCss);
+          onAnalysisComplete?.();
         },
         onError: (err) => {
-          const message = err instanceof Error ? err.message : t('bookingEngine.ai.analyzeError');
+          const apiErr = err as unknown as ApiError;
+          const details = apiErr.details as Record<string, unknown> | undefined;
+          const errorCode = details?.errorCode as string | undefined;
+
+          if (errorCode === 'AI_NOT_CONFIGURED' || errorCode === 'AI_FEATURE_DISABLED') {
+            setAiNotConfigured((details?.feature as string) ?? 'openai');
+            return;
+          }
+
+          if (errorCode === 'AI_BUDGET_EXCEEDED') {
+            setBudgetExceeded(true);
+            return;
+          }
+
+          const message = apiErr.message || t('bookingEngine.ai.analyzeError');
           onError?.(message);
         },
       },
@@ -135,8 +162,60 @@ export default function AiDesignMatcher({ configId, onTokensExtracted, onError }
         </Alert>
       )}
 
-      {/* Error state */}
-      {analyzeMutation.isError && !isLoading && (
+      {/* AI not configured — actionable message */}
+      {aiNotConfigured && !isLoading && (
+        <Alert
+          severity="warning"
+          icon={<SettingsRounded />}
+          sx={{ mt: 2 }}
+          action={
+            <Button
+              color="warning"
+              size="small"
+              onClick={() => navigate('/settings?tab=3')}
+              sx={{ whiteSpace: 'nowrap', fontWeight: 600 }}
+            >
+              {t('bookingEngine.ai.goToSettings')}
+            </Button>
+          }
+        >
+          <Typography variant="body2" fontWeight={600}>
+            {t('bookingEngine.ai.aiNotConfiguredTitle')}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {t('bookingEngine.ai.aiNotConfiguredMessage', { provider: aiNotConfigured })}
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Budget exceeded — actionable message */}
+      {budgetExceeded && !isLoading && (
+        <Alert
+          severity="warning"
+          icon={<SettingsRounded />}
+          sx={{ mt: 2 }}
+          action={
+            <Button
+              color="warning"
+              size="small"
+              onClick={() => navigate('/settings?tab=3')}
+              sx={{ whiteSpace: 'nowrap', fontWeight: 600 }}
+            >
+              {t('bookingEngine.ai.goToSettings')}
+            </Button>
+          }
+        >
+          <Typography variant="body2" fontWeight={600}>
+            {t('bookingEngine.ai.budgetExceededTitle')}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {t('bookingEngine.ai.budgetExceededMessage')}
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Generic error state */}
+      {analyzeMutation.isError && !isLoading && !aiNotConfigured && !budgetExceeded && (
         <Alert severity="error" sx={{ mt: 2 }}>
           {t('bookingEngine.ai.analyzeError')}
         </Alert>

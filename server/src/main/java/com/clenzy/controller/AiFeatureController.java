@@ -19,7 +19,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/ai/features")
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
+@PreAuthorize("isAuthenticated()")
 public class AiFeatureController {
 
     private final AiTokenBudgetService tokenBudgetService;
@@ -50,6 +50,7 @@ public class AiFeatureController {
      * PUT /api/ai/features/toggles — Active ou desactive une feature IA.
      */
     @PutMapping("/toggles")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
     public ResponseEntity<AiFeatureToggleDto> setToggle(@RequestBody AiFeatureToggleDto request) {
         Long orgId = tenantContext.getRequiredOrganizationId();
         AiFeature feature = AiFeature.valueOf(request.feature());
