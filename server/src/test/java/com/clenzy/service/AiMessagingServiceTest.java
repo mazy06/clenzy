@@ -241,7 +241,7 @@ class AiMessagingServiceTest {
                 """,
                 50, 80, 130, "claude-3-haiku", "end_turn"
             );
-            when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))
+            when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.MESSAGING), any(AiRequest.class)))
                 .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             AiIntentDetectionDto result = service.detectIntentAi("Hello, what's the check-in time?", 1L);
@@ -264,7 +264,7 @@ class AiMessagingServiceTest {
                 """,
                 30, 40, 70, "claude-3-haiku", "end_turn"
             );
-            when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))
+            when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.MESSAGING), any(AiRequest.class)))
                 .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             service.detectIntentAi("My email is john@test.com", 1L);
@@ -294,7 +294,7 @@ class AiMessagingServiceTest {
                 """,
                 40, 60, 100, "claude-3-haiku", "end_turn"
             );
-            when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))
+            when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.MESSAGING), any(AiRequest.class)))
                 .thenReturn(new RoutedResponse(response, "anthropic", KeySource.PLATFORM));
 
             service.detectIntentAi("What's the wifi?", 1L);
@@ -323,7 +323,7 @@ class AiMessagingServiceTest {
                 """,
                 60, 100, 160, "claude-3-haiku", "end_turn"
             );
-            when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))
+            when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.MESSAGING), any(AiRequest.class)))
                 .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             AiSuggestedResponseDto result = service.generateSuggestedResponseAi("Bonjour", null, "fr", 1L);
@@ -340,7 +340,7 @@ class AiMessagingServiceTest {
             when(aiProviderRouter.resolveKey(1L, "anthropic", AiFeature.MESSAGING)).thenReturn(PLATFORM_KEY);
             when(anonymizationService.anonymize(any())).thenReturn("Hello");
             AiResponse aiResponse = new AiResponse("not valid json {{{", 20, 10, 30, "claude-3-haiku", "end_turn");
-            when(aiProviderRouter.route(eq(1L), eq("anthropic"), any(AiRequest.class)))
+            when(aiProviderRouter.route(eq(1L), eq("anthropic"), eq(AiFeature.MESSAGING), any(AiRequest.class)))
                 .thenReturn(new RoutedResponse(aiResponse, "anthropic", KeySource.PLATFORM));
 
             assertThrows(AiProviderException.class,
