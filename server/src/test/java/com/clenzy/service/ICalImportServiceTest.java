@@ -32,6 +32,8 @@ class ICalImportServiceTest {
     @Mock private ICalFeedRepository icalFeedRepository;
     @Mock private ServiceRequestRepository serviceRequestRepository;
     @Mock private ReservationRepository reservationRepository2;
+    @Mock private InterventionRepository interventionRepository;
+    @Mock private InvoiceRepository invoiceRepository;
     @Mock private PropertyRepository propertyRepository;
     @Mock private UserRepository userRepository;
     @Mock private AuditLogService auditLogService;
@@ -53,7 +55,8 @@ class ICalImportServiceTest {
 
         icalImportService = new ICalImportService(
                 icalFeedRepository, serviceRequestRepository,
-                reservationRepository2, propertyRepository, userRepository,
+                reservationRepository2, interventionRepository, invoiceRepository,
+                propertyRepository, userRepository,
                 auditLogService, notificationService, pricingConfigService,
                 priceEngine, calendarEngine, guestService, tenantContext
         );

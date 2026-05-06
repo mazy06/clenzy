@@ -264,7 +264,7 @@ public class ExpediaReservationService {
         intervention.setTitle("Menage " + source + " — " + property.getName());
         intervention.setDescription("Menage apres depart du guest " + guestName
                 + " (reservation " + source + " " + reservationId + ")");
-        intervention.setType(ServiceType.CLEANING.name());
+        intervention.setType(property.resolveCleaningServiceType().name());
         intervention.setStatus(InterventionStatus.PENDING);
         intervention.setPriority(Priority.HIGH.name());
         intervention.setProperty(property);

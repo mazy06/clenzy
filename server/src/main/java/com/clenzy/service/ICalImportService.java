@@ -3,6 +3,8 @@ package com.clenzy.service;
 import com.clenzy.dto.ICalImportDto.*;
 import com.clenzy.model.*;
 import com.clenzy.repository.ICalFeedRepository;
+import com.clenzy.repository.InterventionRepository;
+import com.clenzy.repository.InvoiceRepository;
 import com.clenzy.repository.PropertyRepository;
 import com.clenzy.repository.ReservationRepository;
 import com.clenzy.repository.ServiceRequestRepository;
@@ -47,6 +49,8 @@ public class ICalImportService {
     private final ICalFeedRepository icalFeedRepository;
     private final ServiceRequestRepository serviceRequestRepository;
     private final ReservationRepository reservationRepository2;
+    private final InterventionRepository interventionRepository;
+    private final InvoiceRepository invoiceRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
@@ -61,6 +65,8 @@ public class ICalImportService {
     public ICalImportService(ICalFeedRepository icalFeedRepository,
                              ServiceRequestRepository serviceRequestRepository,
                              ReservationRepository reservationRepository2,
+                             InterventionRepository interventionRepository,
+                             InvoiceRepository invoiceRepository,
                              PropertyRepository propertyRepository,
                              UserRepository userRepository,
                              AuditLogService auditLogService,
@@ -73,6 +79,8 @@ public class ICalImportService {
         this.icalFeedRepository = icalFeedRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.reservationRepository2 = reservationRepository2;
+        this.interventionRepository = interventionRepository;
+        this.invoiceRepository = invoiceRepository;
         this.propertyRepository = propertyRepository;
         this.userRepository = userRepository;
         this.auditLogService = auditLogService;
@@ -189,6 +197,7 @@ public class ICalImportService {
 
         int imported = 0;
         int skipped = 0;
+        int cancelled = 0;
         List<String> errors = new ArrayList<>();
 
         // Compteur local pour les noms generiques (ex: "Reserved" → #1, #2, #3...)
@@ -210,8 +219,15 @@ public class ICalImportService {
                 }
 
                 if (reservationId != null) {
-                    // Reservation deja existante — on skip la creation mais on garde l'ID pour la SR
-                    skipped++;
+                    // Reservation deja existante — verifier si annulee cote OTA
+                    Reservation existing = reservationRepository2.findById(reservationId).orElse(null);
+                    if (existing != null && "cancelled".equals(event.getStatus())
+                            && !"cancelled".equals(existing.getStatus())) {
+                        cancelReservationWithCascade(existing, orgId);
+                        cancelled++;
+                    } else {
+                        skipped++;
+                    }
                 } else {
                     // 1. Creer la Reservation
                     Reservation reservation = new Reservation();
@@ -276,11 +292,11 @@ public class ICalImportService {
                     List<Reservation> cancelledOverlapping = reservationRepository2.findCancelledOverlapping(
                             property.getId(), reservation.getCheckIn(), reservation.getCheckOut(),
                             tenantContext.getRequiredOrganizationId());
-                    for (Reservation cancelled : cancelledOverlapping) {
-                        cancelled.setHiddenFromPlanning(true);
-                        reservationRepository2.save(cancelled);
+                    for (Reservation cancelledRes : cancelledOverlapping) {
+                        cancelledRes.setHiddenFromPlanning(true);
+                        reservationRepository2.save(cancelledRes);
                         log.info("Auto-masque reservation annulee #{} (chevauche nouvelle OTA #{})",
-                                cancelled.getId(), reservation.getId());
+                                cancelledRes.getId(), reservation.getId());
                     }
 
                     imported++;
@@ -309,6 +325,51 @@ public class ICalImportService {
             }
         }
 
+        // Detection des reservations orphelines : presentes en DB mais disparues du feed iCal.
+        // Cas le plus courant : Airbnb supprime l'evenement du calendrier lors d'une annulation.
+        //
+        // Garde-fous (anti-fausse-annulation-massive) :
+        //   1. On exige au moins 1 UID dans le feed (sinon feed vide/erreur de parsing → skip)
+        //   2. Seules les reservations FUTURES sont candidates (les feeds OTA omettent souvent le passe)
+        //   3. Si > 50% des futures actives deviendraient orphelines, on annule rien (feed incomplet)
+        try {
+            Set<String> feedUids = reservations.stream()
+                    .map(ICalEventPreview::getUid)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+            if (feedUids.isEmpty()) {
+                log.warn("iCal sync feed #{}: aucun UID parse, detection des orphelins ignoree (securite)",
+                        feed.getId());
+            } else {
+                LocalDate today = LocalDate.now();
+                List<Reservation> futureActive = reservationRepository2.findActiveByICalFeedId(feed.getId(), orgId)
+                        .stream()
+                        .filter(r -> r.getCheckOut() != null && r.getCheckOut().isAfter(today))
+                        .collect(Collectors.toList());
+
+                List<Reservation> orphans = futureActive.stream()
+                        .filter(r -> r.getExternalUid() != null && !feedUids.contains(r.getExternalUid()))
+                        .collect(Collectors.toList());
+
+                if (!futureActive.isEmpty() && orphans.size() * 2 > futureActive.size()) {
+                    log.warn("iCal sync feed #{}: {}/{} reservations futures seraient annulees — abort (feed incomplet ?)",
+                            feed.getId(), orphans.size(), futureActive.size());
+                    errors.add("Detection orphelins ignoree: trop de reservations seraient annulees (feed potentiellement incomplet)");
+                } else {
+                    for (Reservation orphan : orphans) {
+                        cancelReservationWithCascade(orphan, orgId);
+                        cancelled++;
+                        log.info("iCal sync: reservation orpheline #{} (uid={}) annulee — absente du feed",
+                                orphan.getId(), orphan.getExternalUid());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Erreur detection orphelins iCal feed #{}: {}", feed.getId(), e.getMessage());
+            errors.add("Detection orphelins: " + e.getMessage());
+        }
+
         // Mettre a jour le feed avec les resultats
         feed.setLastSyncAt(LocalDateTime.now());
         feed.setLastSyncStatus(errors.isEmpty() ? "SUCCESS" : "PARTIAL");
@@ -317,20 +378,22 @@ public class ICalImportService {
         icalFeedRepository.save(feed);
 
         // Audit
-        auditLogService.logSync("ICalImport", feed.getId().toString(),
-                "Import iCal: " + imported + " importees, " + skipped + " doublons ignores, " + errors.size() + " erreurs");
+        String auditMsg = String.format("Import iCal: %d importees, %d doublons, %d annulees, %d erreurs",
+                imported, skipped, cancelled, errors.size());
+        auditLogService.logSync("ICalImport", feed.getId().toString(), auditMsg);
 
-        log.info("Import iCal termine pour propriete {} ({}): {} importees, {} doublons, {} erreurs",
-                property.getName(), request.getSourceName(), imported, skipped, errors.size());
+        log.info("Import iCal termine pour propriete {} ({}): {} importees, {} doublons, {} annulees, {} erreurs",
+                property.getName(), request.getSourceName(), imported, skipped, cancelled, errors.size());
 
         ImportResponse response = new ImportResponse();
         response.setImported(imported);
         response.setSkipped(skipped);
+        response.setCancelled(cancelled);
         response.setErrors(errors);
         response.setFeedId(feed.getId());
 
         // Notify user about import result
-        // Only notify when there are actual new reservations or errors — skip silent syncs with 0 new
+        // Only notify when there are actual new reservations, cancellations or errors — skip silent syncs
         try {
             if (!errors.isEmpty()) {
                 // Errors occurred — always notify
@@ -338,17 +401,20 @@ public class ICalImportService {
                     keycloakId,
                     NotificationKey.ICAL_IMPORT_FAILED,
                     "Import iCal partiel — " + property.getName(),
-                    imported + " nouvelle(s) reservation(s) importee(s), " + errors.size() + " erreur(s) via " + request.getSourceName(),
+                    imported + " importee(s), " + cancelled + " annulee(s), " + errors.size() + " erreur(s) via " + request.getSourceName(),
                     "/planning"
                 );
-            } else if (imported > 0) {
-                // New reservations found — notify
+            } else if (imported > 0 || cancelled > 0) {
+                // New reservations or cancellations — notify
                 String plural = imported > 1 ? "s" : "";
+                String cancelledInfo = cancelled > 0
+                        ? ", " + cancelled + " annulee" + (cancelled > 1 ? "s" : "")
+                        : "";
                 notificationService.notify(
                     keycloakId,
                     NotificationKey.ICAL_IMPORT_SUCCESS,
-                    imported + " nouvelle" + plural + " reservation" + plural + " — " + property.getName(),
-                    imported + " reservation" + plural + " importee" + plural + " via " + request.getSourceName()
+                    imported + " nouvelle" + plural + " reservation" + plural + cancelledInfo + " — " + property.getName(),
+                    imported + " reservation" + plural + " importee" + plural + cancelledInfo + " via " + request.getSourceName()
                         + (request.isAutoCreateInterventions() ? " (menages crees automatiquement)" : ""),
                     "/planning"
                 );
@@ -476,9 +542,10 @@ public class ICalImportService {
 
         // ─── 1. Creer la ServiceRequest associee ───
         String srTitle = "Menage " + sourceName + " — " + property.getName();
+        ServiceType cleaningType = property.resolveCleaningServiceType();
         ServiceRequest serviceRequest = new ServiceRequest(
                 srTitle,
-                ServiceType.CLEANING,
+                cleaningType,
                 scheduledDate,
                 owner != null ? owner : property.getOwner(),
                 property
@@ -795,5 +862,94 @@ public class ICalImportService {
         dto.setLastSyncStatus(feed.getLastSyncStatus());
         dto.setEventsImported(feed.getEventsImported());
         return dto;
+    }
+
+    // ── Cascade cancellation (iCal sync) ───────────────────────────────────────
+
+    /**
+     * Annule une reservation avec cascade vers paiements, interventions et factures.
+     * Appele lors d'un sync iCal quand une reservation est detectee comme annulee
+     * (STATUS:CANCELLED dans le feed ou evenement disparu du feed).
+     *
+     * Note : on ne masque PAS la reservation du planning (hiddenFromPlanning reste false).
+     * Le bloc s'affiche en rouge avec une croix pour que l'utilisateur puisse choisir
+     * de le retirer manuellement (PATCH /api/reservations/{id}/hide).
+     */
+    private void cancelReservationWithCascade(Reservation reservation, Long orgId) {
+        reservation.setStatus("cancelled");
+
+        // Annuler le paiement reservation (sauf si deja rembourse ou annule)
+        if (reservation.getPaymentStatus() != null
+                && reservation.getPaymentStatus() != PaymentStatus.REFUNDED
+                && reservation.getPaymentStatus() != PaymentStatus.CANCELLED) {
+            reservation.setPaymentStatus(PaymentStatus.CANCELLED);
+        }
+        reservationRepository2.save(reservation);
+
+        // Liberer les jours du calendrier
+        try {
+            calendarEngine.cancel(reservation.getId(), orgId, "ical-sync");
+        } catch (Exception e) {
+            log.warn("Erreur liberation calendrier reservation #{}: {}", reservation.getId(), e.getMessage());
+        }
+
+        // Annuler les interventions (menage) liees
+        cancelLinkedInterventions(reservation.getId(), orgId);
+
+        // Annuler la facture brouillon liee
+        cancelLinkedDraftInvoice(reservation.getId());
+
+        log.info("iCal sync: annulation cascade reservation #{} (property #{}, uid={})",
+                reservation.getId(), reservation.getProperty().getId(), reservation.getExternalUid());
+    }
+
+    /**
+     * Annule les interventions et ServiceRequests liees a une reservation.
+     * Les interventions deja COMPLETED ou deja CANCELLED ne sont pas touchees.
+     * Les paiements d'interventions non encore regles sont annules.
+     */
+    private void cancelLinkedInterventions(Long reservationId, Long orgId) {
+        // Annuler les interventions
+        List<Intervention> interventions = interventionRepository.findByReservationId(reservationId, orgId);
+        for (Intervention intervention : interventions) {
+            if (intervention.getStatus() != InterventionStatus.CANCELLED
+                    && intervention.getStatus() != InterventionStatus.COMPLETED) {
+                intervention.setStatus(InterventionStatus.CANCELLED);
+                if (intervention.getPaymentStatus() != null
+                        && intervention.getPaymentStatus() != PaymentStatus.PAID
+                        && intervention.getPaymentStatus() != PaymentStatus.REFUNDED) {
+                    intervention.setPaymentStatus(PaymentStatus.CANCELLED);
+                }
+                interventionRepository.save(intervention);
+                log.debug("Intervention #{} annulee (reservation #{} annulee via iCal)",
+                        intervention.getId(), reservationId);
+            }
+        }
+
+        // Annuler les ServiceRequests liees
+        List<ServiceRequest> srs = serviceRequestRepository.findByReservationId(reservationId, orgId);
+        for (ServiceRequest sr : srs) {
+            if (sr.getStatus() != RequestStatus.CANCELLED && sr.getStatus() != RequestStatus.COMPLETED) {
+                sr.setStatus(RequestStatus.CANCELLED);
+                serviceRequestRepository.save(sr);
+                log.debug("ServiceRequest #{} annulee (reservation #{} annulee via iCal)",
+                        sr.getId(), reservationId);
+            }
+        }
+    }
+
+    /**
+     * Annule la facture brouillon liee a une reservation.
+     * Seules les factures DRAFT sont annulees ; les factures emises/payees ne sont pas touchees.
+     */
+    private void cancelLinkedDraftInvoice(Long reservationId) {
+        invoiceRepository.findByReservationId(reservationId).ifPresent(invoice -> {
+            if (invoice.getStatus() == InvoiceStatus.DRAFT) {
+                invoice.setStatus(InvoiceStatus.CANCELLED);
+                invoiceRepository.save(invoice);
+                log.debug("Facture #{} annulee (reservation #{} annulee via iCal)",
+                        invoice.getId(), reservationId);
+            }
+        });
     }
 }

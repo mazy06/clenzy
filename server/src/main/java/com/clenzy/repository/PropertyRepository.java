@@ -14,6 +14,13 @@ import java.util.List;
 public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSpecificationExecutor<Property> {
     List<Property> findByOwner(User owner);
     List<Property> findByOwnerId(Long ownerId);
+
+    /**
+     * Proprietes sans coordonnees GPS — utilise par le service de retro-geocodage
+     * pour combler les donnees manquantes (creees avant l'introduction de Nominatim).
+     */
+    @Query("SELECT p FROM Property p WHERE p.latitude IS NULL OR p.longitude IS NULL")
+    List<Property> findAllWithoutCoordinates();
     
     /**
      * Requête optimisée avec FETCH JOIN pour éviter les N+1

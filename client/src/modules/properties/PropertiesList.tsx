@@ -46,6 +46,7 @@ import { estimateCleaningPrice, estimateCleaningDuration, formatDuration } from 
 import ThemedTooltip from '../../components/ThemedTooltip';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
+import { PropertyThumbnail } from '../../components/PropertyThumbnail';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import {
@@ -577,8 +578,16 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
         </>
       ) : (
         /* ─── Vue liste (table) ─── */
-        <Paper sx={LIST_PAPER_SX}>
-          <TableContainer>
+        <Paper
+          sx={{
+            ...LIST_PAPER_SX,
+            display: 'flex',
+            flexDirection: 'column',
+            height: 'calc(100vh - 140px)',
+            minHeight: 500,
+          }}
+        >
+          <TableContainer sx={{ flexShrink: 0 }}>
             <Table size="small">
               <TableHead>
                 <TableRow
@@ -595,7 +604,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                   <TableCell>Nom</TableCell>
                   <TableCell>Type</TableCell>
                   <TableCell>Caractéristiques</TableCell>
-                  <TableCell>Commodités</TableCell>
+                  <TableCell sx={{ width: 140 }}>Commodités</TableCell>
                   <TableCell align="right">Prix/nuit</TableCell>
                   <TableCell align="right">Ménage estimé</TableCell>
                   <TableCell align="center">Ménage auto</TableCell>
@@ -619,12 +628,12 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                       onClick={() => navigate(`/properties/${property.id}`)}
                     >
                       <TableCell>
-                        <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.82rem' }}>
-                          {property.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
-                          {property.address}, {property.postalCode} {property.city}
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                          <PropertyThumbnail url={property.imageUrl} size={44} alt={property.name} />
+                          <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.82rem' }}>
+                            {property.name}
+                          </Typography>
+                        </Box>
                       </TableCell>
                       <TableCell>
                         {(() => { const c = getPropertyTypeHex(property.type); return (
@@ -649,10 +658,10 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                           {property.bedrooms} ch. · {property.bathrooms} sdb · {property.squareMeters ?? 0} m² · {property.guests} voy.
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ width: 140 }}>
                         {property.amenities && property.amenities.length > 0 ? (
                           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', alignItems: 'center' }}>
-                            {property.amenities.slice(0, 3).map((amenity, i) => {
+                            {property.amenities.slice(0, 2).map((amenity, i) => {
                               const c = getAmenityHex(amenity);
                               return (
                               <Chip
@@ -672,7 +681,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                               />
                               );
                             })}
-                            {property.amenities.length > 3 && (
+                            {property.amenities.length > 2 && (
                               <ThemedTooltip
                                 title={
                                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -702,7 +711,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                                 placement="top"
                               >
                                 <Chip
-                                  label={`+${property.amenities.length - 3}`}
+                                  label={`+${property.amenities.length - 2}`}
                                   size="small"
                                   sx={{ height: 22, fontSize: '0.62rem', fontWeight: 600, backgroundColor: '#75757518', color: '#757575', border: '1px solid #75757540', borderRadius: '6px', '& .MuiChip-label': { px: 0.75 }, cursor: 'default' }}
                                 />
@@ -794,6 +803,8 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
               </TableBody>
             </Table>
           </TableContainer>
+          {/* Spacer flex pour pousser la pagination en bas du conteneur */}
+          <Box sx={{ flex: 1, minHeight: 0 }} />
           <TablePagination
             component="div"
             count={filteredProperties.length}
@@ -807,7 +818,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
             rowsPerPageOptions={LIST_ROWS_PER_PAGE_OPTIONS}
             labelRowsPerPage="Lignes par page"
             labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-            sx={PAGINATION_SX}
+            sx={{ ...PAGINATION_SX, flexShrink: 0, borderTop: '1px solid', borderColor: 'divider' }}
           />
         </Paper>
       )}

@@ -49,7 +49,7 @@ import { extractApiList } from '../../types';
 import type { Property } from '../../services/api/propertiesApi';
 import type { KeyExchangePointDto, KeyExchangeCodeDto, KeyNestStoreDto } from '../../services/api/keyExchangeApi';
 import { AddressAutocomplete } from '../../components/AddressAutocomplete';
-import type { BanAddress } from '../../services/banApi';
+import type { GeocodedAddress } from '../../services/geocoderApi';
 import {
   OpeningHoursEditor,
   EMPTY_HOURS,
@@ -308,7 +308,7 @@ function KeyVaultView({
   // Code form
   const [codeGuestName, setCodeGuestName] = useState('');
 
-  const handleAddressSelect = (address: BanAddress) => {
+  const handleAddressSelect = (address: GeocodedAddress) => {
     setFormStoreAddress(address.label);
     setFormStoreLat(address.latitude);
     setFormStoreLng(address.longitude);

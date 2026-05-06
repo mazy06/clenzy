@@ -917,3 +917,19 @@ databaseChangeLog:
       sqlFile:
         path: changes/0106__create_platform_ai_config.sql
         relativeToChangelogFile: true
+
+  # --- 0107 : Add country_code to properties ---
+  - changeSet:
+      id: "0107-add-country-code-to-properties"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0107__add_country_code_to_properties.sql
+        relativeToChangelogFile: true
+
+  # --- 0108 : Add default_cleaning_type to properties ---
+  - changeSet:
+      id: "0108-add-default-cleaning-type-to-properties"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0108__add_default_cleaning_type_to_properties.sql
+        relativeToChangelogFile: true
