@@ -926,6 +926,18 @@ databaseChangeLog:
         path: changes/0107__add_country_code_to_properties.sql
         relativeToChangelogFile: true
 
+  # --- 0107a : Tag pre-liquibase baseline ---
+  # Marqueur consomme une seule fois par le workflow `liquibase-bootstrap.yml` de
+  # clenzy-infra (commande `changelog-sync-to-tag pre-liquibase-baseline`) pour
+  # synchroniser le `databasechangelog` avec le schema deja gere par Hibernate
+  # `ddl-auto=update` avant d'activer Liquibase en prod. A conserver tel quel.
+  - changeSet:
+      id: "0107a-tag-pre-liquibase-baseline"
+      author: clenzy-team
+      changes:
+        - tagDatabase:
+            tag: pre-liquibase-baseline
+
   # --- 0108 : Add default_cleaning_type to properties ---
   - changeSet:
       id: "0108-add-default-cleaning-type-to-properties"

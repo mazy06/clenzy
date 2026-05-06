@@ -22,6 +22,13 @@
 
 - Ne JAMAIS ajouter la ligne "Generated with Claude Code" (ni emoji robot) dans les messages de commit ou les descriptions de PR.
 
+## Production Fix Rules
+
+- **Ne JAMAIS proposer de fix manuel sur la production** (SQL ad-hoc via `db-migrate.yml`, `psql` direct, modification d'etat via SSH, etc.) **sauf si l'utilisateur le demande explicitement**.
+- Tout correctif doit passer par le CI/CD : commit → PR → merge → workflow GitHub Actions (CD Deploy, ou workflow dedie). C'est la seule voie de modification de la prod.
+- Si un incident necessite un fix urgent, le proposer SOUS FORME DE PR / workflow CI/CD. Ne pas suggerer "lance ce SQL via le workflow DB Migration" comme contournement, sauf demande explicite.
+- Cette regle s'applique aussi aux migrations Liquibase, aux changements de config, aux secrets et aux operations docker.
+
 <!-- rtk-instructions v2 -->
 # RTK (Rust Token Killer) - Token-Optimized Commands
 
