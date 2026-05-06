@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { Box, Typography, Chip } from '@mui/material';
-import { CleaningServices, TrendingUp, Timer } from '@mui/icons-material';
+import { CleaningServices, TrendingUp, Timer, CheckCircle } from '@mui/icons-material';
 import { useWatch } from 'react-hook-form';
-import type { Control } from 'react-hook-form';
+import type { Control, UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { PropertyFormValues } from '../../schemas';
 
@@ -52,6 +52,7 @@ const CARDS_ROW_SX = {
 } as const;
 
 const PRICE_CARD_SX = {
+  position: 'relative',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
@@ -63,13 +64,31 @@ const PRICE_CARD_SX = {
   border: '1px solid',
   borderColor: 'divider',
   bgcolor: 'grey.50',
-  transition: 'border-color 0.15s, background-color 0.15s',
+  cursor: 'pointer',
+  transition: 'border-color 0.15s, background-color 0.15s, transform 0.15s',
+  '&:hover': {
+    borderColor: 'primary.light',
+    transform: 'translateY(-1px)',
+  },
 } as const;
 
-const PRICE_CARD_PRIMARY_SX = {
+const PRICE_CARD_SELECTED_SX = {
   ...PRICE_CARD_SX,
   borderColor: 'primary.main',
+  borderWidth: 2,
   bgcolor: 'primary.50',
+  '&:hover': {
+    borderColor: 'primary.main',
+    transform: 'translateY(-1px)',
+  },
+} as const;
+
+const SELECTED_BADGE_SX = {
+  position: 'absolute',
+  top: 6,
+  right: 6,
+  fontSize: 18,
+  color: 'primary.main',
 } as const;
 
 const CHIP_SX = {
@@ -189,6 +208,7 @@ const SURCHARGES = {
 
 interface CleaningPriceEstimatorProps {
   control: Control<PropertyFormValues>;
+  setValue: UseFormSetValue<PropertyFormValues>;
 }
 
 type CleaningType = 'CLEANING' | 'EXPRESS_CLEANING' | 'DEEP_CLEANING';
@@ -316,7 +336,7 @@ function formatDuration(mins: number): string {
 
 const CLEANING_TYPES: CleaningType[] = ['CLEANING', 'EXPRESS_CLEANING', 'DEEP_CLEANING'];
 
-const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo(({ control }) => {
+const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo(({ control, setValue }) => {
   const { t } = useTranslation();
 
   // Watch form values in real time
@@ -338,6 +358,7 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
       'hasDeepKitchen',
       'hasDisinfection',
       'type',
+      'defaultCleaningType',
     ],
   });
 
@@ -357,7 +378,10 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
     hasDeepKitchen,
     hasDisinfection,
     propertyType,
+    defaultCleaningType,
   ] = watchedValues;
+
+  const selectedType: CleaningType = defaultCleaningType ?? 'CLEANING';
 
   // Check if we have enough data to show an estimate
   const hasEnoughData = (squareMeters ?? 0) > 0 || (cleaningBasePrice != null && cleaningBasePrice > 0);
@@ -446,21 +470,35 @@ const CleaningPriceEstimator: React.FC<CleaningPriceEstimatorProps> = React.memo
         </Box>
       )}
 
-      {/* Price cards */}
+      {/* Price cards — clickable to select default cleaning type */}
       {estimates ? (
         <Box sx={CARDS_ROW_SX}>
           {estimates.map(({ type, min, max }) => {
-            const isStandard = type === 'CLEANING';
+            const isSelected = type === selectedType;
             return (
-              <Box key={type} sx={isStandard ? PRICE_CARD_PRIMARY_SX : PRICE_CARD_SX}>
+              <Box
+                key={type}
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
+                onClick={() => setValue('defaultCleaningType', type, { shouldDirty: true })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setValue('defaultCleaningType', type, { shouldDirty: true });
+                  }
+                }}
+                sx={isSelected ? PRICE_CARD_SELECTED_SX : PRICE_CARD_SX}
+              >
+                {isSelected && <CheckCircle sx={SELECTED_BADGE_SX} />}
                 <Chip
                   label={t(`properties.priceEstimation.cleaningTypes.${type}`)}
                   size="small"
-                  variant={isStandard ? 'filled' : 'outlined'}
-                  color={isStandard ? 'primary' : 'default'}
+                  variant={isSelected ? 'filled' : 'outlined'}
+                  color={isSelected ? 'primary' : 'default'}
                   sx={CHIP_SX}
                 />
-                <Typography sx={isStandard ? PRICE_RANGE_SX : PRICE_RANGE_SECONDARY_SX}>
+                <Typography sx={isSelected ? PRICE_RANGE_SX : PRICE_RANGE_SECONDARY_SX}>
                   {min === max ? `${min}€` : `${min}€ – ${max}€`}
                 </Typography>
                 <Typography sx={PER_LABEL_SX}>

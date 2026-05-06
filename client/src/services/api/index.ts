@@ -45,6 +45,10 @@ export type { TeamMember, Team, TeamFormData, CoverageZone } from './teamsApi';
 
 export { banApi } from '../banApi';
 export type { BanAddress, BanFeature, BanResponse } from '../banApi';
+export { nominatimApi } from '../nominatimApi';
+export type { NominatimAddress } from '../nominatimApi';
+export { geocoderApi } from '../geocoderApi';
+export type { GeocodedAddress } from '../geocoderApi';
 
 export { usersApi } from './usersApi';
 export type { User, UserFormData, LockoutStatus } from './usersApi';

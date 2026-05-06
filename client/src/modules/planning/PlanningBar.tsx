@@ -152,9 +152,9 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         width: displayWidth,
         height,
         ...(stripedBg ? { background: stripedBg } : { backgroundColor: bgColor }),
-        border: `${isCompactBar ? 1 : 1.5}px solid ${borderColor}`,
+        border: `${event.status === 'cancelled' ? 2 : isCompactBar ? 1 : 1.5}px solid ${borderColor}`,
         borderStyle: isAwaitingPayment ? 'dashed' : 'solid',
-        borderLeft: `${isCompactBar ? 2 : 3}px ${isAwaitingPayment ? 'dashed' : 'solid'} ${event.color}`,
+        borderLeft: `${event.status === 'cancelled' ? 3 : isCompactBar ? 2 : 3}px ${isAwaitingPayment ? 'dashed' : 'solid'} ${event.color}`,
         borderRadius: `${isCompactBar ? 3 : BAR_BORDER_RADIUS}px`,
         cursor: isResizing ? 'col-resize' : isDragDisabled ? 'pointer' : 'grab',
         touchAction: 'none',
@@ -173,7 +173,6 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           transform: 'translateY(-1px)',
           zIndex: 6,
         },
-        '&:hover .hide-btn': { opacity: 1 },
         ...(isSelected && {
           boxShadow: `0 0 0 2px ${theme.palette.primary.main}, 0 4px 12px ${hexToRgba(theme.palette.primary.main, 0.3)}`,
           transform: 'translateY(-1px)',
@@ -189,6 +188,13 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
           '@keyframes pulse-conflict': {
             '0%, 100%': { borderColor: event.color },
             '50%': { borderColor: theme.palette.error.main },
+          },
+        }),
+        ...(event.status === 'cancelled' && !isConflict && !resizeConflict && {
+          animation: 'pulse-cancelled 2s ease-in-out infinite',
+          '@keyframes pulse-cancelled': {
+            '0%, 100%': { borderColor: event.color, opacity: 1 },
+            '50%': { borderColor: theme.palette.error.dark, opacity: 0.85 },
           },
         }),
       }}
@@ -252,37 +258,39 @@ const PlanningBar: React.FC<PlanningBarProps> = React.memo(({
         </Typography>
       )}
 
-      {/* Hide button for cancelled reservations — visible on hover */}
+      {/* Hide button for cancelled reservations — always visible, badge-style top-right */}
       {isReservation && event.status === 'cancelled' && onHide && (
-        <Box
-          className="hide-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            onHide(event);
-          }}
-          sx={{
-            position: 'absolute',
-            right: 2,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: 18,
-            height: 18,
-            borderRadius: '50%',
-            backgroundColor: 'rgba(255,255,255,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            zIndex: 11,
-            opacity: 0,
-            transition: 'opacity 0.15s ease',
-            '&:hover': {
-              backgroundColor: 'rgba(255,255,255,0.5)',
-            },
-          }}
-        >
-          <Close sx={{ fontSize: 11, color: '#fff' }} />
-        </Box>
+        <Tooltip title="Masquer du planning" arrow>
+          <Box
+            onClick={(e) => {
+              e.stopPropagation();
+              onHide(event);
+            }}
+            sx={{
+              position: 'absolute',
+              top: -6,
+              right: -6,
+              width: 16,
+              height: 16,
+              borderRadius: '50%',
+              backgroundColor: event.color,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 12,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+              border: `1.5px solid ${isDark ? '#1e1e1e' : '#fff'}`,
+              '&:hover': {
+                filter: 'brightness(0.85)',
+                transform: 'scale(1.1)',
+              },
+              transition: 'transform 0.15s ease, background-color 0.15s ease',
+            }}
+          >
+            <Close sx={{ fontSize: 10, color: '#fff' }} />
+          </Box>
+        </Tooltip>
       )}
 
       {/* Warning badge: guest has no email → automatic emails will fail */}

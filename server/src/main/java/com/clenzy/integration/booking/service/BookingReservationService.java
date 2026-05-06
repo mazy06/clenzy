@@ -260,7 +260,7 @@ public class BookingReservationService {
 
         ServiceRequest sr = new ServiceRequest(
                 "Menage Booking.com — " + property.getName(),
-                ServiceType.CLEANING,
+                property.resolveCleaningServiceType(),
                 scheduledDate,
                 property.getOwner(),
                 property

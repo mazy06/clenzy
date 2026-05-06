@@ -184,4 +184,15 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
            "WHERE r.totalPrice IS NOT NULL AND r.totalPrice > 0 " +
            "AND r.organizationId = :orgId")
     List<Reservation> findAllWithPayment(@Param("orgId") Long orgId);
+
+    /**
+     * Reservations actives (non annulees) importees depuis un feed iCal donne.
+     * Utilise par ICalImportService pour detecter les reservations orphelines
+     * (presentes en DB mais disparues du feed = annulees cote OTA).
+     */
+    @Query("SELECT r FROM Reservation r WHERE r.icalFeed.id = :feedId " +
+           "AND r.status <> 'cancelled' AND r.organizationId = :orgId")
+    List<Reservation> findActiveByICalFeedId(
+            @Param("feedId") Long feedId,
+            @Param("orgId") Long orgId);
 }

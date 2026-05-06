@@ -205,6 +205,10 @@ public class PropertyService {
         property.setPostalCode(dto.postalCode);
         property.setCity(dto.city);
         property.setCountry(dto.country);
+        property.setCountryCode(dto.countryCode);
+        if (dto.defaultCleaningType != null && !dto.defaultCleaningType.isBlank()) {
+            property.setDefaultCleaningType(dto.defaultCleaningType);
+        }
         property.setLatitude(dto.latitude);
         property.setLongitude(dto.longitude);
         property.setDepartment(dto.department);
@@ -269,6 +273,20 @@ public class PropertyService {
             dto.postalCode = p.getPostalCode();
             dto.city = p.getCity();
             dto.country = p.getCountry();
+            dto.countryCode = p.getCountryCode();
+            dto.defaultCleaningType = p.getDefaultCleaningType();
+            // Cover photo : premiere par sortOrder, fallback sur la premiere par id
+            if (p.getPhotos() != null && !p.getPhotos().isEmpty()) {
+                dto.coverPhotoUrl = p.getPhotos().stream()
+                        .min((a, b) -> {
+                            int s = Integer.compare(a.getSortOrder(), b.getSortOrder());
+                            if (s != 0) return s;
+                            return Long.compare(a.getId() != null ? a.getId() : 0L,
+                                    b.getId() != null ? b.getId() : 0L);
+                        })
+                        .map(com.clenzy.model.PropertyPhoto::getUrl)
+                        .orElse(null);
+            }
             dto.latitude = p.getLatitude();
             dto.longitude = p.getLongitude();
             dto.department = p.getDepartment();

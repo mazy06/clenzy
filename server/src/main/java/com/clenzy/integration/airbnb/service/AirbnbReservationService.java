@@ -255,7 +255,7 @@ public class AirbnbReservationService {
         // Creer la demande de service de menage
         ServiceRequest sr = new ServiceRequest(
                 "Menage Airbnb — " + property.getName(),
-                ServiceType.CLEANING,
+                property.resolveCleaningServiceType(),
                 scheduledDate,
                 property.getOwner(),
                 property

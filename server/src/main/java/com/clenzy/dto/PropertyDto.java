@@ -30,6 +30,8 @@ public class PropertyDto {
     public String postalCode;
     public String city;
     public String country;
+    @Size(max = 2)
+    public String countryCode;
     public BigDecimal latitude;
     public BigDecimal longitude;
     public String department;
@@ -54,6 +56,10 @@ public class PropertyDto {
 
     public PropertyType type;
     public PropertyStatus status;
+    /** Type de menage par defaut (CLEANING / EXPRESS_CLEANING / DEEP_CLEANING). */
+    public String defaultCleaningType;
+    /** URL relative de la photo principale (premiere par sortOrder). Null si aucune photo. */
+    public String coverPhotoUrl;
     public String airbnbListingId;
     public String airbnbUrl;
     public CleaningFrequency cleaningFrequency;

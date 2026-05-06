@@ -1,12 +1,12 @@
 import React from 'react';
 import { Autocomplete, TextField, CircularProgress, Typography, Box } from '@mui/material';
-import { LocationOn as LocationOnIcon } from '@mui/icons-material';
-import { useAddressAutocomplete } from '../hooks/useAddressAutocomplete';
+import { LocationCity as LocationCityIcon } from '@mui/icons-material';
+import { useCityAutocomplete } from '../hooks/useCityAutocomplete';
 import type { GeocodedAddress } from '../services/geocoderApi';
 
-interface AddressAutocompleteProps {
+interface CityAutocompleteProps {
   value: string;
-  onSelect: (address: GeocodedAddress) => void;
+  onSelect: (city: GeocodedAddress) => void;
   onChange?: (value: string) => void;
   /** Code ISO 3166-1 alpha-2 (FR, MA, DZ, SA). Defaut FR. */
   countryCode?: string;
@@ -20,28 +20,26 @@ interface AddressAutocompleteProps {
 }
 
 /**
- * Composant d'autocompletion d'adresses worldwide.
- * Route automatiquement vers BAN (France) ou Nominatim (autres pays) selon countryCode.
+ * Autocomplete de villes worldwide.
+ * Route vers BAN (FR, type=municipality) ou Nominatim (autres, featuretype=city) selon countryCode.
  */
-export function AddressAutocomplete({
+export function CityAutocomplete({
   value,
   onSelect,
   onChange,
   countryCode = 'FR',
-  label = 'Adresse',
-  placeholder = 'Rechercher une adresse...',
+  label = 'Ville',
+  placeholder = 'Rechercher une ville...',
   error,
   helperText,
   required,
   size = 'small',
   fullWidth = true,
-}: AddressAutocompleteProps) {
-  const {
-    options,
-    isLoading,
-    inputValue,
-    setInputValue,
-  } = useAddressAutocomplete({ countryCode, minLength: 3 });
+}: CityAutocompleteProps) {
+  const { options, isLoading, inputValue, setInputValue } = useCityAutocomplete({
+    countryCode,
+    minLength: 2,
+  });
 
   return (
     <Autocomplete<GeocodedAddress, false, false, true>
@@ -58,28 +56,27 @@ export function AddressAutocomplete({
       onChange={(_event, newValue) => {
         if (newValue && typeof newValue !== 'string') {
           onSelect(newValue);
-          setInputValue(newValue.label);
+          setInputValue(newValue.city || newValue.label);
         }
       }}
       getOptionLabel={(option) => {
         if (typeof option === 'string') return option;
-        return option.label;
+        return option.city || option.label;
       }}
       isOptionEqualToValue={(option, val) => option.label === val.label}
       filterOptions={(x) => x}
       renderOption={(props, option) => (
         <li {...props} key={`${option.label}-${option.latitude}-${option.longitude}`}>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-            <LocationOnIcon sx={{ color: 'text.secondary', fontSize: '1.1rem', mt: 0.3 }} />
+            <LocationCityIcon sx={{ color: 'text.secondary', fontSize: '1.1rem', mt: 0.3 }} />
             <Box>
               <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                {option.housenumber ? `${option.housenumber} ` : ''}
-                {option.street || option.label}
+                {option.city || option.label}
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.72rem' }}>
-                {option.postcode} {option.city}
-                {option.department ? ` (${option.department})` : ''}
-                {option.countryCode && option.countryCode !== 'FR' ? ` · ${option.countryCode}` : ''}
+                {option.postcode && `${option.postcode} · `}
+                {option.department && `(${option.department}) · `}
+                {option.country || option.countryCode}
               </Typography>
             </Box>
           </Box>
@@ -106,7 +103,7 @@ export function AddressAutocomplete({
           }}
         />
       )}
-      noOptionsText="Aucune adresse trouvee"
+      noOptionsText="Aucune ville trouvee"
       loadingText="Recherche..."
       size={size}
       fullWidth={fullWidth}
