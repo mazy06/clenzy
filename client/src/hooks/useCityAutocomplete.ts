@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { geocoderApi, type GeocodedAddress } from '../services/geocoderApi';
 
-interface UseAddressAutocompleteOptions {
+interface UseCityAutocompleteOptions {
   debounceMs?: number;
   minLength?: number;
   limit?: number;
@@ -9,7 +9,7 @@ interface UseAddressAutocompleteOptions {
   countryCode?: string;
 }
 
-interface UseAddressAutocompleteReturn {
+interface UseCityAutocompleteReturn {
   options: GeocodedAddress[];
   isLoading: boolean;
   inputValue: string;
@@ -18,37 +18,30 @@ interface UseAddressAutocompleteReturn {
 }
 
 /**
- * Hook pour l'autocompletion d'adresses, route automatiquement vers BAN (FR) ou Nominatim.
- * Debounce integre. Pour Nominatim, prefere 600ms (rate limit 1 req/sec).
+ * Hook pour l'autocompletion de villes uniquement.
+ * Route automatiquement vers BAN (FR, type=municipality) ou Nominatim (autres, featuretype=city).
  */
-export function useAddressAutocomplete(
-  opts: UseAddressAutocompleteOptions = {}
-): UseAddressAutocompleteReturn {
-  const { minLength = 3, limit = 5, countryCode = 'FR' } = opts;
-  // Debounce plus long pour Nominatim (rate limit) que pour BAN
+export function useCityAutocomplete(
+  opts: UseCityAutocompleteOptions = {}
+): UseCityAutocompleteReturn {
+  const { minLength = 2, limit = 5, countryCode = 'FR' } = opts;
   const debounceMs = opts.debounceMs ?? (countryCode.toUpperCase() === 'FR' ? 300 : 600);
 
   const [inputValue, setInputValue] = useState('');
   const [options, setOptions] = useState<GeocodedAddress[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
 
-  const fetchAddresses = useCallback(
+  const fetchCities = useCallback(
     async (query: string) => {
       if (query.trim().length < minLength) {
         setOptions([]);
         return;
       }
 
-      if (abortRef.current) {
-        abortRef.current.abort();
-      }
-      abortRef.current = new AbortController();
-
       setIsLoading(true);
       try {
-        const results = await geocoderApi.search(query, countryCode, limit);
+        const results = await geocoderApi.searchCities(query, countryCode, limit);
         setOptions(results);
       } catch {
         setOptions([]);
@@ -60,22 +53,13 @@ export function useAddressAutocomplete(
   );
 
   useEffect(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-
-    timerRef.current = setTimeout(() => {
-      fetchAddresses(inputValue);
-    }, debounceMs);
-
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => fetchCities(inputValue), debounceMs);
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [inputValue, debounceMs, fetchAddresses]);
+  }, [inputValue, debounceMs, fetchCities]);
 
-  // Reset les options quand le pays change (resultats potentiellement obsoletes)
   useEffect(() => {
     setOptions([]);
   }, [countryCode]);
@@ -85,11 +69,5 @@ export function useAddressAutocomplete(
     setOptions([]);
   }, []);
 
-  return {
-    options,
-    isLoading,
-    inputValue,
-    setInputValue,
-    reset,
-  };
+  return { options, isLoading, inputValue, setInputValue, reset };
 }

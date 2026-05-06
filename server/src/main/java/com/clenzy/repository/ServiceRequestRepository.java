@@ -87,11 +87,14 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
     List<ServiceRequest> findAllWithRelations(@Param("orgId") Long orgId);
 
     /**
-     * Planning: SR en AWAITING_PAYMENT filtrees par propertyIds et plage de dates
+     * Planning: SR en AWAITING_PAYMENT filtrees par propertyIds et plage de dates.
+     * Exclut les SR liees a une reservation masquee du planning (cancelled + hidden).
      */
     @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user " +
            "WHERE sr.status = :status AND sr.property.id IN :propertyIds " +
-           "AND sr.desiredDate BETWEEN :start AND :end AND sr.organizationId = :orgId")
+           "AND sr.desiredDate BETWEEN :start AND :end AND sr.organizationId = :orgId " +
+           "AND NOT EXISTS (SELECT 1 FROM Reservation r WHERE r.id = sr.reservationId " +
+           "  AND r.hiddenFromPlanning = true AND r.status = 'cancelled')")
     List<ServiceRequest> findByStatusAndPropertyIdsAndDesiredDateBetween(
         @Param("status") RequestStatus status,
         @Param("propertyIds") List<Long> propertyIds,
@@ -153,6 +156,14 @@ public interface ServiceRequestRepository extends JpaRepository<ServiceRequest, 
            "AND sr.estimatedCost IS NOT NULL AND sr.estimatedCost > 0 " +
            "AND sr.organizationId = :orgId")
     List<ServiceRequest> findAllAwaitingPayment(@Param("orgId") Long orgId);
+
+    /**
+     * ServiceRequests liees a une reservation (via reservationId).
+     * Utilise par ICalImportService pour annuler les menages lors d'une annulation OTA.
+     */
+    @Query("SELECT sr FROM ServiceRequest sr LEFT JOIN FETCH sr.property LEFT JOIN FETCH sr.user " +
+           "WHERE sr.reservationId = :reservationId AND sr.organizationId = :orgId")
+    List<ServiceRequest> findByReservationId(@Param("reservationId") Long reservationId, @Param("orgId") Long orgId);
 
     // ── Auto-assignation retry (scheduler context — pas de TenantContext) ────────
 

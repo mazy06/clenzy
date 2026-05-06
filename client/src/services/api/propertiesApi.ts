@@ -10,6 +10,10 @@ export interface Property {
   city: string;
   postalCode: string;
   country: string;
+  countryCode?: string;
+  defaultCleaningType?: 'CLEANING' | 'EXPRESS_CLEANING' | 'DEEP_CLEANING';
+  /** URL relative de la photo principale (ex: /api/properties/3/photos/12/data). */
+  coverPhotoUrl?: string;
   type: string;
   status: string;
   bedroomCount: number;
@@ -71,6 +75,8 @@ export interface PropertyFormData {
   city: string;
   postalCode: string;
   country: string;
+  countryCode?: string;
+  defaultCleaningType?: 'CLEANING' | 'EXPRESS_CLEANING' | 'DEEP_CLEANING';
   type: string;
   status: string;
   bedroomCount: number;

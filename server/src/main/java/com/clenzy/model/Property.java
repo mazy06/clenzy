@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -32,7 +33,7 @@ public class Property {
     @Column(name = "name", nullable = false)
     private String name;
     
-    @Size(max = 500, message = "La description ne peut pas dépasser 500 caractères")
+    @Size(max = 10000, message = "La description ne peut pas dépasser 10000 caractères")
     @Column(columnDefinition = "TEXT")
     private String description;
     
@@ -50,7 +51,18 @@ public class Property {
     
     @Size(max = 50, message = "Le pays ne peut pas dépasser 50 caractères")
     private String country;
-    
+
+    @Size(max = 2, message = "Le code pays ISO ne peut pas dépasser 2 caractères")
+    @Column(name = "country_code", length = 2)
+    private String countryCode;
+
+    /**
+     * Type de menage par defaut pour cette propriete (CLEANING / EXPRESS_CLEANING / DEEP_CLEANING).
+     * Utilise lors de la creation automatique de demandes de service (iCal, channels OTA).
+     */
+    @Column(name = "default_cleaning_type", length = 30, nullable = false)
+    private String defaultCleaningType = "CLEANING";
+
     @Column(name = "latitude")
     private BigDecimal latitude;
     
@@ -192,6 +204,7 @@ public class Property {
     // Relation vers les interventions supprimée car nous utilisons ServiceRequest directement
     
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @BatchSize(size = 100)
     private Set<PropertyPhoto> photos = new HashSet<>();
     
     // Constructeurs
@@ -258,6 +271,44 @@ public class Property {
         return country;
     }
     
+    public String getCountryCode() {
+        return countryCode;
+    }
+
+    public void setCountryCode(String countryCode) {
+        this.countryCode = countryCode;
+    }
+
+    public String getDefaultCleaningType() {
+        return defaultCleaningType;
+    }
+
+    public void setDefaultCleaningType(String defaultCleaningType) {
+        this.defaultCleaningType = defaultCleaningType;
+    }
+
+    /**
+     * Resout le ServiceType correspondant au type de menage par defaut.
+     * Fallback sur CLEANING si valeur absente ou invalide.
+     * Limitee aux 3 formules : CLEANING / EXPRESS_CLEANING / DEEP_CLEANING.
+     */
+    public ServiceType resolveCleaningServiceType() {
+        if (defaultCleaningType == null || defaultCleaningType.isBlank()) {
+            return ServiceType.CLEANING;
+        }
+        try {
+            ServiceType type = ServiceType.valueOf(defaultCleaningType);
+            if (type == ServiceType.CLEANING
+                    || type == ServiceType.EXPRESS_CLEANING
+                    || type == ServiceType.DEEP_CLEANING) {
+                return type;
+            }
+        } catch (IllegalArgumentException ignored) {
+            // valeur inconnue → fallback
+        }
+        return ServiceType.CLEANING;
+    }
+
     public void setCountry(String country) {
         this.country = country;
     }

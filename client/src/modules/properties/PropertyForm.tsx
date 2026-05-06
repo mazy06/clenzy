@@ -198,7 +198,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ onClose, onSuccess, propert
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       <Box sx={{ flexShrink: 0 }}>
-        <CleaningPriceEstimator control={control} />
+        <CleaningPriceEstimator control={control} setValue={setValue} />
       </Box>
       <form
         onSubmit={handleSubmit((data) => submitForm(data))}

@@ -4,13 +4,16 @@ import {
   Grid,
   Typography,
   TextField,
+  MenuItem,
 } from '@mui/material';
 import { LocationOn } from '@mui/icons-material';
-import { Controller } from 'react-hook-form';
+import { Controller, useWatch } from 'react-hook-form';
 import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
 import { AddressAutocomplete } from '../../components/AddressAutocomplete';
-import type { BanAddress } from '../../services/banApi';
+import { CityAutocomplete } from '../../components/CityAutocomplete';
+import type { GeocodedAddress } from '../../services/geocoderApi';
+import { COUNTRIES, COUNTRY_BY_CODE } from '../../constants/countries';
 import type { PropertyFormValues } from '../../schemas';
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
@@ -38,12 +41,14 @@ export interface PropertyFormAddressProps {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
-  ({ control, errors, setValue }) => {
+  ({ control, errors: _errors, setValue }) => {
     const { t } = useTranslation();
 
+    // Reactive country code drives the geocoder used by AddressAutocomplete
+    const countryCode = useWatch({ control, name: 'countryCode' }) || 'FR';
+
     const handleAddressSelect = useCallback(
-      (address: BanAddress) => {
-        // Construire l'adresse a partir du numero + rue
+      (address: GeocodedAddress) => {
         const streetAddress = address.housenumber
           ? `${address.housenumber} ${address.street}`
           : address.street || address.label;
@@ -53,10 +58,19 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
         setValue('postalCode', address.postcode, { shouldValidate: true });
         setValue('latitude', address.latitude);
         setValue('longitude', address.longitude);
-        setValue('department', address.department);
+        // FR-specific (vide pour autres pays — c'est OK, ils sont nullable)
+        setValue('department', address.department || null);
         setValue('arrondissement', address.arrondissement || null);
+        // Re-aligner le pays / code pays si Nominatim retourne autre chose
+        if (address.countryCode && address.countryCode !== countryCode) {
+          const c = COUNTRY_BY_CODE[address.countryCode];
+          if (c) {
+            setValue('country', c.name, { shouldValidate: true });
+            setValue('countryCode', c.code, { shouldValidate: true });
+          }
+        }
       },
-      [setValue]
+      [setValue, countryCode]
     );
 
     return (
@@ -67,7 +81,51 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
         </Typography>
 
         <Grid container spacing={1.5}>
-          <Grid item xs={12}>
+          {/* Pays en premier — driver de l'autocomplete */}
+          <Grid item xs={12} md={4}>
+            <Controller
+              name="countryCode"
+              control={control}
+              render={({ field, fieldState }) => (
+                <TextField
+                  {...field}
+                  select
+                  fullWidth
+                  label={t('properties.country')}
+                  required
+                  size="small"
+                  error={!!fieldState.error}
+                  helperText={fieldState.error?.message}
+                  onChange={(e) => {
+                    const code = e.target.value;
+                    if (code === field.value) return;
+                    field.onChange(code);
+                    const c = COUNTRY_BY_CODE[code];
+                    if (c) {
+                      setValue('country', c.name, { shouldValidate: true });
+                    }
+                    // Reset des champs dependants : adresse / ville / CP / GPS / departement / arrondissement
+                    setValue('address', '', { shouldValidate: true });
+                    setValue('city', '', { shouldValidate: true });
+                    setValue('postalCode', '', { shouldValidate: true });
+                    setValue('latitude', null);
+                    setValue('longitude', null);
+                    setValue('department', null);
+                    setValue('arrondissement', null);
+                  }}
+                >
+                  {COUNTRIES.map((c) => (
+                    <MenuItem key={c.code} value={c.code}>
+                      <span style={{ marginRight: 8 }}>{c.flag}</span>
+                      {c.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={8}>
             <Controller
               name="address"
               control={control}
@@ -76,6 +134,7 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
                   value={field.value || ''}
                   onSelect={handleAddressSelect}
                   onChange={(val) => field.onChange(val)}
+                  countryCode={countryCode}
                   label={t('properties.fullAddress')}
                   placeholder={t('properties.addressAutocomplete') || t('properties.fullAddressPlaceholder')}
                   required
@@ -87,26 +146,39 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
             />
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={6}>
             <Controller
               name="city"
               control={control}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
+                <CityAutocomplete
+                  value={field.value || ''}
+                  onSelect={(city) => {
+                    setValue('city', city.city || city.label, { shouldValidate: true });
+                    if (city.postcode) {
+                      setValue('postalCode', city.postcode, { shouldValidate: true });
+                    }
+                    if (city.latitude && city.longitude) {
+                      setValue('latitude', city.latitude);
+                      setValue('longitude', city.longitude);
+                    }
+                    setValue('department', city.department || null);
+                    setValue('arrondissement', city.arrondissement || null);
+                  }}
+                  onChange={(val) => field.onChange(val)}
+                  countryCode={countryCode}
                   label={t('properties.city')}
                   required
                   placeholder={t('properties.cityPlaceholder')}
-                  size="small"
                   error={!!fieldState.error}
                   helperText={fieldState.error?.message}
+                  size="small"
                 />
               )}
             />
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={6}>
             <Controller
               name="postalCode"
               control={control}
@@ -117,24 +189,6 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
                   label={t('properties.postalCode')}
                   required
                   placeholder={t('properties.postalCodePlaceholder')}
-                  size="small"
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                />
-              )}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <Controller
-              name="country"
-              control={control}
-              render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  fullWidth
-                  label={t('properties.country')}
-                  required
                   size="small"
                   error={!!fieldState.error}
                   helperText={fieldState.error?.message}

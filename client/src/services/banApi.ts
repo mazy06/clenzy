@@ -164,4 +164,33 @@ export const banApi = {
       return [];
     }
   },
+
+  /**
+   * Recherche de villes (communes) uniquement via l'API BAN.
+   * Utilise type=municipality pour filtrer les resultats.
+   */
+  searchMunicipalities: async (query: string, limit = 5): Promise<BanAddress[]> => {
+    if (!query || query.trim().length < 2) {
+      return [];
+    }
+
+    try {
+      const params = new URLSearchParams({
+        q: query.trim(),
+        type: 'municipality',
+        limit: String(limit),
+      });
+
+      const response = await fetch(`${BAN_BASE_URL}/search/?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error(`BAN API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data: BanResponse = await response.json();
+      return data.features.map(parseBanFeature);
+    } catch {
+      return [];
+    }
+  },
 };
