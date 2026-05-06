@@ -188,12 +188,16 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
     List<Object[]> findDistinctHostsWithPayments(@Param("orgId") Long orgId);
 
     /**
-     * Interventions pour le planning : filtrees par proprietes et plage de dates
+     * Interventions pour le planning : filtrees par proprietes et plage de dates.
+     * Exclut les interventions liees a une reservation masquee du planning
+     * (reservation cancelled + hidden_from_planning=true).
      */
     @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser " +
            "WHERE i.property.id IN :propertyIds " +
            "AND i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
            "AND i.organizationId = :orgId " +
+           "AND NOT EXISTS (SELECT 1 FROM Reservation r WHERE r.intervention.id = i.id " +
+           "  AND r.hiddenFromPlanning = true AND r.status = 'cancelled') " +
            "ORDER BY i.scheduledDate ASC")
     List<Intervention> findByPropertyIdsAndDateRange(
             @Param("propertyIds") List<Long> propertyIds,
@@ -202,11 +206,14 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
             @Param("orgId") Long orgId);
 
     /**
-     * Toutes les interventions pour le planning dans une plage de dates (admin/manager)
+     * Toutes les interventions pour le planning dans une plage de dates (admin/manager).
+     * Exclut les interventions liees a une reservation masquee du planning.
      */
     @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser " +
            "WHERE i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
            "AND i.organizationId = :orgId " +
+           "AND NOT EXISTS (SELECT 1 FROM Reservation r WHERE r.intervention.id = i.id " +
+           "  AND r.hiddenFromPlanning = true AND r.status = 'cancelled') " +
            "ORDER BY i.scheduledDate ASC")
     List<Intervention> findAllByDateRange(
             @Param("fromDate") LocalDateTime fromDate,
@@ -214,12 +221,15 @@ public interface InterventionRepository extends JpaRepository<Intervention, Long
             @Param("orgId") Long orgId);
 
     /**
-     * Interventions pour le planning d'un owner specifique
+     * Interventions pour le planning d'un owner specifique.
+     * Exclut les interventions liees a une reservation masquee du planning.
      */
     @Query("SELECT i FROM Intervention i LEFT JOIN FETCH i.property p LEFT JOIN FETCH p.owner LEFT JOIN FETCH i.assignedUser " +
            "WHERE p.owner.keycloakId = :keycloakId " +
            "AND i.scheduledDate >= :fromDate AND i.scheduledDate <= :toDate " +
            "AND i.organizationId = :orgId " +
+           "AND NOT EXISTS (SELECT 1 FROM Reservation r WHERE r.intervention.id = i.id " +
+           "  AND r.hiddenFromPlanning = true AND r.status = 'cancelled') " +
            "ORDER BY i.scheduledDate ASC")
     List<Intervention> findByOwnerKeycloakIdAndDateRange(
             @Param("keycloakId") String keycloakId,

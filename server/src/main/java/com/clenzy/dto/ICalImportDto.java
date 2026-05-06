@@ -93,6 +93,7 @@ public class ICalImportDto {
     public static class ImportResponse {
         private int imported;
         private int skipped;
+        private int cancelled;
         private List<String> errors;
         private Long feedId;
 
@@ -100,6 +101,8 @@ public class ICalImportDto {
         public void setImported(int imported) { this.imported = imported; }
         public int getSkipped() { return skipped; }
         public void setSkipped(int skipped) { this.skipped = skipped; }
+        public int getCancelled() { return cancelled; }
+        public void setCancelled(int cancelled) { this.cancelled = cancelled; }
         public List<String> getErrors() { return errors; }
         public void setErrors(List<String> errors) { this.errors = errors; }
         public Long getFeedId() { return feedId; }

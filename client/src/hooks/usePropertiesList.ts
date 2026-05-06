@@ -75,7 +75,7 @@ function convertProperty(raw: ApiProperty): PropertyListItem {
     cleaningFrequency: raw.cleaningFrequency || 'ON_DEMAND',
     contactPhone: '',
     contactEmail: '',
-    imageUrl: undefined,
+    imageUrl: raw.coverPhotoUrl,
     lastCleaning: undefined,
     nextCleaning: undefined,
     ownerId: raw.ownerId?.toString(),

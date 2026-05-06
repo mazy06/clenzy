@@ -229,7 +229,7 @@ public class ReservationService {
         // Create ServiceRequest in PENDING status (goes through the full workflow)
         ServiceRequest sr = new ServiceRequest(
                 "Menage - " + (managedReservation.getGuestName() != null ? managedReservation.getGuestName() : "Reservation"),
-                ServiceType.CLEANING,
+                property.resolveCleaningServiceType(),
                 scheduledAt,
                 requestor,
                 property

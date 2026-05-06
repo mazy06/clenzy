@@ -10,9 +10,10 @@ export interface ConflictPair {
 /**
  * Detect overlapping reservations on the same property.
  * Only compares reservation-type events (not interventions).
+ * Cancelled reservations are excluded — they don't truly conflict with active ones.
  */
 export function detectConflicts(events: PlanningEvent[]): ConflictPair[] {
-  const reservations = events.filter((e) => e.type === 'reservation');
+  const reservations = events.filter((e) => e.type === 'reservation' && e.status !== 'cancelled');
   const conflicts: ConflictPair[] = [];
 
   for (let i = 0; i < reservations.length; i++) {
