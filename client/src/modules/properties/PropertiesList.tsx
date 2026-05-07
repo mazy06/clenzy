@@ -336,7 +336,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
   );
 
   return (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       {/* Portal actions into parent's PageHeader when embedded */}
       {embedded && actionsContainer && createPortal(actionButtons, actionsContainer)}
 
@@ -344,14 +344,16 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
       {embedded && filtersContainer && createPortal(filterBar, filtersContainer)}
 
       {!embedded && (
-        <PageHeader
-          title={t('properties.title')}
-          subtitle={t('properties.subtitle')}
-          backPath="/dashboard"
-          showBackButton={false}
-          actions={actionButtons}
-          filters={filterBar}
-        />
+        <Box sx={{ flexShrink: 0 }}>
+          <PageHeader
+            title={t('properties.title')}
+            subtitle={t('properties.subtitle')}
+            backPath="/dashboard"
+            showBackButton={false}
+            actions={actionButtons}
+            filters={filterBar}
+          />
+        </Box>
       )}
 
       {/* Liste des propriétés */}
@@ -581,14 +583,15 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
         <Paper
           sx={{
             ...LIST_PAPER_SX,
+            flex: 1,
+            minHeight: 0,
             display: 'flex',
             flexDirection: 'column',
-            height: 'calc(100vh - 140px)',
-            minHeight: 500,
+            overflow: 'hidden',
           }}
         >
-          <TableContainer sx={{ flexShrink: 0 }}>
-            <Table size="small">
+          <TableContainer sx={{ flex: 1, overflow: 'hidden' }}>
+            <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
               <TableHead>
                 <TableRow
                   sx={{
@@ -601,15 +604,15 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                     },
                   }}
                 >
-                  <TableCell>Nom</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Caractéristiques</TableCell>
-                  <TableCell sx={{ width: 140 }}>Commodités</TableCell>
-                  <TableCell align="right">Prix/nuit</TableCell>
-                  <TableCell align="right">Ménage estimé</TableCell>
-                  <TableCell align="center">Ménage auto</TableCell>
-                  <TableCell align="center">Statut</TableCell>
-                  <TableCell align="center">Actions</TableCell>
+                  <TableCell sx={{ width: '20%' }}>Nom</TableCell>
+                  <TableCell sx={{ width: '9%' }}>Type</TableCell>
+                  <TableCell sx={{ width: '17%' }}>Caractéristiques</TableCell>
+                  <TableCell sx={{ width: '14%' }}>Commodités</TableCell>
+                  <TableCell align="right" sx={{ width: '8%' }}>Prix/nuit</TableCell>
+                  <TableCell align="right" sx={{ width: '9%' }}>Ménage estimé</TableCell>
+                  <TableCell align="center" sx={{ width: '10%' }}>Ménage auto</TableCell>
+                  <TableCell align="center" sx={{ width: '7%' }}>Statut</TableCell>
+                  <TableCell align="center" sx={{ width: '6%' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -628,9 +631,19 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                       onClick={() => navigate(`/properties/${property.id}`)}
                     >
                       <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
                           <PropertyThumbnail url={property.imageUrl} size={44} alt={property.name} />
-                          <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.82rem' }}>
+                          <Typography
+                            variant="body2"
+                            fontWeight={600}
+                            sx={{
+                              fontSize: '0.82rem',
+                              minWidth: 0,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
                             {property.name}
                           </Typography>
                         </Box>
@@ -654,13 +667,22 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                         ); })()}
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{
+                            fontSize: '0.78rem',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
                           {property.bedrooms} ch. · {property.bathrooms} sdb · {property.squareMeters ?? 0} m² · {property.guests} voy.
                         </Typography>
                       </TableCell>
-                      <TableCell sx={{ width: 140 }}>
+                      <TableCell>
                         {property.amenities && property.amenities.length > 0 ? (
-                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', alignItems: 'center' }}>
+                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', alignItems: 'center', overflow: 'hidden' }}>
                             {property.amenities.slice(0, 2).map((amenity, i) => {
                               const c = getAmenityHex(amenity);
                               return (
@@ -803,8 +825,6 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
               </TableBody>
             </Table>
           </TableContainer>
-          {/* Spacer flex pour pousser la pagination en bas du conteneur */}
-          <Box sx={{ flex: 1, minHeight: 0 }} />
           <TablePagination
             component="div"
             count={filteredProperties.length}
@@ -818,7 +838,7 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
             rowsPerPageOptions={LIST_ROWS_PER_PAGE_OPTIONS}
             labelRowsPerPage="Lignes par page"
             labelDisplayedRows={({ from, to, count }) => `${from}-${to} sur ${count}`}
-            sx={{ ...PAGINATION_SX, flexShrink: 0, borderTop: '1px solid', borderColor: 'divider' }}
+            sx={{ flexShrink: 0, borderTop: '1px solid', borderColor: 'divider' }}
           />
         </Paper>
       )}
