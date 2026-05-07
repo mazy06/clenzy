@@ -59,8 +59,7 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
               alignItems: 'stretch',
               justifyContent: 'flex-start',
               gap: 0.25,
-              px: 0.75,
-              py: 0.5,
+              p: 0,
               borderBottom: '1px solid',
               borderColor: 'divider',
               cursor: onPropertyClick ? 'pointer' : 'default',
@@ -94,6 +93,8 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
                 letterSpacing: '-0.01em',
+                px: 0.75,
+                pb: 0.5,
               }}
             >
               {property.name}
