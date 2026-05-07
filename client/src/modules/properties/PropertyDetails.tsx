@@ -86,6 +86,8 @@ import {
 import { airbnbApi } from '../../services/api/airbnbApi';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
+import { propertyPhotosApi } from '../../services/api/propertyPhotosApi';
+import { useQuery } from '@tanstack/react-query';
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
@@ -298,6 +300,24 @@ const PropertyDetails: React.FC = () => {
 
   // ─── React Query ────────────────────────────────────────────────────────
   const { property, interventions, isLoading, isError, error } = usePropertyDetails(id);
+
+  // ─── Photos pour le carrousel (source de verite : endpoint photos) ──────
+  const photosQuery = useQuery({
+    queryKey: ['property-photos', id],
+    queryFn: () => propertyPhotosApi.list(Number(id)),
+    enabled: !!id,
+    staleTime: 60_000,
+  });
+
+  const photoUrls = useMemo(() => {
+    const photos = photosQuery.data ?? [];
+    return [...photos]
+      .sort((a, b) => {
+        const s = a.sortOrder - b.sortOrder;
+        return s !== 0 ? s : a.id - b.id;
+      })
+      .map((p) => propertyPhotosApi.getPhotoUrl(Number(id), p.id));
+  }, [photosQuery.data, id]);
 
   const [tabValue, setTabValue] = useState(0);
   const [canEdit, setCanEdit] = useState(false);
@@ -587,7 +607,7 @@ const PropertyDetails: React.FC = () => {
               {/* ── Col 1: Photos (carrousel + plein ecran au clic) ──── */}
               <Box sx={{ flex: 1, minWidth: 0, display: 'flex' }}>
                 <PropertyImageCarousel
-                  photoUrls={property.photoUrls}
+                  photoUrls={photoUrls}
                   alt={property.name}
                   width="100%"
                   height={{ xs: 240, sm: 280, md: 340 }}
