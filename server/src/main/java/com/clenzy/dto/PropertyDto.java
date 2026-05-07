@@ -60,6 +60,8 @@ public class PropertyDto {
     public String defaultCleaningType;
     /** URL relative de la photo principale (premiere par sortOrder). Null si aucune photo. */
     public String coverPhotoUrl;
+    /** URLs relatives de toutes les photos triees (sortOrder, puis id). Vide si aucune photo. */
+    public List<String> photoUrls;
     public String airbnbListingId;
     public String airbnbUrl;
     public CleaningFrequency cleaningFrequency;

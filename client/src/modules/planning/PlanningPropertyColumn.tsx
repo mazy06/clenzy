@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, useTheme } from '@mui/material';
 import type { PlanningProperty, DensityMode } from './types';
 import { ROW_CONFIG } from './constants';
+import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
 
 interface PlanningPropertyColumnProps {
   properties: PlanningProperty[];
@@ -39,82 +40,68 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
         borderColor: 'divider',
       }}
     >
-      {properties.map((property, idx) => (
-        <Box
-          key={property.id}
-          onClick={() => onPropertyClick?.(property.id)}
-          sx={{
-            height: effectiveRowHeight,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            px: colWidth < 150 ? 1 : 1.5,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            cursor: onPropertyClick ? 'pointer' : 'default',
-            backgroundColor: selectedPropertyId === property.id
-              ? theme.palette.mode === 'dark' ? 'rgba(107, 138, 154, 0.1)' : 'rgba(107, 138, 154, 0.05)'
-              : idx % 2 === 0
-                ? 'transparent'
-                : theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)',
-            transition: 'background-color 0.15s ease',
-            '&:hover': onPropertyClick ? {
-              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(107, 138, 154, 0.15)' : 'rgba(107, 138, 154, 0.08)',
-            } : {},
-          }}
-        >
-          <Typography
+      {properties.map((property, idx) => {
+        const showCarousel = colWidth >= 100;
+        const nameHeight = density === 'compact' ? 14 : 18;
+        const verticalPadding = 6;
+        const carouselHeight = Math.max(
+          24,
+          effectiveRowHeight - nameHeight - verticalPadding,
+        );
+        return (
+          <Box
+            key={property.id}
+            onClick={() => onPropertyClick?.(property.id)}
             sx={{
-              fontSize: colWidth < 130
-                ? '0.625rem'
-                : density === 'compact' ? '0.6875rem' : '0.75rem',
-              fontWeight: 600,
-              color: 'text.primary',
-              lineHeight: 1.3,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              letterSpacing: '-0.01em',
+              height: effectiveRowHeight,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'stretch',
+              justifyContent: 'flex-start',
+              gap: 0.25,
+              p: 0,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              cursor: onPropertyClick ? 'pointer' : 'default',
+              backgroundColor: selectedPropertyId === property.id
+                ? theme.palette.mode === 'dark' ? 'rgba(107, 138, 154, 0.1)' : 'rgba(107, 138, 154, 0.05)'
+                : idx % 2 === 0
+                  ? 'transparent'
+                  : theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.015)',
+              transition: 'background-color 0.15s ease',
+              '&:hover': onPropertyClick ? {
+                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(107, 138, 154, 0.15)' : 'rgba(107, 138, 154, 0.08)',
+              } : {},
             }}
           >
-            {property.name}
-          </Typography>
-          {density === 'normal' && colWidth >= 140 && (
-            <>
-              {property.ownerName && (
-                <Typography
-                  sx={{
-                    fontSize: colWidth < 160 ? '0.5rem' : '0.5625rem',
-                    fontWeight: 500,
-                    color: 'primary.main',
-                    lineHeight: 1.2,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    letterSpacing: '0.01em',
-                  }}
-                >
-                  {property.ownerName}
-                </Typography>
-              )}
-              <Typography
-                sx={{
-                  fontSize: colWidth < 160 ? '0.5rem' : '0.5625rem',
-                  fontWeight: 400,
-                  color: 'text.secondary',
-                  lineHeight: 1.2,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  letterSpacing: '0.02em',
-                }}
-              >
-                {property.city}
-              </Typography>
-            </>
-          )}
-        </Box>
-      ))}
+            {showCarousel && (
+              <PropertyImageCarousel
+                photoUrls={property.photoUrls}
+                alt={property.name}
+                width="100%"
+                height={carouselHeight}
+                sx={{ width: '100%' }}
+              />
+            )}
+            <Typography
+              sx={{
+                fontSize: density === 'compact' ? '0.6875rem' : '0.75rem',
+                fontWeight: 400,
+                color: 'text.secondary',
+                lineHeight: 1.2,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                letterSpacing: '-0.01em',
+                px: 0.75,
+                pb: 0.5,
+              }}
+            >
+              {property.name}
+            </Typography>
+          </Box>
+        );
+      })}
       {/* Empty filler rows */}
       {Array.from({ length: emptyRowCount }, (_, i) => (
         <Box
