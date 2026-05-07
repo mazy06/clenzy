@@ -51,6 +51,7 @@ export interface PropertyDetailsData {
   cleaningNotes?: string;
   createdAt?: string;
   updatedAt?: string;
+  photoUrls?: string[];
   // Geolocalisation
   latitude?: number;
   longitude?: number;
@@ -133,6 +134,7 @@ function convertProperty(raw: Property): PropertyDetailsData {
     cleaningNotes: raw.cleaningNotes,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
+    photoUrls: raw.photoUrls ?? [],
     latitude: raw.latitude,
     longitude: raw.longitude,
     checkInInstructions: raw.checkInInstructions ? {
