@@ -460,7 +460,7 @@ const UserForm: React.FC = () => {
 
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth size="small">
+                <FormControl fullWidth size="small" error={!!errors.organizationId}>
                   <InputLabel>Organisation</InputLabel>
                   <Controller
                     name="organizationId"
@@ -474,7 +474,7 @@ const UserForm: React.FC = () => {
                           <Typography variant="body2" color="text.secondary">Aucune</Typography>
                         </MenuItem>
                         {organizations.map((org) => (
-                          <MenuItem key={org.id} value={org.id}>
+                          <MenuItem key={org.id} value={String(org.id)}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <Business sx={{ fontSize: 18, color: 'text.secondary' }} />
                               <Typography variant="body2">{org.name}</Typography>
@@ -485,7 +485,7 @@ const UserForm: React.FC = () => {
                     )}
                   />
                   <FormHelperText sx={{ fontSize: '0.7rem' }}>
-                    Optionnel — rattacher l'utilisateur à une organisation
+                    {errors.organizationId?.message || "Optionnel — rattacher l'utilisateur à une organisation"}
                   </FormHelperText>
                 </FormControl>
               </Grid>
