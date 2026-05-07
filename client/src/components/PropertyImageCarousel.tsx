@@ -1,17 +1,21 @@
 import React, { useState, useCallback } from 'react';
 import { Box, IconButton } from '@mui/material';
+import type { SxProps, Theme } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { API_CONFIG } from '../config/api';
 import defaultPropertyImg from '../assets/images/autres.png';
 
+type ResponsiveSize = number | string | { [key: string]: number | string };
+
 interface PropertyImageCarouselProps {
   /** URLs des photos de la propriete (relatives ou absolues). */
   photoUrls?: string[] | null;
-  /** Largeur du carrousel. */
-  width?: number | string;
-  /** Hauteur du carrousel. '100%' pour s'adapter a la cellule parente. */
-  height?: number | string;
+  /** Largeur fixe (px) ou responsive (objet de breakpoints MUI). */
+  width?: ResponsiveSize;
+  /** Hauteur fixe (px) ou responsive (objet de breakpoints MUI). */
+  height?: ResponsiveSize;
   alt?: string;
+  sx?: SxProps<Theme>;
 }
 
 function resolveUrl(url: string): string {
@@ -21,9 +25,10 @@ function resolveUrl(url: string): string {
 
 export function PropertyImageCarousel({
   photoUrls,
-  width = 80,
-  height = '100%',
+  width = { xs: 72, sm: 88, md: 104 },
+  height = { xs: 56, sm: 64, md: 72 },
   alt = 'Photo de la propriete',
+  sx,
 }: PropertyImageCarouselProps) {
   const urls = (photoUrls ?? []).filter(Boolean);
   const hasPhotos = urls.length > 0;
@@ -46,15 +51,18 @@ export function PropertyImageCarousel({
 
   return (
     <Box
-      sx={{
-        width,
-        height,
-        position: 'relative',
-        flexShrink: 0,
-        overflow: 'hidden',
-        bgcolor: 'action.hover',
-        '&:hover .carousel-nav': hasMultiple ? { opacity: 1 } : undefined,
-      }}
+      sx={[
+        {
+          width,
+          height,
+          position: 'relative',
+          flexShrink: 0,
+          overflow: 'hidden',
+          bgcolor: 'action.hover',
+          '&:hover .carousel-nav': hasMultiple ? { opacity: 1 } : undefined,
+        },
+        ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+      ]}
     >
       <Box
         component="img"
