@@ -630,10 +630,10 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                       }}
                       onClick={() => navigate(`/properties/${property.id}`)}
                     >
-                      <TableCell sx={{ p: 0, pr: 1, height: 'inherit' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'stretch', minWidth: 0, height: '100%' }}>
-                          <PropertyImageCarousel photoUrls={property.photoUrls} width={80} height="100%" alt={property.name} />
-                          <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, pl: 1.25, py: 1 }}>
+                      <TableCell sx={{ p: 0, pr: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+                          <PropertyImageCarousel photoUrls={property.photoUrls} alt={property.name} />
+                          <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, pl: 1.25 }}>
                             <Typography
                               variant="body2"
                               fontWeight={600}
