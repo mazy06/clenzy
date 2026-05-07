@@ -1,9 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Box, IconButton, Dialog } from '@mui/material';
+import { Box, IconButton, Dialog, Typography } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
-import { ChevronLeft, ChevronRight, Close, Fullscreen } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, Close, Fullscreen, ImageNotSupported } from '@mui/icons-material';
 import { API_CONFIG } from '../config/api';
-import defaultPropertyImg from '../assets/images/autres.png';
 
 type ResponsiveSize = number | string | { [key: string]: number | string };
 
@@ -68,8 +67,8 @@ export function PropertyImageCarousel({
   }, [fullscreenOpen, hasMultiple, next, prev]);
 
   const currentUrl = hasPhotos && !errored[index] ? resolveUrl(urls[index]) : null;
-  const imageSrc = currentUrl ?? defaultPropertyImg;
-  const canFullscreen = enableFullscreen && hasPhotos;
+  const showPlaceholder = currentUrl === null;
+  const canFullscreen = enableFullscreen && hasPhotos && !showPlaceholder;
 
   const handleImageClick = useCallback(() => {
     if (canFullscreen) setFullscreenOpen(true);
@@ -97,21 +96,44 @@ export function PropertyImageCarousel({
         ]}
         onClick={handleImageClick}
       >
-        <Box
-          component="img"
-          src={imageSrc}
-          alt={alt}
-          loading="lazy"
-          onError={() => {
-            if (hasPhotos) setErrored((prev) => ({ ...prev, [index]: true }));
-          }}
-          sx={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            display: 'block',
-          }}
-        />
+        {showPlaceholder ? (
+          <Box
+            sx={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 0.5,
+              bgcolor: 'grey.100',
+              color: 'text.disabled',
+            }}
+          >
+            <ImageNotSupported sx={{ fontSize: alwaysShowNav ? 48 : 24 }} />
+            {alwaysShowNav && (
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 500 }}>
+                Aucune photo
+              </Typography>
+            )}
+          </Box>
+        ) : (
+          <Box
+            component="img"
+            src={currentUrl as string}
+            alt={alt}
+            loading="lazy"
+            onError={() => {
+              setErrored((prev) => ({ ...prev, [index]: true }));
+            }}
+            sx={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+            }}
+          />
+        )}
 
         {hasMultiple && (
           <>
@@ -266,7 +288,7 @@ export function PropertyImageCarousel({
           >
             <Box
               component="img"
-              src={imageSrc}
+              src={currentUrl ?? undefined}
               alt={alt}
               sx={{
                 maxWidth: '100%',
