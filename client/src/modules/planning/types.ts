@@ -117,6 +117,7 @@ export interface PlanningProperty {
   cleaningFrequency?: string;
   cleaningBasePrice?: number;
   currency?: string;
+  photoUrls?: string[];
 }
 
 // ─── Month separator (for date headers) ──────────────────────────────────────

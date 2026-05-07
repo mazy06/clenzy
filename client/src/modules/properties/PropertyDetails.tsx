@@ -85,6 +85,9 @@ import {
 } from '../../utils/statusUtils';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
+import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
+import { propertyPhotosApi } from '../../services/api/propertyPhotosApi';
+import { useQuery } from '@tanstack/react-query';
 
 // ─── Stable sx constants ────────────────────────────────────────────────────
 
@@ -297,6 +300,24 @@ const PropertyDetails: React.FC = () => {
 
   // ─── React Query ────────────────────────────────────────────────────────
   const { property, interventions, isLoading, isError, error } = usePropertyDetails(id);
+
+  // ─── Photos pour le carrousel (source de verite : endpoint photos) ──────
+  const photosQuery = useQuery({
+    queryKey: ['property-photos', id],
+    queryFn: () => propertyPhotosApi.list(Number(id)),
+    enabled: !!id,
+    staleTime: 60_000,
+  });
+
+  const photoUrls = useMemo(() => {
+    const photos = photosQuery.data ?? [];
+    return [...photos]
+      .sort((a, b) => {
+        const s = a.sortOrder - b.sortOrder;
+        return s !== 0 ? s : a.id - b.id;
+      })
+      .map((p) => propertyPhotosApi.getPhotoUrl(Number(id), p.id));
+  }, [photosQuery.data, id]);
 
   const [tabValue, setTabValue] = useState(0);
   const [canEdit, setCanEdit] = useState(false);
@@ -580,10 +601,26 @@ const PropertyDetails: React.FC = () => {
             </Box>
           )}
 
-          {/* ── Row 1: Merged info card (3 columns) ──────────────── */}
+          {/* ── Row 1: Photos | Informations + Tarification | Configuration ── */}
           <Paper sx={{ ...CARD_SX, mb: 1.5 }}>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              {/* ── Col 1: Informations générales ──────────────────── */}
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch' }}>
+              {/* ── Col 1: Photos (carrousel + plein ecran au clic) ──── */}
+              <Box sx={{ flex: 1, minWidth: 0, display: 'flex' }}>
+                <PropertyImageCarousel
+                  photoUrls={photoUrls}
+                  alt={property.name}
+                  width="100%"
+                  height={{ xs: 240, sm: 280, md: 340 }}
+                  alwaysShowNav
+                  enableFullscreen
+                  showCounter
+                  sx={{ width: '100%' }}
+                />
+              </Box>
+
+              <Divider orientation="vertical" flexItem />
+
+              {/* ── Col 2: Informations generales + Tarification menage ── */}
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={SECTION_TITLE_SX}>
                   {t('properties.informationsGeneral')}
@@ -629,11 +666,60 @@ const PropertyDetails: React.FC = () => {
                     </Box>
                   </>
                 )}
+
+                <Typography sx={{ ...SECTION_TITLE_SX, mt: 1.5 }}>
+                  {t('properties.cleaningPricing')}
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                  {property.cleaningBasePrice != null && property.cleaningBasePrice > 0 && (
+                    <Box sx={INFO_ROW_SX}>
+                      <Payments sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box>
+                        <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningBasePrice')}</Typography>
+                        <Typography sx={{ ...INFO_VALUE_SX, fontWeight: 700, color: 'primary.main' }}>{property.cleaningBasePrice}€</Typography>
+                      </Box>
+                    </Box>
+                  )}
+                  {property.cleaningDurationMinutes != null && property.cleaningDurationMinutes > 0 && (
+                    <Box sx={INFO_ROW_SX}>
+                      <Timer sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box>
+                        <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningDuration')}</Typography>
+                        <Typography sx={INFO_VALUE_SX}>
+                          {property.cleaningDurationMinutes >= 60
+                            ? `${Math.floor(property.cleaningDurationMinutes / 60)}h${property.cleaningDurationMinutes % 60 > 0 ? String(property.cleaningDurationMinutes % 60).padStart(2, '0') : ''}`
+                            : `${property.cleaningDurationMinutes} min`}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  )}
+                  {property.numberOfFloors != null && property.numberOfFloors > 0 && (
+                    <Box sx={INFO_ROW_SX}>
+                      <Stairs sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Box>
+                        <Typography sx={INFO_LABEL_SX}>{t('properties.numberOfFloors')}</Typography>
+                        <Typography sx={INFO_VALUE_SX}>{property.numberOfFloors}</Typography>
+                      </Box>
+                    </Box>
+                  )}
+                  {property.hasExterior && (
+                    <Box sx={INFO_ROW_SX}>
+                      <Deck sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Typography sx={INFO_VALUE_SX}>{t('properties.hasExterior')}</Typography>
+                    </Box>
+                  )}
+                  {property.hasLaundry && (
+                    <Box sx={INFO_ROW_SX}>
+                      <LocalLaundryService sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Typography sx={INFO_VALUE_SX}>{t('properties.hasLaundry')}</Typography>
+                    </Box>
+                  )}
+                </Box>
               </Box>
 
               <Divider orientation="vertical" flexItem />
 
-              {/* ── Col 2: Configuration ───────────────────────────── */}
+              {/* ── Col 3: Configuration ───────────────────────────── */}
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={SECTION_TITLE_SX}>
                   {t('properties.configuration')}
@@ -704,60 +790,6 @@ const PropertyDetails: React.FC = () => {
                     </Box>
                   </>
                 )}
-              </Box>
-
-              <Divider orientation="vertical" flexItem />
-
-              {/* ── Col 3: Tarification ménage ─────────────────────── */}
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={SECTION_TITLE_SX}>
-                  {t('properties.cleaningPricing')}
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                  {property.cleaningBasePrice != null && property.cleaningBasePrice > 0 && (
-                    <Box sx={INFO_ROW_SX}>
-                      <Payments sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      <Box>
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningBasePrice')}</Typography>
-                        <Typography sx={{ ...INFO_VALUE_SX, fontWeight: 700, color: 'primary.main' }}>{property.cleaningBasePrice}€</Typography>
-                      </Box>
-                    </Box>
-                  )}
-                  {property.cleaningDurationMinutes != null && property.cleaningDurationMinutes > 0 && (
-                    <Box sx={INFO_ROW_SX}>
-                      <Timer sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      <Box>
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.cleaningDuration')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>
-                          {property.cleaningDurationMinutes >= 60
-                            ? `${Math.floor(property.cleaningDurationMinutes / 60)}h${property.cleaningDurationMinutes % 60 > 0 ? String(property.cleaningDurationMinutes % 60).padStart(2, '0') : ''}`
-                            : `${property.cleaningDurationMinutes} min`}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  )}
-                  {property.numberOfFloors != null && property.numberOfFloors > 0 && (
-                    <Box sx={INFO_ROW_SX}>
-                      <Stairs sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      <Box>
-                        <Typography sx={INFO_LABEL_SX}>{t('properties.numberOfFloors')}</Typography>
-                        <Typography sx={INFO_VALUE_SX}>{property.numberOfFloors}</Typography>
-                      </Box>
-                    </Box>
-                  )}
-                  {property.hasExterior && (
-                    <Box sx={INFO_ROW_SX}>
-                      <Deck sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      <Typography sx={INFO_VALUE_SX}>{t('properties.hasExterior')}</Typography>
-                    </Box>
-                  )}
-                  {property.hasLaundry && (
-                    <Box sx={INFO_ROW_SX}>
-                      <LocalLaundryService sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      <Typography sx={INFO_VALUE_SX}>{t('properties.hasLaundry')}</Typography>
-                    </Box>
-                  )}
-                </Box>
               </Box>
 
             </Box>
