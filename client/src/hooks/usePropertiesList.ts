@@ -29,6 +29,7 @@ export interface PropertyListItem {
   contactPhone?: string;
   contactEmail?: string;
   imageUrl?: string;
+  photoUrls?: string[];
   lastCleaning?: string;
   nextCleaning?: string;
   ownerId?: string;
@@ -76,6 +77,7 @@ function convertProperty(raw: ApiProperty): PropertyListItem {
     contactPhone: '',
     contactEmail: '',
     imageUrl: raw.coverPhotoUrl,
+    photoUrls: raw.photoUrls ?? [],
     lastCleaning: undefined,
     nextCleaning: undefined,
     ownerId: raw.ownerId?.toString(),
