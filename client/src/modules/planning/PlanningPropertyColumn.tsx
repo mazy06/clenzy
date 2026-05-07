@@ -41,9 +41,13 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
       }}
     >
       {properties.map((property, idx) => {
-        const showCarousel = colWidth >= 130;
-        const carouselWidth = density === 'compact' ? 44 : 60;
-        const carouselHeight = density === 'compact' ? 36 : 56;
+        const showCarousel = colWidth >= 100;
+        const nameHeight = density === 'compact' ? 14 : 18;
+        const verticalPadding = 6;
+        const carouselHeight = Math.max(
+          24,
+          effectiveRowHeight - nameHeight - verticalPadding,
+        );
         return (
           <Box
             key={property.id}
@@ -51,11 +55,12 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
             sx={{
               height: effectiveRowHeight,
               display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 1,
-              pl: showCarousel ? 0.75 : (colWidth < 150 ? 1 : 1.5),
-              pr: colWidth < 150 ? 1 : 1.5,
+              flexDirection: 'column',
+              alignItems: 'stretch',
+              justifyContent: 'flex-start',
+              gap: 0.25,
+              px: 0.75,
+              py: 0.5,
               borderBottom: '1px solid',
               borderColor: 'divider',
               cursor: onPropertyClick ? 'pointer' : 'default',
@@ -74,70 +79,25 @@ const PlanningPropertyColumn: React.FC<PlanningPropertyColumnProps> = React.memo
               <PropertyImageCarousel
                 photoUrls={property.photoUrls}
                 alt={property.name}
-                width={carouselWidth}
+                width="100%"
                 height={carouselHeight}
+                sx={{ width: '100%' }}
               />
             )}
-            <Box
+            <Typography
               sx={{
-                flex: 1,
-                minWidth: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
+                fontSize: density === 'compact' ? '0.6875rem' : '0.75rem',
+                fontWeight: 600,
+                color: 'text.primary',
+                lineHeight: 1.2,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                letterSpacing: '-0.01em',
               }}
             >
-              <Typography
-                sx={{
-                  fontSize: colWidth < 130
-                    ? '0.625rem'
-                    : density === 'compact' ? '0.6875rem' : '0.75rem',
-                  fontWeight: 600,
-                  color: 'text.primary',
-                  lineHeight: 1.3,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                {property.name}
-              </Typography>
-              {density === 'normal' && colWidth >= 140 && (
-                <>
-                  {property.ownerName && (
-                    <Typography
-                      sx={{
-                        fontSize: colWidth < 160 ? '0.5rem' : '0.5625rem',
-                        fontWeight: 500,
-                        color: 'primary.main',
-                        lineHeight: 1.2,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        letterSpacing: '0.01em',
-                      }}
-                    >
-                      {property.ownerName}
-                    </Typography>
-                  )}
-                  <Typography
-                    sx={{
-                      fontSize: colWidth < 160 ? '0.5rem' : '0.5625rem',
-                      fontWeight: 400,
-                      color: 'text.secondary',
-                      lineHeight: 1.2,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      letterSpacing: '0.02em',
-                    }}
-                  >
-                    {property.city}
-                  </Typography>
-                </>
-              )}
-            </Box>
+              {property.name}
+            </Typography>
           </Box>
         );
       })}
