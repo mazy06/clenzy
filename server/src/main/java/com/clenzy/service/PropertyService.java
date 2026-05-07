@@ -275,17 +275,21 @@ public class PropertyService {
             dto.country = p.getCountry();
             dto.countryCode = p.getCountryCode();
             dto.defaultCleaningType = p.getDefaultCleaningType();
-            // Cover photo : premiere par sortOrder, fallback sur la premiere par id
+            // Photos : triees par sortOrder, puis id. coverPhotoUrl = premiere de la liste.
             if (p.getPhotos() != null && !p.getPhotos().isEmpty()) {
-                dto.coverPhotoUrl = p.getPhotos().stream()
-                        .min((a, b) -> {
-                            int s = Integer.compare(a.getSortOrder(), b.getSortOrder());
-                            if (s != 0) return s;
-                            return Long.compare(a.getId() != null ? a.getId() : 0L,
-                                    b.getId() != null ? b.getId() : 0L);
-                        })
+                java.util.Comparator<com.clenzy.model.PropertyPhoto> photoOrder = (a, b) -> {
+                    int s = Integer.compare(a.getSortOrder(), b.getSortOrder());
+                    if (s != 0) return s;
+                    return Long.compare(a.getId() != null ? a.getId() : 0L,
+                            b.getId() != null ? b.getId() : 0L);
+                };
+                dto.photoUrls = p.getPhotos().stream()
+                        .sorted(photoOrder)
                         .map(com.clenzy.model.PropertyPhoto::getUrl)
-                        .orElse(null);
+                        .toList();
+                dto.coverPhotoUrl = dto.photoUrls.isEmpty() ? null : dto.photoUrls.get(0);
+            } else {
+                dto.photoUrls = java.util.List.of();
             }
             dto.latitude = p.getLatitude();
             dto.longitude = p.getLongitude();

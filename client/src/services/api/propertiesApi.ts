@@ -14,6 +14,8 @@ export interface Property {
   defaultCleaningType?: 'CLEANING' | 'EXPRESS_CLEANING' | 'DEEP_CLEANING';
   /** URL relative de la photo principale (ex: /api/properties/3/photos/12/data). */
   coverPhotoUrl?: string;
+  /** URLs relatives de toutes les photos triees (sortOrder, puis id). Vide si aucune photo. */
+  photoUrls?: string[];
   type: string;
   status: string;
   bedroomCount: number;
