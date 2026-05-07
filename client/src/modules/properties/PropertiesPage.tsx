@@ -57,43 +57,45 @@ const PropertiesPage: React.FC = () => {
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Box sx={{ p: 3 }}>
-      <PageHeader
-        title={t('propertiesPage.title')}
-        subtitle={t('propertiesPage.subtitle')}
-        backPath="/dashboard"
-        showBackButton={false}
-        actions={<div ref={setActionsContainer} style={PORTAL_STYLE} />}
-        filters={<div ref={setFiltersContainer} style={PORTAL_STYLE} />}
-      />
-      <Paper sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            sx={{
-              flex: 1,
-              '& .MuiTab-root': { minHeight: 48, textTransform: 'none', fontSize: '0.8125rem' },
-            }}
-            variant="scrollable"
-            scrollButtons="auto"
-          >
-            <Tab
-              icon={<Home sx={{ fontSize: 18 }} />}
-              iconPosition="start"
-              label={t('propertiesPage.tabs.properties')}
-            />
-            <Tab
-              icon={<TrendingUp sx={{ fontSize: 18 }} />}
-              iconPosition="start"
-              label={t('propertiesPage.tabs.pricing')}
-            />
-          </Tabs>
-          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1.5, pr: 1.5 }}>
-            <div ref={setTabInlineContainer} style={PORTAL_STYLE} />
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, p: 3 }}>
+      <Box sx={{ flexShrink: 0 }}>
+        <PageHeader
+          title={t('propertiesPage.title')}
+          subtitle={t('propertiesPage.subtitle')}
+          backPath="/dashboard"
+          showBackButton={false}
+          actions={<div ref={setActionsContainer} style={PORTAL_STYLE} />}
+          filters={<div ref={setFiltersContainer} style={PORTAL_STYLE} />}
+        />
+        <Paper sx={{ mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs
+              value={activeTab}
+              onChange={handleTabChange}
+              sx={{
+                flex: 1,
+                '& .MuiTab-root': { minHeight: 48, textTransform: 'none', fontSize: '0.8125rem' },
+              }}
+              variant="scrollable"
+              scrollButtons="auto"
+            >
+              <Tab
+                icon={<Home sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label={t('propertiesPage.tabs.properties')}
+              />
+              <Tab
+                icon={<TrendingUp sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label={t('propertiesPage.tabs.pricing')}
+              />
+            </Tabs>
+            <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1.5, pr: 1.5 }}>
+              <div ref={setTabInlineContainer} style={PORTAL_STYLE} />
+            </Box>
           </Box>
-        </Box>
-      </Paper>
+        </Paper>
+      </Box>
 
       {/* ── Tab content ── */}
       {activeTab === TAB_PROPERTIES && (
