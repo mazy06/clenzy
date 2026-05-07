@@ -46,7 +46,7 @@ import { estimateCleaningPrice, estimateCleaningDuration, formatDuration } from 
 import ThemedTooltip from '../../components/ThemedTooltip';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
-import { PropertyThumbnail } from '../../components/PropertyThumbnail';
+import { PropertyImageCarousel } from '../../components/PropertyImageCarousel';
 import { usePropertiesList } from '../../hooks/usePropertiesList';
 import type { PropertyListItem } from '../../hooks/usePropertiesList';
 import {
@@ -630,22 +630,24 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
                       }}
                       onClick={() => navigate(`/properties/${property.id}`)}
                     >
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
-                          <PropertyThumbnail url={property.imageUrl} size={44} alt={property.name} />
-                          <Typography
-                            variant="body2"
-                            fontWeight={600}
-                            sx={{
-                              fontSize: '0.82rem',
-                              minWidth: 0,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {property.name}
-                          </Typography>
+                      <TableCell sx={{ p: 0, pr: 1, height: 'inherit' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'stretch', minWidth: 0, height: '100%' }}>
+                          <PropertyImageCarousel photoUrls={property.photoUrls} width={80} height="100%" alt={property.name} />
+                          <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, pl: 1.25, py: 1 }}>
+                            <Typography
+                              variant="body2"
+                              fontWeight={600}
+                              sx={{
+                                fontSize: '0.82rem',
+                                minWidth: 0,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {property.name}
+                            </Typography>
+                          </Box>
                         </Box>
                       </TableCell>
                       <TableCell>
