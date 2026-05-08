@@ -955,3 +955,14 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # --- 0110 : Fix-forward — ensure country/city columns on team_coverage_zones ---
+  # 0109 used splitStatements:false on plain (non-PL/pgSQL) multi-statement SQL,
+  # which left some prod databases with the columns missing. This changeset is
+  # fully idempotent (IF NOT EXISTS) and re-applies the desired schema.
+  - changeSet:
+      id: "0110-ensure-country-city-on-team-coverage-zones"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0110__ensure_country_city_on_team_coverage_zones.sql
+        relativeToChangelogFile: true
