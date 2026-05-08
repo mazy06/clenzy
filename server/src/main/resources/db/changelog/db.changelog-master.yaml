@@ -994,3 +994,17 @@ databaseChangeLog:
         relativeToChangelogFile: true
         splitStatements: false
         stripComments: false
+
+  # --- 0113 : Force-rebuild service_requests.status CHECK constraint ---
+  # 0064 a ete marque EXECUTED par changelog-sync-to-tag pre-liquibase-baseline
+  # (changeset 0107a) sans executer son SQL. La contrainte heritee de Hibernate
+  # ddl-auto=update n'accepte ni ASSIGNED ni AWAITING_PAYMENT, ce qui fait
+  # exploser tout assign/auto-assign avec DataIntegrityViolationException
+  # ("violates check constraint service_requests_status_check"). Ce changeset
+  # rejoue 0064 de facon idempotente.
+  - changeSet:
+      id: "0113-fix-service-request-status-constraint-force"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0113__fix_service_request_status_constraint_force.sql
+        relativeToChangelogFile: true
