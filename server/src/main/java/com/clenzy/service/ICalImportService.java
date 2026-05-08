@@ -60,6 +60,7 @@ public class ICalImportService {
     private final CalendarEngine calendarEngine;
     private final GuestService guestService;
     private final TenantContext tenantContext;
+    private final ServiceRequestService serviceRequestService;
     private final HttpClient httpClient;
 
     public ICalImportService(ICalFeedRepository icalFeedRepository,
@@ -75,7 +76,8 @@ public class ICalImportService {
                              PriceEngine priceEngine,
                              CalendarEngine calendarEngine,
                              GuestService guestService,
-                             TenantContext tenantContext) {
+                             TenantContext tenantContext,
+                             @org.springframework.context.annotation.Lazy ServiceRequestService serviceRequestService) {
         this.icalFeedRepository = icalFeedRepository;
         this.serviceRequestRepository = serviceRequestRepository;
         this.reservationRepository2 = reservationRepository2;
@@ -90,6 +92,7 @@ public class ICalImportService {
         this.calendarEngine = calendarEngine;
         this.guestService = guestService;
         this.tenantContext = tenantContext;
+        this.serviceRequestService = serviceRequestService;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(15))
                 .followRedirects(HttpClient.Redirect.NEVER) // SSRF: disable redirects to prevent bypass
@@ -302,20 +305,40 @@ public class ICalImportService {
                     imported++;
                 }
 
-                // 2. Creer la demande de menage (si auto-create active ET pas deja existante)
+                // 2. Creer ou reactiver la demande de menage (si auto-create active)
                 // IMPORTANT: verifie meme si la reservation est un doublon, car l'utilisateur
-                // peut activer l'auto-menage apres un premier import sans cette option
+                // peut activer l'auto-menage apres un premier import sans cette option,
+                // ou ajouter une equipe apres que le scheduler ait epuise ses retries.
                 if (request.isAutoCreateInterventions() && reservationId != null) {
-                    boolean srExists = false;
+                    ServiceRequest existingSR = null;
                     if (event.getUid() != null) {
-                        List<ServiceRequest> existingSRs = serviceRequestRepository.findByPropertyId(property.getId(), tenantContext.getRequiredOrganizationId());
-                        srExists = existingSRs.stream()
-                                .map(ServiceRequest::getSpecialInstructions)
-                                .filter(Objects::nonNull)
-                                .anyMatch(instr -> instr.contains("[ICAL:" + event.getUid() + "]"));
+                        String marker = "[ICAL:" + event.getUid() + "]";
+                        List<ServiceRequest> existingSRs = serviceRequestRepository.findByPropertyId(property.getId(), orgId);
+                        existingSR = existingSRs.stream()
+                                .filter(sr -> sr.getSpecialInstructions() != null
+                                        && sr.getSpecialInstructions().contains(marker))
+                                .findFirst()
+                                .orElse(null);
                     }
-                    if (!srExists) {
-                        createCleaningServiceRequest(property, event, request.getSourceName(), reservationId);
+                    if (existingSR == null) {
+                        // Aucune SR : on la cree puis on tente l'auto-assignation immediatement
+                        // (sinon il fallait attendre le tick 15 min du scheduler).
+                        ServiceRequest created = createCleaningServiceRequest(
+                                property, event, request.getSourceName(), reservationId);
+                        if (created != null) {
+                            tryAutoAssign(created, orgId);
+                        }
+                    } else if (existingSR.getStatus() == RequestStatus.PENDING
+                            && existingSR.getAssignedToId() == null) {
+                        // SR existe mais coincee en PENDING non-assignee. Cause typique :
+                        // l'utilisateur a ajoute une equipe / config apres l'import initial,
+                        // et le scheduler a deja epuise ses 10 retries (autoAssignStatus='exhausted').
+                        // On reset le compteur et on retente immediatement.
+                        existingSR.setAutoAssignRetryCount(0);
+                        existingSR.setAutoAssignStatus("searching");
+                        existingSR.setLastAutoAssignAttempt(null);
+                        ServiceRequest reset = serviceRequestRepository.save(existingSR);
+                        tryAutoAssign(reset, orgId);
                     }
                 }
 
@@ -497,9 +520,10 @@ public class ICalImportService {
     /**
      * Cree automatiquement une demande de service de menage pour une reservation importee.
      * L'intervention sera creee uniquement apres le paiement.
+     * Retourne la SR persistee (ou null si la creation a echoue).
      */
-    private void createCleaningServiceRequest(Property property, ICalEventPreview event,
-                                              String sourceName, Long reservationId) {
+    private ServiceRequest createCleaningServiceRequest(Property property, ICalEventPreview event,
+                                                         String sourceName, Long reservationId) {
         User owner = property.getOwner();
 
         // Date du checkout avec l'heure par defaut de la propriete
@@ -568,6 +592,24 @@ public class ICalImportService {
         log.info("Demande de service menage #{} creee pour reservation #{} propriete {} ({}, {})",
                 serviceRequest.getId(), reservationId, property.getName(), sourceName,
                 event.getGuestName() != null ? event.getGuestName() : "N/A");
+        return serviceRequest;
+    }
+
+    /**
+     * Tente une auto-assignation immediate sur une SR. Encapsule la gestion d'erreur
+     * pour que l'echec n'interrompe pas la boucle d'import iCal.
+     */
+    private void tryAutoAssign(ServiceRequest sr, Long orgId) {
+        try {
+            boolean assigned = serviceRequestService.attemptAutoAssignByOrgId(sr, orgId);
+            if (assigned) {
+                log.info("iCal sync: SR #{} auto-assignee a une equipe", sr.getId());
+            } else {
+                log.debug("iCal sync: SR #{} reste en PENDING (pas d'equipe disponible)", sr.getId());
+            }
+        } catch (Exception e) {
+            log.warn("iCal sync: erreur auto-assign SR #{}: {}", sr.getId(), e.getMessage());
+        }
     }
 
     /**
