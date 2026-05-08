@@ -1523,6 +1523,8 @@
     "coverageZones": "Coverage zones",
     "addCoverageZone": "Add a zone",
     "removeCoverageZone": "Remove zone",
+    "country": "Country",
+    "city": "City",
     "department": "Department",
     "arrondissement": "District",
     "selectDepartment": "Select a department",

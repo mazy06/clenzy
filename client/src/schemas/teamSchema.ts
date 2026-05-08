@@ -9,9 +9,22 @@ export const teamMemberSchema = z.object({
 });
 
 export const coverageZoneSchema = z.object({
-  department: z.string().min(1, 'Le departement est requis'),
+  country: z.string().min(2, 'Le pays est requis').default('FR'),
+  department: z.string().optional().nullable(),
   arrondissement: z.string().optional().nullable(),
-});
+  city: z.string().optional().nullable(),
+}).refine(
+  (zone) => {
+    if (zone.country === 'FR') {
+      return !!zone.department && zone.department.length > 0;
+    }
+    return !!zone.city && zone.city.length > 0;
+  },
+  {
+    message: "Selectionnez un departement (France) ou une ville (autres pays)",
+    path: ['department'],
+  },
+);
 
 export const teamSchema = z.object({
   name: z.string().min(1, "Le nom de l'équipe est requis"),
