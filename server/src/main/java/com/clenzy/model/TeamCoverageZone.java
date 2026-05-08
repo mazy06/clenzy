@@ -21,11 +21,21 @@ public class TeamCoverageZone {
     @Column(name = "team_id", nullable = false)
     private Long teamId;
 
-    @Column(name = "department", nullable = false, length = 3)
+    /** Code ISO 3166-1 alpha-2 ("FR", "MA", "SA"...). */
+    @Column(name = "country", nullable = false, length = 2)
+    private String country = "FR";
+
+    /** France uniquement : code departement (ex "75"). Null pour les autres pays. */
+    @Column(name = "department", length = 3)
     private String department;
 
+    /** France uniquement : arrondissement (ex "75001"). Null pour les autres pays. */
     @Column(name = "arrondissement", length = 5)
     private String arrondissement;
+
+    /** Hors France : libelle de la ville (ex "Marrakech"). Null pour la France. */
+    @Column(name = "city", length = 100)
+    private String city;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -42,8 +52,19 @@ public class TeamCoverageZone {
     public TeamCoverageZone(Long teamId, String department, String arrondissement) {
         this();
         this.teamId = teamId;
+        this.country = "FR";
         this.department = department;
         this.arrondissement = arrondissement;
+    }
+
+    public TeamCoverageZone(Long teamId, String country, String department,
+                            String arrondissement, String city) {
+        this();
+        this.teamId = teamId;
+        this.country = country != null ? country : "FR";
+        this.department = department;
+        this.arrondissement = arrondissement;
+        this.city = city;
     }
 
     // Getters et Setters
@@ -101,5 +122,21 @@ public class TeamCoverageZone {
 
     public void setOrganizationId(Long organizationId) {
         this.organizationId = organizationId;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 }
