@@ -42,6 +42,7 @@ class ICalImportServiceTest {
     @Mock private PriceEngine priceEngine;
     @Mock private CalendarEngine calendarEngine;
     @Mock private GuestService guestService;
+    @Mock private ServiceRequestService serviceRequestService;
 
     private TenantContext tenantContext;
     private ICalImportService icalImportService;
@@ -58,7 +59,8 @@ class ICalImportServiceTest {
                 reservationRepository2, interventionRepository, invoiceRepository,
                 propertyRepository, userRepository,
                 auditLogService, notificationService, pricingConfigService,
-                priceEngine, calendarEngine, guestService, tenantContext
+                priceEngine, calendarEngine, guestService, tenantContext,
+                serviceRequestService
         );
     }
 
