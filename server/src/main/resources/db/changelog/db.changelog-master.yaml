@@ -995,6 +995,21 @@ databaseChangeLog:
         splitStatements: false
         stripComments: false
 
+  # --- 0112a : Tag pre-fix-status-constraint ---
+  # Marqueur consomme par le workflow `liquibase-bootstrap.yml` de clenzy-infra
+  # (commande `changelog-sync-to-tag pre-fix-status-constraint`) pour marquer
+  # 0109..0112 comme appliques sans executer leur SQL. Sur la prod ces
+  # changesets n'ont jamais tourne (Liquibase desactive depuis 0108) mais le
+  # schema est deja conforme via Hibernate ddl-auto=update, et 0111 supprimerait
+  # les teams configurees a la main si on le rejouait. Ce tag permet d'isoler
+  # 0113 dans le step `update` qui suit la synchro.
+  - changeSet:
+      id: "0112a-tag-pre-fix-status-constraint"
+      author: clenzy-team
+      changes:
+        - tagDatabase:
+            tag: pre-fix-status-constraint
+
   # --- 0113 : Force-rebuild service_requests.status CHECK constraint ---
   # 0064 a ete marque EXECUTED par changelog-sync-to-tag pre-liquibase-baseline
   # (changeset 0107a) sans executer son SQL. La contrainte heritee de Hibernate
