@@ -1545,6 +1545,8 @@
     "coverageZones": "Zones de couverture",
     "addCoverageZone": "Ajouter une zone",
     "removeCoverageZone": "Retirer la zone",
+    "country": "Pays",
+    "city": "Ville",
     "department": "Departement",
     "arrondissement": "Arrondissement",
     "selectDepartment": "Selectionner un departement",
