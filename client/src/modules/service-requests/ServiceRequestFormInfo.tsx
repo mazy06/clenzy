@@ -108,6 +108,8 @@ export interface ServiceRequestFormInfoProps {
   includedPrestations?: string[];
   /** Prestations billed as extras in the selected forfait */
   extraPrestations?: string[];
+  /** When editing an existing SR, skip the description auto-fill so we don't overwrite the saved value with the (often >1000 chars) property description. */
+  isEditMode?: boolean;
 }
 
 // ─── Prestations à la carte config ─────────────────────────────────────────
@@ -149,7 +151,7 @@ function parseCleaningNotesToChecklist(notes: string): ChecklistItem[] {
 }
 
 const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo(
-  ({ control, errors, setValue, watchedServiceType, disabled = false, propertyDescription, cleaningNotes, selectedProperty, includedPrestations, extraPrestations }) => {
+  ({ control, errors, setValue, watchedServiceType, disabled = false, propertyDescription, cleaningNotes, selectedProperty, includedPrestations, extraPrestations, isEditMode = false }) => {
     const { t } = useTranslation();
 
     // ─── Description du logement (editable si pas de data propriété) ───
@@ -214,14 +216,19 @@ const ServiceRequestFormInfo: React.FC<ServiceRequestFormInfoProps> = React.memo
     }, [propertyDescription]);
 
     // Sync description to form field
+    // In edit mode, skip auto-fill: the SR's saved description was already loaded
+    // by the parent (reset(...)) and overwriting it with the property description
+    // can blow past the @Size(max=1000) backend validation when the property has a
+    // long marketing copy.
     React.useEffect(() => {
+      if (isEditMode) return;
       const desc = propertyDescription || localDescription || '';
       const checklistText = checklistItems
         .map(item => `${item.checked ? '[x]' : '[ ]'} ${item.text}`)
         .join('\n');
       const fullDescription = [desc, checklistText].filter(Boolean).join('\n\n---\n');
       setValue('description', fullDescription);
-    }, [propertyDescription, localDescription, checklistItems, setValue]);
+    }, [propertyDescription, localDescription, checklistItems, setValue, isEditMode]);
 
     const handleToggleItem = useCallback((id: string) => {
       setChecklistItems(prev =>
