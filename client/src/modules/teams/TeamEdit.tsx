@@ -48,6 +48,7 @@ import {
   hasArrondissements,
   getArrondissementsForDepartment,
 } from '../../data/frenchDepartments';
+import { COVERAGE_COUNTRIES, getCitiesForCountry } from '../../data/coverageCountries';
 
 interface TeamMember {
   userId: number;
@@ -132,8 +133,10 @@ const TeamEdit: React.FC = () => {
         })),
         coverageZones: teamData.coverageZones?.map((z) => ({
           id: z.id,
-          department: z.department,
-          arrondissement: z.arrondissement,
+          country: z.country || 'FR',
+          department: z.department ?? null,
+          arrondissement: z.arrondissement ?? null,
+          city: z.city ?? null,
         })) || [],
       });
     }
@@ -207,7 +210,7 @@ const TeamEdit: React.FC = () => {
   const addCoverageZone = () => {
     setFormData(prev => ({
       ...prev,
-      coverageZones: [...prev.coverageZones, { department: '', arrondissement: undefined }],
+      coverageZones: [...prev.coverageZones, { country: 'FR', department: '', arrondissement: null, city: null }],
     }));
   };
 
@@ -396,48 +399,90 @@ const TeamEdit: React.FC = () => {
             ) : (
               <Box sx={{ mb: 4 }}>
                 {formData.coverageZones.map((zone, index) => {
-                  const deptObj = FRENCH_DEPARTMENTS.find(d => d.code === zone.department);
-                  const showArr = hasArrondissements(zone.department);
-                  const arrOptions = showArr ? getArrondissementsForDepartment(zone.department) : [];
+                  const countryDef = COVERAGE_COUNTRIES.find(c => c.code === (zone.country || 'FR')) ?? COVERAGE_COUNTRIES[0];
+                  const isFr = countryDef.matchMode === 'department';
+                  const deptObj = isFr ? FRENCH_DEPARTMENTS.find(d => d.code === zone.department) : null;
+                  const showArr = isFr && !!zone.department && hasArrondissements(zone.department);
+                  const arrOptions = showArr ? getArrondissementsForDepartment(zone.department || '') : [];
+                  const cityOptions = !isFr ? getCitiesForCountry(countryDef.code) : [];
 
                   return (
                     <Grid container spacing={2} key={index} sx={{ mb: 1.5, alignItems: 'center' }}>
-                      <Grid item xs={12} md={5}>
+                      <Grid item xs={12} md={3}>
                         <Autocomplete
                           size="small"
-                          options={FRENCH_DEPARTMENTS}
-                          getOptionLabel={(opt) => `${opt.code} - ${opt.name}`}
-                          value={deptObj || null}
+                          options={COVERAGE_COUNTRIES}
+                          getOptionLabel={(opt) => opt.name}
+                          value={countryDef}
+                          disableClearable
                           onChange={(_e, val) => {
-                            updateCoverageZone(index, 'department', val?.code || '');
-                            // Reset arrondissement when department changes
-                            if (!val || !hasArrondissements(val.code)) {
-                              updateCoverageZone(index, 'arrondissement', undefined);
-                            }
+                            updateCoverageZone(index, 'country', val?.code || 'FR');
+                            updateCoverageZone(index, 'department', undefined);
+                            updateCoverageZone(index, 'arrondissement', undefined);
+                            updateCoverageZone(index, 'city', undefined);
                           }}
                           renderInput={(params) => (
-                            <TextField {...params} label="Departement" placeholder="Selectionner un departement" />
+                            <TextField {...params} label="Pays" />
                           )}
                         />
                       </Grid>
-                      {showArr && (
-                        <Grid item xs={12} md={5}>
+                      {isFr ? (
+                        <>
+                          <Grid item xs={12} md={showArr ? 4 : 7}>
+                            <Autocomplete
+                              size="small"
+                              options={FRENCH_DEPARTMENTS}
+                              getOptionLabel={(opt) => `${opt.code} - ${opt.name}`}
+                              value={deptObj || null}
+                              onChange={(_e, val) => {
+                                updateCoverageZone(index, 'department', val?.code || '');
+                                if (!val || !hasArrondissements(val.code)) {
+                                  updateCoverageZone(index, 'arrondissement', undefined);
+                                }
+                              }}
+                              renderInput={(params) => (
+                                <TextField {...params} label="Departement" placeholder="Selectionner un departement" />
+                              )}
+                            />
+                          </Grid>
+                          {showArr && (
+                            <Grid item xs={12} md={4}>
+                              <Autocomplete
+                                size="small"
+                                options={arrOptions}
+                                getOptionLabel={(opt) => opt.name}
+                                value={arrOptions.find(a => a.code === zone.arrondissement) || null}
+                                onChange={(_e, val) => {
+                                  updateCoverageZone(index, 'arrondissement', val?.code || undefined);
+                                }}
+                                renderInput={(params) => (
+                                  <TextField {...params} label="Arrondissement" placeholder="Tous les arrondissements" />
+                                )}
+                              />
+                            </Grid>
+                          )}
+                        </>
+                      ) : (
+                        <Grid item xs={12} md={7}>
                           <Autocomplete
                             size="small"
-                            options={arrOptions}
-                            getOptionLabel={(opt) => opt.name}
-                            value={arrOptions.find(a => a.code === zone.arrondissement) || null}
+                            options={cityOptions}
+                            freeSolo
+                            value={zone.city || ''}
                             onChange={(_e, val) => {
-                              updateCoverageZone(index, 'arrondissement', val?.code || undefined);
+                              updateCoverageZone(index, 'city', typeof val === 'string' ? val : (val ?? undefined));
+                            }}
+                            onInputChange={(_e, val) => {
+                              updateCoverageZone(index, 'city', val || undefined);
                             }}
                             renderInput={(params) => (
-                              <TextField {...params} label="Arrondissement" placeholder="Tous les arrondissements" />
+                              <TextField {...params} label="Ville" placeholder="Saisir ou selectionner une ville" />
                             )}
                           />
                         </Grid>
                       )}
-                      <Grid item xs={12} md={showArr ? 2 : 7} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {deptObj && (
+                      <Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {isFr && deptObj && (
                           <Chip
                             size="small"
                             label={deptObj.code}

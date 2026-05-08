@@ -14,8 +14,14 @@ export interface TeamMember {
 
 export interface CoverageZone {
   id?: number;
-  department: string;
-  arrondissement?: string;
+  /** Code ISO 3166-1 alpha-2 ("FR", "MA", "SA"). Defaut "FR". */
+  country: string;
+  /** France uniquement. */
+  department?: string | null;
+  /** France uniquement. */
+  arrondissement?: string | null;
+  /** Hors France uniquement. */
+  city?: string | null;
 }
 
 export interface Team {

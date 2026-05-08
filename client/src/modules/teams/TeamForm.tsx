@@ -45,6 +45,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { teamSchema, type TeamFormValues, type TeamFormInput } from '../../schemas';
 import { teamsKeys } from './useTeamsList';
 import { FRENCH_DEPARTMENTS, getArrondissementsForDepartment, hasArrondissements } from '../../data/frenchDepartments';
+import { COVERAGE_COUNTRIES, getCitiesForCountry } from '../../data/coverageCountries';
 
 // Type pour les utilisateurs
 interface User {
@@ -221,8 +222,10 @@ const TeamForm: React.FC = () => {
         role: member.role,
       })),
       coverageZones: (formData.coverageZones || []).map(zone => ({
-        department: zone.department,
+        country: zone.country || 'FR',
+        department: zone.department || undefined,
         arrondissement: zone.arrondissement || undefined,
+        city: zone.city || undefined,
       })),
     };
     createMutation.mutate(backendData);
@@ -474,7 +477,7 @@ const TeamForm: React.FC = () => {
                   <Button
                     variant="outlined"
                     startIcon={<Add sx={{ fontSize: 16 }} />}
-                    onClick={() => appendZone({ department: '', arrondissement: null })}
+                    onClick={() => appendZone({ country: 'FR', department: '', arrondissement: null, city: null })}
                     size="small"
                   >
                     {t('teams.addCoverageZone')}
@@ -498,9 +501,13 @@ const TeamForm: React.FC = () => {
                 ) : (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {zoneFields.map((zoneField, index) => {
+                      const watchedCountry = watch(`coverageZones.${index}.country`) || 'FR';
+                      const countryDef = COVERAGE_COUNTRIES.find(c => c.code === watchedCountry) ?? COVERAGE_COUNTRIES[0];
+                      const isFr = countryDef.matchMode === 'department';
                       const watchedDept = watch(`coverageZones.${index}.department`);
-                      const showArrondissement = watchedDept && hasArrondissements(watchedDept);
+                      const showArrondissement = isFr && !!watchedDept && hasArrondissements(watchedDept);
                       const arrondissements = showArrondissement ? getArrondissementsForDepartment(watchedDept) : [];
+                      const cityOptions = !isFr ? getCitiesForCountry(countryDef.code) : [];
 
                       return (
                         <Box
@@ -517,28 +524,26 @@ const TeamForm: React.FC = () => {
                             '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(107, 138, 154, 0.03)' },
                           }}
                         >
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Box sx={{ flex: '0 0 180px', minWidth: 0 }}>
                             <Controller
-                              name={`coverageZones.${index}.department`}
+                              name={`coverageZones.${index}.country`}
                               control={control}
-                              render={({ field: deptField, fieldState }) => (
+                              render={({ field: countryField }) => (
                                 <Autocomplete
-                                  options={FRENCH_DEPARTMENTS}
-                                  getOptionLabel={(opt) => `${opt.code} - ${opt.name}`}
-                                  value={FRENCH_DEPARTMENTS.find(d => d.code === deptField.value) || null}
+                                  options={COVERAGE_COUNTRIES}
+                                  getOptionLabel={(opt) => opt.name}
+                                  value={COVERAGE_COUNTRIES.find(c => c.code === (countryField.value || 'FR')) ?? COVERAGE_COUNTRIES[0]}
                                   onChange={(_, val) => {
-                                    deptField.onChange(val?.code || '');
-                                    // Reset arrondissement when department changes
+                                    const newCode = val?.code || 'FR';
+                                    countryField.onChange(newCode);
+                                    // Quand on change de pays, on remet a zero les champs incompatibles.
+                                    setValue(`coverageZones.${index}.department`, '');
                                     setValue(`coverageZones.${index}.arrondissement`, null);
+                                    setValue(`coverageZones.${index}.city`, null);
                                   }}
+                                  disableClearable
                                   renderInput={(params) => (
-                                    <TextField
-                                      {...params}
-                                      label={`${t('teams.department')} *`}
-                                      size="small"
-                                      error={!!fieldState.error}
-                                      helperText={fieldState.error?.message}
-                                    />
+                                    <TextField {...params} label={`${t('teams.country')} *`} size="small" />
                                   )}
                                   size="small"
                                 />
@@ -546,23 +551,81 @@ const TeamForm: React.FC = () => {
                             />
                           </Box>
 
-                          {showArrondissement && (
+                          {isFr ? (
+                            <>
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Controller
+                                  name={`coverageZones.${index}.department`}
+                                  control={control}
+                                  render={({ field: deptField, fieldState }) => (
+                                    <Autocomplete
+                                      options={FRENCH_DEPARTMENTS}
+                                      getOptionLabel={(opt) => `${opt.code} - ${opt.name}`}
+                                      value={FRENCH_DEPARTMENTS.find(d => d.code === deptField.value) || null}
+                                      onChange={(_, val) => {
+                                        deptField.onChange(val?.code || '');
+                                        setValue(`coverageZones.${index}.arrondissement`, null);
+                                      }}
+                                      renderInput={(params) => (
+                                        <TextField
+                                          {...params}
+                                          label={`${t('teams.department')} *`}
+                                          size="small"
+                                          error={!!fieldState.error}
+                                          helperText={fieldState.error?.message}
+                                        />
+                                      )}
+                                      size="small"
+                                    />
+                                  )}
+                                />
+                              </Box>
+
+                              {showArrondissement && (
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                  <Controller
+                                    name={`coverageZones.${index}.arrondissement`}
+                                    control={control}
+                                    render={({ field: arrField }) => (
+                                      <Autocomplete
+                                        options={arrondissements}
+                                        getOptionLabel={(opt) => opt.name}
+                                        value={arrondissements.find(a => a.code === arrField.value) || null}
+                                        onChange={(_, val) => arrField.onChange(val?.code || null)}
+                                        renderInput={(params) => (
+                                          <TextField
+                                            {...params}
+                                            label={t('teams.arrondissement')}
+                                            size="small"
+                                            placeholder={t('teams.selectArrondissement')}
+                                          />
+                                        )}
+                                        size="small"
+                                      />
+                                    )}
+                                  />
+                                </Box>
+                              )}
+                            </>
+                          ) : (
                             <Box sx={{ flex: 1, minWidth: 0 }}>
                               <Controller
-                                name={`coverageZones.${index}.arrondissement`}
+                                name={`coverageZones.${index}.city`}
                                 control={control}
-                                render={({ field: arrField }) => (
+                                render={({ field: cityField, fieldState }) => (
                                   <Autocomplete
-                                    options={arrondissements}
-                                    getOptionLabel={(opt) => opt.name}
-                                    value={arrondissements.find(a => a.code === arrField.value) || null}
-                                    onChange={(_, val) => arrField.onChange(val?.code || null)}
+                                    options={cityOptions}
+                                    freeSolo
+                                    value={cityField.value || ''}
+                                    onChange={(_, val) => cityField.onChange(typeof val === 'string' ? val : (val ?? null))}
+                                    onInputChange={(_, val) => cityField.onChange(val || null)}
                                     renderInput={(params) => (
                                       <TextField
                                         {...params}
-                                        label={t('teams.arrondissement')}
+                                        label={`${t('teams.city')} *`}
                                         size="small"
-                                        placeholder={t('teams.selectArrondissement')}
+                                        error={!!fieldState.error}
+                                        helperText={fieldState.error?.message}
                                       />
                                     )}
                                     size="small"

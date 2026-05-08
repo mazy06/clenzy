@@ -1521,6 +1521,8 @@
     "coverageZones": "مناطق التغطية",
     "addCoverageZone": "إضافة منطقة",
     "removeCoverageZone": "إزالة المنطقة",
+    "country": "البلد",
+    "city": "المدينة",
     "department": "المحافظة",
     "arrondissement": "الدائرة",
     "selectDepartment": "اختيار محافظة",
