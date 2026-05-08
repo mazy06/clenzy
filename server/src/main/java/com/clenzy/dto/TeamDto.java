@@ -35,8 +35,14 @@ public class TeamDto {
 
     public static class CoverageZoneDto {
         public Long id;
+        /** Code ISO 3166-1 alpha-2 ("FR", "MA", "SA"). Defaut "FR" pour la retro-compat. */
+        public String country;
+        /** France uniquement. */
         public String department;
+        /** France uniquement. */
         public String arrondissement;
+        /** Hors France uniquement (Maroc, Arabie Saoudite, ...). */
+        public String city;
     }
 
     public static class TeamMemberDto {

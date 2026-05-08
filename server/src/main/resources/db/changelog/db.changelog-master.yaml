@@ -945,3 +945,13 @@ databaseChangeLog:
       sqlFile:
         path: changes/0108__add_default_cleaning_type_to_properties.sql
         relativeToChangelogFile: true
+
+  # --- 0109 : Add country / city to team_coverage_zones ---
+  - changeSet:
+      id: "0109-add-country-city-to-team-coverage-zones"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0109__add_country_city_to_team_coverage_zones.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false

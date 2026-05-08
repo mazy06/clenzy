@@ -19,22 +19,40 @@ public interface TeamCoverageZoneRepository extends JpaRepository<TeamCoverageZo
     void deleteByTeamIdAndOrganizationId(@Param("teamId") Long teamId, @Param("orgId") Long orgId);
 
     /**
-     * Trouver les IDs des equipes couvrant un departement
+     * Trouver les IDs des equipes couvrant un departement (France uniquement).
      */
-    @Query("SELECT DISTINCT tcz.teamId FROM TeamCoverageZone tcz WHERE tcz.department = :dept AND tcz.organizationId = :orgId")
+    @Query("SELECT DISTINCT tcz.teamId FROM TeamCoverageZone tcz " +
+           "WHERE tcz.country = 'FR' " +
+           "AND tcz.department = :dept " +
+           "AND tcz.organizationId = :orgId")
     List<Long> findTeamIdsByDepartment(@Param("dept") String department, @Param("orgId") Long orgId);
 
     /**
-     * Trouver les IDs des equipes couvrant un departement et un arrondissement.
+     * Trouver les IDs des equipes couvrant un departement et un arrondissement (France uniquement).
      * Retourne aussi les equipes qui couvrent le departement entier (arrondissement IS NULL).
      */
     @Query("SELECT DISTINCT tcz.teamId FROM TeamCoverageZone tcz " +
-           "WHERE tcz.department = :dept " +
+           "WHERE tcz.country = 'FR' " +
+           "AND tcz.department = :dept " +
            "AND (tcz.arrondissement IS NULL OR tcz.arrondissement = :arr) " +
            "AND tcz.organizationId = :orgId")
     List<Long> findTeamIdsByDepartmentAndArrondissement(
         @Param("dept") String department,
         @Param("arr") String arrondissement,
+        @Param("orgId") Long orgId
+    );
+
+    /**
+     * Trouver les IDs des equipes couvrant un pays et une ville (matching insensible a la casse).
+     * Utilise pour les zones hors France (Maroc, Arabie Saoudite, ...).
+     */
+    @Query("SELECT DISTINCT tcz.teamId FROM TeamCoverageZone tcz " +
+           "WHERE UPPER(tcz.country) = UPPER(:country) " +
+           "AND LOWER(tcz.city) = LOWER(:city) " +
+           "AND tcz.organizationId = :orgId")
+    List<Long> findTeamIdsByCountryAndCity(
+        @Param("country") String country,
+        @Param("city") String city,
         @Param("orgId") Long orgId
     );
 }
