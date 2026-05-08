@@ -966,3 +966,15 @@ databaseChangeLog:
       sqlFile:
         path: changes/0110__ensure_country_city_on_team_coverage_zones.sql
         relativeToChangelogFile: true
+
+  # --- 0111 : Purge team data after coverage-zone migration incident ---
+  # GET /api/teams continues to 500 after 0109/0110 — likely due to incoherent
+  # team_coverage_zones rows produced during the partial migration. We wipe
+  # all team data so the user can re-create teams cleanly. Service requests
+  # assigned to a team are detached (status reverted to PENDING).
+  - changeSet:
+      id: "0111-purge-team-data"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0111__purge_team_data.sql
+        relativeToChangelogFile: true
