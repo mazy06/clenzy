@@ -15,6 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 import java.io.IOException;
@@ -203,6 +205,15 @@ public class ICalImportService {
         int cancelled = 0;
         List<String> errors = new ArrayList<>();
 
+        // SR IDs dont l'auto-assignation est differee jusqu'apres le commit.
+        // Pourquoi : les services @Transactional appeles par attemptAutoAssignByOrgId
+        // (findAvailableTeamForProperty, notifyAdminsAndManagersByOrgId, ...) peuvent
+        // lever une exception qui marque la transaction d'import comme rollback-only,
+        // meme avalee localement. Le commit explose alors avec UnexpectedRollbackException.
+        // En differant l'auto-assign en afterCommit, chaque appel tourne dans sa propre
+        // transaction et ne peut plus polluer l'import.
+        final List<Long> srsToAutoAssignAfterCommit = new ArrayList<>();
+
         // Compteur local pour les noms generiques (ex: "Reserved" → #1, #2, #3...)
         // Cle = propertyId + "_" + nomGenerique (lowercase)
         Map<String, Long> guestNameCounters = new HashMap<>();
@@ -321,24 +332,25 @@ public class ICalImportService {
                                 .orElse(null);
                     }
                     if (existingSR == null) {
-                        // Aucune SR : on la cree puis on tente l'auto-assignation immediatement
-                        // (sinon il fallait attendre le tick 15 min du scheduler).
+                        // Aucune SR : on la cree puis on planifie l'auto-assignation
+                        // post-commit (cf. srsToAutoAssignAfterCommit) pour eviter qu'une
+                        // exception interne ne marque la transaction rollback-only.
                         ServiceRequest created = createCleaningServiceRequest(
                                 property, event, request.getSourceName(), reservationId);
                         if (created != null) {
-                            tryAutoAssign(created, orgId);
+                            srsToAutoAssignAfterCommit.add(created.getId());
                         }
                     } else if (existingSR.getStatus() == RequestStatus.PENDING
                             && existingSR.getAssignedToId() == null) {
                         // SR existe mais coincee en PENDING non-assignee. Cause typique :
                         // l'utilisateur a ajoute une equipe / config apres l'import initial,
                         // et le scheduler a deja epuise ses 10 retries (autoAssignStatus='exhausted').
-                        // On reset le compteur et on retente immediatement.
+                        // On reset le compteur et on retente apres commit.
                         existingSR.setAutoAssignRetryCount(0);
                         existingSR.setAutoAssignStatus("searching");
                         existingSR.setLastAutoAssignAttempt(null);
                         ServiceRequest reset = serviceRequestRepository.save(existingSR);
-                        tryAutoAssign(reset, orgId);
+                        srsToAutoAssignAfterCommit.add(reset.getId());
                     }
                 }
 
@@ -447,7 +459,53 @@ public class ICalImportService {
             log.warn("Erreur notification import iCal: {}", e.getMessage());
         }
 
+        // Auto-assignation differee : tournee apres le commit dans des transactions
+        // independantes, pour qu'une defaillance ne casse pas l'import.
+        scheduleAutoAssignAfterCommit(srsToAutoAssignAfterCommit, orgId);
+
         return response;
+    }
+
+    /**
+     * Enregistre une synchronisation de transaction qui declenche l'auto-assignation
+     * de chaque SR APRES le commit de l'import. Chaque appel ouvre sa propre transaction
+     * (il n'y a plus de transaction active a ce stade), donc une exception interne
+     * ne peut plus polluer l'import via le mecanisme rollback-only de Spring.
+     */
+    private void scheduleAutoAssignAfterCommit(List<Long> srIds, Long orgId) {
+        if (srIds == null || srIds.isEmpty()) {
+            return;
+        }
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            // Pas de transaction active (cas de tests directs ou contexte exotique) :
+            // on lance immediatement, chaque attemptAutoAssignByOrgId ouvrant sa TX.
+            runDeferredAutoAssign(srIds, orgId);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                runDeferredAutoAssign(srIds, orgId);
+            }
+        });
+    }
+
+    private void runDeferredAutoAssign(List<Long> srIds, Long orgId) {
+        for (Long srId : srIds) {
+            try {
+                ServiceRequest sr = serviceRequestRepository.findById(srId).orElse(null);
+                if (sr != null) {
+                    boolean assigned = serviceRequestService.attemptAutoAssignByOrgId(sr, orgId);
+                    if (assigned) {
+                        log.info("iCal sync (post-commit): SR #{} auto-assignee a une equipe", sr.getId());
+                    } else {
+                        log.debug("iCal sync (post-commit): SR #{} reste en PENDING (pas d'equipe disponible)", sr.getId());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("iCal sync (post-commit): erreur auto-assign SR #{}: {}", srId, e.getMessage());
+            }
+        }
     }
 
     /**
@@ -593,23 +651,6 @@ public class ICalImportService {
                 serviceRequest.getId(), reservationId, property.getName(), sourceName,
                 event.getGuestName() != null ? event.getGuestName() : "N/A");
         return serviceRequest;
-    }
-
-    /**
-     * Tente une auto-assignation immediate sur une SR. Encapsule la gestion d'erreur
-     * pour que l'echec n'interrompe pas la boucle d'import iCal.
-     */
-    private void tryAutoAssign(ServiceRequest sr, Long orgId) {
-        try {
-            boolean assigned = serviceRequestService.attemptAutoAssignByOrgId(sr, orgId);
-            if (assigned) {
-                log.info("iCal sync: SR #{} auto-assignee a une equipe", sr.getId());
-            } else {
-                log.debug("iCal sync: SR #{} reste en PENDING (pas d'equipe disponible)", sr.getId());
-            }
-        } catch (Exception e) {
-            log.warn("iCal sync: erreur auto-assign SR #{}: {}", sr.getId(), e.getMessage());
-        }
     }
 
     /**
