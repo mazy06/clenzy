@@ -162,6 +162,11 @@ public class PropertyTeamService {
         // Equipes deja testees (eviter les doublons entre couches)
         Set<Long> testedTeamIds = new HashSet<>();
 
+        boolean canDoGeoSearch = property != null && (
+                (property.getDepartment() != null && !property.getDepartment().isBlank())
+                || (property.getCity() != null && !property.getCity().isBlank())
+        );
+
         for (Long searchOrgId : searchOrgIds) {
             // 1. Essayer l'equipe par defaut (property_teams) pour cette org
             Optional<Long> defaultResult = tryDefaultTeam(propertyId, searchOrgId, serviceType,
@@ -169,15 +174,15 @@ public class PropertyTeamService {
             if (defaultResult.isPresent()) return defaultResult;
 
             // 2. Fallback : recherche par zone geographique dans cette org
-            if (property != null && property.getDepartment() != null) {
+            if (canDoGeoSearch) {
                 Optional<Long> geoResult = tryGeographicSearch(property, searchOrgId, serviceType,
                     rangeStart, rangeEnd, testedTeamIds);
                 if (geoResult.isPresent()) return geoResult;
             }
         }
 
-        if (property == null || property.getDepartment() == null) {
-            log.debug("Auto-assignation: propriete {} sans departement, recherche geographique impossible", propertyId);
+        if (!canDoGeoSearch) {
+            log.debug("Auto-assignation: propriete {} sans department ni city, recherche geographique impossible", propertyId);
         }
 
         log.debug("Auto-assignation: aucune equipe compatible et disponible pour propriete {} (orgs testees: {})",
@@ -256,23 +261,45 @@ public class PropertyTeamService {
 
     /**
      * Recherche geographique d'une equipe dans une org donnee.
+     *
+     * - Pays "FR" (defaut historique) → matching par department + arrondissement.
+     * - Autres pays (MA, SA, ...) → matching par country + city.
      */
     private Optional<Long> tryGeographicSearch(Property property, Long searchOrgId, String serviceType,
                                                 LocalDateTime rangeStart, LocalDateTime rangeEnd,
                                                 Set<Long> testedTeamIds) {
-        String department = property.getDepartment();
-        String arrondissement = property.getArrondissement();
+        String countryCode = property.getCountryCode();
+        if (countryCode == null || countryCode.isBlank()) {
+            countryCode = "FR";
+        }
+        countryCode = countryCode.toUpperCase();
 
         List<Long> candidateTeamIds;
-        if (arrondissement != null && !arrondissement.isEmpty()) {
-            candidateTeamIds = teamCoverageZoneRepository.findTeamIdsByDepartmentAndArrondissement(
-                department, arrondissement, searchOrgId);
+        if ("FR".equals(countryCode)) {
+            String department = property.getDepartment();
+            if (department == null || department.isBlank()) {
+                return Optional.empty();
+            }
+            String arrondissement = property.getArrondissement();
+            if (arrondissement != null && !arrondissement.isEmpty()) {
+                candidateTeamIds = teamCoverageZoneRepository.findTeamIdsByDepartmentAndArrondissement(
+                    department, arrondissement, searchOrgId);
+            } else {
+                candidateTeamIds = teamCoverageZoneRepository.findTeamIdsByDepartment(department, searchOrgId);
+            }
         } else {
-            candidateTeamIds = teamCoverageZoneRepository.findTeamIdsByDepartment(department, searchOrgId);
+            String city = property.getCity();
+            if (city == null || city.isBlank()) {
+                log.debug("Auto-assignation: propriete pays={} sans city, recherche impossible", countryCode);
+                return Optional.empty();
+            }
+            candidateTeamIds = teamCoverageZoneRepository.findTeamIdsByCountryAndCity(
+                countryCode, city, searchOrgId);
         }
 
         if (candidateTeamIds.isEmpty()) {
-            log.debug("Auto-assignation: aucune equipe couvrant dept {} dans org {}", department, searchOrgId);
+            log.debug("Auto-assignation: aucune equipe couvrant {}/{} dans org {}",
+                countryCode, "FR".equals(countryCode) ? property.getDepartment() : property.getCity(), searchOrgId);
             return Optional.empty();
         }
 
@@ -292,8 +319,8 @@ public class PropertyTeamService {
                 candidateId, ACTIVE_STATUSES, rangeStart, rangeEnd
             );
             if (conflictCount == 0) {
-                log.debug("Auto-assignation geo: equipe {} (org={}, dept={}, type OK, disponible)",
-                    candidateId, searchOrgId, department);
+                log.debug("Auto-assignation geo: equipe {} (org={}, country={}, type OK, disponible)",
+                    candidateId, searchOrgId, countryCode);
                 return Optional.of(candidateId);
             }
         }

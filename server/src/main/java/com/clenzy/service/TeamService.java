@@ -94,7 +94,13 @@ public class TeamService {
         // Creer les zones de couverture
         if (dto.coverageZones != null && !dto.coverageZones.isEmpty()) {
             for (TeamDto.CoverageZoneDto zoneDto : dto.coverageZones) {
-                TeamCoverageZone zone = new TeamCoverageZone(savedTeam.getId(), zoneDto.department, zoneDto.arrondissement);
+                TeamCoverageZone zone = new TeamCoverageZone(
+                        savedTeam.getId(),
+                        normalizeCountry(zoneDto.country),
+                        zoneDto.department,
+                        zoneDto.arrondissement,
+                        zoneDto.city
+                );
                 zone.setOrganizationId(tenantContext.getRequiredOrganizationId());
                 teamCoverageZoneRepository.save(zone);
             }
@@ -154,7 +160,13 @@ public class TeamService {
             team.getCoverageZones().clear();
             teamCoverageZoneRepository.deleteByTeamIdAndOrganizationId(id, tenantContext.getRequiredOrganizationId());
             for (TeamDto.CoverageZoneDto zoneDto : dto.coverageZones) {
-                TeamCoverageZone zone = new TeamCoverageZone(id, zoneDto.department, zoneDto.arrondissement);
+                TeamCoverageZone zone = new TeamCoverageZone(
+                        id,
+                        normalizeCountry(zoneDto.country),
+                        zoneDto.department,
+                        zoneDto.arrondissement,
+                        zoneDto.city
+                );
                 zone.setOrganizationId(tenantContext.getRequiredOrganizationId());
                 zone.setTeam(team);
                 team.getCoverageZones().add(zone);
@@ -276,8 +288,10 @@ public class TeamService {
                 .map(zone -> {
                     TeamDto.CoverageZoneDto zoneDto = new TeamDto.CoverageZoneDto();
                     zoneDto.id = zone.getId();
+                    zoneDto.country = zone.getCountry() != null ? zone.getCountry() : "FR";
                     zoneDto.department = zone.getDepartment();
                     zoneDto.arrondissement = zone.getArrondissement();
+                    zoneDto.city = zone.getCity();
                     return zoneDto;
                 })
                 .collect(Collectors.toList());
@@ -294,5 +308,11 @@ public class TeamService {
         dto.lastName = member.getLastName();
         dto.email = member.getEmail();
         return dto;
+    }
+
+    /** Normalise le code pays : null/vide -> "FR" (retro-compat), sinon UPPER. */
+    private static String normalizeCountry(String country) {
+        if (country == null || country.isBlank()) return "FR";
+        return country.toUpperCase();
     }
 }
