@@ -978,3 +978,19 @@ databaseChangeLog:
       sqlFile:
         path: changes/0111__purge_team_data.sql
         relativeToChangelogFile: true
+
+  # --- 0112 : Brute-force ensure country/city columns via PL/pgSQL ---
+  # 0109 + 0110 ont ete enregistrees comme appliquees, mais en prod la colonne
+  # `country` reste absente (erreur "column cz1_0.country does not exist" sur
+  # /api/teams). On utilise un bloc DO $$ ... $$ avec information_schema pour
+  # garantir l'ajout, peu importe l'etat exact qu'ont laisse les migrations
+  # precedentes. splitStatements:false est documente dans CLAUDE.md pour les
+  # blocs PL/pgSQL.
+  - changeSet:
+      id: "0112-force-country-city-on-team-coverage-zones"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0112__force_country_city_on_team_coverage_zones.sql
+        relativeToChangelogFile: true
+        splitStatements: false
+        stripComments: false
