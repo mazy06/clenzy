@@ -18,6 +18,7 @@ import {
 import {
   Refresh as RefreshIcon,
   Cancel as CancelIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
 
@@ -60,6 +61,20 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
       setError(apiErr.message || 'Erreur lors de l\'annulation.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDelete = async (invitationId: number) => {
+    if (!window.confirm('Supprimer definitivement cette invitation ?')) return;
+    setActionLoading(invitationId);
+    try {
+      await invitationsApi.cancel(organizationId, invitationId);
+      await loadInvitations();
+    } catch (err: unknown) {
+      const apiErr = err as { message?: string };
+      setError(apiErr.message || 'Erreur lors de la suppression.');
     } finally {
       setActionLoading(null);
     }
@@ -183,6 +198,24 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
                         disabled={actionLoading === inv.id}
                       >
                         <CancelIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                )}
+                {(inv.status === 'CANCELLED' || inv.status === 'EXPIRED') && (
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                    <Tooltip title="Supprimer l'invitation">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleDelete(inv.id)}
+                        disabled={actionLoading === inv.id}
+                      >
+                        {actionLoading === inv.id ? (
+                          <CircularProgress size={18} />
+                        ) : (
+                          <DeleteIcon fontSize="small" />
+                        )}
                       </IconButton>
                     </Tooltip>
                   </Box>

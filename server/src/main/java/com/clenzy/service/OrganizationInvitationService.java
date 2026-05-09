@@ -305,8 +305,17 @@ public class OrganizationInvitationService {
                 .collect(Collectors.toList());
     }
 
-    // ─── Annuler une invitation ───────────────────────────────────────────────
+    // ─── Annuler ou supprimer une invitation ──────────────────────────────────
 
+    /**
+     * DELETE sur une invitation.
+     * - PENDING       : passe en CANCELLED (soft cancel — l'utilisateur peut
+     *                   toujours voir l'historique)
+     * - CANCELLED /   : hard delete (purge la ligne — l'admin nettoie la liste)
+     *   EXPIRED
+     * - ACCEPTED      : refus (l'utilisateur est devenu membre, l'invitation
+     *                   reste comme trace audit)
+     */
     public void cancelInvitation(Long orgId, Long invitationId, Jwt jwt) {
         User user = resolveUser(jwt);
         validateInvitePermission(user, orgId, jwt);
@@ -317,13 +326,21 @@ public class OrganizationInvitationService {
         if (!invitation.getOrganization().getId().equals(orgId)) {
             throw new AccessDeniedException("Cette invitation n'appartient pas a cette organisation");
         }
-        if (invitation.getStatus() != InvitationStatus.PENDING) {
-            throw new IllegalStateException("Seules les invitations en attente peuvent etre annulees");
-        }
 
-        invitation.setStatus(InvitationStatus.CANCELLED);
-        invitationRepository.save(invitation);
-        log.info("Invitation annulee: id={}, email={}", invitationId, invitation.getInvitedEmail());
+        switch (invitation.getStatus()) {
+            case PENDING -> {
+                invitation.setStatus(InvitationStatus.CANCELLED);
+                invitationRepository.save(invitation);
+                log.info("Invitation annulee: id={}, email={}", invitationId, invitation.getInvitedEmail());
+            }
+            case CANCELLED, EXPIRED -> {
+                invitationRepository.delete(invitation);
+                log.info("Invitation supprimee: id={}, status={}, email={}",
+                        invitationId, invitation.getStatus(), invitation.getInvitedEmail());
+            }
+            case ACCEPTED -> throw new IllegalStateException(
+                    "Une invitation acceptee ne peut etre supprimee (utilisateur deja membre)");
+        }
     }
 
     // ─── Renvoyer une invitation ──────────────────────────────────────────────
