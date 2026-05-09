@@ -1023,3 +1023,16 @@ databaseChangeLog:
       sqlFile:
         path: changes/0113__fix_service_request_status_constraint_force.sql
         relativeToChangelogFile: true
+
+  # --- 0114 : Drop legacy `url` column from property_photos ---
+  # Sur la prod, Hibernate ddl-auto=update a cree la table avec une colonne
+  # `url VARCHAR NOT NULL` (ancienne entite). La migration 0093 (DROP+CREATE)
+  # n'a jamais tourne (Liquibase desactive), donc la colonne legacy reste
+  # NOT NULL et tout INSERT photo echoue. DROP COLUMN IF EXISTS est idempotent
+  # sur dev/local ou 0093 a recree la table proprement.
+  - changeSet:
+      id: "0114-drop-legacy-url-from-property-photos"
+      author: clenzy-team
+      sqlFile:
+        path: changes/0114__drop_legacy_url_from_property_photos.sql
+        relativeToChangelogFile: true
