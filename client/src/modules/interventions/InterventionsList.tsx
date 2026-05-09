@@ -164,10 +164,19 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     user,
   } = useInterventionsList();
 
+  // Auto default : map si au moins 1 intervention a une propriete geocodee, sinon list.
+  // undefined tant qu'on charge -> le hook conserve son fallback initial.
+  const autoDefaultMode = useMemo<'map' | 'list' | undefined>(() => {
+    if (loading) return undefined;
+    return interventions.some((i) => i.propertyLatitude && i.propertyLongitude)
+      ? 'map'
+      : 'list';
+  }, [loading, interventions]);
   const [viewMode, setViewMode] = usePersistedViewMode<'grid' | 'list' | 'map'>(
     'interventions',
     'map',
     ['grid', 'list', 'map'] as const,
+    autoDefaultMode,
   );
   const [listPage, setListPage] = useState(0);
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);

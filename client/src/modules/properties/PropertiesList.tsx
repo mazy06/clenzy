@@ -129,10 +129,19 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
   const [selectedProperty, setSelectedProperty] = useState<PropertyListItem | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [page, setPage] = useState(0);
+  // Auto default : map si au moins 1 propriete a des coords GPS, sinon list.
+  // undefined tant qu'on charge -> le hook conserve son fallback initial.
+  const autoDefaultMode = useMemo<'map' | 'list' | undefined>(() => {
+    if (isLoading) return undefined;
+    return properties.some((p) => p.latitude != null && p.longitude != null)
+      ? 'map'
+      : 'list';
+  }, [isLoading, properties]);
   const [viewMode, setViewMode] = usePersistedViewMode<'grid' | 'list' | 'map'>(
     'properties',
     'map',
     ['grid', 'list', 'map'] as const,
+    autoDefaultMode,
   );
   const [rowsPerPage, setRowsPerPage] = useState(LIST_DEFAULT_ROWS);
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
