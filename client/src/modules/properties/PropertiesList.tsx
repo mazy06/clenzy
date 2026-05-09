@@ -34,6 +34,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import { PROPERTY_STATUS_OPTIONS } from '../../types/statusEnums';
@@ -128,7 +129,11 @@ export default function PropertiesList({ embedded = false, actionsContainer, fil
   const [selectedProperty, setSelectedProperty] = useState<PropertyListItem | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [page, setPage] = useState(0);
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('map');
+  const [viewMode, setViewMode] = usePersistedViewMode<'grid' | 'list' | 'map'>(
+    'properties',
+    'map',
+    ['grid', 'list', 'map'] as const,
+  );
   const [rowsPerPage, setRowsPerPage] = useState(LIST_DEFAULT_ROWS);
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
 
