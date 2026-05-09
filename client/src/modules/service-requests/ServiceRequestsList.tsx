@@ -63,6 +63,7 @@ import {
 } from './ServiceRequestsDialogs';
 import { useDynamicPageSize } from '../../hooks/useDynamicPageSize';
 import { useCurrency } from '../../hooks/useCurrency';
+import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 
@@ -119,6 +120,8 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
     selectedServiceRequest,
 
     // Data
+    serviceRequests,
+    loading,
     filteredServiceRequests,
 
     // Delete dialog
@@ -195,7 +198,20 @@ export default function ServiceRequestsList({ embedded = false, actionsContainer
   } = useServiceRequestsList();
 
   const [page, setPage] = useState(0);
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('map');
+  // Auto default : map si au moins 1 demande a une propriete geocodee, sinon list.
+  // undefined tant qu'on charge -> le hook conserve son fallback initial.
+  const autoDefaultMode = useMemo<'map' | 'list' | undefined>(() => {
+    if (loading) return undefined;
+    return serviceRequests.some((r) => r.propertyLatitude && r.propertyLongitude)
+      ? 'map'
+      : 'list';
+  }, [loading, serviceRequests]);
+  const [viewMode, setViewMode] = usePersistedViewMode<'grid' | 'list' | 'map'>(
+    'service-requests',
+    'map',
+    ['grid', 'list', 'map'] as const,
+    autoDefaultMode,
+  );
   const theme = useTheme();
   const { convertAndFormat } = useCurrency();
   const ITEMS_PER_PAGE = 6;
