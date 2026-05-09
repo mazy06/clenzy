@@ -668,6 +668,7 @@ const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({ onClose, onSucc
                   selectedProperty={selectedProperty}
                   includedPrestations={selectedForfait?.includedPrestations}
                   extraPrestations={selectedForfait?.extraPrestations}
+                  isEditMode={isEditMode}
                 />
               </Paper>
             </Collapse>
