@@ -13,7 +13,6 @@ import {
 } from '@mui/material';
 import { Person, Group, BlockOutlined } from '@mui/icons-material';
 import { Controller, Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
-import { REQUEST_STATUS_OPTIONS } from '../../types/statusEnums';
 import { INTERVENTION_TYPE_OPTIONS } from '../../types/interventionTypes';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ServiceRequestFormValues } from '../../schemas';
@@ -98,11 +97,6 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
   }) => {
     const { t } = useTranslation();
 
-    const statuses = REQUEST_STATUS_OPTIONS.map((option) => ({
-      value: option.value,
-      label: option.label,
-    }));
-
     const getAssignableUsers = useCallback(() => {
       return users.filter((user) =>
         ['housekeeper', 'technician', 'supervisor', 'manager'].includes(user.role.toLowerCase())
@@ -159,38 +153,6 @@ const ServiceRequestFormAssignment: React.FC<ServiceRequestFormAssignmentProps> 
 
     return (
       <>
-        {/* Status field - only in edit mode */}
-        {isEditMode && (
-          <Box sx={{ mb: 2 }}>
-            <Controller
-              name="status"
-              control={control}
-              render={({ field }) => (
-                <FormControl fullWidth required disabled={disabled}>
-                  <InputLabel shrink sx={{ color: 'text.secondary' }}>
-                    {t('common.status')} *
-                  </InputLabel>
-                  <Select
-                    value={field.value || 'PENDING'}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    label={`${t('common.status')} *`}
-                    size="small"
-                    disabled={disabled}
-                    notched
-                    sx={SELECT_SX}
-                  >
-                    {statuses.map((status) => (
-                      <MenuItem key={status.value} value={status.value}>
-                        {status.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-            />
-          </Box>
-        )}
 
         {/* Type d'assignation - Chips */}
         {canAssignForProperty && (
