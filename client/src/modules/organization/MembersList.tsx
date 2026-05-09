@@ -126,16 +126,18 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
 
   const paginatedMembers = members.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE);
 
+  const CELL_NOWRAP_SX = { whiteSpace: 'nowrap' as const, py: 0.75, px: 1 };
+
   return (
     <>
       <TableContainer>
-        <Table size="small">
+        <Table size="small" sx={{ tableLayout: 'auto' }}>
           <TableHead>
             <TableRow>
-              <TableCell>Membre</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell>Depuis</TableCell>
-              {canManage && <TableCell align="right">Actions</TableCell>}
+              <TableCell sx={CELL_NOWRAP_SX}>Membre</TableCell>
+              <TableCell sx={CELL_NOWRAP_SX}>Role</TableCell>
+              <TableCell sx={CELL_NOWRAP_SX}>Depuis</TableCell>
+              {canManage && <TableCell align="right" sx={CELL_NOWRAP_SX}>Actions</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -145,7 +147,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
               return (
                 <TableRow key={member.id} hover>
                   {/* Membre (avatar + nom + email) */}
-                  <TableCell>
+                  <TableCell sx={CELL_NOWRAP_SX}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <Avatar
                         sx={{
@@ -169,7 +171,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                   </TableCell>
 
                   {/* Role */}
-                  <TableCell>
+                  <TableCell sx={CELL_NOWRAP_SX}>
                     <Chip
                       label={getOrgRoleLabel(member.roleInOrg)}
                       size="small"
@@ -179,7 +181,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
                   </TableCell>
 
                   {/* Depuis */}
-                  <TableCell>
+                  <TableCell sx={CELL_NOWRAP_SX}>
                     <Typography variant="caption" color="text.secondary">
                       {member.joinedAt
                         ? new Date(member.joinedAt).toLocaleDateString('fr-FR')
@@ -189,7 +191,7 @@ export default function MembersList({ organizationId, refreshTrigger, onMemberCh
 
                   {/* Actions — visible uniquement pour staff plateforme ou admin org */}
                   {canManage && (
-                    <TableCell align="right">
+                    <TableCell align="right" sx={CELL_NOWRAP_SX}>
                       {!isOwner && (
                         <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
                           <Tooltip title="Changer le role">
