@@ -733,6 +733,48 @@ class OrganizationInvitationServiceTest {
             assertThatThrownBy(() -> invitationService.cancelInvitation(ORG_ID, 999L, jwt))
                     .isInstanceOf(IllegalArgumentException.class);
         }
+
+        @Test
+        @DisplayName("when already cancelled then hard-deletes the row")
+        void whenAlreadyCancelled_thenHardDeletes() {
+            // Arrange
+            Jwt jwt = buildJwt("kc-1", "SUPER_ADMIN");
+            User admin = buildUser(1L, UserRole.SUPER_ADMIN);
+            Organization org = buildOrg(ORG_ID, "Test Org");
+            OrganizationInvitation inv = buildInvitation(100L, org, "cancel@test.com");
+            inv.setStatus(InvitationStatus.CANCELLED);
+
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(admin));
+            when(invitationRepository.findById(100L)).thenReturn(Optional.of(inv));
+
+            // Act
+            invitationService.cancelInvitation(ORG_ID, 100L, jwt);
+
+            // Assert
+            verify(invitationRepository).delete(inv);
+            verify(invitationRepository, never()).save(inv);
+        }
+
+        @Test
+        @DisplayName("when already expired then hard-deletes the row")
+        void whenAlreadyExpired_thenHardDeletes() {
+            // Arrange
+            Jwt jwt = buildJwt("kc-1", "SUPER_ADMIN");
+            User admin = buildUser(1L, UserRole.SUPER_ADMIN);
+            Organization org = buildOrg(ORG_ID, "Test Org");
+            OrganizationInvitation inv = buildInvitation(100L, org, "expired@test.com");
+            inv.setStatus(InvitationStatus.EXPIRED);
+
+            when(userRepository.findByKeycloakId("kc-1")).thenReturn(Optional.of(admin));
+            when(invitationRepository.findById(100L)).thenReturn(Optional.of(inv));
+
+            // Act
+            invitationService.cancelInvitation(ORG_ID, 100L, jwt);
+
+            // Assert
+            verify(invitationRepository).delete(inv);
+            verify(invitationRepository, never()).save(inv);
+        }
     }
 
     // ===== RESEND INVITATION =====
