@@ -8,6 +8,7 @@ import com.clenzy.repository.PropertyRepository;
 import com.clenzy.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -47,6 +48,7 @@ public class PropertyPhotoService {
     }
 
     @Transactional
+    @CacheEvict(value = "properties", key = "#propertyId")
     public PropertyPhotoDto uploadPhoto(Long propertyId, MultipartFile file, String caption) {
         validateFile(file);
         validatePhotoLimit(propertyId);
@@ -105,6 +107,7 @@ public class PropertyPhotoService {
     }
 
     @Transactional
+    @CacheEvict(value = "properties", key = "#propertyId")
     public void deletePhoto(Long propertyId, Long photoId) {
         final PropertyPhoto photo = photoRepository.findByIdAndPropertyId(photoId, propertyId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -118,6 +121,7 @@ public class PropertyPhotoService {
     }
 
     @Transactional
+    @CacheEvict(value = "properties", key = "#propertyId")
     public void reorderPhotos(Long propertyId, List<Long> photoIds) {
         final List<PropertyPhoto> photos = photoRepository.findByPropertyIdOrderBySortOrderAsc(propertyId);
 
