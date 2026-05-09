@@ -134,46 +134,62 @@ export default function InvitationsList({ organizationId, refreshTrigger }: Prop
     );
   }
 
+  // Format compact : jj/mm/aa au lieu de jj/mm/aaaa pour gagner ~2 chars/cellule
+  const formatShortDate = (iso: string) => {
+    const d = new Date(iso);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${dd}/${mm}/${yy}`;
+  };
+
+  const CELL_SX = {
+    fontSize: '0.75rem',
+    whiteSpace: 'nowrap',
+    py: 0.75,
+    px: 1,
+  } as const;
+
   return (
     <TableContainer>
-      <Table size="small">
+      <Table size="small" sx={{ tableLayout: 'auto' }}>
         <TableHead>
           <TableRow>
-            <TableCell>Email</TableCell>
-            <TableCell>Role</TableCell>
-            <TableCell>Statut</TableCell>
-            <TableCell>Envoyee le</TableCell>
-            <TableCell>Expire le</TableCell>
-            <TableCell align="right">Actions</TableCell>
+            <TableCell sx={{ ...CELL_SX, fontWeight: 600 }}>Email</TableCell>
+            <TableCell sx={{ ...CELL_SX, fontWeight: 600 }}>Role</TableCell>
+            <TableCell sx={{ ...CELL_SX, fontWeight: 600 }}>Statut</TableCell>
+            <TableCell sx={{ ...CELL_SX, fontWeight: 600 }}>Envoyee</TableCell>
+            <TableCell sx={{ ...CELL_SX, fontWeight: 600 }}>Expire</TableCell>
+            <TableCell align="right" sx={{ ...CELL_SX, fontWeight: 600 }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {invitations.map((inv) => (
             <TableRow key={inv.id} hover>
-              <TableCell>
-                <Typography variant="body2" fontWeight={500}>
+              <TableCell sx={CELL_SX}>
+                <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.75rem' }}>
                   {inv.invitedEmail}
                 </Typography>
               </TableCell>
-              <TableCell>
-                <Typography variant="body2">
+              <TableCell sx={CELL_SX}>
+                <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
                   {getRoleLabel(inv.roleInvited)}
                 </Typography>
               </TableCell>
-              <TableCell>
+              <TableCell sx={CELL_SX}>
                 {getStatusChip(inv.status)}
               </TableCell>
-              <TableCell>
-                <Typography variant="body2" color="text.secondary">
-                  {new Date(inv.createdAt).toLocaleDateString('fr-FR')}
+              <TableCell sx={CELL_SX}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                  {formatShortDate(inv.createdAt)}
                 </Typography>
               </TableCell>
-              <TableCell>
-                <Typography variant="body2" color="text.secondary">
-                  {new Date(inv.expiresAt).toLocaleDateString('fr-FR')}
+              <TableCell sx={CELL_SX}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                  {formatShortDate(inv.expiresAt)}
                 </Typography>
               </TableCell>
-              <TableCell align="right">
+              <TableCell align="right" sx={CELL_SX}>
                 {inv.status === 'PENDING' && (
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
                     <Tooltip title="Renvoyer l'invitation">

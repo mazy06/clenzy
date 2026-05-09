@@ -124,7 +124,7 @@ export default function OrganizationSection({ organizationId, organizationName }
     <>
       <Grid container spacing={3}>
         {/* ─── Colonne gauche : Organisation ─────────────────────────── */}
-        <Grid item xs={12} md={7}>
+        <Grid item xs={12} md={5}>
           <Paper sx={{ p: 2, height: '100%' }}>
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
@@ -224,7 +224,7 @@ export default function OrganizationSection({ organizationId, organizationName }
         </Grid>
 
         {/* ─── Colonne droite : Facturation + Invitations ─────────── */}
-        <Grid item xs={12} md={5}>
+        <Grid item xs={12} md={7}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {effectiveOrgId ? (
               <BillingSummaryCard
