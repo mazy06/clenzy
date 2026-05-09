@@ -33,6 +33,7 @@ import { useNavigate } from 'react-router-dom';
 import { usePropertyDetails } from '../../../hooks/usePropertyDetails';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { PanelView } from '../types';
+import { PropertyImageCarousel } from '../../../components/PropertyImageCarousel';
 
 import { getAmenityHex } from '../../../utils/statusUtils';
 
@@ -123,38 +124,54 @@ const PanelPropertyDetails: React.FC<PanelPropertyDetailsProps> = ({
         {property.address}, {property.city} {property.postalCode}
       </Typography>
 
-      {/* Metrics grid */}
+      {/* Metrics row — all on a single line, compact */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 0.75,
-          mb: 2,
+          gridTemplateColumns: `repeat(${metrics.length}, 1fr)`,
+          gap: 0.5,
+          mb: 1.5,
         }}
       >
         {metrics.map((m) => (
           <Box
             key={m.label}
             sx={{
-              p: 1,
+              px: 0.5,
+              py: 0.5,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               textAlign: 'center',
               border: '1px solid',
               borderColor: 'divider',
-              borderRadius: 1.5,
+              borderRadius: 1,
+              minWidth: 0,
             }}
           >
-            {m.icon}
-            <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, mt: 0.25 }}>
+            {React.cloneElement(m.icon, { sx: { fontSize: 13, color: 'text.secondary' } })}
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, lineHeight: 1.1, mt: 0.125 }}>
               {m.value}
             </Typography>
-            <Typography sx={{ fontSize: '0.5625rem', color: 'text.secondary' }}>
+            <Typography sx={{ fontSize: '0.5rem', color: 'text.secondary', lineHeight: 1.2 }}>
               {m.label}
             </Typography>
           </Box>
         ))}
+      </Box>
+
+      {/* Property photos carousel */}
+      <Box sx={{ mb: 1.5 }}>
+        <PropertyImageCarousel
+          photoUrls={property.photoUrls}
+          alt={property.name}
+          width="100%"
+          height={140}
+          alwaysShowNav
+          enableFullscreen
+          showCounter
+          sx={{ width: '100%', borderRadius: 1.5, overflow: 'hidden' }}
+        />
       </Box>
 
       <Divider sx={{ my: 1.5 }} />
