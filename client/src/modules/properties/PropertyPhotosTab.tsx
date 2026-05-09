@@ -20,6 +20,7 @@ import {
   PhotoLibrary,
 } from '@mui/icons-material';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNotification } from '../../hooks/useNotification';
 import { propertyPhotosApi, type PropertyPhotoDto } from '../../services/api/propertyPhotosApi';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -110,6 +111,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => {
   const { t } = useTranslation();
+  const { notify } = useNotification();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [photos, setPhotos] = useState<PropertyPhoto[]>([]);
@@ -141,26 +143,49 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
   const addFiles = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     setUploading(true);
+    let uploaded = 0;
+    let skippedTooLarge = 0;
+    let skippedNotImage = 0;
+    let failed = 0;
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (!file.type.startsWith('image/')) continue;
-        if (file.size > MAX_FILE_SIZE) continue;
-
-        const dto = await propertyPhotosApi.upload(propertyId, file);
-        setPhotos((prev) => [...prev, {
-          id: String(dto.id),
-          url: propertyPhotosApi.getPhotoUrl(propertyId, dto.id),
-          name: dto.originalFilename || file.name,
-          apiId: dto.id,
-        }]);
+        if (!file.type.startsWith('image/')) {
+          skippedNotImage++;
+          continue;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+          skippedTooLarge++;
+          continue;
+        }
+        try {
+          const dto = await propertyPhotosApi.upload(propertyId, file);
+          setPhotos((prev) => [...prev, {
+            id: String(dto.id),
+            url: propertyPhotosApi.getPhotoUrl(propertyId, dto.id),
+            name: dto.originalFilename || file.name,
+            apiId: dto.id,
+          }]);
+          uploaded++;
+        } catch (err) {
+          failed++;
+          const message = err instanceof Error ? err.message : 'Erreur inconnue';
+          notify.error(`Échec upload "${file.name}" : ${message}`);
+        }
       }
-    } catch {
-      // silent
     } finally {
       setUploading(false);
     }
-  }, [propertyId]);
+    if (skippedTooLarge > 0) {
+      notify.warning(`${skippedTooLarge} photo(s) ignorée(s) : taille > 10 Mo`);
+    }
+    if (skippedNotImage > 0) {
+      notify.warning(`${skippedNotImage} fichier(s) ignoré(s) : format non image`);
+    }
+    if (uploaded > 0 && failed === 0 && skippedTooLarge === 0 && skippedNotImage === 0) {
+      notify.success(`${uploaded} photo(s) ajoutée(s)`);
+    }
+  }, [propertyId, notify]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -196,12 +221,13 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
         await propertyPhotosApi.delete(propertyId, deleteTarget.apiId);
       }
       setPhotos((prev) => prev.filter((p) => p.id !== deleteTarget.id));
-    } catch {
-      // silent
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur inconnue';
+      notify.error(`Échec suppression : ${message}`);
     } finally {
       setDeleteTarget(null);
     }
-  }, [deleteTarget, propertyId]);
+  }, [deleteTarget, propertyId, notify]);
 
   const hasPhotos = photos.length > 0;
 
