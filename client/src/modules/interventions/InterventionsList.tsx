@@ -37,6 +37,7 @@ import {
 import FilterSearchBar from '../../components/FilterSearchBar';
 import PageHeader from '../../components/PageHeader';
 import InterventionCard from './InterventionCard';
+import { usePersistedViewMode } from '../../hooks/usePersistedViewMode';
 import { MapboxPropertyMap } from '../../components/MapboxPropertyMap';
 import type { PropertyMarker, MapBounds } from '../../components/MapboxPropertyMap';
 import {
@@ -163,7 +164,11 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
     user,
   } = useInterventionsList();
 
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('map');
+  const [viewMode, setViewMode] = usePersistedViewMode<'grid' | 'list' | 'map'>(
+    'interventions',
+    'map',
+    ['grid', 'list', 'map'] as const,
+  );
   const [listPage, setListPage] = useState(0);
   const [mapBounds, setMapBounds] = useState<MapBounds | null>(null);
   const theme = useTheme();
