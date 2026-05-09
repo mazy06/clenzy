@@ -19,8 +19,10 @@ import {
   AddPhotoAlternate,
   PhotoLibrary,
 } from '@mui/icons-material';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNotification } from '../../hooks/useNotification';
+import { propertyDetailsKeys } from '../../hooks/usePropertyDetails';
 import { propertyPhotosApi, type PropertyPhotoDto } from '../../services/api/propertyPhotosApi';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -112,6 +114,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => {
   const { t } = useTranslation();
   const { notify } = useNotification();
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [photos, setPhotos] = useState<PropertyPhoto[]>([]);
@@ -185,7 +188,11 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
     if (uploaded > 0 && failed === 0 && skippedTooLarge === 0 && skippedNotImage === 0) {
       notify.success(`${uploaded} photo(s) ajoutée(s)`);
     }
-  }, [propertyId, notify]);
+    if (uploaded > 0) {
+      queryClient.invalidateQueries({ queryKey: propertyDetailsKeys.detail(String(propertyId)) });
+      queryClient.invalidateQueries({ queryKey: ['property-photos', String(propertyId)] });
+    }
+  }, [propertyId, notify, queryClient]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -221,13 +228,15 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
         await propertyPhotosApi.delete(propertyId, deleteTarget.apiId);
       }
       setPhotos((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      queryClient.invalidateQueries({ queryKey: propertyDetailsKeys.detail(String(propertyId)) });
+      queryClient.invalidateQueries({ queryKey: ['property-photos', String(propertyId)] });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur inconnue';
       notify.error(`Échec suppression : ${message}`);
     } finally {
       setDeleteTarget(null);
     }
-  }, [deleteTarget, propertyId, notify]);
+  }, [deleteTarget, propertyId, notify, queryClient]);
 
   const hasPhotos = photos.length > 0;
 
