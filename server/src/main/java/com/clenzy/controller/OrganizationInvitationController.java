@@ -77,7 +77,7 @@ public class OrganizationInvitationController {
 
     @DeleteMapping("/api/organizations/{orgId}/invitations/{invitationId}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPER_MANAGER')")
-    @Operation(summary = "Annuler une invitation")
+    @Operation(summary = "Annuler (PENDING) ou supprimer (CANCELLED/EXPIRED) une invitation")
     public ResponseEntity<Void> cancelInvitation(
             @PathVariable Long orgId,
             @PathVariable Long invitationId,
