@@ -52,7 +52,7 @@ import {
   Refresh,
   MoreVert,
   LocationOn,
-} from '@mui/icons-material';
+} from '../../icons';
 import { INTERVENTION_STATUS_OPTIONS, PRIORITY_OPTIONS } from '../../types/statusEnums';
 import { createSpacing } from '../../theme/spacing';
 import ExportButton from '../../components/ExportButton';
@@ -355,7 +355,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
           size="small"
           sx={iconButtonSx}
         >
-          <Refresh />
+          <Refresh size={18} strokeWidth={1.75} />
         </IconButton>
       </Tooltip>
       {/* Seuls les ADMIN et MANAGER peuvent créer des interventions manuellement */}
@@ -366,7 +366,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
             onClick={() => navigate('/interventions/new')}
             sx={{ ...iconButtonSx, color: 'primary.main', borderColor: 'primary.main', bgcolor: 'rgba(107,138,154,0.06)' }}
           >
-            <AddIcon />
+            <AddIcon size={20} strokeWidth={1.75} />
           </IconButton>
         </Tooltip>
       )}
@@ -446,7 +446,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
             <Card sx={{ textAlign: 'center', py: 2.5, px: 2, ...createSpacing.card() }}>
               <CardContent>
                 <Box sx={{ mb: 1.5 }}>
-                  <Build sx={{ fontSize: 48, color: 'text.secondary', opacity: 0.6 }} />
+                  <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", opacity: 0.6 }}><Build size={48} strokeWidth={1.5} /></Box>
                 </Box>
                 <Typography variant="h6" color="text.secondary" gutterBottom>
                   {t('interventions.noInterventionFound')}
@@ -477,7 +477,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
                   />
                 ) : (
                   <Box sx={{ height: 400, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                    <Build sx={{ fontSize: 36, color: 'text.secondary', opacity: 0.5 }} />
+                    <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", opacity: 0.5 }}><Build size={36} strokeWidth={1.5} /></Box>
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
                       Aucune intervention avec coordonnées GPS
                     </Typography>
@@ -537,7 +537,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
                                   {intervention.title}
                                 </Typography>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                                  <LocationOn sx={{ fontSize: 13, color: 'text.secondary', flexShrink: 0 }} />
+                                  <Box component="span" sx={{ display: "inline-flex", color: "text.secondary", flexShrink: 0 }}><LocationOn size={13} strokeWidth={1.75} /></Box>
                                   <Typography
                                     variant="caption"
                                     color="text.secondary"
@@ -627,7 +627,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
                                     onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
                                     sx={{ p: 0.5 }}
                                   >
-                                    <VisibilityIcon sx={{ fontSize: 16 }} />
+                                    <VisibilityIcon size={16} strokeWidth={1.75} />
                                   </IconButton>
                                 </Tooltip>
                               </Box>
@@ -840,7 +840,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
                                 size="small"
                                 onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
                               >
-                                <VisibilityIcon sx={{ fontSize: 18 }} />
+                                <VisibilityIcon size={18} strokeWidth={1.75} />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Actions">
@@ -848,7 +848,7 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
                                 size="small"
                                 onClick={(e) => { e.stopPropagation(); handleMenuOpen(e, intervention); }}
                               >
-                                <MoreVert sx={{ fontSize: 18 }} />
+                                <MoreVert size={18} strokeWidth={1.75} />
                               </IconButton>
                             </Tooltip>
                           </TableCell>
@@ -875,24 +875,24 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
       {/* ─── Menus et dialogs partagés ─────────────────────────────────────── */}
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
         <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-          <VisibilityIcon sx={{ mr: 1, fontSize: 18 }} />
+          <Box component="span" sx={{ display: "inline-flex", mr: 1 }}><VisibilityIcon size={18} strokeWidth={1.75} /></Box>
           {t('interventions.viewDetails')}
         </MenuItem>
         {(isManager() || isAdmin()) && selectedIntervention?.status === 'PENDING' && (
           <MenuItem onClick={handleOpenAssignDialog} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <AssignmentIcon sx={{ mr: 1, fontSize: 18, color: 'info.main' }} />
+            <Box component="span" sx={{ display: "inline-flex", mr: 1, color: "info.main" }}><AssignmentIcon size={18} strokeWidth={1.75} /></Box>
             Assigner
           </MenuItem>
         )}
         {selectedIntervention && canModifyIntervention(selectedIntervention) && (
           <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <EditIcon sx={{ mr: 1, fontSize: 18 }} />
+            <Box component="span" sx={{ display: "inline-flex", mr: 1 }}><EditIcon size={18} strokeWidth={1.75} /></Box>
             Modifier
           </MenuItem>
         )}
         {canDeleteInterventions && (
           <MenuItem onClick={handleDelete} sx={{ fontSize: '0.85rem', py: 0.75 }}>
-            <DeleteIcon sx={{ mr: 1, fontSize: 18 }} />
+            <Box component="span" sx={{ display: "inline-flex", mr: 1 }}><DeleteIcon size={18} strokeWidth={1.75} /></Box>
             {t('interventions.delete')}
           </MenuItem>
         )}
@@ -929,11 +929,11 @@ export default function InterventionsList({ embedded = false, actionsContainer, 
             sx={{ mb: 2 }}
           >
             <ToggleButton value="team" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
-              <GroupIcon sx={{ mr: 0.5, fontSize: 18 }} />
+              <Box component="span" sx={{ display: "inline-flex", mr: 0.5 }}><GroupIcon size={18} strokeWidth={1.75} /></Box>
               Équipe
             </ToggleButton>
             <ToggleButton value="user" sx={{ textTransform: 'none', fontSize: '0.8125rem' }}>
-              <PersonIcon sx={{ mr: 0.5, fontSize: 18 }} />
+              <Box component="span" sx={{ display: "inline-flex", mr: 0.5 }}><PersonIcon size={18} strokeWidth={1.75} /></Box>
               Utilisateur
             </ToggleButton>
           </ToggleButtonGroup>

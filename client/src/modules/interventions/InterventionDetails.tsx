@@ -28,7 +28,7 @@ import {
   Group as GroupIcon,
   AccessTime as AccessTimeIcon,
   CalendarMonth as CalendarIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -50,13 +50,20 @@ import { NotesDialog, PhotosDialog } from './InterventionDialogs';
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const getStatusIcon = (status: string) => {
-  const sx = { fontSize: 18 };
+  const wrap = (color: string, child: React.ReactNode) => (
+    <Box component="span" sx={{ display: 'inline-flex', color }}>{child}</Box>
+  );
+  const props = { size: 18, strokeWidth: 1.75 };
   switch (status) {
-    case 'PENDING':    return <WarningIcon sx={{ ...sx, color: 'warning.main' }} />;
-    case 'IN_PROGRESS': return <AutorenewIcon sx={{ ...sx, color: 'info.main', animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }} />;
-    case 'COMPLETED':  return <CheckCircleIcon sx={{ ...sx, color: 'success.main' }} />;
-    case 'CANCELLED':  return <ErrorIcon sx={{ ...sx, color: 'error.main' }} />;
-    default:           return <InfoIcon sx={{ ...sx, color: 'info.main' }} />;
+    case 'PENDING':    return wrap('warning.main', <WarningIcon {...props} />);
+    case 'IN_PROGRESS': return (
+      <Box component="span" sx={{ display: 'inline-flex', color: 'info.main', animation: 'spin 2s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }}>
+        <AutorenewIcon {...props} />
+      </Box>
+    );
+    case 'COMPLETED':  return wrap('success.main', <CheckCircleIcon {...props} />);
+    case 'CANCELLED':  return wrap('error.main', <ErrorIcon {...props} />);
+    default:           return wrap('info.main', <InfoIcon {...props} />);
   }
 };
 
@@ -215,7 +222,7 @@ export default function InterventionDetailsPage() {
         backLabel={t('interventions.detail.backToList')}
         actions={
           canEditInterventions ? (
-            <Button variant="contained" color="primary" startIcon={<EditIcon />}
+            <Button variant="contained" color="primary" startIcon={<EditIcon size={18} strokeWidth={1.75} />}
               onClick={() => navigate(`/interventions/${id}/edit`)} size="small">
               {t('interventions.detail.editButton')}
             </Button>
@@ -250,12 +257,12 @@ export default function InterventionDetailsPage() {
                 hex={getStatusHex(intervention.status)}
               />
               <StatusChip
-                icon={<BuildIcon sx={{ fontSize: 14 }} />}
+                icon={<BuildIcon size={14} strokeWidth={1.75} />}
                 label={getTypeLabel(intervention.type, t)}
                 hex={getTypeHex(intervention.type)}
               />
               <StatusChip
-                icon={<PriorityHighIcon sx={{ fontSize: 14 }} />}
+                icon={<PriorityHighIcon size={14} strokeWidth={1.75} />}
                 label={getPriorityLabel(intervention.priority, t)}
                 hex={getPriorityHex(intervention.priority)}
               />
@@ -285,20 +292,20 @@ export default function InterventionDetailsPage() {
             {/* Timeline dates */}
             <Box sx={{ display: 'flex', gap: { xs: 1.5, sm: 3 }, flexWrap: 'wrap' }}>
               <TimelineItem
-                icon={<CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />}
+                icon={<CalendarIcon size={16} strokeWidth={1.75} />}
                 label={t('interventions.detail.planned')}
                 value={formatDate(intervention.scheduledDate)}
               />
               {intervention.startTime && (
                 <TimelineItem
-                  icon={<PlayCircleOutlineIcon sx={{ fontSize: 16, color: 'success.main' }} />}
+                  icon={<PlayCircleOutlineIcon size={16} strokeWidth={1.75} color="var(--mui-palette-success-main, #2e7d32)" />}
                   label={t('interventions.detail.start')}
                   value={formatDate(intervention.startTime)}
                 />
               )}
               {intervention.endTime && (
                 <TimelineItem
-                  icon={<StopCircleIcon sx={{ fontSize: 16, color: 'error.main' }} />}
+                  icon={<StopCircleIcon size={16} strokeWidth={1.75} color="var(--mui-palette-error-main, #d32f2f)" />}
                   label={t('interventions.detail.end')}
                   value={formatDate(intervention.endTime)}
                 />
@@ -323,22 +330,22 @@ export default function InterventionDetailsPage() {
               mb: 2,
             }}>
               <InfoCard
-                icon={<LocationIcon sx={{ fontSize: 18, color: 'primary.main' }} />}
+                icon={<LocationIcon size={18} strokeWidth={1.75} color="var(--mui-palette-primary-main, #1976d2)" />}
                 iconBg="rgba(25, 118, 210, 0.1)"
                 label={t('interventions.detail.property')}
                 value={intervention.propertyName}
                 sub={`${intervention.propertyAddress}${intervention.propertyCity ? `, ${intervention.propertyCity}` : ''}`}
               />
               <InfoCard
-                icon={<PersonIcon sx={{ fontSize: 18, color: '#2e7d32' }} />}
+                icon={<PersonIcon size={18} strokeWidth={1.75} color="#2e7d32" />}
                 iconBg="rgba(46, 125, 50, 0.1)"
                 label={t('interventions.detail.requestor')}
                 value={intervention.requestorName}
               />
               <InfoCard
                 icon={intervention.assignedToType === 'team'
-                  ? <GroupIcon sx={{ fontSize: 18, color: '#7b1fa2' }} />
-                  : <PersonIcon sx={{ fontSize: 18, color: '#7b1fa2' }} />
+                  ? <GroupIcon size={18} strokeWidth={1.75} color="#7b1fa2" />
+                  : <PersonIcon size={18} strokeWidth={1.75} color="#7b1fa2" />
                 }
                 iconBg="rgba(123, 31, 162, 0.1)"
                 label={t('interventions.detail.assignedTo')}
@@ -357,7 +364,7 @@ export default function InterventionDetailsPage() {
                 }
               />
               <InfoCard
-                icon={<AccessTimeIcon sx={{ fontSize: 18, color: '#ed6c02' }} />}
+                icon={<AccessTimeIcon size={18} strokeWidth={1.75} color="#ed6c02" />}
                 iconBg="rgba(237, 108, 2, 0.1)"
                 label={t('interventions.detail.estimatedDuration')}
                 value={formatDuration(intervention.estimatedDurationHours)}
