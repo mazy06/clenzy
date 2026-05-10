@@ -22,7 +22,7 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
 
   // Responsive sizes: slightly tighter on lg, comfortable on xl+
   const itemHeight = isXl ? 40 : 36;
-  const iconSize = isXl ? 20 : 18;
+  const iconSize = isXl ? 17 : 15;
   const fontSize = isXl ? '0.8125rem' : '0.75rem';
 
   const content = (
