@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography, Card, CardContent, Chip, Grid } from '@mui/material';
 import {
   PriceChange, CalendarMonth, Savings, Warning,
-} from '@mui/icons-material';
+} from '../../../icons';
 import GridSection from './GridSection';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { Recommendation, RecommendationType, RecommendationPriority } from '../../../hooks/useAnalyticsEngine';

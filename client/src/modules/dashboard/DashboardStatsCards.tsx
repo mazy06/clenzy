@@ -13,7 +13,7 @@ import {
   TrendingUp,
   TrendingDown,
   Remove,
-} from '@mui/icons-material';
+} from '../../icons';
 import type { NavigateFunction } from 'react-router-dom';
 
 export interface StatItem {
@@ -126,11 +126,11 @@ const DashboardStatsCards: React.FC<DashboardStatsCardsProps> = React.memo(({ st
                       </Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.375, mt: 0.25 }}>
                         {stat.growth.type === 'up' ? (
-                          <TrendingUp color="success" sx={{ fontSize: 11 }} />
+                          <TrendingUp color="success" size={11} strokeWidth={1.75} />
                         ) : stat.growth.type === 'down' ? (
-                          <TrendingDown color="error" sx={{ fontSize: 11 }} />
+                          <TrendingDown color="error" size={11} strokeWidth={1.75} />
                         ) : (
-                          <Remove sx={{ fontSize: 11, color: 'text.disabled' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><Remove size={11} strokeWidth={1.75} /></Box>
                         )}
                         <Typography
                           variant="caption"

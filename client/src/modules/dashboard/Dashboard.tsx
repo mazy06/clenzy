@@ -16,7 +16,7 @@ import {
   LockOutlined as LockOutlinedIcon,
   VpnKey as VpnKeyIcon,
   Sync as SyncIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useAnalyticsEngine } from '../../hooks/useAnalyticsEngine';
 import PageHeader from '../../components/PageHeader';
@@ -35,11 +35,11 @@ import type { DashboardPeriod, DateFilterOption } from './DashboardDateFilter';
 // ─── Tab icon mapping ────────────────────────────────────────────────────────
 
 const TAB_ICONS: Record<string, React.ReactElement> = {
-  overview: <DashboardIcon sx={{ fontSize: 16 }} />,
-  noise: <VolumeUpIcon sx={{ fontSize: 16 }} />,
-  smartlock: <LockOutlinedIcon sx={{ fontSize: 16 }} />,
-  keyexchange: <VpnKeyIcon sx={{ fontSize: 16 }} />,
-  simulator: <CalculateIcon sx={{ fontSize: 16 }} />,
+  overview: <DashboardIcon size={16} strokeWidth={1.75} />,
+  noise: <VolumeUpIcon size={16} strokeWidth={1.75} />,
+  smartlock: <LockOutlinedIcon size={16} strokeWidth={1.75} />,
+  keyexchange: <VpnKeyIcon size={16} strokeWidth={1.75} />,
+  simulator: <CalculateIcon size={16} strokeWidth={1.75} />,
 };
 
 // ─── Tab helpers ────────────────────────────────────────────────────────────
@@ -163,7 +163,7 @@ const Dashboard: React.FC = () => {
                 <Tooltip title="Channel Manager — Ce service sera bientôt disponible. Restez connecté !" arrow>
                   <span>
                     <Chip
-                      icon={<SyncIcon sx={{ fontSize: 14 }} />}
+                      icon={<SyncIcon size={14} strokeWidth={1.75} />}
                       label="Channel Manager"
                       size="small"
                       variant="outlined"

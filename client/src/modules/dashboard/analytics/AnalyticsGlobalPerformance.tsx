@@ -5,7 +5,7 @@ import {
   CalendarMonth, ShowChart, AccountBalance, Home,
   Assignment, Build,
   TrendingUp, TrendingDown, Remove,
-} from '@mui/icons-material';
+} from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { GlobalKPIs } from '../../../hooks/useAnalyticsEngine';
 
@@ -59,7 +59,9 @@ const TrendBadge: React.FC<{ value: number }> = ({ value }) => {
 
   return (
     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.25, mt: 0.25 }}>
-      <Icon sx={{ fontSize: 12, color }} />
+      <Box component="span" sx={{ display: 'inline-flex', color }}>
+        <Icon size={12} strokeWidth={1.75} />
+      </Box>
       <Typography sx={{ fontSize: '0.625rem', fontWeight: 600, color, fontVariantNumeric: 'tabular-nums' }}>
         {isUp ? '+' : ''}{value}%
       </Typography>

@@ -25,7 +25,7 @@ import {
   NotificationsActive,
   Email,
   Chat,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import { propertiesApi } from '../../services/api';
 import { extractApiList } from '../../types';
@@ -267,7 +267,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
         {/* Header : titre + sélecteur propriété + toggle — sur une seule ligne */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5, flexWrap: 'wrap' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <Settings sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Settings size={18} strokeWidth={1.75} /></Box>
             <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
               Configuration des alertes bruit
             </Typography>
@@ -327,7 +327,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                       </Typography>
                       <Button
                         size="small"
-                        startIcon={<Add sx={{ fontSize: 14 }} />}
+                        startIcon={<Add size={14} strokeWidth={1.75} />}
                         onClick={addTimeWindow}
                         sx={{ fontSize: '0.6875rem', textTransform: 'none' }}
                       >
@@ -379,7 +379,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                               onClick={() => removeTimeWindow(idx)}
                               sx={{ color: 'error.main' }}
                             >
-                              <Delete sx={{ fontSize: 16 }} />
+                              <Delete size={16} strokeWidth={1.75} />
                             </IconButton>
                           )}
                         </Box>
@@ -433,7 +433,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                         }
                         label={
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <NotificationsActive sx={{ fontSize: 14 }} />
+                            <NotificationsActive size={14} strokeWidth={1.75} />
                             <Typography sx={{ fontSize: '0.75rem' }}>In-app</Typography>
                           </Box>
                         }
@@ -448,7 +448,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                         }
                         label={
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Email sx={{ fontSize: 14 }} />
+                            <Email size={14} strokeWidth={1.75} />
                             <Typography sx={{ fontSize: '0.75rem' }}>Email</Typography>
                           </Box>
                         }
@@ -463,7 +463,7 @@ const NoiseAlertConfigPanel = forwardRef<NoiseAlertConfigHandle, NoiseAlertConfi
                         }
                         label={
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Chat sx={{ fontSize: 14 }} />
+                            <Chat size={14} strokeWidth={1.75} />
                             <Typography sx={{ fontSize: '0.75rem' }}>Message voyageur</Typography>
                           </Box>
                         }

@@ -12,7 +12,7 @@ import {
   TrendingUp as TrendingIcon,
   ArrowForward as ArrowIcon,
   CheckCircleOutline as CheckIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { subscriptionApi } from '../../services/api/subscriptionApi';
 
 // ─── Couleurs Clenzy (brand) ───────────────────────────────────────────────
@@ -117,7 +117,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
               flexShrink: 0,
             }}
           >
-            <CalendarIcon sx={{ fontSize: 24, color: C.primary }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: C.primary }}><CalendarIcon size={24} strokeWidth={1.75} /></Box>
           </Box>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -225,13 +225,16 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
                 </Typography>
                 {features.map((f, i) => (
                   <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-                    <CheckIcon
+                    <Box
+                      component="span"
                       sx={{
-                        fontSize: 13,
+                        display: 'inline-flex',
                         color: highlight ? C.primary : isCurrent ? 'text.disabled' : C.primaryLight,
                         flexShrink: 0,
                       }}
-                    />
+                    >
+                      <CheckIcon size={13} strokeWidth={1.75} />
+                    </Box>
                     <Typography
                       variant="caption"
                       sx={{
@@ -266,7 +269,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
           disabled={loading}
           onClick={() => handleUpgrade('confort')}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <CalendarIcon />}
-          endIcon={!loading ? <ArrowIcon sx={{ fontSize: 18 }} /> : undefined}
+          endIcon={!loading ? <ArrowIcon size={18} strokeWidth={1.75} /> : undefined}
           sx={{
             bgcolor: C.primary,
             color: '#fff',
@@ -295,7 +298,7 @@ const UpgradeBanner: React.FC<UpgradeBannerProps> = ({ currentForfait }) => {
           size="small"
           disabled={loading}
           onClick={() => handleUpgrade('premium')}
-          startIcon={<TrendingIcon sx={{ fontSize: 16 }} />}
+          startIcon={<TrendingIcon size={16} strokeWidth={1.75} />}
           sx={{
             borderColor: 'divider',
             color: 'text.secondary',

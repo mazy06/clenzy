@@ -20,7 +20,7 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material';
-import { Close, Refresh } from '@mui/icons-material';
+import { Close, Refresh } from '../../icons';
 import type { IncidentDto, IncidentStatus } from '../../services/api/incidentApi';
 import { incidentApi } from '../../services/api/incidentApi';
 

@@ -31,7 +31,7 @@ import {
   CheckCircle,
   Warning,
   Error as ErrorIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import {
   useNoiseAlerts,
   useUnacknowledgedAlertCount,
@@ -51,7 +51,7 @@ function SeverityChip({ severity }: { severity: string }) {
   const isWarning = severity === 'WARNING';
   return (
     <Chip
-      icon={isWarning ? <Warning sx={{ fontSize: 12 }} /> : <ErrorIcon sx={{ fontSize: 12 }} />}
+      icon={isWarning ? <Warning size={12} strokeWidth={1.75} /> : <ErrorIcon size={12} strokeWidth={1.75} />}
       label={isWarning ? 'Avertissement' : 'Critique'}
       size="small"
       color={isWarning ? 'warning' : 'error'}
@@ -119,7 +119,7 @@ const NoiseAlertHistory: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Badge badgeContent={unacknowledgedCount} color="error" max={99}>
-              <History sx={{ fontSize: 18, color: 'primary.main' }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><History size={18} strokeWidth={1.75} /></Box>
             </Badge>
             <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '0.875rem' }}>
               Historique des alertes
@@ -181,7 +181,7 @@ const NoiseAlertHistory: React.FC = () => {
                       <TableCell sx={cellSx} align="center">
                         {alert.acknowledged ? (
                           <Tooltip title={`Acquittee par ${alert.acknowledgedBy || '?'}${alert.notes ? ` — ${alert.notes}` : ''}`}>
-                            <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />
+                            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircle size={16} strokeWidth={1.75} /></Box>
                           </Tooltip>
                         ) : (
                           <Tooltip title="Acquitter">
@@ -190,7 +190,7 @@ const NoiseAlertHistory: React.FC = () => {
                               onClick={() => setAckDialog({ open: true, alertId: alert.id })}
                               sx={{ color: 'warning.main' }}
                             >
-                              <CheckCircle sx={{ fontSize: 16 }} />
+                              <CheckCircle size={16} strokeWidth={1.75} />
                             </IconButton>
                           </Tooltip>
                         )}

@@ -15,7 +15,7 @@ import {
   Warning,
   Error as ErrorIcon,
   CheckCircle,
-} from '@mui/icons-material';
+} from '../../icons';
 import {
   AreaChart,
   Area,
@@ -50,12 +50,12 @@ const PROPERTY_COLORS = [
 
 function getNoiseStatus(level: number): { label: string; color: 'success' | 'warning' | 'error'; icon: React.ReactElement } {
   if (level <= NOISE_THRESHOLDS.normal) {
-    return { label: 'Normal', color: 'success', icon: <CheckCircle sx={{ fontSize: 14 }} /> };
+    return { label: 'Normal', color: 'success', icon: <CheckCircle size={14} strokeWidth={1.75} /> };
   }
   if (level <= NOISE_THRESHOLDS.warning) {
-    return { label: 'Élevé', color: 'warning', icon: <Warning sx={{ fontSize: 14 }} /> };
+    return { label: 'Élevé', color: 'warning', icon: <Warning size={14} strokeWidth={1.75} /> };
   }
-  return { label: 'Critique', color: 'error', icon: <ErrorIcon sx={{ fontSize: 14 }} /> };
+  return { label: 'Critique', color: 'error', icon: <ErrorIcon size={14} strokeWidth={1.75} /> };
 }
 
 // ─── Custom Tooltip ─────────────────────────────────────────────────────────
@@ -303,7 +303,7 @@ const NoiseMonitorChart: React.FC<NoiseMonitorChartProps> = React.memo(({ data, 
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.75, flexShrink: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <VolumeUp sx={{ fontSize: 16, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><VolumeUp size={16} strokeWidth={1.75} /></Box>
             <Typography
               sx={{
                 fontSize: '0.75rem',

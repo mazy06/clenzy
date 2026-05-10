@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Card, CardContent, Typography, Button, Box } from '@mui/material';
-import { ErrorOutline, Refresh } from '@mui/icons-material';
+import { ErrorOutline, Refresh } from '../../icons';
 
 interface Props {
   children: React.ReactNode;
@@ -49,7 +49,7 @@ class DashboardErrorBoundary extends Component<Props, State> {
             <Button
               size="small"
               variant="outlined"
-              startIcon={<Refresh sx={{ fontSize: 14 }} />}
+              startIcon={<Refresh size={14} strokeWidth={1.75} />}
               onClick={this.handleRetry}
               sx={{ fontSize: '0.75rem', textTransform: 'none' }}
             >

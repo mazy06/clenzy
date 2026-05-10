@@ -17,7 +17,7 @@ import {
   Memory,
   Home,
   MeetingRoom,
-} from '@mui/icons-material';
+} from '../../icons';
 import type { NoiseDevice } from '../../hooks/useNoiseDevices';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -61,7 +61,7 @@ const NoiseDeviceList: React.FC<NoiseDeviceListProps> = ({ devices, onRemoveDevi
         <Button
           variant="outlined"
           size="small"
-          startIcon={<Add sx={{ fontSize: 16 }} />}
+          startIcon={<Add size={16} strokeWidth={1.75} />}
           onClick={onAddDevice}
           sx={{
             textTransform: 'none',
@@ -116,7 +116,7 @@ const NoiseDeviceList: React.FC<NoiseDeviceListProps> = ({ devices, onRemoveDevi
                           {device.name}
                         </Typography>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <Home sx={{ fontSize: 12, color: 'text.disabled' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><Home size={12} strokeWidth={1.75} /></Box>
                           <Typography
                             variant="caption"
                             color="text.secondary"
@@ -132,7 +132,7 @@ const NoiseDeviceList: React.FC<NoiseDeviceListProps> = ({ devices, onRemoveDevi
                         </Box>
                         {device.roomName && (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <MeetingRoom sx={{ fontSize: 12, color: 'text.disabled' }} />
+                            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><MeetingRoom size={12} strokeWidth={1.75} /></Box>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
                               {device.roomName}
                             </Typography>
@@ -157,7 +157,7 @@ const NoiseDeviceList: React.FC<NoiseDeviceListProps> = ({ devices, onRemoveDevi
                           '&:hover': { color: 'error.main' },
                         }}
                       >
-                        <Delete sx={{ fontSize: 16 }} />
+                        <Delete size={16} strokeWidth={1.75} />
                       </IconButton>
                     </Box>
                   </Box>
