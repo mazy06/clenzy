@@ -56,9 +56,11 @@ export {
 export {
   CircleCheck as CheckCircle,
   CircleAlert as ErrorOutline,
+  CircleAlert as Error,
   TriangleAlert as Warning,
   TriangleAlert as WarningAmber,
   Info,
+  Info as InfoOutlined,
   CircleHelp as Help,
   Check,
   Ban,
@@ -80,12 +82,15 @@ export {
 export {
   User as Person,
   Users as People,
+  Users as Group,
   Lock,
   Key as VpnKey,
   ShieldCheck as VerifiedUser,
   LogOut as Logout,
   LogIn as Login,
   UserPlus as PersonAdd,
+  ShieldAlert as AdminPanelSettings,
+  Briefcase as BusinessCenter,
 } from 'lucide-react';
 
 // ─── Property / domaine PMS ─────────────────────────────────────────────────
@@ -125,19 +130,33 @@ export {
   TrendingDown,
   LineChart as ShowChart,
   BarChart3,
+  BarChart3 as Assessment,
+  LayoutDashboard as Dashboard,
+  ClipboardList as Assignment,
+  ListChecks as Checklist,
   Activity as Timeline,
   Star,
   Percent,
   Timer,
   Calendar as CalendarMonth,
   Calendar,
+  Calendar as CalendarToday,
   Clock as Schedule,
+  Sparkles as AutoAwesome,
+  Wand2 as AutoFixHigh,
+  Bug as BugReport,
+  Camera as PhotoCamera,
+  Banknote as Payments,
+  Maximize as Fullscreen,
+  ImageOff as ImageNotSupported,
+  PersonStanding as DirectionsWalk,
 } from 'lucide-react';
 
 // ─── Localisation / map ─────────────────────────────────────────────────────
 export {
   Map as MapIcon,
   MapPin as LocationOn,
+  Building2 as LocationCity,
   Globe as Public,
   Flag,
 } from 'lucide-react';
