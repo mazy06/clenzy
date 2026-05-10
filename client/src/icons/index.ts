@@ -57,19 +57,41 @@ export {
 // ─── Statuts / feedback ─────────────────────────────────────────────────────
 export {
   CircleCheck as CheckCircle,
+  CircleCheck as CheckCircleOutline,
   CircleAlert as ErrorOutline,
   CircleAlert as Error,
   TriangleAlert as Warning,
   TriangleAlert as WarningAmber,
   OctagonAlert as ReportProblem,
+  ChevronsUp as PriorityHigh,
   Info,
   Info as InfoOutlined,
   CircleHelp as Help,
   Check,
+  Check as Done,
   Ban,
+  Ban as BlockOutlined,
   X as Clear,
   Shield as Security,
   HeartPulse as HealthAndSafety,
+  CirclePlay as PlayCircle,
+  CirclePlay as PlayCircleOutline,
+  Play as PlayArrow,
+  CircleStop as StopCircle,
+  Hourglass as HourglassEmpty,
+  Hourglass as HourglassTop,
+  RotateCw as Replay,
+  RotateCw as Autorenew,
+  Rocket as RocketLaunch,
+  MessageSquare as Comment,
+  Circle as FiberManualRecord,
+  Circle as RadioButtonUnchecked,
+  MapPin as Room,
+  FileText as Summarize,
+  Layers,
+  CalendarCheck as EventAvailable,
+  Zap as Bolt,
+  Clock as AccessTime,
 } from 'lucide-react';
 
 // ─── Vue / visibilite ───────────────────────────────────────────────────────
@@ -151,6 +173,10 @@ export const Window: FC<IconifyProps> = (props) =>
 // Stairs (escaliers) — pas dans Lucide
 export const Stairs: FC<IconifyProps> = (props) =>
   createElement(_IronifyIcon, { icon: 'mdi:stairs', ...props });
+
+// DoorSliding (porte coulissante / baie vitree) — pas dans Lucide
+export const DoorSliding: FC<IconifyProps> = (props) =>
+  createElement(_IronifyIcon, { icon: 'mdi:door-sliding', ...props });
 
 // ─── Donnees / dashboard ────────────────────────────────────────────────────
 export {
