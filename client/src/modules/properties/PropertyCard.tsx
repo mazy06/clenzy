@@ -35,7 +35,7 @@ import {
   Payments,
   AutoAwesome,
   Timer,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { getPropertyTypeBannerUrl } from '../../utils/propertyTypeBanner';
@@ -380,7 +380,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
   // Obtenir l'icône du type de propriété
   const getPropertyTypeIcon = (type: string, size: number = 48) => {
-    const iconProps = { sx: { fontSize: size, color: 'rgba(255,255,255,0.35)' } };
+    const iconProps = { size, color: 'rgba(255,255,255,0.35)', strokeWidth: 1.5 };
     switch (type.toLowerCase()) {
       case 'appartement':
       case 'apartment':
@@ -463,7 +463,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 placement="top"
               >
                 <Chip
-                  icon={<Payments sx={{ fontSize: 12 }} />}
+                  icon={<Payments size={12} strokeWidth={1.75} />}
                   label={`${cleaningPrice}€ estimé / ménage`}
                   size="small"
                   color="primary"
@@ -483,7 +483,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 placement="top"
               >
                 <Chip
-                  icon={<Timer sx={{ fontSize: 12 }} />}
+                  icon={<Timer size={12} strokeWidth={1.75} />}
                   label={`~${formatDuration(cleaningDuration)}`}
                   size="small"
                   color="info"
@@ -506,7 +506,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 placement="top"
               >
                 <Chip
-                  icon={<Schedule sx={{ fontSize: 12 }} />}
+                  icon={<Schedule size={12} strokeWidth={1.75} />}
                   label={`${property.defaultCheckOutTime || '—'} – ${property.defaultCheckInTime || '—'}`}
                   size="small"
                   variant="outlined"
@@ -516,7 +516,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             )}
             {(property.createdAt || property.nextCleaning || property.lastCleaning) && (
               <Box sx={styles.dateBox}>
-                <Schedule sx={{ fontSize: 13, color: 'text.secondary' }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Schedule size={13} strokeWidth={1.75} /></Box>
                 <Typography
                   variant="caption"
                   sx={styles.dateText}
@@ -542,7 +542,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
 
           {/* Adresse */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.25 }}>
-            <LocationOn sx={{ fontSize: 14, color: 'text.secondary', flexShrink: 0 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', flexShrink: 0 }}><LocationOn size={14} strokeWidth={1.75} /></Box>
             <Typography
               variant="caption"
               color="text.secondary"
@@ -558,10 +558,10 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             {/* Colonne gauche : métriques */}
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, flex: 1, minWidth: 0 }}>
               {[
-                { icon: <BedIcon sx={{ fontSize: 13 }} />, value: property.bedrooms, label: 'ch.' },
-                { icon: <BathroomIcon sx={{ fontSize: 13 }} />, value: property.bathrooms, label: 'sdb' },
-                { icon: <SquareFoot sx={{ fontSize: 13 }} />, value: property.surfaceArea, label: 'm²' },
-                { icon: <PersonIcon sx={{ fontSize: 13 }} />, value: property.maxGuests, label: 'voy.' },
+                { icon: <BedIcon size={13} strokeWidth={1.75} />, value: property.bedrooms, label: 'ch.' },
+                { icon: <BathroomIcon size={13} strokeWidth={1.75} />, value: property.bathrooms, label: 'sdb' },
+                { icon: <SquareFoot size={13} strokeWidth={1.75} />, value: property.surfaceArea, label: 'm²' },
+                { icon: <PersonIcon size={13} strokeWidth={1.75} />, value: property.maxGuests, label: 'voy.' },
               ].map((metric, idx) => (
                 <Chip
                   key={idx}
@@ -648,7 +648,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
           {/* Fréquence de nettoyage */}
           {(() => { const c = getCleaningFrequencyHex(property.cleaningFrequency); return (
             <Chip
-              icon={<AutoAwesome sx={{ fontSize: 12, color: `${c} !important` }} />}
+              icon={<AutoAwesome size={12} strokeWidth={1.75} color={c} />}
               label={getCleaningFrequencyLabel(property.cleaningFrequency, t)}
               size="small"
               sx={{
@@ -672,7 +672,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
           <Button
             fullWidth
             size="small"
-            startIcon={<Visibility sx={{ fontSize: 15 }} />}
+            startIcon={<Visibility size={15} strokeWidth={1.75} />}
             onClick={(e) => { e.stopPropagation(); handleViewDetails(); }}
             variant="outlined"
             sx={styles.detailsButton}
@@ -683,7 +683,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
             <Button
               fullWidth
               size="small"
-              startIcon={<Edit sx={{ fontSize: 15 }} />}
+              startIcon={<Edit size={15} strokeWidth={1.75} />}
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
               variant="outlined"
               color="primary"
@@ -724,7 +724,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               </Box>
             </Box>
             <IconButton onClick={() => setDetailsOpen(false)} size="small">
-              <Close sx={{ fontSize: 18 }} />
+              <Close size={18} strokeWidth={1.75} />
             </IconButton>
           </Box>
         </DialogTitle>
@@ -752,10 +752,10 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               </Typography>
               <Box sx={styles.dialogCharacteristicsRow}>
                 {[
-                  { icon: <BedIcon sx={{ fontSize: 18 }} />, value: property.bedrooms, label: 'Chambres' },
-                  { icon: <BathroomIcon sx={{ fontSize: 18 }} />, value: property.bathrooms, label: 'Salles de bain' },
-                  { icon: <SquareFoot sx={{ fontSize: 18 }} />, value: `${property.surfaceArea} m²`, label: 'Surface' },
-                  { icon: <PersonIcon sx={{ fontSize: 18 }} />, value: property.maxGuests, label: 'Voyageurs max' },
+                  { icon: <BedIcon size={18} strokeWidth={1.75} />, value: property.bedrooms, label: 'Chambres' },
+                  { icon: <BathroomIcon size={18} strokeWidth={1.75} />, value: property.bathrooms, label: 'Salles de bain' },
+                  { icon: <SquareFoot size={18} strokeWidth={1.75} />, value: `${property.surfaceArea} m²`, label: 'Surface' },
+                  { icon: <PersonIcon size={18} strokeWidth={1.75} />, value: property.maxGuests, label: 'Voyageurs max' },
                 ].map((item, idx) => (
                   <Box
                     key={idx}
@@ -798,7 +798,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
                 Nettoyage
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <CleaningServices sx={{ fontSize: 18, color: 'text.secondary' }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><CleaningServices size={18} strokeWidth={1.75} /></Box>
                 <Typography variant="body2">{getCleaningFrequencyLabel(property.cleaningFrequency, t)}</Typography>
               </Box>
             </Grid>
@@ -880,7 +880,7 @@ const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onEdit
               color="error"
               variant="outlined"
               size="small"
-              startIcon={<Delete sx={{ fontSize: 16 }} />}
+              startIcon={<Delete size={16} strokeWidth={1.75} />}
             >
               Supprimer
             </Button>
