@@ -201,6 +201,8 @@ export {
   Bug as BugReport,
   Camera as PhotoCamera,
   Banknote as Payments,
+  DollarSign as AttachMoney,
+  NotebookPen as NoteAlt,
   Maximize as Fullscreen,
   ImageOff as ImageNotSupported,
   PersonStanding as DirectionsWalk,

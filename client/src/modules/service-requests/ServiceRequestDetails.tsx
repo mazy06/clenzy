@@ -51,7 +51,7 @@ import {
   Login,
   Logout,
   CalendarMonth,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useServiceRequestDetails } from '../../hooks/useServiceRequestDetails';
@@ -177,7 +177,7 @@ const ICON_SX = { fontSize: 16, color: 'text.secondary' };
 // ─── Type icon helper ────────────────────────────────────────────────────────
 
 function getTypeIcon(type: string) {
-  const iconSx = { fontSize: 18, color: 'primary.main', mb: 0.25 };
+  const iconProps = { size: 18, color: "var(--mui-palette-primary-main, #1976d2)", strokeWidth: 1.75 };
   const upper = type?.toUpperCase() || '';
 
   const cleaningTypes = [
@@ -190,13 +190,13 @@ function getTypeIcon(type: string) {
     'HVAC_REPAIR', 'APPLIANCE_REPAIR',
   ];
 
-  if (cleaningTypes.includes(upper)) return <AutoAwesome sx={iconSx} />;
-  if (repairTypes.includes(upper)) return <Build sx={iconSx} />;
-  if (upper === 'PREVENTIVE_MAINTENANCE') return <Build sx={iconSx} />;
-  if (upper === 'GARDENING') return <Yard sx={iconSx} />;
-  if (upper === 'PEST_CONTROL') return <BugReport sx={iconSx} />;
-  if (upper === 'RESTORATION') return <AutoFixHigh sx={iconSx} />;
-  return <Category sx={iconSx} />;
+  if (cleaningTypes.includes(upper)) return <AutoAwesome {...iconProps} />;
+  if (repairTypes.includes(upper)) return <Build {...iconProps} />;
+  if (upper === 'PREVENTIVE_MAINTENANCE') return <Build {...iconProps} />;
+  if (upper === 'GARDENING') return <Yard {...iconProps} />;
+  if (upper === 'PEST_CONTROL') return <BugReport {...iconProps} />;
+  if (upper === 'RESTORATION') return <AutoFixHigh {...iconProps} />;
+  return <Category {...iconProps} />;
 }
 
 // ─── Status progress helper ──────────────────────────────────────────────────
@@ -304,25 +304,25 @@ const ServiceRequestDetails: React.FC = () => {
 
   // Property tags
   const propertyTags: { icon: React.ReactElement; label: string }[] = [];
-  if (sr.propertyType) propertyTags.push({ icon: <Category sx={{ fontSize: 13 }} />, label: getPropertyTypeLabel(sr.propertyType, t) });
-  if (sr.propertySquareMeters) propertyTags.push({ icon: <SquareFoot sx={{ fontSize: 13 }} />, label: `${sr.propertySquareMeters} m²` });
-  if (sr.propertyBedroomCount) propertyTags.push({ icon: <Bed sx={{ fontSize: 13 }} />, label: `${sr.propertyBedroomCount} ch.` });
-  if (sr.propertyBathroomCount) propertyTags.push({ icon: <Bathtub sx={{ fontSize: 13 }} />, label: `${sr.propertyBathroomCount} SDB` });
-  if (sr.propertyMaxGuests) propertyTags.push({ icon: <People sx={{ fontSize: 13 }} />, label: `${sr.propertyMaxGuests} voyag.` });
-  if (sr.propertyNumberOfFloors && sr.propertyNumberOfFloors > 1) propertyTags.push({ icon: <Layers sx={{ fontSize: 13 }} />, label: `${sr.propertyNumberOfFloors} étages` });
-  if (sr.propertyHasExterior) propertyTags.push({ icon: <Deck sx={{ fontSize: 13 }} />, label: 'Extérieur' });
-  if (sr.propertyHasLaundry) propertyTags.push({ icon: <LocalLaundryService sx={{ fontSize: 13 }} />, label: 'Linge' });
+  if (sr.propertyType) propertyTags.push({ icon: <Category size={13} strokeWidth={1.75} />, label: getPropertyTypeLabel(sr.propertyType, t) });
+  if (sr.propertySquareMeters) propertyTags.push({ icon: <SquareFoot size={13} strokeWidth={1.75} />, label: `${sr.propertySquareMeters} m²` });
+  if (sr.propertyBedroomCount) propertyTags.push({ icon: <Bed size={13} strokeWidth={1.75} />, label: `${sr.propertyBedroomCount} ch.` });
+  if (sr.propertyBathroomCount) propertyTags.push({ icon: <Bathtub size={13} strokeWidth={1.75} />, label: `${sr.propertyBathroomCount} SDB` });
+  if (sr.propertyMaxGuests) propertyTags.push({ icon: <People size={13} strokeWidth={1.75} />, label: `${sr.propertyMaxGuests} voyag.` });
+  if (sr.propertyNumberOfFloors && sr.propertyNumberOfFloors > 1) propertyTags.push({ icon: <Layers size={13} strokeWidth={1.75} />, label: `${sr.propertyNumberOfFloors} étages` });
+  if (sr.propertyHasExterior) propertyTags.push({ icon: <Deck size={13} strokeWidth={1.75} />, label: 'Extérieur' });
+  if (sr.propertyHasLaundry) propertyTags.push({ icon: <LocalLaundryService size={13} strokeWidth={1.75} />, label: 'Linge' });
 
   // Prestations à la carte
   const prestations: { icon: React.ReactElement; label: string; extraMins: number }[] = [];
-  if (sr.propertyHasLaundry) prestations.push({ icon: <LocalLaundryService sx={{ fontSize: 14 }} />, label: 'Linge', extraMins: 10 });
-  if (sr.propertyHasExterior) prestations.push({ icon: <Deck sx={{ fontSize: 14 }} />, label: 'Extérieur', extraMins: 25 });
-  if (sr.propertyHasIroning) prestations.push({ icon: <Iron sx={{ fontSize: 14 }} />, label: 'Repassage', extraMins: 20 });
-  if (sr.propertyHasDeepKitchen) prestations.push({ icon: <Kitchen sx={{ fontSize: 14 }} />, label: 'Cuisine profonde', extraMins: 30 });
-  if (sr.propertyHasDisinfection) prestations.push({ icon: <Sanitizer sx={{ fontSize: 14 }} />, label: 'Désinfection', extraMins: 40 });
-  if (sr.propertyWindowCount && sr.propertyWindowCount > 0) prestations.push({ icon: <Window sx={{ fontSize: 14 }} />, label: `Fenêtres (${sr.propertyWindowCount})`, extraMins: sr.propertyWindowCount * 5 });
-  if (sr.propertyFrenchDoorCount && sr.propertyFrenchDoorCount > 0) prestations.push({ icon: <DoorSliding sx={{ fontSize: 14 }} />, label: `Portes-fenêtres (${sr.propertyFrenchDoorCount})`, extraMins: sr.propertyFrenchDoorCount * 8 });
-  if (sr.propertySlidingDoorCount && sr.propertySlidingDoorCount > 0) prestations.push({ icon: <DoorSliding sx={{ fontSize: 14 }} />, label: `Baies vitrées (${sr.propertySlidingDoorCount})`, extraMins: sr.propertySlidingDoorCount * 12 });
+  if (sr.propertyHasLaundry) prestations.push({ icon: <LocalLaundryService size={14} strokeWidth={1.75} />, label: 'Linge', extraMins: 10 });
+  if (sr.propertyHasExterior) prestations.push({ icon: <Deck size={14} strokeWidth={1.75} />, label: 'Extérieur', extraMins: 25 });
+  if (sr.propertyHasIroning) prestations.push({ icon: <Iron size={14} strokeWidth={1.75} />, label: 'Repassage', extraMins: 20 });
+  if (sr.propertyHasDeepKitchen) prestations.push({ icon: <Kitchen size={14} strokeWidth={1.75} />, label: 'Cuisine profonde', extraMins: 30 });
+  if (sr.propertyHasDisinfection) prestations.push({ icon: <Sanitizer size={14} strokeWidth={1.75} />, label: 'Désinfection', extraMins: 40 });
+  if (sr.propertyWindowCount && sr.propertyWindowCount > 0) prestations.push({ icon: <Window size={14} strokeWidth={1.75} />, label: `Fenêtres (${sr.propertyWindowCount})`, extraMins: sr.propertyWindowCount * 5 });
+  if (sr.propertyFrenchDoorCount && sr.propertyFrenchDoorCount > 0) prestations.push({ icon: <DoorSliding size={14} strokeWidth={1.75} />, label: `Portes-fenêtres (${sr.propertyFrenchDoorCount})`, extraMins: sr.propertyFrenchDoorCount * 8 });
+  if (sr.propertySlidingDoorCount && sr.propertySlidingDoorCount > 0) prestations.push({ icon: <DoorSliding size={14} strokeWidth={1.75} />, label: `Baies vitrées (${sr.propertySlidingDoorCount})`, extraMins: sr.propertySlidingDoorCount * 12 });
 
   const hasCheckTimes = !!sr.guestCheckoutTime || !!sr.guestCheckinTime;
 
@@ -343,7 +343,7 @@ const ServiceRequestDetails: React.FC = () => {
             canEdit ? (
               <Button
                 variant="outlined"
-                startIcon={<Edit />}
+                startIcon={<Edit size={18} strokeWidth={1.75} />}
                 onClick={() => navigate(`/service-requests/${id}/edit`)}
                 size="small"
                 title={t('serviceRequests.modify')}
@@ -396,7 +396,7 @@ const ServiceRequestDetails: React.FC = () => {
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
             <Box sx={METRIC_CARD_SX}>
-              <AccessTime sx={METRIC_ICON_SX} />
+              <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><AccessTime size={18} strokeWidth={1.75} /></Box>
               <Typography sx={METRIC_VALUE_SX}>
                 {formatDuration(sr.estimatedDuration)}
               </Typography>
@@ -405,7 +405,7 @@ const ServiceRequestDetails: React.FC = () => {
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
             <Box sx={METRIC_CARD_SX}>
-              <CalendarToday sx={METRIC_ICON_SX} />
+              <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><CalendarToday size={18} strokeWidth={1.75} /></Box>
               <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '0.75rem' }}>
                 {formatDateTime(sr.dueDate) || '—'}
               </Typography>
@@ -415,7 +415,7 @@ const ServiceRequestDetails: React.FC = () => {
           {sr.estimatedCost != null && (
             <Grid item xs={6} sm={4} md={2}>
               <Box sx={METRIC_CARD_SX}>
-                <Euro sx={METRIC_ICON_SX} />
+                <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><Euro size={18} strokeWidth={1.75} /></Box>
                 <Typography sx={METRIC_VALUE_SX}>
                   {convertAndFormat(sr.estimatedCost, 'EUR')}
                 </Typography>
@@ -426,7 +426,7 @@ const ServiceRequestDetails: React.FC = () => {
           {sr.actualCost != null && (
             <Grid item xs={6} sm={4} md={2}>
               <Box sx={{ ...METRIC_CARD_SX, borderColor: 'success.main', bgcolor: 'success.50' }}>
-                <AttachMoney sx={{ ...METRIC_ICON_SX, color: 'success.main' }} />
+                <Box component="span" sx={{ display: "inline-flex", color: "success.main", mb: 0.25 }}><AttachMoney size={18} strokeWidth={1.75} /></Box>
                 <Typography sx={{ ...METRIC_VALUE_SX, color: 'success.main' }}>
                   {convertAndFormat(sr.actualCost, 'EUR')}
                 </Typography>
@@ -436,7 +436,7 @@ const ServiceRequestDetails: React.FC = () => {
           )}
           <Grid item xs={6} sm={4} md={2}>
             <Box sx={METRIC_CARD_SX}>
-              <Schedule sx={METRIC_ICON_SX} />
+              <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 0.25 }}><Schedule size={18} strokeWidth={1.75} /></Box>
               <Typography sx={{ ...METRIC_VALUE_SX, fontSize: '0.75rem' }}>
                 {formatDateTime(sr.createdAt)}
               </Typography>
@@ -454,7 +454,7 @@ const ServiceRequestDetails: React.FC = () => {
             {sr.description && (
               <Paper sx={CARD_SX}>
                 <Typography sx={SECTION_TITLE_SX}>
-                  <Description sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
+                  <Description size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: "middle" }} />
                   {t('serviceRequests.fields.detailedDescription')}
                 </Typography>
                 {/* Source logo + description text */}
@@ -496,7 +496,7 @@ const ServiceRequestDetails: React.FC = () => {
             <Paper sx={CARD_SX}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                 <Typography sx={{ ...SECTION_TITLE_SX, mb: 0 }}>
-                  <Home sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
+                  <Home size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: "middle" }} />
                   {t('serviceRequests.sections.property')}
                 </Typography>
                 <Button
@@ -509,7 +509,7 @@ const ServiceRequestDetails: React.FC = () => {
               </Box>
 
               <Box sx={INFO_ROW_SX}>
-                <LocationOn sx={ICON_SX} />
+                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><LocationOn size={16} strokeWidth={1.75} /></Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.propertyNameLabel')}</Typography>
                   <Typography sx={INFO_VALUE_SX}>{sr.propertyName}</Typography>
@@ -519,7 +519,7 @@ const ServiceRequestDetails: React.FC = () => {
               <Divider sx={{ my: 0.5 }} />
 
               <Box sx={INFO_ROW_SX}>
-                <LocationOn sx={ICON_SX} />
+                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><LocationOn size={16} strokeWidth={1.75} /></Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.fullAddressLabel')}</Typography>
                   <Typography sx={INFO_VALUE_SX}>
@@ -533,7 +533,7 @@ const ServiceRequestDetails: React.FC = () => {
                 <>
                   <Divider sx={{ my: 0.5 }} />
                   <Box sx={INFO_ROW_SX}>
-                    <Flag sx={ICON_SX} />
+                    <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Flag size={16} strokeWidth={1.75} /></Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography sx={INFO_LABEL_SX}>{t('properties.country')}</Typography>
                       <Typography sx={INFO_VALUE_SX}>{sr.propertyCountry}</Typography>
@@ -565,7 +565,7 @@ const ServiceRequestDetails: React.FC = () => {
             {/* Notes et Consignes — Description du logement, Consignes, Instructions, Accès */}
             <Paper sx={CARD_SX}>
               <Typography sx={{ ...SECTION_TITLE_SX, mb: 1.5 }}>
-                <NoteAlt sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
+                <NoteAlt size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: "middle" }} />
                 {t('serviceRequests.details.notesInstructions')}
               </Typography>
 
@@ -592,7 +592,7 @@ const ServiceRequestDetails: React.FC = () => {
               {sr.accessNotes && (
                 <Box sx={{ mt: 1.5 }}>
                   <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
-                    <VpnKey sx={{ fontSize: 12, mr: 0.5, verticalAlign: 'middle' }} />
+                    <VpnKey size={12} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: "middle" }} />
                     {t('serviceRequests.details.accessNotes')}
                   </Typography>
                   <Typography sx={{ fontSize: '0.8125rem', color: 'text.primary', lineHeight: 1.5, whiteSpace: 'pre-line', bgcolor: 'warning.50', p: 1.25, borderRadius: 1, border: '1px solid', borderColor: 'warning.100' }}>
@@ -614,7 +614,7 @@ const ServiceRequestDetails: React.FC = () => {
 
               {/* Demandeur */}
               <Box sx={INFO_ROW_SX}>
-                <Person sx={ICON_SX} />
+                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Person size={16} strokeWidth={1.75} /></Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.fields.requestor')}</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -641,9 +641,9 @@ const ServiceRequestDetails: React.FC = () => {
               {/* Assignation */}
               <Box sx={INFO_ROW_SX}>
                 {sr.assignedToType === 'team' ? (
-                  <Group sx={ICON_SX} />
+                  <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Group size={16} strokeWidth={1.75} /></Box>
                 ) : (
-                  <Assignment sx={ICON_SX} />
+                  <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Assignment size={16} strokeWidth={1.75} /></Box>
                 )}
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.assignedTo')}</Typography>
@@ -677,12 +677,12 @@ const ServiceRequestDetails: React.FC = () => {
             {/* Détail du temps */}
             <Paper sx={CARD_SX}>
               <Typography sx={SECTION_TITLE_SX}>
-                <AccessTime sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
+                <AccessTime size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: "middle" }} />
                 Détail du temps
               </Typography>
 
               <Box sx={INFO_ROW_SX}>
-                <CalendarToday sx={ICON_SX} />
+                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><CalendarToday size={16} strokeWidth={1.75} /></Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.dueDateLabel')}</Typography>
                   <Typography sx={INFO_VALUE_SX}>{formatDateTime(sr.dueDate) || '—'}</Typography>
@@ -692,7 +692,7 @@ const ServiceRequestDetails: React.FC = () => {
               <Divider sx={{ my: 0.5 }} />
 
               <Box sx={INFO_ROW_SX}>
-                <Schedule sx={ICON_SX} />
+                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Schedule size={16} strokeWidth={1.75} /></Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.estimatedDurationLabel')}</Typography>
                   <Typography sx={INFO_VALUE_SX}>{formatDuration(sr.estimatedDuration)}</Typography>
@@ -703,7 +703,7 @@ const ServiceRequestDetails: React.FC = () => {
                 <>
                   <Divider sx={{ my: 0.5 }} />
                   <Box sx={INFO_ROW_SX}>
-                    <Schedule sx={ICON_SX} />
+                    <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Schedule size={16} strokeWidth={1.75} /></Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography sx={INFO_LABEL_SX}>Durée ménage (propriété)</Typography>
                       <Typography sx={INFO_VALUE_SX}>
@@ -721,7 +721,7 @@ const ServiceRequestDetails: React.FC = () => {
                   <Divider sx={{ my: 0.5 }} />
                   {sr.guestCheckoutTime && (
                     <Box sx={INFO_ROW_SX}>
-                      <Logout sx={ICON_SX} />
+                      <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Logout size={16} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={INFO_LABEL_SX}>Départ voyageur</Typography>
                         <Typography sx={INFO_VALUE_SX}>{formatDateTime(sr.guestCheckoutTime)}</Typography>
@@ -730,7 +730,7 @@ const ServiceRequestDetails: React.FC = () => {
                   )}
                   {sr.guestCheckinTime && (
                     <Box sx={INFO_ROW_SX}>
-                      <Login sx={ICON_SX} />
+                      <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><Login size={16} strokeWidth={1.75} /></Box>
                       <Box sx={{ flex: 1 }}>
                         <Typography sx={INFO_LABEL_SX}>Arrivée voyageur</Typography>
                         <Typography sx={INFO_VALUE_SX}>{formatDateTime(sr.guestCheckinTime)}</Typography>
@@ -742,7 +742,7 @@ const ServiceRequestDetails: React.FC = () => {
 
               <Divider sx={{ my: 0.5 }} />
               <Box sx={INFO_ROW_SX}>
-                <CalendarMonth sx={ICON_SX} />
+                <Box component="span" sx={{ display: "inline-flex", color: "text.secondary" }}><CalendarMonth size={16} strokeWidth={1.75} /></Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography sx={INFO_LABEL_SX}>{t('serviceRequests.createdDateLabel')}</Typography>
                   <Typography sx={INFO_VALUE_SX}>{formatDateTime(sr.createdAt)}</Typography>
