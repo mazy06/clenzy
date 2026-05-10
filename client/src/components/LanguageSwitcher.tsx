@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import {
   Language as LanguageIcon,
-} from '@mui/icons-material';
+} from '../icons';
 import { useTranslation } from '../hooks/useTranslation';
 
 interface LanguageSwitcherProps {
@@ -40,7 +40,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
           if (onClose) onClose();
         }} selected={currentLanguage === 'fr'}>
           <ListItemIcon>
-            <LanguageIcon fontSize="small" />
+            <LanguageIcon size={20} strokeWidth={1.75} />
           </ListItemIcon>
           <ListItemText>{t('navigation.languages.fr')}</ListItemText>
         </MenuItem>
@@ -49,7 +49,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
           if (onClose) onClose();
         }} selected={currentLanguage === 'en'}>
           <ListItemIcon>
-            <LanguageIcon fontSize="small" />
+            <LanguageIcon size={20} strokeWidth={1.75} />
           </ListItemIcon>
           <ListItemText>{t('navigation.languages.en')}</ListItemText>
         </MenuItem>
@@ -74,13 +74,13 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       >
         <MenuItem value="fr">
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LanguageIcon fontSize="small" />
+            <LanguageIcon size={20} strokeWidth={1.75} />
             <span>{t('navigation.languages.fr')}</span>
           </Box>
         </MenuItem>
         <MenuItem value="en">
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LanguageIcon fontSize="small" />
+            <LanguageIcon size={20} strokeWidth={1.75} />
             <span>{t('navigation.languages.en')}</span>
           </Box>
         </MenuItem>

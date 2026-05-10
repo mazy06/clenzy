@@ -9,7 +9,7 @@ import {
   Close as CloseIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
-} from '@mui/icons-material';
+} from '../icons';
 
 // ============================================================
 // PhotoLightbox — Visionneuse plein écran pour les photos
@@ -100,7 +100,7 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
           {currentIndex + 1} / {photos.length}
         </Typography>
         <IconButton onClick={onClose} sx={{ color: 'white' }}>
-          <CloseIcon />
+          <CloseIcon size={24} strokeWidth={1.75} />
         </IconButton>
       </Box>
 
@@ -143,7 +143,7 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
             },
           }}
         >
-          <ChevronLeftIcon sx={{ fontSize: 36 }} />
+          <ChevronLeftIcon size={36} strokeWidth={1.75} />
         </IconButton>
       )}
 
@@ -163,7 +163,7 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
             },
           }}
         >
-          <ChevronRightIcon sx={{ fontSize: 36 }} />
+          <ChevronRightIcon size={36} strokeWidth={1.75} />
         </IconButton>
       )}
     </Dialog>
