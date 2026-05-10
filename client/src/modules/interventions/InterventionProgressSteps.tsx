@@ -23,7 +23,7 @@ import {
   Email as EmailIcon,
   CheckCircle as EmailSentIcon,
   ErrorOutline as EmailFailedIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import type { InterventionDetailsData, PropertyDetails } from './interventionUtils';
 import PhotoGallery from '../../components/PhotoGallery';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -161,9 +161,9 @@ const StepperHeader: React.FC<{
               }),
             }}>
               {step.completed ? (
-                <CheckCircleIcon sx={{ fontSize: 18 }} />
+                <CheckCircleIcon size={18} strokeWidth={1.75} />
               ) : step.locked ? (
-                <LockIcon sx={{ fontSize: 14 }} />
+                <LockIcon size={14} strokeWidth={1.75} />
               ) : (
                 <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.75rem' }}>
                   {step.id + 1}
@@ -316,7 +316,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {beforePhotos.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-            <CheckCircleOutlineIcon sx={{ fontSize: 16, color: inspectionComplete ? 'success.main' : 'text.secondary' }} />
+            <CheckCircleOutlineIcon size={16} strokeWidth={1.75} color={inspectionComplete ? "var(--mui-palette-success-main, #2e7d32)" : "rgba(0,0,0,0.6)"} />
             {t('interventions.progressSteps.beforePhotosCount', { count: beforePhotos.length })}
           </Typography>
           <PhotoGallery
@@ -341,16 +341,16 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       )}
 
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-        <Button variant="outlined" size="small" startIcon={<PhotoCameraIcon />} sx={actionBtnSx}
+        <Button variant="outlined" size="small" startIcon={<PhotoCameraIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
           onClick={() => { setPhotoType('before'); setPhotosDialogOpen(true); }}>
           {t('interventions.progressSteps.addPhotos')}
         </Button>
-        <Button variant="outlined" size="small" startIcon={<CommentIcon />} sx={actionBtnSx}
+        <Button variant="outlined" size="small" startIcon={<CommentIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
           onClick={() => handleOpenNotesDialog('inspection')}>
           {getStepNote('inspection') ? t('interventions.progressSteps.editNote') : t('interventions.progressSteps.addNote')}
         </Button>
         {!inspectionComplete && beforePhotos.length > 0 && (
-          <Button variant="contained" size="small" startIcon={<CheckCircleOutlineIcon />} sx={{
+          <Button variant="contained" size="small" startIcon={<CheckCircleOutlineIcon size={18} strokeWidth={1.75} />} sx={{
             ...actionBtnSx,
             animation: 'pulse 2s infinite',
             '@keyframes pulse': { '0%, 100%': { opacity: 1 }, '50%': { opacity: 0.7 } },
@@ -395,7 +395,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2 }}>
         {roomNames.map((name, idx) => (
           <Chip key={name}
-            icon={validatedRooms.has(idx) ? <CheckCircleOutlineIcon /> : <RoomIcon />}
+            icon={validatedRooms.has(idx) ? <CheckCircleOutlineIcon size={18} strokeWidth={1.75} /> : <RoomIcon size={18} strokeWidth={1.75} />}
             label={name} size="small"
             color={validatedRooms.has(idx) ? 'success' : 'primary'}
             variant={validatedRooms.has(idx) ? 'filled' : 'outlined'}
@@ -416,7 +416,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         </Box>
       )}
 
-      <Button variant="outlined" size="small" startIcon={<CommentIcon />} sx={actionBtnSx}
+      <Button variant="outlined" size="small" startIcon={<CommentIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
         onClick={() => handleOpenNotesDialog('rooms')}>
         {getStepNote('rooms') ? t('interventions.progressSteps.editNote') : t('interventions.progressSteps.addNote')}
       </Button>
@@ -435,7 +435,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {afterPhotos.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-            <CheckCircleOutlineIcon sx={{ fontSize: 16, color: 'success.main' }} />
+            <Box component="span" sx={{ display: "inline-flex", color: "success.main" }}><CheckCircleOutlineIcon size={16} strokeWidth={1.75} /></Box>
             {t('interventions.progressSteps.afterPhotosCount', { count: afterPhotos.length })}
           </Typography>
           <PhotoGallery
@@ -460,11 +460,11 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       )}
 
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-        <Button variant="outlined" size="small" startIcon={<PhotoCameraIcon />} sx={actionBtnSx}
+        <Button variant="outlined" size="small" startIcon={<PhotoCameraIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
           onClick={() => { setPhotoType('after'); setPhotosDialogOpen(true); }}>
           {t('interventions.progressSteps.addPhotos')}
         </Button>
-        <Button variant="outlined" size="small" startIcon={<CommentIcon />} sx={actionBtnSx}
+        <Button variant="outlined" size="small" startIcon={<CommentIcon size={18} strokeWidth={1.75} />} sx={actionBtnSx}
           onClick={() => handleOpenNotesDialog('after_photos')}>
           {getStepNote('after_photos') ? t('interventions.progressSteps.editNote') : t('interventions.progressSteps.addNote')}
         </Button>
@@ -514,7 +514,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         {/* Inspection */}
         <Box sx={recapCardSx}>
           <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
-            <CheckCircleIcon sx={{ fontSize: 18, color: 'success.main' }} />
+            <Box component="span" sx={{ display: "inline-flex", color: "success.main" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
             <Typography variant="body2" fontWeight={600}>{t('interventions.progressSteps.recapInspection')}</Typography>
           </Box>
           {beforePhotos.length > 0 && (
@@ -537,13 +537,13 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         {/* Rooms */}
         <Box sx={recapCardSx}>
           <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
-            <CheckCircleIcon sx={{ fontSize: 18, color: 'success.main' }} />
+            <Box component="span" sx={{ display: "inline-flex", color: "success.main" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
             <Typography variant="body2" fontWeight={600}>{t('interventions.progressSteps.recapRooms', { validated: validatedRooms.size, total: totalRooms })}</Typography>
           </Box>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
             {roomNames.map((name, idx) => (
               validatedRooms.has(idx) && (
-                <Chip key={name} icon={<CheckCircleOutlineIcon />} label={name} size="small"
+                <Chip key={name} icon={<CheckCircleOutlineIcon size={18} strokeWidth={1.75} />} label={name} size="small"
                   color="success" variant="filled" sx={{ height: 28, fontSize: '0.75rem' }} />
               )
             ))}
@@ -558,7 +558,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
         {/* Photos */}
         <Box sx={recapCardSx}>
           <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
-            <CheckCircleIcon sx={{ fontSize: 18, color: 'success.main' }} />
+            <Box component="span" sx={{ display: "inline-flex", color: "success.main" }}><CheckCircleIcon size={18} strokeWidth={1.75} /></Box>
             <Typography variant="body2" fontWeight={600}>{t('interventions.progressSteps.recapAfterPhotos')}</Typography>
           </Box>
           {afterPhotos.length > 0 && (
@@ -581,7 +581,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {documents.length > 0 && (
         <Box sx={{ mt: 3 }}>
           <Box display="flex" alignItems="center" gap={0.75} mb={2}>
-            <DescriptionIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><DescriptionIcon size={18} strokeWidth={1.75} /></Box>
             <Typography variant="body2" fontWeight={600}>
               {t('interventions.progressSteps.documents', { count: documents.length })}
             </Typography>
@@ -597,7 +597,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                       bgcolor: 'rgba(25, 118, 210, 0.08)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     }}>
-                      <DescriptionIcon sx={{ fontSize: 22, color: 'primary.main' }} />
+                      <Box component="span" sx={{ display: "inline-flex", color: "primary.main" }}><DescriptionIcon size={22} strokeWidth={1.75} /></Box>
                     </Box>
                     <Box sx={{ minWidth: 0 }}>
                       <Typography variant="body2" fontWeight={600} noWrap sx={{ mb: 0.5 }}>
@@ -607,12 +607,12 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                         <Chip label={doc.documentType.replace(/_/g, ' ')} size="small"
                           sx={{ height: 22, fontSize: '0.675rem', fontWeight: 500, bgcolor: 'grey.100' }} />
                         {doc.emailStatus === 'SENT' && (
-                          <Chip icon={<EmailSentIcon sx={{ fontSize: '14px !important' }} />}
+                          <Chip icon={<EmailSentIcon size={14} strokeWidth={1.75} />}
                             label={doc.emailTo} size="small" color="info" variant="outlined"
                             sx={{ height: 22, fontSize: '0.675rem' }} />
                         )}
                         {doc.emailStatus === 'FAILED' && (
-                          <Chip icon={<EmailFailedIcon sx={{ fontSize: '14px !important' }} />}
+                          <Chip icon={<EmailFailedIcon size={14} strokeWidth={1.75} />}
                             label={t('interventions.progressSteps.emailFailed')} size="small" color="error" variant="outlined"
                             sx={{ height: 22, fontSize: '0.675rem' }} />
                         )}
@@ -621,7 +621,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                   </Box>
                   {hasFile && (
                     <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                      <Button size="small" variant="outlined" startIcon={<VisibilityIcon />}
+                      <Button size="small" variant="outlined" startIcon={<VisibilityIcon size={18} strokeWidth={1.75} />}
                         onClick={() => handleViewPdf(doc)}
                         sx={{
                           textTransform: 'none', fontSize: '0.75rem', minWidth: 0,
@@ -629,7 +629,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                         }}>
                         {t('interventions.progressSteps.viewPdf')}
                       </Button>
-                      <Button size="small" variant="text" startIcon={<DownloadIcon />}
+                      <Button size="small" variant="text" startIcon={<DownloadIcon size={18} strokeWidth={1.75} />}
                         onClick={() => handleDownloadPdf(doc)}
                         sx={{
                           textTransform: 'none', fontSize: '0.75rem', minWidth: 0,
@@ -649,7 +649,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
       {/* Complete intervention button */}
       {intervention.status !== 'COMPLETED' && (
         <Box sx={{ mt: 3.5, textAlign: 'center' }}>
-          <Button variant="contained" color="success" size="large" startIcon={<DoneIcon />}
+          <Button variant="contained" color="success" size="large" startIcon={<DoneIcon size={18} strokeWidth={1.75} />}
             onClick={handleCompleteIntervention}
             disabled={!areAllStepsCompleted || completing}
             sx={{
@@ -720,13 +720,13 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
           )}
           {!isBeforeScheduledDate && (
             <>
-              <RocketIcon sx={{ fontSize: 32, color: 'primary.main', mb: 1 }} />
+              <Box component="span" sx={{ display: "inline-flex", color: "primary.main", mb: 1 }}><RocketIcon size={32} strokeWidth={1.5} /></Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 {t('interventions.progressSteps.startDescription')}
               </Typography>
             </>
           )}
-          <Button variant="contained" color="primary" startIcon={<PlayArrowIcon />}
+          <Button variant="contained" color="primary" startIcon={<PlayArrowIcon size={18} strokeWidth={1.75} />}
             onClick={handleStartIntervention} disabled={starting || isBeforeScheduledDate}
             sx={{
               py: 1.25, px: 4, textTransform: 'none', fontWeight: 600,
@@ -753,13 +753,13 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                 width: 36, height: 36, borderRadius: '50%', bgcolor: 'success.main',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
-                <CheckCircleIcon sx={{ fontSize: 20, color: 'white' }} />
+                <CheckCircleIcon size={20} strokeWidth={1.75} color="#fff" />
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
                 {t('interventions.progressSteps.completedMessage')}
               </Typography>
             </Box>
-            <Button variant="contained" color="warning" startIcon={<ReplayIcon />}
+            <Button variant="contained" color="warning" startIcon={<ReplayIcon size={18} strokeWidth={1.75} />}
               onClick={handleReopenIntervention} disabled={completing}
               sx={{
                 py: 1.25, px: 3, fontWeight: 600, textTransform: 'none',
@@ -812,7 +812,7 @@ const InterventionProgressSteps: React.FC<InterventionProgressStepsProps> = ({
                   {t('interventions.progressSteps.pdfNotSupported', 'Votre navigateur ne supporte pas la visualisation PDF.')}
                 </Typography>
                 <Button variant="contained" href={pdfUrl} download={pdfFileName || 'document.pdf'}
-                  startIcon={<DownloadIcon />} sx={{ textTransform: 'none' }}>
+                  startIcon={<DownloadIcon size={18} strokeWidth={1.75} />} sx={{ textTransform: 'none' }}>
                   {t('interventions.progressSteps.download')}
                 </Button>
               </Box>
