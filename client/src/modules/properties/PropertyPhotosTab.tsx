@@ -18,7 +18,7 @@ import {
   Delete,
   AddPhotoAlternate,
   PhotoLibrary,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNotification } from '../../hooks/useNotification';
@@ -257,7 +257,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
         >
-          <CloudUpload sx={{ fontSize: 36, color: 'text.disabled', mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><CloudUpload size={36} strokeWidth={1.5} /></Box>
           <Typography sx={{ fontSize: '0.8125rem', fontWeight: 500, color: 'text.secondary', textAlign: 'center' }}>
             {t('properties.photos.dragDrop')}
           </Typography>
@@ -323,7 +323,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
                       height: 28,
                     }}
                   >
-                    <Delete sx={{ fontSize: 16 }} />
+                    <Delete size={16} strokeWidth={1.75} />
                   </IconButton>
                 </Box>
               </Box>
@@ -340,7 +340,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
               }}
               onClick={() => fileInputRef.current?.click()}
             >
-              <AddPhotoAlternate sx={{ fontSize: 28, color: 'text.disabled' }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><AddPhotoAlternate size={28} strokeWidth={1.5} /></Box>
             </Box>
           </Box>
         </Paper>
@@ -355,7 +355,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
             py: 6,
           }}
         >
-          <PhotoLibrary sx={{ fontSize: 48, color: 'text.disabled', mb: 1.5 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1.5 }}><PhotoLibrary size={48} strokeWidth={1.5} /></Box>
           <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.secondary', mb: 0.5 }}>
             {t('properties.photos.empty')}
           </Typography>
@@ -365,7 +365,7 @@ const PropertyPhotosTab: React.FC<PropertyPhotosTabProps> = ({ propertyId }) => 
           <Button
             variant="outlined"
             size="small"
-            startIcon={<CloudUpload />}
+            startIcon={<CloudUpload size={18} strokeWidth={1.75} />}
             onClick={() => fileInputRef.current?.click()}
             sx={{ textTransform: 'none', fontSize: '0.75rem', fontWeight: 600 }}
           >
