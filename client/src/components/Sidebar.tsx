@@ -22,7 +22,7 @@ import {
   NotificationsNone,
   Language as LanguageIcon,
   Check as CheckIcon,
-} from '@mui/icons-material';
+} from '../icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from '../hooks/useTranslation';
@@ -359,7 +359,7 @@ export default function Sidebar({
                 '&:hover': { backgroundColor: 'rgba(107, 138, 154, 0.08)' },
               }}
             >
-              <LanguageIcon sx={{ fontSize: actionIconSize }} />
+              <LanguageIcon size={actionIconSize} strokeWidth={1.75} />
             </IconButton>
           </Tooltip>
 
@@ -387,9 +387,9 @@ export default function Sidebar({
                 }}
               >
                 {unreadCount > 0 ? (
-                  <Notifications sx={{ fontSize: actionIconSize }} />
+                  <Notifications size={actionIconSize} strokeWidth={1.75} />
                 ) : (
-                  <NotificationsNone sx={{ fontSize: actionIconSize }} />
+                  <NotificationsNone size={actionIconSize} strokeWidth={1.75} />
                 )}
               </Badge>
             </IconButton>
@@ -405,7 +405,7 @@ export default function Sidebar({
                 '&:hover': { backgroundColor: 'rgba(201, 122, 122, 0.08)' },
               }}
             >
-              <Logout sx={{ fontSize: actionIconSize }} />
+              <Logout size={actionIconSize} strokeWidth={1.75} />
             </IconButton>
           </Tooltip>
         </Box>
@@ -458,7 +458,7 @@ export default function Sidebar({
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <span>{t('navigation.languages.fr')}</span>
-              {currentLanguage === 'fr' && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
+              {currentLanguage === 'fr' && <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', ml: 1 }}><CheckIcon size={16} strokeWidth={2} /></Box>}
             </Box>
           </MuiMenuItem>
           <MuiMenuItem
@@ -468,7 +468,7 @@ export default function Sidebar({
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <span>{t('navigation.languages.en')}</span>
-              {currentLanguage === 'en' && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
+              {currentLanguage === 'en' && <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', ml: 1 }}><CheckIcon size={16} strokeWidth={2} /></Box>}
             </Box>
           </MuiMenuItem>
           <MuiMenuItem
@@ -478,7 +478,7 @@ export default function Sidebar({
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <span>{t('navigation.languages.ar')}</span>
-              {currentLanguage === 'ar' && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
+              {currentLanguage === 'ar' && <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', ml: 1 }}><CheckIcon size={16} strokeWidth={2} /></Box>}
             </Box>
           </MuiMenuItem>
 
@@ -519,7 +519,7 @@ export default function Sidebar({
                   </Typography>
                   <span>{opt.label}</span>
                 </Box>
-                {currency === opt.code && <CheckIcon sx={{ fontSize: 16, color: 'primary.main', ml: 1 }} />}
+                {currency === opt.code && <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', ml: 1 }}><CheckIcon size={16} strokeWidth={2} /></Box>}
               </Box>
             </MuiMenuItem>
           ))}
@@ -562,8 +562,8 @@ export default function Sidebar({
                 }}
               >
                 {collapsed
-                  ? (isRtl ? <ChevronLeft fontSize="small" /> : <ChevronRight fontSize="small" />)
-                  : (isRtl ? <ChevronRight fontSize="small" /> : <ChevronLeft fontSize="small" />)
+                  ? (isRtl ? <ChevronLeft size={20} strokeWidth={1.75} /> : <ChevronRight size={20} strokeWidth={1.75} />)
+                  : (isRtl ? <ChevronRight size={20} strokeWidth={1.75} /> : <ChevronLeft size={20} strokeWidth={1.75} />)
                 }
               </IconButton>
             </Tooltip>

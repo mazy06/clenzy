@@ -19,10 +19,10 @@ import {
   Search,
   GridView,
   ViewList,
-  Map as MapIcon,
+  MapIcon,
   FilterList as FilterListIcon,
   Close as CloseIcon,
-} from '@mui/icons-material';
+} from '../icons';
 
 export interface FilterOption {
   value: string;
@@ -216,7 +216,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <Search sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Search size={16} color="currentColor" style={{ color: 'rgba(0,0,0,0.6)' }} />
             </InputAdornment>
           ),
         }}
@@ -231,7 +231,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
               label={`${af.label}: ${af.displayValue}`}
               size="small"
               onDelete={af.onClear}
-              deleteIcon={<CloseIcon sx={{ fontSize: '14px !important' }} />}
+              deleteIcon={<CloseIcon size={14} />}
               sx={{
                 height: 24,
                 fontSize: '0.6875rem',
@@ -266,7 +266,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
                 bgcolor: viewToggle.mode === 'grid' ? 'rgba(107,138,154,0.08)' : 'transparent',
               }}
             >
-              <GridView />
+              <GridView size={18} strokeWidth={1.75} />
             </IconButton>
             <IconButton
               size="small"
@@ -277,7 +277,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
                 bgcolor: viewToggle.mode === 'list' ? 'rgba(107,138,154,0.08)' : 'transparent',
               }}
             >
-              <ViewList />
+              <ViewList size={18} strokeWidth={1.75} />
             </IconButton>
             <IconButton
               size="small"
@@ -288,7 +288,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
                 bgcolor: viewToggle.mode === 'map' ? 'rgba(107,138,154,0.08)' : 'transparent',
               }}
             >
-              <MapIcon />
+              <MapIcon size={18} strokeWidth={1.75} />
             </IconButton>
           </Box>
         )}
@@ -316,7 +316,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
               },
             }}
           >
-            <FilterListIcon sx={{ fontSize: 18 }} />
+            <FilterListIcon size={18} strokeWidth={1.75} />
           </Badge>
         </IconButton>
 
@@ -345,7 +345,7 @@ export const FilterSearchBar: React.FC<FilterSearchBarProps> = ({
               Filtres
             </Typography>
             <IconButton size="small" onClick={() => setFilterAnchor(null)} sx={{ p: 0.25 }}>
-              <CloseIcon sx={{ fontSize: 16 }} />
+              <CloseIcon size={16} />
             </IconButton>
           </Box>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
