@@ -54,6 +54,7 @@ public class TagResolverService {
     private final ProviderExpenseRepository providerExpenseRepository;
     private final CheckInInstructionsRepository checkInInstructionsRepository;
     private final ReceivedFormRepository receivedFormRepository;
+    private final PricingConfigService pricingConfigService;
 
     @Value("${clenzy.company.name:Clenzy}")
     private String companyName;
@@ -78,7 +79,8 @@ public class TagResolverService {
             ReservationRepository reservationRepository,
             ProviderExpenseRepository providerExpenseRepository,
             CheckInInstructionsRepository checkInInstructionsRepository,
-            ReceivedFormRepository receivedFormRepository
+            ReceivedFormRepository receivedFormRepository,
+            PricingConfigService pricingConfigService
     ) {
         this.userRepository = userRepository;
         this.propertyRepository = propertyRepository;
@@ -88,6 +90,7 @@ public class TagResolverService {
         this.providerExpenseRepository = providerExpenseRepository;
         this.checkInInstructionsRepository = checkInInstructionsRepository;
         this.receivedFormRepository = receivedFormRepository;
+        this.pricingConfigService = pricingConfigService;
     }
 
     /**
@@ -340,6 +343,28 @@ public class TagResolverService {
             property.put("instructions_acces", "");
             context.put("property", property);
 
+            // ── Devis pricing (DEVIS uniquement) ──────────────────────
+            PricingConfigService.DevisQuoteBreakdown quote = null;
+            if ("DEVIS".equalsIgnoreCase(form.getFormType()) && payload != null) {
+                try {
+                    String pType = jsonText(payload, "propertyType");
+                    String pCount = jsonText(payload, "propertyCount");
+                    String pGuest = jsonText(payload, "guestCapacity");
+                    int pSurface = safeParseInt(jsonText(payload, "surface"));
+                    List<String> pServices = readJsonArrayAsList(payload, "services");
+                    String pCalendar = jsonText(payload, "calendarSync");
+                    String pFreq = jsonText(payload, "bookingFrequency");
+                    quote = pricingConfigService.computeDevisQuote(
+                            pType, pCount, pGuest, pSurface, pServices, pCalendar, pFreq);
+                    context.put("devis", buildDevisPricingTags(quote));
+                } catch (Exception e) {
+                    log.warn("Failed to compute devis pricing for form #{}: {}", form.getId(), e.getMessage());
+                    context.put("devis", buildEmptyDevisPricingTags());
+                }
+            } else {
+                context.put("devis", buildEmptyDevisPricingTags());
+            }
+
             // ── Demande (riche) ───────────────────────────────────────
             Map<String, Object> demande = new LinkedHashMap<>();
             String typeService;
@@ -347,10 +372,11 @@ public class TagResolverService {
             String description;
             String priorite;
             if ("DEVIS".equalsIgnoreCase(form.getFormType())) {
-                typeService = "Demande de devis — Gestion locative";
+                String forfaitLabel = quote != null ? quote.forfaitLabel() : "Essentiel";
+                typeService = "Forfait " + forfaitLabel + " — Gestion locative Clenzy";
                 titre = safeStr(form.getSubject() != null ? form.getSubject() :
                         "Devis " + propertyType + " — " + safeStr(form.getCity()));
-                description = buildDevisDescription(payload);
+                description = buildDevisDescription(payload, quote);
                 priorite = "Normale";
             } else if ("MAINTENANCE".equalsIgnoreCase(form.getFormType())) {
                 typeService = "Travaux / maintenance";
@@ -382,49 +408,154 @@ public class TagResolverService {
             demande.put("date", form.getCreatedAt() != null ? form.getCreatedAt().format(DATETIME_FORMAT) : "");
             context.put("demande", demande);
 
-            // ── Ligne (placeholder pour le tableau devis) ─────────────
+            // ── Ligne (premiere ligne du tableau devis) ───────────────
             Map<String, Object> ligne = new LinkedHashMap<>();
-            ligne.put("description", typeService);
-            ligne.put("quantite", "1");
-            ligne.put("prix_unitaire", "Sur demande");
-            ligne.put("total", "Sur demande");
+            if (quote != null) {
+                ligne.put("description", "Forfait " + quote.forfaitLabel() + " — abonnement mensuel");
+                ligne.put("quantite", "1");
+                ligne.put("prix_unitaire", formatEur(quote.monthlySubscriptionPrice()) + "/mois");
+                ligne.put("total", formatEur(quote.monthlySubscriptionPrice()));
+            } else {
+                ligne.put("description", typeService);
+                ligne.put("quantite", "1");
+                ligne.put("prix_unitaire", "Sur demande");
+                ligne.put("total", "Sur demande");
+            }
             context.put("ligne", ligne);
         });
     }
 
-    /** Resume textuel des champs DEVIS pour la description du document. */
-    private String buildDevisDescription(JsonNode payload) {
-        if (payload == null) return "";
+    /** Convertit un montant entier euros en chaine "X €" formatee FR. */
+    private String formatEur(int amount) {
+        return MONEY_FORMAT.format(amount).replace(",00", "").replace(" €", " €");
+    }
+
+    /** Tags devis vides (formulaire non-DEVIS ou erreur de calcul). */
+    private Map<String, Object> buildEmptyDevisPricingTags() {
+        Map<String, Object> tags = new LinkedHashMap<>();
+        Map<String, Object> forfait = new LinkedHashMap<>();
+        forfait.put("id", "");
+        forfait.put("nom", "");
+        tags.put("forfait", forfait);
+
+        Map<String, Object> menage = new LinkedHashMap<>();
+        menage.put("prix_intervention", "");
+        menage.put("interventions_par_mois", "");
+        menage.put("estimation_mensuelle", "");
+        menage.put("estimation_annuelle", "");
+        tags.put("menage", menage);
+
+        Map<String, Object> abonnement = new LinkedHashMap<>();
+        abonnement.put("mensuel", "");
+        abonnement.put("annuel_sans_remise", "");
+        abonnement.put("annuel_avec_remise", "");
+        abonnement.put("economie_annuelle", "");
+        abonnement.put("remise_pct", "");
+        tags.put("abonnement", abonnement);
+
+        Map<String, Object> total = new LinkedHashMap<>();
+        total.put("mensuel", "");
+        total.put("annuel_avec_remise", "");
+        tags.put("total", total);
+
+        return tags;
+    }
+
+    /** Tags devis complets a partir du calcul. */
+    private Map<String, Object> buildDevisPricingTags(PricingConfigService.DevisQuoteBreakdown q) {
+        Map<String, Object> tags = new LinkedHashMap<>();
+
+        // devis.forfait.*
+        Map<String, Object> forfait = new LinkedHashMap<>();
+        forfait.put("id", q.forfaitId());
+        forfait.put("nom", q.forfaitLabel());
+        tags.put("forfait", forfait);
+
+        // devis.menage.*
+        Map<String, Object> menage = new LinkedHashMap<>();
+        menage.put("prix_intervention", formatEur(q.interventionPrice()));
+        menage.put("interventions_par_mois", String.valueOf(q.interventionsPerMonth()));
+        menage.put("estimation_mensuelle", formatEur(q.monthlyCleaningCost()));
+        menage.put("estimation_annuelle", formatEur(q.annualCleaningCost()));
+        tags.put("menage", menage);
+
+        // devis.abonnement.*
+        Map<String, Object> abonnement = new LinkedHashMap<>();
+        abonnement.put("mensuel", formatEur(q.monthlySubscriptionPrice()));
+        abonnement.put("annuel_sans_remise", formatEur(q.annualSubscriptionWithoutDiscount()));
+        abonnement.put("annuel_avec_remise", formatEur(q.annualSubscriptionWithDiscount()));
+        abonnement.put("economie_annuelle", formatEur(q.annualSubscriptionSavings()));
+        abonnement.put("remise_pct", q.annualDiscountPercent() + " %");
+        tags.put("abonnement", abonnement);
+
+        // devis.total.*
+        Map<String, Object> total = new LinkedHashMap<>();
+        total.put("mensuel", formatEur(q.monthlyTotal()));
+        total.put("annuel_avec_remise", formatEur(q.annualTotalWithDiscount()));
+        tags.put("total", total);
+
+        return tags;
+    }
+
+    private int safeParseInt(String s) {
+        if (s == null || s.isBlank()) return 0;
+        try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return 0; }
+    }
+
+    private List<String> readJsonArrayAsList(JsonNode node, String field) {
+        if (node == null || !node.hasNonNull(field)) return Collections.emptyList();
+        JsonNode arr = node.get(field);
+        if (!arr.isArray()) return Collections.emptyList();
+        List<String> out = new ArrayList<>();
+        arr.forEach(item -> out.add(item.isTextual() ? item.asText() : item.toString()));
+        return out;
+    }
+
+    /** Resume textuel des champs DEVIS + pricing calcule pour la description du document. */
+    private String buildDevisDescription(JsonNode payload, PricingConfigService.DevisQuoteBreakdown quote) {
         StringBuilder sb = new StringBuilder();
-        String type = labelize(jsonText(payload, "propertyType"));
-        String surface = jsonText(payload, "surface");
-        String capacite = labelize(jsonText(payload, "guestCapacity"));
-        String nombre = jsonText(payload, "propertyCount");
-        if (!type.isEmpty() || !surface.isEmpty() || !capacite.isEmpty() || !nombre.isEmpty()) {
-            sb.append("Bien : ");
-            List<String> bits = new ArrayList<>();
-            if (!type.isEmpty()) bits.add(type);
-            if (!surface.isEmpty()) bits.add(surface + " m²");
-            if (!capacite.isEmpty()) bits.add(capacite + " voyageurs");
-            if (!nombre.isEmpty() && !"1".equals(nombre)) bits.add(nombre + " logements");
-            sb.append(String.join(", ", bits)).append(".\n");
+        if (payload != null) {
+            String type = labelize(jsonText(payload, "propertyType"));
+            String surface = jsonText(payload, "surface");
+            String capacite = labelize(jsonText(payload, "guestCapacity"));
+            String nombre = jsonText(payload, "propertyCount");
+            if (!type.isEmpty() || !surface.isEmpty() || !capacite.isEmpty() || !nombre.isEmpty()) {
+                sb.append("Bien : ");
+                List<String> bits = new ArrayList<>();
+                if (!type.isEmpty()) bits.add(type);
+                if (!surface.isEmpty()) bits.add(surface + " m²");
+                if (!capacite.isEmpty()) bits.add(capacite + " voyageurs");
+                if (!nombre.isEmpty() && !"1".equals(nombre)) bits.add(nombre + " logements");
+                sb.append(String.join(", ", bits)).append(".\n");
+            }
+            String forfaitServices = joinJsonArray(payload, "services");
+            String devisServices = joinJsonArray(payload, "servicesDevis");
+            String cal = labelize(jsonText(payload, "calendarSync"));
+            if (!forfaitServices.isEmpty() || !devisServices.isEmpty() || !cal.isEmpty()) {
+                sb.append("Services souhaités :");
+                if (!forfaitServices.isEmpty()) sb.append("\n  • Forfait : ").append(forfaitServices);
+                if (!devisServices.isEmpty()) sb.append("\n  • Sur devis : ").append(devisServices);
+                if (!cal.isEmpty()) sb.append("\n  • Synchro calendrier : ").append(cal);
+                sb.append('\n');
+            }
+            String freq = labelize(jsonText(payload, "bookingFrequency"));
+            String menage = labelize(jsonText(payload, "cleaningSchedule"));
+            if (!freq.isEmpty() || !menage.isEmpty()) {
+                sb.append("Planning :");
+                if (!freq.isEmpty()) sb.append("\n  • Fréquence des réservations : ").append(freq);
+                if (!menage.isEmpty()) sb.append("\n  • Planning ménage : ").append(menage);
+                sb.append('\n');
+            }
         }
-        String forfait = joinJsonArray(payload, "services");
-        String devis = joinJsonArray(payload, "servicesDevis");
-        String cal = labelize(jsonText(payload, "calendarSync"));
-        if (!forfait.isEmpty() || !devis.isEmpty() || !cal.isEmpty()) {
-            sb.append("Services souhaités :");
-            if (!forfait.isEmpty()) sb.append("\n  • Forfait : ").append(forfait);
-            if (!devis.isEmpty()) sb.append("\n  • Sur devis : ").append(devis);
-            if (!cal.isEmpty()) sb.append("\n  • Synchro calendrier : ").append(cal);
-            sb.append('\n');
-        }
-        String freq = labelize(jsonText(payload, "bookingFrequency"));
-        String menage = labelize(jsonText(payload, "cleaningSchedule"));
-        if (!freq.isEmpty() || !menage.isEmpty()) {
-            sb.append("Planning :");
-            if (!freq.isEmpty()) sb.append("\n  • Fréquence des réservations : ").append(freq);
-            if (!menage.isEmpty()) sb.append("\n  • Planning ménage : ").append(menage);
+        // Annexe : recap chiffre du devis si calcul disponible
+        if (quote != null) {
+            sb.append("\nRecommandation tarifaire — Forfait ").append(quote.forfaitLabel()).append(" :")
+              .append("\n  • Ménage : ").append(formatEur(quote.interventionPrice())).append(" par intervention")
+              .append("\n  • Abonnement mensuel : ").append(formatEur(quote.monthlySubscriptionPrice()))
+              .append("\n  • Abonnement annuel : ").append(formatEur(quote.annualSubscriptionWithDiscount()))
+              .append(" (au lieu de ").append(formatEur(quote.annualSubscriptionWithoutDiscount()))
+              .append(", soit ").append(quote.annualDiscountPercent())
+              .append(" % de remise / ").append(formatEur(quote.annualSubscriptionSavings())).append(" économisés)");
         }
         return sb.toString().trim();
     }
