@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import {
   Security,
-} from '@mui/icons-material';
+} from '../icons';
 import TokenMonitoring from './TokenMonitoring';
 
 interface MonitoringProps {
@@ -36,7 +36,7 @@ const Monitoring: React.FC<MonitoringProps> = ({ isAdmin = false }) => {
         <CardContent>
           <Box sx={{ mb: 2 }}>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'text.primary', display: 'flex', alignItems: 'center' }}>
-              <Security sx={{ mr: 1, color: 'text.secondary' }} />
+              <Box component="span" sx={{ display: 'inline-flex', mr: 1, color: 'text.secondary' }}><Security size={20} strokeWidth={1.75} /></Box>
               Monitoring des Tokens
             </Typography>
             <Typography variant="body2" color="text.secondary">
