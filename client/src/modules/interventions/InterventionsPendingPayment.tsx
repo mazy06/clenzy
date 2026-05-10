@@ -25,7 +25,7 @@ import {
   Visibility as VisibilityIcon,
   Euro as EuroIcon,
   HourglassEmpty as HourglassIcon
-} from '@mui/icons-material';
+} from '../../icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import { interventionsApi } from '../../services/api';
@@ -196,7 +196,7 @@ const InterventionsPendingPayment: React.FC = () => {
           <Button
             variant="outlined"
             size="small"
-            startIcon={<RefreshIcon sx={{ fontSize: 16 }} />}
+            startIcon={<RefreshIcon size={16} strokeWidth={1.75} />}
             onClick={loadInterventions}
             title={t('common.refresh')}
             sx={{
@@ -227,7 +227,7 @@ const InterventionsPendingPayment: React.FC = () => {
         <Card sx={{ flex: '1 1 200px', borderLeft: `4px solid ${C.warning}` }}>
           <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
             <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: `${C.warning}14`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <HourglassIcon sx={{ fontSize: 20, color: C.warning }} />
+              <HourglassIcon size={20} strokeWidth={1.75} color={C.warning} />
             </Box>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.125rem', color: C.textPrimary, lineHeight: 1.2 }}>
@@ -242,7 +242,7 @@ const InterventionsPendingPayment: React.FC = () => {
         <Card sx={{ flex: '1 1 200px', borderLeft: `4px solid ${C.error}` }}>
           <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
             <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: `${C.error}14`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <EuroIcon sx={{ fontSize: 20, color: C.error }} />
+              <EuroIcon size={20} strokeWidth={1.75} color={C.error} />
             </Box>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.125rem', color: C.textPrimary, lineHeight: 1.2 }}>
@@ -261,7 +261,7 @@ const InterventionsPendingPayment: React.FC = () => {
         <Card sx={{ borderRadius: '12px' }}>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>
             <Box sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: `${C.success}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
-              <PaymentIcon sx={{ fontSize: 28, color: C.success }} />
+              <PaymentIcon size={28} strokeWidth={1.5} color={C.success} />
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.9375rem', color: C.textPrimary, mb: 0.5 }}>
               Aucun paiement en attente
@@ -372,13 +372,13 @@ const InterventionsPendingPayment: React.FC = () => {
                           onClick={(e) => { e.stopPropagation(); navigate(`/interventions/${intervention.id}`); }}
                           sx={{ color: C.textSecondary, '&:hover': { color: C.primary } }}
                         >
-                          <VisibilityIcon sx={{ fontSize: 18 }} />
+                          <VisibilityIcon size={18} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                       <Button
                         variant="contained"
                         size="small"
-                        startIcon={processingPayment === intervention.id ? <CircularProgress size={14} color="inherit" /> : <PaymentIcon sx={{ fontSize: 16 }} />}
+                        startIcon={processingPayment === intervention.id ? <CircularProgress size={14} color="inherit" /> : <PaymentIcon size={16} strokeWidth={1.75} />}
                         onClick={(e) => { e.stopPropagation(); handlePay(intervention); }}
                         disabled={processingPayment === intervention.id || !intervention.estimatedCost}
                         sx={{

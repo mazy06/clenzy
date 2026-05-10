@@ -20,7 +20,7 @@ import {
 import {
   CheckCircle,
   Cancel,
-} from '@mui/icons-material';
+} from '../../icons';
 import type { ServiceRequest, AssignTeam, AssignUser } from './serviceRequestsUtils';
 
 // ============================================================================
@@ -285,7 +285,7 @@ export function ValidateConfirmDialog({
       fullWidth
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <CheckCircle color="success" />
+        <Box component="span" sx={{ display: "inline-flex", color: "success.main" }}><CheckCircle size={20} strokeWidth={1.75} /></Box>
         {t('serviceRequests.validateAndCreateIntervention')}
       </DialogTitle>
       <DialogContent>
@@ -324,7 +324,7 @@ export function ValidateConfirmDialog({
           color="success"
           disabled={validating}
           size="small"
-          startIcon={validating ? <CircularProgress size={16} /> : <CheckCircle />}
+          startIcon={validating ? <CircularProgress size={16} /> : <CheckCircle size={18} strokeWidth={1.75} />}
         >
           {validating ? t('common.processing') : t('common.confirm')}
         </Button>
@@ -353,7 +353,7 @@ export function ErrorDialog({ open, onClose, message, t }: ErrorDialogProps) {
       fullWidth
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'error.main' }}>
-        <Cancel color="error" />
+        <Box component="span" sx={{ display: "inline-flex", color: "error.main" }}><Cancel size={20} strokeWidth={1.75} /></Box>
         {t('common.error')}
       </DialogTitle>
       <DialogContent>
@@ -395,7 +395,7 @@ export function SuccessDialog({ open, onClose, message, t }: SuccessDialogProps)
       fullWidth
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'success.main' }}>
-        <CheckCircle color="success" />
+        <Box component="span" sx={{ display: "inline-flex", color: "success.main" }}><CheckCircle size={20} strokeWidth={1.75} /></Box>
         {t('common.success')}
       </DialogTitle>
       <DialogContent>
