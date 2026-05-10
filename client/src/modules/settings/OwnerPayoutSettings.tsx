@@ -30,7 +30,7 @@ import {
   Warning,
   Edit as EditIcon,
   CheckCircle,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   useAllOwnerPayoutConfigs,
@@ -175,7 +175,7 @@ export default function OwnerPayoutSettings() {
     <Box ref={containerRef}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <AccountBalance sx={{ color: '#A6C0CE', fontSize: 20 }} />
+        <AccountBalance size={20} strokeWidth={1.75} color='#A6C0CE' />
         <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
           {t('settings.ownerPayout.title', 'Configuration des reversements proprietaires')}
         </Typography>
@@ -186,7 +186,7 @@ export default function OwnerPayoutSettings() {
 
       {configs.length === 0 ? (
         <Paper variant="outlined" sx={{ p: 3, textAlign: 'center' }}>
-          <AccountBalance sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><AccountBalance size={40} strokeWidth={1.75} /></Box>
           <Typography variant="body2" color="text.secondary">
             {t('settings.ownerPayout.empty', 'Aucune configuration trouvee. Les configurations sont creees automatiquement lors de la premiere generation de payout.')}
           </Typography>
@@ -246,7 +246,7 @@ export default function OwnerPayoutSettings() {
                     <TableCell align="center">
                       {config.verified ? (
                         <Chip
-                          icon={<VerifiedUser sx={{ fontSize: '0.75rem !important' }} />}
+                          icon={<VerifiedUser size={12} strokeWidth={1.75} />}
                           label={t('settings.ownerPayout.verifiedLabel', 'Verifie')}
                           size="small"
                           color="success"
@@ -254,7 +254,7 @@ export default function OwnerPayoutSettings() {
                         />
                       ) : (
                         <Chip
-                          icon={<Warning sx={{ fontSize: '0.75rem !important' }} />}
+                          icon={<Warning size={12} strokeWidth={1.75} />}
                           label={t('settings.ownerPayout.pendingLabel', 'En attente')}
                           size="small"
                           color="warning"
@@ -266,7 +266,7 @@ export default function OwnerPayoutSettings() {
                       {config.payoutMethod === 'SEPA_TRANSFER' && (
                         <Tooltip title={t('settings.ownerPayout.editSepa', 'Modifier SEPA')}>
                           <IconButton size="small" onClick={() => openSepaDialog(config)}>
-                            <EditIcon sx={{ fontSize: '1rem' }} />
+                            <EditIcon size={'1rem'} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                       )}
@@ -278,7 +278,7 @@ export default function OwnerPayoutSettings() {
                             onClick={() => handleVerify(config.ownerId)}
                             disabled={verifyMutation.isPending}
                           >
-                            <CheckCircle sx={{ fontSize: '1rem' }} />
+                            <CheckCircle size={'1rem'} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                       )}

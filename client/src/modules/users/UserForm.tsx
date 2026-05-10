@@ -32,7 +32,7 @@ import {
   Home,
   Business,
   Group,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -207,7 +207,7 @@ const UserForm: React.FC = () => {
               variant="outlined"
               size="small"
               onClick={() => navigate('/users')}
-              startIcon={<Cancel sx={{ fontSize: 16 }} />}
+              startIcon={<Cancel size={16} strokeWidth={1.75} />}
               disabled={saving}
               sx={{ mr: 1, fontSize: '0.8125rem' }}
               title="Annuler"
@@ -218,7 +218,7 @@ const UserForm: React.FC = () => {
               variant="contained"
               size="small"
               onClick={handleSubmit(onSubmit)}
-              startIcon={saving ? <CircularProgress size={16} /> : <Save sx={{ fontSize: 16 }} />}
+              startIcon={saving ? <CircularProgress size={16} /> : <Save size={16} strokeWidth={1.75} />}
               disabled={saving}
               sx={{ fontSize: '0.8125rem' }}
               title="Créer l'utilisateur"
@@ -262,7 +262,7 @@ const UserForm: React.FC = () => {
                   helperText={errors.firstName?.message}
                   placeholder="Ex: Jean"
                   InputProps={{
-                    startAdornment: <Person sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
+                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Person size={18} strokeWidth={1.75} /></Box>,
                   }}
                 />
               </Grid>
@@ -277,7 +277,7 @@ const UserForm: React.FC = () => {
                   helperText={errors.lastName?.message}
                   placeholder="Ex: Dupont"
                   InputProps={{
-                    startAdornment: <Person sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
+                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Person size={18} strokeWidth={1.75} /></Box>,
                   }}
                 />
               </Grid>
@@ -300,7 +300,7 @@ const UserForm: React.FC = () => {
                   helperText={errors.email?.message}
                   placeholder="Ex: jean.dupont@clenzy.fr"
                   InputProps={{
-                    startAdornment: <Email sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
+                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Email size={18} strokeWidth={1.75} /></Box>,
                   }}
                 />
               </Grid>
@@ -315,7 +315,7 @@ const UserForm: React.FC = () => {
                   helperText={errors.phoneNumber?.message}
                   placeholder="Ex: +33 6 12 34 56 78"
                   InputProps={{
-                    startAdornment: <Phone sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
+                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Phone size={18} strokeWidth={1.75} /></Box>,
                   }}
                 />
               </Grid>
@@ -337,7 +337,7 @@ const UserForm: React.FC = () => {
                   error={!!errors.password}
                   placeholder="Minimum 8 caractères"
                   InputProps={{
-                    startAdornment: <Lock sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
+                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Lock size={18} strokeWidth={1.75} /></Box>,
                   }}
                   FormHelperTextProps={{ sx: { fontSize: '0.7rem' } }}
                   helperText={errors.password?.message || 'Le mot de passe doit contenir au moins 8 caractères'}
@@ -354,7 +354,7 @@ const UserForm: React.FC = () => {
                   error={!!errors.confirmPassword || (watchedPassword !== watchedConfirmPassword && watchedConfirmPassword !== '')}
                   placeholder="Retapez le mot de passe"
                   InputProps={{
-                    startAdornment: <Lock sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
+                    startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 1 }}><Lock size={18} strokeWidth={1.75} /></Box>,
                   }}
                   FormHelperTextProps={{ sx: { fontSize: '0.7rem' } }}
                   helperText={
@@ -476,7 +476,7 @@ const UserForm: React.FC = () => {
                         {organizations.map((org) => (
                           <MenuItem key={org.id} value={String(org.id)}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Business sx={{ fontSize: 18, color: 'text.secondary' }} />
+                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Business size={18} strokeWidth={1.75} /></Box>
                               <Typography variant="body2">{org.name}</Typography>
                             </Box>
                           </MenuItem>
@@ -515,7 +515,7 @@ const UserForm: React.FC = () => {
                         {orgMemberRoles.map((role) => (
                           <MenuItem key={role.value} value={role.value}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Group sx={{ fontSize: 18, color: 'text.secondary' }} />
+                              <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Group size={18} strokeWidth={1.75} /></Box>
                               <Typography variant="body2">{role.label}</Typography>
                             </Box>
                           </MenuItem>

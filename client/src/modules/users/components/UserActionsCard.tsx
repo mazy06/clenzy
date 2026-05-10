@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, Grid, Button } from '@mui/material';
-import { Lock, LockOpen } from '@mui/icons-material';
+import { Lock, LockOpen } from '../../../icons';
 import type { LockoutStatus } from '../../../services/api';
 
 interface UserActionsCardProps {
@@ -30,7 +30,7 @@ const UserActionsCard: React.FC<UserActionsCardProps> = ({
       }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Lock sx={{ fontSize: 20, color: lockoutStatus.isLocked ? 'error.main' : 'warning.main' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: lockoutStatus.isLocked ? 'error.main' : 'warning.main' }}><Lock size={20} strokeWidth={1.75} /></Box>
             <Box>
               <Typography variant="body2" fontWeight={600}>
                 {lockoutStatus.isLocked
@@ -51,7 +51,7 @@ const UserActionsCard: React.FC<UserActionsCardProps> = ({
           <Button
             variant="contained"
             size="small"
-            startIcon={<LockOpen sx={{ fontSize: 16 }} />}
+            startIcon={<LockOpen size={16} strokeWidth={1.75} />}
             onClick={onUnlockUser}
             disabled={unlocking}
             color={lockoutStatus.isLocked ? 'error' : 'warning'}

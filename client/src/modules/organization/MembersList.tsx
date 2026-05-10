@@ -19,7 +19,7 @@ import {
 import {
   Edit as EditIcon,
   PersonRemove as PersonRemoveIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { organizationMembersApi, type OrganizationMemberDto } from '../../services/api/organizationMembersApi';
 import { getOrgRoleLabel, getOrgRoleColor } from '../../utils/orgRoleLabels';
 import { useAuth } from '../../hooks/useAuth';

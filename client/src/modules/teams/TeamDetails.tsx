@@ -15,7 +15,7 @@ import {
   Edit,
   Build,
   CleaningServices,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
@@ -164,14 +164,14 @@ const TeamDetails: React.FC = () => {
           <Grid container spacing={3} sx={{ mb: 3 }}>
             <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center' }}>
-                <Group sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mb: 0.5 }}><Group size={20} strokeWidth={1.75} /></Box>
                 <Typography variant="body2" fontWeight={500}>{team.memberCount}</Typography>
                 <Typography variant="caption" color="text.secondary">Membres</Typography>
               </Box>
             </Grid>
             <Grid item xs={6} md={3}>
               <Box sx={{ textAlign: 'center' }}>
-                <Build sx={{ fontSize: 20, color: 'text.secondary', mb: 0.5 }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mb: 0.5 }}><Build size={20} strokeWidth={1.75} /></Box>
                 <Typography variant="body2" fontWeight={500}>{getInterventionTypeLabel(team.interventionType, t)}</Typography>
                 <Typography variant="caption" color="text.secondary">Spécialité</Typography>
               </Box>

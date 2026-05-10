@@ -35,7 +35,7 @@ import {
   Settings,
   Visibility,
   Add,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotification } from '../../hooks/useNotification';
 import FilterSearchBar from '../../components/FilterSearchBar';
@@ -228,7 +228,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
       variant="contained"
       color="primary"
       size="small"
-      startIcon={<Add sx={{ fontSize: 18 }} />}
+      startIcon={<Add size={18} strokeWidth={1.75} />}
       onClick={handleCreate}
       sx={{ fontSize: '0.8125rem' }}
     >
@@ -330,7 +330,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                     {/* Header */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-                        <Business sx={{ fontSize: 28, color: 'primary.main' }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Business size={28} strokeWidth={1.75} /></Box>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                           <Typography
                             variant="subtitle1"
@@ -349,7 +349,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                         onClick={(e) => handleMenuOpen(e, org)}
                         sx={{ p: 0.5, ml: 0.5 }}
                       >
-                        <MoreVert sx={{ fontSize: 18 }} />
+                        <MoreVert size={18} strokeWidth={1.75} />
                       </IconButton>
                     </Box>
 
@@ -364,7 +364,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                         />
                       ); })()}
                       <Chip
-                        icon={<People sx={{ fontSize: '14px !important', color: '#0288d1 !important' }} />}
+                        icon={<People size={14} strokeWidth={1.75} color="#0288d1" />}
                         label={`${org.memberCount} membre${org.memberCount !== 1 ? 's' : ''}`}
                         size="small"
                         onClick={() => setMembersDialogOrg(org)}
@@ -383,7 +383,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                     <Button
                       variant="outlined"
                       size="small"
-                      startIcon={<Visibility sx={{ fontSize: 16 }} />}
+                      startIcon={<Visibility size={16} strokeWidth={1.75} />}
                       onClick={() => setMembersDialogOrg(org)}
                       sx={{ fontSize: '0.75rem', flex: 1 }}
                     >
@@ -392,7 +392,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
                     <Button
                       variant="outlined"
                       size="small"
-                      startIcon={<Edit sx={{ fontSize: 16 }} />}
+                      startIcon={<Edit size={16} strokeWidth={1.75} />}
                       onClick={() => {
                         setSelectedOrg(org);
                         setFormMode('edit');
@@ -427,7 +427,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
           sx={{ fontSize: '0.85rem', py: 0.75 }}
         >
           <ListItemIcon>
-            <People sx={{ fontSize: 18 }} />
+            <People size={18} strokeWidth={1.75} />
           </ListItemIcon>
           Voir les membres
         </MenuItem>
@@ -436,7 +436,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
           sx={{ fontSize: '0.85rem', py: 0.75 }}
         >
           <ListItemIcon>
-            <Edit sx={{ fontSize: 18 }} />
+            <Edit size={18} strokeWidth={1.75} />
           </ListItemIcon>
           Modifier
         </MenuItem>
@@ -446,7 +446,7 @@ const OrganizationsList = forwardRef<OrganizationsListHandle, OrganizationsListP
             sx={{ color: 'error.main', fontSize: '0.85rem', py: 0.75 }}
           >
             <ListItemIcon>
-              <Delete sx={{ fontSize: 18, color: 'error.main' }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Delete size={18} strokeWidth={1.75} /></Box>
             </ListItemIcon>
             Supprimer
           </MenuItem>

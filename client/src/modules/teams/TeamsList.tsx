@@ -30,16 +30,16 @@ import {
   AutoAwesome,
   Build,
   Category,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import TeamCard from '../../components/TeamCard';
 import { useTeamsList } from './useTeamsList';
 
 // Catégories de filtrage pour la liste des équipes
 const TEAM_FILTER_CATEGORIES = [
-  { value: 'CLEANING', label: 'Nettoyage', icon: <AutoAwesome sx={{ fontSize: 16 }} />, borderColor: 'success.main' },
-  { value: 'MAINTENANCE', label: 'Maintenance', icon: <Build sx={{ fontSize: 16 }} />, borderColor: 'warning.main' },
-  { value: 'OTHER', label: 'Autre', icon: <Category sx={{ fontSize: 16 }} />, borderColor: 'info.main' },
+  { value: 'CLEANING', label: 'Nettoyage', icon: <AutoAwesome size={16} strokeWidth={1.75} />, borderColor: 'success.main' },
+  { value: 'MAINTENANCE', label: 'Maintenance', icon: <Build size={16} strokeWidth={1.75} />, borderColor: 'warning.main' },
+  { value: 'OTHER', label: 'Autre', icon: <Category size={16} strokeWidth={1.75} />, borderColor: 'info.main' },
 ];
 
 interface TeamsListProps {
@@ -139,7 +139,7 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <Search sx={{ fontSize: 18, color: 'text.secondary' }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={18} strokeWidth={1.75} /></Box>
               </InputAdornment>
             ),
           }}
@@ -268,14 +268,14 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
       >
         <MenuItem onClick={handleViewDetails} sx={{ fontSize: '0.85rem', py: 0.75 }}>
           <ListItemIcon>
-            <Visibility fontSize="small" sx={{ fontSize: 18 }} />
+            <Visibility fontSize="small" size={18} strokeWidth={1.75} />
           </ListItemIcon>
           {t('teams.viewDetails')}
         </MenuItem>
         {canEditTeams && (
           <MenuItem onClick={handleEdit} sx={{ fontSize: '0.85rem', py: 0.75 }}>
             <ListItemIcon>
-              <Edit fontSize="small" sx={{ fontSize: 18 }} />
+              <Edit fontSize="small" size={18} strokeWidth={1.75} />
             </ListItemIcon>
             {t('teams.modify')}
           </MenuItem>
@@ -283,7 +283,7 @@ const TeamsList: React.FC<TeamsListProps> = ({ embedded = false, actionsContaine
         {canDeleteTeams && (
           <MenuItem onClick={handleDelete} sx={{ color: 'error.main', fontSize: '0.85rem', py: 0.75 }}>
             <ListItemIcon>
-              <Delete fontSize="small" sx={{ color: 'error.main', fontSize: 18 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><Delete fontSize="small" size={18} strokeWidth={1.75} /></Box>
             </ListItemIcon>
             Supprimer
           </MenuItem>

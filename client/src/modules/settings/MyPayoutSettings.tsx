@@ -19,7 +19,7 @@ import {
   CreditCard,
   OpenInNew,
   CheckCircle,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   useMyPayoutConfig,
@@ -124,7 +124,7 @@ export default function MyPayoutSettings() {
     <Box>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <AccountBalance sx={{ color: '#A6C0CE', fontSize: 20 }} />
+        <AccountBalance size={20} strokeWidth={1.75} color='#A6C0CE' />
         <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
           {t('settings.myPayout.title', 'Mes coordonnees de reversement')}
         </Typography>
@@ -141,7 +141,7 @@ export default function MyPayoutSettings() {
           </Typography>
           {config.verified ? (
             <Chip
-              icon={<VerifiedUser sx={{ fontSize: '0.75rem !important' }} />}
+              icon={<VerifiedUser size={12} strokeWidth={1.75} />}
               label={t('settings.myPayout.verified', 'Verifie')}
               size="small"
               color="success"
@@ -149,7 +149,7 @@ export default function MyPayoutSettings() {
             />
           ) : (
             <Chip
-              icon={<Warning sx={{ fontSize: '0.75rem !important' }} />}
+              icon={<Warning size={12} strokeWidth={1.75} />}
               label={t('settings.myPayout.pendingVerification', 'En attente de verification')}
               size="small"
               color="warning"
@@ -162,14 +162,14 @@ export default function MyPayoutSettings() {
       {/* ── Section SEPA ── */}
       <Paper variant="outlined" sx={{ p: 2.5, mb: 2.5, borderRadius: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-          <AccountBalance sx={{ fontSize: 18, color: '#1976d2' }} />
+          <AccountBalance size={18} strokeWidth={1.75} color='#1976d2' />
           <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.875rem' }}>
             {t('settings.myPayout.sepaSection', 'Virement bancaire (SEPA)')}
           </Typography>
         </Box>
 
         {hasSepaConfig && (
-          <Alert severity="info" sx={{ mb: 2, fontSize: '0.8125rem' }} icon={<CheckCircle sx={{ fontSize: 18 }} />}>
+          <Alert severity="info" sx={{ mb: 2, fontSize: '0.8125rem' }} icon={<CheckCircle size={18} strokeWidth={1.75} />}>
             {t('settings.myPayout.currentIban', 'IBAN actuel')} : <strong>{config.maskedIban}</strong>
             {config.bic ? ` — BIC : ${config.bic}` : ''}
             {config.bankAccountHolder ? ` — ${config.bankAccountHolder}` : ''}
@@ -236,7 +236,7 @@ export default function MyPayoutSettings() {
       {/* ── Section Stripe Connect ── */}
       <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-          <CreditCard sx={{ fontSize: 18, color: '#635bff' }} />
+          <CreditCard size={18} strokeWidth={1.75} color='#635bff' />
           <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: '0.875rem' }}>
             {t('settings.myPayout.stripeSection', 'Stripe Connect')}
           </Typography>
@@ -247,7 +247,7 @@ export default function MyPayoutSettings() {
         </Typography>
 
         {isStripeComplete && (
-          <Alert severity="success" sx={{ fontSize: '0.8125rem' }} icon={<CheckCircle sx={{ fontSize: 18 }} />}>
+          <Alert severity="success" sx={{ fontSize: '0.8125rem' }} icon={<CheckCircle size={18} strokeWidth={1.75} />}>
             {t('settings.myPayout.stripeConnected', 'Votre compte Stripe est connecte et actif.')}
           </Alert>
         )}

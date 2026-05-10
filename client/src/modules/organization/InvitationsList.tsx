@@ -19,7 +19,7 @@ import {
   Refresh as RefreshIcon,
   Cancel as CancelIcon,
   Delete as DeleteIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { invitationsApi, InvitationDto } from '../../services/api/invitationsApi';
 
 interface Props {

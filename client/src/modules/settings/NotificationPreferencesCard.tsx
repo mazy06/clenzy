@@ -30,7 +30,7 @@ import {
   Shield,
   Home,
   Email,
-} from '@mui/icons-material';
+} from '../../icons';
 import { notificationPreferencesApi, type NotificationPreferencesMap } from '../../services/api';
 
 // ─── Constantes: groupement des cles par categorie ────────────────────────────
@@ -351,7 +351,7 @@ const NotificationPreferencesCard = forwardRef<NotificationPreferencesHandle, No
     <Paper sx={{ p: 2 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Notifications sx={{ color: 'secondary.main', fontSize: 20 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Notifications size={20} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
           Preferences de notifications
         </Typography>

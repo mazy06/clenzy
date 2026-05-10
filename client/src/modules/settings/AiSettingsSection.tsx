@@ -32,7 +32,7 @@ import {
   Chat,
   BarChart,
   StarRate,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { useAiKeyStatus, useTestAiKey, useSaveAiKey, useDeleteAiKey, useAiFeatureToggles, useSetAiFeatureToggle } from '../../hooks/useAi';
@@ -172,7 +172,7 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
 
           <Chip
             size="small"
-            icon={isOrgKey ? <CheckCircle sx={{ fontSize: 14 }} /> : undefined}
+            icon={isOrgKey ? <CheckCircle size={14} strokeWidth={1.75} /> : undefined}
             label={isOrgKey ? t('bookingEngine.ai.settings.personalKey') : t('bookingEngine.ai.settings.sharedKey')}
             sx={{
               fontWeight: 600,
@@ -231,8 +231,8 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
             <Chip
               size="small"
               icon={status.valid
-                ? <CheckCircle sx={{ fontSize: 13 }} />
-                : <ErrorIcon sx={{ fontSize: 13 }} />
+                ? <CheckCircle size={13} strokeWidth={1.75} />
+                : <ErrorIcon size={13} strokeWidth={1.75} />
               }
               label={status.valid
                 ? t('bookingEngine.ai.settings.validated')
@@ -296,7 +296,7 @@ function ProviderCard({ status, brand, onConfigure, onDisconnect, isDisconnectin
             <Button
               variant="outlined"
               size="small"
-              startIcon={isDisconnecting ? <CircularProgress size={14} /> : <LinkOff sx={{ fontSize: 16 }} />}
+              startIcon={isDisconnecting ? <CircularProgress size={14} /> : <LinkOff size={16} strokeWidth={1.75} />}
               onClick={onDisconnect}
               disabled={isDisconnecting}
               sx={{
