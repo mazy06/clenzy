@@ -182,6 +182,20 @@ public class PropertyService {
         ), pageable).map(this::toDtoWithManager);
     }
 
+    @CacheEvict(value = "properties", key = "#id")
+    public PropertyDto updateStatus(Long id, String status) {
+        final com.clenzy.model.Property property = propertyRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Property not found"));
+        final com.clenzy.model.PropertyStatus newStatus;
+        try {
+            newStatus = com.clenzy.model.PropertyStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Statut invalide: " + status);
+        }
+        property.setStatus(newStatus);
+        return toDto(propertyRepository.save(property));
+    }
+
     public void delete(Long id) {
         if (!propertyRepository.existsById(id)) throw new NotFoundException("Property not found");
         propertyRepository.deleteById(id);
