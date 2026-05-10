@@ -16,7 +16,7 @@ import {
   AccountBalanceWallet,
   TrendingUp,
   PieChart,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -208,7 +208,7 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
         {/* ── Header ──────────────────────────────────────────────── */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Handshake sx={{ fontSize: 16, color: C.success }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: C.success }}><Handshake size={16} strokeWidth={1.75} /></Box>
             <Typography
               sx={{
                 fontSize: '0.75rem',
@@ -370,7 +370,7 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
           <Button
             size="small"
             onClick={() => navigate('/contracts')}
-            endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+            endIcon={<ArrowForward size={14} strokeWidth={1.75} />}
             sx={{
               fontSize: '0.68rem',
               fontWeight: 600,
@@ -396,9 +396,9 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
   if (dismissed) return null;
 
   const benefits = [
-    { icon: <PieChart sx={{ fontSize: 16 }} />, label: t('dashboard.contractCta.benefit1') },
-    { icon: <AccountBalanceWallet sx={{ fontSize: 16 }} />, label: t('dashboard.contractCta.benefit2') },
-    { icon: <TrendingUp sx={{ fontSize: 16 }} />, label: t('dashboard.contractCta.benefit3') },
+    { icon: <PieChart size={16} strokeWidth={1.75} />, label: t('dashboard.contractCta.benefit1') },
+    { icon: <AccountBalanceWallet size={16} strokeWidth={1.75} />, label: t('dashboard.contractCta.benefit2') },
+    { icon: <TrendingUp size={16} strokeWidth={1.75} />, label: t('dashboard.contractCta.benefit3') },
   ];
 
   return (
@@ -434,7 +434,7 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
               flexShrink: 0,
             }}
           >
-            <Handshake sx={{ fontSize: 22, color: C.warm }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: C.warm }}><Handshake size={22} strokeWidth={1.75} /></Box>
           </Box>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -452,7 +452,7 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
           onClick={handleDismiss}
           sx={{ color: 'text.disabled', ml: 0.5, '&:hover': { color: 'text.secondary' } }}
         >
-          <Close sx={{ fontSize: 16 }} />
+          <Close size={16} strokeWidth={1.75} />
         </IconButton>
       </Box>
 
@@ -494,7 +494,7 @@ const ContractCTABanner: React.FC<{ onReady?: () => void }> = React.memo(({ onRe
         size="small"
         fullWidth
         onClick={() => navigate('/contracts')}
-        endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
+        endIcon={<ArrowForward size={16} strokeWidth={1.75} />}
         sx={{
           mt: 'auto',
           background: `linear-gradient(135deg, ${C.warm} 0%, ${C.success} 100%)`,

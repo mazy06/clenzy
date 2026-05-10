@@ -31,7 +31,7 @@ import {
   Payment,
   ChatBubbleOutline,
   AccountBalanceWallet,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useOnboarding } from '../../hooks/useOnboarding';
@@ -49,120 +49,120 @@ interface StepVisual {
 
 const STEP_VISUALS: Record<string, StepVisual> = {
   create_property: {
-    icon: <Home sx={{ fontSize: 16 }} />,
+    icon: <Home size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
     accentColor: '#6B8A9A',
-    actionIcon: <Add sx={{ fontSize: 14 }} />,
+    actionIcon: <Add size={14} strokeWidth={1.75} />,
   },
   configure_details: {
-    icon: <Tune sx={{ fontSize: 16 }} />,
+    icon: <Tune size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
     accentColor: '#6B8A9A',
-    actionIcon: <Tune sx={{ fontSize: 14 }} />,
+    actionIcon: <Tune size={14} strokeWidth={1.75} />,
   },
   define_pricing: {
-    icon: <Euro sx={{ fontSize: 16 }} />,
+    icon: <Euro size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
     accentColor: '#4A9B8E',
-    actionIcon: <Euro sx={{ fontSize: 14 }} />,
+    actionIcon: <Euro size={14} strokeWidth={1.75} />,
   },
   connect_channels: {
-    icon: <CalendarMonth sx={{ fontSize: 16 }} />,
+    icon: <CalendarMonth size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #FF5A5F 0%, #FF8A8E 100%)',
     accentColor: '#FF5A5F',
-    actionIcon: <Sync sx={{ fontSize: 14 }} />,
+    actionIcon: <Sync size={14} strokeWidth={1.75} />,
   },
   configure_billing: {
-    icon: <Receipt sx={{ fontSize: 16 }} />,
+    icon: <Receipt size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #D4A574 0%, #E8C49A 100%)',
     accentColor: '#D4A574',
-    actionIcon: <Receipt sx={{ fontSize: 14 }} />,
+    actionIcon: <Receipt size={14} strokeWidth={1.75} />,
   },
   configure_org: {
-    icon: <Settings sx={{ fontSize: 16 }} />,
+    icon: <Settings size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
     accentColor: '#6B8A9A',
-    actionIcon: <Settings sx={{ fontSize: 14 }} />,
+    actionIcon: <Settings size={14} strokeWidth={1.75} />,
   },
   invite_members: {
-    icon: <Group sx={{ fontSize: 16 }} />,
+    icon: <Group size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
     accentColor: '#4A9B8E',
-    actionIcon: <Add sx={{ fontSize: 14 }} />,
+    actionIcon: <Add size={14} strokeWidth={1.75} />,
   },
   setup_settings: {
-    icon: <Tune sx={{ fontSize: 16 }} />,
+    icon: <Tune size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #D4A574 0%, #E8C49A 100%)',
     accentColor: '#D4A574',
-    actionIcon: <Tune sx={{ fontSize: 14 }} />,
+    actionIcon: <Tune size={14} strokeWidth={1.75} />,
   },
   setup_fiscal: {
-    icon: <Receipt sx={{ fontSize: 16 }} />,
+    icon: <Receipt size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #D4A574 0%, #E8C49A 100%)',
     accentColor: '#D4A574',
-    actionIcon: <Receipt sx={{ fontSize: 14 }} />,
+    actionIcon: <Receipt size={14} strokeWidth={1.75} />,
   },
   setup_notifications: {
-    icon: <Notifications sx={{ fontSize: 16 }} />,
+    icon: <Notifications size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #5C7AEA 0%, #7B95F0 100%)',
     accentColor: '#5C7AEA',
-    actionIcon: <Notifications sx={{ fontSize: 14 }} />,
+    actionIcon: <Notifications size={14} strokeWidth={1.75} />,
   },
   setup_general: {
-    icon: <Tune sx={{ fontSize: 16 }} />,
+    icon: <Tune size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
     accentColor: '#6B8A9A',
-    actionIcon: <Tune sx={{ fontSize: 14 }} />,
+    actionIcon: <Tune size={14} strokeWidth={1.75} />,
   },
   setup_integrations: {
-    icon: <Extension sx={{ fontSize: 16 }} />,
+    icon: <Extension size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #9B59B6 0%, #B07CC6 100%)',
     accentColor: '#9B59B6',
-    actionIcon: <Extension sx={{ fontSize: 14 }} />,
+    actionIcon: <Extension size={14} strokeWidth={1.75} />,
   },
   setup_payment: {
-    icon: <Payment sx={{ fontSize: 16 }} />,
+    icon: <Payment size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #E67E22 0%, #F0A050 100%)',
     accentColor: '#E67E22',
-    actionIcon: <Payment sx={{ fontSize: 14 }} />,
+    actionIcon: <Payment size={14} strokeWidth={1.75} />,
   },
   setup_messaging: {
-    icon: <ChatBubbleOutline sx={{ fontSize: 16 }} />,
+    icon: <ChatBubbleOutline size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #3498DB 0%, #5DADE2 100%)',
     accentColor: '#3498DB',
-    actionIcon: <ChatBubbleOutline sx={{ fontSize: 14 }} />,
+    actionIcon: <ChatBubbleOutline size={14} strokeWidth={1.75} />,
   },
   setup_payouts: {
-    icon: <AccountBalanceWallet sx={{ fontSize: 16 }} />,
+    icon: <AccountBalanceWallet size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #27AE60 0%, #52C47A 100%)',
     accentColor: '#27AE60',
-    actionIcon: <AccountBalanceWallet sx={{ fontSize: 14 }} />,
+    actionIcon: <AccountBalanceWallet size={14} strokeWidth={1.75} />,
   },
   complete_profile: {
-    icon: <Person sx={{ fontSize: 16 }} />,
+    icon: <Person size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
     accentColor: '#6B8A9A',
-    actionIcon: <Person sx={{ fontSize: 14 }} />,
+    actionIcon: <Person size={14} strokeWidth={1.75} />,
   },
   view_interventions: {
-    icon: <Assignment sx={{ fontSize: 16 }} />,
+    icon: <Assignment size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
     accentColor: '#4A9B8E',
-    actionIcon: <Build sx={{ fontSize: 14 }} />,
+    actionIcon: <Build size={14} strokeWidth={1.75} />,
   },
   create_team: {
-    icon: <Group sx={{ fontSize: 16 }} />,
+    icon: <Group size={16} strokeWidth={1.75} />,
     gradient: 'linear-gradient(135deg, #4A9B8E 0%, #6BB5A8 100%)',
     accentColor: '#4A9B8E',
-    actionIcon: <Add sx={{ fontSize: 14 }} />,
+    actionIcon: <Add size={14} strokeWidth={1.75} />,
   },
 };
 
 const DEFAULT_VISUAL: StepVisual = {
-  icon: <Settings sx={{ fontSize: 16 }} />,
+  icon: <Settings size={16} strokeWidth={1.75} />,
   gradient: 'linear-gradient(135deg, #6B8A9A 0%, #8BA3B3 100%)',
   accentColor: '#6B8A9A',
-  actionIcon: <Settings sx={{ fontSize: 14 }} />,
+  actionIcon: <Settings size={14} strokeWidth={1.75} />,
 };
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -240,7 +240,7 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
             '&:hover': { color: 'primary.main', borderColor: 'primary.main' },
           }}
         >
-          <Replay sx={{ fontSize: 12, mr: 0.5 }} />
+          <Box component="span" sx={{ display: 'inline-flex', mr: 0.5 }}><Replay size={12} strokeWidth={1.75} /></Box>
           <Typography component="span" sx={{ fontSize: '0.65rem', fontWeight: 600 }}>
             {t('dashboard.onboarding.reshowShort')}
           </Typography>
@@ -332,7 +332,7 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
             onClick={handleDismiss}
             sx={{ color: 'text.disabled', p: 0.25, '&:hover': { color: 'text.secondary' } }}
           >
-            <Close sx={{ fontSize: 14 }} />
+            <Close size={14} strokeWidth={1.75} />
           </IconButton>
         </Box>
 
@@ -419,11 +419,11 @@ const OnboardingChecklist: React.FC<{ onReady?: () => void }> = React.memo(({ on
 
                 {/* Status */}
                 {step.completed ? (
-                  <CheckCircle sx={{ fontSize: 14, color: 'success.main', flexShrink: 0 }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'success.main', flexShrink: 0 }}><CheckCircle size={14} strokeWidth={1.75} /></Box>
                 ) : step.locked ? (
-                  <Lock sx={{ fontSize: 12, color: 'text.disabled', flexShrink: 0 }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', flexShrink: 0 }}><Lock size={12} strokeWidth={1.75} /></Box>
                 ) : (
-                  <RadioButtonUnchecked sx={{ fontSize: 14, color: 'text.disabled', flexShrink: 0 }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', flexShrink: 0 }}><RadioButtonUnchecked size={14} strokeWidth={1.75} /></Box>
                 )}
               </Box>
             );

@@ -9,7 +9,7 @@ import {
   Skeleton,
   useTheme,
 } from '@mui/material';
-import { ArrowForward, CalendarMonth, Add } from '@mui/icons-material';
+import { ArrowForward, CalendarMonth, Add } from '../../icons';
 import type { NavigateFunction } from 'react-router-dom';
 import { useDashboardPlanning } from '../../hooks/useDashboardPlanning';
 import apiClient from '../../services/apiClient';
@@ -290,13 +290,13 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
           <Typography variant="subtitle2" sx={SECTION_TITLE_SX}>
-            <CalendarMonth sx={{ fontSize: 16 }} />
+            <CalendarMonth size={16} strokeWidth={1.75} />
             {t('dashboard.miniPlanning.title')}
           </Typography>
           <Button
             variant="text"
             size="small"
-            endIcon={<ArrowForward sx={{ fontSize: 12 }} />}
+            endIcon={<ArrowForward size={12} strokeWidth={1.75} />}
             onClick={() => navigate('/planning')}
             sx={VIEW_ALL_SX}
           >
@@ -378,7 +378,7 @@ const MiniPlanningWidget: React.FC<MiniPlanningWidgetProps> = React.memo(({ navi
             <Button
               variant="contained"
               size="small"
-              startIcon={<Add sx={{ fontSize: 14 }} />}
+              startIcon={<Add size={14} strokeWidth={1.75} />}
               onClick={() => navigate('/properties/new')}
               sx={{
                 textTransform: 'none',

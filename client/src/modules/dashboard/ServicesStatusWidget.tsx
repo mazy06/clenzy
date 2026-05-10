@@ -17,7 +17,7 @@ import {
   BatteryFull,
   Sensors,
   Language as BookingIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { noiseDevicesApi } from '../../services/api/noiseApi';
@@ -112,44 +112,44 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
   const services = [
     {
       key: 'noise',
-      icon: <VolumeUp sx={{ fontSize: 18 }} />,
+      icon: <VolumeUp size={18} strokeWidth={1.75} />,
       color: C.noise,
       label: t('dashboard.services.noise'),
       status: noise,
       tabIndex: 1,
       ctaKey: 'dashboard.services.noiseCta',
-      activeIcon: <Sensors sx={{ fontSize: 12, color: C.noise }} />,
+      activeIcon: <Box component="span" sx={{ display: 'inline-flex', color: C.noise }}><Sensors size={12} strokeWidth={1.75} /></Box>,
     },
     {
       key: 'locks',
-      icon: <LockOutlined sx={{ fontSize: 18 }} />,
+      icon: <LockOutlined size={18} strokeWidth={1.75} />,
       color: C.lock,
       label: t('dashboard.services.locks'),
       status: locks,
       tabIndex: 2,
       ctaKey: 'dashboard.services.locksCta',
-      activeIcon: <BatteryFull sx={{ fontSize: 12, color: C.lock }} />,
+      activeIcon: <Box component="span" sx={{ display: 'inline-flex', color: C.lock }}><BatteryFull size={12} strokeWidth={1.75} /></Box>,
     },
     {
       key: 'keys',
-      icon: <VpnKey sx={{ fontSize: 18 }} />,
+      icon: <VpnKey size={18} strokeWidth={1.75} />,
       color: C.key,
       label: t('dashboard.services.keys'),
       status: keys,
       tabIndex: 3,
       ctaKey: 'dashboard.services.keysCta',
-      activeIcon: <VpnKey sx={{ fontSize: 12, color: C.key }} />,
+      activeIcon: <Box component="span" sx={{ display: 'inline-flex', color: C.key }}><VpnKey size={12} strokeWidth={1.75} /></Box>,
     },
     {
       key: 'booking',
-      icon: <BookingIcon sx={{ fontSize: 18 }} />,
+      icon: <BookingIcon size={18} strokeWidth={1.75} />,
       color: C.booking,
       label: t('dashboard.services.booking', 'Booking Engine'),
       status: booking,
       tabIndex: -1, // uses route navigation instead
       route: '/booking-engine',
       ctaKey: 'dashboard.services.bookingCta',
-      activeIcon: <BookingIcon sx={{ fontSize: 12, color: C.booking }} />,
+      activeIcon: <Box component="span" sx={{ display: 'inline-flex', color: C.booking }}><BookingIcon size={12} strokeWidth={1.75} /></Box>,
     },
   ];
 
@@ -278,7 +278,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
             {/* Status */}
             {svc.status.configured ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                <CheckCircle sx={{ fontSize: 13, color: C.success }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: C.success }}><CheckCircle size={13} strokeWidth={1.75} /></Box>
                 <Typography sx={{ fontSize: '0.65rem', color: C.success, fontWeight: 600 }}>
                   {svc.status.count} {t('dashboard.services.active')}
                 </Typography>
@@ -286,7 +286,7 @@ const ServicesStatusWidget: React.FC<ServicesStatusWidgetProps> = React.memo(({ 
             ) : (
               <Button
                 size="small"
-                endIcon={<ArrowForward sx={{ fontSize: '12px !important' }} />}
+                endIcon={<ArrowForward size={12} strokeWidth={1.75} />}
                 sx={{
                   fontSize: '0.65rem',
                   fontWeight: 600,

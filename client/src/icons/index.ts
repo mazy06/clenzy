@@ -291,6 +291,38 @@ export {
   BadgeCheck as Verified,
 } from 'lucide-react';
 
+// ─── Dashboard / analytics / monitoring ─────────────────────────────────────
+export {
+  Wallet as AccountBalanceWallet,
+  BatteryLow as Battery20,
+  BatteryWarning as BatteryAlert,
+  BatteryFull,
+  Calculator as Calculate,
+  Megaphone as Campaign,
+  MessageCircle as ChatBubbleOutline,
+  Puzzle as Extension,
+  UserRoundPlus as GroupAdd,
+  Handshake,
+  Building as HomeWork,
+  Lightbulb,
+  Unlink as LinkOff,
+  LockOpen,
+  Lock as LockOutlined,
+  ChevronLeft as NavigateBefore,
+  ChevronRight as NavigateNext,
+  User as PersonOutline,
+  PieChart,
+  BadgeEuro as PriceChange,
+  QrCode as QrCode2,
+  FileSpreadsheet as RequestQuote,
+  Antenna as Sensors,
+  Settings2 as SettingsRemote,
+  Store,
+  RefreshCwOff as SyncProblem,
+  SlidersHorizontal as Tune,
+  Volume2 as VolumeUp,
+} from 'lucide-react';
+
 // ─── Re-export du composant Iconify pour les cas exotiques ──────────────────
 // Usage : <Icon icon="mdi:stairs" width={16} />
 //         <Icon icon="solar:bed-bold-duotone" width={20} />

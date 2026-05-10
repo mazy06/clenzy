@@ -22,7 +22,7 @@ import {
   RequestQuote,
   PersonAdd,
   GroupAdd
-} from '@mui/icons-material';
+} from '../../icons';
 import type { NavigateFunction } from 'react-router-dom';
 import type { ActivityItem } from '../../hooks/useDashboardData';
 import { PRIORITY_OPTIONS, Priority } from '../../types/statusEnums';
@@ -96,23 +96,23 @@ const DashboardRecentActivities: React.FC<DashboardRecentActivitiesProps> = ({ a
                       // Icones selon la categorie d'activite
                       switch (activity.category) {
                         case 'property':
-                          return <HomeWork color="primary" sx={{ fontSize: '20px' }} />;
+                          return <HomeWork color="primary" size={'20px'} strokeWidth={1.75} />;
                         case 'service-request':
-                          return <RequestQuote color="secondary" sx={{ fontSize: '20px' }} />;
+                          return <RequestQuote color="secondary" size={'20px'} strokeWidth={1.75} />;
                         case 'intervention':
                           if (activity.status === 'completed') {
-                            return <CheckCircle color="success" sx={{ fontSize: '20px' }} />;
+                            return <CheckCircle color="success" size={'20px'} strokeWidth={1.75} />;
                           } else if (activity.status === 'urgent' || activity.status === 'in_progress') {
-                            return <Build color="warning" sx={{ fontSize: '20px' }} />;
+                            return <Build color="warning" size={'20px'} strokeWidth={1.75} />;
                           } else {
-                            return <Assignment color="info" sx={{ fontSize: '20px' }} />;
+                            return <Assignment color="info" size={'20px'} strokeWidth={1.75} />;
                           }
                         case 'user':
-                          return <PersonAdd color="primary" sx={{ fontSize: '20px' }} />;
+                          return <PersonAdd color="primary" size={'20px'} strokeWidth={1.75} />;
                         case 'team':
-                          return <GroupAdd color="secondary" sx={{ fontSize: '20px' }} />;
+                          return <GroupAdd color="secondary" size={'20px'} strokeWidth={1.75} />;
                         default:
-                          return <Notifications color="primary" sx={{ fontSize: '20px' }} />;
+                          return <Notifications color="primary" size={'20px'} strokeWidth={1.75} />;
                       }
                     })()}
                   </ListItemIcon>

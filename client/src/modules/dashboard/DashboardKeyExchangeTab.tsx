@@ -40,7 +40,7 @@ import {
   LocationOn,
   AccessTime,
   LinkOff,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import { useKeyExchange, type KeyExchangeView } from '../../hooks/useKeyExchange';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -65,7 +65,7 @@ import type { PropertyMarker } from '../../components/MapboxPropertyMap';
 function FeatureItem({ text }: { text: string }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25 }}>
-      <CheckCircleOutline sx={{ fontSize: 16, color: 'success.main' }} />
+      <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleOutline size={16} strokeWidth={1.75} /></Box>
       <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
         {text}
       </Typography>
@@ -106,7 +106,7 @@ function KeyExchangeOffersView({ onChooseKeyVault, onChooseKeyNest }: OffersView
   return (
     <Box sx={{ p: 1 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <VpnKey sx={{ color: 'primary.main', fontSize: 20 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><VpnKey size={20} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
           {t('dashboard.keyExchange.title') || 'Gestion des clés'}
         </Typography>
@@ -136,7 +136,7 @@ function KeyExchangeOffersView({ onChooseKeyVault, onChooseKeyNest }: OffersView
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <StoreIcon sx={{ color: '#6B8A9A', fontSize: 22 }} />
+              <StoreIcon size={22} strokeWidth={1.75} color='#6B8A9A' />
               <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
                 Clenzy KeyVault
               </Typography>
@@ -176,7 +176,7 @@ function KeyExchangeOffersView({ onChooseKeyVault, onChooseKeyNest }: OffersView
             <Button
               variant="contained"
               fullWidth
-              startIcon={<StoreIcon sx={{ fontSize: 16 }} />}
+              startIcon={<StoreIcon size={16} strokeWidth={1.75} />}
               onClick={onChooseKeyVault}
               sx={{ textTransform: 'none', fontWeight: 600 }}
             >
@@ -205,7 +205,7 @@ function KeyExchangeOffersView({ onChooseKeyVault, onChooseKeyNest }: OffersView
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <VpnKey sx={{ color: '#D4A574', fontSize: 22 }} />
+              <VpnKey size={22} strokeWidth={1.75} color='#D4A574' />
               <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
                 KeyNest
               </Typography>
@@ -250,7 +250,7 @@ function KeyExchangeOffersView({ onChooseKeyVault, onChooseKeyNest }: OffersView
             <Button
               variant="outlined"
               fullWidth
-              startIcon={<VpnKey sx={{ fontSize: 16 }} />}
+              startIcon={<VpnKey size={16} strokeWidth={1.75} />}
               onClick={onChooseKeyNest}
               sx={{
                 textTransform: 'none', fontWeight: 600,
@@ -365,16 +365,16 @@ function KeyVaultView({
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
         <IconButton size="small" onClick={onBack}>
-          <ArrowBack sx={{ fontSize: 18 }} />
+          <ArrowBack size={18} strokeWidth={1.75} />
         </IconButton>
-        <StoreIcon sx={{ color: 'primary.main', fontSize: 20 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><StoreIcon size={20} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
           Clenzy KeyVault — Gardiens de clés
         </Typography>
         <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
           <Button
             size="small"
-            startIcon={<HistoryIcon sx={{ fontSize: 14 }} />}
+            startIcon={<HistoryIcon size={14} strokeWidth={1.75} />}
             onClick={onHistory}
             sx={{ textTransform: 'none', fontSize: '0.75rem' }}
           >
@@ -382,7 +382,7 @@ function KeyVaultView({
           </Button>
           <Button
             size="small"
-            startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+            startIcon={<AddIcon size={14} strokeWidth={1.75} />}
             onClick={() => setAddDialogOpen(true)}
             sx={{ textTransform: 'none', fontSize: '0.75rem' }}
           >
@@ -405,8 +405,8 @@ function KeyVaultView({
               <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   {point.guardianType === 'INDIVIDUAL'
-                    ? <PersonOutline sx={{ fontSize: 18, color: '#7B61FF' }} />
-                    : <StoreIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+                    ? <PersonOutline size={18} strokeWidth={1.75} color='#7B61FF' />
+                    : <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><StoreIcon size={18} strokeWidth={1.75} /></Box>
                   }
                   <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, flex: 1 }}>
                     {point.storeName}
@@ -430,7 +430,7 @@ function KeyVaultView({
                   })()}
                   <Tooltip title="Supprimer">
                     <IconButton size="small" onClick={() => onDeletePoint(point.id)}>
-                      <DeleteIcon sx={{ fontSize: 16 }} />
+                      <DeleteIcon size={16} strokeWidth={1.75} />
                     </IconButton>
                   </Tooltip>
                 </Box>
@@ -473,7 +473,7 @@ function KeyVaultView({
                   <Button
                     size="small"
                     variant="outlined"
-                    startIcon={<VpnKey sx={{ fontSize: 14 }} />}
+                    startIcon={<VpnKey size={14} strokeWidth={1.75} />}
                     onClick={() => openCodeDialog(point.id)}
                     sx={{ textTransform: 'none', fontSize: '0.6875rem' }}
                   >
@@ -488,14 +488,14 @@ function KeyVaultView({
                           navigator.clipboard.writeText(url);
                         }}
                       >
-                        <ContentCopy sx={{ fontSize: 14 }} />
+                        <ContentCopy size={14} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                   )}
                   {point.verificationToken && (
                     <Tooltip title="QR Code">
                       <IconButton size="small">
-                        <QrCode2 sx={{ fontSize: 14 }} />
+                        <QrCode2 size={14} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                   )}
@@ -524,7 +524,7 @@ function KeyVaultView({
                 transition: 'all 0.15s',
               }}
             >
-              <StoreIcon sx={{ fontSize: 24, color: formGuardianType === 'MERCHANT' ? '#4A9B8E' : 'text.secondary', mb: 0.5 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: formGuardianType === 'MERCHANT' ? '#4A9B8E' : 'text.secondary', mb: 0.5 }}><StoreIcon size={24} strokeWidth={1.75} /></Box>
               <Typography sx={{ fontSize: '0.75rem', fontWeight: formGuardianType === 'MERCHANT' ? 700 : 500 }}>
                 Commerçant
               </Typography>
@@ -544,7 +544,7 @@ function KeyVaultView({
                 transition: 'all 0.15s',
               }}
             >
-              <PersonOutline sx={{ fontSize: 24, color: formGuardianType === 'INDIVIDUAL' ? '#7B61FF' : 'text.secondary', mb: 0.5 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: formGuardianType === 'INDIVIDUAL' ? '#7B61FF' : 'text.secondary', mb: 0.5 }}><PersonOutline size={24} strokeWidth={1.75} /></Box>
               <Typography sx={{ fontSize: '0.75rem', fontWeight: formGuardianType === 'INDIVIDUAL' ? 700 : 500 }}>
                 Particulier
               </Typography>
@@ -630,7 +630,7 @@ function KeyVaultView({
             <Button
               variant="contained"
               size="small"
-              startIcon={submitting ? <CircularProgress size={14} color="inherit" /> : <AddIcon sx={{ fontSize: 14 }} />}
+              startIcon={submitting ? <CircularProgress size={14} color="inherit" /> : <AddIcon size={14} strokeWidth={1.75} />}
               onClick={handleGenerateCode}
               disabled={submitting}
               sx={{ textTransform: 'none', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
@@ -688,7 +688,7 @@ function KeyVaultView({
                           {code.status === 'ACTIVE' && (
                             <Tooltip title="Annuler">
                               <IconButton size="small" onClick={() => onCancelCode(code.id)}>
-                                <CancelIcon sx={{ fontSize: 14, color: 'error.main' }} />
+                                <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><CancelIcon size={14} strokeWidth={1.75} /></Box>
                               </IconButton>
                             </Tooltip>
                           )}
@@ -817,15 +817,15 @@ function KeyNestView({
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
         <IconButton size="small" onClick={onBack}>
-          <ArrowBack sx={{ fontSize: 18 }} />
+          <ArrowBack size={18} strokeWidth={1.75} />
         </IconButton>
-        <VpnKey sx={{ color: '#D4A574', fontSize: 20 }} />
+        <VpnKey size={20} strokeWidth={1.75} color='#D4A574' />
         <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
           KeyNest — Réseau de points de dépôt
         </Typography>
         <Button
           size="small"
-          startIcon={<HistoryIcon sx={{ fontSize: 14 }} />}
+          startIcon={<HistoryIcon size={14} strokeWidth={1.75} />}
           onClick={onHistory}
           sx={{ ml: 'auto', textTransform: 'none', fontSize: '0.75rem' }}
         >
@@ -869,20 +869,20 @@ function KeyNestView({
                 <Grid item xs={12} md={6} key={point.id}>
                   <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
-                      <VpnKey sx={{ fontSize: 16, color: '#D4A574' }} />
+                      <VpnKey size={16} strokeWidth={1.75} color='#D4A574' />
                       <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, flex: 1 }}>
                         {point.storeName}
                       </Typography>
                       <Tooltip title="Dissocier ce point">
                         <IconButton size="small" onClick={() => onDeletePoint(point.id)}>
-                          <LinkOff sx={{ fontSize: 15, color: 'text.secondary' }} />
+                          <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LinkOff size={15} strokeWidth={1.75} /></Box>
                         </IconButton>
                       </Tooltip>
                     </Box>
 
                     {point.storeAddress && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                        <LocationOn sx={{ fontSize: 13, color: 'text.secondary' }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LocationOn size={13} strokeWidth={1.75} /></Box>
                         <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
                           {point.storeAddress}
                         </Typography>
@@ -890,7 +890,7 @@ function KeyNestView({
                     )}
                     {point.storeOpeningHours && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                        <AccessTime sx={{ fontSize: 13, color: 'text.secondary' }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AccessTime size={13} strokeWidth={1.75} /></Box>
                         <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
                           {formatOpeningHoursDisplay(point.storeOpeningHours)}
                         </Typography>
@@ -917,7 +917,7 @@ function KeyNestView({
                       <Button
                         size="small"
                         variant="outlined"
-                        startIcon={<VpnKey sx={{ fontSize: 14 }} />}
+                        startIcon={<VpnKey size={14} strokeWidth={1.75} />}
                         onClick={() => openCodeDialog(point.id)}
                         sx={{
                           textTransform: 'none', fontSize: '0.6875rem',
@@ -967,7 +967,7 @@ function KeyNestView({
             variant="contained"
             size="small"
             disabled={!searchPropertyId || searching}
-            startIcon={searching ? <CircularProgress size={14} color="inherit" /> : <SearchIcon sx={{ fontSize: 14 }} />}
+            startIcon={searching ? <CircularProgress size={14} color="inherit" /> : <SearchIcon size={14} strokeWidth={1.75} />}
             onClick={handleSearch}
             sx={{
               textTransform: 'none', fontSize: '0.75rem', whiteSpace: 'nowrap',
@@ -1032,7 +1032,7 @@ function KeyNestView({
                     {store.name}
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.25 }}>
-                    <LocationOn sx={{ fontSize: 12, color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LocationOn size={12} strokeWidth={1.75} /></Box>
                     <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
                       {store.address}
                     </Typography>
@@ -1045,7 +1045,7 @@ function KeyNestView({
                     )}
                     {store.openingHours && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
-                        <AccessTime sx={{ fontSize: 11, color: 'text.secondary' }} />
+                        <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><AccessTime size={11} strokeWidth={1.75} /></Box>
                         <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
                           {store.openingHours}
                         </Typography>
@@ -1072,7 +1072,7 @@ function KeyNestView({
                   size="small"
                   variant="outlined"
                   disabled={submitting}
-                  startIcon={submitting ? <CircularProgress size={12} /> : <AddIcon sx={{ fontSize: 14 }} />}
+                  startIcon={submitting ? <CircularProgress size={12} /> : <AddIcon size={14} strokeWidth={1.75} />}
                   onClick={() => handleSelectStore(store)}
                   sx={{
                     textTransform: 'none', fontSize: '0.6875rem', whiteSpace: 'nowrap',
@@ -1127,7 +1127,7 @@ function KeyNestView({
             <Button
               variant="contained"
               size="small"
-              startIcon={submitting ? <CircularProgress size={14} color="inherit" /> : <AddIcon sx={{ fontSize: 14 }} />}
+              startIcon={submitting ? <CircularProgress size={14} color="inherit" /> : <AddIcon size={14} strokeWidth={1.75} />}
               onClick={handleGenerateCode}
               disabled={submitting}
               sx={{
@@ -1185,7 +1185,7 @@ function KeyNestView({
                           {code.status === 'ACTIVE' && (
                             <Tooltip title="Annuler">
                               <IconButton size="small" onClick={() => onCancelCode(code.id)}>
-                                <CancelIcon sx={{ fontSize: 14, color: 'error.main' }} />
+                                <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><CancelIcon size={14} strokeWidth={1.75} /></Box>
                               </IconButton>
                             </Tooltip>
                           )}
@@ -1254,9 +1254,9 @@ function HistoryView({ properties, onBack }: HistoryViewProps) {
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
         <IconButton size="small" onClick={onBack}>
-          <ArrowBack sx={{ fontSize: 18 }} />
+          <ArrowBack size={18} strokeWidth={1.75} />
         </IconButton>
-        <HistoryIcon sx={{ color: 'primary.main', fontSize: 20 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><HistoryIcon size={20} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
           Historique des mouvements de clés
         </Typography>

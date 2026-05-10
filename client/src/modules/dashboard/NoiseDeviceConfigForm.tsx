@@ -25,7 +25,7 @@ import {
   CheckCircle,
   MeetingRoom,
   Label as LabelIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import type { NoiseDeviceFormState } from '../../hooks/useNoiseDevices';
 import type { Property } from '../../services/api/propertiesApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -123,13 +123,13 @@ const NoiseDeviceConfigForm: React.FC<NoiseDeviceConfigFormProps> = ({
                 >
                   <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                      <Home sx={{ fontSize: 18, color: isSelected ? 'primary.main' : 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: isSelected ? 'primary.main' : 'text.secondary' }}><Home size={18} strokeWidth={1.75} /></Box>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
                         {property.name}
                       </Typography>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
-                      <LocationOn sx={{ fontSize: 14, color: 'text.disabled' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled' }}><LocationOn size={14} strokeWidth={1.75} /></Box>
                       <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                         {property.address}, {property.city}
                       </Typography>
@@ -251,9 +251,9 @@ const NoiseDeviceConfigForm: React.FC<NoiseDeviceConfigFormProps> = ({
           {/* Device type */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             {isMinut ? (
-              <Handshake sx={{ color: '#6B8A9A', fontSize: 20 }} />
+              <Handshake size={20} strokeWidth={1.75} color='#6B8A9A' />
             ) : (
-              <Memory sx={{ color: '#4A9B8E', fontSize: 20 }} />
+              <Memory size={20} strokeWidth={1.75} color='#4A9B8E' />
             )}
             <Box>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
@@ -269,7 +269,7 @@ const NoiseDeviceConfigForm: React.FC<NoiseDeviceConfigFormProps> = ({
 
           {/* Property */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <Home sx={{ color: 'text.secondary', fontSize: 20 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Home size={20} strokeWidth={1.75} /></Box>
             <Box>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
                 {t('dashboard.noise.config.confirmProperty') || 'Propriete'}
@@ -284,7 +284,7 @@ const NoiseDeviceConfigForm: React.FC<NoiseDeviceConfigFormProps> = ({
 
           {/* Room */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-            <MeetingRoom sx={{ color: 'text.secondary', fontSize: 20 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><MeetingRoom size={20} strokeWidth={1.75} /></Box>
             <Box>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
                 {t('dashboard.noise.config.confirmRoom') || 'Piece'}
@@ -299,7 +299,7 @@ const NoiseDeviceConfigForm: React.FC<NoiseDeviceConfigFormProps> = ({
 
           {/* Device name */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <LabelIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><LabelIcon size={20} strokeWidth={1.75} /></Box>
             <Box>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6875rem' }}>
                 {t('dashboard.noise.config.confirmDeviceName') || 'Nom du capteur'}
@@ -374,7 +374,7 @@ const NoiseDeviceConfigForm: React.FC<NoiseDeviceConfigFormProps> = ({
           variant="text"
           size="small"
           onClick={form.activeStep === 0 ? onCancel : onBack}
-          startIcon={<ArrowBack sx={{ fontSize: 16 }} />}
+          startIcon={<ArrowBack size={16} strokeWidth={1.75} />}
           sx={{ textTransform: 'none', fontSize: '0.8125rem', color: 'text.secondary' }}
         >
           {form.activeStep === 0
@@ -387,7 +387,7 @@ const NoiseDeviceConfigForm: React.FC<NoiseDeviceConfigFormProps> = ({
           size="small"
           disabled={!canGoNext}
           onClick={isLastStep ? onSubmit : onNext}
-          endIcon={isLastStep ? <CheckCircle sx={{ fontSize: 16 }} /> : <ArrowForward sx={{ fontSize: 16 }} />}
+          endIcon={isLastStep ? <CheckCircle size={16} strokeWidth={1.75} /> : <ArrowForward size={16} strokeWidth={1.75} />}
           sx={{
             textTransform: 'none',
             fontSize: '0.8125rem',

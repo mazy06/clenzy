@@ -14,7 +14,7 @@ import {
   ArrowForward,
   CheckCircle,
   RadioButtonUnchecked,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { airbnbApi, type AirbnbConnectionStatus } from '../../services/api/airbnbApi';
@@ -152,7 +152,7 @@ const ChannelHealthWidget: React.FC<{ onReady?: () => void }> = React.memo(({ on
       {/* ── Header ──────────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Wifi sx={{ fontSize: 16, color: connectedCount > 0 ? C.success : 'text.disabled' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: connectedCount > 0 ? C.success : 'text.disabled' }}><Wifi size={16} strokeWidth={1.75} /></Box>
           <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'text.secondary' }}>
             {t('dashboard.channelHealth.title')}
           </Typography>
@@ -234,11 +234,11 @@ const ChannelHealthWidget: React.FC<{ onReady?: () => void }> = React.memo(({ on
               </Typography>
               {/* Status icon */}
               {ch.hasError ? (
-                <SyncProblem sx={{ fontSize: 13, color: C.error }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: C.error }}><SyncProblem size={13} strokeWidth={1.75} /></Box>
               ) : ch.connected ? (
-                <CheckCircle sx={{ fontSize: 13, color: C.success }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: C.success }}><CheckCircle size={13} strokeWidth={1.75} /></Box>
               ) : (
-                <RadioButtonUnchecked sx={{ fontSize: 13, color: 'action.disabled' }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'action.disabled' }}><RadioButtonUnchecked size={13} strokeWidth={1.75} /></Box>
               )}
             </Box>
           </Tooltip>
@@ -256,7 +256,7 @@ const ChannelHealthWidget: React.FC<{ onReady?: () => void }> = React.memo(({ on
       <Button
         size="small"
         onClick={() => navigate('/channels')}
-        endIcon={<ArrowForward sx={{ fontSize: 14 }} />}
+        endIcon={<ArrowForward size={14} strokeWidth={1.75} />}
         sx={{
           mt: 'auto',
           fontSize: '0.68rem',

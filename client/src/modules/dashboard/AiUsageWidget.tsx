@@ -9,7 +9,7 @@ import {
   Skeleton,
   Button,
 } from '@mui/material';
-import { DataUsage, Settings as SettingsIcon } from '@mui/icons-material';
+import { DataUsage, Settings as SettingsIcon } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAiUsageStats } from '../../hooks/useAi';
@@ -75,7 +75,7 @@ const AiUsageWidget: React.FC<AiUsageWidgetProps> = React.memo(({ layout = 'defa
     return (
       <Paper sx={cardSx}>
         <Box sx={headerSx}>
-          <DataUsage sx={{ fontSize: 18, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><DataUsage size={18} strokeWidth={1.75} /></Box>
           <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
             {t('bookingEngine.ai.usage.title')}
           </Typography>
@@ -105,7 +105,7 @@ const AiUsageWidget: React.FC<AiUsageWidgetProps> = React.memo(({ layout = 'defa
     return (
       <Paper sx={cardSx}>
         <Box sx={headerSx}>
-          <DataUsage sx={{ fontSize: 18, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><DataUsage size={18} strokeWidth={1.75} /></Box>
           <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
             {t('bookingEngine.ai.usage.title')}
           </Typography>
@@ -118,7 +118,7 @@ const AiUsageWidget: React.FC<AiUsageWidgetProps> = React.memo(({ layout = 'defa
             <Button
               size="small"
               variant="outlined"
-              startIcon={<SettingsIcon sx={{ fontSize: 14 }} />}
+              startIcon={<SettingsIcon size={14} strokeWidth={1.75} />}
               onClick={() => navigate('/settings')}
               sx={{ textTransform: 'none', fontSize: '0.7rem' }}
             >
@@ -141,7 +141,7 @@ const AiUsageWidget: React.FC<AiUsageWidgetProps> = React.memo(({ layout = 'defa
     return (
       <Paper sx={cardSx}>
         <Box sx={headerSx}>
-          <DataUsage sx={{ fontSize: 18, color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><DataUsage size={18} strokeWidth={1.75} /></Box>
           <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
             {t('bookingEngine.ai.usage.title')}
           </Typography>
@@ -166,7 +166,7 @@ const AiUsageWidget: React.FC<AiUsageWidgetProps> = React.memo(({ layout = 'defa
           flexWrap: 'wrap',
         }}
       >
-        <DataUsage sx={{ fontSize: 18, color: 'primary.main' }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><DataUsage size={18} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle2" fontWeight={700} fontSize="0.8rem">
           {t('bookingEngine.ai.usage.title')}
         </Typography>
