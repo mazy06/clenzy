@@ -6,7 +6,7 @@ import {
   TextField,
   MenuItem,
 } from '@mui/material';
-import { LocationOn } from '@mui/icons-material';
+import { LocationOn } from '../../icons';
 import { Controller, useWatch } from 'react-hook-form';
 import type { Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -76,7 +76,7 @@ const PropertyFormAddress: React.FC<PropertyFormAddressProps> = React.memo(
     return (
       <Box>
         <Typography sx={SECTION_TITLE_SX}>
-          <LocationOn sx={{ fontSize: 14 }} />
+          <LocationOn size={14} strokeWidth={1.75} />
           {t('properties.address')}
         </Typography>
 

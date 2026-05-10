@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Box } from '@mui/material';
-import { Cancel, Save } from '@mui/icons-material';
+import { Cancel, Save } from '../../icons';
 import PropertyForm from './PropertyForm';
 import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
@@ -57,7 +57,7 @@ const PropertyCreate: React.FC = () => {
               <Button
                 variant="outlined"
                 onClick={handleClose}
-                startIcon={<Cancel />}
+                startIcon={<Cancel size={18} strokeWidth={1.75} />}
                 size="small"
                 sx={ACTION_BUTTON_SX}
                 title={t('common.cancel')}
@@ -70,7 +70,7 @@ const PropertyCreate: React.FC = () => {
                   const submitButton = document.querySelector('[data-submit-property]') as HTMLButtonElement;
                   if (submitButton) submitButton.click();
                 }}
-                startIcon={<Save />}
+                startIcon={<Save size={18} strokeWidth={1.75} />}
                 size="small"
                 sx={ACTION_BUTTON_SX}
                 title={t('properties.createProperty')}

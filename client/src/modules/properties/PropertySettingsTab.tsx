@@ -13,7 +13,7 @@ import {
   Chip,
   CircularProgress,
 } from '@mui/material';
-import { DeleteForever, ToggleOn, Warning } from '@mui/icons-material';
+import { DeleteForever, ToggleOn, Warning } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { propertiesApi } from '../../services/api/propertiesApi';
@@ -109,7 +109,7 @@ const PropertySettingsTab: React.FC<PropertySettingsTabProps> = ({
       {/* ── Activation ─────────────────────────────────────────────────── */}
       <Paper sx={CARD_SX}>
         <Typography sx={SECTION_TITLE_SX}>
-          <ToggleOn sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
+          <ToggleOn size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
           Statut de la propriete
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
@@ -154,7 +154,7 @@ const PropertySettingsTab: React.FC<PropertySettingsTabProps> = ({
         }}
       >
         <Typography sx={{ ...SECTION_TITLE_SX, color: 'error.main' }}>
-          <Warning sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
+          <Warning size={14} strokeWidth={1.75} style={{ marginRight: 4, verticalAlign: 'middle' }} />
           Zone dangereuse
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
@@ -170,7 +170,7 @@ const PropertySettingsTab: React.FC<PropertySettingsTabProps> = ({
           <Button
             variant="outlined"
             color="error"
-            startIcon={<DeleteForever />}
+            startIcon={<DeleteForever size={18} strokeWidth={1.75} />}
             disabled={!canEdit || deleting}
             onClick={() => setDeleteOpen(true)}
             sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}

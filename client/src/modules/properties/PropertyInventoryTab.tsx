@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Tabs, Tab, CircularProgress } from '@mui/material';
-import { Inventory2, LocalLaundryService, Receipt } from '@mui/icons-material';
+import { Inventory2, LocalLaundryService, Receipt } from '../../icons';
 import { usePropertyInventory } from '../../hooks/usePropertyInventory';
 import InventoryItemsSection from './inventory/InventoryItemsSection';
 import LaundryItemsSection from './inventory/LaundryItemsSection';
@@ -51,17 +51,17 @@ export default function PropertyInventoryTab({ propertyId, canEdit }: Props) {
         }}
       >
         <Tab
-          icon={<Inventory2 sx={{ fontSize: 17 }} />}
+          icon={<Inventory2 size={17} strokeWidth={1.75} />}
           iconPosition="start"
           label="Inventaire du logement"
         />
         <Tab
-          icon={<LocalLaundryService sx={{ fontSize: 17 }} />}
+          icon={<LocalLaundryService size={17} strokeWidth={1.75} />}
           iconPosition="start"
           label="Linge de maison"
         />
         <Tab
-          icon={<Receipt sx={{ fontSize: 17 }} />}
+          icon={<Receipt size={17} strokeWidth={1.75} />}
           iconPosition="start"
           label="Devis / Factures"
         />

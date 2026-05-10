@@ -21,7 +21,7 @@ import {
   Window,
   Checklist,
   Language,
-} from '@mui/icons-material';
+} from '../../icons';
 import { Controller } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -96,7 +96,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                       {users.map((user) => (
                         <MenuItem key={user.id} value={user.id}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                            <Person sx={{ fontSize: 14, color: 'text.secondary' }} />
+                            <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Person size={14} strokeWidth={1.75} /></Box>
                             <Typography sx={{ fontSize: '0.8125rem' }}>
                               {user.firstName} {user.lastName} ({user.role})
                             </Typography>
@@ -150,7 +150,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                       transition: 'all 0.2s ease',
                     }}
                   >
-                    <Language sx={{ fontSize: 18, color: field.value ? 'success.main' : 'text.disabled' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: field.value ? 'success.main' : 'text.disabled' }}><Language size={18} strokeWidth={1.75} /></Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
                         {t('properties.bookingEngineVisible')}
@@ -185,7 +185,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                     helperText={fieldState.error?.message}
                     InputLabelProps={{ shrink: true }}
                     InputProps={{
-                      startAdornment: <Schedule sx={{ mr: 0.75, color: 'text.secondary', fontSize: 16 }} />,
+                      startAdornment: <Schedule size={16} strokeWidth={1.75} style={{ marginRight: 6, color: 'rgba(0,0,0,0.6)' }} />,
                     }}
                     inputProps={{ step: 900 }}
                   />
@@ -208,7 +208,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                     helperText={fieldState.error?.message}
                     InputLabelProps={{ shrink: true }}
                     InputProps={{
-                      startAdornment: <Schedule sx={{ mr: 0.75, color: 'text.secondary', fontSize: 16 }} />,
+                      startAdornment: <Schedule size={16} strokeWidth={1.75} style={{ marginRight: 6, color: 'rgba(0,0,0,0.6)' }} />,
                     }}
                     inputProps={{ step: 900 }}
                   />
@@ -223,7 +223,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
         {/* ── Tarification ménage ──────────────────────────────────────── */}
         <Box>
           <Typography sx={SECTION_TITLE_ICON_SX}>
-            <CleaningServices sx={{ fontSize: 14 }} />
+            <CleaningServices size={14} strokeWidth={1.75} />
             {t('properties.cleaningPricing')}
           </Typography>
 
@@ -359,7 +359,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
                     minHeight: 80,
                     transition: 'border-color 0.15s ease',
                   }}>
-                    <Checklist sx={{ fontSize: 16, color: 'primary.main', mt: 0.125, flexShrink: 0 }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main', mt: 0.125, flexShrink: 0 }}><Checklist size={16} strokeWidth={1.75} /></Box>
                     <Box sx={{ flex: 1 }}>
                       <Typography sx={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'primary.main', mb: 0.5 }}>
                         {t('properties.cleaningNotes')}
@@ -396,7 +396,7 @@ const PropertyFormSettings: React.FC<PropertyFormSettingsProps> = React.memo(
         {/* ── Prestations à la carte ─────────────────────────────────────── */}
         <Box>
           <Typography sx={SECTION_TITLE_ICON_SX}>
-            <Window sx={{ fontSize: 14 }} />
+            <Window width={14} />
             {t('properties.addOnServices.title')}
           </Typography>
 

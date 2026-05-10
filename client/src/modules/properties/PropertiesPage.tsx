@@ -8,7 +8,7 @@ import {
 import {
   Home,
   TrendingUp,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import PageHeader from '../../components/PageHeader';
@@ -80,12 +80,12 @@ const PropertiesPage: React.FC = () => {
               scrollButtons="auto"
             >
               <Tab
-                icon={<Home sx={{ fontSize: 18 }} />}
+                icon={<Home size={18} strokeWidth={1.75} />}
                 iconPosition="start"
                 label={t('propertiesPage.tabs.properties')}
               />
               <Tab
-                icon={<TrendingUp sx={{ fontSize: 18 }} />}
+                icon={<TrendingUp size={18} strokeWidth={1.75} />}
                 iconPosition="start"
                 label={t('propertiesPage.tabs.pricing')}
               />

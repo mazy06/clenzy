@@ -101,9 +101,12 @@ export {
 // ─── Property / domaine PMS ─────────────────────────────────────────────────
 export {
   Home,
+  House as Villa,
+  Building as Apartment,
   BedDouble as Hotel,
   Bed,
   Bath as Bathtub,
+  Bath as Bathroom,
   Utensils as Restaurant,
   Sofa as Weekend,
   Trees as Yard,
@@ -119,6 +122,16 @@ export {
   WifiOff,
   ParkingCircle as LocalParking,
   Snowflake as AcUnit,
+  Sparkles as CleaningServices,
+  Ruler as SquareFoot,
+  Moon as NightsStay,
+  Euro,
+  Trash as DeleteForever,
+  TrashIcon,
+  Trees as Deck,
+  SprayCan as Sanitizer,
+  Gavel,
+  Scale,
 } from 'lucide-react';
 
 // Pas d'equivalent Lucide pour le fer a repasser → fallback Iconify.
@@ -128,6 +141,14 @@ import { createElement, type FC, type ComponentProps } from 'react';
 type IconifyProps = Omit<ComponentProps<typeof _IronifyIcon>, 'icon'>;
 export const Iron: FC<IconifyProps> = (props) =>
   createElement(_IronifyIcon, { icon: 'mdi:iron', ...props });
+
+// Window (fenetre) — pas dans Lucide
+export const Window: FC<IconifyProps> = (props) =>
+  createElement(_IronifyIcon, { icon: 'mdi:window-closed', ...props });
+
+// Stairs (escaliers) — pas dans Lucide
+export const Stairs: FC<IconifyProps> = (props) =>
+  createElement(_IronifyIcon, { icon: 'mdi:stairs', ...props });
 
 // ─── Donnees / dashboard ────────────────────────────────────────────────────
 export {
