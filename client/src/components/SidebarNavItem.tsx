@@ -28,6 +28,9 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
   const iconSize = isXl ? 17 : isLg ? 15 : isMd ? 14 : 13;
   const fontSize = isXl ? '0.8125rem' : isLg ? '0.75rem' : isMd ? '0.6875rem' : '0.625rem';
 
+  // ── État sélectionné : icône + texte dans la couleur primary (cohérent),
+  //    fond teinté primary à 14 %, liseré gauche primary 3 px. Pas de noir.
+  //    Active hover monte à 18 %.
   const content = (
     <ListItemButton
       onClick={() => onClick(item.path)}
@@ -37,20 +40,20 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
         px: isCollapsed ? 2 : 1.5,
         py: isXl ? 0.5 : 0.25,
         mx: 0.75,
-        borderRadius: '6px',
+        borderRadius: '8px',
         justifyContent: isCollapsed ? 'center' : 'flex-start',
         borderLeft: isActive ? '3px solid' : '3px solid transparent',
         borderLeftColor: isActive ? 'primary.main' : 'transparent',
-        backgroundColor: isActive ? 'rgba(107, 138, 154, 0.08)' : 'transparent',
+        backgroundColor: isActive ? 'rgba(107, 138, 154, 0.14)' : 'transparent',
         '&:hover': {
           backgroundColor: isActive
-            ? 'rgba(107, 138, 154, 0.12)'
-            : 'rgba(107, 138, 154, 0.04)',
+            ? 'rgba(107, 138, 154, 0.18)'
+            : 'rgba(107, 138, 154, 0.05)',
         },
         '&.Mui-selected': {
-          backgroundColor: 'rgba(107, 138, 154, 0.08)',
+          backgroundColor: 'rgba(107, 138, 154, 0.14)',
           '&:hover': {
-            backgroundColor: 'rgba(107, 138, 154, 0.12)',
+            backgroundColor: 'rgba(107, 138, 154, 0.18)',
           },
         },
         transition: 'background-color 150ms, border-color 150ms',
@@ -62,8 +65,6 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
           mr: isCollapsed ? 0 : 1.25,
           justifyContent: 'center',
           color: isActive ? 'primary.main' : 'text.secondary',
-          // Lucide icons inherit color via currentColor; size injected below via cloneElement.
-          // Le sélecteur SVG cible aussi les icônes Iconify qui rendent un <svg>.
           '& svg': { width: iconSize, height: iconSize, flexShrink: 0 },
           transition: 'color 150ms',
         }}
@@ -71,7 +72,7 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
         {React.isValidElement(item.icon)
           ? React.cloneElement(item.icon as React.ReactElement<{ size?: number; strokeWidth?: number }>, {
               size: iconSize,
-              strokeWidth: 1.75,
+              strokeWidth: isActive ? 2 : 1.75,
             })
           : item.icon}
       </ListItemIcon>
@@ -79,14 +80,14 @@ function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItem
         primary={item.text}
         primaryTypographyProps={{
           fontSize,
-          fontWeight: isActive ? 600 : 400,
-          color: isActive ? 'text.primary' : 'text.secondary',
+          fontWeight: isActive ? 600 : 500,
+          color: isActive ? 'primary.main' : 'text.secondary',
           noWrap: true,
         }}
         sx={{
           opacity: isCollapsed ? 0 : 1,
           width: isCollapsed ? 0 : 'auto',
-          transition: 'opacity 200ms',
+          transition: 'opacity 200ms, color 150ms',
           overflow: 'hidden',
         }}
       />
