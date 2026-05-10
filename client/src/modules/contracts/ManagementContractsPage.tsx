@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import {
   Add, Edit, CheckCircle, Pause, Cancel, Refresh,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   managementContractsApi,

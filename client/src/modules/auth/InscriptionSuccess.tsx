@@ -10,7 +10,7 @@ import {
   ThemeProvider,
   CssBaseline,
 } from '@mui/material';
-import { MarkEmailRead, ErrorOutline, Send as SendIcon } from '@mui/icons-material';
+import { MarkEmailRead, ErrorOutline, Send as SendIcon } from '../../icons';
 import lightTheme from '../../theme/theme';
 import ClenzyAnimatedLogo from '../../components/ClenzyAnimatedLogo';
 import apiClient from '../../services/apiClient';
@@ -155,7 +155,7 @@ export default function InscriptionSuccess() {
 
           {status === 'error' && (
             <Box sx={{ py: 3 }}>
-              <ErrorOutline sx={{ fontSize: 64, color: 'error.main', mb: 2 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'error.main', mb: 2 }}><ErrorOutline size={64} strokeWidth={1.75} /></Box>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
                 Session introuvable
               </Typography>

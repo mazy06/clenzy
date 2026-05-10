@@ -18,7 +18,7 @@ import {
   Yard,
   LocalLaundryService,
   VolumeUp,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useTarification } from '../../hooks/useTarification';
 import PageHeader from '../../components/PageHeader';

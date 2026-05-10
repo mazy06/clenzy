@@ -24,7 +24,7 @@ import {
   Download as DownloadIcon,
   ChatBubbleOutline as EmptyIcon,
   ArrowBack as ArrowBackIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
@@ -357,7 +357,7 @@ const InternalChatTab: React.FC = () => {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon sx={{ fontSize: '1.125rem', color: 'text.secondary' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><SearchIcon size={'1.125rem'} strokeWidth={1.75} /></Box>
                   </InputAdornment>
                 ),
               }}
@@ -376,7 +376,7 @@ const InternalChatTab: React.FC = () => {
           <Box sx={{ flex: 1, overflowY: 'auto' }}>
             {filteredThreads.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 6, px: 2 }}>
-                <EmptyIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><EmptyIcon size={48} strokeWidth={1.75} /></Box>
                 <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', fontWeight: 500 }}>
                   {t('contact.noConversations') || 'Aucune conversation'}
                 </Typography>
@@ -504,7 +504,7 @@ const InternalChatTab: React.FC = () => {
                 color: 'text.disabled',
               }}
             >
-              <EmptyIcon sx={{ fontSize: 64, mb: 2 }} />
+              <Box component="span" sx={{ display: 'inline-flex', mb: 2 }}><EmptyIcon size={64} strokeWidth={1.75} /></Box>
               <Typography sx={{ fontSize: '1rem', fontWeight: 500 }}>
                 {t('contact.selectConversation') || 'Selectionnez une conversation'}
               </Typography>
@@ -680,7 +680,7 @@ const InternalChatTab: React.FC = () => {
                                   {fileAtts.map((att) => (
                                     <Chip
                                       key={att.id}
-                                      icon={<FileIcon sx={{ fontSize: '0.875rem' }} />}
+                                      icon={<FileIcon size={'0.875rem'} strokeWidth={1.75} />}
                                       label={`${att.originalName} (${formatFileSize(att.size)})`}
                                       size="small"
                                       variant="outlined"
@@ -692,7 +692,7 @@ const InternalChatTab: React.FC = () => {
                                           att.originalName,
                                         )
                                       }
-                                      deleteIcon={<DownloadIcon sx={{ fontSize: 14 }} />}
+                                      deleteIcon={<DownloadIcon size={14} strokeWidth={1.75} />}
                                       onDelete={() =>
                                         contactApi.downloadAttachment(
                                           msg.id,
@@ -812,7 +812,7 @@ const InternalChatTab: React.FC = () => {
                     {replyAttachments.map((file, index) => (
                       <Chip
                         key={index}
-                        icon={<FileIcon sx={{ fontSize: '0.875rem' }} />}
+                        icon={<FileIcon size={'0.875rem'} strokeWidth={1.75} />}
                         label={`${file.name} (${formatFileSize(file.size)})`}
                         size="small"
                         variant="outlined"
@@ -837,7 +837,7 @@ const InternalChatTab: React.FC = () => {
                     onClick={() => fileInputRef.current?.click()}
                     sx={{ color: 'text.secondary' }}
                   >
-                    <AttachFileIcon sx={{ fontSize: '1.25rem' }} />
+                    <AttachFileIcon size={'1.25rem'} strokeWidth={1.75} />
                   </IconButton>
 
                   <TextField
@@ -883,7 +883,7 @@ const InternalChatTab: React.FC = () => {
                     {replyMutation.isPending ? (
                       <CircularProgress size={18} color="inherit" />
                     ) : (
-                      <SendIcon sx={{ fontSize: '1.125rem' }} />
+                      <SendIcon size={'1.125rem'} strokeWidth={1.75} />
                     )}
                   </IconButton>
                 </Box>

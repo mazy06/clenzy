@@ -13,7 +13,7 @@ import {
   Star as RatingIcon,
   Receipt as StatementIcon,
   Download as DownloadIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { SPACING } from '../../theme/spacing';
@@ -108,7 +108,7 @@ const OwnerPortalPage: React.FC = () => {
 
       {!ownerId ? (
         <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <HomeIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><HomeIcon size={48} strokeWidth={1.75} /></Box>
           <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
             {t('ownerPortal.selectOwnerHint', 'Selectionnez un proprietaire pour afficher les donnees')}
           </Typography>

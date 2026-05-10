@@ -13,7 +13,7 @@ import {
   CircularProgress,
   Divider,
 } from '@mui/material';
-import { CloudUpload } from '@mui/icons-material';
+import { CloudUpload } from '../../icons';
 import { useDocumentTypes, useUploadTemplate } from './hooks/useDocuments';
 
 interface TemplateUploadProps {
@@ -112,7 +112,7 @@ const TemplateUpload: React.FC<TemplateUploadProps> = ({ open, onClose, onSucces
             component="label"
           >
             <input type="file" accept=".odt" hidden onChange={handleFileChange} aria-label="Sélectionner un fichier template ODT" />
-            <CloudUpload sx={{ fontSize: 40, color: file ? 'success.main' : 'grey.400', mb: 1 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: file ? 'success.main' : 'grey.400', mb: 1 }}><CloudUpload size={40} strokeWidth={1.75} /></Box>
             <Typography variant="body1" fontWeight={500}>
               {file ? file.name : 'Cliquez pour sélectionner un fichier .odt'}
             </Typography>

@@ -14,7 +14,7 @@ import {
   AccountBalance,
   Category,
   Assessment,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
@@ -145,41 +145,41 @@ const BillingPage: React.FC = () => {
             scrollButtons="auto"
           >
             <Tab
-              icon={<Payment sx={{ fontSize: 18 }} />}
+              icon={<Payment size={18} strokeWidth={1.75} />}
               iconPosition="start"
               label={t('billing.tabs.payments')}
             />
             {canViewInvoices && (
               <Tab
-                icon={<Receipt sx={{ fontSize: 18 }} />}
+                icon={<Receipt size={18} strokeWidth={1.75} />}
                 iconPosition="start"
                 label={t('billing.tabs.invoices')}
               />
             )}
             {canViewWallets && (
               <Tab
-                icon={<AccountBalanceWallet sx={{ fontSize: 18 }} />}
+                icon={<AccountBalanceWallet size={18} strokeWidth={1.75} />}
                 iconPosition="start"
                 label={t('navigation.wallets')}
               />
             )}
             {canViewAccounting && (
               <Tab
-                icon={<AccountBalance sx={{ fontSize: 18 }} />}
+                icon={<AccountBalance size={18} strokeWidth={1.75} />}
                 iconPosition="start"
                 label={t('billing.tabs.payouts', 'Reversements')}
               />
             )}
             {canViewAccounting && (
               <Tab
-                icon={<Category sx={{ fontSize: 18 }} />}
+                icon={<Category size={18} strokeWidth={1.75} />}
                 iconPosition="start"
                 label={t('billing.tabs.expenses', 'Depenses')}
               />
             )}
             {canViewAccounting && (
               <Tab
-                icon={<Assessment sx={{ fontSize: 18 }} />}
+                icon={<Assessment size={18} strokeWidth={1.75} />}
                 iconPosition="start"
                 label={t('billing.tabs.reportsExports', 'Rapports & Exports')}
               />

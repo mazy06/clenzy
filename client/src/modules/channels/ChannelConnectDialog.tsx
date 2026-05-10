@@ -12,7 +12,7 @@ import {
   Typography,
   IconButton,
 } from '@mui/material';
-import { Close, CheckCircle, Science } from '@mui/icons-material';
+import { Close, CheckCircle, Science } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useConnectChannel, useTestChannelConnection } from '../../hooks/useChannelConnections';
 import {

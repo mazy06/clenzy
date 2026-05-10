@@ -20,7 +20,7 @@ import {
   Email,
   Login,
   Logout,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   guestMessagingApi,
@@ -119,7 +119,7 @@ export default function MessagingAutomationSection({ onSave }: MessagingAutomati
       <Grid item xs={12} md={6}>
         <Paper sx={{ p: 2, height: '100%' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-            <Login sx={{ color: 'success.main', fontSize: 20 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Login size={20} strokeWidth={1.75} /></Box>
             <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
               {t('messaging.automation.checkIn.title')}
             </Typography>
@@ -201,7 +201,7 @@ export default function MessagingAutomationSection({ onSave }: MessagingAutomati
       <Grid item xs={12} md={6}>
         <Paper sx={{ p: 2, height: '100%' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-            <Logout sx={{ color: 'warning.main', fontSize: 20 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Logout size={20} strokeWidth={1.75} /></Box>
             <Typography variant="subtitle1" fontWeight={600} sx={{ fontSize: '0.95rem' }}>
               {t('messaging.automation.checkOut.title')}
             </Typography>

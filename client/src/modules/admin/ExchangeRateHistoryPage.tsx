@@ -18,7 +18,7 @@ import {
   Tooltip,
   Alert,
 } from '@mui/material';
-import { Refresh, CurrencyExchange, TrendingUp } from '@mui/icons-material';
+import { Refresh, CurrencyExchange, TrendingUp } from '../../icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageHeader from '../../components/PageHeader';
 import { exchangeRateApi, type ExchangeRateHistoryParams } from '../../services/api/exchangeRateApi';
@@ -164,7 +164,7 @@ export default function ExchangeRateHistoryPage() {
             return rate ? (
               <Paper key={p.label} sx={{ p: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                  <CurrencyExchange sx={{ fontSize: 18, color: 'primary.main' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><CurrencyExchange size={18} strokeWidth={1.75} /></Box>
                   <Typography variant="subtitle2" color="text.secondary">
                     {p.label}
                   </Typography>
@@ -236,7 +236,7 @@ export default function ExchangeRateHistoryPage() {
               </Tooltip>
               <Tooltip title="Moyenne sur la periode">
                 <Chip
-                  icon={<TrendingUp sx={{ fontSize: 14 }} />}
+                  icon={<TrendingUp size={14} strokeWidth={1.75} />}
                   label={`Moy: ${formatRate(stats.avg)}`}
                   size="small"
                   color="primary"

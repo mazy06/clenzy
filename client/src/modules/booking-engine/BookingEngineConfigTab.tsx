@@ -12,7 +12,7 @@ const SlideUpTransition = forwardRef(function SlideUpTransition(
 });
 import {
   BrushRounded, BuildRounded, LocalOffer, IntegrationInstructions,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   useCreateBookingEngineConfig,

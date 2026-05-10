@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Box, IconButton, Tooltip, CircularProgress } from '@mui/material';
-import { Add, Save, Visibility } from '@mui/icons-material';
+import { Add, Save, Visibility } from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { BookingEngineConfig } from '../../services/api/bookingEngineApi';

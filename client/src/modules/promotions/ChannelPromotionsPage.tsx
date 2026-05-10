@@ -11,7 +11,7 @@ import {
   Delete as DeleteIcon,
   Sync as SyncIcon,
   Campaign as CampaignIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -250,7 +250,7 @@ const ChannelPromotionsPage: React.FC = () => {
         </Alert>
       ) : promotions.length === 0 ? (
         <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <CampaignIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><CampaignIcon size={48} strokeWidth={1.75} /></Box>
           <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
             {t('promotions.empty', 'Aucune promotion configuree')}
           </Typography>
@@ -333,12 +333,12 @@ const ChannelPromotionsPage: React.FC = () => {
                   <TableCell align="right">
                     <Tooltip title={t('common.edit', 'Modifier')}>
                       <IconButton size="small" onClick={() => handleOpenEdit(promo)}>
-                        <EditIcon sx={{ fontSize: '1rem' }} />
+                        <EditIcon size={'1rem'} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title={t('common.delete', 'Supprimer')}>
                       <IconButton size="small" color="error" onClick={() => setDeleteTarget(promo)}>
-                        <DeleteIcon sx={{ fontSize: '1rem' }} />
+                        <DeleteIcon size={'1rem'} strokeWidth={1.75} />
                       </IconButton>
                     </Tooltip>
                   </TableCell>

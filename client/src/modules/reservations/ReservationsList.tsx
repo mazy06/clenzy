@@ -26,7 +26,7 @@ import {
   Edit as EditIcon,
   Cancel as CancelIcon,
   EventNote as EventNoteIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useNotification } from '../../hooks/useNotification';
 import { useReservations } from '../../hooks/useReservations';
@@ -283,7 +283,7 @@ const ReservationsList: React.FC = () => {
       ) : filteredReservations.length === 0 ? (
         /* Empty state */
         <Paper sx={{ ...CARD_SX, p: 4, textAlign: 'center' }}>
-          <EventNoteIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><EventNoteIcon size={48} strokeWidth={1.75} /></Box>
           <Typography variant="h6" color="text.secondary" gutterBottom>
             {t('reservations.noReservations')}
           </Typography>
@@ -386,7 +386,7 @@ const ReservationsList: React.FC = () => {
                     <TableCell align="center" sx={{ whiteSpace: 'nowrap' }}>
                       <Tooltip title={t('reservations.edit')}>
                         <IconButton size="small" onClick={() => handleEdit(r)}>
-                          <EditIcon sx={{ fontSize: 18 }} />
+                          <EditIcon size={18} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                       {r.status !== 'cancelled' && r.status !== 'checked_out' && (
@@ -396,7 +396,7 @@ const ReservationsList: React.FC = () => {
                             color="error"
                             onClick={() => handleCancelClick(r)}
                           >
-                            <CancelIcon sx={{ fontSize: 18 }} />
+                            <CancelIcon size={18} strokeWidth={1.75} />
                           </IconButton>
                         </Tooltip>
                       )}

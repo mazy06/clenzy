@@ -26,7 +26,7 @@ import {
   People,
   Speed,
   SquareFoot,
-} from '@mui/icons-material';
+} from '../../icons';
 import type { PricingConfig, ForfaitConfig, CommissionConfig, PrestationOption, SurchargeOption } from '../../services/api/pricingConfigApi';
 import type { Team } from '../../services/api/teamsApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -101,9 +101,9 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
   }, [config.commissionConfigs, onUpdate]);
 
   const FORFAIT_ICONS = [
-    <AutoAwesome key="s" sx={{ color: 'primary.main', fontSize: 20 }} />,
-    <Bolt key="e" sx={{ color: 'warning.main', fontSize: 20 }} />,
-    <CleaningServices key="d" sx={{ color: 'secondary.main', fontSize: 20 }} />,
+    <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><AutoAwesome key="s" size={20} strokeWidth={1.75} /></Box>,
+    <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Bolt key="e" size={20} strokeWidth={1.75} /></Box>,
+    <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><CleaningServices key="d" size={20} strokeWidth={1.75} /></Box>,
   ];
 
   return (
@@ -112,7 +112,7 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
       <Accordion expanded={expandedSection === 'basePrices'} onChange={handleAccordionChange('basePrices')} sx={{ '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Euro sx={{ color: 'primary.main', fontSize: 20 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Euro size={20} strokeWidth={1.75} /></Box>
             <Box>
               <Typography variant="subtitle1" fontWeight={600}>{t('tarification.basePrices.title')}</Typography>
               <Typography variant="body2" color="text.secondary">{t('tarification.basePrices.subtitle')}</Typography>
@@ -181,7 +181,7 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
       <Accordion expanded={expandedSection === 'propertyType'} onChange={handleAccordionChange('propertyType')} sx={{ '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Home sx={{ color: 'secondary.main', fontSize: 20 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><Home size={20} strokeWidth={1.75} /></Box>
             <Box>
               <Typography variant="subtitle1" fontWeight={600}>{t('tarification.propertyType.title')}</Typography>
               <Typography variant="body2" color="text.secondary">{t('tarification.propertyType.subtitle')}</Typography>
@@ -216,7 +216,7 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
       <Accordion expanded={expandedSection === 'propertyCount'} onChange={handleAccordionChange('propertyCount')} sx={{ '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Home sx={{ color: 'success.main', fontSize: 20 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><Home size={20} strokeWidth={1.75} /></Box>
             <Box>
               <Typography variant="subtitle1" fontWeight={600}>{t('tarification.propertyCount.title')}</Typography>
               <Typography variant="body2" color="text.secondary">{t('tarification.propertyCount.subtitle')}</Typography>
@@ -251,7 +251,7 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
       <Accordion expanded={expandedSection === 'guestCapacity'} onChange={handleAccordionChange('guestCapacity')} sx={{ '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <People sx={{ color: 'primary.main', fontSize: 20 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><People size={20} strokeWidth={1.75} /></Box>
             <Box>
               <Typography variant="subtitle1" fontWeight={600}>{t('tarification.guestCapacity.title')}</Typography>
               <Typography variant="body2" color="text.secondary">{t('tarification.guestCapacity.subtitle')}</Typography>
@@ -286,7 +286,7 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
       <Accordion expanded={expandedSection === 'frequency'} onChange={handleAccordionChange('frequency')} sx={{ '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Speed sx={{ color: 'warning.main', fontSize: 20 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Speed size={20} strokeWidth={1.75} /></Box>
             <Box>
               <Typography variant="subtitle1" fontWeight={600}>{t('tarification.frequency.title')}</Typography>
               <Typography variant="body2" color="text.secondary">{t('tarification.frequency.subtitle')}</Typography>
@@ -321,7 +321,7 @@ export default function TabEntretien({ config, teams, canEdit, onUpdate, currenc
       <Accordion expanded={expandedSection === 'surfaceTiers'} onChange={handleAccordionChange('surfaceTiers')} sx={{ '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <SquareFoot sx={{ color: 'error.main', fontSize: 20 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'error.main' }}><SquareFoot size={20} strokeWidth={1.75} /></Box>
             <Box>
               <Typography variant="subtitle1" fontWeight={600}>{t('tarification.surface.title')}</Typography>
               <Typography variant="body2" color="text.secondary">{t('tarification.surface.subtitle')}</Typography>

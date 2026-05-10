@@ -19,7 +19,7 @@ import {
   Add,
   Send,
   Search,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useSearchParams } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -101,12 +101,12 @@ const DocumentsPage: React.FC = () => {
             variant="scrollable"
             scrollButtons="auto"
           >
-            <Tab icon={<ViewList sx={{ fontSize: 18 }} />} iconPosition="start" label={t('documents.tabs.catalog')} />
-            <Tab icon={<ChatBubbleOutline sx={{ fontSize: 18 }} />} iconPosition="start" label={t('documents.tabs.messageTemplates')} />
-            <Tab icon={<Description sx={{ fontSize: 18 }} />} iconPosition="start" label={t('documents.tabs.documentTemplates')} />
-            <Tab icon={<History sx={{ fontSize: 18 }} />} iconPosition="start" label={t('documents.tabs.history')} />
-            <Tab icon={<LocalOffer sx={{ fontSize: 18 }} />} iconPosition="start" label={t('documents.tabs.variablesAndTags')} />
-            <Tab icon={<GppGood sx={{ fontSize: 18 }} />} iconPosition="start" label={t('documents.tabs.compliance')} />
+            <Tab icon={<ViewList size={18} strokeWidth={1.75} />} iconPosition="start" label={t('documents.tabs.catalog')} />
+            <Tab icon={<ChatBubbleOutline size={18} strokeWidth={1.75} />} iconPosition="start" label={t('documents.tabs.messageTemplates')} />
+            <Tab icon={<Description size={18} strokeWidth={1.75} />} iconPosition="start" label={t('documents.tabs.documentTemplates')} />
+            <Tab icon={<History size={18} strokeWidth={1.75} />} iconPosition="start" label={t('documents.tabs.history')} />
+            <Tab icon={<LocalOffer size={18} strokeWidth={1.75} />} iconPosition="start" label={t('documents.tabs.variablesAndTags')} />
+            <Tab icon={<GppGood size={18} strokeWidth={1.75} />} iconPosition="start" label={t('documents.tabs.compliance')} />
           </Tabs>
 
           {/* ── Tab-specific actions ── */}
@@ -168,7 +168,7 @@ const DocumentsPage: React.FC = () => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Search sx={{ color: 'text.secondary', fontSize: 20 }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={20} strokeWidth={1.75} /></Box>
                     </InputAdornment>
                   ),
                 }}
@@ -192,7 +192,7 @@ const DocumentsPage: React.FC = () => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Search sx={{ color: 'text.secondary', fontSize: 20 }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><Search size={20} strokeWidth={1.75} /></Box>
                     </InputAdornment>
                   ),
                 }}

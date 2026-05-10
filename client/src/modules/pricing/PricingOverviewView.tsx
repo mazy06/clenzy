@@ -13,8 +13,8 @@ import {
   TableRow,
   Tooltip,
 } from '@mui/material';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { ChevronLeft as ChevronLeftIcon } from '../../icons';
+import { ChevronRight as ChevronRightIcon } from '../../icons';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
 import { calendarPricingApi } from '../../services/api/calendarPricingApi';
@@ -185,7 +185,7 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
       <Paper sx={CARD_SX}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
           <IconButton onClick={onPrevMonth} size="small">
-            <ChevronLeftIcon sx={{ fontSize: 20 }} />
+            <ChevronLeftIcon size={20} strokeWidth={1.75} />
           </IconButton>
           <Typography
             variant="body2"
@@ -195,7 +195,7 @@ const PricingOverviewView: React.FC<PricingOverviewViewProps> = ({
             {formatMonth(currentMonth, isFrench)}
           </Typography>
           <IconButton onClick={onNextMonth} size="small">
-            <ChevronRightIcon sx={{ fontSize: 20 }} />
+            <ChevronRightIcon size={20} strokeWidth={1.75} />
           </IconButton>
         </Box>
       </Paper>

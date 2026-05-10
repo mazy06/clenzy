@@ -13,7 +13,7 @@ import {
   FormControlLabel,
   Switch,
 } from '@mui/material';
-import { Send } from '@mui/icons-material';
+import { Send } from '../../icons';
 import { useDocumentTypes, useGenerateDocument } from './hooks/useDocuments';
 
 interface GenerateDialogProps {

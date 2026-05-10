@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import {
   CloudUpload as PushIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useAuth } from '../../hooks/useAuth';
 import { useDynamicPricing } from '../../hooks/useDynamicPricing';
@@ -263,7 +263,7 @@ const DynamicPricing: React.FC<DynamicPricingProps> = ({ embedded = false, actio
       <Button
         variant="outlined"
         size="small"
-        startIcon={pushLoading ? <CircularProgress size={14} /> : <PushIcon sx={{ fontSize: 16 }} />}
+        startIcon={pushLoading ? <CircularProgress size={14} /> : <PushIcon size={16} strokeWidth={1.75} />}
         onClick={handlePushPricing}
         disabled={pushLoading}
         color={pushResult?.includes('succes') || pushResult?.includes('success') ? 'success' : 'primary'}

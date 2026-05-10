@@ -8,9 +8,9 @@ import {
   CircularProgress,
   alpha,
 } from '@mui/material';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import { ChevronLeft as ChevronLeftIcon } from '../../icons';
+import { ChevronRight as ChevronRightIcon } from '../../icons';
+import { CalendarMonth as CalendarMonthIcon } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { CalendarPricingDay } from '../../services/api/calendarPricingApi';
 import PricingEditDialog from './PricingEditDialog';
@@ -185,7 +185,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
       <Paper sx={CARD_SX}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
           <IconButton onClick={onPrevMonth} size="small">
-            <ChevronLeftIcon sx={{ fontSize: 20 }} />
+            <ChevronLeftIcon size={20} strokeWidth={1.75} />
           </IconButton>
           <Typography
             variant="body2"
@@ -195,7 +195,7 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
             {formatMonth(currentMonth, isFrench)}
           </Typography>
           <IconButton onClick={onNextMonth} size="small">
-            <ChevronRightIcon sx={{ fontSize: 20 }} />
+            <ChevronRightIcon size={20} strokeWidth={1.75} />
           </IconButton>
         </Box>
       </Paper>
@@ -216,13 +216,16 @@ const PricingCalendarView: React.FC<PricingCalendarViewProps> = ({
             bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
           }}
         >
-          <CalendarMonthIcon
+          <Box
+            component="span"
             sx={{
-              fontSize: 48,
+              display: 'inline-flex',
               color: (theme) => alpha(theme.palette.primary.main, 0.25),
               mb: 0.5,
             }}
-          />
+          >
+            <CalendarMonthIcon size={48} strokeWidth={1.75} />
+          </Box>
           <Typography variant="body1" fontWeight={600} color="text.primary" sx={{ fontSize: '0.875rem' }}>
             {t('dynamicPricing.calendar.noProperty')}
           </Typography>

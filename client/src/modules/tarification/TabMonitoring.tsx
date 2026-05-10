@@ -20,7 +20,7 @@ import {
   Handshake,
   Memory,
   CheckCircleOutline,
-} from '@mui/icons-material';
+} from '../../icons';
 import type { PricingConfig } from '../../services/api/pricingConfigApi';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -38,7 +38,7 @@ interface TabMonitoringProps {
 function FeatureItem({ text }: { text: string }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25 }}>
-      <CheckCircleOutline sx={{ fontSize: 16, color: 'success.main' }} />
+      <Box component="span" sx={{ display: 'inline-flex', color: 'success.main' }}><CheckCircleOutline size={16} strokeWidth={1.75} /></Box>
       <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
         {text}
       </Typography>
@@ -68,7 +68,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
     <Box sx={{ pt: 2 }}>
       {/* ─── Section title ─────────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-        <VolumeUp sx={{ color: 'primary.main', fontSize: 20 }} />
+        <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><VolumeUp size={20} strokeWidth={1.75} /></Box>
         <Typography variant="subtitle1" fontWeight={600}>
           {t('tarification.monitoring.title')}
         </Typography>
@@ -98,7 +98,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
           >
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Handshake sx={{ color: '#6B8A9A', fontSize: 22 }} />
+              <Handshake size={22} strokeWidth={1.75} color='#6B8A9A' />
               <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
                 {t('tarification.monitoring.minut.title')}
               </Typography>
@@ -171,7 +171,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
             <List disablePadding>
               <ListItem disableGutters sx={{ px: 0 }}>
                 <ListItemIcon sx={{ minWidth: 36 }}>
-                  <VolumeUp sx={{ fontSize: 20, color: config.monitoringMinutEnabled ? 'primary.main' : 'text.disabled' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: config.monitoringMinutEnabled ? 'primary.main' : 'text.disabled' }}><VolumeUp size={20} strokeWidth={1.75} /></Box>
                 </ListItemIcon>
                 <ListItemText
                   primary={t('tarification.monitoring.enable')}
@@ -208,7 +208,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
           >
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <Memory sx={{ color: '#4A9B8E', fontSize: 22 }} />
+              <Memory size={22} strokeWidth={1.75} color='#4A9B8E' />
               <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: '1rem' }}>
                 {t('tarification.monitoring.clenzy.title')}
               </Typography>
@@ -325,7 +325,7 @@ export default function TabMonitoring({ config, canEdit, onUpdate, currencySymbo
             <List disablePadding>
               <ListItem disableGutters sx={{ px: 0 }}>
                 <ListItemIcon sx={{ minWidth: 36 }}>
-                  <Memory sx={{ fontSize: 20, color: config.monitoringClenzyEnabled ? 'success.main' : 'text.disabled' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', color: config.monitoringClenzyEnabled ? 'success.main' : 'text.disabled' }}><Memory size={20} strokeWidth={1.75} /></Box>
                 </ListItemIcon>
                 <ListItemText
                   primary={t('tarification.monitoring.enable')}

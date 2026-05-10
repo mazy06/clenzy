@@ -13,7 +13,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { FilterAltOff as FilterAltOffIcon } from '@mui/icons-material';
+import { FilterAltOff as FilterAltOffIcon } from '../../icons';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Box, Typography, IconButton, Tooltip } from '@mui/material';
-import { ChevronRight, ExpandMore, ContentCopy } from '@mui/icons-material';
+import { ChevronRight, ExpandMore, ContentCopy } from '../../../../icons';
 import { DOMNode } from './types';
 
 /** Check if any descendant of this node matches the selected path */
@@ -64,7 +64,7 @@ const TreeItem: React.FC<TreeItemProps> = ({ node, selectedPath, onSelect, onHov
         }}
       >
         {hasChildren ? (
-          expanded ? <ExpandMore sx={{ fontSize: 14, flexShrink: 0 }} /> : <ChevronRight sx={{ fontSize: 14, flexShrink: 0 }} />
+          expanded ? <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0 }}><ExpandMore size={14} strokeWidth={1.75} /></Box> : <Box component="span" sx={{ display: 'inline-flex', flexShrink: 0 }}><ChevronRight size={14} strokeWidth={1.75} /></Box>
         ) : (
           <Box sx={{ width: 14, flexShrink: 0 }} />
         )}
@@ -87,7 +87,7 @@ const TreeItem: React.FC<TreeItemProps> = ({ node, selectedPath, onSelect, onHov
             onClick={handleCopy}
             sx={{ opacity: 0, p: 0.25, color: copied ? '#4CAF50' : '#8b8fa3', transition: 'opacity 0.15s' }}
           >
-            <ContentCopy sx={{ fontSize: 12 }} />
+            <ContentCopy size={12} strokeWidth={1.75} />
           </IconButton>
         </Tooltip>
       </Box>

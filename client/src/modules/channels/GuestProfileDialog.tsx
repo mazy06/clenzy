@@ -21,7 +21,7 @@ import {
   Star as StarIcon,
   CalendarMonth as CalendarIcon,
   Note as NoteIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useCurrency } from '../../hooks/useCurrency';
 import { airbnbApi } from '../../services/api/airbnbApi';
@@ -79,12 +79,12 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 0.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <PersonIcon sx={{ fontSize: '1.25rem', color: 'primary.main' }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><PersonIcon size={'1.25rem'} strokeWidth={1.75} /></Box>
           <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700 }}>
             {t('channels.guest.title')}
           </Typography>
         </Box>
-        <IconButton size="small" onClick={onClose}><CloseIcon sx={{ fontSize: '1rem' }} /></IconButton>
+        <IconButton size="small" onClick={onClose}><CloseIcon size={'1rem'} strokeWidth={1.75} /></IconButton>
       </DialogTitle>
 
       <DialogContent sx={{ pt: 1 }}>
@@ -114,13 +114,13 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                 <Box sx={{ display: 'flex', gap: 1.5, mt: 0.25 }}>
                   {guest.email && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                      <EmailIcon sx={{ fontSize: '0.75rem', color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><EmailIcon size={'0.75rem'} strokeWidth={1.75} /></Box>
                       <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>{guest.email}</Typography>
                     </Box>
                   )}
                   {guest.phone && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                      <PhoneIcon sx={{ fontSize: '0.75rem', color: 'text.secondary' }} />
+                      <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary' }}><PhoneIcon size={'0.75rem'} strokeWidth={1.75} /></Box>
                       <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>{guest.phone}</Typography>
                     </Box>
                   )}
@@ -137,7 +137,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                   label={t('channels.guest.avgRating')}
                   value={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-                      <StarIcon sx={{ fontSize: '0.75rem', color: '#D4A574' }} />
+                      <StarIcon size={'0.75rem'} strokeWidth={1.75} color='#D4A574' />
                       {guest.averageRating.toFixed(1)}
                     </Box>
                   }
@@ -168,7 +168,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
                 <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', color: 'text.secondary' }}>
-                  <NoteIcon sx={{ fontSize: '0.75rem', mr: 0.25, verticalAlign: 'middle' }} />
+                  <Box component="span" sx={{ display: 'inline-flex', mr: 0.25, verticalAlign: 'middle' }}><NoteIcon size={'0.75rem'} strokeWidth={1.75} /></Box>
                   {t('channels.guest.notes')}
                 </Typography>
                 {!editingNotes && (
@@ -210,7 +210,7 @@ const GuestProfileDialog: React.FC<GuestProfileDialogProps> = ({ guestId, open, 
                 <Divider />
                 <Box>
                   <Typography sx={{ fontSize: '0.6875rem', fontWeight: 600, mb: 0.75, textTransform: 'uppercase', color: 'text.secondary' }}>
-                    <CalendarIcon sx={{ fontSize: '0.75rem', mr: 0.25, verticalAlign: 'middle' }} />
+                    <Box component="span" sx={{ display: 'inline-flex', mr: 0.25, verticalAlign: 'middle' }}><CalendarIcon size={'0.75rem'} strokeWidth={1.75} /></Box>
                     {t('channels.guest.reservationHistory')} ({guest.reservations.length})
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>

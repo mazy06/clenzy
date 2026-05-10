@@ -25,7 +25,7 @@ import {
   CheckCircle,
   Error as ErrorIcon,
   Shield,
-} from '@mui/icons-material';
+} from '../../icons';
 import {
   LineChart,
   Line,
@@ -112,9 +112,11 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, criticalFailed }) => {
             }}
           >
             {criticalFailed ? (
-              <Warning sx={{ fontSize: 32, color: '#f44336', mb: 0.5 }} />
+              <Box component="span" sx={{ display: 'inline-flex', mb: 0.5 }}><Warning size={32} strokeWidth={1.75} color='#f44336' /></Box>
             ) : (
-              <Shield sx={{ fontSize: 32, color, mb: 0.5 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color, mb: 0.5 }}>
+                <Shield size={32} strokeWidth={1.75} />
+              </Box>
             )}
             <Typography variant="h3" sx={{ fontWeight: 700, color }}>
               {criticalFailed ? '0' : Math.round(score)}
@@ -186,7 +188,7 @@ const KpiCard: React.FC<KpiCardProps> = ({ kpi, onClick, badgeCount, tooltipCont
           Target: {kpi.target}
         </Typography>
         <Chip
-          icon={<StatusIcon sx={{ fontSize: 14 }} />}
+          icon={<StatusIcon size={14} strokeWidth={1.75} />}
           label={kpi.status}
           color={chipColor}
           size="small"

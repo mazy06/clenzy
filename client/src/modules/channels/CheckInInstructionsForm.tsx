@@ -21,7 +21,7 @@ import {
   Phone as PhoneIcon,
   Notes as NotesIcon,
   Save as SaveIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { airbnbApi } from '../../services/api/airbnbApi';
 import type { CheckInInstructions, UpdateCheckInInstructions } from '../../services/api/airbnbApi';
@@ -153,7 +153,7 @@ const CheckInInstructionsForm: React.FC<CheckInInstructionsFormProps> = ({ prope
             onChange={(e) => handleChange('wifiName', e.target.value)}
             size="small"
             sx={{ ...FIELD_SX, flex: 1, minWidth: 200 }}
-            InputProps={{ startAdornment: <WifiIcon sx={{ fontSize: '1rem', mr: 0.5, color: 'text.secondary' }} /> }}
+            InputProps={{ startAdornment: <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mr: 0.5 }}><WifiIcon size={'1rem'} strokeWidth={1.75} /></Box> }}
           />
           <TextField
             label={t('channels.checkIn.wifiPassword')}

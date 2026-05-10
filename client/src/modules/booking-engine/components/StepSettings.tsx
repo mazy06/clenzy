@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import {
   Settings as SettingsIcon, Gavel, Security, ToggleOn, Widgets,
-} from '@mui/icons-material';
+} from '../../../icons';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { BookingEngineConfigUpdate } from '../../../services/api/bookingEngineApi';
 import type { ComponentVisibility } from '../ComponentVisibilityConfig';
@@ -45,7 +45,7 @@ const StepSettings: React.FC<StepSettingsProps> = ({
       <Grid container spacing={2.5}>
         {/* Behavior */}
         <Grid item xs={12} sm={6}>
-          <SectionPaper icon={<SettingsIcon sx={{ fontSize: 20, color: '#4A9B8E' }} />} titleKey="bookingEngine.sections.behavior">
+          <SectionPaper icon={<SettingsIcon size={20} strokeWidth={1.75} color='#4A9B8E' />} titleKey="bookingEngine.sections.behavior">
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               <TextField
                 fullWidth
@@ -97,7 +97,7 @@ const StepSettings: React.FC<StepSettingsProps> = ({
 
         {/* Policies */}
         <Grid item xs={12} sm={6}>
-          <SectionPaper icon={<Gavel sx={{ fontSize: 20, color: '#D4A574' }} />} titleKey="bookingEngine.sections.policies">
+          <SectionPaper icon={<Gavel size={20} strokeWidth={1.75} color='#D4A574' />} titleKey="bookingEngine.sections.policies">
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               <TextField
                 fullWidth
@@ -131,7 +131,7 @@ const StepSettings: React.FC<StepSettingsProps> = ({
 
         {/* Security */}
         <Grid item xs={12} sm={6}>
-          <SectionPaper icon={<Security sx={{ fontSize: 20, color: '#FF5A5F' }} />} titleKey="bookingEngine.sections.security">
+          <SectionPaper icon={<Security size={20} strokeWidth={1.75} color='#FF5A5F' />} titleKey="bookingEngine.sections.security">
             <TextField
               fullWidth
               size="small"
@@ -149,7 +149,7 @@ const StepSettings: React.FC<StepSettingsProps> = ({
 
         {/* Display Options */}
         <Grid item xs={12} sm={6}>
-          <SectionPaper icon={<ToggleOn sx={{ fontSize: 20, color: '#4FC3F7' }} />} titleKey="bookingEngine.sections.displayOptions">
+          <SectionPaper icon={<ToggleOn size={20} strokeWidth={1.75} color='#4FC3F7' />} titleKey="bookingEngine.sections.displayOptions">
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
               {TOGGLE_FIELDS.map(({ field, labelKey }) => (
                 <FormControlLabel
@@ -170,7 +170,7 @@ const StepSettings: React.FC<StepSettingsProps> = ({
       </Grid>
 
       {/* Component Visibility */}
-      <SectionPaper icon={<Widgets sx={{ fontSize: 20, color: '#7E57C2' }} />} titleKey="bookingEngine.sections.componentVisibility">
+      <SectionPaper icon={<Widgets size={20} strokeWidth={1.75} color='#7E57C2' />} titleKey="bookingEngine.sections.componentVisibility">
         <ComponentVisibilityConfig value={componentVis} onChange={onComponentVisChange} />
       </SectionPaper>
     </Box>

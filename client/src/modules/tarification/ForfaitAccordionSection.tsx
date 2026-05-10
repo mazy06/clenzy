@@ -25,7 +25,7 @@ import {
   Group,
   Add,
   Delete,
-} from '@mui/icons-material';
+} from '../../icons';
 import type { ForfaitConfig, SurfaceBasePrice, PrestationOption, SurchargeOption } from '../../services/api/pricingConfigApi';
 import type { Team } from '../../services/api/teamsApi';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -234,7 +234,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
               return (
                 <Chip
                   key={stKey}
-                  icon={<AutoAwesome sx={{ fontSize: 14 }} />}
+                  icon={<AutoAwesome size={14} strokeWidth={1.75} />}
                   label={t(`tarification.forfaitSection.cleaningTypes.${stKey}`)}
                   onClick={canEdit ? () => toggleServiceType(stKey) : undefined}
                   variant={isSelected ? 'filled' : 'outlined'}
@@ -358,7 +358,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                 return (
                   <Chip
                     key={team.id}
-                    icon={<Group sx={{ fontSize: 14 }} />}
+                    icon={<Group size={14} strokeWidth={1.75} />}
                     label={`${team.name} (${team.memberCount})`}
                     onClick={canEdit ? () => toggleTeam(team.id) : undefined}
                     variant={isSelected ? 'filled' : 'outlined'}
@@ -433,7 +433,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
                     {canEdit && (
                       <TableCell align="center">
                         <IconButton size="small" onClick={() => removeSurfaceTier(index)} color="error">
-                          <Delete sx={{ fontSize: 16 }} />
+                          <Delete size={16} strokeWidth={1.75} />
                         </IconButton>
                       </TableCell>
                     )}
@@ -445,7 +445,7 @@ const ForfaitAccordionSection: React.FC<ForfaitAccordionSectionProps> = React.me
           {canEdit && (
             <Box sx={{ mt: 0.5 }}>
               <Chip
-                icon={<Add sx={{ fontSize: 14 }} />}
+                icon={<Add size={14} strokeWidth={1.75} />}
                 label={t('tarification.forfaitSection.addTier')}
                 onClick={addSurfaceTier}
                 variant="outlined"

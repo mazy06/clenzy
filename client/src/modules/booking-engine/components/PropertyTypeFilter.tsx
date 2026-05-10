@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { PhotoLibrary } from '@mui/icons-material';
+import { PhotoLibrary } from '../../../icons';
 import type { ResolvedTokens, PreviewPropertyType } from '../types/bookingEngine';
 import type { BookingI18n } from '../sdk/i18n';
 import BookingToggle from './BookingToggle';
@@ -26,7 +26,7 @@ const PropertyTypeFilter: React.FC<PropertyTypeFilterProps> = ({
         return (
           <Box key={pt.type} sx={{ display: 'flex', alignItems: 'center', gap: isCompact ? 1.5 : 2, minWidth: 0 }}>
             <Box sx={{ width: isCompact ? 44 : 56, height: isCompact ? 44 : 56, borderRadius: tk.radiusSm, bgcolor: tk.secondary, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <PhotoLibrary sx={{ color: 'rgba(255,255,255,0.3)', fontSize: isCompact ? 16 : 18 }} />
+              <Box component="span" sx={{ display: 'inline-flex', color: 'rgba(255,255,255,0.3)' }}><PhotoLibrary size={isCompact ? 16 : 18} strokeWidth={1.75} /></Box>
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography sx={{ fontSize: isCompact ? 13 : 14, fontWeight: 600, color: tk.primary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

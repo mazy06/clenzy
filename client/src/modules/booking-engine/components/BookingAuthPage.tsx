@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography, IconButton, CircularProgress } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
+import { ArrowBack } from '../../../icons';
 import type { ResolvedTokens, PreviewPage } from '../types/bookingEngine';
 import type { BookingI18n } from '../sdk/i18n';
 
@@ -49,7 +49,7 @@ const BookingAuthPage: React.FC<BookingAuthPageProps> = ({
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', px: 3, py: 2, maxWidth: 500, mx: 'auto', width: '100%', boxSizing: 'border-box' }}>
         <IconButton size="small" onClick={() => setPage('results')} sx={{ color: tk.textLabel, mr: 1 }}>
-          <ArrowBack sx={{ fontSize: 18 }} />
+          <ArrowBack size={18} strokeWidth={1.75} />
         </IconButton>
         <Typography sx={{ fontFamily: tk.headingFont, fontWeight: 700, fontSize: 18, color: tk.text, textTransform: 'uppercase', letterSpacing: 0.5 }}>
           {authTab === 'login' ? i18n.t('identification.login') : i18n.t('identification.register')}

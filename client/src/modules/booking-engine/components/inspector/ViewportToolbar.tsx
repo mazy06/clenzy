@@ -5,7 +5,7 @@ import {
 import {
   Close, Mouse, Smartphone, Tablet, DesktopWindows, Undo, Redo, Save,
   ViewSidebar,
-} from '@mui/icons-material';
+} from '../../../../icons';
 import { ViewportPreset } from './types';
 import { overridesToCSS } from './helpers';
 import { CSSOverride } from './types';
@@ -56,7 +56,7 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = ({
           '&:hover': { bgcolor: inspectMode ? 'rgba(99,91,255,0.2)' : 'rgba(255,255,255,0.05)' },
         }}
       >
-        <Mouse sx={{ fontSize: 18 }} />
+        <Mouse size={18} strokeWidth={1.75} />
       </IconButton>
     </Tooltip>
 
@@ -77,9 +77,9 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = ({
       }}
     >
       <ToggleButton value="full"><Typography sx={{ fontSize: 11 }}>Auto</Typography></ToggleButton>
-      <ToggleButton value="mobile"><Smartphone sx={{ fontSize: 16 }} /></ToggleButton>
-      <ToggleButton value="tablet"><Tablet sx={{ fontSize: 16 }} /></ToggleButton>
-      <ToggleButton value="desktop"><DesktopWindows sx={{ fontSize: 16 }} /></ToggleButton>
+      <ToggleButton value="mobile"><Smartphone size={16} strokeWidth={1.75} /></ToggleButton>
+      <ToggleButton value="tablet"><Tablet size={16} strokeWidth={1.75} /></ToggleButton>
+      <ToggleButton value="desktop"><DesktopWindows size={16} strokeWidth={1.75} /></ToggleButton>
     </ToggleButtonGroup>
 
     <Box sx={{ flex: 1 }} />
@@ -88,14 +88,14 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = ({
     <Tooltip title="Annuler (Ctrl+Z)">
       <span>
         <IconButton size="small" onClick={onUndo} disabled={historyIdx <= 0} sx={{ color: '#8b8fa3' }}>
-          <Undo sx={{ fontSize: 16 }} />
+          <Undo size={16} strokeWidth={1.75} />
         </IconButton>
       </span>
     </Tooltip>
     <Tooltip title="Rétablir (Ctrl+Y)">
       <span>
         <IconButton size="small" onClick={onRedo} disabled={historyIdx >= historyLength - 1} sx={{ color: '#8b8fa3' }}>
-          <Redo sx={{ fontSize: 16 }} />
+          <Redo size={16} strokeWidth={1.75} />
         </IconButton>
       </span>
     </Tooltip>
@@ -121,7 +121,7 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = ({
             '&:hover': { bgcolor: 'rgba(76,175,80,0.2)' },
           }}
         >
-          <Save sx={{ fontSize: 16 }} />
+          <Save size={16} strokeWidth={1.75} />
         </IconButton>
       </Tooltip>
     )}
@@ -139,14 +139,14 @@ const ViewportToolbar: React.FC<ViewportToolbarProps> = ({
           '&:hover': { bgcolor: panelOpen ? 'rgba(99,91,255,0.2)' : 'rgba(255,255,255,0.05)' },
         }}
       >
-        <ViewSidebar sx={{ fontSize: 18 }} />
+        <ViewSidebar size={18} strokeWidth={1.75} />
       </IconButton>
     </Tooltip>
 
     {/* Close */}
     <Tooltip title="Fermer">
       <IconButton size="small" onClick={onClose} sx={{ color: '#8b8fa3', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.08)' } }}>
-        <Close sx={{ fontSize: 18 }} />
+        <Close size={18} strokeWidth={1.75} />
       </IconButton>
     </Tooltip>
   </Box>

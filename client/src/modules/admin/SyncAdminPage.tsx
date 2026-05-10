@@ -13,7 +13,7 @@ import {
   AccountTree,
   BugReport,
   CompareArrows,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import ConnectionsTab from './sync/ConnectionsTab';
 import EventsTab from './sync/EventsTab';

@@ -8,7 +8,7 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material';
-import { ShoppingCartOutlined, Memory } from '@mui/icons-material';
+import { ShoppingCartOutlined, Memory } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import apiClient from '../../services/apiClient';
 import { SHOP_PRODUCTS, CATEGORIES } from './shopProducts';
@@ -121,7 +121,7 @@ const ShopPage: React.FC = () => {
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 3 }}>
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-            <Memory sx={{ color: '#4A9B8E', fontSize: 24 }} />
+            <Memory size={24} strokeWidth={1.75} color='#4A9B8E' />
             <Typography variant="h5" fontWeight={700} sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>
               {t('shop.title')}
             </Typography>
@@ -153,7 +153,7 @@ const ShopPage: React.FC = () => {
               },
             }}
           >
-            <ShoppingCartOutlined sx={{ fontSize: 22, color: 'text.primary' }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.primary' }}><ShoppingCartOutlined size={22} strokeWidth={1.75} /></Box>
           </Badge>
         </IconButton>
       </Box>

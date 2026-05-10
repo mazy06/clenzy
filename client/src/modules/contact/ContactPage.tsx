@@ -13,7 +13,7 @@ import {
   Description as FormsIcon,
   Edit as EditIcon,
   Forum as ChannelsIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import InternalChatTab from './InternalChatTab';
 import ContactMessages from './ContactMessages';

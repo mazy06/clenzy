@@ -9,12 +9,12 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
-import PaletteRounded from '@mui/icons-material/PaletteRounded';
-import TextFieldsRounded from '@mui/icons-material/TextFieldsRounded';
-import SpaceBarRounded from '@mui/icons-material/SpaceBarRounded';
-import FilterDramaRounded from '@mui/icons-material/FilterDramaRounded';
-import SmartButtonRounded from '@mui/icons-material/SmartButtonRounded';
+import { ExpandMoreRounded } from '../../icons';
+import { PaletteRounded } from '../../icons';
+import { TextFieldsRounded } from '../../icons';
+import { SpaceBarRounded } from '../../icons';
+import { FilterDramaRounded } from '../../icons';
+import { SmartButtonRounded } from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { DesignTokens } from '../../services/api/bookingEngineApi';
 

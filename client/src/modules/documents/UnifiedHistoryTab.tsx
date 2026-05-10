@@ -34,7 +34,7 @@ import {
   Visibility,
   Edit as EditIcon,
   Replay,
-} from '@mui/icons-material';
+} from '../../icons';
 import { useTranslation } from '../../hooks/useTranslation';
 import { guestMessagingApi, type GuestMessageLog } from '../../services/api/guestMessagingApi';
 import { guestsApi } from '../../services/api/guestsApi';
@@ -333,7 +333,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
         </Box>
       ) : unifiedRows.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <History sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 2 }}><History size={48} strokeWidth={1.75} /></Box>
           <Typography variant="h6" color="text.secondary" gutterBottom>
             {t('documents.history.empty')}
           </Typography>
@@ -363,8 +363,8 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                     <TableCell sx={{ pr: 0 }}>
                       <Tooltip title={row.kind === 'message' ? t('documents.history.typeMessage') : t('documents.history.typeDocument')}>
                         {row.kind === 'message'
-                          ? <EmailIcon sx={{ fontSize: 18, color: 'info.main' }} />
-                          : <DocIcon sx={{ fontSize: 18, color: 'secondary.main' }} />
+                          ? <Box component="span" sx={{ display: 'inline-flex', color: 'info.main' }}><EmailIcon size={18} strokeWidth={1.75} /></Box>
+                          : <Box component="span" sx={{ display: 'inline-flex', color: 'secondary.main' }}><DocIcon size={18} strokeWidth={1.75} /></Box>
                         }
                       </Tooltip>
                     </TableCell>
@@ -378,7 +378,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                         </Typography>
                         {row.legalNumber && (() => { const c = row.locked ? '#ED6C02' : '#757575'; return (
                           <Chip
-                            icon={row.locked ? <Lock sx={{ fontSize: 12, color: `${c} !important` }} /> : undefined}
+                            icon={row.locked ? <Lock size={12} strokeWidth={1.75} color={c} /> : undefined}
                             label={row.legalNumber}
                             size="small"
                             sx={{ fontFamily: 'monospace', fontSize: '0.625rem', height: 20, fontWeight: 600, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px', '& .MuiChip-label': { px: 0.75 } }}
@@ -467,7 +467,7 @@ const UnifiedHistoryTab = forwardRef<UnifiedHistoryTabRef>((_, ref) => {
                             )}
                             {row.correctsId && (
                               <Tooltip title={`Correction du document #${row.correctsId}`}>
-                                <VerifiedUser sx={{ fontSize: 16, color: 'text.secondary', mt: 0.5 }} />
+                                <Box component="span" sx={{ display: 'inline-flex', color: 'text.secondary', mt: 0.5 }}><VerifiedUser size={16} strokeWidth={1.75} /></Box>
                               </Tooltip>
                             )}
                           </>

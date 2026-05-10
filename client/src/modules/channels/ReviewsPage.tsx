@@ -19,7 +19,7 @@ import {
   Star as StarIcon,
   Reply as ReplyIcon,
   ExpandMore as ExpandMoreIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { SPACING } from '../../theme/spacing';
@@ -133,7 +133,7 @@ const ReviewsPage: React.FC = () => {
             {t('channels.reviews.avgRating')}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
-            <StarIcon sx={{ fontSize: '1.25rem', color: '#D4A574' }} />
+            <StarIcon size={'1.25rem'} strokeWidth={1.75} color='#D4A574' />
             <Typography sx={{ fontSize: '1.5rem', fontWeight: 700 }}>
               {avgRating > 0 ? avgRating.toFixed(1) : '—'}
             </Typography>
@@ -301,7 +301,7 @@ function ReviewCard({
           {!isReplying && (
             <Button
               size="small"
-              startIcon={<ReplyIcon sx={{ fontSize: '0.75rem' }} />}
+              startIcon={<ReplyIcon size={'0.75rem'} strokeWidth={1.75} />}
               onClick={onStartReply}
               sx={{ fontSize: '0.6875rem', mt: 0.25 }}
             >

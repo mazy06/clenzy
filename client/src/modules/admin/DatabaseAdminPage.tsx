@@ -22,7 +22,7 @@ import {
   Delete,
   Storage,
   Refresh,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { databaseAdminApi, BackupInfo } from '../../services/api/databaseAdminApi';
 
@@ -154,7 +154,7 @@ const DatabaseAdminPage: React.FC = () => {
           </Box>
         ) : backups.length === 0 ? (
           <Box sx={{ p: 4, textAlign: 'center' }}>
-            <Storage sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+            <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><Storage size={48} strokeWidth={1.75} /></Box>
             <Typography variant="body1" color="text.secondary">
               Aucun backup disponible
             </Typography>

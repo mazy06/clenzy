@@ -5,7 +5,7 @@ import {
   Schedule as ScheduleIcon,
   People as PeopleIcon,
   Home as HomeIcon,
-} from '@mui/icons-material';
+} from '../../icons';
 import PageHeader from '../../components/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
