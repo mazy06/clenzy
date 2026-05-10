@@ -43,6 +43,10 @@ import {
 } from '../../icons';
 import type { ReceivedForm } from '../../services/api/receivedFormsApi';
 import { useReceivedForms, useUpdateFormStatus, useResetFormsAvailability } from '../../hooks/useReceivedForms';
+import { useTemplates, useGenerateDocument } from '../documents/hooks/useDocuments';
+import { documentsApi } from '../../services/api/documentsApi';
+import { PictureAsPdf as PdfIcon } from '../../icons';
+import { useNotification } from '../../hooks/useNotification';
 
 // ─── Config types & statuts (PMS soft-filled design system) ─────────────────
 
@@ -449,6 +453,49 @@ const ReceivedFormsTab: React.FC = () => {
   const { data: formsPage, isLoading } = useReceivedForms(queryParams);
   const updateStatusMutation = useUpdateFormStatus();
   const resetAvailabilityMutation = useResetFormsAvailability();
+  const { data: templates } = useTemplates();
+  const generateDocumentMutation = useGenerateDocument();
+  const { notify } = useNotification();
+
+  // ─── Active template lookup per form type ─────────────────────
+  // Map des types de formulaire vers le documentType côté serveur
+  const FORM_TO_DOC_TYPE: Record<string, string> = {
+    DEVIS: 'DEVIS',
+    MAINTENANCE: 'AUTORISATION_TRAVAUX',
+    SUPPORT: '',
+  };
+
+  const findActiveTemplate = (formType: string) => {
+    const docType = FORM_TO_DOC_TYPE[formType];
+    if (!docType || !templates) return null;
+    return templates.find((tpl) => tpl.documentType === docType && tpl.active) ?? null;
+  };
+
+  // ─── Generate PDF using a document template ───────────────────
+  const handleGeneratePdf = async (form: ReceivedForm) => {
+    const tpl = findActiveTemplate(form.formType);
+    if (!tpl) {
+      notify.error('Aucun template actif trouvé pour ce type de formulaire');
+      return;
+    }
+    try {
+      const generation = await generateDocumentMutation.mutateAsync({
+        documentType: tpl.documentType,
+        referenceId: form.id,
+        referenceType: 'RECEIVED_FORM',
+        sendEmail: false,
+      });
+      if (generation?.id) {
+        notify.success('PDF généré — ouverture…');
+        await documentsApi.viewGeneration(generation.id);
+      } else {
+        notify.error('Génération impossible — vérifie que le template DEVIS est compatible avec ce type de formulaire');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de la génération du PDF';
+      notify.error(message);
+    }
+  };
 
   const forms = formsPage?.content ?? [];
   const totalElements = formsPage?.totalElements ?? 0;
@@ -864,40 +911,85 @@ const ReceivedFormsTab: React.FC = () => {
 
                 {/* ── Actions ── */}
                 <Divider sx={{ my: 2.5 }} />
-                <Box sx={{ display: 'flex', gap: 1.5 }}>
-                  {selectedForm.status !== 'PROCESSED' && (
-                    <Button
-                      size="small"
-                      variant="contained"
-                      color="success"
-                      startIcon={<CheckCircleIcon size={16} strokeWidth={1.75} />}
-                      onClick={() => handleUpdateStatus('PROCESSED')}
-                      disabled={updateStatusMutation.isPending}
-                      sx={{
-                        textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
-                        borderRadius: '10px', px: 2.5, py: 0.75,
-                        boxShadow: 'none', '&:hover': { boxShadow: 'none' },
-                      }}
-                    >
-                      Marquer traite
-                    </Button>
-                  )}
-                  {selectedForm.status !== 'ARCHIVED' && (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<ArchiveIcon size={16} strokeWidth={1.75} />}
-                      onClick={() => handleUpdateStatus('ARCHIVED')}
-                      disabled={updateStatusMutation.isPending}
-                      sx={{
-                        textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
-                        borderRadius: '10px', px: 2.5, py: 0.75,
-                      }}
-                    >
-                      Archiver
-                    </Button>
-                  )}
-                </Box>
+                {(() => {
+                  const tpl = findActiveTemplate(selectedForm.formType);
+                  return (
+                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {/* Generate PDF (only if a matching template exists) */}
+                      {tpl && (
+                        <Tooltip
+                          title={`Génère un PDF à partir du template « ${tpl.name} »`}
+                          placement="top"
+                          arrow
+                        >
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={
+                              generateDocumentMutation.isPending ? (
+                                <CircularProgress size={14} color="inherit" />
+                              ) : (
+                                <PdfIcon size={16} strokeWidth={1.75} />
+                              )
+                            }
+                            onClick={() => handleGeneratePdf(selectedForm)}
+                            disabled={generateDocumentMutation.isPending}
+                            sx={{
+                              textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
+                              borderRadius: '10px', px: 2.5, py: 0.75,
+                              bgcolor: '#d32f2f',
+                              '&:hover': { bgcolor: '#b71c1c' },
+                              boxShadow: 'none',
+                            }}
+                          >
+                            {generateDocumentMutation.isPending ? 'Génération…' : 'Générer PDF'}
+                          </Button>
+                        </Tooltip>
+                      )}
+
+                      {selectedForm.status !== 'PROCESSED' && (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="success"
+                          startIcon={<CheckCircleIcon size={16} strokeWidth={1.75} />}
+                          onClick={() => handleUpdateStatus('PROCESSED')}
+                          disabled={updateStatusMutation.isPending}
+                          sx={{
+                            textTransform: 'none', fontSize: '0.8125rem', fontWeight: 600,
+                            borderRadius: '10px', px: 2.5, py: 0.75,
+                            boxShadow: 'none', '&:hover': { boxShadow: 'none' },
+                          }}
+                        >
+                          Marquer traite
+                        </Button>
+                      )}
+                      {selectedForm.status !== 'ARCHIVED' && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<ArchiveIcon size={16} strokeWidth={1.75} />}
+                          onClick={() => handleUpdateStatus('ARCHIVED')}
+                          disabled={updateStatusMutation.isPending}
+                          sx={{
+                            textTransform: 'none', fontSize: '0.8125rem', fontWeight: 500,
+                            borderRadius: '10px', px: 2.5, py: 0.75,
+                          }}
+                        >
+                          Archiver
+                        </Button>
+                      )}
+
+                      {!tpl && selectedForm.formType === 'DEVIS' && (
+                        <Box sx={{ flex: 1, minWidth: 200 }}>
+                          <Typography sx={{ fontSize: '0.6875rem', color: 'text.disabled', fontStyle: 'italic' }}>
+                            Aucun template DEVIS actif — ajoute-en un dans Documents & Communications pour activer la génération PDF.
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  );
+                })()}
               </Box>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 1 }}>
