@@ -46,7 +46,7 @@ import {
   StickyNote2,
   Remove,
   Numbers,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { PropertyInventoryItem } from '../../../services/api/propertyInventoryApi';
 
 // ─── Categories with icons ──────────────────────────────────────────────────
@@ -59,16 +59,16 @@ interface InventoryCategory {
 }
 
 const CATEGORIES: InventoryCategory[] = [
-  { value: 'Cuisine',       label: 'Cuisine',       icon: <Restaurant fontSize="small" />,           color: '#f59e0b' },
-  { value: 'Salon',         label: 'Salon',         icon: <Weekend fontSize="small" />,              color: '#8b5cf6' },
-  { value: 'Chambre',       label: 'Chambre',       icon: <Hotel fontSize="small" />,                color: '#3b82f6' },
-  { value: 'Salle de bain', label: 'Salle de bain', icon: <Bathtub fontSize="small" />,              color: '#06b6d4' },
-  { value: 'Exterieur',     label: 'Exterieur',     icon: <Yard fontSize="small" />,                 color: '#10b981' },
-  { value: 'Bureau',        label: 'Bureau',        icon: <Computer fontSize="small" />,             color: '#6366f1' },
-  { value: 'Buanderie',     label: 'Buanderie',     icon: <LocalLaundryService fontSize="small" />,  color: '#0ea5e9' },
-  { value: 'Entree',        label: 'Entree',        icon: <DoorFront fontSize="small" />,            color: '#a16207' },
-  { value: 'Rangement',     label: 'Rangement',     icon: <Kitchen fontSize="small" />,              color: '#64748b' },
-  { value: 'Autre',         label: 'Autre',         icon: <MoreHoriz fontSize="small" />,            color: '#94a3b8' },
+  { value: 'Cuisine',       label: 'Cuisine',       icon: <Restaurant size={20} strokeWidth={1.75} />,           color: '#f59e0b' },
+  { value: 'Salon',         label: 'Salon',         icon: <Weekend size={20} strokeWidth={1.75} />,              color: '#8b5cf6' },
+  { value: 'Chambre',       label: 'Chambre',       icon: <Hotel size={20} strokeWidth={1.75} />,                color: '#3b82f6' },
+  { value: 'Salle de bain', label: 'Salle de bain', icon: <Bathtub size={20} strokeWidth={1.75} />,              color: '#06b6d4' },
+  { value: 'Exterieur',     label: 'Exterieur',     icon: <Yard size={20} strokeWidth={1.75} />,                 color: '#10b981' },
+  { value: 'Bureau',        label: 'Bureau',        icon: <Computer size={20} strokeWidth={1.75} />,             color: '#6366f1' },
+  { value: 'Buanderie',     label: 'Buanderie',     icon: <LocalLaundryService size={20} strokeWidth={1.75} />,  color: '#0ea5e9' },
+  { value: 'Entree',        label: 'Entree',        icon: <DoorFront size={20} strokeWidth={1.75} />,            color: '#a16207' },
+  { value: 'Rangement',     label: 'Rangement',     icon: <Kitchen size={20} strokeWidth={1.75} />,              color: '#64748b' },
+  { value: 'Autre',         label: 'Autre',         icon: <MoreHoriz size={20} strokeWidth={1.75} />,            color: '#94a3b8' },
 ];
 
 const CATEGORY_BY_VALUE = CATEGORIES.reduce<Record<string, InventoryCategory>>((acc, c) => {
@@ -127,7 +127,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
     }
     return (
       <Chip
-        icon={React.cloneElement(cat.icon, { sx: { fontSize: 14, color: `${cat.color} !important` } })}
+        icon={React.cloneElement(cat.icon as React.ReactElement<{ size?: number; strokeWidth?: number; color?: string }>, { size: 14, strokeWidth: 1.75, color: cat.color })}
         label={cat.label}
         size="small"
         variant="outlined"
@@ -155,7 +155,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Inventory2 sx={{ color: 'primary.main', fontSize: 22 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'primary.main' }}><Inventory2 size={22} strokeWidth={1.75} /></Box>
           <Box>
             <Typography variant="subtitle1" fontWeight={600}>
               Inventaire du logement
@@ -166,7 +166,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
           </Box>
         </Box>
         {canEdit && (
-          <Button size="small" startIcon={<Add />} onClick={openAdd} variant="outlined">
+          <Button size="small" startIcon={<Add size={18} strokeWidth={1.75} />} onClick={openAdd} variant="outlined">
             Ajouter
           </Button>
         )}
@@ -174,10 +174,10 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
 
       {items.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Inventory2 sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><Inventory2 size={40} strokeWidth={1.5} /></Box>
           <Typography color="text.secondary">Aucun objet reference pour cette propriete</Typography>
           {canEdit && (
-            <Button size="small" startIcon={<Add />} onClick={openAdd} sx={{ mt: 1 }}>
+            <Button size="small" startIcon={<Add size={18} strokeWidth={1.75} />} onClick={openAdd} sx={{ mt: 1 }}>
               Ajouter un objet
             </Button>
           )}
@@ -207,12 +207,12 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                     <TableCell align="right">
                       <Tooltip title="Modifier">
                         <IconButton size="small" onClick={() => openEdit(item)}>
-                          <Edit sx={{ fontSize: 16 }} />
+                          <Edit size={16} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Supprimer">
                         <IconButton size="small" color="error" onClick={() => onDelete(item.id)}>
-                          <DeleteOutline sx={{ fontSize: 16 }} />
+                          <DeleteOutline size={16} strokeWidth={1.75} />
                         </IconButton>
                       </Tooltip>
                     </TableCell>
@@ -254,7 +254,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
               color: 'primary.contrastText',
             }}
           >
-            <Inventory2 sx={{ fontSize: 18 }} />
+            <Inventory2 size={18} strokeWidth={1.75} />
           </Box>
           <Box>
             <Typography variant="subtitle1" fontWeight={600} lineHeight={1.2}>
@@ -283,7 +283,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                 fontSize: '0.6875rem',
               }}
             >
-              <Label sx={{ fontSize: 14 }} />
+              <Label size={14} strokeWidth={1.75} />
               Designation
             </Typography>
             <TextField
@@ -313,7 +313,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                 fontSize: '0.6875rem',
               }}
             >
-              <Category sx={{ fontSize: 14 }} />
+              <Category size={14} strokeWidth={1.75} />
               Categorie
             </Typography>
             <ToggleButtonGroup
@@ -383,7 +383,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                 fontSize: '0.6875rem',
               }}
             >
-              <Numbers sx={{ fontSize: 14 }} />
+              <Numbers size={14} strokeWidth={1.75} />
               Quantite
             </Typography>
             <Stack direction="row" alignItems="center" spacing={1}>
@@ -399,7 +399,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                   height: 32,
                 }}
               >
-                <Remove sx={{ fontSize: 16 }} />
+                <Remove size={16} strokeWidth={1.75} />
               </IconButton>
               <TextField
                 type="number"
@@ -425,7 +425,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                   height: 32,
                 }}
               >
-                <Add sx={{ fontSize: 16 }} />
+                <Add size={16} strokeWidth={1.75} />
               </IconButton>
             </Stack>
           </Box>
@@ -446,7 +446,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
                 fontSize: '0.6875rem',
               }}
             >
-              <StickyNote2 sx={{ fontSize: 14 }} />
+              <StickyNote2 size={14} strokeWidth={1.75} />
               Notes <Box component="span" sx={{ fontWeight: 400, ml: 0.5 }}>(optionnel)</Box>
             </Typography>
             <TextField
@@ -465,7 +465,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
         <DialogActions sx={{ px: 3, py: 1.5, gap: 1 }}>
           <Button
             onClick={() => setDialogOpen(false)}
-            startIcon={<Close />}
+            startIcon={<Close size={18} strokeWidth={1.75} />}
             sx={{ textTransform: 'none' }}
           >
             Annuler
@@ -473,7 +473,7 @@ export default function InventoryItemsSection({ items, canEdit, onAdd, onUpdate,
           <Button
             onClick={handleSave}
             variant="contained"
-            startIcon={<Save />}
+            startIcon={<Save size={18} strokeWidth={1.75} />}
             disabled={!form.name.trim()}
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >

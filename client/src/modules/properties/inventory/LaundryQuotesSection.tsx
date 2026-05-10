@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import {
   Receipt, Add, CheckCircle, ExpandMore, ExpandLess,
-} from '@mui/icons-material';
+} from '../../../icons';
 import type { LaundryQuote, GenerateLaundryQuoteRequest } from '../../../services/api/propertyInventoryApi';
 import { useCurrency } from '../../../hooks/useCurrency';
 
@@ -53,7 +53,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Receipt sx={{ color: 'warning.main', fontSize: 22 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'warning.main' }}><Receipt size={22} strokeWidth={1.75} /></Box>
           <Box>
             <Typography variant="subtitle1" fontWeight={600}>Devis / Factures blanchisserie</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
@@ -64,7 +64,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
         {canEdit && (
           <Button
             size="small"
-            startIcon={<Add />}
+            startIcon={<Add size={18} strokeWidth={1.75} />}
             onClick={handleGenerate}
             variant="contained"
             disabled={!hasLaundryItems || generating}
@@ -84,7 +84,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
 
       {quotes.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Receipt sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+          <Box component="span" sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1 }}><Receipt size={40} strokeWidth={1.5} /></Box>
           <Typography color="text.secondary">Aucun devis genere pour cette propriete</Typography>
         </Paper>
       ) : (
@@ -110,7 +110,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                     <TableRow hover sx={{ cursor: 'pointer' }} onClick={() => toggleExpand(quote.id)}>
                       <TableCell>
                         <IconButton size="small">
-                          {isExpanded ? <ExpandLess sx={{ fontSize: 16 }} /> : <ExpandMore sx={{ fontSize: 16 }} />}
+                          {isExpanded ? <ExpandLess size={16} strokeWidth={1.75} /> : <ExpandMore size={16} strokeWidth={1.75} />}
                         </IconButton>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 500 }}>#{quote.id}</TableCell>
@@ -129,7 +129,7 @@ export default function LaundryQuotesSection({ quotes, hasLaundryItems, canEdit,
                                 size="small"
                                 variant="outlined"
                                 color="success"
-                                startIcon={<CheckCircle sx={{ fontSize: 14 }} />}
+                                startIcon={<CheckCircle size={14} strokeWidth={1.75} />}
                                 onClick={() => onConfirm(quote.id)}
                                 sx={{ fontSize: '0.75rem', py: 0.25 }}
                               >

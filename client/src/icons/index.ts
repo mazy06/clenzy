@@ -29,6 +29,7 @@ export {
   X as Cancel,
   Pencil as Edit,
   Trash2 as Delete,
+  Trash2 as DeleteOutline,
   Copy as ContentCopy,
   RefreshCw as Refresh,
   Send,
