@@ -170,6 +170,7 @@ export {
   DownloadCloud as CloudDownload,
   Upload,
   Download,
+  Download as GetApp,
   Paperclip as AttachFile,
   Folder,
   File,

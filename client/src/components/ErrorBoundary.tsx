@@ -1,6 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Box, Typography, Button, Alert } from '@mui/material';
-import { Refresh as RefreshIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon } from '../icons';
 import * as Sentry from '@sentry/react';
 
 interface Props {
@@ -90,7 +90,7 @@ class ErrorBoundary extends Component<Props, State> {
             <Button
               variant="contained"
               color="primary"
-              startIcon={<RefreshIcon />}
+              startIcon={<RefreshIcon size={18} strokeWidth={1.75} />}
               onClick={this.handleReset}
               sx={{ mt: 2 }}
             >
