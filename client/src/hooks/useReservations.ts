@@ -34,7 +34,10 @@ export interface ReservationFilterState {
 
 const DEFAULT_FILTERS: ReservationFilterState = {
   propertyId: null,
-  status: null,
+  // Par defaut on filtre sur les reservations en attente : c'est ce que
+  // les utilisateurs (host / manager) doivent traiter en priorite.
+  // Le bouton Reset ramene a cet etat (et non a "tous les statuts").
+  status: 'pending',
   source: null,
   from: '',
   to: '',
