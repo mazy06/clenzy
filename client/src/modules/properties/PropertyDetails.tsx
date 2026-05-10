@@ -68,6 +68,7 @@ import CheckInInstructionsForm from '../channels/CheckInInstructionsForm';
 import PropertyPhotosTab from './PropertyPhotosTab';
 import PropertyInventoryTab from './PropertyInventoryTab';
 import PropertySettingsTab from './PropertySettingsTab';
+import PropertyInterventionsTab from './PropertyInterventionsTab';
 import airbnbLogoSmall from '../../assets/logo/airbnb-logo-small.svg';
 import bookingLogoSmall from '../../assets/logo/booking-logo-small.svg';
 import hotelsComLogo from '../../assets/logo/hotels-com-logo-small.svg';
@@ -922,74 +923,7 @@ const PropertyDetails: React.FC = () => {
           aria-labelledby="property-tab-1"
           sx={{ pt: 1.5, flex: 1, minHeight: 0, overflow: 'auto' }}
         >
-          {interventions.length > 0 ? (
-            <Grid container spacing={1}>
-              {interventions.map((intervention) => (
-                <Grid item xs={12} sm={6} md={4} key={intervention.id}>
-                  <Card
-                    sx={INTERVENTION_CARD_SX}
-                    onClick={() => navigate(`/interventions/${intervention.id}`)}
-                  >
-                    <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                      {/* Type + Status row */}
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
-                        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600, color: 'text.primary' }}>
-                          {getInterventionTypeLabel(intervention.type, t)}
-                        </Typography>
-                        {(() => { const c = getInterventionStatusHex(intervention.status); return (
-                          <Chip
-                            label={getInterventionStatusLabel(intervention.status, t)}
-                            size="small"
-                            sx={{ ...STATUS_CHIP_SX, backgroundColor: `${c}18`, color: c, border: `1px solid ${c}40`, borderRadius: '6px' }}
-                          />
-                        ); })()}
-                      </Box>
-
-                      {/* Description */}
-                      {intervention.description && (
-                        <Typography
-                          sx={{
-                            fontSize: '0.75rem',
-                            color: 'text.secondary',
-                            mb: 0.75,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {intervention.description}
-                        </Typography>
-                      )}
-
-                      {/* Footer: date + cost */}
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <Box component="span" sx={{ display: "inline-flex", color: "text.disabled" }}><CalendarMonth size={12} strokeWidth={1.75} /></Box>
-                          <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>
-                            {formatDate(intervention.scheduledDate)}
-                          </Typography>
-                        </Box>
-                        {intervention.cost != null && intervention.cost > 0 && (
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'primary.main' }}>
-                            {intervention.cost}€
-                          </Typography>
-                        )}
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          ) : (
-            <Paper sx={{ border: '1px solid', borderColor: 'divider', boxShadow: 'none', borderRadius: 1.5, p: 3, textAlign: 'center' }}>
-              <Box component="span" sx={{ display: "inline-flex", color: "text.disabled", mb: 0.5 }}><Build size={32} strokeWidth={1.5} /></Box>
-              <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', fontWeight: 500 }}>
-                {t('properties.noInterventions')}
-              </Typography>
-            </Paper>
-          )}
+          <PropertyInterventionsTab interventions={interventions} propertyId={String(id)} />
         </Box>
       )}
 
