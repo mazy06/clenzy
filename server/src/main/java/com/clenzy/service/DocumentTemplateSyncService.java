@@ -7,9 +7,11 @@ import com.clenzy.repository.DocumentTemplateTagRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
@@ -46,30 +48,38 @@ public class DocumentTemplateSyncService {
     private final DocumentTemplateRepository templateRepository;
     private final DocumentTemplateTagRepository tagRepository;
     private final TemplateParserService templateParserService;
+    private final ApplicationContext applicationContext;
 
     public DocumentTemplateSyncService(
             DocumentTemplateRepository templateRepository,
             DocumentTemplateTagRepository tagRepository,
-            TemplateParserService templateParserService
+            TemplateParserService templateParserService,
+            ApplicationContext applicationContext
     ) {
         this.templateRepository = templateRepository;
         this.tagRepository = tagRepository;
         this.templateParserService = templateParserService;
+        this.applicationContext = applicationContext;
     }
 
     @EventListener(ApplicationReadyEvent.class)
-    @Transactional
     public void syncBundledTemplates() {
+        // Pas de @Transactional sur le listener : on isole chaque template
+        // dans sa propre transaction (REQUIRES_NEW) pour qu'un echec
+        // (ex : contrainte unique en cours d'evolution) ne fasse pas
+        // crasher le boot de l'application.
+        DocumentTemplateSyncService self = applicationContext.getBean(DocumentTemplateSyncService.class);
         for (Map.Entry<String, String> entry : BUNDLED_TEMPLATES.entrySet()) {
             try {
-                syncOne(entry.getKey(), entry.getValue());
+                self.syncOne(entry.getKey(), entry.getValue());
             } catch (Exception e) {
-                log.warn("Failed to sync bundled template {}: {}", entry.getKey(), e.getMessage());
+                log.warn("Failed to sync bundled template {}: {}", entry.getKey(), e.getMessage(), e);
             }
         }
     }
 
-    private void syncOne(String resourceName, String documentType) throws IOException {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void syncOne(String resourceName, String documentType) throws IOException {
         ClassPathResource res = new ClassPathResource("templates/" + resourceName);
         if (!res.exists()) {
             log.debug("Bundled template not present on classpath: {}", resourceName);
@@ -110,15 +120,26 @@ public class DocumentTemplateSyncService {
             templateRepository.save(tpl);
 
             // Re-parse les tags pour que ensureTemplateTagsPresent voie les nouveaux.
+            // CRITIQUE : flush() apres deleteAll() avant le saveAll(), sinon Hibernate
+            // batch les operations et l'INSERT viole la contrainte UNIQUE
+            // (template_id, tag_name) parce que les DELETE ne sont pas encore appliques.
             List<DocumentTemplateTag> oldTags = tpl.getTags();
             if (oldTags != null && !oldTags.isEmpty()) {
                 tagRepository.deleteAll(oldTags);
+                tagRepository.flush();
             }
-            List<DocumentTemplateTag> newTags = templateParserService.parseTemplate(bundledBytes);
-            for (DocumentTemplateTag tag : newTags) {
-                tag.setTemplate(tpl);
+            // Dedupe defensif au cas ou le parser retourne deux fois le meme nom.
+            List<DocumentTemplateTag> parsed = templateParserService.parseTemplate(bundledBytes);
+            java.util.Set<String> seen = new java.util.HashSet<>();
+            List<DocumentTemplateTag> newTags = new java.util.ArrayList<>();
+            for (DocumentTemplateTag tag : parsed) {
+                if (seen.add(tag.getTagName())) {
+                    tag.setTemplate(tpl);
+                    newTags.add(tag);
+                }
             }
             tagRepository.saveAll(newTags);
+            tagRepository.flush();
             tpl.setTags(newTags);
             log.info("Re-parsed {} tags for template '{}' (id={})",
                     newTags.size(), tpl.getName(), tpl.getId());
