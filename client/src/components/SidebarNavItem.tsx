@@ -18,12 +18,15 @@ interface SidebarNavItemProps {
 
 function SidebarNavItem({ item, isActive, isCollapsed, onClick }: SidebarNavItemProps) {
   const theme = useTheme();
+  // 4 tiers : sm (< md), md (900-1200), lg (1200-1536), xl (1536+)
+  const isMd = useMediaQuery(theme.breakpoints.up('md'));
+  const isLg = useMediaQuery(theme.breakpoints.up('lg'));
   const isXl = useMediaQuery(theme.breakpoints.up('xl'));
 
-  // Responsive sizes: slightly tighter on lg, comfortable on xl+
-  const itemHeight = isXl ? 40 : 36;
-  const iconSize = isXl ? 17 : 15;
-  const fontSize = isXl ? '0.8125rem' : '0.75rem';
+  // Échelles progressives — icônes restent ~1.3x la hauteur du texte
+  const itemHeight = isXl ? 40 : isLg ? 36 : isMd ? 32 : 30;
+  const iconSize = isXl ? 17 : isLg ? 15 : isMd ? 14 : 13;
+  const fontSize = isXl ? '0.8125rem' : isLg ? '0.75rem' : isMd ? '0.6875rem' : '0.625rem';
 
   const content = (
     <ListItemButton
