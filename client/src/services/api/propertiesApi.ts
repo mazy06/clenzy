@@ -285,4 +285,9 @@ export const propertiesApi = {
   delete(id: number) {
     return apiClient.delete(`/properties/${id}`);
   },
+
+  /** Met à jour uniquement le statut (ACTIVE / INACTIVE / UNDER_MAINTENANCE / ARCHIVED) */
+  updateStatus(id: number, status: string) {
+    return apiClient.patch<Property>(`/properties/${id}/status`, { status });
+  },
 };
